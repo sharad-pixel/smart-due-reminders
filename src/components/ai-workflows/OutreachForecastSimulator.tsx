@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -7,9 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, differenceInDays, addDays } from "date-fns";
-import { CalendarIcon, TrendingUp, Eye, ChevronDown, ChevronUp, Mail, Clock } from "lucide-react";
-import { personaConfig, getPersonaByDaysPastDue } from "@/lib/personaConfig";
+import { CalendarIcon, TrendingUp, Eye, ChevronDown, ChevronUp, Mail, Clock, ChevronLeft, ChevronRight, ExternalLink, Building2, FileText, Filter } from "lucide-react";
+import { personaConfig } from "@/lib/personaConfig";
 import { PersonaAvatar } from "@/components/ai/PersonaAvatar";
 import { cn } from "@/lib/utils";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
@@ -35,9 +37,15 @@ interface BucketForecast {
   bucket: string;
   label: string;
   persona: string | null;
-  invoices: (ForecastInvoice & { forecast_dpd: number; planned_steps: PlannedStep[] })[];
+  invoices: ForecastRow[];
   totalAmount: number;
   count: number;
+}
+
+interface ForecastRow extends ForecastInvoice {
+  forecast_dpd: number;
+  planned_steps: PlannedStep[];
+  outreach_category: "workflow" | "account_level" | "proactive" | "none";
 }
 
 interface PlannedStep {
@@ -67,6 +75,23 @@ const PERSONA_MAP: Record<string, string> = {
   dpd_150_plus: "rocco",
 };
 
+const CATEGORY_OPTIONS = [
+  { value: "all", label: "All Categories" },
+  { value: "workflow", label: "Workflow" },
+  { value: "account_level", label: "Account Level" },
+  { value: "proactive", label: "Proactive" },
+  { value: "none", label: "No Outreach" },
+];
+
+const CATEGORY_BADGE: Record<string, { label: string; className: string }> = {
+  workflow: { label: "Workflow", className: "bg-blue-500/10 text-blue-600 border-blue-200" },
+  account_level: { label: "Account Level", className: "bg-violet-500/10 text-violet-600 border-violet-200" },
+  proactive: { label: "Proactive", className: "bg-emerald-500/10 text-emerald-600 border-emerald-200" },
+  none: { label: "No Outreach", className: "bg-muted text-muted-foreground border-border" },
+};
+
+const PAGE_SIZE = 25;
+
 function getBucketForDPD(dpd: number): string {
   if (dpd <= 0) return "current";
   if (dpd <= 30) return "dpd_1_30";
@@ -79,8 +104,11 @@ function getBucketForDPD(dpd: number): string {
 
 export function OutreachForecastSimulator() {
   const { effectiveAccountId } = useEffectiveAccount();
+  const navigate = useNavigate();
   const [forecastDate, setForecastDate] = useState<Date>(addDays(new Date(), 30));
   const [expandedBuckets, setExpandedBuckets] = useState<Set<string>>(new Set());
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [bucketPages, setBucketPages] = useState<Record<string, number>>({});
 
   // Fetch open invoices
   const { data: invoices, isLoading: loadingInvoices } = useQuery({
@@ -102,7 +130,7 @@ export function OutreachForecastSimulator() {
     },
   });
 
-  // Fetch workflow steps for planned outreach
+  // Fetch workflow steps
   const { data: workflowSteps } = useQuery({
     queryKey: ["forecast-workflow-steps", effectiveAccountId],
     enabled: !!effectiveAccountId,
@@ -120,6 +148,47 @@ export function OutreachForecastSimulator() {
     },
   });
 
+  // Fetch account-level outreach debtors (to tag category)
+  const { data: accountOutreachDebtors } = useQuery({
+    queryKey: ["forecast-account-outreach", effectiveAccountId],
+    enabled: !!effectiveAccountId,
+    staleTime: 120_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("collection_activities")
+        .select("debtor_id, activity_type")
+        .eq("user_id", effectiveAccountId!)
+        .eq("activity_type", "account_level_outreach")
+        .order("created_at", { ascending: false })
+        .limit(500);
+      if (error) throw error;
+      return new Set((data || []).map((d) => d.debtor_id));
+    },
+  });
+
+  // Fetch proactive draft debtors
+  const { data: proactiveDebtors } = useQuery({
+    queryKey: ["forecast-proactive", effectiveAccountId],
+    enabled: !!effectiveAccountId,
+    staleTime: 120_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("outreach_logs")
+        .select("invoice_id, delivery_metadata")
+        .eq("user_id", effectiveAccountId!)
+        .limit(500);
+      if (error) throw error;
+      const proactiveInvoiceIds = new Set<string>();
+      (data || []).forEach((log: any) => {
+        const meta = log.delivery_metadata;
+        if (meta && typeof meta === "object" && (meta as any).outreach_category === "proactive" && log.invoice_id) {
+          proactiveInvoiceIds.add(log.invoice_id);
+        }
+      });
+      return proactiveInvoiceIds;
+    },
+  });
+
   // Build forecast
   const forecast = useMemo(() => {
     if (!invoices) return [];
@@ -129,7 +198,6 @@ export function OutreachForecastSimulator() {
     const target = new Date(forecastDate);
     target.setHours(0, 0, 0, 0);
 
-    // Build workflow steps lookup by bucket
     const stepsByBucket: Record<string, { label: string; day_offset: number; channel: string }[]> = {};
     workflowSteps?.forEach((wf: any) => {
       if (!wf.is_active) return;
@@ -158,46 +226,23 @@ export function OutreachForecastSimulator() {
       const forecastDPD = Math.max(0, differenceInDays(target, dueDate));
       const currentDPD = Math.max(0, differenceInDays(today, dueDate));
       const futureBucket = getBucketForDPD(forecastDPD);
-      const currentBucket = getBucketForDPD(currentDPD);
 
-      // Calculate planned outreach steps
+      // Planned outreach steps
       const plannedSteps: PlannedStep[] = [];
 
-      // Get the bucket the invoice will be in on forecast date
-      // and calculate what outreach steps are planned
-      const bucketEnteredAt = inv.bucket_entered_at ? new Date(inv.bucket_entered_at) : null;
-
-      // For each bucket the invoice will pass through, show planned steps
-      const bucketsToCheck = BUCKET_CONFIG.filter(
-        (b) => b.value !== "current" && b.min <= forecastDPD && b.min >= Math.max(1, currentDPD)
-      );
-
-      // Also include current bucket steps
       if (futureBucket !== "current" && stepsByBucket[futureBucket]) {
-        const steps = stepsByBucket[futureBucket];
-        steps.forEach((step) => {
-          // Estimate when bucket was/will be entered
+        stepsByBucket[futureBucket].forEach((step) => {
           const bucketConfig = BUCKET_CONFIG.find((b) => b.value === futureBucket);
           if (!bucketConfig) return;
-          const bucketEntryDPD = bucketConfig.min;
-          const bucketEntryDate = addDays(dueDate, bucketEntryDPD);
+          const bucketEntryDate = addDays(dueDate, bucketConfig.min);
           const stepDate = addDays(bucketEntryDate, step.day_offset);
-
           let status: PlannedStep["status"] = "future";
           if (stepDate <= today) status = "completed";
           else if (stepDate <= target) status = "upcoming";
-
-          plannedSteps.push({
-            label: step.label,
-            channel: step.channel,
-            day_offset: step.day_offset,
-            scheduled_date: format(stepDate, "MMM d, yyyy"),
-            status,
-          });
+          plannedSteps.push({ label: step.label, channel: step.channel, day_offset: step.day_offset, scheduled_date: format(stepDate, "MMM d, yyyy"), status });
         });
       }
 
-      // Also gather steps from intermediate buckets
       BUCKET_CONFIG.forEach((bc) => {
         if (bc.value === "current" || bc.value === futureBucket) return;
         if (bc.min > currentDPD && bc.min <= forecastDPD && stepsByBucket[bc.value]) {
@@ -207,32 +252,32 @@ export function OutreachForecastSimulator() {
             let status: PlannedStep["status"] = "future";
             if (stepDate <= today) status = "completed";
             else if (stepDate <= target) status = "upcoming";
-
-            plannedSteps.push({
-              label: step.label,
-              channel: step.channel,
-              day_offset: step.day_offset,
-              scheduled_date: format(stepDate, "MMM d, yyyy"),
-              status,
-            });
+            plannedSteps.push({ label: step.label, channel: step.channel, day_offset: step.day_offset, scheduled_date: format(stepDate, "MMM d, yyyy"), status });
           });
         }
       });
 
-      // Sort steps by date
       plannedSteps.sort((a, b) => new Date(a.scheduled_date).getTime() - new Date(b.scheduled_date).getTime());
 
-      bucketMap[futureBucket].invoices.push({
-        ...inv,
-        forecast_dpd: forecastDPD,
-        planned_steps: plannedSteps,
-      });
+      // Determine outreach category
+      let outreach_category: ForecastRow["outreach_category"] = "none";
+      if (accountOutreachDebtors?.has(inv.debtor_id)) {
+        outreach_category = "account_level";
+      } else if (proactiveDebtors?.has(inv.id)) {
+        outreach_category = "proactive";
+      } else if (plannedSteps.length > 0) {
+        outreach_category = "workflow";
+      }
+
+      const row: ForecastRow = { ...inv, forecast_dpd: forecastDPD, planned_steps: plannedSteps, outreach_category };
+
+      bucketMap[futureBucket].invoices.push(row);
       bucketMap[futureBucket].totalAmount += Number(inv.amount_outstanding || inv.amount || 0);
       bucketMap[futureBucket].count++;
     });
 
     return Object.values(bucketMap).filter((b) => b.count > 0);
-  }, [invoices, forecastDate, workflowSteps]);
+  }, [invoices, forecastDate, workflowSteps, accountOutreachDebtors, proactiveDebtors]);
 
   const totalForecast = forecast.reduce((s, b) => s + b.totalAmount, 0);
   const totalInvoices = forecast.reduce((s, b) => s + b.count, 0);
@@ -245,6 +290,9 @@ export function OutreachForecastSimulator() {
     });
   };
 
+  const getPageForBucket = (bucket: string) => bucketPages[bucket] || 1;
+  const setPageForBucket = (bucket: string, page: number) => setBucketPages((p) => ({ ...p, [bucket]: page }));
+
   return (
     <Card className="border-primary/20">
       <CardHeader>
@@ -255,26 +303,43 @@ export function OutreachForecastSimulator() {
               Outreach Forecast Simulator
             </CardTitle>
             <CardDescription>
-              See which buckets invoices will fall into on a future date and what outreach is planned
+              Project invoice aging &amp; planned outreach on a future date
             </CardDescription>
           </div>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" className="gap-2 w-full sm:w-auto">
-                <CalendarIcon className="h-4 w-4" />
-                {format(forecastDate, "MMM d, yyyy")}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="end">
-              <Calendar
-                mode="single"
-                selected={forecastDate}
-                onSelect={(d) => d && setForecastDate(d)}
-                disabled={(d) => d <= new Date()}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
+          <div className="flex items-center gap-2">
+            {/* Category Filter */}
+            <Select value={categoryFilter} onValueChange={(v) => { setCategoryFilter(v); setBucketPages({}); }}>
+              <SelectTrigger className="w-[160px] h-9 text-xs">
+                <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {CATEGORY_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value} className="text-xs">
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {/* Date Picker */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="gap-2 w-full sm:w-auto">
+                  <CalendarIcon className="h-4 w-4" />
+                  {format(forecastDate, "MMM d, yyyy")}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <Calendar
+                  mode="single"
+                  selected={forecastDate}
+                  onSelect={(d) => d && setForecastDate(d)}
+                  disabled={(d) => d <= new Date()}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -302,6 +367,17 @@ export function OutreachForecastSimulator() {
                 (sum, inv) => sum + inv.planned_steps.filter((s) => s.status === "upcoming").length, 0
               );
 
+              // Apply category filter
+              const filteredInvoices = categoryFilter === "all"
+                ? bucket.invoices
+                : bucket.invoices.filter((inv) => inv.outreach_category === categoryFilter);
+
+              const page = getPageForBucket(bucket.bucket);
+              const totalPages = Math.max(1, Math.ceil(filteredInvoices.length / PAGE_SIZE));
+              const paginated = filteredInvoices.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+              if (categoryFilter !== "all" && filteredInvoices.length === 0) return null;
+
               return (
                 <div key={bucket.bucket} className="border rounded-lg overflow-hidden">
                   {/* Bucket Header */}
@@ -309,9 +385,7 @@ export function OutreachForecastSimulator() {
                     onClick={() => toggleBucket(bucket.bucket)}
                     className="w-full flex items-center gap-3 p-3 hover:bg-muted/50 transition-colors text-left"
                   >
-                    {persona && (
-                      <PersonaAvatar persona={bucket.persona!} size="sm" />
-                    )}
+                    {persona && <PersonaAvatar persona={bucket.persona!} size="sm" />}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-sm">{bucket.label}</span>
@@ -322,7 +396,7 @@ export function OutreachForecastSimulator() {
                         )}
                       </div>
                       <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
-                        <span>{bucket.count} invoice{bucket.count !== 1 ? "s" : ""}</span>
+                        <span>{filteredInvoices.length} invoice{filteredInvoices.length !== 1 ? "s" : ""}</span>
                         <span>${Math.round(bucket.totalAmount).toLocaleString()}</span>
                         {upcomingSteps > 0 && (
                           <span className="flex items-center gap-1 text-primary">
@@ -343,57 +417,118 @@ export function OutreachForecastSimulator() {
                           <TableRow>
                             <TableHead className="text-xs">Invoice</TableHead>
                             <TableHead className="text-xs">Account</TableHead>
+                            <TableHead className="text-xs">Category</TableHead>
                             <TableHead className="text-xs text-right">Outstanding</TableHead>
                             <TableHead className="text-xs text-right">DPD</TableHead>
                             <TableHead className="text-xs">Planned Outreach</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {bucket.invoices.map((inv) => (
-                            <TableRow key={inv.id}>
-                              <TableCell className="text-xs font-medium">
-                                {inv.invoice_number || inv.id.slice(0, 8)}
-                              </TableCell>
-                              <TableCell className="text-xs text-muted-foreground">
-                                {inv.debtors?.company_name || inv.debtors?.name || "—"}
-                              </TableCell>
-                              <TableCell className="text-xs text-right font-medium">
-                                ${Number(inv.amount_outstanding || inv.amount || 0).toLocaleString()}
-                              </TableCell>
-                              <TableCell className="text-xs text-right">
-                                <Badge variant="secondary" className="text-xs">
-                                  {inv.forecast_dpd}d
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                {inv.planned_steps.length > 0 ? (
-                                  <div className="flex flex-wrap gap-1">
-                                    {inv.planned_steps.map((step, i) => (
-                                      <span
-                                        key={i}
-                                        className={cn(
-                                          "inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md border",
-                                          step.status === "completed"
-                                            ? "bg-muted text-muted-foreground line-through"
-                                            : step.status === "upcoming"
-                                              ? "bg-primary/10 text-primary border-primary/20"
-                                              : "bg-muted/50 text-muted-foreground border-dashed"
-                                        )}
-                                        title={`${step.label} — ${step.scheduled_date}`}
-                                      >
-                                        {step.channel === "email" ? <Mail className="h-2.5 w-2.5" /> : <Clock className="h-2.5 w-2.5" />}
-                                        {step.scheduled_date}
-                                      </span>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <span className="text-xs text-muted-foreground">—</span>
-                                )}
-                              </TableCell>
-                            </TableRow>
-                          ))}
+                          {paginated.map((inv) => {
+                            const catBadge = CATEGORY_BADGE[inv.outreach_category];
+                            return (
+                              <TableRow key={inv.id} className="group">
+                                {/* Invoice link */}
+                                <TableCell className="text-xs">
+                                  <button
+                                    onClick={() => navigate(`/invoices/${inv.id}`)}
+                                    className="flex items-center gap-1 font-medium text-foreground hover:text-primary transition-colors"
+                                  >
+                                    <FileText className="h-3 w-3 text-muted-foreground group-hover:text-primary" />
+                                    {inv.invoice_number || inv.id.slice(0, 8)}
+                                    <ExternalLink className="h-2.5 w-2.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                  </button>
+                                </TableCell>
+                                {/* Account link */}
+                                <TableCell className="text-xs">
+                                  <button
+                                    onClick={() => navigate(`/debtors/${inv.debtor_id}`)}
+                                    className="flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors"
+                                  >
+                                    <Building2 className="h-3 w-3" />
+                                    <span className="truncate max-w-[120px]">
+                                      {inv.debtors?.company_name || inv.debtors?.name || "—"}
+                                    </span>
+                                    <ExternalLink className="h-2.5 w-2.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                  </button>
+                                </TableCell>
+                                {/* Outreach Category */}
+                                <TableCell>
+                                  <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 border", catBadge.className)}>
+                                    {catBadge.label}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-xs text-right font-medium">
+                                  ${Number(inv.amount_outstanding || inv.amount || 0).toLocaleString()}
+                                </TableCell>
+                                <TableCell className="text-xs text-right">
+                                  <Badge variant="secondary" className="text-xs">{inv.forecast_dpd}d</Badge>
+                                </TableCell>
+                                <TableCell>
+                                  {inv.planned_steps.length > 0 ? (
+                                    <div className="flex flex-wrap gap-1">
+                                      {inv.planned_steps.slice(0, 3).map((step, i) => (
+                                        <span
+                                          key={i}
+                                          className={cn(
+                                            "inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md border",
+                                            step.status === "completed"
+                                              ? "bg-muted text-muted-foreground line-through"
+                                              : step.status === "upcoming"
+                                                ? "bg-primary/10 text-primary border-primary/20"
+                                                : "bg-muted/50 text-muted-foreground border-dashed"
+                                          )}
+                                          title={`${step.label} — ${step.scheduled_date}`}
+                                        >
+                                          {step.channel === "email" ? <Mail className="h-2.5 w-2.5" /> : <Clock className="h-2.5 w-2.5" />}
+                                          {step.scheduled_date}
+                                        </span>
+                                      ))}
+                                      {inv.planned_steps.length > 3 && (
+                                        <span className="text-[10px] text-muted-foreground">+{inv.planned_steps.length - 3}</span>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground">—</span>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
                         </TableBody>
                       </Table>
+
+                      {/* Pagination */}
+                      {filteredInvoices.length > PAGE_SIZE && (
+                        <div className="flex items-center justify-between px-4 py-2 border-t bg-muted/20">
+                          <span className="text-xs text-muted-foreground">
+                            {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filteredInvoices.length)} of {filteredInvoices.length}
+                          </span>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0"
+                              disabled={page <= 1}
+                              onClick={() => setPageForBucket(bucket.bucket, page - 1)}
+                            >
+                              <ChevronLeft className="h-3.5 w-3.5" />
+                            </Button>
+                            <span className="text-xs text-muted-foreground px-1">
+                              {page}/{totalPages}
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0"
+                              disabled={page >= totalPages}
+                              onClick={() => setPageForBucket(bucket.bucket, page + 1)}
+                            >
+                              <ChevronRight className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
