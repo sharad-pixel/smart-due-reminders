@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { InvoiceCollectabilityReport } from "@/components/invoices/InvoiceCollectabilityReport";
 import EmailHealthCard from "@/components/dashboard/EmailHealthCard";
 import { PaymentsActivityDashboard } from "@/components/dashboard/PaymentsActivityDashboard";
+import { ProactiveEngagementWidget } from "@/components/dashboard/ProactiveEngagementWidget";
 
 import { useSavedViews, ViewConfig } from "@/hooks/useSavedViews";
 import { SavedViewsManager } from "@/components/dashboard/SavedViewsManager";
