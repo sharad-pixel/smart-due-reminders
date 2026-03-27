@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { differenceInDays, format } from "date-fns";
+import { ProactiveDraftPreviewCard } from "./ProactiveDraftPreviewCard";
 
 type ActionCategory = "due_soon" | "newly_past_due" | "gone_silent";
 
@@ -39,8 +40,11 @@ interface ProactiveItem {
 export function ProactiveEngagementWidget() {
   const { effectiveAccountId } = useEffectiveAccount();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [expandedCategory, setExpandedCategory] = useState<ActionCategory | null>(null);
   const [generatingDraft, setGeneratingDraft] = useState<string | null>(null);
+  const [previewDraft, setPreviewDraft] = useState<any>(null);
+  const [showPreview, setShowPreview] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["proactive-engagement", effectiveAccountId],
@@ -207,14 +211,22 @@ export function ProactiveEngagementWidget() {
 
       if (error) throw error;
 
-      toast.success(
-        item.category === "due_soon"
-          ? "Courtesy reminder drafted"
-          : item.category === "newly_past_due"
-            ? "Follow-up drafted"
-            : "Re-engagement email drafted",
-        { description: "Review in AI Workflows → Scheduled Outreach" }
-      );
+      // Show the draft preview card
+      if (result?.email_draft) {
+        setPreviewDraft({
+          id: result.email_draft.id,
+          subject: result.email_draft.subject,
+          message_body: result.email_draft.message_body,
+          channel: result.email_draft.channel || "email",
+          invoice_id: item.id,
+          invoice_number: item.invoice_number,
+          company_name: item.company_name || item.debtor_name,
+          category: item.category,
+        });
+        setShowPreview(true);
+      } else {
+        toast.success("Draft generated", { description: "Review in AI Workflows → Scheduled Outreach" });
+      }
     } catch (err: any) {
       console.error("Proactive action error:", err);
       toast.error("Failed to generate draft", { description: err?.message });
@@ -373,6 +385,15 @@ export function ProactiveEngagementWidget() {
           );
         })}
       </CardContent>
+
+      <ProactiveDraftPreviewCard
+        open={showPreview}
+        onOpenChange={setShowPreview}
+        draft={previewDraft}
+        onScheduled={() => {
+          queryClient.invalidateQueries({ queryKey: ["proactive-engagement"] });
+        }}
+      />
     </Card>
   );
 }

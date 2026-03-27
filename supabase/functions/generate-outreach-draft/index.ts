@@ -532,26 +532,62 @@ Return JSON with email_subject and email_body fields.`,
 
     // Create email draft - auto-approve if using approved template or invoice override
     const draftStatus = autoApprove ? "approved" : "pending_approval";
-    const { data: emailDraft, error: emailError } = await supabaseClient
+    
+    // Check for existing draft for this invoice/step to avoid unique constraint violation
+    const { data: existingDraft } = await supabaseClient
       .from("ai_drafts")
-      .insert({
-        user_id: user.id,
-        invoice_id: invoice_id,
-        step_number: step_number,
-        channel: "email",
-        subject: email_subject,
-        message_body: email_body,
-        recommended_send_date: today_date,
-        status: draftStatus,
-        agent_persona_id: agentPersona?.id || null,
-        days_past_due: daysPastDue,
-      })
-      .select()
-      .single();
+      .select("id, status")
+      .eq("invoice_id", invoice_id)
+      .eq("step_number", step_number)
+      .maybeSingle();
 
-    if (emailError) {
-      console.error("Error creating email draft:", emailError);
-      throw new Error("Failed to create email draft");
+    let emailDraft;
+    if (existingDraft) {
+      // Update existing draft with new content
+      const { data: updatedDraft, error: updateError } = await supabaseClient
+        .from("ai_drafts")
+        .update({
+          subject: email_subject,
+          message_body: email_body,
+          recommended_send_date: today_date,
+          status: draftStatus,
+          agent_persona_id: agentPersona?.id || null,
+          days_past_due: daysPastDue,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existingDraft.id)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error("Error updating email draft:", updateError);
+        throw new Error("Failed to update email draft");
+      }
+      emailDraft = updatedDraft;
+      console.log(`Existing draft updated: ${emailDraft.id}`);
+    } else {
+      const { data: newDraft, error: emailError } = await supabaseClient
+        .from("ai_drafts")
+        .insert({
+          user_id: user.id,
+          invoice_id: invoice_id,
+          step_number: step_number,
+          channel: "email",
+          subject: email_subject,
+          message_body: email_body,
+          recommended_send_date: today_date,
+          status: draftStatus,
+          agent_persona_id: agentPersona?.id || null,
+          days_past_due: daysPastDue,
+        })
+        .select()
+        .single();
+
+      if (emailError) {
+        console.error("Error creating email draft:", emailError);
+        throw new Error("Failed to create email draft");
+      }
+      emailDraft = newDraft;
     }
 
     console.log(`Draft created successfully using ${templateSource}: ${emailDraft.id}`);
