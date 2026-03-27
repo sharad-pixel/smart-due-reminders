@@ -702,7 +702,7 @@ Generate a JSON response with:
       subject: generatedSubject || "",
       bodyHtml: emailContent,
       cta: paymentUrl ? {
-        label: `Pay Now${totalAmount ? ` ${new Intl.NumberFormat('en-US', { style: 'currency', currency: invoices[0]?.currency || 'USD', minimumFractionDigits: 2 }).format(totalAmount)}` : ''}`,
+        label: `Pay Now${totalAmount ? ` ${new Intl.NumberFormat('en-US', { style: 'currency', currency: safeInvoices[0]?.currency || 'USD', minimumFractionDigits: 2 }).format(totalAmount)}` : ''}`,
         url: paymentUrl,
       } : undefined,
       meta: {
