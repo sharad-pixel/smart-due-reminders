@@ -628,7 +628,7 @@ Generate a JSON response with:
             </tr>
           </thead>
           <tbody>
-            ${invoices.map((inv, idx) => `
+            ${safeInvoices.map((inv, idx) => `
               <tr style="background-color: ${idx % 2 === 0 ? '#ffffff' : '#f8fafc'};">
                 <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; font-family: monospace; color: #1e293b;">${inv.invoice_number}</td>
                 <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #64748b;">${new Date(inv.issue_date).toLocaleDateString()}</td>
