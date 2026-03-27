@@ -609,7 +609,8 @@ Generate a JSON response with:
     const replyToAddress = `debtor+${debtorId}@${PLATFORM_INBOUND_DOMAIN}`;
 
     const primaryColor = brandingSettings.primary_color || "#1e3a5f";
-    const totalAmount = invoices?.reduce((sum, inv) => sum + inv.amount, 0) || 0;
+    const safeInvoices = invoices || [];
+    const totalAmount = safeInvoices.reduce((sum, inv) => sum + inv.amount, 0) || 0;
 
     // Build invoice table HTML
     let invoiceTableHtml = "";
