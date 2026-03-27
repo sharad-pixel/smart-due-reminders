@@ -32,6 +32,7 @@ import { OutreachStatusCards } from "@/components/outreach/OutreachStatusCards";
 import { OutreachInsightsPanel } from "@/components/ai-workflows/OutreachInsightsPanel";
 import { WorkflowHeroHeader } from "@/components/ai-workflows/WorkflowHeroHeader";
 import { AutoGenerateAlert } from "@/components/ai-workflows/AutoGenerateAlert";
+import { OutreachForecastSimulator } from "@/components/ai-workflows/OutreachForecastSimulator";
 
 interface WorkflowStep {
   id: string;
@@ -1228,11 +1229,16 @@ const AIWorkflows = () => {
 
         {/* Tabbed Interface */}
         <Tabs defaultValue="agents" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3 sm:w-auto sm:inline-grid">
+          <TabsList className="grid w-full grid-cols-4 sm:w-auto sm:inline-grid">
             <TabsTrigger value="agents" className="gap-1.5">
               <Sparkles className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">AI Agents</span>
               <span className="sm:hidden">Agents</span>
+            </TabsTrigger>
+            <TabsTrigger value="forecast" className="gap-1.5">
+              <Eye className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Forecast</span>
+              <span className="sm:hidden">Forecast</span>
             </TabsTrigger>
             <TabsTrigger value="outreach" className="gap-1.5">
               <Mail className="h-3.5 w-3.5" />
@@ -1606,6 +1612,11 @@ const AIWorkflows = () => {
             </div>
           </CardContent>
         </Card>
+          </TabsContent>
+
+          {/* Tab: Forecast Simulator */}
+          <TabsContent value="forecast" className="space-y-4 mt-0">
+            <OutreachForecastSimulator />
           </TabsContent>
 
           {/* Tab 2: Scheduled Outreach */}
