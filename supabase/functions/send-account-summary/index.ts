@@ -614,7 +614,7 @@ Generate a JSON response with:
 
     // Build invoice table HTML
     let invoiceTableHtml = "";
-    if (invoices && invoices.length > 0) {
+    if (safeInvoices.length > 0) {
       invoiceTableHtml = `
         <h3 style="margin-top: 24px; margin-bottom: 12px; font-size: 16px; font-weight: 600; color: #1e293b;">Open Invoices</h3>
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px; border-radius: 8px; overflow: hidden;">
