@@ -197,9 +197,10 @@ export function ProactiveEngagementWidget() {
         {
           headers: { Authorization: `Bearer ${session.session.access_token}` },
           body: {
-            invoiceId: item.id,
-            channel: "email",
-            tone: item.category === "due_soon" ? "friendly" : item.category === "gone_silent" ? "firm" : "professional",
+            invoice_id: item.id,
+            step_number: 1,
+            tone: item.category === "due_soon" ? "friendly" : item.category === "gone_silent" ? "firm" : "neutral",
+            use_ai_generation: true,
           },
         }
       );
