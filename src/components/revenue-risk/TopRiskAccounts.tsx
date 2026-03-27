@@ -1,8 +1,9 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
 import { formatCurrency } from "@/lib/formatters";
 import {
   Table,
@@ -13,6 +14,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { TopRiskAccount } from "@/hooks/useRevenueRisk";
+
+const PAGE_SIZE = 15;
 
 interface Props {
   accounts: TopRiskAccount[];
@@ -37,6 +40,10 @@ function getEngagementBadge(level: string) {
 }
 
 export function TopRiskAccounts({ accounts }: Props) {
+  const [page, setPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(accounts.length / PAGE_SIZE));
+  const paginated = accounts.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -64,7 +71,7 @@ export function TopRiskAccounts({ accounts }: Props) {
                   </TableCell>
                 </TableRow>
               ) : (
-                accounts.map(account => (
+                paginated.map(account => (
                   <TableRow key={account.debtor_id}>
                     <TableCell>
                       <Link
@@ -105,6 +112,23 @@ export function TopRiskAccounts({ accounts }: Props) {
             </TableBody>
           </Table>
         </div>
+
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-4 py-3 border-t">
+            <p className="text-sm text-muted-foreground">
+              {((page - 1) * PAGE_SIZE) + 1}–{Math.min(page * PAGE_SIZE, accounts.length)} of {accounts.length}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setPage(p => p - 1)} disabled={page === 1}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm">Page {page} of {totalPages}</span>
+              <Button variant="outline" size="sm" onClick={() => setPage(p => p + 1)} disabled={page === totalPages}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
