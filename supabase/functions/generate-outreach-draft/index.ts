@@ -556,6 +556,37 @@ Return JSON with email_subject and email_body fields.`,
 
     console.log(`Draft created successfully using ${templateSource}: ${emailDraft.id}`);
 
+    // Log collection activity for visibility in activity timeline
+    const serviceClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
+
+    await serviceClient
+      .from("collection_activities")
+      .insert({
+        user_id: user.id,
+        debtor_id: invoice.debtor_id,
+        invoice_id: invoice_id,
+        activity_type: "outreach",
+        direction: "outbound",
+        channel: "email",
+        subject: email_subject,
+        message_body: email_body,
+        metadata: {
+          draft_id: emailDraft.id,
+          template_source: templateSource,
+          source: "proactive_engagement",
+          status: draftStatus,
+          persona_id: agentPersona?.id || null,
+          days_past_due: daysPastDue,
+        },
+      })
+      .then(({ error: activityError }) => {
+        if (activityError) console.error("Failed to log collection activity:", activityError);
+        else console.log("Collection activity logged for draft:", emailDraft.id);
+      });
+
     return new Response(
       JSON.stringify({
         success: true,
