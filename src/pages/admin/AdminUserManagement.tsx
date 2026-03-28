@@ -926,6 +926,7 @@ Delaware, USA`;
                       <TableHead>Plan</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Created</TableHead>
+                      <TableHead>Last Login</TableHead>
                       <TableHead>Stripe ID</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
