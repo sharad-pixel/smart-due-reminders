@@ -143,6 +143,7 @@ const AdminSystem = lazy(() => import("./pages/admin/AdminSystem"));
 const AdminEmailTemplates = lazy(() => import("./pages/admin/AdminEmailTemplates"));
 const AdminUserDetail = lazy(() => import("./pages/admin/AdminUserDetail"));
 const AdminLeadOutreach = lazy(() => import("./pages/admin/AdminLeadOutreach"));
+const AdminStaleUsers = lazy(() => import("./pages/admin/AdminStaleUsers"));
 
 // Optimized QueryClient configuration
 const queryClient = new QueryClient({
@@ -279,6 +280,7 @@ const App = () => (
             <Route path="/admin/system" element={<AdminSystem />} />
             <Route path="/admin/email-templates" element={<AdminEmailTemplates />} />
             <Route path="/admin/leads" element={<AdminLeadOutreach />} />
+            <Route path="/admin/stale-users" element={<AdminStaleUsers />} />
 
               {/* 404 - Keep at bottom */}
               <Route path="*" element={<NotFound />} />
