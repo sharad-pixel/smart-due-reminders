@@ -926,6 +926,7 @@ Delaware, USA`;
                       <TableHead>Plan</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Created</TableHead>
+                      <TableHead>Last Login</TableHead>
                       <TableHead>Stripe ID</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -933,7 +934,7 @@ Delaware, USA`;
                   <TableBody>
                     {users.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                        <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                           No users found
                         </TableCell>
                       </TableRow>
@@ -1032,6 +1033,20 @@ Delaware, USA`;
                             <div className="text-xs text-muted-foreground">
                               {differenceInDays(new Date(), new Date(user.created_at))} days ago
                             </div>
+                          </TableCell>
+                          <TableCell>
+                            {user.last_login ? (
+                              <div>
+                                <div className="text-sm">
+                                  {formatDate(new Date(user.last_login), "MMM d, yyyy")}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {formatDate(new Date(user.last_login), "h:mm a")}
+                                </div>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">Never</span>
+                            )}
                           </TableCell>
                           <TableCell>
                             {user.stripe_customer_id ? (
