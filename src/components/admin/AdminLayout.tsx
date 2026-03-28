@@ -18,6 +18,7 @@ import {
   X,
   Bell,
   Search,
+  UserX,
   ChevronDown,
   LogOut,
   ExternalLink,
