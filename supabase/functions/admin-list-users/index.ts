@@ -133,12 +133,37 @@ Deno.serve(async (req) => {
       (blockedUsers || []).map((b: any) => [b.email, { blocked_at: b.blocked_at, reason: b.reason }])
     );
 
-    // Merge blocked status into users
+    // Fetch last_sign_in_at from auth.users for each user via admin API
+    const userIds = users?.map((u: any) => u.id).filter(Boolean) || [];
+    const authUserMap = new Map<string, { last_sign_in_at: string | null }>();
+    
+    // Batch fetch auth users - use listUsers with per_page to get all at once
+    try {
+      const { data: authListData } = await supabaseClient.auth.admin.listUsers({
+        page: 1,
+        perPage: 1000,
+      });
+      
+      if (authListData?.users) {
+        for (const authUser of authListData.users) {
+          if (userIds.includes(authUser.id)) {
+            authUserMap.set(authUser.id, {
+              last_sign_in_at: authUser.last_sign_in_at || null,
+            });
+          }
+        }
+      }
+    } catch (authErr) {
+      console.error('[admin-list-users] Error fetching auth users:', authErr);
+    }
+
+    // Merge blocked status and login activity into users
     const usersWithBlockStatus = users?.map((user: any) => ({
       ...user,
       is_blocked: blockedMap.has(user.email?.toLowerCase()),
       blocked_at: blockedMap.get(user.email?.toLowerCase())?.blocked_at || null,
       blocked_reason: blockedMap.get(user.email?.toLowerCase())?.reason || null,
+      last_login: authUserMap.get(user.id)?.last_sign_in_at || null,
     }));
 
     console.log('[admin-list-users] Returning', usersWithBlockStatus?.length, 'users');

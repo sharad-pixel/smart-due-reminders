@@ -2,7 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 Deno.serve(async (req) => {
@@ -57,12 +57,10 @@ Deno.serve(async (req) => {
     // Get userId from request body or query params
     let userId: string | null = null;
     
-    // Try to get from body first (POST request)
     try {
       const body = await req.json();
       userId = body.userId;
     } catch {
-      // If no body, try query params (GET request)
       const url = new URL(req.url);
       userId = url.searchParams.get('userId');
     }
@@ -95,6 +93,17 @@ Deno.serve(async (req) => {
       .single();
 
     if (profileError) throw profileError;
+
+    // Fetch last_sign_in_at from auth.users via admin API
+    let authLastSignIn: string | null = null;
+    try {
+      const { data: authUserData } = await supabaseClient.auth.admin.getUserById(userId);
+      if (authUserData?.user) {
+        authLastSignIn = authUserData.user.last_sign_in_at || null;
+      }
+    } catch (authErr) {
+      console.error('[admin-get-user-details] Error fetching auth user:', authErr);
+    }
 
     // Check if user is blocked
     const { data: blockedUser } = await supabaseClient
@@ -191,7 +200,7 @@ Deno.serve(async (req) => {
       .order('created_at', { ascending: false })
       .limit(5);
 
-    // Get usage statistics - get more months
+    // Get usage statistics
     const { data: invoiceUsage } = await supabaseClient
       .from('invoice_usage')
       .select('*')
@@ -209,12 +218,21 @@ Deno.serve(async (req) => {
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId);
 
-    // Merge blocked status into user profile
+    // Get recent login attempts for this user
+    const { data: loginAttempts } = await supabaseClient
+      .from('login_attempts')
+      .select('*')
+      .eq('email', userProfile.email?.toLowerCase())
+      .order('attempted_at', { ascending: false })
+      .limit(10);
+
+    // Merge blocked status and auth data into user profile
     const enrichedUser = {
       ...userProfile,
       is_blocked: !!blockedUser,
       blocked_at: blockedUser?.blocked_at || null,
       blocked_reason: blockedUser?.reason || null,
+      last_sign_in_at: authLastSignIn,
     };
 
     return new Response(
@@ -222,6 +240,13 @@ Deno.serve(async (req) => {
         user: enrichedUser,
         accountRelationships: accountRelationshipsWithOwners || [],
         teamMembers: teamMembers || [],
+        loginAttempts: (loginAttempts || []).map((l: any) => ({
+          id: l.id,
+          email: l.email,
+          ip_address: l.ip_address,
+          success: l.success,
+          attempted_at: l.attempted_at,
+        })),
         usageData: (invoiceUsage || []).map((u: any) => ({ 
           month: u.month, 
           count: (u.included_invoices_used || 0) + (u.overage_invoices || 0),
