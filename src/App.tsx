@@ -280,6 +280,7 @@ const App = () => (
             <Route path="/admin/system" element={<AdminSystem />} />
             <Route path="/admin/email-templates" element={<AdminEmailTemplates />} />
             <Route path="/admin/leads" element={<AdminLeadOutreach />} />
+            <Route path="/admin/stale-users" element={<AdminStaleUsers />} />
 
               {/* 404 - Keep at bottom */}
               <Route path="*" element={<NotFound />} />

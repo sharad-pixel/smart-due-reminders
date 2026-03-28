@@ -46,6 +46,7 @@ interface AdminLayoutProps {
 const adminNavItems = [
   { path: "/admin", label: "Dashboard", icon: Home },
   { path: "/admin/user-management", label: "User Management", icon: Users },
+  { path: "/admin/stale-users", label: "Stale Users", icon: UserX },
   { path: "/admin/leads", label: "Lead Outreach", icon: Users },
   { path: "/admin/activity", label: "Activity Logs", icon: Activity },
   { path: "/admin/analytics", label: "Platform Analytics", icon: BarChart3 },
