@@ -1035,6 +1035,20 @@ Delaware, USA`;
                             </div>
                           </TableCell>
                           <TableCell>
+                            {user.last_login ? (
+                              <div>
+                                <div className="text-sm">
+                                  {formatDate(new Date(user.last_login), "MMM d, yyyy")}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {formatDate(new Date(user.last_login), "h:mm a")}
+                                </div>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">Never</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
                             {user.stripe_customer_id ? (
                               <code className="text-xs bg-muted px-1 py-0.5 rounded">
                                 {user.stripe_customer_id.slice(0, 14)}...
