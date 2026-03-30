@@ -29,6 +29,7 @@ import { useOrgAvgDPD } from "@/hooks/useAvgDPD";
 import { KnowledgeBaseAgent } from "@/components/ai/KnowledgeBaseAgent";
 import { IntegrationSetupModal } from "@/components/integrations/IntegrationSetupModal";
 import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
+import { FounderAnnouncementBanner } from "@/components/dashboard/FounderAnnouncementBanner";
 
 interface Invoice {
   id: string;
