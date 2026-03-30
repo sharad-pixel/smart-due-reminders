@@ -20,6 +20,9 @@ import {
   Filter,
   Calendar,
   TrendingDown,
+  Mail,
+  Copy,
+  MessageSquare,
 } from "lucide-react";
 import {
   Table,
@@ -36,8 +39,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { format as formatDate, differenceInDays } from "date-fns";
+import { reEngagementTemplates, hydrateTemplate, FounderMessage } from "@/lib/founderMessaging";
 
 interface StaleUser {
   id: string;
@@ -63,6 +76,140 @@ interface StaleStats {
 
 const PAGE_SIZE = 25;
 
+const ReEngagementTemplatePanel = ({ user }: { user: StaleUser | null }) => {
+  const [selectedTemplate, setSelectedTemplate] = useState<FounderMessage | null>(null);
+  const daysSinceSignup = user ? differenceInDays(new Date(), new Date(user.created_at)) : 0;
+
+  // Auto-select best template based on inactivity
+  const recommendedTemplates = useMemo(() => {
+    return reEngagementTemplates.map((t) => {
+      const isRecommended =
+        (t.daysInactiveMin === undefined || daysSinceSignup >= t.daysInactiveMin) &&
+        (t.daysInactiveMax === undefined || daysSinceSignup <= t.daysInactiveMax);
+      return { ...t, isRecommended };
+    });
+  }, [daysSinceSignup]);
+
+  const getHydratedBody = (template: FounderMessage) => {
+    return hydrateTemplate(template.body, {
+      name: user?.name || user?.email?.split("@")[0] || "there",
+    });
+  };
+
+  const getHydratedSubject = (template: FounderMessage) => {
+    return hydrateTemplate(template.subject || "", {
+      name: user?.name || user?.email?.split("@")[0] || "there",
+    });
+  };
+
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success(`${label} copied to clipboard`);
+  };
+
+  if (!user) return null;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2 mb-2">
+        <MessageSquare className="h-5 w-5 text-primary" />
+        <h3 className="font-semibold text-foreground">Re-Engagement Templates</h3>
+        <Badge variant="outline" className="text-xs ml-auto">
+          {daysSinceSignup} days inactive
+        </Badge>
+      </div>
+
+      <div className="grid gap-2">
+        {recommendedTemplates.map((template) => (
+          <button
+            key={template.id}
+            onClick={() => setSelectedTemplate(template)}
+            className={`text-left p-3 rounded-lg border transition-colors ${
+              selectedTemplate?.id === template.id
+                ? "border-primary bg-primary/5"
+                : "border-border hover:border-primary/50 hover:bg-muted/50"
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium">{template.title}</span>
+              {template.isRecommended && (
+                <Badge className="text-[10px] px-1.5 py-0 bg-accent text-accent-foreground">
+                  Recommended
+                </Badge>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {template.targetAudience}
+            </p>
+          </button>
+        ))}
+      </div>
+
+      {selectedTemplate && (
+        <div className="space-y-3 mt-4 p-4 bg-muted/30 rounded-lg border">
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-semibold text-foreground">Preview</h4>
+            <div className="flex gap-1">
+              {selectedTemplate.subject && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => copyToClipboard(getHydratedSubject(selectedTemplate), "Subject")}
+                >
+                  <Copy className="h-3 w-3 mr-1" />
+                  Subject
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => copyToClipboard(getHydratedBody(selectedTemplate), "Body")}
+              >
+                <Copy className="h-3 w-3 mr-1" />
+                Body
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const full = selectedTemplate.subject
+                    ? `Subject: ${getHydratedSubject(selectedTemplate)}\n\n${getHydratedBody(selectedTemplate)}`
+                    : getHydratedBody(selectedTemplate);
+                  copyToClipboard(full, "Full message");
+                }}
+              >
+                <Copy className="h-3 w-3 mr-1" />
+                All
+              </Button>
+            </div>
+          </div>
+
+          {selectedTemplate.subject && (
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-1">Subject:</p>
+              <p className="text-sm font-medium text-foreground">{getHydratedSubject(selectedTemplate)}</p>
+            </div>
+          )}
+
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-1">Body:</p>
+            <div className="text-sm text-foreground whitespace-pre-line leading-relaxed max-h-64 overflow-y-auto">
+              {getHydratedBody(selectedTemplate)}
+            </div>
+          </div>
+
+          <div className="pt-2 border-t">
+            <p className="text-xs text-muted-foreground">
+              <Mail className="h-3 w-3 inline mr-1" />
+              Send to: {user.email}
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const AdminStaleUsers = () => {
   const navigate = useNavigate();
   const [users, setUsers] = useState<StaleUser[]>([]);
@@ -72,6 +219,8 @@ const AdminStaleUsers = () => {
   const [daysInactive, setDaysInactive] = useState("7");
   const [engagementFilter, setEngagementFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(0);
+  const [selectedUser, setSelectedUser] = useState<StaleUser | null>(null);
+  const [templateModalOpen, setTemplateModalOpen] = useState(false);
 
   const fetchStaleUsers = async () => {
     setLoading(true);
@@ -172,6 +321,12 @@ const AdminStaleUsers = () => {
 
   const getDaysSinceSignup = (createdAt: string) => {
     return differenceInDays(new Date(), new Date(createdAt));
+  };
+
+  const handleOpenTemplates = (user: StaleUser, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedUser(user);
+    setTemplateModalOpen(true);
   };
 
   return (
@@ -356,16 +511,26 @@ const AdminStaleUsers = () => {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/admin/users/${user.id}`);
-                            }}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              title="Re-engagement templates"
+                              onClick={(e) => handleOpenTemplates(user, e)}
+                            >
+                              <Mail className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/admin/users/${user.id}`);
+                              }}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -407,6 +572,22 @@ const AdminStaleUsers = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Re-Engagement Template Modal */}
+      <Dialog open={templateModalOpen} onOpenChange={setTemplateModalOpen}>
+        <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5 text-primary" />
+              Re-Engage {selectedUser?.name || selectedUser?.email}
+            </DialogTitle>
+            <DialogDescription>
+              Founder pre-drafted messages with Recouply.ai branding. Select a template, preview, and copy.
+            </DialogDescription>
+          </DialogHeader>
+          <ReEngagementTemplatePanel user={selectedUser} />
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 };
