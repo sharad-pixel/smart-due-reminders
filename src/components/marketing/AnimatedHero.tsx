@@ -28,16 +28,16 @@ const headlines = [
 ];
 
 const subheadlines = [
-  "Six AI agents learn from payment behavior to guide your next action—before risk compounds.",
-  "AI-assisted outreach, reviewed before sending. You stay in control while intelligence scales.",
-  "From friendly reminders to firm follow-ups—agents adapt tone based on real-time signals.",
-  "Turn payment patterns into foresight. Act earlier, recover smarter, protect cash flow.",
-  "Risk-aware automation designed to support predictable cash outcomes.",
-  "Collections that preserve relationships—guided by context, approved by you.",
-  "Intelligence that compounds with every touchpoint. Better signals, faster recovery.",
-  "Let AI handle the follow-ups while you focus on decisions that matter.",
-  "Enterprise-grade signals at a fraction of the cost of traditional AR teams.",
-  "Context-aware outreach that knows when to be gentle and when to escalate—human-approved.",
+  "Six AI agents automate the repetitive follow-ups your team shouldn't be doing manually.",
+  "Revenue recovery automation that learns, adapts, and acts—with human approval at every step.",
+  "From friendly reminders to firm escalations—agentic AI handles the mundane so your team doesn't.",
+  "Eliminate manual follow-ups. Strengthen cash flow. Let AI agents do the heavy lifting.",
+  "AI-agentic workflows replace uncomfortable payment conversations with consistent, professional outreach.",
+  "Revenue recovery that preserves relationships—automated by AI, controlled by you.",
+  "Every interaction makes the system smarter. Consistent workflows, compounding results.",
+  "Free your team from repetitive invoice chasing. AI agents handle it 24/7.",
+  "Enterprise-grade revenue recovery at a fraction of the cost of manual AR teams.",
+  "Agentic AI that knows when to nudge and when to escalate—always human-approved.",
 ];
 
 const AnimatedHero = () => {
