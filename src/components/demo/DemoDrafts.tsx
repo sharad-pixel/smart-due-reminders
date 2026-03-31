@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Send, CheckCircle2, Clock, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
+import { DemoTutorialCallout, FeatureScreenshot } from "./DemoTutorialCallout";
+import draftsImg from "@/assets/demo/drafts-entry.jpg";
 
 export const DemoDrafts = () => {
   const { drafts, startSending, nextStep } = useDemoContext();
@@ -26,9 +28,28 @@ export const DemoDrafts = () => {
         <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring" }}>
           <CheckCircle2 className="h-10 w-10 text-accent mx-auto" />
         </motion.div>
-        <h1 className="text-3xl font-bold text-foreground">{drafts.length} Drafts Ready</h1>
+        <h1 className="text-3xl font-bold text-foreground">Step 8: {drafts.length} Drafts Ready</h1>
         <p className="text-muted-foreground">Personalized outreach generated for all overdue invoices</p>
       </div>
+
+      <DemoTutorialCallout
+        title="Reviewing & Approving Drafts"
+        description="Every AI-generated message passes through your review queue. Edit the subject, body, or tone before approving. Nothing sends without your sign-off."
+        platformPath="Outreach → Drafts"
+        steps={[
+          { title: "Review each draft", description: "Click any draft to see the full email preview — subject line, body, and attached invoice reference." },
+          { title: "Edit before approving", description: "Use the built-in editor to tweak wording, adjust tone, or add custom notes. Your edits train the AI for future drafts." },
+          { title: "Bulk approve", description: "Once comfortable with the AI's output, use 'Approve All' to move the entire batch to the send queue.", action: "Click Approve & Send All below" },
+          { title: "Auto-approve option", description: "Enable auto-approve in Settings to skip manual review for low-risk accounts (score 80+). High-risk accounts always require review." },
+        ]}
+        proTip="The more you edit drafts, the better Recouply's AI learns your voice and preferences. After ~20 edits, draft quality improves significantly."
+      />
+
+      <FeatureScreenshot
+        src={draftsImg}
+        alt="Draft review and approval interface"
+        caption="The Draft Review queue — review, edit, and approve AI-generated collection messages"
+      />
 
       <div className="space-y-4 max-w-4xl mx-auto">
         {Object.entries(bucketGroups).slice(0, 4).map(([bucket, items]) => (
