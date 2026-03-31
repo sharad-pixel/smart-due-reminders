@@ -3,11 +3,13 @@ import {
   generateDemoCustomers,
   generateDemoInvoices,
   generateDemoDrafts,
+  generateDemoPaymentHistory,
   getDemoStats,
   getDemoAgingBuckets,
   DemoCustomer,
   DemoInvoice,
   DemoDraft,
+  DemoPaymentHistory,
 } from "@/lib/demoData";
 
 export type DemoStep =
