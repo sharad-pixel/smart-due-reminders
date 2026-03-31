@@ -47,7 +47,7 @@ const PricingTeaser = () => {
             Simple Pricing
           </div>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-            Automate Collections for Less Than One Employee
+            Revenue Recovery Automation for Less Than One Employee
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
             Starts at ${PLAN_CONFIGS.solo_pro.monthlyPrice}/mo for independents. Business plans from ${PLAN_CONFIGS.starter.monthlyPrice}/mo.
