@@ -574,7 +574,7 @@ export default function OutreachHistory() {
 
       {/* Preview Dialog */}
       <Dialog open={!!previewRecord} onOpenChange={(open) => !open && setPreviewRecord(null)}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto" style={{ resize: 'both', minWidth: '400px', minHeight: '300px' }}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-3">
               <Mail className="h-5 w-5" />
@@ -592,99 +592,141 @@ export default function OutreachHistory() {
           </DialogHeader>
 
           {previewRecord && (
-            <div className="space-y-4">
-              {/* Meta Info */}
-              <div className="grid grid-cols-2 gap-3 p-4 bg-muted rounded-lg text-sm">
+            <div className="space-y-5">
+              {/* Channel & Status */}
+              <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-muted-foreground">Account:</span>
-                  <button
-                    onClick={() => {
-                      navigate(`/debtors/${previewRecord.debtor_id}`);
-                      setPreviewRecord(null);
-                    }}
-                    className="ml-2 font-medium text-primary hover:underline"
-                  >
-                    {previewRecord.company_name}
-                  </button>
-                </div>
-                {previewRecord.invoice_number && (
-                  <div>
-                    <span className="text-muted-foreground">Invoice:</span>
-                    <button
-                      onClick={() => {
-                        navigate(`/invoices/${previewRecord.invoice_id}`);
-                        setPreviewRecord(null);
-                      }}
-                      className="ml-2 font-medium text-primary hover:underline"
-                    >
-                      #{previewRecord.invoice_number}
-                    </button>
-                    {previewRecord.invoice_status && (
-                      <Badge variant="outline" className="ml-2 text-[10px]">
-                        {previewRecord.invoice_status}
-                      </Badge>
-                    )}
-                  </div>
-                )}
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">Channel:</span>
-                  {getChannelBadge(previewRecord.channel)}
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Channel</p>
+                  <p className="font-semibold">{previewRecord.channel.charAt(0).toUpperCase() + previewRecord.channel.slice(1)}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">Direction:</span>
                   {getDirectionBadge(previewRecord.direction)}
+                  {previewRecord.is_archived && (
+                    <Badge variant="secondary" className="gap-1 text-xs">
+                      <Archive className="h-3 w-3" />Archived
+                    </Badge>
+                  )}
                 </div>
               </div>
 
-              {/* Delivery Status */}
-              {(previewRecord.delivered_at || previewRecord.opened_at || previewRecord.responded_at) && (
-                <div className="flex flex-wrap gap-3 p-3 bg-green-50 dark:bg-green-950/30 rounded-lg">
-                  {previewRecord.delivered_at && (
-                    <div className="flex items-center gap-1 text-sm text-green-700 dark:text-green-400">
-                      <CheckCircle className="h-4 w-4" />
-                      Delivered {format(new Date(previewRecord.delivered_at), "MMM d, h:mm a")}
-                    </div>
-                  )}
-                  {previewRecord.opened_at && (
-                    <div className="flex items-center gap-1 text-sm text-blue-700 dark:text-blue-400">
-                      <Eye className="h-4 w-4" />
-                      Opened {format(new Date(previewRecord.opened_at), "MMM d, h:mm a")}
-                    </div>
-                  )}
-                  {previewRecord.responded_at && (
-                    <div className="flex items-center gap-1 text-sm text-purple-700 dark:text-purple-400">
-                      <MessageSquare className="h-4 w-4" />
-                      Responded {format(new Date(previewRecord.responded_at), "MMM d, h:mm a")}
-                    </div>
-                  )}
+              {/* Sent To */}
+              {previewRecord.metadata?.sent_to && (
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Sent To</p>
+                  <p className="font-medium">{previewRecord.metadata.sent_to}</p>
                 </div>
               )}
+
+              {/* Sent From */}
+              {previewRecord.metadata?.sent_from && (
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Sent From</p>
+                  <p className="font-medium">{previewRecord.metadata.sent_from}</p>
+                </div>
+              )}
+
+              {/* Linked Invoice */}
+              {previewRecord.invoice_number && (
+                <div className="p-3 border rounded-lg bg-muted/30">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Linked Invoice</p>
+                  <button
+                    onClick={() => {
+                      navigate(`/invoices/${previewRecord.invoice_id}`);
+                      setPreviewRecord(null);
+                    }}
+                    className="flex items-center gap-2 text-sm font-medium hover:text-primary transition-colors"
+                  >
+                    <FileText className="h-4 w-4" />
+                    {previewRecord.invoice_number}
+                    {previewRecord.metadata?.invoice_amount && (
+                      <span className="text-muted-foreground">
+                        · ${Number(previewRecord.metadata.invoice_amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      </span>
+                    )}
+                    {previewRecord.invoice_status && (
+                      <Badge variant="outline" className="text-[10px]">{previewRecord.invoice_status}</Badge>
+                    )}
+                  </button>
+                </div>
+              )}
+
+              {/* Account */}
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Account</p>
+                <button
+                  onClick={() => {
+                    navigate(`/debtors/${previewRecord.debtor_id}`);
+                    setPreviewRecord(null);
+                  }}
+                  className="font-medium text-primary hover:underline flex items-center gap-1"
+                >
+                  <Building2 className="h-4 w-4" />
+                  {previewRecord.company_name}
+                </button>
+              </div>
 
               {/* Subject */}
               {previewRecord.subject && (
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">Subject</p>
-                  <div className="p-3 bg-accent rounded border">
-                    {previewRecord.subject}
-                  </div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Subject</p>
+                  <p className="font-semibold">{previewRecord.subject}</p>
                 </div>
               )}
 
               {/* Message Body */}
               <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Message</p>
-                <div className="p-4 bg-background border rounded max-h-[250px] overflow-y-auto">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Message</p>
+                <div className="p-4 bg-muted/30 border rounded-lg overflow-y-auto" style={{ maxHeight: '300px' }}>
                   <div className="whitespace-pre-wrap text-sm leading-relaxed">
                     {stripHtmlTags(previewRecord.message_body)}
                   </div>
                 </div>
               </div>
 
+              {/* Delivery / Tracking Information */}
+              {(previewRecord.sent_at || previewRecord.delivered_at || previewRecord.opened_at || previewRecord.responded_at) && (
+                <details className="group">
+                  <summary className="cursor-pointer text-sm font-medium text-muted-foreground flex items-center gap-1 hover:text-foreground transition-colors">
+                    <span className="text-xs">▶</span> Delivery Information
+                  </summary>
+                  <div className="mt-3 space-y-2 pl-4 border-l-2 border-muted">
+                    {previewRecord.sent_at && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Send className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="text-muted-foreground">Sent:</span>
+                        <span>{format(new Date(previewRecord.sent_at), "MMM d, yyyy 'at' h:mm a")}</span>
+                      </div>
+                    )}
+                    {previewRecord.delivered_at && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <CheckCircle className="h-3.5 w-3.5 text-green-600" />
+                        <span className="text-muted-foreground">Delivered:</span>
+                        <span>{format(new Date(previewRecord.delivered_at), "MMM d, yyyy 'at' h:mm a")}</span>
+                      </div>
+                    )}
+                    {previewRecord.opened_at && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Eye className="h-3.5 w-3.5 text-blue-600" />
+                        <span className="text-muted-foreground">Opened:</span>
+                        <span>{format(new Date(previewRecord.opened_at), "MMM d, yyyy 'at' h:mm a")}</span>
+                      </div>
+                    )}
+                    {previewRecord.responded_at && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <MessageSquare className="h-3.5 w-3.5 text-purple-600" />
+                        <span className="text-muted-foreground">Responded:</span>
+                        <span>{format(new Date(previewRecord.responded_at), "MMM d, yyyy 'at' h:mm a")}</span>
+                      </div>
+                    )}
+                  </div>
+                </details>
+              )}
+
               {/* Response */}
               {previewRecord.response_message && (
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">Response</p>
-                  <div className="p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded max-h-[150px] overflow-y-auto">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Response</p>
+                  <div className="p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg overflow-y-auto" style={{ maxHeight: '200px' }}>
                     <div className="whitespace-pre-wrap text-sm">
                       {previewRecord.response_message}
                     </div>
