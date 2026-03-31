@@ -416,7 +416,7 @@ const Dashboard = () => {
   return (
     <Layout>
       <div className="space-y-4 sm:space-y-6 lg:space-y-8">
-        <FounderAnnouncementBanner />
+        
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-4">
             {accountInfo.ownerLogoUrl && (
