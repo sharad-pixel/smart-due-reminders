@@ -199,7 +199,7 @@ const AnimatedHero = () => {
              animate={{ opacity: 1 }}
              transition={{ delay: 0.3, duration: 0.6 }}
            >
-            All AR and collection activities in one place — AI-powered, audit-ready, built for seamless handoffs
+            AI-agentic revenue recovery — automate repetitive workflows, strengthen cash flow, preserve relationships
            </motion.p>
 
           {/* Typewriter Headline */}
