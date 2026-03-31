@@ -4,7 +4,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { motion } from "framer-motion";
-import { Sparkles, ArrowRight, Shield, Clock, DollarSign } from "lucide-react";
+import { ArrowRight, Shield, Clock, DollarSign } from "lucide-react";
+import { RecouplyLogo } from "@/components/layout/RecouplyLogo";
 
 export const DemoEmailGate = () => {
   const { setDemoEmail, nextStep } = useDemoContext();
@@ -33,9 +34,9 @@ export const DemoEmailGate = () => {
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ type: "spring", delay: 0.2 }}
-            className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto"
+            className="flex justify-center"
           >
-            <Sparkles className="h-8 w-8 text-primary" />
+            <RecouplyLogo size="xl" animated />
           </motion.div>
           <h1 className="text-3xl md:text-4xl font-bold text-foreground">
             Experience Recouply.ai
@@ -77,6 +78,10 @@ export const DemoEmailGate = () => {
             </div>
           ))}
         </div>
+
+        <p className="text-[10px] text-muted-foreground text-center">
+          Share a direct demo link: <code className="bg-muted px-1.5 py-0.5 rounded text-[10px]">recouply.ai/demo?token=BASE64_EMAIL</code>
+        </p>
       </motion.div>
     </div>
   );

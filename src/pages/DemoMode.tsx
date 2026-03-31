@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useDemoContext, DEMO_STEPS } from "@/contexts/DemoContext";
 import { DemoEmailGate } from "@/components/demo/DemoEmailGate";
 import { DemoWelcome } from "@/components/demo/DemoWelcome";
@@ -19,13 +19,35 @@ import { DemoPayments } from "@/components/demo/DemoPayments";
 import { DemoDataExport } from "@/components/demo/DemoDataExport";
 import { DemoResults } from "@/components/demo/DemoResults";
 import { DemoProgressBar } from "@/components/demo/DemoProgressBar";
+import { RecouplyLogo } from "@/components/layout/RecouplyLogo";
+import MarketingFooter from "@/components/marketing/MarketingFooter";
 import { Button } from "@/components/ui/button";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const DemoMode = () => {
-  const { isDemoMode, step, startDemo, exitDemo, goToStep, nextStep, prevStep, completedSteps } = useDemoContext();
+  const { isDemoMode, step, startDemo, exitDemo, goToStep, nextStep, prevStep, completedSteps, setDemoEmail } = useDemoContext();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Handle token-based email auto-fill: /demo?token=base64(email)
+  useEffect(() => {
+    const token = searchParams.get("token");
+    if (token) {
+      try {
+        const email = atob(token);
+        if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          setDemoEmail(email);
+          // Skip email gate, go to welcome
+          if (step === "email_gate") {
+            goToStep("welcome");
+          }
+        }
+      } catch {
+        // Invalid token, continue normally
+      }
+    }
+  }, [searchParams, setDemoEmail, goToStep, step]);
 
   useEffect(() => {
     if (!isDemoMode) startDemo();
@@ -75,7 +97,7 @@ const DemoMode = () => {
       <div className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="text-lg font-bold text-foreground">Recouply.ai</span>
+            <RecouplyLogo size="md" animated />
             <span className="px-2 py-0.5 text-xs font-semibold bg-primary/10 text-primary rounded-full">
               INTERACTIVE DEMO
             </span>
@@ -168,6 +190,9 @@ const DemoMode = () => {
           </AnimatePresence>
         </div>
       </div>
+
+      {/* Footer */}
+      <MarketingFooter />
     </div>
   );
 };
