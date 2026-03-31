@@ -188,8 +188,8 @@ const AnimatedHero = () => {
              animate={{ opacity: 1, y: 0, scale: 1 }}
              transition={{ duration: 0.6, ease: "easeOut" }}
            >
-             <Sparkles className="w-4 h-4 animate-pulse" />
-            Accounts Receivable Intelligence Platform
+            <Sparkles className="w-4 h-4 animate-pulse" />
+            Revenue Recovery Automation Platform
            </motion.div>
           
           {/* Supporting tagline */}
