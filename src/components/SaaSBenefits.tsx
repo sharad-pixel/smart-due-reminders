@@ -20,7 +20,7 @@ const SaaSBenefits = () => {
           <div className="p-2 bg-primary/10 rounded-lg">
             <Brain className="w-5 h-5 text-primary" />
           </div>
-          <h3 className="text-xl font-semibold">SaaS-Specific Advantages</h3>
+          <h3 className="text-xl font-semibold">SaaS Revenue Recovery Advantages</h3>
         </div>
         <div className="grid md:grid-cols-2 gap-4 mb-4">
           {benefits.map((benefit, idx) => (

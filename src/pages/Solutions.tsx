@@ -83,17 +83,17 @@ const Solutions = () => {
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-16">
             <div className="inline-block px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-6">
-              Accounts Receivable Intelligence Engine
+              Revenue Recovery Automation Engine
             </div>
             <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              Six AI Agents Built for Your AR Challenges
+              Six AI Agents That Automate Revenue Recovery
             </h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-4">
-              Recouply.ai deploys six specialized AR agents that learn from payment behavior and account context—
-              helping you act earlier, recover smarter, and preserve relationships.
+              Recouply.ai deploys six AI agents that handle the repetitive, mundane follow-up workflows—
+              so your team can focus on decisions, not chasing invoices.
             </p>
             <p className="text-lg text-primary font-medium">
-              "Proactive AR intelligence, human-controlled outcomes."
+              "AI-agentic automation for consistent revenue recovery, human-approved outcomes."
             </p>
           </div>
 
@@ -136,21 +136,21 @@ const Solutions = () => {
 
           <div className="text-center bg-gradient-to-br from-primary/5 to-secondary/5 border rounded-lg p-12">
             <h2 className="text-3xl font-bold mb-4">
-              Ready to Put Six AI Agents to Work?
+              Ready to Automate Revenue Recovery?
             </h2>
             <p className="text-lg text-muted-foreground mb-4 max-w-2xl mx-auto">
-              Join businesses using AI-assisted collections to recover revenue around the clock—
-              with human oversight at every step.
+              Let AI agents handle the repetitive follow-ups—freeing your team from mundane workflows
+              while strengthening cash flow consistently.
             </p>
             <p className="text-md text-primary font-medium mb-8">
-              "Designed to support predictable cash flow."
+              "AI-agentic automation that replaces manual effort with consistent recovery."
             </p>
             <div className="flex gap-4 justify-center flex-wrap">
               <Button 
                 onClick={() => navigate("/signup")}
                 size="lg"
               >
-                Start Free Trial
+                Start Recovering Revenue
               </Button>
               <Button 
                 onClick={() => window.open("https://calendly.com/sharad-recouply/30min", "_blank")}

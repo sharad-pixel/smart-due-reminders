@@ -7,38 +7,37 @@ import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from
 import RollingAgentIntro from "./RollingAgentIntro";
 
 const headlines = [
-  "Collect Your Money. Intelligently.",
-  "Act Earlier. Recover Smarter.",
-  "Revenue Intelligence That Compounds",
-  "Visibility Into Cash Outcomes, Before They Happen",
-  "Risk-Aware Collections, Human-Controlled",
-  "Predictable Cash Flow Starts With Better Signals",
-  "Turn Payment Behavior Into Actionable Insight",
-  "Collections Intelligence That Learns With You",
-  "Healthy Cash Flow Is Built on Foresight",
-  "Informed Decisions Drive Sustainable Growth",
-  "Protect Cash Flow With Context-Aware Outreach",
-  "Revenue Recognized Faster, Relationships Preserved",
-  "From Aging Invoices to Actionable Intelligence",
-  "Your AR, Guided by Real-Time Signals",
-  "Financial Health Through Proactive Intelligence",
-  "AI-Assisted Collections, Human-Approved Outcomes",
-  "Build Resilience With Risk-Aware Automation",
-  "Better Signals. Faster Recovery. Stronger Cash Position.",
-  "Collections That Inform Your Next Move",
+  "Recover Revenue. Strengthen Cash Flow.",
+  "AI Agents That Handle the Follow-Ups For You",
+  "Revenue Recovery, Automated and Intelligent",
+  "Stop Chasing Invoices. Start Recovering Revenue.",
+  "Six AI Agents. Zero Manual Follow-Ups.",
+  "Cash Flow Strengthened by Agentic AI",
+  "Automate the Mundane. Recover What's Yours.",
+  "Revenue Recovery Intelligence That Compounds",
+  "AI-Agentic Workflows Replace Repetitive Tasks",
+  "Consistent Recovery Without the Human Bottleneck",
+  "From Overdue to Recovered—Automatically",
+  "Predictable Cash Flow Through Intelligent Automation",
+  "Let AI Agents Do the Work. You Make the Decisions.",
+  "Revenue Recovery on Autopilot, Human-Approved",
+  "Strengthen Cash Position With Every Interaction",
+  "Agentic AI for Repeatable Revenue Recovery",
+  "Better Signals. Faster Recovery. Less Manual Effort.",
+  "Your Revenue Recovery Engine, Always On",
 ];
 
 const subheadlines = [
-  "Six AI agents learn from payment behavior to guide your next action—before risk compounds.",
-  "AI-assisted outreach, reviewed before sending. You stay in control while intelligence scales.",
-  "From friendly reminders to firm follow-ups—agents adapt tone based on real-time signals.",
-  "Turn payment patterns into foresight. Act earlier, recover smarter, protect cash flow.",
-  "Risk-aware automation designed to support predictable cash outcomes.",
-  "Collections that preserve relationships—guided by context, approved by you.",
-  "Intelligence that compounds with every touchpoint. Better signals, faster recovery.",
-  "Let AI handle the follow-ups while you focus on decisions that matter.",
-  "Enterprise-grade signals at a fraction of the cost of traditional AR teams.",
-  "Context-aware outreach that knows when to be gentle and when to escalate—human-approved.",
+  "Six AI agents automate the repetitive follow-ups your team shouldn't be doing manually.",
+  "Revenue recovery automation that learns, adapts, and acts—with human approval at every step.",
+  "From friendly reminders to firm escalations—agentic AI handles the mundane so your team doesn't.",
+  "Eliminate manual follow-ups. Strengthen cash flow. Let AI agents do the heavy lifting.",
+  "AI-agentic workflows replace uncomfortable payment conversations with consistent, professional outreach.",
+  "Revenue recovery that preserves relationships—automated by AI, controlled by you.",
+  "Every interaction makes the system smarter. Consistent workflows, compounding results.",
+  "Free your team from repetitive invoice chasing. AI agents handle it 24/7.",
+  "Enterprise-grade revenue recovery at a fraction of the cost of manual AR teams.",
+  "Agentic AI that knows when to nudge and when to escalate—always human-approved.",
 ];
 
 const AnimatedHero = () => {
@@ -189,8 +188,8 @@ const AnimatedHero = () => {
              animate={{ opacity: 1, y: 0, scale: 1 }}
              transition={{ duration: 0.6, ease: "easeOut" }}
            >
-             <Sparkles className="w-4 h-4 animate-pulse" />
-            Accounts Receivable Intelligence Platform
+            <Sparkles className="w-4 h-4 animate-pulse" />
+            Revenue Recovery Automation Platform
            </motion.div>
           
           {/* Supporting tagline */}
@@ -200,7 +199,7 @@ const AnimatedHero = () => {
              animate={{ opacity: 1 }}
              transition={{ delay: 0.3, duration: 0.6 }}
            >
-            All AR and collection activities in one place — AI-powered, audit-ready, built for seamless handoffs
+            AI-agentic revenue recovery — automate repetitive workflows, strengthen cash flow, preserve relationships
            </motion.p>
 
           {/* Typewriter Headline */}
@@ -275,7 +274,7 @@ const AnimatedHero = () => {
                  animate={{ scale: [1, 1.3, 1], opacity: [1, 0.7, 1] }}
                  transition={{ duration: 1.5, repeat: Infinity }}
                />
-              These agents work 24/7 so you don't have to
+              AI agents automate the mundane — your team focuses on what matters
             </span>
            </motion.p>
 
@@ -299,7 +298,7 @@ const AnimatedHero = () => {
                    transition={{ duration: 0.3 }}
                  />
                  <span className="relative flex items-center gap-2">
-                    Start Collecting
+                    Start Recovering Revenue
                     <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
                  </span>
                </Button>

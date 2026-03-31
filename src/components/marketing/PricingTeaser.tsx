@@ -47,7 +47,7 @@ const PricingTeaser = () => {
             Simple Pricing
           </div>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-            Automate Collections for Less Than One Employee
+            Revenue Recovery Automation for Less Than One Employee
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
             Starts at ${PLAN_CONFIGS.solo_pro.monthlyPrice}/mo for independents. Business plans from ${PLAN_CONFIGS.starter.monthlyPrice}/mo.
@@ -90,7 +90,7 @@ const PricingTeaser = () => {
                 <ul className="space-y-3 mb-6">
                   <li className="flex items-center gap-2 text-sm">
                     <Check className="h-4 w-4 text-accent flex-shrink-0" />
-                    All 6 AI collection agents
+                    All 6 AI recovery agents
                   </li>
                   <li className="flex items-center gap-2 text-sm">
                     <Check className="h-4 w-4 text-accent flex-shrink-0" />
@@ -98,7 +98,7 @@ const PricingTeaser = () => {
                   </li>
                   <li className="flex items-center gap-2 text-sm">
                     <Check className="h-4 w-4 text-accent flex-shrink-0" />
-                    Full automation suite
+                    Full revenue recovery automation
                   </li>
                 </ul>
 
@@ -107,7 +107,7 @@ const PricingTeaser = () => {
                   className="w-full"
                   onClick={() => navigate("/pricing")}
                 >
-                  Start Collecting
+                  Start Recovering
                 </Button>
               </div>
             </div>

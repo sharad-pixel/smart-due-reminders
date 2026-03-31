@@ -11,16 +11,16 @@ const ValuePropositions = () => {
       <div className="container mx-auto max-w-6xl">
         <div className="text-center mb-16">
           <div className="inline-block px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
-            AR Solutions
+            Revenue Recovery Solutions
           </div>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-            One AR System. Complete Visibility.
+            AI-Agentic Revenue Recovery for Every Business
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-            Recouply.ai centralizes every accounts receivable action, customer interaction, and outcome into a single, transparent system
+            Recouply.ai deploys AI agents that automate the mundane, repetitive workflows of revenue recovery—so your team never has to
           </p>
           <p className="text-sm text-muted-foreground/80 max-w-xl mx-auto mt-3">
-            This unified AR view enables smarter automation today — and better decisions with customers tomorrow
+            Consistent follow-ups, strengthened cash flow, and zero manual effort on repeatable tasks
           </p>
         </div>
         
@@ -32,7 +32,7 @@ const ValuePropositions = () => {
                 <Rocket className="h-7 w-7 text-primary" />
               </div>
               <h3 className="text-xl font-bold mb-3 group-hover:text-primary transition-colors">For Startups</h3>
-              <p className="text-lg text-muted-foreground mb-6">Visibility Into Cash Outcomes From Day One</p>
+              <p className="text-lg text-muted-foreground mb-6">AI Agents That Recover Revenue From Day One</p>
               <ul className="space-y-3 text-sm text-muted-foreground mb-6">
                 <li className="flex items-start gap-2">
                   <CheckCircle className="h-4 w-4 text-accent mt-0.5 flex-shrink-0" />
@@ -67,7 +67,7 @@ const ValuePropositions = () => {
                 <Building2 className="h-7 w-7 text-primary" />
               </div>
               <h3 className="text-xl font-bold mb-3 group-hover:text-primary transition-colors">For SMBs</h3>
-              <p className="text-lg text-muted-foreground mb-6">AI-Assisted Collections With Human Oversight</p>
+              <p className="text-lg text-muted-foreground mb-6">AI-Agentic Revenue Recovery, Human-Approved</p>
               <ul className="space-y-3 text-sm text-muted-foreground mb-6">
                 <li className="flex items-start gap-2">
                   <CheckCircle className="h-4 w-4 text-accent mt-0.5 flex-shrink-0" />
@@ -99,7 +99,7 @@ const ValuePropositions = () => {
                 <Building className="h-7 w-7 text-primary" />
               </div>
               <h3 className="text-xl font-bold mb-3 group-hover:text-primary transition-colors">For Enterprise</h3>
-              <p className="text-lg text-muted-foreground mb-6">Cross-Functional Intelligence for Finance, Sales & RevOps</p>
+              <p className="text-lg text-muted-foreground mb-6">Agentic Automation That Scales Across Finance, Sales & RevOps</p>
               <ul className="space-y-3 text-sm text-muted-foreground mb-6">
                 <li className="flex items-start gap-2">
                   <CheckCircle className="h-4 w-4 text-accent mt-0.5 flex-shrink-0" />
