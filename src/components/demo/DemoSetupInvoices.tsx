@@ -3,8 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
-import { ArrowRight, FileText, AlertTriangle, CheckCircle2 } from "lucide-react";
-import { DemoTutorialCallout, FeatureScreenshot, TryItPrompt } from "./DemoTutorialCallout";
+import { ArrowRight, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { DemoTutorialCallout, FeatureScreenshot } from "./DemoTutorialCallout";
 import invoicesImg from "@/assets/demo/invoices-entry.jpg";
 
 export const DemoSetupInvoices = () => {

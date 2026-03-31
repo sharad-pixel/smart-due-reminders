@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { ArrowRight, Download, FileSpreadsheet, BarChart3, FileText, Table, CheckCircle2 } from "lucide-react";
-import { DemoTutorialCallout, FeatureScreenshot, TryItPrompt } from "./DemoTutorialCallout";
+import { DemoTutorialCallout, FeatureScreenshot } from "./DemoTutorialCallout";
 import exportImg from "@/assets/demo/data-export-entry.jpg";
 
 const EXPORT_OPTIONS = [

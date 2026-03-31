@@ -2,7 +2,7 @@ import { useDemoContext } from "@/contexts/DemoContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Send, CheckCircle2, Clock, ArrowRight } from "lucide-react";
+import { Send, CheckCircle2, Clock } from "lucide-react";
 import { motion } from "framer-motion";
 import { DemoTutorialCallout, FeatureScreenshot } from "./DemoTutorialCallout";
 import draftsImg from "@/assets/demo/drafts-entry.jpg";

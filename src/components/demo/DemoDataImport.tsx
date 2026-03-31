@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
-import { ArrowRight, Upload, FileSpreadsheet, CheckCircle2, Database, Users, FileText, CreditCard } from "lucide-react";
+import { ArrowRight, Upload, CheckCircle2, Database, Users, FileText, CreditCard } from "lucide-react";
 import { DemoTutorialCallout, FeatureScreenshot, TryItPrompt } from "./DemoTutorialCallout";
 import dataImportImg from "@/assets/demo/data-import-entry.jpg";
 

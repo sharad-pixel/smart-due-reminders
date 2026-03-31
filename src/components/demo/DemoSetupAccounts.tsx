@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
-import { ArrowRight, Building2, Mail, Globe } from "lucide-react";
+import { ArrowRight, Building2, Mail } from "lucide-react";
 import { DemoTutorialCallout, FeatureScreenshot, TryItPrompt } from "./DemoTutorialCallout";
 import accountsImg from "@/assets/demo/accounts-entry.jpg";
 
