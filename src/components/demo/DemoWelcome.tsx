@@ -2,7 +2,7 @@ import { useDemoContext } from "@/contexts/DemoContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion } from "framer-motion";
-import { ArrowRight, Users, FileText, Brain, Send, DollarSign, BarChart3, Database, Link, CalendarRange, History, Download, Sparkles } from "lucide-react";
+import { ArrowRight, Users, FileText, Brain, Send, DollarSign, BarChart3, Database, Link, CalendarRange, History, Download, Sparkles, BrainCircuit } from "lucide-react";
 import { DemoTutorialCallout } from "./DemoTutorialCallout";
 
 const FEATURE_STEPS = [
