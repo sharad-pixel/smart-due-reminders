@@ -43,7 +43,7 @@ export const DemoRevenueRisk = () => {
           { title: "Collectability scoring", description: "Each invoice's collectability score (shown in the invoice table) feeds into the portfolio-level ECL calculation." },
           { title: "What-if projections", description: "The 'Do Nothing' cost shows how much you'd lose if no collection action is taken — based on historical write-off rates." },
         ]}
-        proTip="Your average portfolio risk score is " + avgScore + "/100. A healthy portfolio stays above 70."
+        proTip={`Your average portfolio risk score is ${avgScore}/100. A healthy portfolio stays above 70.`}
       />
 
       {/* Key metrics */}
