@@ -4,22 +4,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { ArrowRight, CheckCircle2, Eye, Clock, MessageSquare, Send } from "lucide-react";
+import { DemoTutorialCallout, FeatureScreenshot } from "./DemoTutorialCallout";
+import historyImg from "@/assets/demo/outreach-history-entry.jpg";
 
 export const DemoOutreachHistory = () => {
   const { drafts, sentCount, nextStep } = useDemoContext();
   const sentDrafts = drafts.filter(d => d.status === "sent");
 
-  // Simulated timeline events
   const timeline = sentDrafts.slice(0, 10).map((draft, i) => {
     const events = ["sent", "delivered", "opened", "replied"];
     const eventIdx = i < 3 ? 3 : i < 6 ? 2 : i < 8 ? 1 : 0;
-    return {
-      draft,
-      latestEvent: events[eventIdx],
-      timestamp: `${Math.floor(Math.random() * 55) + 1}m ago`,
-      opened: eventIdx >= 2,
-      replied: eventIdx >= 3,
-    };
+    return { draft, latestEvent: events[eventIdx], timestamp: `${Math.floor(Math.random() * 55) + 1}m ago`, opened: eventIdx >= 2, replied: eventIdx >= 3 };
   });
 
   const openRate = Math.round((timeline.filter(t => t.opened).length / Math.max(timeline.length, 1)) * 100);
@@ -28,11 +23,28 @@ export const DemoOutreachHistory = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Outreach History</h1>
-        <p className="text-muted-foreground">
-          Full activity timeline — track every email sent, opened, and replied to
-        </p>
+        <h1 className="text-2xl font-bold text-foreground">Step 11: Outreach History</h1>
+        <p className="text-muted-foreground">Full activity timeline — track every email sent, opened, and replied to</p>
       </div>
+
+      <DemoTutorialCallout
+        title="Tracking Outreach Performance"
+        description="Every email sent through Recouply is tracked end-to-end — from send to delivery, open, click, and reply. Use this data to optimize your collection strategy."
+        platformPath="Outreach → History"
+        steps={[
+          { title: "Real-time tracking", description: "See live status updates as emails are delivered, opened, and replied to. Timestamps show exact interaction times." },
+          { title: "Engagement metrics", description: "Track open rates, reply rates, and conversion rates across all outreach. Compare performance by agent, bucket, and time period." },
+          { title: "Response detection", description: "When a customer replies, Recouply detects it and creates a task for review. AI analyzes sentiment and recommends a response." },
+          { title: "Activity export", description: "Export the full outreach timeline as CSV for external analysis or compliance documentation.", action: "Click Export in the real platform" },
+        ]}
+        proTip="A 60%+ open rate and 15%+ reply rate indicates healthy outreach. Below these thresholds, consider adjusting subject lines or send timing."
+      />
+
+      <FeatureScreenshot
+        src={historyImg}
+        alt="Outreach history and activity timeline"
+        caption="The Outreach History — real-time tracking of sent, delivered, opened, and replied status"
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -60,37 +72,16 @@ export const DemoOutreachHistory = () => {
           <h3 className="font-semibold text-foreground mb-4">Activity Timeline</h3>
           <div className="space-y-3">
             {timeline.map((item, i) => (
-              <motion.div
-                key={item.draft.id}
-                initial={{ opacity: 0, x: -15 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.2 + i * 0.05 }}
-                className="flex items-start gap-3 p-3 rounded-lg bg-muted/20 hover:bg-muted/40 transition-colors"
-              >
-                <div className="flex flex-col items-center gap-1">
-                  <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold ${
-                    item.replied ? "bg-accent/10 text-accent" :
-                    item.opened ? "bg-blue-500/10 text-blue-500" :
-                    "bg-muted text-muted-foreground"
-                  }`}>
-                    {item.draft.persona[0]}
-                  </div>
-                </div>
+              <motion.div key={item.draft.id} initial={{ opacity: 0, x: -15 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 + i * 0.05 }} className="flex items-start gap-3 p-3 rounded-lg bg-muted/20 hover:bg-muted/40 transition-colors">
+                <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold ${item.replied ? "bg-accent/10 text-accent" : item.opened ? "bg-blue-500/10 text-blue-500" : "bg-muted text-muted-foreground"}`}>{item.draft.persona[0]}</div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium text-foreground truncate">{item.draft.customer_name}</p>
-                    <Badge variant={
-                      item.replied ? "default" :
-                      item.opened ? "secondary" : "outline"
-                    } className="text-[10px] shrink-0">
-                      {item.replied ? "Replied" : item.opened ? "Opened" : "Sent"}
-                    </Badge>
+                    <Badge variant={item.replied ? "default" : item.opened ? "secondary" : "outline"} className="text-[10px] shrink-0">{item.replied ? "Replied" : item.opened ? "Opened" : "Sent"}</Badge>
                   </div>
                   <p className="text-xs text-muted-foreground truncate">{item.draft.subject}</p>
                 </div>
-                <span className="text-[10px] text-muted-foreground shrink-0 flex items-center gap-1">
-                  <Clock className="h-3 w-3" /> {item.timestamp}
-                </span>
+                <span className="text-[10px] text-muted-foreground shrink-0 flex items-center gap-1"><Clock className="h-3 w-3" /> {item.timestamp}</span>
               </motion.div>
             ))}
           </div>
@@ -98,9 +89,7 @@ export const DemoOutreachHistory = () => {
       </Card>
 
       <div className="flex justify-end pt-2">
-        <Button size="lg" onClick={nextStep}>
-          Next: Watch Payments <ArrowRight className="ml-2 h-4 w-4" />
-        </Button>
+        <Button size="lg" onClick={nextStep}>Next: Watch Payments <ArrowRight className="ml-2 h-4 w-4" /></Button>
       </div>
     </div>
   );

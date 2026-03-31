@@ -4,42 +4,23 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { ArrowRight, Brain, TrendingUp, AlertTriangle, CheckCircle2, Lightbulb } from "lucide-react";
+import { DemoTutorialCallout, FeatureScreenshot } from "./DemoTutorialCallout";
+import intelligenceImg from "@/assets/demo/collection-intelligence-entry.jpg";
 
 const INTELLIGENCE_REPORTS = [
   {
-    account: "Apex SaaS Co",
-    riskLevel: "Moderate",
-    riskColor: "text-yellow-500",
-    score: 65,
-    insights: [
-      "Payment trend: Slowing — avg 12 days late over last 3 invoices",
-      "No inbound communication in 45 days",
-      "3 open invoices totaling $12,450",
-    ],
+    account: "Apex SaaS Co", riskLevel: "Moderate", riskColor: "text-yellow-500", score: 65,
+    insights: ["Payment trend: Slowing — avg 12 days late over last 3 invoices", "No inbound communication in 45 days", "3 open invoices totaling $12,450"],
     recommendation: "Escalate to James (31-60 day agent) with professional follow-up cadence",
   },
   {
-    account: "GrowthStack Inc",
-    riskLevel: "High Risk",
-    riskColor: "text-destructive",
-    score: 28,
-    insights: [
-      "Payment trend: Deteriorating — 2 invoices 90+ days overdue",
-      "Last payment received 4 months ago",
-      "Dispute filed on INV-2024023",
-    ],
+    account: "GrowthStack Inc", riskLevel: "High Risk", riskColor: "text-destructive", score: 28,
+    insights: ["Payment trend: Deteriorating — 2 invoices 90+ days overdue", "Last payment received 4 months ago", "Dispute filed on INV-2024023"],
     recommendation: "Assign Katy (61-90 day agent). Address dispute first, then escalate remaining balance",
   },
   {
-    account: "BrightPath Agency",
-    riskLevel: "Low Risk",
-    riskColor: "text-accent",
-    score: 88,
-    insights: [
-      "Payment trend: Consistent — typically pays within 7 days of reminder",
-      "Responded to last outreach within 2 hours",
-      "1 invoice slightly past due ($2,340)",
-    ],
+    account: "BrightPath Agency", riskLevel: "Low Risk", riskColor: "text-accent", score: 88,
+    insights: ["Payment trend: Consistent — typically pays within 7 days of reminder", "Responded to last outreach within 2 hours", "1 invoice slightly past due ($2,340)"],
     recommendation: "Sam (friendly agent) with single gentle reminder — high likelihood of immediate payment",
   },
 ];
@@ -50,11 +31,28 @@ export const DemoCollectionIntelligence = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Collection Intelligence</h1>
-        <p className="text-muted-foreground">
-          AI-powered account analysis — risk scoring, sentiment, and strategy recommendations
-        </p>
+        <h1 className="text-2xl font-bold text-foreground">Step 6: Collection Intelligence</h1>
+        <p className="text-muted-foreground">AI-powered account analysis — risk scoring, sentiment, and strategy recommendations</p>
       </div>
+
+      <DemoTutorialCallout
+        title="How Collection Intelligence Works"
+        description="Recouply's AI analyzes every account's payment behavior, communication history, and risk factors to recommend the optimal collection strategy."
+        platformPath="Intelligence → Account Analysis"
+        steps={[
+          { title: "Payment behavior analysis", description: "AI tracks payment patterns over time — are they slowing down? Speeding up? Consistent? This determines risk trajectory." },
+          { title: "Communication sentiment", description: "When customers respond to outreach, AI analyzes sentiment (positive, neutral, hostile) to adjust future messaging tone." },
+          { title: "Agent assignment", description: "Based on risk level and behavior, AI recommends which agent persona should handle the account — Sam (friendly), James (professional), or Katy (firm)." },
+          { title: "Strategy recommendations", description: "Each account gets a specific recommendation: gentle reminder, payment plan offer, escalation, or dispute resolution." },
+        ]}
+        proTip="Intelligence reports update daily. Use them in your weekly AR review to prioritize which accounts need human intervention vs. automated outreach."
+      />
+
+      <FeatureScreenshot
+        src={intelligenceImg}
+        alt="Collection intelligence dashboard"
+        caption="The Collection Intelligence view — AI-driven account analysis with payment trends and agent assignments"
+      />
 
       {/* AI Summary */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
@@ -78,47 +76,26 @@ export const DemoCollectionIntelligence = () => {
       {/* Intelligence reports */}
       <div className="space-y-4">
         {INTELLIGENCE_REPORTS.map((report, i) => (
-          <motion.div
-            key={report.account}
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 + i * 0.15 }}
-          >
+          <motion.div key={report.account} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.15 }}>
             <Card>
               <CardContent className="p-5">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-3">
-                    <div className={`h-10 w-10 rounded-full flex items-center justify-center text-sm font-bold ${
-                      report.score < 40 ? "bg-destructive/10 text-destructive" :
-                      report.score < 70 ? "bg-yellow-500/10 text-yellow-600" :
-                      "bg-accent/10 text-accent"
-                    }`}>
-                      {report.score}
-                    </div>
+                    <div className={`h-10 w-10 rounded-full flex items-center justify-center text-sm font-bold ${report.score < 40 ? "bg-destructive/10 text-destructive" : report.score < 70 ? "bg-yellow-500/10 text-yellow-600" : "bg-accent/10 text-accent"}`}>{report.score}</div>
                     <div>
                       <p className="font-semibold text-foreground">{report.account}</p>
-                      <Badge variant="outline" className={`${report.riskColor} text-[10px]`}>
-                        {report.riskLevel}
-                      </Badge>
+                      <Badge variant="outline" className={`${report.riskColor} text-[10px]`}>{report.riskLevel}</Badge>
                     </div>
                   </div>
                 </div>
-
                 <div className="space-y-1.5 mb-3">
                   {report.insights.map((insight, j) => (
                     <div key={j} className="flex items-start gap-2 text-sm text-muted-foreground">
-                      {insight.includes("Deteriorating") || insight.includes("Dispute") ? (
-                        <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0 mt-0.5" />
-                      ) : insight.includes("Consistent") || insight.includes("Responded") ? (
-                        <CheckCircle2 className="h-3.5 w-3.5 text-accent shrink-0 mt-0.5" />
-                      ) : (
-                        <TrendingUp className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
-                      )}
+                      {insight.includes("Deteriorating") || insight.includes("Dispute") ? <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0 mt-0.5" /> : insight.includes("Consistent") || insight.includes("Responded") ? <CheckCircle2 className="h-3.5 w-3.5 text-accent shrink-0 mt-0.5" /> : <TrendingUp className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />}
                       {insight}
                     </div>
                   ))}
                 </div>
-
                 <div className="flex items-start gap-2 p-2.5 rounded-lg bg-primary/5 border border-primary/10">
                   <Lightbulb className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                   <p className="text-sm text-foreground">{report.recommendation}</p>
@@ -130,9 +107,7 @@ export const DemoCollectionIntelligence = () => {
       </div>
 
       <div className="flex justify-end pt-2">
-        <Button size="lg" onClick={nextStep}>
-          Next: Activate AI Outreach <ArrowRight className="ml-2 h-4 w-4" />
-        </Button>
+        <Button size="lg" onClick={nextStep}>Next: Activate AI Outreach <ArrowRight className="ml-2 h-4 w-4" /></Button>
       </div>
     </div>
   );
