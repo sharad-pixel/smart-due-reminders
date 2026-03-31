@@ -81,6 +81,7 @@ const Dashboard = () => {
   const [selectedTask, setSelectedTask] = useState<CollectionTask | null>(null);
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [runningOutreach, setRunningOutreach] = useState(false);
+  const [hideKbAgent, setHideKbAgent] = useState(() => localStorage.getItem('recouply_hide_kb_agent') === 'true');
   const [integrationModal, setIntegrationModal] = useState<{ open: boolean; type: "stripe" | "quickbooks" | null }>({ 
     open: false, 
     type: null 
