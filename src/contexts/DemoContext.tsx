@@ -40,6 +40,7 @@ export const DEMO_STEPS: { key: DemoStep; label: string; group: string }[] = [
   { key: "data_import", label: "Data Import", group: "Data" },
   { key: "revenue_risk", label: "Revenue Risk", group: "Intelligence" },
   { key: "collection_intelligence", label: "Collection Intel", group: "Intelligence" },
+  { key: "inbound_ai", label: "Inbound AI", group: "Intelligence" },
   { key: "activate", label: "AI Activation", group: "Outreach" },
   { key: "drafts", label: "Draft Review", group: "Outreach" },
   { key: "outreach_forecast", label: "Forecast", group: "Outreach" },

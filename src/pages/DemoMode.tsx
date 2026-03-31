@@ -48,6 +48,7 @@ const DemoMode = () => {
     data_import: <DemoDataImport />,
     revenue_risk: <DemoRevenueRisk />,
     collection_intelligence: <DemoCollectionIntelligence />,
+    inbound_ai: <DemoInboundAI />,
     activate: <DemoActivation />,
     drafts: <DemoDrafts />,
     outreach_forecast: <DemoOutreachForecast />,
