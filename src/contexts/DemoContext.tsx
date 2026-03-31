@@ -58,6 +58,7 @@ interface DemoState {
   drafts: DemoDraft[];
   stats: ReturnType<typeof getDemoStats>;
   agingBuckets: ReturnType<typeof getDemoAgingBuckets>;
+  paymentHistory: DemoPaymentHistory[];
   sentCount: number;
   paidInvoiceIds: string[];
   recoveredAmount: number;
