@@ -29,7 +29,7 @@ import { useOrgAvgDPD } from "@/hooks/useAvgDPD";
 import { KnowledgeBaseAgent } from "@/components/ai/KnowledgeBaseAgent";
 import { IntegrationSetupModal } from "@/components/integrations/IntegrationSetupModal";
 import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
-import { FounderAnnouncementBanner } from "@/components/dashboard/FounderAnnouncementBanner";
+
 
 interface Invoice {
   id: string;
@@ -81,6 +81,7 @@ const Dashboard = () => {
   const [selectedTask, setSelectedTask] = useState<CollectionTask | null>(null);
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [runningOutreach, setRunningOutreach] = useState(false);
+  const [hideKbAgent, setHideKbAgent] = useState(() => localStorage.getItem('recouply_hide_kb_agent') === 'true');
   const [integrationModal, setIntegrationModal] = useState<{ open: boolean; type: "stripe" | "quickbooks" | null }>({ 
     open: false, 
     type: null 
@@ -416,7 +417,7 @@ const Dashboard = () => {
   return (
     <Layout>
       <div className="space-y-4 sm:space-y-6 lg:space-y-8">
-        <FounderAnnouncementBanner />
+        
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-4">
             {accountInfo.ownerLogoUrl && (
@@ -472,17 +473,30 @@ const Dashboard = () => {
         {/* Usage Indicator */}
         <UsageIndicator />
 
-        {/* Knowledge Base Agent - Onboarding & Setup */}
-        {!onboardingStatus.isLoading && (
-          <KnowledgeBaseAgent
-            stripeConnected={onboardingStatus.stripeConnected}
-            quickbooksConnected={onboardingStatus.quickbooksConnected}
-            hasAccounts={onboardingStatus.hasAccounts}
-            hasInvoices={onboardingStatus.hasInvoices}
-            workflowsConfigured={onboardingStatus.workflowsConfigured}
-            onSetupStripe={() => setIntegrationModal({ open: true, type: "stripe" })}
-            onSetupQuickBooks={() => setIntegrationModal({ open: true, type: "quickbooks" })}
-          />
+        {/* Knowledge Base Agent - Onboarding & Setup (hideable) */}
+        {!onboardingStatus.isLoading && !hideKbAgent && (
+          <div className="relative">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute top-2 right-2 z-10 h-7 text-xs text-muted-foreground hover:text-foreground"
+              onClick={() => {
+                localStorage.setItem('recouply_hide_kb_agent', 'true');
+                setHideKbAgent(true);
+              }}
+            >
+              Hide
+            </Button>
+            <KnowledgeBaseAgent
+              stripeConnected={onboardingStatus.stripeConnected}
+              quickbooksConnected={onboardingStatus.quickbooksConnected}
+              hasAccounts={onboardingStatus.hasAccounts}
+              hasInvoices={onboardingStatus.hasInvoices}
+              workflowsConfigured={onboardingStatus.workflowsConfigured}
+              onSetupStripe={() => setIntegrationModal({ open: true, type: "stripe" })}
+              onSetupQuickBooks={() => setIntegrationModal({ open: true, type: "quickbooks" })}
+            />
+          </div>
         )}
 
         {/* Quick Actions */}
