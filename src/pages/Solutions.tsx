@@ -136,14 +136,14 @@ const Solutions = () => {
 
           <div className="text-center bg-gradient-to-br from-primary/5 to-secondary/5 border rounded-lg p-12">
             <h2 className="text-3xl font-bold mb-4">
-              Ready to Put Six AI Agents to Work?
+              Ready to Automate Revenue Recovery?
             </h2>
             <p className="text-lg text-muted-foreground mb-4 max-w-2xl mx-auto">
-              Join businesses using AI-assisted collections to recover revenue around the clock—
-              with human oversight at every step.
+              Let AI agents handle the repetitive follow-ups—freeing your team from mundane workflows
+              while strengthening cash flow consistently.
             </p>
             <p className="text-md text-primary font-medium mb-8">
-              "Designed to support predictable cash flow."
+              "AI-agentic automation that replaces manual effort with consistent recovery."
             </p>
             <div className="flex gap-4 justify-center flex-wrap">
               <Button 
