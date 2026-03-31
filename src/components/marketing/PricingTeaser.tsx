@@ -90,7 +90,7 @@ const PricingTeaser = () => {
                 <ul className="space-y-3 mb-6">
                   <li className="flex items-center gap-2 text-sm">
                     <Check className="h-4 w-4 text-accent flex-shrink-0" />
-                    All 6 AI collection agents
+                    All 6 AI recovery agents
                   </li>
                   <li className="flex items-center gap-2 text-sm">
                     <Check className="h-4 w-4 text-accent flex-shrink-0" />
