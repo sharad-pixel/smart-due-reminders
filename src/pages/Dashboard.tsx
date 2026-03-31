@@ -473,7 +473,7 @@ const Dashboard = () => {
         <UsageIndicator />
 
         {/* Knowledge Base Agent - Onboarding & Setup (hideable) */}
-        {!onboardingStatus.isLoading && !localStorage.getItem('recouply_hide_kb_agent') && (
+        {!onboardingStatus.isLoading && !hideKbAgent && (
           <div className="relative">
             <Button
               variant="ghost"
@@ -481,25 +481,20 @@ const Dashboard = () => {
               className="absolute top-2 right-2 z-10 h-7 text-xs text-muted-foreground hover:text-foreground"
               onClick={() => {
                 localStorage.setItem('recouply_hide_kb_agent', 'true');
-                window.dispatchEvent(new Event('storage'));
-                // Force re-render
-                const el = document.getElementById('kb-agent-wrapper');
-                if (el) el.style.display = 'none';
+                setHideKbAgent(true);
               }}
             >
               Hide
             </Button>
-            <div id="kb-agent-wrapper">
-              <KnowledgeBaseAgent
-                stripeConnected={onboardingStatus.stripeConnected}
-                quickbooksConnected={onboardingStatus.quickbooksConnected}
-                hasAccounts={onboardingStatus.hasAccounts}
-                hasInvoices={onboardingStatus.hasInvoices}
-                workflowsConfigured={onboardingStatus.workflowsConfigured}
-                onSetupStripe={() => setIntegrationModal({ open: true, type: "stripe" })}
-                onSetupQuickBooks={() => setIntegrationModal({ open: true, type: "quickbooks" })}
-              />
-            </div>
+            <KnowledgeBaseAgent
+              stripeConnected={onboardingStatus.stripeConnected}
+              quickbooksConnected={onboardingStatus.quickbooksConnected}
+              hasAccounts={onboardingStatus.hasAccounts}
+              hasInvoices={onboardingStatus.hasInvoices}
+              workflowsConfigured={onboardingStatus.workflowsConfigured}
+              onSetupStripe={() => setIntegrationModal({ open: true, type: "stripe" })}
+              onSetupQuickBooks={() => setIntegrationModal({ open: true, type: "quickbooks" })}
+            />
           </div>
         )}
 
