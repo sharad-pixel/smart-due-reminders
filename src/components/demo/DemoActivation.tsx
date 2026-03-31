@@ -1,10 +1,12 @@
 import { useDemoContext } from "@/contexts/DemoContext";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Loader2, Sparkles, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 
 export const DemoActivation = () => {
-  const { drafts, stats } = useDemoContext();
+  const { drafts, stats, isAnimating, nextStep } = useDemoContext();
+  const done = !isAnimating && drafts.length >= stats.overdueCount;
 
   return (
     <div className="space-y-8">
@@ -54,12 +56,20 @@ export const DemoActivation = () => {
                   <p className="text-sm font-medium text-foreground truncate">{draft.customer_name}</p>
                   <p className="text-xs text-muted-foreground truncate">{draft.subject}</p>
                 </div>
-                <Loader2 className="h-4 w-4 text-primary animate-spin shrink-0 ml-auto" />
+                {!done && <Loader2 className="h-4 w-4 text-primary animate-spin shrink-0 ml-auto" />}
               </CardContent>
             </Card>
           </motion.div>
         ))}
       </div>
+
+      {done && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center pt-4">
+          <Button size="lg" onClick={nextStep}>
+            Review Drafts <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        </motion.div>
+      )}
     </div>
   );
 };

@@ -1,27 +1,25 @@
 import { useDemoContext } from "@/contexts/DemoContext";
 import { Card, CardContent } from "@/components/ui/card";
-import { Send, Mail, CheckCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Send, CheckCircle, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 
 export const DemoSending = () => {
-  const { drafts, sentCount } = useDemoContext();
+  const { drafts, sentCount, isAnimating, nextStep } = useDemoContext();
   const total = drafts.length;
   const recentlySent = drafts.filter(d => d.status === "sent").slice(-8);
+  const done = !isAnimating && sentCount >= total && total > 0;
 
   return (
     <div className="space-y-8">
       <div className="text-center space-y-2">
-        <motion.div
-          animate={{ y: [0, -8, 0] }}
-          transition={{ duration: 1.2, repeat: Infinity }}
-        >
+        <motion.div animate={{ y: [0, -8, 0] }} transition={{ duration: 1.2, repeat: Infinity }}>
           <Send className="h-10 w-10 text-primary mx-auto" />
         </motion.div>
         <h1 className="text-3xl font-bold text-foreground">Sending Outreach...</h1>
         <p className="text-muted-foreground">AI agents are delivering personalized emails</p>
       </div>
 
-      {/* Progress */}
       <div className="max-w-lg mx-auto">
         <div className="flex justify-between text-sm mb-2">
           <span className="text-muted-foreground">Sent</span>
@@ -36,18 +34,13 @@ export const DemoSending = () => {
         </div>
       </div>
 
-      {/* Activity feed */}
       <div className="max-w-2xl mx-auto space-y-2">
         <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-          <Mail className="h-4 w-4 text-primary" /> Live Activity
+          Live Activity
         </h3>
         {recentlySent.map((draft, i) => (
-          <motion.div
-            key={draft.id}
-            initial={{ opacity: 0, x: -30 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: i * 0.05 }}
-          >
+          <motion.div key={draft.id} initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: i * 0.05 }}>
             <Card className="border-accent/20">
               <CardContent className="p-3 flex items-center gap-3">
                 <CheckCircle className="h-4 w-4 text-accent shrink-0" />
@@ -63,6 +56,14 @@ export const DemoSending = () => {
           </motion.div>
         ))}
       </div>
+
+      {done && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center pt-4">
+          <Button size="lg" onClick={nextStep}>
+            View Outreach History <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        </motion.div>
+      )}
     </div>
   );
 };
