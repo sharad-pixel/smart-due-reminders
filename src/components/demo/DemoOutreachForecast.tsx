@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
-import { ArrowRight, CalendarRange, Mail, AlertTriangle, Clock } from "lucide-react";
+import { ArrowRight, CalendarRange, Clock } from "lucide-react";
 
 export const DemoOutreachForecast = () => {
   const { invoices, nextStep } = useDemoContext();

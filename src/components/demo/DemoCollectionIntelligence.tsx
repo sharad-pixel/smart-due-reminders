@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
-import { ArrowRight, Brain, TrendingUp, MessageSquare, AlertTriangle, CheckCircle2, Lightbulb } from "lucide-react";
+import { ArrowRight, Brain, TrendingUp, AlertTriangle, CheckCircle2, Lightbulb } from "lucide-react";
 
 const INTELLIGENCE_REPORTS = [
   {

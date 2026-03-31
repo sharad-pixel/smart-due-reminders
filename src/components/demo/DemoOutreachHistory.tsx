@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
-import { ArrowRight, Mail, CheckCircle2, Eye, Clock, MessageSquare, Send } from "lucide-react";
+import { ArrowRight, CheckCircle2, Eye, Clock, MessageSquare, Send } from "lucide-react";
 
 export const DemoOutreachHistory = () => {
   const { drafts, sentCount, nextStep } = useDemoContext();
