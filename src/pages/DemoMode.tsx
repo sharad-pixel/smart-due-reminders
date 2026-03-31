@@ -190,6 +190,9 @@ const DemoMode = () => {
           </AnimatePresence>
         </div>
       </div>
+
+      {/* Footer */}
+      <MarketingFooter />
     </div>
   );
 };
