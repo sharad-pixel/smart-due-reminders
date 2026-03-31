@@ -67,7 +67,7 @@ const ValuePropositions = () => {
                 <Building2 className="h-7 w-7 text-primary" />
               </div>
               <h3 className="text-xl font-bold mb-3 group-hover:text-primary transition-colors">For SMBs</h3>
-              <p className="text-lg text-muted-foreground mb-6">AI-Assisted Collections With Human Oversight</p>
+              <p className="text-lg text-muted-foreground mb-6">AI-Agentic Revenue Recovery, Human-Approved</p>
               <ul className="space-y-3 text-sm text-muted-foreground mb-6">
                 <li className="flex items-start gap-2">
                   <CheckCircle className="h-4 w-4 text-accent mt-0.5 flex-shrink-0" />
