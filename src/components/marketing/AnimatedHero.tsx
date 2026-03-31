@@ -274,7 +274,7 @@ const AnimatedHero = () => {
                  animate={{ scale: [1, 1.3, 1], opacity: [1, 0.7, 1] }}
                  transition={{ duration: 1.5, repeat: Infinity }}
                />
-              These agents work 24/7 so you don't have to
+              AI agents automate the mundane — your team focuses on what matters
             </span>
            </motion.p>
 
