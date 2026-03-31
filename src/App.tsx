@@ -6,6 +6,7 @@ import { lazy, Suspense, useEffect } from "react";
 import ScrollToTop from "./components/layout/ScrollToTop";
 import { CookieConsentProvider } from "./components/cookies/CookieConsentProvider";
 import { AccessProvider } from "./contexts/AccessContext";
+import { DemoProvider } from "./contexts/DemoContext";
 import { MaintenanceGuard } from "./components/layout/MaintenanceGuard";
 import { SessionSecurityProvider } from "./components/security/SessionSecurityProvider";
 
@@ -144,6 +145,7 @@ const AdminEmailTemplates = lazy(() => import("./pages/admin/AdminEmailTemplates
 const AdminUserDetail = lazy(() => import("./pages/admin/AdminUserDetail"));
 const AdminLeadOutreach = lazy(() => import("./pages/admin/AdminLeadOutreach"));
 const AdminStaleUsers = lazy(() => import("./pages/admin/AdminStaleUsers"));
+const DemoMode = lazy(() => import("./pages/DemoMode"));
 
 // Optimized QueryClient configuration
 const queryClient = new QueryClient({
@@ -161,6 +163,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <BrowserRouter>
       <AccessProvider>
+        <DemoProvider>
         <SessionSecurityProvider>
         <CookieConsentProvider>
           <MaintenanceGuard>
@@ -172,6 +175,7 @@ const App = () => (
             {/* Main app entry point */}
             <Route path="/" element={<Index />} />
             <Route path="/coming-soon" element={<ComingSoon />} />
+            <Route path="/demo" element={<DemoMode />} />
 
             {/* Marketing & Info Pages */}
             <Route path="/design-partners" element={<DesignPartners />} />
@@ -289,6 +293,7 @@ const App = () => (
           </MaintenanceGuard>
         </CookieConsentProvider>
         </SessionSecurityProvider>
+        </DemoProvider>
       </AccessProvider>
     </BrowserRouter>
   </QueryClientProvider>
