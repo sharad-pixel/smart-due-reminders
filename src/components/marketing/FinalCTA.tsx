@@ -36,22 +36,22 @@ const FinalCTA = () => {
           <div className="text-center">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-6">
               <Sparkles className="h-4 w-4 animate-pulse" />
-              Accounts Receivable Intelligence Platform
+              Revenue Recovery Automation Platform
             </div>
 
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-              Collect Your Money. Intelligently.
+              Recover Revenue. Strengthen Cash Flow.
             </h2>
             
             <p className="text-xl md:text-2xl text-primary font-semibold mb-4">
-              AI-Assisted Intelligence, Human-Controlled Outcomes
+              AI-Agentic Automation, Human-Controlled Outcomes
             </p>
             
             <p className="text-lg text-muted-foreground mb-6 max-w-2xl mx-auto">
-              Payment behavior, communication signals, and risk context—synthesized to help teams act earlier and recover smarter.
+              Six AI agents automate repeatable follow-up workflows—freeing your team from mundane tasks while strengthening cash position.
             </p>
             <p className="text-sm text-muted-foreground/80 mb-10 max-w-xl mx-auto">
-              Centralized workflows • Built-in audit logs • Context preserved during handoffs
+              Automated workflows • Consistent outreach • Revenue recovered without manual effort
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
