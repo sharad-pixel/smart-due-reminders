@@ -2,7 +2,7 @@ import { useDemoContext } from "@/contexts/DemoContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion } from "framer-motion";
-import { ArrowRight, Users, FileText, Brain, Send, DollarSign, BarChart3, Database, Link, CalendarRange, History, Download, Sparkles } from "lucide-react";
+import { ArrowRight, Users, FileText, Brain, Send, DollarSign, BarChart3, Database, Link, CalendarRange, History, Download, Sparkles, BrainCircuit } from "lucide-react";
 import { DemoTutorialCallout } from "./DemoTutorialCallout";
 
 const FEATURE_STEPS = [
@@ -12,6 +12,7 @@ const FEATURE_STEPS = [
   { icon: Database, label: "Data Import", desc: "CSV, Excel, API import", step: "data_import" as const },
   { icon: BarChart3, label: "Revenue Risk", desc: "ECL & collectability scores", step: "revenue_risk" as const },
   { icon: Brain, label: "Collection Intelligence", desc: "AI-powered account analysis", step: "collection_intelligence" as const },
+  { icon: BrainCircuit, label: "Inbound AI", desc: "AI reads & responds to emails", step: "inbound_ai" as const },
   { icon: Sparkles, label: "AI Activation", desc: "Generate outreach drafts", step: "activate" as const },
   { icon: Send, label: "Draft Review", desc: "Review & approve messages", step: "drafts" as const },
   { icon: CalendarRange, label: "Outreach Forecast", desc: "7-day communication plan", step: "outreach_forecast" as const },
