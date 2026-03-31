@@ -163,6 +163,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <BrowserRouter>
       <AccessProvider>
+        <DemoProvider>
         <SessionSecurityProvider>
         <CookieConsentProvider>
           <MaintenanceGuard>
