@@ -5,8 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { ArrowRight, Upload, CheckCircle2, Database, Users, FileText, CreditCard } from "lucide-react";
-import { DemoTutorialCallout, FeatureScreenshot, TryItPrompt } from "./DemoTutorialCallout";
-import dataImportImg from "@/assets/demo/data-import-entry.jpg";
+import { DemoTutorialCallout, TryItPrompt } from "./DemoTutorialCallout";
 
 export const DemoDataImport = () => {
   const { nextStep, stats } = useDemoContext();
@@ -38,11 +37,6 @@ export const DemoDataImport = () => {
         proTip="Use the Data Center template (downloadable from the import page) to ensure your CSV columns match perfectly on the first try."
       />
 
-      <FeatureScreenshot
-        src={dataImportImg}
-        alt="Data import and column mapping interface"
-        caption="The Data Import wizard — drag-and-drop upload with intelligent column mapping"
-      />
 
       {/* Upload zone */}
       <Card className="border-dashed border-2 border-primary/30 bg-primary/5">

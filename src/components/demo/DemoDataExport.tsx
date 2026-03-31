@@ -5,8 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { ArrowRight, Download, FileSpreadsheet, BarChart3, FileText, Table, CheckCircle2 } from "lucide-react";
-import { DemoTutorialCallout, FeatureScreenshot } from "./DemoTutorialCallout";
-import exportImg from "@/assets/demo/data-export-entry.jpg";
+import { DemoTutorialCallout } from "./DemoTutorialCallout";
 
 const EXPORT_OPTIONS = [
   { icon: FileSpreadsheet, label: "Invoice Aging Report", desc: "Full AR aging with Recouply IDs, aging buckets, and risk scores", format: "XLSX", rows: 75 },
@@ -43,11 +42,6 @@ export const DemoDataExport = () => {
         proTip="The Invoice Aging Report includes dynamically calculated aging buckets and RAID references — perfect for your monthly AR review with stakeholders."
       />
 
-      <FeatureScreenshot
-        src={exportImg}
-        alt="Data export and reports interface"
-        caption="The Data Export page — download enriched reports with risk scores and outreach metrics"
-      />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {EXPORT_OPTIONS.map((opt, i) => {
