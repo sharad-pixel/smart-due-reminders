@@ -10,11 +10,47 @@ import {
   DemoDraft,
 } from "@/lib/demoData";
 
-export type DemoStep = "overview" | "activate" | "drafts" | "sending" | "payments" | "results";
+export type DemoStep =
+  | "email_gate"
+  | "welcome"
+  | "setup_accounts"
+  | "setup_invoices"
+  | "integrations"
+  | "data_import"
+  | "revenue_risk"
+  | "collection_intelligence"
+  | "activate"
+  | "drafts"
+  | "outreach_forecast"
+  | "sending"
+  | "outreach_history"
+  | "payments"
+  | "data_export"
+  | "results";
+
+export const DEMO_STEPS: { key: DemoStep; label: string; group: string }[] = [
+  { key: "email_gate", label: "Get Started", group: "Start" },
+  { key: "welcome", label: "Welcome", group: "Start" },
+  { key: "setup_accounts", label: "Accounts", group: "Setup" },
+  { key: "setup_invoices", label: "Invoices", group: "Setup" },
+  { key: "integrations", label: "Integrations", group: "Setup" },
+  { key: "data_import", label: "Data Import", group: "Data" },
+  { key: "revenue_risk", label: "Revenue Risk", group: "Intelligence" },
+  { key: "collection_intelligence", label: "Collection Intel", group: "Intelligence" },
+  { key: "activate", label: "AI Activation", group: "Outreach" },
+  { key: "drafts", label: "Draft Review", group: "Outreach" },
+  { key: "outreach_forecast", label: "Forecast", group: "Outreach" },
+  { key: "sending", label: "Sending", group: "Outreach" },
+  { key: "outreach_history", label: "History", group: "Outreach" },
+  { key: "payments", label: "Payments", group: "Recovery" },
+  { key: "data_export", label: "Data Export", group: "Data" },
+  { key: "results", label: "ROI Results", group: "Recovery" },
+];
 
 interface DemoState {
   isDemoMode: boolean;
   step: DemoStep;
+  demoEmail: string;
   customers: DemoCustomer[];
   invoices: DemoInvoice[];
   drafts: DemoDraft[];
@@ -24,15 +60,20 @@ interface DemoState {
   paidInvoiceIds: string[];
   recoveredAmount: number;
   isAnimating: boolean;
+  completedSteps: DemoStep[];
 }
 
 interface DemoContextValue extends DemoState {
   startDemo: () => void;
   exitDemo: () => void;
   goToStep: (step: DemoStep) => void;
+  nextStep: () => void;
+  prevStep: () => void;
+  setDemoEmail: (email: string) => void;
   activateCollections: () => void;
   startSending: () => void;
   simulatePayments: () => void;
+  markStepComplete: (step: DemoStep) => void;
 }
 
 const DemoContext = createContext<DemoContextValue | null>(null);
@@ -46,18 +87,24 @@ export const useDemoContext = () => {
 export const DemoProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const customers = useMemo(() => generateDemoCustomers(), []);
   const invoicesRef = useRef(generateDemoInvoices(customers));
-  
+
   const [isDemoMode, setIsDemoMode] = useState(false);
-  const [step, setStep] = useState<DemoStep>("overview");
+  const [step, setStep] = useState<DemoStep>("email_gate");
+  const [demoEmail, setDemoEmail] = useState("");
   const [invoices, setInvoices] = useState<DemoInvoice[]>(invoicesRef.current);
   const [drafts, setDrafts] = useState<DemoDraft[]>([]);
   const [sentCount, setSentCount] = useState(0);
   const [paidInvoiceIds, setPaidInvoiceIds] = useState<string[]>([]);
   const [recoveredAmount, setRecoveredAmount] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [completedSteps, setCompletedSteps] = useState<DemoStep[]>([]);
 
   const stats = useMemo(() => getDemoStats(invoices), [invoices]);
   const agingBuckets = useMemo(() => getDemoAgingBuckets(invoices), [invoices]);
+
+  const markStepComplete = useCallback((s: DemoStep) => {
+    setCompletedSteps(prev => prev.includes(s) ? prev : [...prev, s]);
+  }, []);
 
   const startDemo = useCallback(() => {
     const freshInvoices = generateDemoInvoices(customers);
@@ -67,21 +114,34 @@ export const DemoProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setSentCount(0);
     setPaidInvoiceIds([]);
     setRecoveredAmount(0);
-    setStep("overview");
+    setStep("email_gate");
     setIsDemoMode(true);
+    setCompletedSteps([]);
   }, [customers]);
 
   const exitDemo = useCallback(() => {
     setIsDemoMode(false);
-    setStep("overview");
+    setStep("email_gate");
   }, []);
 
   const goToStep = useCallback((s: DemoStep) => setStep(s), []);
 
+  const nextStep = useCallback(() => {
+    const idx = DEMO_STEPS.findIndex(s => s.key === step);
+    if (idx < DEMO_STEPS.length - 1) {
+      markStepComplete(step);
+      setStep(DEMO_STEPS[idx + 1].key);
+    }
+  }, [step, markStepComplete]);
+
+  const prevStep = useCallback(() => {
+    const idx = DEMO_STEPS.findIndex(s => s.key === step);
+    if (idx > 0) setStep(DEMO_STEPS[idx - 1].key);
+  }, [step]);
+
   const activateCollections = useCallback(() => {
     setIsAnimating(true);
     const newDrafts = generateDemoDrafts(invoicesRef.current);
-    // Stagger draft appearance
     const batchSize = 8;
     let added = 0;
     const interval = setInterval(() => {
@@ -90,19 +150,15 @@ export const DemoProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (added >= newDrafts.length) {
         clearInterval(interval);
         setIsAnimating(false);
-        setStep("drafts");
       }
     }, 200);
-    setStep("activate");
   }, []);
 
   const startSending = useCallback(() => {
     setIsAnimating(true);
-    setStep("sending");
-    // Approve all, then send progressively
     setDrafts(prev => prev.map(d => ({ ...d, status: "approved" as const })));
     let sent = 0;
-    const total = drafts.length || 45; // fallback
+    const total = drafts.length || 45;
     const interval = setInterval(() => {
       sent += Math.floor(Math.random() * 4) + 2;
       if (sent >= total) sent = total;
@@ -113,14 +169,12 @@ export const DemoProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (sent >= total) {
         clearInterval(interval);
         setIsAnimating(false);
-        setTimeout(() => setStep("payments"), 800);
       }
     }, 400);
   }, [drafts.length]);
 
   const simulatePayments = useCallback(() => {
     setIsAnimating(true);
-    // Pick 3 high-value overdue invoices to mark paid
     const overdue = invoicesRef.current
       .filter(i => i.status === "overdue")
       .sort((a, b) => b.amount - a.amount)
@@ -131,7 +185,6 @@ export const DemoProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (paidIdx >= overdue.length) {
         clearInterval(interval);
         setIsAnimating(false);
-        setTimeout(() => setStep("results"), 1200);
         return;
       }
       const inv = overdue[paidIdx];
@@ -145,9 +198,10 @@ export const DemoProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const value: DemoContextValue = {
-    isDemoMode, step, customers, invoices, drafts, stats, agingBuckets,
-    sentCount, paidInvoiceIds, recoveredAmount, isAnimating,
-    startDemo, exitDemo, goToStep, activateCollections, startSending, simulatePayments,
+    isDemoMode, step, demoEmail, customers, invoices, drafts, stats, agingBuckets,
+    sentCount, paidInvoiceIds, recoveredAmount, isAnimating, completedSteps,
+    startDemo, exitDemo, goToStep, nextStep, prevStep, setDemoEmail,
+    activateCollections, startSending, simulatePayments, markStepComplete,
   };
 
   return <DemoContext.Provider value={value}>{children}</DemoContext.Provider>;
