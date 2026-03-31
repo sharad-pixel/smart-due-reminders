@@ -21,6 +21,7 @@ export type DemoStep =
   | "data_import"
   | "revenue_risk"
   | "collection_intelligence"
+  | "inbound_ai"
   | "activate"
   | "drafts"
   | "outreach_forecast"
