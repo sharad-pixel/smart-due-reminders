@@ -203,7 +203,7 @@ export const DemoProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const value: DemoContextValue = {
     isDemoMode, step, demoEmail, customers, invoices, drafts, stats, agingBuckets,
-    sentCount, paidInvoiceIds, recoveredAmount, isAnimating, completedSteps,
+    paymentHistory, sentCount, paidInvoiceIds, recoveredAmount, isAnimating, completedSteps,
     startDemo, exitDemo, goToStep, nextStep, prevStep, setDemoEmail,
     activateCollections, startSending, simulatePayments, markStepComplete,
   };
