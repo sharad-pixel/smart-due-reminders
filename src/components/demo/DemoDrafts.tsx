@@ -4,8 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Send, CheckCircle2, Clock } from "lucide-react";
 import { motion } from "framer-motion";
-import { DemoTutorialCallout, FeatureScreenshot } from "./DemoTutorialCallout";
-import draftsImg from "@/assets/demo/drafts-entry.jpg";
+import { DemoTutorialCallout } from "./DemoTutorialCallout";
 
 export const DemoDrafts = () => {
   const { drafts, startSending, nextStep } = useDemoContext();
