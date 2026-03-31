@@ -175,6 +175,7 @@ const App = () => (
             {/* Main app entry point */}
             <Route path="/" element={<Index />} />
             <Route path="/coming-soon" element={<ComingSoon />} />
+            <Route path="/demo" element={<DemoMode />} />
 
             {/* Marketing & Info Pages */}
             <Route path="/design-partners" element={<DesignPartners />} />
