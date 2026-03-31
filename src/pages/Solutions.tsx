@@ -83,17 +83,17 @@ const Solutions = () => {
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-16">
             <div className="inline-block px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-6">
-              Accounts Receivable Intelligence Engine
+              Revenue Recovery Automation Engine
             </div>
             <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              Six AI Agents Built for Your AR Challenges
+              Six AI Agents That Automate Revenue Recovery
             </h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-4">
-              Recouply.ai deploys six specialized AR agents that learn from payment behavior and account context—
-              helping you act earlier, recover smarter, and preserve relationships.
+              Recouply.ai deploys six AI agents that handle the repetitive, mundane follow-up workflows—
+              so your team can focus on decisions, not chasing invoices.
             </p>
             <p className="text-lg text-primary font-medium">
-              "Proactive AR intelligence, human-controlled outcomes."
+              "AI-agentic automation for consistent revenue recovery, human-approved outcomes."
             </p>
           </div>
 
