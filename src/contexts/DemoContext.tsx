@@ -89,6 +89,7 @@ export const useDemoContext = () => {
 
 export const DemoProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const customers = useMemo(() => generateDemoCustomers(), []);
+  const paymentHistory = useMemo(() => generateDemoPaymentHistory(customers), [customers]);
   const invoicesRef = useRef(generateDemoInvoices(customers));
 
   const [isDemoMode, setIsDemoMode] = useState(false);
