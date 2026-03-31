@@ -1,11 +1,11 @@
 import { useDemoContext } from "@/contexts/DemoContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { DollarSign, AlertTriangle, TrendingUp, Users, FileText, Zap } from "lucide-react";
+import { DollarSign, AlertTriangle, TrendingUp, Users, Zap } from "lucide-react";
 import { motion } from "framer-motion";
 
 export const DemoOverview = () => {
-  const { stats, agingBuckets, activateCollections } = useDemoContext();
+  const { stats, agingBuckets, activateCollections, nextStep } = useDemoContext();
 
   const bucketColors: Record<string, string> = {
     current: "bg-accent/10 text-accent border-accent/20",
@@ -21,38 +21,29 @@ export const DemoOverview = () => {
     "61-90": "Katy", "91-120": "Troy", "120+": "Rocco",
   };
 
+  const handleActivate = () => {
+    activateCollections();
+    nextStep();
+  };
+
   return (
     <div className="space-y-8">
-      {/* Hero */}
       <div className="text-center space-y-3">
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="text-sm font-medium text-primary uppercase tracking-wider"
-        >
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
+          className="text-sm font-medium text-primary uppercase tracking-wider">
           Your AR at a Glance
         </motion.p>
-        <motion.h1
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
+        <motion.h1 initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
-          className="text-4xl md:text-5xl font-bold text-foreground"
-        >
-          ${stats.totalOverdue.toLocaleString()}{" "}
-          <span className="text-destructive">Overdue</span>
+          className="text-4xl md:text-5xl font-bold text-foreground">
+          ${stats.totalOverdue.toLocaleString()}{" "}<span className="text-destructive">Overdue</span>
         </motion.h1>
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="text-muted-foreground text-lg"
-        >
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
+          className="text-muted-foreground text-lg">
           This is money currently at risk across {stats.overdueCount} invoices
         </motion.p>
       </div>
 
-      {/* Hero Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
           <Card className="border-destructive/20 bg-destructive/5">
@@ -85,20 +76,14 @@ export const DemoOverview = () => {
         </motion.div>
       </div>
 
-      {/* Aging Buckets */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}>
-        <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-          <FileText className="h-5 w-5 text-primary" />
+        <h2 className="text-lg font-semibold text-foreground mb-4">
           Aging Buckets — Each Handled by an AI Agent
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           {Object.entries(agingBuckets).map(([bucket, data], i) => (
-            <motion.div
-              key={bucket}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.8 + i * 0.08 }}
-            >
+            <motion.div key={bucket} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.8 + i * 0.08 }}>
               <Card className={`border ${bucketColors[bucket] || ""}`}>
                 <CardContent className="p-4 text-center">
                   <p className="text-xs font-semibold uppercase tracking-wide mb-1">
@@ -114,20 +99,11 @@ export const DemoOverview = () => {
         </div>
       </motion.div>
 
-      {/* CTA */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 1.2 }}
-        className="text-center pt-4"
-      >
-        <Button
-          size="lg"
-          onClick={activateCollections}
-          className="text-lg px-8 py-6 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg hover:shadow-xl transition-all"
-        >
-          <Zap className="h-5 w-5 mr-2" />
-          Activate AI Collections
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 1.2 }} className="text-center pt-4">
+        <Button size="lg" onClick={handleActivate}
+          className="text-lg px-8 py-6 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg hover:shadow-xl transition-all">
+          <Zap className="h-5 w-5 mr-2" /> Activate AI Collections
         </Button>
         <p className="text-sm text-muted-foreground mt-3">
           Watch your overdue invoices get automated outreach instantly

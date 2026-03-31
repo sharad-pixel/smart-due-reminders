@@ -1,29 +1,27 @@
-import { useDemoContext, DemoStep } from "@/contexts/DemoContext";
-
-const STEPS: { key: DemoStep; label: string }[] = [
-  { key: "overview", label: "Overview" },
-  { key: "activate", label: "Activate" },
-  { key: "drafts", label: "Drafts" },
-  { key: "sending", label: "Sending" },
-  { key: "payments", label: "Payments" },
-  { key: "results", label: "Results" },
-];
+import { useDemoContext, DEMO_STEPS, DemoStep } from "@/contexts/DemoContext";
 
 export const DemoProgressBar = () => {
-  const { step } = useDemoContext();
-  const currentIdx = STEPS.findIndex(s => s.key === step);
+  const { step, completedSteps } = useDemoContext();
+  const currentIdx = DEMO_STEPS.findIndex(s => s.key === step);
+  // Skip email_gate in display
+  const visibleSteps = DEMO_STEPS.filter(s => s.key !== "email_gate");
 
   return (
-    <div className="hidden md:flex items-center gap-1">
-      {STEPS.map((s, i) => (
-        <div key={s.key} className="flex items-center gap-1">
+    <div className="hidden lg:flex items-center gap-0.5">
+      {visibleSteps.map((s, i) => {
+        const realIdx = DEMO_STEPS.findIndex(st => st.key === s.key);
+        const isActive = realIdx === currentIdx;
+        const isDone = completedSteps.includes(s.key) || realIdx < currentIdx;
+        return (
           <div
-            className={`h-2 w-8 rounded-full transition-all duration-500 ${
-              i <= currentIdx ? "bg-primary" : "bg-muted"
+            key={s.key}
+            className={`h-1.5 w-5 rounded-full transition-all duration-500 ${
+              isActive ? "bg-primary w-8" : isDone ? "bg-primary/60" : "bg-muted"
             }`}
+            title={s.label}
           />
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 };
