@@ -15,16 +15,16 @@ const WhyDifferent = () => {
       <div className="container mx-auto max-w-6xl">
         <div className="text-center mb-16">
           <div className="inline-block px-4 py-1 rounded-full bg-accent/10 text-accent text-sm font-semibold mb-4">
-            Collection Intelligence Platform
+            Revenue Recovery Intelligence
           </div>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-            Intelligence That Informs Action
+            AI-Agentic Intelligence That Drives Recovery
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-            Signals from accounts, communications, and payments—guiding decisions, not just automating tasks
+            Agentic AI handles repeatable workflows with consistency—freeing your team to focus on decisions, not follow-ups
           </p>
           <p className="text-sm text-muted-foreground/80 max-w-xl mx-auto mt-3">
-            Your single source of truth for all collection activities
+            Your single source of truth for all revenue recovery activity
           </p>
           
           {/* Single Source of Truth Messaging */}

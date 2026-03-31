@@ -150,7 +150,7 @@ const Solutions = () => {
                 onClick={() => navigate("/signup")}
                 size="lg"
               >
-                Start Free Trial
+                Start Recovering Revenue
               </Button>
               <Button 
                 onClick={() => window.open("https://calendly.com/sharad-recouply/30min", "_blank")}

@@ -89,7 +89,7 @@ const AIAgentsSection = () => {
         <div className="text-center mt-12">
           <div className="inline-flex items-center gap-3 bg-accent/10 text-accent px-8 py-4 rounded-full">
             <span className="w-3 h-3 bg-accent rounded-full animate-pulse"></span>
-            <span className="font-semibold text-lg">These agents work 24/7 so you don't have to</span>
+            <span className="font-semibold text-lg">Agentic AI handles the repetitive work — your team stays focused</span>
           </div>
         </div>
         

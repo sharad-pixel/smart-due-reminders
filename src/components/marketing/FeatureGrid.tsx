@@ -41,16 +41,16 @@ const FeatureGrid = () => {
       <div className="container mx-auto max-w-6xl">
         <div className="text-center mb-16">
           <div className="inline-block px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
-            Features
+            Revenue Recovery Features
           </div>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-            Everything You Need for Risk-Aware Collections
+            Automate Repetitive Workflows. Strengthen Cash Flow.
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-            A complete platform designed to support predictable cash outcomes
+            AI-agentic automation for every stage of revenue recovery—consistent, professional, always-on
           </p>
           <p className="text-sm text-muted-foreground/80 max-w-xl mx-auto mt-3">
-            Replace scattered inboxes and spreadsheets with centralized workflows and built-in audit trails
+            Replace manual follow-ups with intelligent workflows that recover revenue without human bottlenecks
           </p>
         </div>
         

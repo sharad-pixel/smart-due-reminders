@@ -142,14 +142,14 @@ const CollectionIntelligenceShowcase = () => {
         <div className="text-center mb-16">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
             <Brain className="h-4 w-4" />
-            Powered by AR Intelligence
+            Powered by Revenue Recovery Intelligence
           </div>
           <h2 className="text-3xl md:text-5xl font-bold mb-4">
-            Accounts Receivable Intelligence Scorecards
+            Revenue Recovery Intelligence Scorecards
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Every AR account gets an AI-powered intelligence score based on real collection data points, 
-            enabling smarter prioritization and automated workflows.
+            AI agents score every account based on payment behavior—automating prioritization 
+            and eliminating manual triage from your recovery workflows.
           </p>
         </div>
 
