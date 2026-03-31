@@ -6,6 +6,7 @@ import { lazy, Suspense, useEffect } from "react";
 import ScrollToTop from "./components/layout/ScrollToTop";
 import { CookieConsentProvider } from "./components/cookies/CookieConsentProvider";
 import { AccessProvider } from "./contexts/AccessContext";
+import { DemoProvider } from "./contexts/DemoContext";
 import { MaintenanceGuard } from "./components/layout/MaintenanceGuard";
 import { SessionSecurityProvider } from "./components/security/SessionSecurityProvider";
 
