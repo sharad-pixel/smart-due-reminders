@@ -23,16 +23,16 @@ const AIAgentsSection = () => {
         <div className="text-center mb-16">
           <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
             <Brain className="h-4 w-4" />
-            AR & Collection Intelligence Agents
+            AI-Agentic Revenue Recovery
           </div>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-            Six AI Agents Powering Your AR Intelligence
+            Six AI Agents That Eliminate Manual Follow-Ups
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-            Each agent analyzes accounts receivable data, communications, payments, and tasks to maximize recovery
+            Each agent automates repeatable recovery workflows—consistent outreach, zero human bottlenecks
           </p>
           <p className="text-sm text-muted-foreground/80 max-w-xl mx-auto mt-3">
-            AI-driven AR workflows ensure consistency without manual follow-ups — context preserved across every interaction
+            AI-agentic automation replaces mundane tasks with intelligent, always-on revenue recovery
           </p>
         </div>
         
