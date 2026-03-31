@@ -38,11 +38,6 @@ export const DemoIntegrations = () => {
         proTip="Schedule automatic syncs (daily/hourly) to keep your AR data current without any manual intervention."
       />
 
-      <FeatureScreenshot
-        src={integrationsImg}
-        alt="Recouply integrations settings"
-        caption="The Integrations panel — connect Stripe, QuickBooks, CSV upload, and CRM systems"
-      />
 
       <TryItPrompt
         label="Simulate connecting an integration"

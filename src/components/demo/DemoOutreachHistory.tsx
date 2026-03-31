@@ -39,11 +39,6 @@ export const DemoOutreachHistory = () => {
         proTip="A 60%+ open rate and 15%+ reply rate indicates healthy outreach. Below these thresholds, consider adjusting subject lines or send timing."
       />
 
-      <FeatureScreenshot
-        src={historyImg}
-        alt="Outreach history and activity timeline"
-        caption="The Outreach History — real-time tracking of sent, delivered, opened, and replied status"
-      />
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

@@ -42,11 +42,6 @@ export const DemoDataExport = () => {
         proTip="The Invoice Aging Report includes dynamically calculated aging buckets and RAID references — perfect for your monthly AR review with stakeholders."
       />
 
-      <FeatureScreenshot
-        src={exportImg}
-        alt="Data export and reports interface"
-        caption="The Data Export page — download enriched reports with risk scores and outreach metrics"
-      />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {EXPORT_OPTIONS.map((opt, i) => {

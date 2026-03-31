@@ -37,11 +37,6 @@ export const DemoDataImport = () => {
         proTip="Use the Data Center template (downloadable from the import page) to ensure your CSV columns match perfectly on the first try."
       />
 
-      <FeatureScreenshot
-        src={dataImportImg}
-        alt="Data import and column mapping interface"
-        caption="The Data Import wizard — drag-and-drop upload with intelligent column mapping"
-      />
 
       {/* Upload zone */}
       <Card className="border-dashed border-2 border-primary/30 bg-primary/5">

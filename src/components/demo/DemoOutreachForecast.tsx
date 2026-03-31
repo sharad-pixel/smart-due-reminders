@@ -49,11 +49,6 @@ export const DemoOutreachForecast = () => {
         proTip="Review the forecast every Monday to ensure the week's outreach aligns with your priorities. You can bulk-pause outreach for specific accounts."
       />
 
-      <FeatureScreenshot
-        src={forecastImg}
-        alt="Outreach forecast calendar"
-        caption="The 7-day Outreach Forecast — daily send volumes, agent assignments, and escalation alerts"
-      />
 
       {/* 7-day forecast */}
       <div className="grid grid-cols-7 gap-2">

@@ -44,11 +44,6 @@ export const DemoDrafts = () => {
         proTip="The more you edit drafts, the better Recouply's AI learns your voice and preferences. After ~20 edits, draft quality improves significantly."
       />
 
-      <FeatureScreenshot
-        src={draftsImg}
-        alt="Draft review and approval interface"
-        caption="The Draft Review queue — review, edit, and approve AI-generated collection messages"
-      />
 
       <div className="space-y-4 max-w-4xl mx-auto">
         {Object.entries(bucketGroups).slice(0, 4).map(([bucket, items]) => (

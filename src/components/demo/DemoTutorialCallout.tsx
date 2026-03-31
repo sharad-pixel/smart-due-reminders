@@ -109,38 +109,6 @@ export const DemoTutorialCallout = ({
   );
 };
 
-interface FeatureScreenshotProps {
-  src: string;
-  alt: string;
-  caption?: string;
-}
-
-export const FeatureScreenshot = ({ src, alt, caption }: FeatureScreenshotProps) => (
-  <motion.div
-    initial={{ opacity: 0, scale: 0.98 }}
-    animate={{ opacity: 1, scale: 1 }}
-    transition={{ delay: 0.2 }}
-    className="rounded-xl border border-border overflow-hidden bg-muted/20"
-  >
-    <div className="bg-muted/50 px-3 py-2 flex items-center gap-1.5 border-b border-border">
-      <div className="h-2.5 w-2.5 rounded-full bg-destructive/60" />
-      <div className="h-2.5 w-2.5 rounded-full bg-yellow-500/60" />
-      <div className="h-2.5 w-2.5 rounded-full bg-accent/60" />
-      <span className="text-[10px] text-muted-foreground ml-2 font-mono">recouply.ai</span>
-    </div>
-    <img
-      src={src}
-      alt={alt}
-      loading="lazy"
-      className="w-full h-auto"
-    />
-    {caption && (
-      <div className="px-3 py-2 border-t border-border bg-muted/30">
-        <p className="text-xs text-muted-foreground text-center">{caption}</p>
-      </div>
-    )}
-  </motion.div>
-);
 
 interface TryItPromptProps {
   label: string;
