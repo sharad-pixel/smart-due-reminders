@@ -97,7 +97,7 @@ const DemoMode = () => {
       <div className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="text-lg font-bold text-foreground">Recouply.ai</span>
+            <RecouplyLogo size="md" animated />
             <span className="px-2 py-0.5 text-xs font-semibold bg-primary/10 text-primary rounded-full">
               INTERACTIVE DEMO
             </span>
