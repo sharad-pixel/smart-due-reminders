@@ -26,8 +26,28 @@ import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const DemoMode = () => {
-  const { isDemoMode, step, startDemo, exitDemo, goToStep, nextStep, prevStep, completedSteps } = useDemoContext();
+  const { isDemoMode, step, startDemo, exitDemo, goToStep, nextStep, prevStep, completedSteps, setDemoEmail } = useDemoContext();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Handle token-based email auto-fill: /demo?token=base64(email)
+  useEffect(() => {
+    const token = searchParams.get("token");
+    if (token) {
+      try {
+        const email = atob(token);
+        if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          setDemoEmail(email);
+          // Skip email gate, go to welcome
+          if (step === "email_gate") {
+            goToStep("welcome");
+          }
+        }
+      } catch {
+        // Invalid token, continue normally
+      }
+    }
+  }, [searchParams, setDemoEmail, goToStep, step]);
 
   useEffect(() => {
     if (!isDemoMode) startDemo();
