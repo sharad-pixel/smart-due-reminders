@@ -293,6 +293,7 @@ const App = () => (
           </MaintenanceGuard>
         </CookieConsentProvider>
         </SessionSecurityProvider>
+        </DemoProvider>
       </AccessProvider>
     </BrowserRouter>
   </QueryClientProvider>
