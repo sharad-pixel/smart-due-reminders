@@ -4,8 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { ArrowRight, CalendarRange, Clock } from "lucide-react";
-import { DemoTutorialCallout, FeatureScreenshot } from "./DemoTutorialCallout";
-import forecastImg from "@/assets/demo/outreach-forecast-entry.jpg";
+import { DemoTutorialCallout } from "./DemoTutorialCallout";
 
 export const DemoOutreachForecast = () => {
   const { invoices, nextStep } = useDemoContext();
