@@ -304,17 +304,17 @@ const AnimatedHero = () => {
                  </span>
                </Button>
              </motion.div>
-             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.98 }}>
-               <Button 
-                 size="lg" 
-                 variant="outline" 
-                 onClick={() => navigate("/features")} 
-                 className="text-lg px-8 py-6 group border-2"
-               >
-                 <Play className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform" />
-                 See Recouply.ai in Action
-               </Button>
-             </motion.div>
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.98 }}>
+                <Button 
+                  size="lg" 
+                  variant="outline" 
+                  onClick={() => navigate("/demo")} 
+                  className="text-lg px-8 py-6 group border-2 border-accent/40 hover:border-accent hover:bg-accent/5"
+                >
+                  <Play className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform text-accent" />
+                  Try Demo — See How It Works
+                </Button>
+              </motion.div>
            </motion.div>
         </div>
       </div>
