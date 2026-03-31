@@ -32,7 +32,7 @@ const ValuePropositions = () => {
                 <Rocket className="h-7 w-7 text-primary" />
               </div>
               <h3 className="text-xl font-bold mb-3 group-hover:text-primary transition-colors">For Startups</h3>
-              <p className="text-lg text-muted-foreground mb-6">Visibility Into Cash Outcomes From Day One</p>
+              <p className="text-lg text-muted-foreground mb-6">AI Agents That Recover Revenue From Day One</p>
               <ul className="space-y-3 text-sm text-muted-foreground mb-6">
                 <li className="flex items-start gap-2">
                   <CheckCircle className="h-4 w-4 text-accent mt-0.5 flex-shrink-0" />
