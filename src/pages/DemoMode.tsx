@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useDemoContext, DEMO_STEPS } from "@/contexts/DemoContext";
 import { DemoEmailGate } from "@/components/demo/DemoEmailGate";
 import { DemoWelcome } from "@/components/demo/DemoWelcome";
@@ -19,6 +19,8 @@ import { DemoPayments } from "@/components/demo/DemoPayments";
 import { DemoDataExport } from "@/components/demo/DemoDataExport";
 import { DemoResults } from "@/components/demo/DemoResults";
 import { DemoProgressBar } from "@/components/demo/DemoProgressBar";
+import { RecouplyLogo } from "@/components/layout/RecouplyLogo";
+import MarketingFooter from "@/components/marketing/MarketingFooter";
 import { Button } from "@/components/ui/button";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
