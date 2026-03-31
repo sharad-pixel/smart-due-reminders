@@ -5,8 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { ArrowRight, CheckCircle2, RefreshCcw, Link2, Clock } from "lucide-react";
-import { DemoTutorialCallout, FeatureScreenshot, TryItPrompt } from "./DemoTutorialCallout";
-import integrationsImg from "@/assets/demo/integrations-entry.jpg";
+import { DemoTutorialCallout, TryItPrompt } from "./DemoTutorialCallout";
 
 const INTEGRATIONS = [
   { name: "Stripe", desc: "Auto-sync invoices, payments & customers", status: "connected", lastSync: "2 min ago", records: "75 invoices · 25 customers", color: "bg-violet-500/10 text-violet-600" },
