@@ -4,8 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { ArrowRight, CheckCircle2, Eye, Clock, MessageSquare, Send } from "lucide-react";
-import { DemoTutorialCallout, FeatureScreenshot } from "./DemoTutorialCallout";
-import historyImg from "@/assets/demo/outreach-history-entry.jpg";
+import { DemoTutorialCallout } from "./DemoTutorialCallout";
 
 export const DemoOutreachHistory = () => {
   const { drafts, sentCount, nextStep } = useDemoContext();
