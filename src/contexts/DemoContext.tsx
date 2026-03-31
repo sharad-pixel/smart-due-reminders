@@ -3,11 +3,13 @@ import {
   generateDemoCustomers,
   generateDemoInvoices,
   generateDemoDrafts,
+  generateDemoPaymentHistory,
   getDemoStats,
   getDemoAgingBuckets,
   DemoCustomer,
   DemoInvoice,
   DemoDraft,
+  DemoPaymentHistory,
 } from "@/lib/demoData";
 
 export type DemoStep =
@@ -56,6 +58,7 @@ interface DemoState {
   drafts: DemoDraft[];
   stats: ReturnType<typeof getDemoStats>;
   agingBuckets: ReturnType<typeof getDemoAgingBuckets>;
+  paymentHistory: DemoPaymentHistory[];
   sentCount: number;
   paidInvoiceIds: string[];
   recoveredAmount: number;
@@ -86,6 +89,7 @@ export const useDemoContext = () => {
 
 export const DemoProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const customers = useMemo(() => generateDemoCustomers(), []);
+  const paymentHistory = useMemo(() => generateDemoPaymentHistory(customers), [customers]);
   const invoicesRef = useRef(generateDemoInvoices(customers));
 
   const [isDemoMode, setIsDemoMode] = useState(false);
@@ -199,7 +203,7 @@ export const DemoProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const value: DemoContextValue = {
     isDemoMode, step, demoEmail, customers, invoices, drafts, stats, agingBuckets,
-    sentCount, paidInvoiceIds, recoveredAmount, isAnimating, completedSteps,
+    paymentHistory, sentCount, paidInvoiceIds, recoveredAmount, isAnimating, completedSteps,
     startDemo, exitDemo, goToStep, nextStep, prevStep, setDemoEmail,
     activateCollections, startSending, simulatePayments, markStepComplete,
   };
