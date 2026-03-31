@@ -10,6 +10,7 @@ import { DemoDataImport } from "@/components/demo/DemoDataImport";
 import { DemoRevenueRisk } from "@/components/demo/DemoRevenueRisk";
 import { DemoCollectionIntelligence } from "@/components/demo/DemoCollectionIntelligence";
 import { DemoActivation } from "@/components/demo/DemoActivation";
+import { DemoInboundAI } from "@/components/demo/DemoInboundAI";
 import { DemoDrafts } from "@/components/demo/DemoDrafts";
 import { DemoOutreachForecast } from "@/components/demo/DemoOutreachForecast";
 import { DemoSending } from "@/components/demo/DemoSending";
