@@ -65,24 +65,36 @@ async function batchUpdateSheet(accessToken: string, spreadsheetId: string, upda
 async function pushAccounts(supabase: any, accessToken: string, template: any, userId: string) {
   const { data: debtors } = await supabase
     .from('debtors')
-    .select('reference_id, company_name, name, email, phone, address, city, state, zip_code, country, industry, notes, current_balance')
+    .select('reference_id, company_name, type, name, email, phone, address_line1, address_line2, city, state, postal_code, country, industry, external_customer_id, crm_account_id_external, payment_terms_default, notes, current_balance')
     .eq('user_id', userId)
     .eq('is_archived', false)
     .order('company_name', { ascending: true });
 
-  const headers = ['RAID', 'Company Name', 'Contact Name', 'Email', 'Phone', 'Address', 'City', 'State', 'Zip', 'Country', 'Industry', 'Notes', 'Current Balance', 'Source'];
+  const headers = [
+    'RAID', 'Company Name', 'Type (B2B/B2C)', 'Contact Name', 'Contact Email', 'Contact Phone',
+    'Address Line 1', 'Address Line 2', 'City', 'State', 'Postal Code', 'Country',
+    'Industry', 'External Customer ID', 'CRM ID', 'Default Payment Terms',
+    'Notes', 'Current Balance', 'Source'
+  ];
   const rows = [headers, ...(debtors || []).map((d: any) => [
-    d.reference_id || '', d.company_name || '', d.name || '', d.email || '',
-    d.phone || '', d.address || '', d.city || '', d.state || '', d.zip_code || '',
-    d.country || '', d.industry || '', d.notes || '', d.current_balance || 0, 'recouply',
+    d.reference_id || '', d.company_name || '', d.type || 'B2B',
+    d.name || '', d.email || '', d.phone || '',
+    d.address_line1 || '', d.address_line2 || '', d.city || '', d.state || '',
+    d.postal_code || '', d.country || '', d.industry || '',
+    d.external_customer_id || '', d.crm_account_id_external || '',
+    d.payment_terms_default || '', d.notes || '', d.current_balance || 0, 'recouply',
   ])];
 
+  // Clear existing data then write
+  await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${template.sheet_id}/values/Accounts!A:S:clear`, {
+    method: 'POST', headers: { Authorization: `Bearer ${accessToken}` },
+  });
   await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${template.sheet_id}/values/Accounts!A1:N${rows.length}?valueInputOption=RAW`,
+    `https://sheets.googleapis.com/v4/spreadsheets/${template.sheet_id}/values/Accounts!A1?valueInputOption=RAW`,
     {
       method: 'PUT',
       headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ range: `Accounts!A1:N${rows.length}`, majorDimension: 'ROWS', values: rows }),
+      body: JSON.stringify({ values: rows }),
     }
   );
 
@@ -92,37 +104,42 @@ async function pushAccounts(supabase: any, accessToken: string, template: any, u
 async function pushInvoices(supabase: any, accessToken: string, template: any, userId: string) {
   const { data: openInvoices } = await supabase
     .from('invoices')
-    .select('invoice_number, amount, amount_outstanding, currency, issue_date, due_date, status, po_number, product_description, payment_terms, notes, reference_id, debtors(reference_id, company_name)')
+    .select('invoice_number, amount, amount_original, amount_outstanding, currency, issue_date, due_date, paid_date, status, po_number, product_description, payment_terms, notes, reference_id, debtors(reference_id, company_name)')
     .eq('user_id', userId)
     .in('status', ['Open', 'InPaymentPlan', 'PartiallyPaid', 'Disputed'])
     .order('due_date', { ascending: false });
 
   const { data: paidInvoices } = await supabase
     .from('invoices')
-    .select('invoice_number, amount, amount_outstanding, currency, issue_date, due_date, status, po_number, product_description, payment_terms, notes, reference_id, debtors(reference_id, company_name)')
+    .select('invoice_number, amount, amount_original, amount_outstanding, currency, issue_date, due_date, paid_date, status, po_number, product_description, payment_terms, notes, reference_id, debtors(reference_id, company_name)')
     .eq('user_id', userId)
-    .in('status', ['Paid', 'Canceled', 'Voided', 'WrittenOff', 'Settled', 'Credited'])
+    .in('status', ['Paid', 'Canceled', 'Voided', 'Settled', 'FinalInternalCollections'])
     .order('due_date', { ascending: false })
     .limit(1000);
 
-  const headers = ['Account RAID', 'Account Name', 'Invoice Number', 'Amount', 'Amount Outstanding', 'Currency', 'Issue Date', 'Due Date', 'Status', 'PO Number', 'Product/Description', 'Payment Terms', 'Notes', 'Recouply Ref (DO NOT EDIT)', 'Source'];
+  const headers = [
+    'Account RAID', 'Account Name', 'SS Invoice #', 'Original Amount', 'Amount Outstanding',
+    'Currency', 'Issue Date', 'Due Date', 'Status', 'PO Number', 'Product/Description',
+    'Payment Terms', 'Paid Date', 'Notes', 'Recouply Invoice Ref (DO NOT EDIT)', 'Source'
+  ];
 
   const mapInv = (inv: any) => [
     inv.debtors?.reference_id || '', inv.debtors?.company_name || '',
-    inv.invoice_number || '', inv.amount || 0, inv.amount_outstanding || 0,
+    inv.invoice_number || '', inv.amount_original || inv.amount || 0,
+    inv.amount_outstanding || inv.amount || 0,
     inv.currency || 'USD', inv.issue_date || '', inv.due_date || '', inv.status || '',
     inv.po_number || '', inv.product_description || '', inv.payment_terms || '',
-    inv.notes || '', inv.reference_id || '', 'recouply',
+    inv.paid_date || '', inv.notes || '', inv.reference_id || '', 'recouply',
   ];
 
   const openRows = [headers, ...(openInvoices || []).map(mapInv)];
   const paidRows = [headers, ...(paidInvoices || []).map(mapInv)];
 
   await Promise.all([
-    fetch(`https://sheets.googleapis.com/v4/spreadsheets/${template.sheet_id}/values/'Open Invoices'!A:O:clear`, {
+    fetch(`https://sheets.googleapis.com/v4/spreadsheets/${template.sheet_id}/values/'Open Invoices'!A:P:clear`, {
       method: 'POST', headers: { Authorization: `Bearer ${accessToken}` },
     }),
-    fetch(`https://sheets.googleapis.com/v4/spreadsheets/${template.sheet_id}/values/'Paid Invoices'!A:O:clear`, {
+    fetch(`https://sheets.googleapis.com/v4/spreadsheets/${template.sheet_id}/values/'Paid Invoices'!A:P:clear`, {
       method: 'POST', headers: { Authorization: `Bearer ${accessToken}` },
     }),
   ]);
@@ -146,17 +163,21 @@ async function pushInvoices(supabase: any, accessToken: string, template: any, u
 async function pushPayments(supabase: any, accessToken: string, template: any, userId: string) {
   const { data: payments } = await supabase
     .from('payments')
-    .select('reference_id, amount, payment_date, payment_method, status, notes, invoices(invoice_number, reference_id), debtors(reference_id, company_name)')
+    .select('reference_id, amount, currency, payment_date, reference, reconciliation_status, invoice_number_hint, notes, debtors(reference_id, company_name)')
     .eq('user_id', userId)
     .order('payment_date', { ascending: false })
     .limit(1000);
 
-  const headers = ['Account RAID', 'Account Name', 'Invoice Ref', 'Invoice Number', 'Payment Amount', 'Payment Date', 'Payment Method', 'Status', 'Notes', 'Recouply Pay Ref (DO NOT EDIT)', 'Source'];
+  const headers = [
+    'Account RAID', 'Account Name', 'SS Invoice #', 'Payment Amount', 'Currency',
+    'Payment Date', 'Payment Reference', 'Reconciliation Status',
+    'Notes', 'Recouply Payment Ref (DO NOT EDIT)', 'Source'
+  ];
   const rows = [headers, ...(payments || []).map((p: any) => [
     p.debtors?.reference_id || '', p.debtors?.company_name || '',
-    p.invoices?.reference_id || '', p.invoices?.invoice_number || '',
-    p.amount || 0, p.payment_date || '', p.payment_method || '',
-    p.status || '', p.notes || '', p.reference_id || '', 'recouply',
+    p.invoice_number_hint || '', p.amount || 0, p.currency || 'USD',
+    p.payment_date || '', p.reference || '',
+    p.reconciliation_status || 'pending', p.notes || '', p.reference_id || '', 'recouply',
   ])];
 
   await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${template.sheet_id}/values/Payments!A:K:clear`, {
@@ -172,19 +193,39 @@ async function pushPayments(supabase: any, accessToken: string, template: any, u
 }
 
 async function pullAccounts(supabase: any, accessToken: string, template: any, userId: string, orgId: string) {
-  const rows = await readSheet(accessToken, template.sheet_id, 'Accounts!A1:N5000');
+  const rows = await readSheet(accessToken, template.sheet_id, 'Accounts!A1:S5000');
   if (rows.length <= 1) return { created: 0, updated: 0, skipped: 0 };
 
   const headers = rows[0].map((h: string) => h.toLowerCase().trim());
   const raidIdx = headers.indexOf('raid');
   const companyIdx = headers.indexOf('company name');
-  const nameIdx = headers.indexOf('contact name');
-  const emailIdx = headers.indexOf('email');
-  const phoneIdx = headers.indexOf('phone');
+  const typeIdx = headers.indexOf('type (b2b/b2c)');
+  const nameIdx = headers.findIndex(h => h === 'contact name' || h === 'name');
+  const emailIdx = headers.findIndex(h => h === 'contact email' || h === 'email');
+  const phoneIdx = headers.findIndex(h => h === 'contact phone' || h === 'phone');
+  const addr1Idx = headers.indexOf('address line 1');
+  const addr2Idx = headers.indexOf('address line 2');
+  const cityIdx = headers.indexOf('city');
+  const stateIdx = headers.indexOf('state');
+  const postalIdx = headers.findIndex(h => h === 'postal code' || h === 'zip' || h === 'zip code');
+  const countryIdx = headers.indexOf('country');
+  const industryIdx = headers.indexOf('industry');
+  const extCustIdx = headers.indexOf('external customer id');
+  const crmIdx = headers.indexOf('crm id');
+  const payTermsIdx = headers.indexOf('default payment terms');
+  const notesIdx = headers.indexOf('notes');
   const sourceIdx = headers.indexOf('source');
 
   let created = 0, updated = 0, skipped = 0;
   const sheetUpdates: any[] = [];
+
+  // Helper to get column letter (supports multi-letter columns)
+  const colLetter = (idx: number) => {
+    let letter = '';
+    let n = idx;
+    while (n >= 0) { letter = String.fromCharCode(65 + (n % 26)) + letter; n = Math.floor(n / 26) - 1; }
+    return letter;
+  };
 
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
@@ -198,31 +239,43 @@ async function pullAccounts(supabase: any, accessToken: string, template: any, u
 
     if (!companyName && !contactName) continue;
 
-    if (raid && source.toLowerCase() === 'recouply') {
-      const updateData: any = {};
-      if (companyName) updateData.company_name = companyName;
-      if (contactName) updateData.name = contactName;
-      if (email) updateData.email = email;
-      if (getVal(row, phoneIdx)) updateData.phone = getVal(row, phoneIdx);
+    // Build field data from row
+    const fieldData: any = {};
+    if (companyName) fieldData.company_name = companyName;
+    if (contactName) fieldData.name = contactName;
+    if (email) fieldData.email = email;
+    if (getVal(row, phoneIdx)) fieldData.phone = getVal(row, phoneIdx);
+    if (getVal(row, typeIdx)) fieldData.type = getVal(row, typeIdx);
+    if (getVal(row, addr1Idx)) fieldData.address_line1 = getVal(row, addr1Idx);
+    if (getVal(row, addr2Idx)) fieldData.address_line2 = getVal(row, addr2Idx);
+    if (getVal(row, cityIdx)) fieldData.city = getVal(row, cityIdx);
+    if (getVal(row, stateIdx)) fieldData.state = getVal(row, stateIdx);
+    if (getVal(row, postalIdx)) fieldData.postal_code = getVal(row, postalIdx);
+    if (getVal(row, countryIdx)) fieldData.country = getVal(row, countryIdx);
+    if (getVal(row, industryIdx)) fieldData.industry = getVal(row, industryIdx);
+    if (getVal(row, extCustIdx)) fieldData.external_customer_id = getVal(row, extCustIdx);
+    if (getVal(row, crmIdx)) fieldData.crm_account_id_external = getVal(row, crmIdx);
+    if (getVal(row, payTermsIdx)) fieldData.payment_terms_default = getVal(row, payTermsIdx);
+    if (getVal(row, notesIdx)) fieldData.notes = getVal(row, notesIdx);
 
+    if (raid && source.toLowerCase() === 'recouply') {
+      // Update existing record
       const { error } = await supabase
         .from('debtors')
-        .update(updateData)
+        .update(fieldData)
         .eq('reference_id', raid)
         .eq('user_id', userId);
 
       if (!error) updated++;
       else skipped++;
     } else if (!raid || source.toLowerCase() !== 'recouply') {
+      // Create new debtor — no RAID means new account
       const { data: newDebtor, error } = await supabase
         .from('debtors')
         .insert({
           user_id: userId,
           organization_id: orgId,
-          company_name: companyName || null,
-          name: contactName || null,
-          email: email || null,
-          phone: getVal(row, phoneIdx) || null,
+          ...fieldData,
           source_system: 'google_sheets',
         })
         .select('reference_id')
@@ -230,11 +283,12 @@ async function pullAccounts(supabase: any, accessToken: string, template: any, u
 
       if (!error && newDebtor) {
         created++;
+        // Write back the generated RAID to the sheet
         if (raidIdx >= 0) {
-          sheetUpdates.push({ range: `Accounts!${String.fromCharCode(65 + raidIdx)}${i + 1}`, values: [[newDebtor.reference_id]] });
+          sheetUpdates.push({ range: `Accounts!${colLetter(raidIdx)}${i + 1}`, values: [[newDebtor.reference_id]] });
         }
         if (sourceIdx >= 0) {
-          sheetUpdates.push({ range: `Accounts!${String.fromCharCode(65 + sourceIdx)}${i + 1}`, values: [['recouply']] });
+          sheetUpdates.push({ range: `Accounts!${colLetter(sourceIdx)}${i + 1}`, values: [['recouply']] });
         }
       } else {
         skipped++;
@@ -247,13 +301,13 @@ async function pullAccounts(supabase: any, accessToken: string, template: any, u
 }
 
 async function pullInvoices(supabase: any, accessToken: string, template: any, userId: string, orgId: string) {
-  const rows = await readSheet(accessToken, template.sheet_id, "'Open Invoices'!A1:O5000");
+  const rows = await readSheet(accessToken, template.sheet_id, "'Open Invoices'!A1:P5000");
   if (rows.length <= 1) return { created: 0, updated: 0, skipped: 0, movedToPaid: 0 };
 
   const headers = rows[0].map((h: string) => h.toLowerCase().trim());
   const accountRaidIdx = headers.indexOf('account raid');
-  const invNumIdx = headers.indexOf('invoice number');
-  const amountIdx = headers.indexOf('amount');
+  const invNumIdx = headers.findIndex(h => h === 'ss invoice #' || h === 'invoice number');
+  const amountIdx = headers.findIndex(h => h === 'original amount' || h === 'amount');
   const amtOutIdx = headers.indexOf('amount outstanding');
   const currIdx = headers.indexOf('currency');
   const issueDateIdx = headers.indexOf('issue date');
@@ -263,7 +317,7 @@ async function pullInvoices(supabase: any, accessToken: string, template: any, u
   const descIdx = headers.indexOf('product/description');
   const termsIdx = headers.indexOf('payment terms');
   const notesIdx = headers.indexOf('notes');
-  const refIdx = headers.indexOf('recouply ref (do not edit)');
+  const refIdx = headers.findIndex(h => h.includes('recouply') && h.includes('ref') && h.includes('do not edit'));
   const sourceIdx = headers.indexOf('source');
 
   let created = 0, updated = 0, skipped = 0, movedToPaid = 0;
@@ -368,8 +422,8 @@ async function pullInvoices(supabase: any, accessToken: string, template: any, u
     );
     movedToPaid = rowsToMoveToPaid.length;
     const clearUpdates = rowsToMoveToPaid.map(ri => ({
-      range: `'Open Invoices'!A${ri + 1}:O${ri + 1}`,
-      values: [Array(15).fill('')],
+      range: `'Open Invoices'!A${ri + 1}:P${ri + 1}`,
+      values: [Array(16).fill('')],
     }));
     await batchUpdateSheet(accessToken, template.sheet_id, clearUpdates);
   }
@@ -383,13 +437,14 @@ async function pullPayments(supabase: any, accessToken: string, template: any, u
 
   const headers = rows[0].map((h: string) => h.toLowerCase().trim());
   const accountRaidIdx = headers.indexOf('account raid');
-  const invRefIdx = headers.indexOf('invoice ref');
+  const invNumIdx = headers.findIndex(h => h === 'ss invoice #' || h === 'invoice number' || h === 'invoice ref');
   const amountIdx = headers.indexOf('payment amount');
+  const currIdx = headers.indexOf('currency');
   const dateIdx = headers.indexOf('payment date');
-  const methodIdx = headers.indexOf('payment method');
-  const statusIdx = headers.indexOf('status');
+  const refIdx = headers.indexOf('payment reference');
+  const reconIdx = headers.findIndex(h => h === 'reconciliation status' || h === 'status');
   const notesIdx = headers.indexOf('notes');
-  const payRefIdx = headers.indexOf('recouply pay ref (do not edit)');
+  const payRefIdx = headers.findIndex(h => h.includes('recouply') && h.includes('ref') && h.includes('do not edit'));
   const sourceIdx = headers.indexOf('source');
 
   let created = 0, skipped = 0;
@@ -407,7 +462,7 @@ async function pullPayments(supabase: any, accessToken: string, template: any, u
     if (!amount || isNaN(amount)) continue;
 
     const accountRaid = getVal(row, accountRaidIdx);
-    const invoiceRef = getVal(row, invRefIdx);
+    const invoiceNum = getVal(row, invNumIdx);
     const paymentDate = parseDate(getVal(row, dateIdx));
 
     let debtorId: string | null = null;
@@ -417,8 +472,9 @@ async function pullPayments(supabase: any, accessToken: string, template: any, u
       const { data: debtor } = await supabase.from('debtors').select('id').eq('reference_id', accountRaid).eq('user_id', userId).maybeSingle();
       debtorId = debtor?.id || null;
     }
-    if (invoiceRef) {
-      const { data: inv } = await supabase.from('invoices').select('id, debtor_id').eq('reference_id', invoiceRef).eq('user_id', userId).maybeSingle();
+    if (invoiceNum) {
+      // Try matching by invoice number (SS Invoice #)
+      const { data: inv } = await supabase.from('invoices').select('id, debtor_id').eq('invoice_number', invoiceNum).eq('user_id', userId).maybeSingle();
       if (inv) {
         invoiceId = inv.id;
         if (!debtorId) debtorId = inv.debtor_id;
@@ -435,9 +491,11 @@ async function pullPayments(supabase: any, accessToken: string, template: any, u
         debtor_id: debtorId,
         invoice_id: invoiceId,
         amount,
+        currency: (getVal(row, currIdx) || 'USD').toUpperCase(),
         payment_date: paymentDate || new Date().toISOString().split('T')[0],
-        payment_method: getVal(row, methodIdx) || null,
-        status: getVal(row, statusIdx) || 'completed',
+        reference: getVal(row, refIdx) || null,
+        invoice_number_hint: invoiceNum || null,
+        reconciliation_status: getVal(row, reconIdx) || 'pending',
         notes: getVal(row, notesIdx) ? `[Sheet] ${getVal(row, notesIdx)}` : '[Sheet Import]',
         source_system: 'google_sheets',
       })
