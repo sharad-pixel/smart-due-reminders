@@ -27,12 +27,14 @@ import { calculateDueDateFromTerms } from "@/lib/paymentTerms";
 import { SortableTableHead, useSorting } from "@/components/ui/sortable-table-head";
 import { AIInsightsCard } from "@/components/ai/AIInsightsCard";
 import { IntegrationSourceBadge } from "@/components/integrations/IntegrationSourceBanner";
+import { ApplyPaymentButton } from "@/components/invoices/ApplyPaymentButton";
 
 interface Invoice {
   id: string;
   reference_id: string;
   invoice_number: string;
   amount: number;
+  amount_outstanding: number | null;
   issue_date: string;
   due_date: string;
   payment_terms: string | null;
@@ -860,6 +862,7 @@ const Invoices = () => {
                     >
                       Last Contact
                     </SortableTableHead>
+                    <TableHead className="w-20 font-semibold text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -966,6 +969,20 @@ const Invoices = () => {
                           {invoice.last_contact_date
                             ? new Date(invoice.last_contact_date).toLocaleDateString()
                             : <span className="text-muted-foreground">—</span>}
+                        </TableCell>
+                        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                          <ApplyPaymentButton
+                            invoiceId={invoice.id}
+                            invoiceNumber={invoice.invoice_number}
+                            debtorId={invoice.debtor_id}
+                            amount={invoice.amount}
+                            amountOutstanding={invoice.amount_outstanding}
+                            currency={invoice.currency || "USD"}
+                            status={invoice.status}
+                            integrationSource={invoice.integration_source}
+                            onSuccess={fetchData}
+                            compact
+                          />
                         </TableCell>
                       </TableRow>
                     );

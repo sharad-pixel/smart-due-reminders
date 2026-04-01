@@ -33,6 +33,7 @@ import { OutreachSummaryRow } from "@/components/outreach/OutreachSummaryRow";
 import { InvoiceWorkflowCard } from "@/components/invoices/InvoiceWorkflowCard";
 import { IntegrationSourceBanner } from "@/components/integrations/IntegrationSourceBanner";
 import { useOverrideWarning, useStatusActionWarning, logOverrideAndUpdateInvoice } from "@/components/invoices/InvoiceOverrideWarningDialogs";
+import { ApplyPaymentButton } from "@/components/invoices/ApplyPaymentButton";
 import { OutreachTimeline } from "@/components/outreach/OutreachTimeline";
 
 interface Invoice {
@@ -1339,7 +1340,24 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                   </CardDescription>
                 )}
               </CardHeader>
-              <CardContent className="grid grid-cols-2 gap-2">
+              <CardContent className="space-y-3">
+                {/* Quick Pay button for non-integrated invoices */}
+                {!isIntegratedInvoice && invoice.status !== "Paid" && (
+                  <div className="pb-2 border-b">
+                    <ApplyPaymentButton
+                      invoiceId={invoice.id}
+                      invoiceNumber={invoice.invoice_number}
+                      debtorId={invoice.debtor_id}
+                      amount={invoice.amount}
+                      amountOutstanding={invoice.amount_outstanding}
+                      currency={invoice.currency || "USD"}
+                      status={invoice.status}
+                      integrationSource={invoice.integration_source}
+                      onSuccess={fetchData}
+                    />
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-2">
                 <Button
                   variant="default"
                   size="sm"
@@ -1438,6 +1456,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                   <XCircle className="h-3.5 w-3.5 mr-1.5" />
                   Cancel Invoice
                 </Button>
+                </div>
               </CardContent>
             </Card>
           </div>
