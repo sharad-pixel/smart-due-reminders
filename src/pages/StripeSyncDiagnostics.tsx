@@ -29,7 +29,7 @@ import stripeLogo from "@/assets/stripe-logo.png";
 import {
   groupSyncErrors,
   getErrorTypeLabel,
-  type ParsedSyncError,
+  
 } from "@/components/data-center/sync/syncErrorParser";
 import type { SyncLogEntry } from "@/components/data-center/sync";
 
