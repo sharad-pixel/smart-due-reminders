@@ -221,7 +221,7 @@ Deno.serve(async (req) => {
         sheetTitle = `${businessName} - Invoices Master`;
         const { data: invoices } = await supabase
           .from('invoices')
-          .select('invoice_number, amount, amount_outstanding, currency, issue_date, due_date, status, po_number, product_description, payment_terms, notes, reference_id, debtors(reference_id, company_name)')
+          .select('invoice_number, amount, amount_original, amount_outstanding, currency, issue_date, due_date, paid_date, status, po_number, product_description, payment_terms, notes, reference_id, debtors(reference_id, company_name)')
           .eq('user_id', user.id)
           .in('status', ['Open', 'InPaymentPlan', 'PartiallyPaid'])
           .order('due_date', { ascending: false });
