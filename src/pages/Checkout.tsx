@@ -76,7 +76,7 @@ const Checkout = () => {
   const [loading, setLoading] = useState(true);
   const [processingCheckout, setProcessingCheckout] = useState(false);
   const [plan, setPlan] = useState<any>(null);
-  const [user, setUser] = useState<any>(null);
+  const [_user, setUser] = useState<any>(null);
 
   useEffect(() => {
     loadUserAndPlan();

@@ -40,7 +40,7 @@ const ContactUs = () => {
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [honeypot, setHoneypot] = useState("");
+  const [honeypot, _setHoneypot] = useState("");
   
   // Get initial intent from URL params (e.g., /contact?intent=investment)
   const initialIntent = searchParams.get("intent") || "";

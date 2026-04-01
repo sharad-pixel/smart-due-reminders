@@ -77,7 +77,7 @@ interface DraftsByPersona {
 }
 
 const AIWorkflows = () => {
-  const navigate = useNavigate();
+  const _navigate = useNavigate();
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(true);
   const [selectedBucket, setSelectedBucket] = useState("dpd_1_30");
@@ -99,13 +99,13 @@ const AIWorkflows = () => {
     dayOffset?: number;
   } | null>(null);
   const [reassigning, setReassigning] = useState(false);
-  const [generatingDrafts, setGeneratingDrafts] = useState(false);
+  const [_generatingDrafts, setGeneratingDrafts] = useState(false);
   const [draftsByPersona, setDraftsByPersona] = useState<DraftsByPersona>({});
   const [loadingDrafts, setLoadingDrafts] = useState(false);
   
   const [selectedPersona, setSelectedPersona] = useState<string | null>(null);
   const [outreachFilterPersona, setOutreachFilterPersona] = useState<string | null>(null);
-  const [generatingPersonaDrafts, setGeneratingPersonaDrafts] = useState(false);
+  const [_generatingPersonaDrafts, setGeneratingPersonaDrafts] = useState(false);
   const [expandedDrafts, setExpandedDrafts] = useState<Set<string>>(new Set());
   const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set());
   const [stepInvoices, setStepInvoices] = useState<Record<string, any[]>>({});
@@ -115,7 +115,7 @@ const AIWorkflows = () => {
   const [regenerateApproach, setRegenerateApproach] = useState<string>("standard");
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [generatingAllTemplates, setGeneratingAllTemplates] = useState(false);
-  const [showErrors, setShowErrors] = useState(false);
+  const [_showErrors, _setShowErrors] = useState(false);
   const [isRunningEngine, setIsRunningEngine] = useState(false);
   const [engineResult, setEngineResult] = useState<{
     cancelledDrafts: number;
@@ -424,7 +424,7 @@ const AIWorkflows = () => {
     }
   };
 
-  const toggleStepExpansion = async (stepId: string, dayOffset: number) => {
+  const _toggleStepExpansion = async (stepId: string, dayOffset: number) => {
     const newExpanded = new Set(expandedSteps);
     if (newExpanded.has(stepId)) {
       newExpanded.delete(stepId);
@@ -533,7 +533,7 @@ const AIWorkflows = () => {
     }
   };
 
-  const handleGenerateBucketDrafts = async (agingBucket: string) => {
+  const _handleGenerateBucketDrafts = async (agingBucket: string) => {
     setGeneratingDrafts(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -700,7 +700,7 @@ const AIWorkflows = () => {
     }
   };
 
-  const handleCreateCustomWorkflow = async () => {
+  const _handleCreateCustomWorkflow = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
@@ -838,7 +838,7 @@ const AIWorkflows = () => {
     }
   };
 
-  const handleGeneratePersonaDrafts = async (personaName: string) => {
+  const _handleGeneratePersonaDrafts = async (personaName: string) => {
     const persona = Object.values(personaConfig).find(p => p.name === personaName);
     if (!persona) return;
 
@@ -1098,7 +1098,7 @@ const AIWorkflows = () => {
     }
   };
 
-  const handleApplyTemplate = async (personaKey: string) => {
+  const _handleApplyTemplate = async (personaKey: string) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
@@ -1405,7 +1405,7 @@ const AIWorkflows = () => {
                   );
               }
 
-              const [personaId, { persona, drafts }] = matchingEntry;
+              const [_personaId, { persona, drafts }] = matchingEntry;
               const personaInfo = Object.values(personaConfig).find(p => p.name === persona.name);
 
               // Filter drafts to only show those belonging to the selected workflow

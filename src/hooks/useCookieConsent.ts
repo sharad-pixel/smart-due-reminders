@@ -12,7 +12,7 @@ export interface CookiePreferences {
 
 const COOKIE_CONSENT_KEY = 'recouply_cookie_consent';
 
-const defaultPreferences: CookiePreferences = {
+const _defaultPreferences: CookiePreferences = {
   necessary: true,
   functional: false,
   analytics: false,

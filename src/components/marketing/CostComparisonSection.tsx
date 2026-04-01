@@ -117,7 +117,7 @@ export const CostComparisonSection = ({ onCTAClick }: CostComparisonSectionProps
     }
   }, [isInView, prefersReducedMotion]);
 
-  const animationClass = (delay: number) => 
+  const animationClass = (_delay: number) => 
     prefersReducedMotion 
       ? "opacity-100" 
       : isInView 

@@ -23,13 +23,13 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { toast } from "sonner";
-import { RefreshCw, Loader2, AlertTriangle, ChevronDown, ChevronLeft, Copy, Clock, Users, FileText, CreditCard, CheckCircle2, XCircle, Info, Lightbulb, ArrowRight, Zap } from "lucide-react";
+import { RefreshCw, AlertTriangle, ChevronDown, ChevronLeft, Copy, Clock, Users, FileText, CreditCard, CheckCircle2, XCircle, Info, Lightbulb, ArrowRight, Zap, Loader2 } from "lucide-react";
 import { differenceInSeconds, formatDistanceToNow } from "date-fns";
 import stripeLogo from "@/assets/stripe-logo.png";
 import {
   groupSyncErrors,
   getErrorTypeLabel,
-  type ParsedSyncError,
+  
 } from "@/components/data-center/sync/syncErrorParser";
 import type { SyncLogEntry } from "@/components/data-center/sync";
 
@@ -149,7 +149,7 @@ const StripeSyncDiagnostics = () => {
   });
 
   // Fetch sync logs
-  const { data: syncLogs, isLoading: logsLoading } = useQuery({
+  const { data: syncLogs, isLoading: _logsLoading } = useQuery({
     queryKey: ["stripe-sync-logs-diagnostic"],
     queryFn: async () => {
       const {
@@ -235,7 +235,7 @@ const StripeSyncDiagnostics = () => {
     }
   };
 
-  const getStripeInvoiceUrl = (stripeInvoiceId: string) => {
+  const _getStripeInvoiceUrl = (stripeInvoiceId: string) => {
     const baseUrl = isTestMode
       ? "https://dashboard.stripe.com/test"
       : "https://dashboard.stripe.com";

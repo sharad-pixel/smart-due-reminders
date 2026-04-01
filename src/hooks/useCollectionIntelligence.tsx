@@ -341,7 +341,7 @@ export const useDebtorIntelligence = (debtorId: string) => {
           table: "inbound_emails",
           filter: `debtor_id=eq.${debtorId}`,
         },
-        (payload) => {
+        (_payload) => {
           
           query.refetch();
         }

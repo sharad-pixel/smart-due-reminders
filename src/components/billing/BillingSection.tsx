@@ -39,7 +39,7 @@ interface BillingSectionProps {
 }
 
 const BillingSection = ({ profile, canManageBilling, onRefresh, isTeamMember = false }: BillingSectionProps) => {
-  const navigate = useNavigate();
+  const _navigate = useNavigate();
   const { toast } = useToast();
   const [processing, setProcessing] = useState(false);
   const [syncing, setSyncing] = useState(false);

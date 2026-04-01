@@ -30,7 +30,7 @@ export const IntegrationSetupModal = ({
   integrationType,
   onComplete,
 }: IntegrationSetupModalProps) => {
-  const navigate = useNavigate();
+  const _navigate = useNavigate();
   const [stripeKey, setStripeKey] = useState("");
   const [saving, setSaving] = useState(false);
   const [connecting, setConnecting] = useState(false);

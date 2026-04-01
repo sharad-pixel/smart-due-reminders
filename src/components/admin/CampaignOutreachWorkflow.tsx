@@ -313,7 +313,7 @@ export function CampaignOutreachWorkflow({
 
         {WORKFLOW_STEPS.map((step) => {
           const status = getStepStatus(step.step);
-          const canSend = (status === "approved" || status === "active") && leadsCount > 0;
+          const _canSend = (status === "approved" || status === "active") && leadsCount > 0;
           
           return (
             <TabsContent key={step.step} value={String(step.step)} className="mt-4 space-y-4">

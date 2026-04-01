@@ -1266,7 +1266,7 @@ export default function DebtorPortalPage() {
                 </div>
 
                 {/* Debtor Accounts */}
-                {vendor.debtorAccounts.map((debtorAccount, debtorIndex) => {
+                {vendor.debtorAccounts.map((debtorAccount, _debtorIndex) => {
                   const accountPlanBalance = debtorAccount.paymentPlans.reduce((sum, plan) => {
                     const totalPaid = plan.installments.filter(i => i.status === "paid").reduce((s, i) => s + i.amount, 0);
                     return sum + (plan.total_amount - totalPaid);

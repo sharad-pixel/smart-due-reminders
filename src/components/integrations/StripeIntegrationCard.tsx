@@ -140,12 +140,12 @@ export const StripeIntegrationCard = () => {
 
       toast.success("Stripe integration disconnected");
       await fetchIntegration();
-    } catch (error: any) {
+    } catch (_error: any) {
       toast.error("Failed to disconnect");
     }
   };
 
-  const handleToggleAutoSync = async (enabled: boolean) => {
+  const _handleToggleAutoSync = async (enabled: boolean) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -162,7 +162,7 @@ export const StripeIntegrationCard = () => {
 
       setIntegration(prev => prev ? { ...prev, auto_sync_enabled: enabled } : null);
       toast.success(enabled ? "Auto-sync enabled" : "Auto-sync disabled");
-    } catch (error: any) {
+    } catch (_error: any) {
       toast.error("Failed to update setting");
     }
   };

@@ -39,7 +39,7 @@ const severityConfig = {
   },
 };
 
-const getSeverityIcon = (severity: string, alertType: string) => {
+const _getSeverityIcon = (severity: string, alertType: string) => {
   if (alertType.includes('email') || alertType.includes('outreach')) {
     return <Mail className="h-5 w-5" />;
   }

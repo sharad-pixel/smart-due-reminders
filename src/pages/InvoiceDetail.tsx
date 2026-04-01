@@ -167,7 +167,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
   const [editSubject, setEditSubject] = useState("");
   const [editBody, setEditBody] = useState("");
   const [sendingDraft, setSendingDraft] = useState<string | null>(null);
-  const [crmAccount, setCrmAccount] = useState<CRMAccount | null>(null);
+  const [_crmAccount, setCrmAccount] = useState<CRMAccount | null>(null);
   const [copiedRefId, setCopiedRefId] = useState(false);
   const [previewDraft, setPreviewDraft] = useState<any>(null);
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
@@ -621,7 +621,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
     }
   };
 
-  const handleApproveDraft = async (draftId: string) => {
+  const _handleApproveDraft = async (draftId: string) => {
     await handleDraftAction(draftId, "approved");
   };
 

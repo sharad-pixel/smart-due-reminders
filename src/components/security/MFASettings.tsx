@@ -11,7 +11,7 @@ import { toast } from "sonner";
 export function MFASettings() {
   const { mfaSettings, isLoading, enableMFA, disableMFA } = useMFA();
   const [mfaMethod, setMfaMethod] = useState<"email" | "totp">("email");
-  const [phoneNumber, setPhoneNumber] = useState("");
+  const [_phoneNumber, _setPhoneNumber] = useState("");
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [showBackupCodes, setShowBackupCodes] = useState(false);
 

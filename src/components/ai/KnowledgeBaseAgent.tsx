@@ -11,7 +11,7 @@ import stripeLogo from "@/assets/stripe-logo.png";
 import quickbooksLogo from "@/assets/quickbooks-logo.png";
 import { NeedHelpDialog } from "@/components/NeedHelpDialog";
 
-interface OnboardingStep {
+interface _OnboardingStep {
   id: string;
   title: string;
   description: string;

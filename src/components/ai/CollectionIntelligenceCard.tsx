@@ -53,14 +53,14 @@ export function CollectionIntelligenceCard() {
   // Intelligence data state
   const [loading, setLoading] = useState(true);
   const [accounts, setAccounts] = useState<AccountWithIntelligence[]>([]);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [_loadError, setLoadError] = useState<string | null>(null);
   const [regenerating, setRegenerating] = useState(false);
 
   // AI Analytics hook
   const { 
     data: aiData, 
     isLoading: aiLoading, 
-    isError: aiError, 
+    isError: _aiError, 
     refetch: refetchAI, 
     isRefetching: aiRefetching 
   } = useAIAnalytics({ scope: "dashboard" });

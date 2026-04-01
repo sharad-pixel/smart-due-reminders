@@ -47,7 +47,7 @@ export const DraftPreviewModal = ({
 
   if (!draft) return null;
 
-  const persona = draft.persona_name ? getPersonaByName(draft.persona_name) : null;
+  const _persona = draft.persona_name ? getPersonaByName(draft.persona_name) : null;
 
   const handleRegenerateWithTone = async () => {
     if (!onRegenerate) return;

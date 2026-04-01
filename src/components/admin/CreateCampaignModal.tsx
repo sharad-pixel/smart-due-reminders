@@ -94,7 +94,7 @@ export const CreateCampaignModal = ({
     onCreateCampaign(formData);
   };
 
-  const selectedType = campaignTypes.find((t) => t.id === formData.campaign_type);
+  const _selectedType = campaignTypes.find((t) => t.id === formData.campaign_type);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

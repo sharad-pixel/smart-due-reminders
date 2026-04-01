@@ -37,7 +37,7 @@ export function CollectionIntelligenceDashboard() {
     }
   };
 
-  const getHealthColor = (tier: string | null) => {
+  const _getHealthColor = (tier: string | null) => {
     switch (tier) {
       case "Healthy": return "bg-green-500";
       case "Watch": return "bg-yellow-500";
@@ -47,7 +47,7 @@ export function CollectionIntelligenceDashboard() {
     }
   };
 
-  const getHealthBorderColor = (tier: string | null) => {
+  const _getHealthBorderColor = (tier: string | null) => {
     switch (tier) {
       case "Healthy": return "border-green-500/50 bg-green-50 dark:bg-green-950/20";
       case "Watch": return "border-yellow-500/50 bg-yellow-50 dark:bg-yellow-950/20";
@@ -57,7 +57,7 @@ export function CollectionIntelligenceDashboard() {
     }
   };
 
-  const getHealthIcon = (tier: string | null) => {
+  const _getHealthIcon = (tier: string | null) => {
     switch (tier) {
       case "Healthy": return <CheckCircle2 className="h-4 w-4 text-green-600" />;
       case "Watch": return <Eye className="h-4 w-4 text-yellow-600" />;
@@ -67,7 +67,7 @@ export function CollectionIntelligenceDashboard() {
     }
   };
 
-  const getTrendIcon = (avgDays: number | null) => {
+  const _getTrendIcon = (avgDays: number | null) => {
     if (avgDays === null) return <Minus className="h-3 w-3 text-muted-foreground" />;
     if (avgDays <= 0) return <TrendingUp className="h-3 w-3 text-green-600" />;
     if (avgDays <= 30) return <Minus className="h-3 w-3 text-yellow-600" />;

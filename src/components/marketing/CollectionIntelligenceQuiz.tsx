@@ -12,7 +12,7 @@ import { useState } from "react";
    CheckCircle2, 
    ArrowRight,
    Sparkles,
-   Loader2,
+   
    BarChart3
  } from "lucide-react";
  import { supabase } from "@/integrations/supabase/client";

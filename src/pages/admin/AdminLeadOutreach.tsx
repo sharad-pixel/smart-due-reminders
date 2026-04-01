@@ -1460,7 +1460,7 @@ export default function AdminLeadOutreach() {
                         if (fullCampaign) setShowCampaignDetails(fullCampaign);
                       }}
                       onDelete={(id) => setShowDeleteCampaign(id)}
-                      onDuplicate={(c) => {
+                      onDuplicate={(_c) => {
                         setShowCreateCampaign(true);
                         toast.info("Edit campaign details to duplicate");
                       }}

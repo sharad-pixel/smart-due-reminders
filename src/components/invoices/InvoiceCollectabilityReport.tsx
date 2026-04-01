@@ -44,7 +44,7 @@ interface AggregateStats {
 }
 
 export function InvoiceCollectabilityReport() {
-  const [expanded, setExpanded] = useState(false);
+  const [_expanded, _setExpanded] = useState(false);
   const [generatingAI, setGeneratingAI] = useState(false);
   const [sortKey, setSortKey] = useState<string | null>("collectability_score");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
@@ -65,7 +65,7 @@ export function InvoiceCollectabilityReport() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const handleSort = (key: string) => {
+  const _handleSort = (key: string) => {
     if (sortKey === key) {
       if (sortDirection === "asc") {
         setSortDirection("desc");
@@ -81,7 +81,7 @@ export function InvoiceCollectabilityReport() {
     }
   };
 
-  const sortedReports = useMemo(() => {
+  const _sortedReports = useMemo(() => {
     const reports = data?.reports || [];
     if (!sortKey || !sortDirection) return reports;
 
@@ -112,7 +112,7 @@ export function InvoiceCollectabilityReport() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
 
-      const { data: result, error } = await supabase.functions.invoke("invoice-collectability-report", {
+      const { data: _result, error } = await supabase.functions.invoke("invoice-collectability-report", {
         body: { generate_ai_summary: true },
       });
 
@@ -133,7 +133,7 @@ export function InvoiceCollectabilityReport() {
     return "text-red-600";
   };
 
-  const getTierBadge = (tier: string) => {
+  const _getTierBadge = (tier: string) => {
     switch (tier) {
       case "High":
         return <Badge className="bg-green-500/10 text-green-600 border-green-500/20">High</Badge>;
@@ -148,7 +148,7 @@ export function InvoiceCollectabilityReport() {
     }
   };
 
-  const getLikelihoodIcon = (likelihood: string) => {
+  const _getLikelihoodIcon = (likelihood: string) => {
     switch (likelihood) {
       case "Very Likely":
       case "Likely":

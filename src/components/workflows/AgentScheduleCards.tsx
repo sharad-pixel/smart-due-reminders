@@ -231,7 +231,7 @@ const AgentScheduleCards = ({ selectedPersona, onPersonaSelect }: AgentScheduleC
   };
 
   const accountNext = accountLevelStats.nextApproved || accountLevelStats.nextAny;
-  const accountNextLabel = accountLevelStats.nextApproved ? "Next approved" : accountLevelStats.nextAny ? "Next pending" : "No upcoming";
+  const _accountNextLabel = accountLevelStats.nextApproved ? "Next approved" : accountLevelStats.nextAny ? "Next pending" : "No upcoming";
   const isAccountSelected = selectedPersona === 'nicolas';
 
   return (
@@ -310,7 +310,7 @@ const AgentScheduleCards = ({ selectedPersona, onPersonaSelect }: AgentScheduleC
           {/* Persona Cards */}
           {personaSchedule.map((row) => {
             const next = row.nextApproved || row.nextAny;
-            const nextLabel = row.nextApproved ? "Next approved" : row.nextAny ? "Next pending" : "No upcoming";
+            const _nextLabel = row.nextApproved ? "Next approved" : row.nextAny ? "Next pending" : "No upcoming";
             const isSelected = selectedPersona === row.key;
             
             return (

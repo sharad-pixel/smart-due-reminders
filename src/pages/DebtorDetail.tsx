@@ -145,8 +145,8 @@ const DebtorDetail = () => {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [outreach, setOutreach] = useState<OutreachLog[]>([]);
   const [crmAccounts, setCrmAccounts] = useState<CRMAccount[]>([]);
-  const [debtorTasks, setDebtorTasks] = useState<any[]>([]);
-  const [activities, setActivities] = useState<any[]>([]);
+  const [_debtorTasks, setDebtorTasks] = useState<any[]>([]);
+  const [_activities, setActivities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isArchiveOpen, setIsArchiveOpen] = useState(false);

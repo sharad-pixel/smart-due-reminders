@@ -77,7 +77,7 @@ export const AutoSyncScheduler = ({ integrationType }: AutoSyncSchedulerProps) =
   const [syncTime, setSyncTime] = useState('06:00');
   const [timezone, setTimezone] = useState(detectTimezone());
   const [lastAutoSync, setLastAutoSync] = useState<string | null>(null);
-  const [nextSyncDue, setNextSyncDue] = useState<string | null>(null);
+  const [_nextSyncDue, setNextSyncDue] = useState<string | null>(null);
   const [settingId, setSettingId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -124,7 +124,7 @@ export const AutoSyncScheduler = ({ integrationType }: AutoSyncSchedulerProps) =
     tomorrow.setDate(tomorrow.getDate() + 1);
     
     // Create a rough next sync time (this is approximate for display)
-    const formatter = new Intl.DateTimeFormat('en-US', {
+    const _formatter = new Intl.DateTimeFormat('en-US', {
       timeZone: tz,
       year: 'numeric', month: '2-digit', day: '2-digit',
     });

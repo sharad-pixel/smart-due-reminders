@@ -19,7 +19,7 @@ import { UsageIndicator } from "@/components/billing/UsageIndicator";
 import { TrialCountdown } from "@/components/billing/TrialCountdown";
 import UsageBillingLog from "@/components/billing/UsageBillingLog";
 // Colorful gauge component
-const UsageGauge = ({ 
+const _UsageGauge = ({ 
   used, 
   limit, 
   isUnlimited = false 
@@ -259,7 +259,7 @@ const Billing = () => {
     // CRITICAL: Always prioritize DATABASE values (profile) as source of truth
     // Only use stripeData when it has a valid subscription (not from_database fallback)
     // This prevents showing "Free" when user has an active paid plan in the database
-    const hasValidStripeSync = stripeData && stripeData.subscribed && !stripeData.from_database;
+    const _hasValidStripeSync = stripeData && stripeData.subscribed && !stripeData.from_database;
     
     const effectivePlanType = isTeamMember 
       ? (accountHierarchy.billing.planType || parentAccount?.planType || 'free')
@@ -276,7 +276,7 @@ const Billing = () => {
   // Derive invoice limit from usage data (source of truth) or plan config
   const invoiceLimit = usage?.included_allowance ?? planConfig?.invoiceLimit ?? 15;
   const isUnlimited = invoiceLimit === -1 || invoiceLimit === 'Unlimited';
-  const invoicesUsed = usage?.included_invoices_used ?? 0;
+  const _invoicesUsed = usage?.included_invoices_used ?? 0;
 
   return (
     <Layout>

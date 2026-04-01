@@ -1078,7 +1078,7 @@ const Debtors = () => {
                         <TableCell onClick={() => navigate(`/debtors/${debtor.id}`)}>
                           <div className="space-y-1 max-w-xs">
                             {debtor.contacts && debtor.contacts.length > 0 ? (
-                              debtor.contacts.slice(0, 3).map((contact, idx) => (
+                              debtor.contacts.slice(0, 3).map((contact, _idx) => (
                                 <div key={contact.id} className="flex items-center gap-2 text-xs">
                                   <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${
                                     contact.is_primary ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"

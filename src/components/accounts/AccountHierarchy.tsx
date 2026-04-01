@@ -307,7 +307,7 @@ export function AccountHierarchy({ compact = false }: AccountHierarchyProps) {
                 <div className="absolute left-1/2 -translate-x-1/2 w-full max-w-2xl h-0.5 bg-border" style={{ top: 24 }} />
                 
                 <div className="flex flex-wrap justify-center gap-4 pt-6">
-                  {members.map((member, index) => (
+                  {members.map((member, _index) => (
                     <div key={member.id} className="relative flex flex-col items-center">
                       {/* Vertical connector from horizontal line */}
                       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-0.5 h-4 bg-border -mt-4" />

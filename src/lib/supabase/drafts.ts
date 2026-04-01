@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
-type DraftRow = Database["public"]["Tables"]["ai_drafts"]["Row"];
+type _DraftRow = Database["public"]["Tables"]["ai_drafts"]["Row"];
 
 export type DraftStatus = Database["public"]["Enums"]["draft_status"];
 
