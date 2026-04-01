@@ -220,6 +220,16 @@ const App = () => (
             <Route path="/blog/celebrate-cash" element={<CelebrateCash />} />
             <Route path="/blog/power-of-outreach" element={<PowerOfOutreach />} />
             <Route path="/blog/cash-leakage" element={<CashLeakage />} />
+            <Route path="/blog/future-of-ai-in-collections" element={<FutureOfAiInCollections />} />
+            <Route path="/blog/revenue-does-not-equal-cash-flow" element={<RevenueNotCashFlow />} />
+            <Route path="/blog/rise-of-collections-intelligence" element={<RiseOfCollectionsIntelligence />} />
+            <Route path="/blog/timing-matters-more-than-tone" element={<TimingMattersMoreThanTone />} />
+            <Route path="/blog/engagement-as-credit-signal" element={<EngagementAsCreditSignal />} />
+            <Route path="/blog/hidden-cost-of-delayed-payments" element={<HiddenCostDelayedPayments />} />
+            <Route path="/blog/data-trust-in-ar-automation" element={<DataTrustInArAutomation />} />
+            <Route path="/blog/spreadsheets-to-systems-of-record" element={<SpreadsheetsToSystems />} />
+            <Route path="/blog/predictive-collections-revenue-risk" element={<PredictiveCollections />} />
+            <Route path="/blog/next-generation-ar-teams" element={<NextGenerationArTeams />} />
 
             {/* Legal Pages */}
             <Route path="/legal/terms" element={<Terms />} />
