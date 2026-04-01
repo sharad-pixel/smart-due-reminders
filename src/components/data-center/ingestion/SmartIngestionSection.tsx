@@ -144,6 +144,8 @@ export function SmartIngestionSection() {
       return data?.folders || [];
     },
     enabled: folderBrowserOpen && !!connection,
+    staleTime: 0,
+    gcTime: 0,
   });
 
   // Set folder
