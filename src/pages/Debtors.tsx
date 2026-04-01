@@ -751,6 +751,17 @@ const Debtors = () => {
                       <Radio className="h-4 w-4 text-muted-foreground" />
                       Disable Account Outreach
                     </Button>
+                    {selectedIds.size >= 2 && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setShowMergeDialog(true)}
+                        className="gap-2"
+                      >
+                        <Merge className="h-4 w-4" />
+                        Merge Selected ({selectedIds.size})
+                      </Button>
+                    )}
                     <Button
                       size="sm"
                       variant="ghost"
