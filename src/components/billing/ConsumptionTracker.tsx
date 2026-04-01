@@ -137,7 +137,31 @@ const ConsumptionTracker = () => {
         });
       }
 
-      // Fetch upcoming charges (or open invoice on account)
+      // Fetch ingestion usage charges for current period
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const now = new Date();
+          const currentPeriod = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+          const { data: ingestionData, count } = await supabase
+            .from("ingestion_usage_charges")
+            .select("charge_amount", { count: "exact" })
+            .eq("user_id", user.id)
+            .eq("billing_period", currentPeriod);
+          
+          const fileCount = count || 0;
+          const totalCharges = (ingestionData || []).reduce((sum: number, row: any) => sum + (row.charge_amount || 0), 0);
+          setIngestionCharges({
+            fileCount,
+            totalCharges,
+            ratePerFile: 0.75,
+            period: currentPeriod,
+          });
+        }
+      } catch (ingErr) {
+        console.error("Error fetching ingestion charges:", ingErr);
+      }
+
       const { data: chargesData, error: chargesError } = await supabase.functions.invoke('get-upcoming-charges');
       
       if (!chargesError && chargesData?.has_upcoming_invoice) {
