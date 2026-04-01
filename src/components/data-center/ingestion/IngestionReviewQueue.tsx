@@ -223,7 +223,7 @@ export function IngestionReviewQueue() {
         organization_id: orgId,
         review_item_id: item.id,
         scanned_file_id: item.scanned_file_id,
-        file_name: item.file_name || item.extracted_invoice_number || "Unknown",
+        file_name: item.ingestion_scanned_files?.file_name || item.extracted_invoice_number || "Unknown",
         charge_amount: 0.75,
         billing_period: billingPeriod,
       } as any);
