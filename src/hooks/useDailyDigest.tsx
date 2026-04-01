@@ -12,6 +12,26 @@ export interface PortfolioRiskSummary {
   total_ar_at_risk: number;
 }
 
+export interface RevenueRiskSummary {
+  total_ecl: number;
+  total_open_balance: number;
+  avg_collectability_score: number;
+  accounts_scored: number;
+  risk_tiers: {
+    low: number;
+    moderate: number;
+    at_risk: number;
+    high_risk: number;
+  };
+  top_risk_accounts: Array<{
+    company_name: string;
+    collectability_score: number;
+    ecl: number;
+    open_balance: number;
+    risk_classification: string;
+  }>;
+}
+
 export interface CollectionAlertsSummary {
   payments_received: Array<{ amount: number; date: string; invoiceNumber: string; debtorName: string }>;
   overdue_milestones: Array<{ days: number; invoiceNumber: string; debtorName: string; amount: number }>;
@@ -53,6 +73,8 @@ export interface DailyDigest {
   avg_payment_trend: string | null;
   total_credit_limit_recommended: number;
   portfolio_risk_summary: PortfolioRiskSummary | null;
+  // Revenue Risk & ECL Intelligence
+  revenue_risk_summary: RevenueRiskSummary | null;
   // Subscription & Usage fields
   subscription_status: string | null;
   plan_type: string | null;

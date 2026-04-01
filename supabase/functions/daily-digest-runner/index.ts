@@ -512,6 +512,75 @@ serve(async (req) => {
           });
         }
 
+        // ==========================================
+        // REVENUE RISK & ECL INTELLIGENCE
+        // ==========================================
+        let revenueRiskSummary: any = null;
+
+        const { data: riskProfiles } = await supabase
+          .from('debtor_risk_profiles')
+          .select('debtor_id, overall_collectability_score, total_ecl, total_open_balance, risk_classification, total_engagement_adjusted_ecl')
+          .eq('user_id', accountId);
+
+        if (riskProfiles && riskProfiles.length > 0) {
+          const totalEcl = riskProfiles.reduce((sum, r) => sum + Number(r.total_engagement_adjusted_ecl || r.total_ecl || 0), 0);
+          const totalOpenBalance = riskProfiles.reduce((sum, r) => sum + Number(r.total_open_balance || 0), 0);
+          const avgCollectability = riskProfiles.reduce((sum, r) => sum + Number(r.overall_collectability_score || 0), 0) / riskProfiles.length;
+
+          const riskTiers = { low: 0, moderate: 0, at_risk: 0, high_risk: 0 };
+          for (const r of riskProfiles) {
+            const score = Number(r.overall_collectability_score || 0);
+            if (score >= 80) riskTiers.low++;
+            else if (score >= 60) riskTiers.moderate++;
+            else if (score >= 40) riskTiers.at_risk++;
+            else riskTiers.high_risk++;
+          }
+
+          // Get top risk accounts (lowest collectability)
+          const sortedByRisk = [...riskProfiles]
+            .filter(r => r.overall_collectability_score !== null)
+            .sort((a, b) => Number(a.overall_collectability_score || 0) - Number(b.overall_collectability_score || 0))
+            .slice(0, 5);
+
+          // Fetch debtor names for top risk accounts
+          const topRiskDebtorIds = sortedByRisk.map(r => r.debtor_id);
+          let topRiskDebtorNames: Record<string, string> = {};
+          if (topRiskDebtorIds.length > 0) {
+            const { data: topDebtors } = await supabase
+              .from('debtors')
+              .select('id, company_name')
+              .in('id', topRiskDebtorIds);
+            topRiskDebtorNames = (topDebtors || []).reduce((acc, d) => {
+              acc[d.id] = d.company_name || 'Unknown';
+              return acc;
+            }, {} as Record<string, string>);
+          }
+
+          const topRiskAccounts = sortedByRisk.map(r => ({
+            company_name: topRiskDebtorNames[r.debtor_id] || 'Unknown',
+            collectability_score: Number(r.overall_collectability_score || 0),
+            ecl: Number(r.total_engagement_adjusted_ecl || r.total_ecl || 0),
+            open_balance: Number(r.total_open_balance || 0),
+            risk_classification: r.risk_classification || 'Unknown',
+          }));
+
+          revenueRiskSummary = {
+            total_ecl: totalEcl,
+            total_open_balance: totalOpenBalance,
+            avg_collectability_score: Math.round(avgCollectability),
+            accounts_scored: riskProfiles.length,
+            risk_tiers: riskTiers,
+            top_risk_accounts: topRiskAccounts,
+          };
+
+          logStep('Revenue risk summary calculated', {
+            totalEcl,
+            avgCollectability: Math.round(avgCollectability),
+            accountsScored: riskProfiles.length,
+            riskTiers,
+          });
+        }
+
         // HEALTH SCORE CALCULATION - Enterprise Risk Scoring System
         // Uses weighted factors aligned with risk-engine scoring:
         // - 40% Outstanding Balance & Aging Concentration
@@ -746,6 +815,8 @@ serve(async (req) => {
           is_over_limit: digestIsOverLimit,
           // Collection Alerts
           collection_alerts_summary: collectionAlertsSummary,
+          // Revenue Risk & ECL Intelligence
+          revenue_risk_summary: revenueRiskSummary,
           updated_at: new Date().toISOString(),
         };
 
@@ -836,6 +907,8 @@ serve(async (req) => {
               avgPaymentTrend,
               totalCreditLimitRecommended,
               portfolioRiskSummary,
+              // Revenue Risk & ECL
+              revenueRiskSummary,
             };
             
             logStep('Email data prepared for user', {
@@ -1031,6 +1104,20 @@ function generateEmailHtml(data: {
     rating: string;
     trend: string;
     total_ar_at_risk: number;
+  } | null;
+  revenueRiskSummary?: {
+    total_ecl: number;
+    total_open_balance: number;
+    avg_collectability_score: number;
+    accounts_scored: number;
+    risk_tiers: { low: number; moderate: number; at_risk: number; high_risk: number };
+    top_risk_accounts: Array<{
+      company_name: string;
+      collectability_score: number;
+      ecl: number;
+      open_balance: number;
+      risk_classification: string;
+    }>;
   } | null;
 }): string {
   const formatCurrency = (amount: number) => 
@@ -1465,6 +1552,27 @@ function generateEmailHtml(data: {
         </div>`;
       })()}
 
+      <!-- Revenue Risk & ECL Intelligence -->
+      ${(() => {
+        const rr = data.revenueRiskSummary;
+        if (!rr || rr.accounts_scored === 0) return '';
+        
+        const eclPct = rr.total_open_balance > 0 ? ((rr.total_ecl / rr.total_open_balance) * 100).toFixed(1) : '0.0';
+        const scoreColor = rr.avg_collectability_score >= 80 ? '#22c55e' : rr.avg_collectability_score >= 60 ? '#eab308' : rr.avg_collectability_score >= 40 ? '#f97316' : '#ef4444';
+        
+        let topRiskHtml = '';
+        if (rr.top_risk_accounts && rr.top_risk_accounts.length > 0) {
+          const rows = rr.top_risk_accounts.slice(0, 3).map(a => {
+            const aColor = a.collectability_score >= 80 ? '#22c55e' : a.collectability_score >= 60 ? '#eab308' : a.collectability_score >= 40 ? '#f97316' : '#ef4444';
+            return '<tr><td style="padding: 8px 14px; border-bottom: 1px solid ' + BRAND.border + ';"><table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"><tr><td width="36" style="vertical-align: middle;"><div style="width: 28px; height: 28px; border-radius: 50%; background: ' + aColor + '; color: white; font-weight: 700; font-size: 11px; line-height: 28px; text-align: center;">' + Math.round(a.collectability_score) + '</div></td><td style="vertical-align: middle; padding-left: 8px;"><p style="margin: 0; color: ' + BRAND.foreground + '; font-size: 12px; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif;">' + a.company_name + '</p><p style="margin: 2px 0 0; color: ' + BRAND.muted + '; font-size: 10px; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif;">' + a.risk_classification + '</p></td><td align="right" style="vertical-align: middle;"><p style="margin: 0; color: #dc2626; font-size: 12px; font-weight: 700; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif;">' + formatCurrency(a.ecl) + '</p><p style="margin: 1px 0 0; color: ' + BRAND.muted + '; font-size: 9px; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif;">of ' + formatCurrency(a.open_balance) + '</p></td></tr></table></td></tr>';
+          }).join('');
+          
+          topRiskHtml = '<div style="border-bottom: 1px solid ' + BRAND.border + ';"><div style="padding: 8px 14px;"><p style="margin: 0; color: ' + BRAND.muted + '; font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif;">Top Risk Accounts</p></div><table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">' + rows + '</table></div>';
+        }
+
+        return '<div style="margin-bottom: 20px;"><div style="background: ' + BRAND.cardBg + '; border: 1px solid #f59e0b40; border-radius: 10px; overflow: hidden;"><div style="height: 4px; background: ' + scoreColor + ';"></div><div style="padding: 10px 16px; border-bottom: 1px solid ' + BRAND.border + ';"><p style="color: #b45309; margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.3px; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif;">🛡️ REVENUE RISK &amp; ECL INTELLIGENCE</p></div><table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"><tr><td width="33%" style="padding: 14px; text-align: center; border-right: 1px solid ' + BRAND.border + ';"><div style="width: 44px; height: 44px; border-radius: 50%; background: ' + scoreColor + '; color: white; font-weight: 700; font-size: 16px; line-height: 44px; text-align: center; margin: 0 auto 4px;">' + Math.round(rr.avg_collectability_score) + '</div><p style="margin: 0; color: ' + BRAND.muted + '; font-size: 9px; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif;">Avg Collectability</p></td><td width="33%" style="padding: 14px; text-align: center; border-right: 1px solid ' + BRAND.border + ';"><p style="margin: 0 0 2px; color: #dc2626; font-size: 16px; font-weight: 700; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif;">' + formatCurrency(rr.total_ecl) + '</p><p style="margin: 0; color: ' + BRAND.muted + '; font-size: 9px; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif;">Total ECL</p></td><td width="33%" style="padding: 14px; text-align: center;"><p style="margin: 0 0 2px; color: ' + BRAND.foreground + '; font-size: 16px; font-weight: 700; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif;">' + eclPct + '%</p><p style="margin: 0; color: ' + BRAND.muted + '; font-size: 9px; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif;">ECL Rate</p></td></tr></table><div style="padding: 12px 16px; border-top: 1px solid ' + BRAND.border + '; border-bottom: 1px solid ' + BRAND.border + ';"><p style="margin: 0 0 8px; color: ' + BRAND.muted + '; font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif;">Risk Distribution · ' + rr.accounts_scored + ' accounts</p><table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"><tr><td width="25%" style="text-align: center;"><p style="margin: 0; color: #16a34a; font-size: 14px; font-weight: 700;">' + rr.risk_tiers.low + '</p><p style="margin: 2px 0 0; color: #15803d; font-size: 8px;">Low</p></td><td width="25%" style="text-align: center;"><p style="margin: 0; color: #ca8a04; font-size: 14px; font-weight: 700;">' + rr.risk_tiers.moderate + '</p><p style="margin: 2px 0 0; color: #a16207; font-size: 8px;">Moderate</p></td><td width="25%" style="text-align: center;"><p style="margin: 0; color: #ea580c; font-size: 14px; font-weight: 700;">' + rr.risk_tiers.at_risk + '</p><p style="margin: 2px 0 0; color: #c2410c; font-size: 8px;">At Risk</p></td><td width="25%" style="text-align: center;"><p style="margin: 0; color: #dc2626; font-size: 14px; font-weight: 700;">' + rr.risk_tiers.high_risk + '</p><p style="margin: 2px 0 0; color: #b91c1c; font-size: 8px;">High Risk</p></td></tr></table></div>' + topRiskHtml + '<div style="padding: 10px 14px; text-align: center;"><a href="https://recouply.ai/revenue-risk" style="color: #b45309; font-size: 11.5px; font-weight: 600; text-decoration: none; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif;">View Full Revenue Risk Report →</a></div></div></div>';
+      })()}
+
       <div style="margin-bottom: 20px; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 1px solid #bfdbfe; border-radius: 10px; padding: 14px 16px;">
         <p style="color: ${BRAND.primaryDark}; margin: 0 0 10px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
           Quick Actions
@@ -1488,6 +1596,13 @@ function generateEmailHtml(data: {
             <td style="padding-bottom: 7px;">
               <a href="https://recouply.ai/debtors" style="color: ${BRAND.primary}; font-size: 12px; text-decoration: none; font-weight: 500; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
                 📊 View Risk Scores →
+              </a>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding-bottom: 7px;">
+              <a href="https://recouply.ai/revenue-risk" style="color: ${BRAND.primary}; font-size: 12px; text-decoration: none; font-weight: 500; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                🛡️ Revenue Risk & ECL Report →
               </a>
             </td>
           </tr>

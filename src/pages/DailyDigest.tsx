@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { CreditIntelligenceCard } from '@/components/digest/CreditIntelligenceCard';
+import { RevenueRiskDigestCard } from '@/components/digest/RevenueRiskDigestCard';
 
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(amount);
@@ -293,6 +294,10 @@ const DailyDigest = () => {
             totalCreditLimitRecommended={digest.total_credit_limit_recommended || 0}
             portfolioRiskSummary={digest.portfolio_risk_summary}
           />
+
+          {/* Revenue Risk & ECL Intelligence */}
+          <RevenueRiskDigestCard revenueRiskSummary={digest.revenue_risk_summary} />
+
           <Card>
             <CardHeader>
               <CardTitle>AR Aging Breakdown</CardTitle>
