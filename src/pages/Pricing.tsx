@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Check, Mail, Zap, Heart, Building2, Users, Shield, ArrowRight } from "lucide-react";
+import { Check, Mail, Zap, Heart, Building2, Users, Shield, ArrowRight, ScanSearch } from "lucide-react";
 import MarketingLayout from "@/components/layout/MarketingLayout";
 import SaaSBenefits from "@/components/SaaSBenefits";
 import { Card, CardContent } from "@/components/ui/card";
