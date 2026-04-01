@@ -104,37 +104,42 @@ async function pushAccounts(supabase: any, accessToken: string, template: any, u
 async function pushInvoices(supabase: any, accessToken: string, template: any, userId: string) {
   const { data: openInvoices } = await supabase
     .from('invoices')
-    .select('invoice_number, amount, amount_outstanding, currency, issue_date, due_date, status, po_number, product_description, payment_terms, notes, reference_id, debtors(reference_id, company_name)')
+    .select('invoice_number, amount, amount_original, amount_outstanding, currency, issue_date, due_date, paid_date, status, po_number, product_description, payment_terms, notes, reference_id, debtors(reference_id, company_name)')
     .eq('user_id', userId)
     .in('status', ['Open', 'InPaymentPlan', 'PartiallyPaid', 'Disputed'])
     .order('due_date', { ascending: false });
 
   const { data: paidInvoices } = await supabase
     .from('invoices')
-    .select('invoice_number, amount, amount_outstanding, currency, issue_date, due_date, status, po_number, product_description, payment_terms, notes, reference_id, debtors(reference_id, company_name)')
+    .select('invoice_number, amount, amount_original, amount_outstanding, currency, issue_date, due_date, paid_date, status, po_number, product_description, payment_terms, notes, reference_id, debtors(reference_id, company_name)')
     .eq('user_id', userId)
-    .in('status', ['Paid', 'Canceled', 'Voided', 'WrittenOff', 'Settled', 'Credited'])
+    .in('status', ['Paid', 'Canceled', 'Voided', 'Settled', 'FinalInternalCollections'])
     .order('due_date', { ascending: false })
     .limit(1000);
 
-  const headers = ['Account RAID', 'Account Name', 'Invoice Number', 'Amount', 'Amount Outstanding', 'Currency', 'Issue Date', 'Due Date', 'Status', 'PO Number', 'Product/Description', 'Payment Terms', 'Notes', 'Recouply Ref (DO NOT EDIT)', 'Source'];
+  const headers = [
+    'Account RAID', 'Account Name', 'SS Invoice #', 'Original Amount', 'Amount Outstanding',
+    'Currency', 'Issue Date', 'Due Date', 'Status', 'PO Number', 'Product/Description',
+    'Payment Terms', 'Paid Date', 'Notes', 'Recouply Invoice Ref (DO NOT EDIT)', 'Source'
+  ];
 
   const mapInv = (inv: any) => [
     inv.debtors?.reference_id || '', inv.debtors?.company_name || '',
-    inv.invoice_number || '', inv.amount || 0, inv.amount_outstanding || 0,
+    inv.invoice_number || '', inv.amount_original || inv.amount || 0,
+    inv.amount_outstanding || inv.amount || 0,
     inv.currency || 'USD', inv.issue_date || '', inv.due_date || '', inv.status || '',
     inv.po_number || '', inv.product_description || '', inv.payment_terms || '',
-    inv.notes || '', inv.reference_id || '', 'recouply',
+    inv.paid_date || '', inv.notes || '', inv.reference_id || '', 'recouply',
   ];
 
   const openRows = [headers, ...(openInvoices || []).map(mapInv)];
   const paidRows = [headers, ...(paidInvoices || []).map(mapInv)];
 
   await Promise.all([
-    fetch(`https://sheets.googleapis.com/v4/spreadsheets/${template.sheet_id}/values/'Open Invoices'!A:O:clear`, {
+    fetch(`https://sheets.googleapis.com/v4/spreadsheets/${template.sheet_id}/values/'Open Invoices'!A:P:clear`, {
       method: 'POST', headers: { Authorization: `Bearer ${accessToken}` },
     }),
-    fetch(`https://sheets.googleapis.com/v4/spreadsheets/${template.sheet_id}/values/'Paid Invoices'!A:O:clear`, {
+    fetch(`https://sheets.googleapis.com/v4/spreadsheets/${template.sheet_id}/values/'Paid Invoices'!A:P:clear`, {
       method: 'POST', headers: { Authorization: `Bearer ${accessToken}` },
     }),
   ]);
