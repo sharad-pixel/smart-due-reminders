@@ -662,78 +662,138 @@ export function IngestionReviewQueue() {
         </Card>
       ) : (
         <div className="space-y-1.5">
-          {reviewItems.map(item => {
-            const isPending = item.review_status === "pending";
-            const isSelected = selectedRows.has(item.id);
-            return (
-              <Card
-                key={item.id}
-                className={`transition-all ${isSelected ? "border-primary/60 bg-primary/5" : "hover:border-primary/30"}`}
-              >
-                <CardContent className="flex items-center gap-3 py-2.5 px-4">
-                  {/* Checkbox */}
-                  {isPending && statusFilter === "pending" && (
-                    <Checkbox
-                      checked={isSelected}
-                      onCheckedChange={() => toggleRow(item.id)}
-                      onClick={e => e.stopPropagation()}
-                    />
-                  )}
+          {(() => {
+            const totalItems = reviewItems.length;
+            const totalPages = Math.ceil(totalItems / pageSize);
+            const safeCurrentPage = Math.min(currentPage, totalPages || 1);
+            const startIdx = (safeCurrentPage - 1) * pageSize;
+            const paginatedItems = reviewItems.slice(startIdx, startIdx + pageSize);
 
-                  {/* Content - clickable */}
-                  <div
-                    className="flex items-center justify-between flex-1 min-w-0 cursor-pointer"
-                    onClick={() => {
-                      setSelectedItem(item);
-                      setEditData({ ...item });
-                      setEditMode(false);
-                      setDebtorSearchTerm("");
-                    }}
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <FileText className="h-4 w-4 text-red-500 shrink-0" />
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium truncate">
-                            {item.extracted_invoice_number || "No invoice number"}
-                          </p>
-                          {item.is_duplicate && (
-                            <Badge variant="outline" className="text-xs text-amber-600 border-amber-300">
-                              <AlertTriangle className="h-3 w-3 mr-1" /> Duplicate
+            return (
+              <>
+                {paginatedItems.map(item => {
+                  const isPending = item.review_status === "pending";
+                  const isSelected = selectedRows.has(item.id);
+                  return (
+                    <Card
+                      key={item.id}
+                      className={`transition-all ${isSelected ? "border-primary/60 bg-primary/5" : "hover:border-primary/30"}`}
+                    >
+                      <CardContent className="flex items-center gap-3 py-2.5 px-4">
+                        {isPending && statusFilter === "pending" && (
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() => toggleRow(item.id)}
+                            onClick={e => e.stopPropagation()}
+                          />
+                        )}
+                        <div
+                          className="flex items-center justify-between flex-1 min-w-0 cursor-pointer"
+                          onClick={() => {
+                            setSelectedItem(item);
+                            setEditData({ ...item });
+                            setEditMode(false);
+                            setDebtorSearchTerm("");
+                          }}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <FileText className="h-4 w-4 text-red-500 shrink-0" />
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-medium truncate">
+                                  {item.extracted_invoice_number || "No invoice number"}
+                                </p>
+                                {item.is_duplicate && (
+                                  <Badge variant="outline" className="text-xs text-amber-600 border-amber-300">
+                                    <AlertTriangle className="h-3 w-3 mr-1" /> Duplicate
+                                  </Badge>
+                                )}
+                                {item.matched_debtor_id && (
+                                  <Badge variant="outline" className="text-xs text-green-600 border-green-300">
+                                    <Link2 className="h-3 w-3 mr-1" /> Matched
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground truncate">
+                                {item.extracted_company_name || item.extracted_debtor_name || "Unknown debtor"}
+                                {item.extracted_amount != null && ` · $${item.extracted_amount.toLocaleString()}`}
+                                {" · "}{(item.ingestion_scanned_files as any)?.file_name}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0 ml-3">
+                            <Badge className={`text-xs ${getConfidenceColor(item.confidence_score)}`}>
+                              {item.confidence_score}% · {getConfidenceLabel(item.confidence_score)}
                             </Badge>
-                          )}
-                          {item.matched_debtor_id && (
-                            <Badge variant="outline" className="text-xs text-green-600 border-green-300">
-                              <Link2 className="h-3 w-3 mr-1" /> Matched
+                            {item.validation_errors && item.validation_errors.length > 0 && (
+                              <Badge variant="outline" className="text-xs text-destructive border-destructive/30">
+                                {item.validation_errors.length} issues
+                              </Badge>
+                            )}
+                            <Badge variant={item.review_status === "approved" ? "default" : item.review_status === "rejected" ? "destructive" : "secondary"}>
+                              {item.review_status}
                             </Badge>
-                          )}
+                            <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                          </div>
                         </div>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {item.extracted_company_name || item.extracted_debtor_name || "Unknown debtor"}
-                          {item.extracted_amount != null && ` · $${item.extracted_amount.toLocaleString()}`}
-                          {" · "}{(item.ingestion_scanned_files as any)?.file_name}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0 ml-3">
-                      <Badge className={`text-xs ${getConfidenceColor(item.confidence_score)}`}>
-                        {item.confidence_score}% · {getConfidenceLabel(item.confidence_score)}
-                      </Badge>
-                      {item.validation_errors && item.validation_errors.length > 0 && (
-                        <Badge variant="outline" className="text-xs text-destructive border-destructive/30">
-                          {item.validation_errors.length} issues
-                        </Badge>
-                      )}
-                      <Badge variant={item.review_status === "approved" ? "default" : item.review_status === "rejected" ? "destructive" : "secondary"}>
-                        {item.review_status}
-                      </Badge>
-                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between pt-3">
+                    <p className="text-xs text-muted-foreground">
+                      Showing {startIdx + 1}–{Math.min(startIdx + pageSize, totalItems)} of {totalItems} items
+                    </p>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={safeCurrentPage === 1}
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        className="h-7 px-2 text-xs"
+                      >
+                        Previous
+                      </Button>
+                      {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                        let page: number;
+                        if (totalPages <= 5) {
+                          page = i + 1;
+                        } else if (safeCurrentPage <= 3) {
+                          page = i + 1;
+                        } else if (safeCurrentPage >= totalPages - 2) {
+                          page = totalPages - 4 + i;
+                        } else {
+                          page = safeCurrentPage - 2 + i;
+                        }
+                        return (
+                          <Button
+                            key={page}
+                            size="sm"
+                            variant={safeCurrentPage === page ? "default" : "outline"}
+                            onClick={() => setCurrentPage(page)}
+                            className="h-7 w-7 p-0 text-xs"
+                          >
+                            {page}
+                          </Button>
+                        );
+                      })}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={safeCurrentPage === totalPages}
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        className="h-7 px-2 text-xs"
+                      >
+                        Next
+                      </Button>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                )}
+              </>
             );
-          })}
+          })()}
         </div>
       )}
 
