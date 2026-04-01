@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { CreditIntelligenceCard } from '@/components/digest/CreditIntelligenceCard';
+import { RevenueRiskDigestCard } from '@/components/digest/RevenueRiskDigestCard';
 
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(amount);
