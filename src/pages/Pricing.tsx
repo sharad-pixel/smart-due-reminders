@@ -89,6 +89,7 @@ const plans = [
 const platformFeatures = [
   "All 6 AI collection agents",
   "Stripe & QuickBooks integrations",
+  "AI Smart Ingestion (Google Drive PDF extraction)",
   "Email campaigns",
   "Full automation suite",
   "Collection intelligence dashboard",
