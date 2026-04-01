@@ -221,7 +221,7 @@ Deno.serve(async (req) => {
         .from('invoices')
         .select('invoice_number, amount, amount_outstanding, currency, issue_date, due_date, status, po_number, product_description, payment_terms, notes, reference_id, debtors(reference_id, company_name)')
         .eq('user_id', user.id)
-        .in('status', ['Paid', 'Canceled', 'Voided', 'WrittenOff', 'Settled'])
+        .in('status', ['Paid', 'Canceled', 'Voided', 'Settled', 'FinalInternalCollections'])
         .order('due_date', { ascending: false })
         .limit(500);
 
