@@ -259,8 +259,8 @@ export const IntegrationSourceBanner = ({
     );
   }
 
-  // Google Drive / Smart Ingestion
-  if (source === "google_drive") {
+  // AI Smart Ingestion (Google Drive)
+  if (source === "google_drive" || source === "ai_ingestion") {
     return (
       <Alert className="bg-cyan-50 border-cyan-200 dark:bg-cyan-950/30 dark:border-cyan-800">
         <FileText className="h-4 w-4 text-cyan-600" />

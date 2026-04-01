@@ -260,8 +260,9 @@ export function IngestionReviewQueue() {
           issue_date: inv.extracted_invoice_date || new Date().toISOString().split("T")[0],
           due_date: inv.extracted_due_date || new Date().toISOString().split("T")[0],
           status: "Open",
-          source_system: "google_drive",
-          notes: `Imported from Google Drive PDF ingestion`,
+          source_system: "ai_ingestion",
+          integration_source: "ai_ingestion",
+          notes: `Imported via AI Smart Ingestion`,
         } as any)
         .select("id")
         .single();
