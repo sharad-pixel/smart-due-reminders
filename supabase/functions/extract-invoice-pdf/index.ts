@@ -258,11 +258,11 @@ Return ONLY a JSON object with these fields. Use null for fields you cannot find
       confidence_score: score,
     }).eq('id', scannedFileId);
 
-    // Check for duplicate invoices
+    // Check for duplicate invoices by invoice number
     let isDuplicate = false;
     let duplicateInvoiceId: string | null = null;
 
-    if (extracted.invoice_number && extracted.amount) {
+    if (extracted.invoice_number) {
       const { data: dupes } = await supabase
         .from('invoices')
         .select('id, invoice_number')
@@ -276,39 +276,45 @@ Return ONLY a JSON object with these fields. Use null for fields you cannot find
       }
     }
 
-    // Try to match debtor
-    let matchedDebtorId: string | null = null;
-    let debtorMatchConfidence = 0;
-    const searchName = extracted.company_name || extracted.debtor_name;
+    // If duplicate, skip review queue entirely — mark file as skipped
+    if (isDuplicate) {
+      await supabase.from('ingestion_scanned_files').update({
+        processing_status: 'skipped_duplicate',
+        processing_completed_at: new Date().toISOString(),
+        extraction_result: extracted,
+        confidence_score: score,
+        error_message: `Invoice ${extracted.invoice_number} already exists (ID: ${duplicateInvoiceId})`,
+      }).eq('id', scannedFileId);
 
-    if (searchName) {
-      const { data: debtors } = await supabase
-        .from('debtors')
-        .select('id, company_name, email')
-        .eq('user_id', user.id)
-        .ilike('company_name', `%${searchName}%`)
-        .limit(5);
+      // Audit log
+      await supabase.from('ingestion_audit_log').insert({
+        user_id: user.id,
+        organization_id: orgId,
+        scanned_file_id: scannedFileId,
+        event_type: 'file_skipped_duplicate',
+        event_details: {
+          invoice_number: extracted.invoice_number,
+          existing_invoice_id: duplicateInvoiceId,
+          confidence_score: score,
+        },
+      });
 
-      if (debtors && debtors.length > 0) {
-        matchedDebtorId = debtors[0].id;
-        // Simple name match scoring
-        const exactMatch = debtors[0].company_name?.toLowerCase() === searchName.toLowerCase();
-        debtorMatchConfidence = exactMatch ? 95 : 70;
-      }
+      logStep('Skipped duplicate invoice', { invoiceNumber: extracted.invoice_number, existingId: duplicateInvoiceId });
+
+      return new Response(JSON.stringify({
+        success: true,
+        skipped: true,
+        reason: 'duplicate',
+        invoice_number: extracted.invoice_number,
+        existing_invoice_id: duplicateInvoiceId,
+        extracted,
+        confidence_score: score,
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    // Get org ID
-    const { data: orgId } = await supabase.rpc('get_user_organization_id', { p_user_id: user.id });
-
-    // Validate
-    const validationErrors: string[] = [];
-    if (!extracted.invoice_number) validationErrors.push('Missing invoice number');
-    if (!extracted.amount || extracted.amount <= 0) validationErrors.push('Invalid or missing amount');
-    if (extracted.invoice_date && extracted.due_date && new Date(extracted.due_date) < new Date(extracted.invoice_date)) {
-      validationErrors.push('Due date is before invoice date');
-    }
-
-    // Create review queue item
+    // Create review queue item only for non-duplicate invoices
     const { error: reviewErr } = await supabase
       .from('ingestion_review_queue')
       .insert({
@@ -329,8 +335,8 @@ Return ONLY a JSON object with these fields. Use null for fields you cannot find
         confidence_breakdown: breakdown,
         matched_debtor_id: matchedDebtorId,
         debtor_match_confidence: debtorMatchConfidence,
-        is_duplicate: isDuplicate,
-        duplicate_invoice_id: duplicateInvoiceId,
+        is_duplicate: false,
+        duplicate_invoice_id: null,
         validation_errors: validationErrors.length > 0 ? validationErrors : null,
         review_status: 'pending',
       });

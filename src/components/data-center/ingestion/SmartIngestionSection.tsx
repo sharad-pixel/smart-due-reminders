@@ -258,12 +258,20 @@ export function SmartIngestionSection() {
     setExtractProgress({ current: 0, total: filesToExtract.length });
     toast.info(`Extracting ${filesToExtract.length} files...`);
 
+    let skippedDuplicates = 0;
+    let extracted = 0;
+
     for (let i = 0; i < filesToExtract.length; i++) {
       try {
         setExtractProgress({ current: i + 1, total: filesToExtract.length });
-        await supabase.functions.invoke("extract-invoice-pdf", {
+        const { data: result } = await supabase.functions.invoke("extract-invoice-pdf", {
           body: { scannedFileId: filesToExtract[i].id },
         });
+        if (result?.skipped && result?.reason === 'duplicate') {
+          skippedDuplicates++;
+        } else {
+          extracted++;
+        }
         if (i < filesToExtract.length - 1) {
           await new Promise(r => setTimeout(r, 2000));
         }
@@ -273,7 +281,10 @@ export function SmartIngestionSection() {
     }
 
     setExtracting(false);
-    toast.success("Batch extraction complete");
+    const parts = [];
+    if (extracted > 0) parts.push(`${extracted} extracted`);
+    if (skippedDuplicates > 0) parts.push(`${skippedDuplicates} skipped (already exist)`);
+    toast.success(`Batch complete: ${parts.join(', ') || 'No new invoices'}`);
     queryClient.invalidateQueries({ queryKey: ["ingestion-scan-stats"] });
     queryClient.invalidateQueries({ queryKey: ["ingestion-pending-files"] });
     queryClient.invalidateQueries({ queryKey: ["ingestion-review-queue"] });
