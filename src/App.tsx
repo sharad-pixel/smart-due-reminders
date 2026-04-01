@@ -72,6 +72,16 @@ const BlogIndex = lazy(() => import("./pages/blog/BlogIndex"));
 const CelebrateCash = lazy(() => import("./pages/blog/CelebrateCash"));
 const PowerOfOutreach = lazy(() => import("./pages/blog/PowerOfOutreach"));
 const CashLeakage = lazy(() => import("./pages/blog/CashLeakage"));
+const FutureOfAiInCollections = lazy(() => import("./pages/blog/FutureOfAiInCollections"));
+const RevenueNotCashFlow = lazy(() => import("./pages/blog/RevenueNotCashFlow"));
+const RiseOfCollectionsIntelligence = lazy(() => import("./pages/blog/RiseOfCollectionsIntelligence"));
+const TimingMattersMoreThanTone = lazy(() => import("./pages/blog/TimingMattersMoreThanTone"));
+const EngagementAsCreditSignal = lazy(() => import("./pages/blog/EngagementAsCreditSignal"));
+const HiddenCostDelayedPayments = lazy(() => import("./pages/blog/HiddenCostDelayedPayments"));
+const DataTrustInArAutomation = lazy(() => import("./pages/blog/DataTrustInArAutomation"));
+const SpreadsheetsToSystems = lazy(() => import("./pages/blog/SpreadsheetsToSystems"));
+const PredictiveCollections = lazy(() => import("./pages/blog/PredictiveCollections"));
+const NextGenerationArTeams = lazy(() => import("./pages/blog/NextGenerationArTeams"));
 
 // Legal Pages
 const Terms = lazy(() => import("./pages/legal/Terms"));
