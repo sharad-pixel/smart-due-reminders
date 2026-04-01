@@ -1198,6 +1198,30 @@ const Debtors = () => {
 
 
       </div>
+
+      {/* Duplicate Detector Dialog */}
+      <DebtorDuplicateDetector
+        open={showDuplicateDetector}
+        onOpenChange={setShowDuplicateDetector}
+        debtors={debtors}
+        onMergeComplete={() => {
+          fetchDebtors();
+          setSelectedIds(new Set());
+        }}
+      />
+
+      {/* Merge Dialog (from bulk selection) */}
+      {showMergeDialog && selectedIds.size >= 2 && (
+        <DebtorMergeDialog
+          open={showMergeDialog}
+          onOpenChange={setShowMergeDialog}
+          debtors={debtors.filter(d => selectedIds.has(d.id))}
+          onMergeComplete={() => {
+            fetchDebtors();
+            setSelectedIds(new Set());
+          }}
+        />
+      )}
     </Layout>
   );
 };
