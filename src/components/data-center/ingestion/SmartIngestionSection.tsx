@@ -139,6 +139,26 @@ export function SmartIngestionSection() {
     onError: (err: any) => toast.error("Connection failed", { description: err.message }),
   });
 
+  // Disconnect / Disable Google Drive
+  const disconnectMutation = useMutation({
+    mutationFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+      const { error } = await supabase
+        .from("drive_connections")
+        .update({ is_active: false, updated_at: new Date().toISOString() })
+        .eq("user_id", user.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Google Drive disconnected", { description: "Your connection has been disabled. You can reconnect anytime." });
+      queryClient.invalidateQueries({ queryKey: ["drive-connection"] });
+      queryClient.invalidateQueries({ queryKey: ["ingestion-scan-stats"] });
+      setDisconnectOpen(false);
+    },
+    onError: (err: any) => toast.error("Failed to disconnect", { description: err.message }),
+  });
+
   // Scan folder
   const scanMutation = useMutation({
     mutationFn: async () => {
