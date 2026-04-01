@@ -93,7 +93,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    return new Response(redirectHtml(siteUrl, '/data-center', 'success', 'Google Drive connected successfully'), {
+    return new Response(redirectHtml(effectiveSiteUrl, '/data-center', 'success', 'Google Drive connected successfully'), {
       headers: { 'Content-Type': 'text/html' },
     });
   } catch (err) {
