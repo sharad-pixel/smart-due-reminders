@@ -53,6 +53,8 @@ export interface DailyDigest {
   avg_payment_trend: string | null;
   total_credit_limit_recommended: number;
   portfolio_risk_summary: PortfolioRiskSummary | null;
+  // Revenue Risk & ECL Intelligence
+  revenue_risk_summary: RevenueRiskSummary | null;
   // Subscription & Usage fields
   subscription_status: string | null;
   plan_type: string | null;
