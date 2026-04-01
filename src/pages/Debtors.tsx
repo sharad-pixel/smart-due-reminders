@@ -24,6 +24,7 @@ import { useAccountsAvgDPD, getAccountAvgDPD } from "@/hooks/useAvgDPD";
 import { AIInsightsCard } from "@/components/ai/AIInsightsCard";
 import { DebtorMergeDialog } from "@/components/accounts/DebtorMergeDialog";
 import { DebtorDuplicateDetector } from "@/components/accounts/DebtorDuplicateDetector";
+import { DebtorManualMerge } from "@/components/accounts/DebtorManualMerge";
 
 interface Contact {
   name: string;
