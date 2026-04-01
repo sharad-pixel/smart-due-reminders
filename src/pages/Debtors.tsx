@@ -22,6 +22,8 @@ import { SortableTableHead, useSorting } from "@/components/ui/sortable-table-he
 import { useAccountsAvgDPD, getAccountAvgDPD } from "@/hooks/useAvgDPD";
 
 import { AIInsightsCard } from "@/components/ai/AIInsightsCard";
+import { DebtorMergeDialog } from "@/components/accounts/DebtorMergeDialog";
+import { DebtorDuplicateDetector } from "@/components/accounts/DebtorDuplicateDetector";
 
 interface Contact {
   name: string;
