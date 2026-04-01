@@ -169,16 +169,21 @@ Deno.serve(async (req) => {
 
     logStep('Found PDF files', { count: allFiles.length });
 
-    // Get existing file IDs to skip duplicates
+    // Get existing file IDs AND file names to skip duplicates (by ID or filename)
     const { data: existingFiles } = await supabase
       .from('ingestion_scanned_files')
-      .select('file_id')
+      .select('file_id, file_name')
       .eq('connection_id', connection.id);
 
     const existingIds = new Set((existingFiles || []).map((f: any) => f.file_id));
-    const newFiles = allFiles.filter(f => !existingIds.has(f.id));
+    const existingNames = new Set((existingFiles || []).map((f: any) => (f.file_name || '').toLowerCase().trim()));
+    const newFiles = allFiles.filter(f => {
+      if (existingIds.has(f.id)) return false;
+      if (existingNames.has((f.name || '').toLowerCase().trim())) return false;
+      return true;
+    });
 
-    logStep('New files to track', { count: newFiles.length });
+    logStep('New files to track', { count: newFiles.length, skippedById: allFiles.filter(f => existingIds.has(f.id)).length, skippedByName: allFiles.filter(f => !existingIds.has(f.id) && existingNames.has((f.name || '').toLowerCase().trim())).length });
 
     // Get org ID
     const { data: orgId } = await supabase.rpc('get_user_organization_id', { p_user_id: user.id });
