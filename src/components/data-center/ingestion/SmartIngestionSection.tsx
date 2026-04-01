@@ -57,6 +57,17 @@ export function SmartIngestionSection() {
   const [folderBrowserOpen, setFolderBrowserOpen] = useState(false);
   const [folderPath, setFolderPath] = useState<Array<{ id: string; name: string }>>([{ id: "root", name: "My Drive" }]);
   const [activeTab, setActiveTab] = useState("overview");
+  const [disconnectOpen, setDisconnectOpen] = useState(false);
+
+  // Check if user signed in with Google OAuth
+  const { data: authProvider } = useQuery({
+    queryKey: ["auth-provider"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+      return user.app_metadata?.provider || user.app_metadata?.providers?.[0] || null;
+    },
+  });
 
   // Check for drive connection
   const { data: connection, isLoading: connectionLoading } = useQuery({
