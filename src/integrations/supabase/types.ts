@@ -4253,6 +4253,56 @@ export type Database = {
           },
         ]
       }
+      ingestion_usage_charges: {
+        Row: {
+          billed_at: string | null
+          billing_period: string
+          charge_amount: number
+          created_at: string
+          file_name: string | null
+          id: string
+          organization_id: string | null
+          review_item_id: string | null
+          scanned_file_id: string | null
+          stripe_invoice_item_id: string | null
+          user_id: string
+        }
+        Insert: {
+          billed_at?: string | null
+          billing_period: string
+          charge_amount?: number
+          created_at?: string
+          file_name?: string | null
+          id?: string
+          organization_id?: string | null
+          review_item_id?: string | null
+          scanned_file_id?: string | null
+          stripe_invoice_item_id?: string | null
+          user_id: string
+        }
+        Update: {
+          billed_at?: string | null
+          billing_period?: string
+          charge_amount?: number
+          created_at?: string
+          file_name?: string | null
+          id?: string
+          organization_id?: string | null
+          review_item_id?: string | null
+          scanned_file_id?: string | null
+          stripe_invoice_item_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingestion_usage_charges_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       integration_sync_settings: {
         Row: {
           auto_sync_enabled: boolean | null
