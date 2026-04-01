@@ -15,10 +15,14 @@ import {
   FileCheck,
   Zap,
   Lock,
-  RefreshCw
+  RefreshCw,
+  FileText,
+  Sparkles,
+  ScanSearch
 } from "lucide-react";
 import stripeLogo from "@/assets/stripe-logo.png";
 import quickbooksLogo from "@/assets/quickbooks-logo.png";
+import googleDriveLogo from "@/assets/google-drive-logo.png";
 
 const IntegrationCard = ({ 
   logo, 
@@ -88,10 +92,10 @@ const Integrations = () => {
   return (
     <MarketingLayout>
       <SEO
-        title="Integrations | Stripe & QuickBooks for Cash Collections | Recouply.ai"
-        description="Connect Stripe and QuickBooks to automate cash collections and payments. Real-time accounts receivable sync, collections health visibility, and AI automation for receivables."
+        title="Integrations | Stripe, QuickBooks & AI Smart Ingestion | Recouply.ai"
+        description="Connect Stripe, QuickBooks, or use AI Smart Ingestion to extract invoices from Google Drive PDFs. Real-time accounts receivable sync, collections health visibility, and AI automation."
         canonical="https://recouply.ai/integrations"
-        keywords="cash collections, accounts receivable, payments, AI automation for receivables, collections health, Stripe integration, QuickBooks integration, AR automation"
+        keywords="cash collections, accounts receivable, payments, AI automation for receivables, collections health, Stripe integration, QuickBooks integration, smart ingestion, Google Drive PDF, AR automation"
       />
 
       {/* Hero Section */}
@@ -103,7 +107,7 @@ const Integrations = () => {
             <span className="text-primary">Centralize collections.</span>
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
-            Recouply.ai integrates directly with Stripe and QuickBooks to sync customers, invoices, and payments — backed by 24/7 Slack support from real humans.
+            Recouply.ai integrates directly with Stripe, QuickBooks, and Google Drive — syncing customers, invoices, and payments or extracting them from PDFs with AI-powered Smart Ingestion.
           </p>
           <div className="flex flex-wrap gap-4 justify-center">
             <Button size="lg" className="gap-2" asChild>
@@ -207,7 +211,79 @@ const Integrations = () => {
         </div>
       </section>
 
-      {/* Other ERP / Custom Integrations Section */}
+      {/* AI Smart Ingestion Section */}
+      <section className="py-16 md:py-24">
+        <div className="container mx-auto px-4">
+          <div className="max-w-5xl mx-auto">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="h-10 w-10 rounded-lg bg-background border border-border flex items-center justify-center overflow-hidden">
+                <img src={googleDriveLogo} alt="Google Drive" className="h-7 w-7 object-contain" loading="lazy" width={28} height={28} />
+              </div>
+              <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                <Sparkles className="h-5 w-5" />
+              </div>
+              <h2 className="text-2xl md:text-3xl font-bold">AI Smart Ingestion</h2>
+            </div>
+            <p className="text-muted-foreground mb-8 max-w-2xl">
+              Connect your Google Drive folder and let AI extract invoice data from PDFs automatically — no manual data entry required.
+            </p>
+            <Card className="border-border/50 bg-card/50 backdrop-blur-sm hover:border-primary/30 transition-all duration-300">
+              <CardHeader>
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 border border-primary/20 flex items-center justify-center">
+                    <ScanSearch className="h-8 w-8 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-2xl">Google Drive PDF Extraction</CardTitle>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary">AI-Powered</span>
+                      <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-accent/10 text-accent">$0.75/file</span>
+                    </div>
+                  </div>
+                </div>
+                <CardDescription className="text-base leading-relaxed">
+                  Recouply.ai uses Gemini AI to scan and extract invoice data from PDF files stored in your Google Drive. Each file is analyzed for invoice numbers, amounts, dates, debtor details, and more — with a confidence score so you can review before importing.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-3 mb-6">
+                  {[
+                    "Connect your Google Drive folder via secure OAuth",
+                    "AI extracts invoice number, amount, dates, and debtor info from PDFs",
+                    "Confidence scoring with detailed extraction breakdown",
+                    "Review queue with bulk approve, reject, and edit capabilities",
+                    "Automatic debtor matching or creation from extracted data",
+                    "Smart duplicate detection to prevent double-imports",
+                  ].map((highlight, index) => (
+                    <li key={index} className="flex items-start gap-3">
+                      <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                      <span className="text-muted-foreground">{highlight}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="bg-primary/5 border border-primary/10 rounded-lg p-4 mb-6">
+                  <div className="flex items-start gap-3">
+                    <FileText className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium mb-1">Usage-based pricing</p>
+                      <p className="text-sm text-muted-foreground">
+                        You're only charged $0.75 per file when you approve an extraction in the review queue. Rejected or duplicate files are free. Charges are aggregated monthly on your existing billing cycle.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <Button className="gap-2" asChild>
+                  <Link to="/signup">
+                    Start Extracting Invoices
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
       <section className="py-16 md:py-24">
         <div className="container mx-auto px-4">
           <div className="max-w-5xl mx-auto">
