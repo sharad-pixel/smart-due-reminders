@@ -911,7 +911,7 @@ export function IngestionReviewQueue() {
                               autoFocus
                             />
                           </div>
-                          <ScrollArea className="max-h-48">
+                          <ScrollArea className="h-48">
                             {filteredDebtors.length === 0 ? (
                               <p className="text-xs text-muted-foreground text-center py-4">No debtors found</p>
                             ) : (
