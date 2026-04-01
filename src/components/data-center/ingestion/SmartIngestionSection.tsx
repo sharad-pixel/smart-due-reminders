@@ -513,7 +513,7 @@ export function SmartIngestionSection() {
             <FileText className="h-4 w-4" /> Scanned Files
           </TabsTrigger>
           <TabsTrigger value="sheets" className="gap-2">
-            <Sheet className="h-4 w-4" /> Sheet Templates
+            <GoogleSheetsIcon className="h-4 w-4" /> Sheet Templates
           </TabsTrigger>
           <TabsTrigger value="review" className="gap-2">
             <Eye className="h-4 w-4" /> Review Queue
