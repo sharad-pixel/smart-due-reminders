@@ -304,6 +304,11 @@ export function IngestionReviewQueue() {
         },
       });
 
+      // Report usage to Stripe (non-blocking)
+      supabase.functions.invoke("report-ingestion-usage").catch((err) =>
+        console.warn("[Ingestion] Stripe usage report failed:", err)
+      );
+
       return newInvoice;
     },
     onSuccess: () => {
