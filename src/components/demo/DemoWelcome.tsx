@@ -33,7 +33,7 @@ export const DemoWelcome = () => {
           animate={{ opacity: 1, y: 0 }}
           className="text-3xl md:text-4xl font-bold text-foreground"
         >
-          Welcome to Your Guided Onboarding
+          Your AI-Agentic Revenue Recovery Platform
         </motion.h1>
         <motion.p
           initial={{ opacity: 0 }}
@@ -41,7 +41,7 @@ export const DemoWelcome = () => {
           transition={{ delay: 0.2 }}
           className="text-muted-foreground text-lg"
         >
-          {demoEmail ? `Great to have you! ` : ""}Walk through every feature step by step with interactive tutorials and real data.
+          {demoEmail ? `Great to have you! ` : ""}See how intelligent AI agents replace manual follow-ups with consistent, always-on revenue procurement — strengthening cash flow without adding headcount.
         </motion.p>
       </div>
 
