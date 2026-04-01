@@ -39,10 +39,10 @@ export const DemoEmailGate = () => {
             <RecouplyLogo size="xl" animated />
           </motion.div>
           <h1 className="text-3xl md:text-4xl font-bold text-foreground">
-            Experience Recouply.ai
+            AI-Agentic Revenue Recovery
           </h1>
           <p className="text-muted-foreground text-lg">
-            Walk through every feature with realistic data. See exactly how automated collections work.
+            See how six intelligent AI agents eliminate manual follow-ups — delivering consistent revenue procurement and healthy cash flow, on autopilot.
           </p>
         </div>
 
