@@ -471,6 +471,9 @@ export function SmartIngestionSection() {
           <TabsTrigger value="dashboard" className="gap-2">
             <BarChart3 className="h-4 w-4" /> Ingestion Dashboard
           </TabsTrigger>
+          <TabsTrigger value="history" className="gap-2">
+            <Clock className="h-4 w-4" /> Scan History
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
@@ -483,6 +486,10 @@ export function SmartIngestionSection() {
 
         <TabsContent value="dashboard">
           <IngestionDashboard />
+        </TabsContent>
+
+        <TabsContent value="history">
+          <ScanHistoryLog />
         </TabsContent>
       </Tabs>
 

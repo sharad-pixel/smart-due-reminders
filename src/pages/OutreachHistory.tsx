@@ -59,7 +59,7 @@ interface OutreachRecord {
   metadata: any;
 }
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 15;
 
 // Statuses that indicate settled/closed invoices
 const SETTLED_STATUSES = ['Paid', 'Credited', 'Voided', 'WrittenOff', 'Canceled'];

@@ -45,7 +45,7 @@ const Outreach = () => {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [accountOutreachSearch, setAccountOutreachSearch] = useState<string>("");
   const [accountOutreachPage, setAccountOutreachPage] = useState<number>(1);
-  const ACCOUNT_OUTREACH_PAGE_SIZE = 10;
+  const ACCOUNT_OUTREACH_PAGE_SIZE = 15;
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshResult, setRefreshResult] = useState<RefreshResult | null>(null);
   const [showErrors, setShowErrors] = useState(false);

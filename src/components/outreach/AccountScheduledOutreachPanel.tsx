@@ -50,7 +50,7 @@ interface AccountScheduledOutreachPanelProps {
   showAllAccounts?: boolean;
 }
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 15;
 
 const getPersonaForBucket = (agingBucket: string): { key: string; persona: PersonaConfig } | null => {
   const mapping: Record<string, string> = {

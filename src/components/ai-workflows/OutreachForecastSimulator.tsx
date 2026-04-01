@@ -90,7 +90,7 @@ const CATEGORY_BADGE: Record<string, { label: string; className: string }> = {
   none: { label: "No Outreach", className: "bg-muted text-muted-foreground border-border" },
 };
 
-const PAGE_SIZE = 25;
+const PAGE_SIZE = 15;
 
 function getBucketForDPD(dpd: number): string {
   if (dpd <= 0) return "current";

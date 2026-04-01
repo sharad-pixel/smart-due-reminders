@@ -55,7 +55,7 @@ interface StaleStats {
   totalProfiles: number;
 }
 
-const PAGE_SIZE = 25;
+const PAGE_SIZE = 15;
 
 const ReEngagementTemplatePanel = ({ user }: { user: StaleUser | null }) => {
   const [selectedTemplate, setSelectedTemplate] = useState<FounderMessage | null>(null);

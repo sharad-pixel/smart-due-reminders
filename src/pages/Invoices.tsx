@@ -87,7 +87,7 @@ const Invoices = () => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 25;
+  const itemsPerPage = 15;
   const [showBulkAssignDialog, setShowBulkAssignDialog] = useState(false);
   const [showBulkStatusDialog, setShowBulkStatusDialog] = useState(false);
   const [selectedAgingBucket, setSelectedAgingBucket] = useState<string>("");
