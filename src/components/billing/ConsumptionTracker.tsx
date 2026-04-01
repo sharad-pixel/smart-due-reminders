@@ -24,6 +24,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatPrice } from "@/lib/subscriptionConfig";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
+interface IngestionChargesData {
+  fileCount: number;
+  totalCharges: number;
+  ratePerFile: number;
+  period: string;
+}
+
 interface ConsumptionData {
   invoices: {
     used: number;
@@ -76,6 +83,7 @@ interface UpcomingCharges {
     baseSubscription: number;
     seatCharges: number;
     overageCharges: number;
+    ingestionCharges: number;
     prorations: number;
   };
   lineItems: Array<{
@@ -92,6 +100,7 @@ const ConsumptionTracker = () => {
   const [upcomingCharges, setUpcomingCharges] = useState<UpcomingCharges | null>(null);
   const [subscriptionTerm, setSubscriptionTerm] = useState<SubscriptionTerm | null>(null);
   const [stripeInvoices, setStripeInvoices] = useState<StripeInvoice[]>([]);
+  const [ingestionCharges, setIngestionCharges] = useState<IngestionChargesData | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [showInvoices, setShowInvoices] = useState(true);
 
@@ -128,7 +137,31 @@ const ConsumptionTracker = () => {
         });
       }
 
-      // Fetch upcoming charges (or open invoice on account)
+      // Fetch ingestion usage charges for current period
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const now = new Date();
+          const currentPeriod = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+          const { data: ingestionData, count } = await supabase
+            .from("ingestion_usage_charges")
+            .select("charge_amount", { count: "exact" })
+            .eq("user_id", user.id)
+            .eq("billing_period", currentPeriod);
+          
+          const fileCount = count || 0;
+          const totalCharges = (ingestionData || []).reduce((sum: number, row: any) => sum + (row.charge_amount || 0), 0);
+          setIngestionCharges({
+            fileCount,
+            totalCharges,
+            ratePerFile: 0.75,
+            period: currentPeriod,
+          });
+        }
+      } catch (ingErr) {
+        console.error("Error fetching ingestion charges:", ingErr);
+      }
+
       const { data: chargesData, error: chargesError } = await supabase.functions.invoke('get-upcoming-charges');
       
       if (!chargesError && chargesData?.has_upcoming_invoice) {
@@ -139,10 +172,11 @@ const ConsumptionTracker = () => {
           invoiceUrl: chargesData.upcoming_invoice.hosted_invoice_url || null,
           amountDue: chargesData.upcoming_invoice.amount_due,
           nextPaymentDate: chargesData.upcoming_invoice.next_payment_attempt,
-          breakdown: {
+           breakdown: {
             baseSubscription: chargesData.breakdown.base_subscription.total,
             seatCharges: chargesData.breakdown.seat_charges.total,
             overageCharges: chargesData.breakdown.overage_charges.total,
+            ingestionCharges: chargesData.breakdown.ingestion_charges?.total || 0,
             prorations: chargesData.breakdown.prorations.total,
           },
           lineItems: [
@@ -160,10 +194,11 @@ const ConsumptionTracker = () => {
           invoiceUrl: chargesData.open_invoice.hosted_invoice_url || null,
           amountDue: chargesData.open_invoice.amount_due,
           nextPaymentDate: chargesData.open_invoice.due_date || chargesData.open_invoice.created_at,
-          breakdown: {
+           breakdown: {
             baseSubscription: 0,
             seatCharges: 0,
             overageCharges: 0,
+            ingestionCharges: 0,
             prorations: 0,
           },
           lineItems: [],
@@ -174,10 +209,11 @@ const ConsumptionTracker = () => {
           invoiceType: 'none',
           amountDue: 0,
           nextPaymentDate: null,
-          breakdown: {
+           breakdown: {
             baseSubscription: 0,
             seatCharges: 0,
             overageCharges: 0,
+            ingestionCharges: 0,
             prorations: 0,
           },
           lineItems: [],
@@ -426,6 +462,33 @@ const ConsumptionTracker = () => {
                   </p>
                 </div>
               )}
+
+              {/* Smart Ingestion Charges */}
+              {ingestionCharges && ingestionCharges.fileCount > 0 && (
+                <div className="mt-4 p-4 rounded-lg border-2 border-primary/30 bg-primary/5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <FileText className="h-5 w-5 text-primary" />
+                    <h4 className="font-semibold">Smart Ingestion Charges</h4>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center p-3 bg-primary/10 rounded-lg">
+                      <p className="text-3xl font-bold text-primary">{ingestionCharges.fileCount}</p>
+                      <p className="text-xs text-muted-foreground">Files Processed</p>
+                    </div>
+                    <div className="text-center p-3 bg-primary/10 rounded-lg">
+                      <p className="text-3xl font-bold text-primary">
+                        {formatPrice(ingestionCharges.totalCharges)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">Ingestion Charges</p>
+                    </div>
+                  </div>
+                  <div className="mt-3 text-sm text-muted-foreground text-center">
+                    <span className="font-medium">{ingestionCharges.fileCount} files</span> × 
+                    <span className="font-medium ml-1">${ingestionCharges.ratePerFile.toFixed(2)}/file</span> = 
+                    <span className="font-bold ml-1 text-foreground">{formatPrice(ingestionCharges.totalCharges)}</span>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -516,6 +579,12 @@ const ConsumptionTracker = () => {
                   <div className="flex justify-between text-sm text-amber-600">
                     <span>Invoice Overages</span>
                     <span>{formatPrice(upcomingCharges.breakdown.overageCharges)}</span>
+                  </div>
+                )}
+                {upcomingCharges.breakdown.ingestionCharges > 0 && (
+                  <div className="flex justify-between text-sm text-primary">
+                    <span>Smart Ingestion ({ingestionCharges?.fileCount || 0} files)</span>
+                    <span>{formatPrice(upcomingCharges.breakdown.ingestionCharges)}</span>
                   </div>
                 )}
                 {upcomingCharges.breakdown.prorations !== 0 && (

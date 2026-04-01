@@ -437,6 +437,17 @@ Deno.serve(async (req) => {
       .eq("status", "active")
       .eq("is_owner", false);
 
+    // Fetch ingestion usage charges for current period
+    const { data: ingestionData, count: ingestionCount } = await supabaseClient
+      .from("ingestion_usage_charges")
+      .select("charge_amount", { count: "exact" })
+      .eq("user_id", accountId)
+      .eq("billing_period", currentMonth);
+
+    const ingestionFileCount = ingestionCount || 0;
+    const ingestionTotal = (ingestionData || []).reduce((sum: number, row: any) => sum + (row.charge_amount || 0), 0);
+    logStep("Ingestion charges", { fileCount: ingestionFileCount, total: ingestionTotal });
+
     // Fetch recent Stripe invoices
     let recentInvoices: any[] = [];
     try {
@@ -506,6 +517,16 @@ Deno.serve(async (req) => {
           total: overageCharges.reduce((sum: number, item: any) => sum + item.amount, 0),
           invoice_overages: usageData?.overage_invoices || 0,
         },
+        ingestion_charges: {
+          items: ingestionFileCount > 0 ? [{
+            description: `Smart Ingestion (${ingestionFileCount} files × $0.75)`,
+            amount: ingestionTotal,
+            quantity: ingestionFileCount,
+          }] : [],
+          total: ingestionTotal,
+          file_count: ingestionFileCount,
+          rate_per_file: 0.75,
+        },
         prorations: {
           items: prorations,
           total: prorations.reduce((sum: number, item: any) => sum + item.amount, 0),
@@ -516,6 +537,11 @@ Deno.serve(async (req) => {
           used: usageData?.included_invoices_used || 0,
           overage: usageData?.overage_invoices || 0,
           overage_charges: usageData?.overage_charges_total || 0,
+        },
+        ingestion: {
+          file_count: ingestionFileCount,
+          total_charges: ingestionTotal,
+          rate_per_file: 0.75,
         },
         seats: {
           billable: seatCount || 0,
