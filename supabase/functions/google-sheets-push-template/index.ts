@@ -113,31 +113,18 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { templateType } = body; // 'accounts' | 'invoices' | 'payments'
+    const { templateType, templateTypes } = body;
 
-    if (!templateType || !['accounts', 'invoices', 'payments'].includes(templateType)) {
-      return new Response(JSON.stringify({ error: 'templateType must be accounts, invoices, or payments' }), {
+    // Support batch: templateTypes = ['accounts','invoices','payments'] or single templateType
+    const typesToCreate: string[] = templateTypes 
+      ? templateTypes.filter((t: string) => ['accounts', 'invoices', 'payments'].includes(t))
+      : templateType && ['accounts', 'invoices', 'payments'].includes(templateType) 
+        ? [templateType] 
+        : [];
+
+    if (typesToCreate.length === 0) {
+      return new Response(JSON.stringify({ error: 'templateType(s) must be accounts, invoices, or payments' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const supabase = createClient(supabaseUrl, serviceKey);
-
-    // Check if this template type already exists
-    const { data: existing } = await supabase
-      .from('google_sheet_templates')
-      .select('id, sheet_url')
-      .eq('user_id', user.id)
-      .eq('template_type', templateType)
-      .eq('status', 'active')
-      .maybeSingle();
-
-    if (existing) {
-      return new Response(JSON.stringify({
-        error: `A ${templateType} master template already exists. Use sync instead.`,
-        existingUrl: existing.sheet_url,
-      }), {
-        status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
