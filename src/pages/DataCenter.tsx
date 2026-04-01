@@ -33,7 +33,9 @@ import { QuickBooksSyncSection } from "@/components/data-center/QuickBooksSyncSe
 import { StripeSyncSection } from "@/components/data-center/StripeSyncSection";
 import { SyncHealthDashboard } from "@/components/data-center/SyncHealthDashboard";
 import { SyncActivityLog } from "@/components/data-center/SyncActivityLog";
+import { SmartIngestionSection } from "@/components/data-center/ingestion/SmartIngestionSection";
 import * as XLSX from "xlsx";
+import { Zap } from "lucide-react";
 
 const DataCenter = () => {
   const [uploadWizardOpen, setUploadWizardOpen] = useState(false);
