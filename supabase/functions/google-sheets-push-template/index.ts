@@ -11,7 +11,6 @@ async function getValidAccessToken(supabase: any, connection: any) {
   }
   const clientId = Deno.env.get('GOOGLE_DRIVE_CLIENT_ID')!;
   const clientSecret = Deno.env.get('GOOGLE_DRIVE_CLIENT_SECRET')!;
-
   const res = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -24,14 +23,66 @@ async function getValidAccessToken(supabase: any, connection: any) {
   });
   const data = await res.json();
   if (!res.ok) throw new Error(`Token refresh failed: ${JSON.stringify(data)}`);
-
   await supabase.from('drive_connections').update({
     access_token: data.access_token,
     token_expires_at: new Date(Date.now() + data.expires_in * 1000).toISOString(),
     updated_at: new Date().toISOString(),
   }).eq('id', connection.id);
-
   return data.access_token;
+}
+
+async function ensureFolder(accessToken: string, parentId: string | null, folderName: string): Promise<string> {
+  // Search for existing folder
+  let q = `name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+  if (parentId) q += ` and '${parentId}' in parents`;
+
+  const searchRes = await fetch(
+    `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name)&supportsAllDrives=true`,
+    { headers: { Authorization: `Bearer ${accessToken}` } }
+  );
+  const searchData = await searchRes.json();
+  if (searchData.files && searchData.files.length > 0) {
+    return searchData.files[0].id;
+  }
+
+  // Create folder
+  const body: any = {
+    name: folderName,
+    mimeType: 'application/vnd.google-apps.folder',
+  };
+  if (parentId) body.parents = [parentId];
+
+  const createRes = await fetch('https://www.googleapis.com/drive/v3/files?supportsAllDrives=true', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const created = await createRes.json();
+  if (!createRes.ok) throw new Error(`Folder creation failed: ${JSON.stringify(created)}`);
+  return created.id;
+}
+
+function buildHeaderRow(headers: string[]) {
+  return {
+    values: headers.map(h => ({
+      userEnteredValue: { stringValue: h },
+      userEnteredFormat: {
+        backgroundColor: { red: 0.2, green: 0.4, blue: 0.9, alpha: 1 },
+        textFormat: { bold: true, foregroundColor: { red: 1, green: 1, blue: 1 } },
+      },
+    })),
+  };
+}
+
+function buildDataRow(cells: (string | number)[], numberCols: number[] = []) {
+  return {
+    values: cells.map((cell, idx) => {
+      if (numberCols.includes(idx) && typeof cell === 'number') {
+        return { userEnteredValue: { numberValue: cell } };
+      }
+      return { userEnteredValue: { stringValue: String(cell || '') } };
+    }),
+  };
 }
 
 Deno.serve(async (req) => {
@@ -62,15 +113,33 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { debtorId, templateType = 'invoice_submission' } = body;
+    const { templateType } = body; // 'accounts' | 'invoices' | 'payments'
 
-    if (!debtorId) {
-      return new Response(JSON.stringify({ error: 'debtorId is required' }), {
+    if (!templateType || !['accounts', 'invoices', 'payments'].includes(templateType)) {
+      return new Response(JSON.stringify({ error: 'templateType must be accounts, invoices, or payments' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     const supabase = createClient(supabaseUrl, serviceKey);
+
+    // Check if this template type already exists
+    const { data: existing } = await supabase
+      .from('google_sheet_templates')
+      .select('id, sheet_url')
+      .eq('user_id', user.id)
+      .eq('template_type', templateType)
+      .eq('status', 'active')
+      .maybeSingle();
+
+    if (existing) {
+      return new Response(JSON.stringify({
+        error: `A ${templateType} master template already exists. Use sync instead.`,
+        existingUrl: existing.sheet_url,
+      }), {
+        status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     // Get drive connection
     const { data: connection } = await supabase
@@ -88,63 +157,140 @@ Deno.serve(async (req) => {
 
     const accessToken = await getValidAccessToken(supabase, connection);
 
-    // Get debtor info
-    const { data: debtor } = await supabase
-      .from('debtors')
-      .select('id, company_name, name, email, reference_id')
-      .eq('id', debtorId)
-      .single();
-
-    if (!debtor) {
-      return new Response(JSON.stringify({ error: 'Debtor not found' }), {
-        status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Get existing invoices for this debtor
-    const { data: invoices } = await supabase
-      .from('invoices')
-      .select('invoice_number, amount, amount_outstanding, currency, issue_date, due_date, status, po_number, product_description, payment_terms, notes, reference_id')
-      .eq('debtor_id', debtorId)
-      .eq('user_id', user.id)
-      .order('due_date', { ascending: false });
-
     // Get branding
     const { data: branding } = await supabase
       .from('branding_settings')
       .select('business_name')
       .eq('user_id', user.id)
       .maybeSingle();
-
     const businessName = branding?.business_name || 'Recouply';
-    const debtorName = debtor.company_name || debtor.name || 'Customer';
-    const sheetTitle = `${businessName} - ${debtorName} - Invoices`;
 
-    // Build header row and data rows based on template type
-    const headers = [
-      'Invoice Number', 'Amount', 'Amount Outstanding', 'Currency', 
-      'Issue Date', 'Due Date', 'Status', 'PO Number', 
-      'Product/Description', 'Payment Terms', 'Notes',
-      'Recouply Ref (DO NOT EDIT)', 'Source'
-    ];
+    // Get org ID
+    const { data: orgId } = await supabase.rpc('get_user_organization_id', { p_user_id: user.id });
 
-    const dataRows = (invoices || []).map(inv => [
-      inv.invoice_number || '',
-      inv.amount || 0,
-      inv.amount_outstanding || inv.amount || 0,
-      inv.currency || 'USD',
-      inv.issue_date || '',
-      inv.due_date || '',
-      inv.status || 'Open',
-      inv.po_number || '',
-      inv.product_description || '',
-      inv.payment_terms || '',
-      inv.notes || '',
-      inv.reference_id || '',
-      'recouply', // Source marker for existing rows
-    ]);
+    // Ensure folder structure: Drive Root (or connected folder) > Recouply > Templates
+    const rootFolderId = connection.folder_id || null;
+    const recouplyFolderId = await ensureFolder(accessToken, rootFolderId, 'Recouply');
+    const templatesFolderId = await ensureFolder(accessToken, recouplyFolderId, 'Templates');
+    const folderPath = `Recouply/Templates`;
 
-    // Create Google Sheet via Sheets API
+    // Build sheet based on template type
+    let sheetTitle: string;
+    let sheets: any[];
+    let rowCount = 0;
+
+    if (templateType === 'accounts') {
+      sheetTitle = `${businessName} - Accounts Master`;
+
+      // Fetch all debtors
+      const { data: debtors } = await supabase
+        .from('debtors')
+        .select('reference_id, company_name, name, email, phone, address, city, state, zip_code, country, industry, notes, current_balance')
+        .eq('user_id', user.id)
+        .eq('is_archived', false)
+        .order('company_name', { ascending: true });
+
+      const headers = ['RAID', 'Company Name', 'Contact Name', 'Email', 'Phone', 'Address', 'City', 'State', 'Zip', 'Country', 'Industry', 'Notes', 'Current Balance', 'Source'];
+      const dataRows = (debtors || []).map(d => [
+        d.reference_id || '', d.company_name || '', d.name || '', d.email || '',
+        d.phone || '', d.address || '', d.city || '', d.state || '', d.zip_code || '',
+        d.country || '', d.industry || '', d.notes || '', d.current_balance || 0, 'recouply'
+      ]);
+      rowCount = dataRows.length;
+
+      sheets = [{
+        properties: { title: 'Accounts', gridProperties: { frozenRowCount: 1 } },
+        data: [{ startRow: 0, startColumn: 0, rowData: [
+          buildHeaderRow(headers),
+          ...dataRows.map(r => buildDataRow(r, [12])),
+        ]}],
+      }];
+    } else if (templateType === 'invoices') {
+      sheetTitle = `${businessName} - Invoices Master`;
+
+      // Fetch all open invoices with debtor info
+      const { data: invoices } = await supabase
+        .from('invoices')
+        .select('invoice_number, amount, amount_outstanding, currency, issue_date, due_date, status, po_number, product_description, payment_terms, notes, reference_id, debtors(reference_id, company_name)')
+        .eq('user_id', user.id)
+        .in('status', ['Open', 'InPaymentPlan', 'PartiallyPaid'])
+        .order('due_date', { ascending: false });
+
+      // Also get paid invoices for the Paid tab
+      const { data: paidInvoices } = await supabase
+        .from('invoices')
+        .select('invoice_number, amount, amount_outstanding, currency, issue_date, due_date, status, po_number, product_description, payment_terms, notes, reference_id, debtors(reference_id, company_name)')
+        .eq('user_id', user.id)
+        .in('status', ['Paid', 'Canceled', 'Voided', 'WrittenOff', 'Settled'])
+        .order('due_date', { ascending: false })
+        .limit(500);
+
+      const headers = ['Account RAID', 'Account Name', 'Invoice Number', 'Amount', 'Amount Outstanding', 'Currency', 'Issue Date', 'Due Date', 'Status', 'PO Number', 'Product/Description', 'Payment Terms', 'Notes', 'Recouply Ref (DO NOT EDIT)', 'Source'];
+
+      const openRows = (invoices || []).map((inv: any) => [
+        inv.debtors?.reference_id || '', inv.debtors?.company_name || '',
+        inv.invoice_number || '', inv.amount || 0, inv.amount_outstanding || inv.amount || 0,
+        inv.currency || 'USD', inv.issue_date || '', inv.due_date || '', inv.status || 'Open',
+        inv.po_number || '', inv.product_description || '', inv.payment_terms || '',
+        inv.notes || '', inv.reference_id || '', 'recouply'
+      ]);
+
+      const paidRows = (paidInvoices || []).map((inv: any) => [
+        inv.debtors?.reference_id || '', inv.debtors?.company_name || '',
+        inv.invoice_number || '', inv.amount || 0, inv.amount_outstanding || 0,
+        inv.currency || 'USD', inv.issue_date || '', inv.due_date || '', inv.status || 'Paid',
+        inv.po_number || '', inv.product_description || '', inv.payment_terms || '',
+        inv.notes || '', inv.reference_id || '', 'recouply'
+      ]);
+
+      rowCount = openRows.length;
+
+      sheets = [
+        {
+          properties: { title: 'Open Invoices', gridProperties: { frozenRowCount: 1 } },
+          data: [{ startRow: 0, startColumn: 0, rowData: [
+            buildHeaderRow(headers),
+            ...openRows.map(r => buildDataRow(r, [3, 4])),
+          ]}],
+        },
+        {
+          properties: { title: 'Paid Invoices', gridProperties: { frozenRowCount: 1 } },
+          data: [{ startRow: 0, startColumn: 0, rowData: [
+            buildHeaderRow(headers),
+            ...paidRows.map(r => buildDataRow(r, [3, 4])),
+          ]}],
+        },
+      ];
+    } else {
+      // payments
+      sheetTitle = `${businessName} - Payments Master`;
+
+      const { data: payments } = await supabase
+        .from('payments')
+        .select('reference_id, amount, payment_date, payment_method, status, notes, invoices(invoice_number, reference_id), debtors(reference_id, company_name)')
+        .eq('user_id', user.id)
+        .order('payment_date', { ascending: false })
+        .limit(1000);
+
+      const headers = ['Account RAID', 'Account Name', 'Invoice Ref', 'Invoice Number', 'Payment Amount', 'Payment Date', 'Payment Method', 'Status', 'Notes', 'Recouply Pay Ref (DO NOT EDIT)', 'Source'];
+      const dataRows = (payments || []).map((p: any) => [
+        p.debtors?.reference_id || '', p.debtors?.company_name || '',
+        p.invoices?.reference_id || '', p.invoices?.invoice_number || '',
+        p.amount || 0, p.payment_date || '', p.payment_method || '',
+        p.status || '', p.notes || '', p.reference_id || '', 'recouply'
+      ]);
+      rowCount = dataRows.length;
+
+      sheets = [{
+        properties: { title: 'Payments', gridProperties: { frozenRowCount: 1 } },
+        data: [{ startRow: 0, startColumn: 0, rowData: [
+          buildHeaderRow(headers),
+          ...dataRows.map(r => buildDataRow(r, [4])),
+        ]}],
+      }];
+    }
+
+    // Create Google Sheet
     const createRes = await fetch('https://sheets.googleapis.com/v4/spreadsheets', {
       method: 'POST',
       headers: {
@@ -153,110 +299,46 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         properties: { title: sheetTitle },
-        sheets: [{
-          properties: {
-            title: 'Invoices',
-            gridProperties: { frozenRowCount: 1 },
-          },
-          data: [{
-            startRow: 0,
-            startColumn: 0,
-            rowData: [
-              // Header row
-              {
-                values: headers.map(h => ({
-                  userEnteredValue: { stringValue: h },
-                  userEnteredFormat: {
-                    backgroundColor: { red: 0.2, green: 0.4, blue: 0.9, alpha: 1 },
-                    textFormat: { bold: true, foregroundColor: { red: 1, green: 1, blue: 1 } },
-                  },
-                })),
-              },
-              // Data rows
-              ...dataRows.map(row => ({
-                values: row.map((cell, colIdx) => {
-                  // Numbers for amount columns
-                  if (colIdx === 1 || colIdx === 2) {
-                    return { userEnteredValue: { numberValue: Number(cell) || 0 } };
-                  }
-                  return { userEnteredValue: { stringValue: String(cell) } };
-                }),
-              })),
-            ],
-          }],
-        },
-        {
-          properties: {
-            title: 'Instructions',
-          },
-          data: [{
-            startRow: 0,
-            startColumn: 0,
-            rowData: [
-              { values: [{ userEnteredValue: { stringValue: `${businessName} Invoice Template` }, userEnteredFormat: { textFormat: { bold: true, fontSize: 14 } } }] },
-              { values: [{ userEnteredValue: { stringValue: '' } }] },
-              { values: [{ userEnteredValue: { stringValue: `Customer: ${debtorName}` } }] },
-              { values: [{ userEnteredValue: { stringValue: `Ref: ${debtor.reference_id || 'N/A'}` } }] },
-              { values: [{ userEnteredValue: { stringValue: '' } }] },
-              { values: [{ userEnteredValue: { stringValue: 'HOW TO USE:' }, userEnteredFormat: { textFormat: { bold: true } } }] },
-              { values: [{ userEnteredValue: { stringValue: '1. Go to the "Invoices" tab' } }] },
-              { values: [{ userEnteredValue: { stringValue: '2. Existing invoices are shown (do not modify the Recouply Ref column)' } }] },
-              { values: [{ userEnteredValue: { stringValue: '3. Add NEW invoices by filling in empty rows below existing data' } }] },
-              { values: [{ userEnteredValue: { stringValue: '4. Leave the "Source" column empty for new rows — they will be detected automatically' } }] },
-              { values: [{ userEnteredValue: { stringValue: '5. Required fields: Invoice Number, Amount, Due Date' } }] },
-              { values: [{ userEnteredValue: { stringValue: '' } }] },
-              { values: [{ userEnteredValue: { stringValue: 'STATUS VALUES: Open, Paid, Canceled, Disputed, PartiallyPaid' } }] },
-              { values: [{ userEnteredValue: { stringValue: 'DATE FORMAT: YYYY-MM-DD (e.g., 2026-04-15)' } }] },
-            ],
-          }],
-        }],
+        sheets,
       }),
     });
 
     const sheetData = await createRes.json();
     if (!createRes.ok) {
-      console.error('Sheet creation failed:', sheetData);
       throw new Error(`Failed to create sheet: ${sheetData.error?.message || JSON.stringify(sheetData)}`);
     }
 
     const spreadsheetId = sheetData.spreadsheetId;
     const spreadsheetUrl = sheetData.spreadsheetUrl;
 
-    // Move sheet to the connected Drive folder if one is set
-    if (connection.folder_id) {
-      // Get current parents
-      const fileRes = await fetch(
-        `https://www.googleapis.com/drive/v3/files/${spreadsheetId}?fields=parents`,
-        { headers: { Authorization: `Bearer ${accessToken}` } }
-      );
-      const fileData = await fileRes.json();
-      const previousParents = (fileData.parents || []).join(',');
+    // Move sheet into Templates folder
+    const fileRes = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${spreadsheetId}?fields=parents&supportsAllDrives=true`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    const fileData = await fileRes.json();
+    const previousParents = (fileData.parents || []).join(',');
 
-      await fetch(
-        `https://www.googleapis.com/drive/v3/files/${spreadsheetId}?addParents=${connection.folder_id}&removeParents=${previousParents}`,
-        {
-          method: 'PATCH',
-          headers: { Authorization: `Bearer ${accessToken}` },
-        }
-      );
-    }
-
-    // Get org ID
-    const { data: orgId } = await supabase.rpc('get_user_organization_id', { p_user_id: user.id });
+    await fetch(
+      `https://www.googleapis.com/drive/v3/files/${spreadsheetId}?addParents=${templatesFolderId}&removeParents=${previousParents}&supportsAllDrives=true`,
+      { method: 'PATCH', headers: { Authorization: `Bearer ${accessToken}` } }
+    );
 
     // Save template record
     await supabase.from('google_sheet_templates').insert({
       user_id: user.id,
       organization_id: orgId,
       connection_id: connection.id,
-      debtor_id: debtorId,
+      debtor_id: null, // Master sheet, no specific debtor
       template_type: templateType,
       sheet_id: spreadsheetId,
       sheet_url: spreadsheetUrl,
       sheet_name: sheetTitle,
       drive_file_id: spreadsheetId,
       status: 'active',
-      rows_synced: dataRows.length,
+      rows_synced: rowCount,
+      folder_path: folderPath,
+      last_push_at: new Date().toISOString(),
     });
 
     // Audit log
@@ -265,11 +347,10 @@ Deno.serve(async (req) => {
       organization_id: orgId,
       event_type: 'sheet_template_pushed',
       event_details: {
-        debtor_id: debtorId,
-        debtor_name: debtorName,
         template_type: templateType,
         sheet_id: spreadsheetId,
-        existing_invoices: dataRows.length,
+        rows: rowCount,
+        folder_path: folderPath,
       },
     });
 
@@ -278,7 +359,9 @@ Deno.serve(async (req) => {
       spreadsheetId,
       spreadsheetUrl,
       sheetTitle,
-      existingInvoices: dataRows.length,
+      templateType,
+      rowCount,
+      folderPath,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
