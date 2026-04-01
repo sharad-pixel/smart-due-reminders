@@ -317,7 +317,7 @@ async function pullInvoices(supabase: any, accessToken: string, template: any, u
   const descIdx = headers.indexOf('product/description');
   const termsIdx = headers.indexOf('payment terms');
   const notesIdx = headers.indexOf('notes');
-  const refIdx = headers.indexOf('recouply ref (do not edit)');
+  const refIdx = headers.findIndex(h => h.includes('recouply') && h.includes('ref') && h.includes('do not edit'));
   const sourceIdx = headers.indexOf('source');
 
   let created = 0, updated = 0, skipped = 0, movedToPaid = 0;
