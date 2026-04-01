@@ -339,7 +339,7 @@ export function SmartIngestionSection() {
             <span className="flex items-center gap-1"><Zap className="h-3 w-3" /> AI-powered extraction</span>
           </div>
           <Button onClick={() => connectMutation.mutate()} disabled={connectMutation.isPending}>
-            {connectMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <HardDrive className="h-4 w-4 mr-2" />}
+            {connectMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <GoogleDriveIcon className="h-4 w-4 mr-2" />}
             {isGoogleUser ? "Connect with Your Google Account" : "Connect Google Drive"}
           </Button>
         </CardContent>
