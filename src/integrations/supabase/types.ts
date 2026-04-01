@@ -7918,6 +7918,14 @@ export type Database = {
         Args: { p_action: string; p_document_id: string; p_metadata?: Json }
         Returns: string
       }
+      merge_debtors: {
+        Args: {
+          p_duplicate_debtor_ids: string[]
+          p_primary_debtor_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       rotate_ar_page_token: { Args: { p_user_id: string }; Returns: string }
       validate_invite_token: { Args: { p_token: string }; Returns: Json }
     }

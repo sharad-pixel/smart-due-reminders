@@ -14,7 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Search, Upload, Building2, User, Mail, Phone, MapPin, Clock, DollarSign, TrendingUp, FileBarChart, MoreHorizontal, ExternalLink, CreditCard, LayoutGrid, List, Trash2, UserPlus, ChevronLeft, ChevronRight, Radio, Zap, HelpCircle, AlertTriangle } from "lucide-react";
+import { Plus, Search, Upload, Building2, User, Mail, Phone, MapPin, Clock, DollarSign, TrendingUp, FileBarChart, MoreHorizontal, ExternalLink, CreditCard, LayoutGrid, List, Trash2, UserPlus, ChevronLeft, ChevronRight, Radio, Zap, HelpCircle, AlertTriangle, Merge, Sparkles } from "lucide-react";
 import { EmailStatusBadge } from "@/components/alerts/EmailStatusBadge";
 import { ScoringModelTooltip } from "@/components/ai/ScoringModelTooltip";
 import { useNavigate } from "react-router-dom";
@@ -22,6 +22,8 @@ import { SortableTableHead, useSorting } from "@/components/ui/sortable-table-he
 import { useAccountsAvgDPD, getAccountAvgDPD } from "@/hooks/useAvgDPD";
 
 import { AIInsightsCard } from "@/components/ai/AIInsightsCard";
+import { DebtorMergeDialog } from "@/components/accounts/DebtorMergeDialog";
+import { DebtorDuplicateDetector } from "@/components/accounts/DebtorDuplicateDetector";
 
 interface Contact {
   name: string;
@@ -96,6 +98,8 @@ const Debtors = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkUpdating, setBulkUpdating] = useState(false);
+  const [showDuplicateDetector, setShowDuplicateDetector] = useState(false);
+  const [showMergeDialog, setShowMergeDialog] = useState(false);
   const [contacts, setContacts] = useState<Contact[]>([
     { name: "", title: "", email: "", phone: "", outreach_enabled: true }
   ]);
@@ -718,6 +722,15 @@ const Debtors = () => {
                     <List className="h-4 w-4" />
                   </Button>
                 </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowDuplicateDetector(true)}
+                  className="gap-2"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  Find Duplicates
+                </Button>
               </div>
               
               {/* Bulk Actions Bar */}
@@ -747,6 +760,17 @@ const Debtors = () => {
                       <Radio className="h-4 w-4 text-muted-foreground" />
                       Disable Account Outreach
                     </Button>
+                    {selectedIds.size >= 2 && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setShowMergeDialog(true)}
+                        className="gap-2"
+                      >
+                        <Merge className="h-4 w-4" />
+                        Merge Selected ({selectedIds.size})
+                      </Button>
+                    )}
                     <Button
                       size="sm"
                       variant="ghost"
@@ -1174,6 +1198,30 @@ const Debtors = () => {
 
 
       </div>
+
+      {/* Duplicate Detector Dialog */}
+      <DebtorDuplicateDetector
+        open={showDuplicateDetector}
+        onOpenChange={setShowDuplicateDetector}
+        debtors={debtors}
+        onMergeComplete={() => {
+          fetchDebtors();
+          setSelectedIds(new Set());
+        }}
+      />
+
+      {/* Merge Dialog (from bulk selection) */}
+      {showMergeDialog && selectedIds.size >= 2 && (
+        <DebtorMergeDialog
+          open={showMergeDialog}
+          onOpenChange={setShowMergeDialog}
+          debtors={debtors.filter(d => selectedIds.has(d.id))}
+          onMergeComplete={() => {
+            fetchDebtors();
+            setSelectedIds(new Set());
+          }}
+        />
+      )}
     </Layout>
   );
 };
