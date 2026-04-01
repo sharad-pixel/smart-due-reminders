@@ -1105,6 +1105,20 @@ function generateEmailHtml(data: {
     trend: string;
     total_ar_at_risk: number;
   } | null;
+  revenueRiskSummary?: {
+    total_ecl: number;
+    total_open_balance: number;
+    avg_collectability_score: number;
+    accounts_scored: number;
+    risk_tiers: { low: number; moderate: number; at_risk: number; high_risk: number };
+    top_risk_accounts: Array<{
+      company_name: string;
+      collectability_score: number;
+      ecl: number;
+      open_balance: number;
+      risk_classification: string;
+    }>;
+  } | null;
 }): string {
   const formatCurrency = (amount: number) => 
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
