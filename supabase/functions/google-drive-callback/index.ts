@@ -40,9 +40,8 @@ Deno.serve(async (req) => {
     const userId = stateData.userId;
     if (!userId) {
       console.error('[DRIVE-CALLBACK] No userId in state');
-      return new Response(redirectHtml(effectiveSiteUrl, '/data-center', 'error', 'Invalid state: missing user'), {
-        headers: { 'Content-Type': 'text/html' },
-      });
+      const errUrl = `${effectiveSiteUrl}/data-center?drive_status=error&drive_message=${encodeURIComponent('Invalid state: missing user')}`;
+      return Response.redirect(errUrl, 302);
     }
 
     const redirectUri = `${supabaseUrl}/functions/v1/google-drive-callback`;
