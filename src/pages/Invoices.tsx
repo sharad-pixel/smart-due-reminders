@@ -970,6 +970,20 @@ const Invoices = () => {
                             ? new Date(invoice.last_contact_date).toLocaleDateString()
                             : <span className="text-muted-foreground">—</span>}
                         </TableCell>
+                        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                          <ApplyPaymentButton
+                            invoiceId={invoice.id}
+                            invoiceNumber={invoice.invoice_number}
+                            debtorId={invoice.debtor_id}
+                            amount={invoice.amount}
+                            amountOutstanding={invoice.amount_outstanding}
+                            currency={invoice.currency || "USD"}
+                            status={invoice.status}
+                            integrationSource={invoice.integration_source}
+                            onSuccess={fetchData}
+                            compact
+                          />
+                        </TableCell>
                       </TableRow>
                     );
                   })}
