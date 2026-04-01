@@ -19,7 +19,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { userId } = JSON.parse(atob(state));
+    const stateData = JSON.parse(atob(state));
+    const userId = stateData.userId;
+    const effectiveSiteUrl = stateData.origin || siteUrl;
     const redirectUri = `${supabaseUrl}/functions/v1/google-drive-callback`;
 
     // Exchange code for tokens
@@ -38,7 +40,7 @@ Deno.serve(async (req) => {
     const tokenData = await tokenRes.json();
     if (!tokenRes.ok) {
       console.error('Token exchange failed:', tokenData);
-      return new Response(redirectHtml(siteUrl, '/data-center', 'error', 'Token exchange failed'), {
+      return new Response(redirectHtml(effectiveSiteUrl, '/data-center', 'error', 'Token exchange failed'), {
         headers: { 'Content-Type': 'text/html' },
       });
     }
@@ -91,7 +93,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    return new Response(redirectHtml(siteUrl, '/data-center', 'success', 'Google Drive connected successfully'), {
+    return new Response(redirectHtml(effectiveSiteUrl, '/data-center', 'success', 'Google Drive connected successfully'), {
       headers: { 'Content-Type': 'text/html' },
     });
   } catch (err) {
