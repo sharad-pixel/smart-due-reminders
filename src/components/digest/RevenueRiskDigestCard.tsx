@@ -9,16 +9,6 @@ import { Button } from '@/components/ui/button';
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(amount);
 
-const getRiskColor = (classification: string) => {
-  switch (classification?.toLowerCase()) {
-    case 'low risk': return 'text-green-600';
-    case 'moderate': return 'text-yellow-600';
-    case 'at risk': return 'text-orange-600';
-    case 'high risk': return 'text-red-600';
-    default: return 'text-muted-foreground';
-  }
-};
-
 const getRiskBadgeVariant = (classification: string): "default" | "secondary" | "destructive" | "outline" => {
   switch (classification?.toLowerCase()) {
     case 'high risk': return 'destructive';
