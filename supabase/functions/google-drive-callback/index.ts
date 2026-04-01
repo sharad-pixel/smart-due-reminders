@@ -33,17 +33,15 @@ Deno.serve(async (req) => {
 
     if (error || !code || !state) {
       console.error('[DRIVE-CALLBACK] OAuth error or missing params:', { error, hasCode: !!code, hasState: !!state });
-      return new Response(redirectHtml(effectiveSiteUrl, '/data-center', 'error', error || 'Missing authorization code'), {
-        headers: { 'Content-Type': 'text/html' },
-      });
+      const errUrl = `${effectiveSiteUrl}/data-center?drive_status=error&drive_message=${encodeURIComponent(error || 'Missing authorization code')}`;
+      return Response.redirect(errUrl, 302);
     }
 
     const userId = stateData.userId;
     if (!userId) {
       console.error('[DRIVE-CALLBACK] No userId in state');
-      return new Response(redirectHtml(effectiveSiteUrl, '/data-center', 'error', 'Invalid state: missing user'), {
-        headers: { 'Content-Type': 'text/html' },
-      });
+      const errUrl = `${effectiveSiteUrl}/data-center?drive_status=error&drive_message=${encodeURIComponent('Invalid state: missing user')}`;
+      return Response.redirect(errUrl, 302);
     }
 
     const redirectUri = `${supabaseUrl}/functions/v1/google-drive-callback`;
@@ -64,9 +62,8 @@ Deno.serve(async (req) => {
     const tokenData = await tokenRes.json();
     if (!tokenRes.ok) {
       console.error('[DRIVE-CALLBACK] Token exchange failed:', tokenData);
-      return new Response(redirectHtml(effectiveSiteUrl, '/data-center', 'error', 'Token exchange failed: ' + (tokenData.error_description || tokenData.error || 'unknown')), {
-        headers: { 'Content-Type': 'text/html' },
-      });
+      const errUrl = `${effectiveSiteUrl}/data-center?drive_status=error&drive_message=${encodeURIComponent('Token exchange failed: ' + (tokenData.error_description || tokenData.error || 'unknown'))}`;
+      return Response.redirect(errUrl, 302);
     }
 
     console.log('[DRIVE-CALLBACK] Token exchange successful for user:', userId);
@@ -118,19 +115,11 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log('[DRIVE-CALLBACK] Success, redirecting to:', effectiveSiteUrl);
-    return new Response(redirectHtml(effectiveSiteUrl, '/data-center', 'success', 'Google Drive connected successfully'), {
-      headers: { 'Content-Type': 'text/html' },
-    });
+    const redirectUrl = `${effectiveSiteUrl}/data-center?drive_status=success&drive_message=${encodeURIComponent('Google Drive connected successfully')}`;
+    console.log('[DRIVE-CALLBACK] Success, redirecting to:', redirectUrl);
+    return Response.redirect(redirectUrl, 302);
   } catch (err) {
     console.error('[DRIVE-CALLBACK] Unhandled error:', err);
-    return new Response(redirectHtml('https://recouply.ai', '/data-center', 'error', String(err)), {
-      headers: { 'Content-Type': 'text/html' },
-    });
+    return Response.redirect(`https://recouply.ai/data-center?drive_status=error&drive_message=${encodeURIComponent(String(err))}`, 302);
   }
 });
-
-function redirectHtml(base: string, path: string, status: string, message: string) {
-  const url = `${base}${path}?drive_status=${status}&drive_message=${encodeURIComponent(message)}`;
-  return `<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;url=${url}"><script>window.location.href="${url}";</script></head><body>Redirecting...</body></html>`;
-}
