@@ -504,7 +504,7 @@ const AdminUserManagement = () => {
       }).eq("id", deletionId);
       toast.success("Scheduled deletion has been cancelled");
       await fetchUsers();
-    } catch (error: any) {
+    } catch (_error: any) {
       toast.error("Failed to cancel deletion");
     }
   };

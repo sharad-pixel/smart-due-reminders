@@ -23,7 +23,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { toast } from "sonner";
-import { RefreshCw, Loader2, AlertTriangle, ChevronDown, ChevronLeft, Copy, Clock, Users, FileText, CreditCard, CheckCircle2, XCircle, Info, Lightbulb, ArrowRight, Zap } from "lucide-react";
+import { RefreshCw, AlertTriangle, ChevronDown, ChevronLeft, Copy, Clock, Users, FileText, CreditCard, CheckCircle2, XCircle, Info, Lightbulb, ArrowRight, Zap } from "lucide-react";
 import { differenceInSeconds, formatDistanceToNow } from "date-fns";
 import stripeLogo from "@/assets/stripe-logo.png";
 import {
