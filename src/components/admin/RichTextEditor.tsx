@@ -6,26 +6,7 @@ import { Color } from "@tiptap/extension-color";
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
 import { Separator } from "@/components/ui/separator";
-import {
-  Bold,
-  Italic,
-  Underline,
-  Strikethrough,
-  List,
-  ListOrdered,
-  Link as LinkIcon,
-  Heading1,
-  Heading2,
-  Heading3,
-  Quote,
-  Code,
-  Undo,
-  Redo,
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
-  Palette,
-} from "lucide-react";
+import { Bold, Italic, Strikethrough, List, ListOrdered, Link as LinkIcon, Heading1, Heading2, Heading3, Quote, Code, Undo, Redo, Palette } from "lucide-react";
 import {
   Popover,
   PopoverContent,

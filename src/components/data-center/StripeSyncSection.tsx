@@ -14,20 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { 
-  RefreshCw, 
-  Check, 
-  X, 
-  Loader2, 
-  CreditCard,
-  Calendar,
-  FileText,
-  ArrowUpRight,
-  DollarSign,
-  RotateCcw,
-  MinusCircle,
-  Users
-} from "lucide-react";
+import { RefreshCw, Check, X, Loader2, FileText, ArrowUpRight, DollarSign, RotateCcw, MinusCircle, Users } from "lucide-react";
 import { format } from "date-fns";
 import { 
   LastSyncRunCard, 

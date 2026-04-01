@@ -8,20 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { 
-  RefreshCw, 
-  Check, 
-  X, 
-  AlertTriangle, 
-  Loader2, 
-  CreditCard,
-  Calendar,
-  FileText,
-  Zap,
-  Key,
-  Eye,
-  EyeOff
-} from "lucide-react";
+import { RefreshCw, Check, X, AlertTriangle, Loader2, CreditCard, Calendar, FileText, Key, Eye, EyeOff } from "lucide-react";
 import { format } from "date-fns";
 
 interface StripeIntegration {

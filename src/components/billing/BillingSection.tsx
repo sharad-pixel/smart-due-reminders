@@ -20,18 +20,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { 
-  CreditCard, 
-  CheckCircle2, 
-  AlertTriangle,
-  ExternalLink,
-  Loader2,
-  RefreshCw,
-  Zap,
-  Crown,
-  ArrowRight,
-  TrendingUp
-} from "lucide-react";
+import { CreditCard, CheckCircle2, AlertTriangle, ExternalLink, Loader2, RefreshCw, Crown, ArrowRight, TrendingUp } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { PLAN_CONFIGS, STRIPE_PRICES, formatPrice, SEAT_PRICING, type PlanType } from "@/lib/subscriptionConfig";
 

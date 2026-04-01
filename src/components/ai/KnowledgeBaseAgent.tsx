@@ -5,26 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Progress } from "@/components/ui/progress";
-import {
-  ChevronDown,
-  ChevronRight,
-  ChevronUp,
-  CheckCircle2,
-  Circle,
-  Database,
-  CreditCard,
-  FileText,
-  Upload,
-  Download,
-  Bot,
-  Mail,
-  Users,
-  ExternalLink,
-  Sparkles,
-  BookOpen,
-  HelpCircle,
-  Play,
-} from "lucide-react";
+import { ChevronDown, ChevronRight, ChevronUp, CheckCircle2, Circle, Database, CreditCard, FileText, Upload, Download, Bot, Mail, Users, ExternalLink, Sparkles, BookOpen, Play } from "lucide-react";
 import nicolasAvatar from "@/assets/personas/nicolas.png";
 import stripeLogo from "@/assets/stripe-logo.png";
 import quickbooksLogo from "@/assets/quickbooks-logo.png";

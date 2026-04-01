@@ -13,16 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  CreditCard,
-  Users,
-  ExternalLink,
-  Loader2,
-  CheckCircle2,
-  AlertCircle,
-  ArrowRight,
-  Shield,
-} from "lucide-react";
+import { ExternalLink, Loader2, CheckCircle2, ArrowRight, Shield } from "lucide-react";
 import stripeLogo from "@/assets/stripe-logo.png";
 import quickbooksLogo from "@/assets/quickbooks-logo.png";
 

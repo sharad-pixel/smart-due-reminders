@@ -7,28 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { SortDirection } from "@/components/ui/sortable-table-head";
-import {
-  RefreshCw,
-  TrendingUp,
-  TrendingDown,
-  AlertTriangle,
-  CheckCircle2,
-  Brain,
-  ChevronDown,
-  ChevronUp,
-  ExternalLink,
-  FileText,
-  Target,
-} from "lucide-react";
+import { RefreshCw, TrendingUp, TrendingDown, AlertTriangle, CheckCircle2, Brain, FileText, Target } from "lucide-react";
 import { toast } from "sonner";
 
 interface InvoiceReport {

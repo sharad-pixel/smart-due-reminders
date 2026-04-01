@@ -8,18 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { 
-  Upload, 
-  FileSpreadsheet, 
-  Wand2, 
-  CheckCircle, 
-  Loader2,
-  ArrowRight,
-  ArrowLeft,
-  AlertTriangle,
-  Users,
-  DollarSign
-} from "lucide-react";
+import { Upload, FileSpreadsheet, Wand2, CheckCircle, Loader2, ArrowRight, ArrowLeft, Users, DollarSign } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";

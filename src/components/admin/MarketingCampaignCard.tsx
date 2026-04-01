@@ -9,20 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { 
-  Play, 
-  Pause, 
-  BarChart2, 
-  Users, 
-  Mail, 
-  MousePointerClick, 
-  Target, 
-  MoreVertical,
-  Trash2,
-  Edit,
-  Copy,
-  Send
-} from "lucide-react";
+import { Play, Pause, BarChart2, Users, Mail, MousePointerClick, Target, MoreVertical, Trash2, Copy, Send } from "lucide-react";
 import { format } from "date-fns";
 
 interface MarketingCampaign {

@@ -4,16 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useNicolasPreferences } from '@/hooks/useNicolasPreferences';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Database, 
-  Users, 
-  FileText, 
-  Bot, 
-  Mail, 
-  CheckSquare,
-  ArrowRight,
-  Sparkles
-} from 'lucide-react';
+import { Database, Bot, Mail, CheckSquare, ArrowRight, Sparkles } from 'lucide-react';
 import nicolasAvatar from '@/assets/personas/nicolas.png';
 
 const ONBOARDING_STEPS = [

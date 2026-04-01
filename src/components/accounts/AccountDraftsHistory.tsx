@@ -10,24 +10,7 @@ import { personaConfig } from "@/lib/personaConfig";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
 import { DraftPreviewModal } from "@/components/outreach/DraftPreviewModal";
 import { toast } from "sonner";
-import { 
-  Mail, 
-  ChevronLeft, 
-  ChevronRight, 
-  Loader2, 
-  Bot,
-  Search,
-  Filter,
-  FileText,
-  Building2,
-  CheckCircle,
-  Clock,
-  Send,
-  XCircle,
-  Sparkles,
-  Eye,
-  Trash2
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Bot, Search, Filter, FileText, Building2, CheckCircle, Clock, Send, XCircle, Sparkles, Eye, Trash2 } from "lucide-react";
 import {
   Select,
   SelectContent,

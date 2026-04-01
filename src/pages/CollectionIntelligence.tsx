@@ -2,28 +2,7 @@ import { Button } from "@/components/ui/button";
 import SEOHead from "@/components/seo/SEOHead";
 import { PAGE_SEO } from "@/lib/seoConfig";
 import { useNavigate } from "react-router-dom";
-import { 
-  Brain, 
-  Mail, 
-  MessageSquare, 
-  CheckCircle, 
-  Zap, 
-  BarChart3, 
-  Clock, 
-  Target, 
-  Inbox, 
-  ListTodo,
-  Bot,
-  ArrowRight,
-  Sparkles,
-  TrendingUp,
-  Shield,
-  Users,
-  AlertTriangle,
-  Lightbulb,
-  FileText,
-  Activity
-} from "lucide-react";
+import { Brain, Mail, CheckCircle, Zap, BarChart3, Clock, Target, Inbox, ListTodo, Bot, ArrowRight, Sparkles, TrendingUp, Shield, Users, AlertTriangle, Lightbulb, FileText, Activity } from "lucide-react";
 import MarketingLayout from "@/components/layout/MarketingLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import CollectionIntelligenceShowcase from "@/components/marketing/CollectionIntelligenceShowcase";

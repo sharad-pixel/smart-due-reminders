@@ -18,39 +18,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { toast } from "sonner";
-import {
-  RefreshCw,
-  Check,
-  X,
-  Loader2,
-  AlertTriangle,
-  ChevronDown,
-  ChevronLeft,
-  ExternalLink,
-  Copy,
-  Clock,
-  Users,
-  FileText,
-  CreditCard,
-  CheckCircle2,
-  XCircle,
-  Info,
-  Lightbulb,
-  ArrowRight,
-  Zap,
-} from "lucide-react";
+import { RefreshCw, Loader2, AlertTriangle, ChevronDown, ChevronLeft, Copy, Clock, Users, FileText, CreditCard, CheckCircle2, XCircle, Info, Lightbulb, ArrowRight, Zap } from "lucide-react";
 import { differenceInSeconds, formatDistanceToNow } from "date-fns";
 import stripeLogo from "@/assets/stripe-logo.png";
 import {

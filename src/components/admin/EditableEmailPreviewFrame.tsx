@@ -7,23 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RichTextEditor } from "./RichTextEditor";
-import { 
-  Palette, 
-  Type, 
-  Image, 
-  Layout, 
-  Settings2, 
-  Eye,
-  Edit3,
-  Undo2,
-  Save,
-  RefreshCw,
-  AlignLeft,
-  AlignCenter,
-  Link,
-  Square,
-  Maximize2,
-} from "lucide-react";
+import { Palette, Type, Image, Layout, Settings2, Eye, Edit3, Undo2, Save, AlignLeft, AlignCenter, Link, Square, Maximize2 } from "lucide-react";
 
 interface EditableEmailPreviewFrameProps {
   subject: string;

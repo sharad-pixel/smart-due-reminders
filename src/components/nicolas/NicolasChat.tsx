@@ -4,20 +4,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { 
-  MessageCircle, 
-  X, 
-  Send, 
-  User, 
-  Loader2, 
-  AlertTriangle,
-  ThumbsDown,
-  ExternalLink,
-  Calendar,
-  Mail,
-  Settings2,
-  Book
-} from "lucide-react";
+import { X, Send, User, Loader2, AlertTriangle, ThumbsDown, ExternalLink, Calendar, Mail, Settings2, Book } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLocation, Link } from "react-router-dom";
 import { toast } from "sonner";

@@ -32,27 +32,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  Mail,
-  Search,
-  Filter,
-  Calendar,
-  Building2,
-  FileText,
-  Clock,
-  CheckCircle,
-  Archive,
-  ExternalLink,
-  ChevronLeft,
-  ChevronRight,
-  Loader2,
-  RefreshCw,
-  History,
-  MessageSquare,
-  Send,
-  Inbox,
-  Eye
-} from "lucide-react";
+import { Mail, Search, Filter, Calendar, Building2, FileText, CheckCircle, Archive, ChevronLeft, ChevronRight, Loader2, RefreshCw, History, MessageSquare, Send, Inbox, Eye } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 

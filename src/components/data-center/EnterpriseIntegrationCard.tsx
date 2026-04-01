@@ -3,17 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { 
-  CheckCircle, 
-  AlertTriangle, 
-  XCircle, 
-  RefreshCw, 
-  Settings,
-  History,
-  ExternalLink,
-  Loader2,
-  Clock
-} from "lucide-react";
+import { CheckCircle, AlertTriangle, XCircle, RefreshCw, Settings, History, Loader2, Clock } from "lucide-react";
 import { format } from "date-fns";
 
 interface SyncResult {

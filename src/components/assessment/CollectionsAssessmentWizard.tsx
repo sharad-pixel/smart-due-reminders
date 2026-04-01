@@ -6,22 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  ArrowLeft,
-  ArrowRight,
-  FileText,
-  DollarSign,
-  Clock,
-  AlertTriangle,
-  Percent,
-  Loader2,
-  Brain,
-  Info,
-  TrendingDown,
-  ShieldAlert,
-  Calculator,
-  BarChart3,
-} from "lucide-react";
+import { ArrowLeft, ArrowRight, FileText, DollarSign, Clock, AlertTriangle, Percent, Loader2, Brain, Info, BarChart3 } from "lucide-react";
 import {
   AGE_BAND_OPTIONS,
   LOSS_PCT_OPTIONS,
