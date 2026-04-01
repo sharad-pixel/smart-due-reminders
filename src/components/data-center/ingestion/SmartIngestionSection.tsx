@@ -277,8 +277,12 @@ export function SmartIngestionSection() {
     );
   }
 
+  // Check if token is expired
+  const isTokenExpired = connection?.token_expires_at && new Date(connection.token_expires_at) < new Date();
+
   // Not connected state
   if (!connection) {
+    const isGoogleUser = authProvider === "google";
     return (
       <Card className="border-dashed border-2">
         <CardContent className="flex flex-col items-center justify-center py-12 text-center">
@@ -290,6 +294,14 @@ export function SmartIngestionSection() {
             Connect your Google Drive to automatically scan invoice PDFs, extract data using AI, 
             and import clean records into Recouply with full review control.
           </p>
+          {isGoogleUser && (
+            <div className="mb-4 p-3 rounded-lg bg-primary/5 border border-primary/20 max-w-md">
+              <p className="text-xs text-primary font-medium flex items-center gap-1.5">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                Signed in with Google — connection will use your existing Google session
+              </p>
+            </div>
+          )}
           <div className="flex flex-wrap justify-center gap-3 mb-6 text-xs text-muted-foreground">
             <span className="flex items-center gap-1"><Shield className="h-3 w-3" /> Read-only access</span>
             <span className="flex items-center gap-1"><Eye className="h-3 w-3" /> Review before import</span>
@@ -297,7 +309,7 @@ export function SmartIngestionSection() {
           </div>
           <Button onClick={() => connectMutation.mutate()} disabled={connectMutation.isPending}>
             {connectMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <HardDrive className="h-4 w-4 mr-2" />}
-            Connect Google Drive
+            {isGoogleUser ? "Connect with Your Google Account" : "Connect Google Drive"}
           </Button>
         </CardContent>
       </Card>
@@ -311,11 +323,20 @@ export function SmartIngestionSection() {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                <HardDrive className="h-5 w-5 text-green-600" />
+              <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${isTokenExpired ? 'bg-destructive/10' : 'bg-primary/10'}`}>
+                <HardDrive className={`h-5 w-5 ${isTokenExpired ? 'text-destructive' : 'text-primary'}`} />
               </div>
               <div>
-                <CardTitle className="text-base">Google Drive Connected</CardTitle>
+                <CardTitle className="text-base flex items-center gap-2">
+                  Google Drive Connected
+                  <Badge variant={isTokenExpired ? "destructive" : "default"} className="text-[10px]">
+                    {isTokenExpired ? (
+                      <><XCircle className="h-3 w-3 mr-1" /> Token Expired</>
+                    ) : (
+                      <><CheckCircle2 className="h-3 w-3 mr-1" /> Active</>
+                    )}
+                  </Badge>
+                </CardTitle>
                 <CardDescription className="text-xs">
                   {connection.folder_name ? (
                     <span className="flex items-center gap-1">
@@ -328,6 +349,12 @@ export function SmartIngestionSection() {
               </div>
             </div>
             <div className="flex gap-2">
+              {isTokenExpired && (
+                <Button variant="outline" size="sm" onClick={() => connectMutation.mutate()} disabled={connectMutation.isPending}>
+                  <RefreshCw className="h-4 w-4 mr-1" />
+                  Reconnect
+                </Button>
+              )}
               <Button variant="outline" size="sm" onClick={() => setFolderBrowserOpen(true)}>
                 <FolderOpen className="h-4 w-4 mr-1" />
                 {connection.folder_id ? "Change Folder" : "Select Folder"}
@@ -340,6 +367,64 @@ export function SmartIngestionSection() {
               )}
             </div>
           </div>
+
+          {/* Connection Details Row */}
+          <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-muted-foreground border-t pt-3">
+            <span className="flex items-center gap-1">
+              <Shield className="h-3 w-3" /> Provider: Google Drive
+            </span>
+            {connection.created_at && (
+              <span className="flex items-center gap-1">
+                <Clock className="h-3 w-3" /> Connected: {new Date(connection.created_at).toLocaleDateString()}
+              </span>
+            )}
+            {connection.token_expires_at && (
+              <span className="flex items-center gap-1">
+                <Clock className="h-3 w-3" /> Token expires: {new Date(connection.token_expires_at).toLocaleString()}
+              </span>
+            )}
+            {connection.sync_frequency && (
+              <span className="flex items-center gap-1">
+                <RefreshCw className="h-3 w-3" /> Sync: {connection.sync_frequency}
+              </span>
+            )}
+            <span className="ml-auto">
+              <Dialog open={disconnectOpen} onOpenChange={setDisconnectOpen}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10 h-7 px-2 text-xs"
+                  onClick={() => setDisconnectOpen(true)}
+                >
+                  <XCircle className="h-3 w-3 mr-1" />
+                  Disconnect
+                </Button>
+                <DialogContent className="max-w-sm">
+                  <DialogHeader>
+                    <DialogTitle>Disconnect Google Drive?</DialogTitle>
+                    <DialogDescription>
+                      This will disable the Google Drive connection. Your previously imported data will remain intact.
+                      You can reconnect anytime.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="flex justify-end gap-2 mt-4">
+                    <Button variant="outline" size="sm" onClick={() => setDisconnectOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => disconnectMutation.mutate()}
+                      disabled={disconnectMutation.isPending}
+                    >
+                      {disconnectMutation.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <XCircle className="h-4 w-4 mr-1" />}
+                      Disconnect
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </span>
+          </div>
         </CardHeader>
         {scanStats && (
           <CardContent className="pt-0">
@@ -349,7 +434,7 @@ export function SmartIngestionSection() {
                 <p className="text-xs text-muted-foreground">Pending</p>
               </div>
               <div className="text-center p-3 bg-muted/50 rounded-lg">
-                <p className="text-2xl font-bold text-green-600">{scanStats.processed}</p>
+                <p className="text-2xl font-bold text-primary">{scanStats.processed}</p>
                 <p className="text-xs text-muted-foreground">Processed</p>
               </div>
               <div className="text-center p-3 bg-muted/50 rounded-lg">
