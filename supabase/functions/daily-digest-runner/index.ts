@@ -1564,100 +1564,14 @@ function generateEmailHtml(data: {
         if (rr.top_risk_accounts && rr.top_risk_accounts.length > 0) {
           const rows = rr.top_risk_accounts.slice(0, 3).map(a => {
             const aColor = a.collectability_score >= 80 ? '#22c55e' : a.collectability_score >= 60 ? '#eab308' : a.collectability_score >= 40 ? '#f97316' : '#ef4444';
-            return \`
-              <tr>
-                <td style="padding: 8px 14px; border-bottom: 1px solid \${BRAND.border};">
-                  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-                    <tr>
-                      <td width="36" style="vertical-align: middle;">
-                        <div style="width: 28px; height: 28px; border-radius: 50%; background: \${aColor}; color: white; font-weight: 700; font-size: 11px; line-height: 28px; text-align: center;">\${Math.round(a.collectability_score)}</div>
-                      </td>
-                      <td style="vertical-align: middle; padding-left: 8px;">
-                        <p style="margin: 0; color: \${BRAND.foreground}; font-size: 12px; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">\${a.company_name}</p>
-                        <p style="margin: 2px 0 0; color: \${BRAND.muted}; font-size: 10px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">\${a.risk_classification}</p>
-                      </td>
-                      <td align="right" style="vertical-align: middle;">
-                        <p style="margin: 0; color: #dc2626; font-size: 12px; font-weight: 700; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">\${formatCurrency(a.ecl)}</p>
-                        <p style="margin: 1px 0 0; color: \${BRAND.muted}; font-size: 9px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">of \${formatCurrency(a.open_balance)}</p>
-                      </td>
-                    </tr>
-                  </table>
-                </td>
-              </tr>\`;
+            return '<tr><td style="padding: 8px 14px; border-bottom: 1px solid ' + BRAND.border + ';"><table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"><tr><td width="36" style="vertical-align: middle;"><div style="width: 28px; height: 28px; border-radius: 50%; background: ' + aColor + '; color: white; font-weight: 700; font-size: 11px; line-height: 28px; text-align: center;">' + Math.round(a.collectability_score) + '</div></td><td style="vertical-align: middle; padding-left: 8px;"><p style="margin: 0; color: ' + BRAND.foreground + '; font-size: 12px; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif;">' + a.company_name + '</p><p style="margin: 2px 0 0; color: ' + BRAND.muted + '; font-size: 10px; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif;">' + a.risk_classification + '</p></td><td align="right" style="vertical-align: middle;"><p style="margin: 0; color: #dc2626; font-size: 12px; font-weight: 700; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif;">' + formatCurrency(a.ecl) + '</p><p style="margin: 1px 0 0; color: ' + BRAND.muted + '; font-size: 9px; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif;">of ' + formatCurrency(a.open_balance) + '</p></td></tr></table></td></tr>';
           }).join('');
           
-          topRiskHtml = \`
-            <div style="border-bottom: 1px solid \${BRAND.border};">
-              <div style="padding: 8px 14px; background: #fef2f210;">
-                <p style="margin: 0; color: \${BRAND.muted}; font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Top Risk Accounts</p>
-              </div>
-              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\${rows}</table>
-            </div>\`;
+          topRiskHtml = '<div style="border-bottom: 1px solid ' + BRAND.border + ';"><div style="padding: 8px 14px;"><p style="margin: 0; color: ' + BRAND.muted + '; font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif;">Top Risk Accounts</p></div><table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">' + rows + '</table></div>';
         }
 
-        return \`
-        <div style="margin-bottom: 20px;">
-          <div style="background: \${BRAND.cardBg}; border: 1px solid #f59e0b40; border-radius: 10px; overflow: hidden;">
-            <div style="height: 4px; background: \${scoreColor};"></div>
-            <div style="padding: 10px 16px; border-bottom: 1px solid \${BRAND.border};">
-              <p style="color: #b45309; margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.3px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-                🛡️ REVENUE RISK & ECL INTELLIGENCE
-              </p>
-            </div>
-            
-            <!-- Key Metrics -->
-            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-              <tr>
-                <td width="33%" style="padding: 14px; text-align: center; border-right: 1px solid \${BRAND.border};">
-                  <div style="width: 44px; height: 44px; border-radius: 50%; background: \${scoreColor}; color: white; font-weight: 700; font-size: 16px; line-height: 44px; text-align: center; margin: 0 auto 4px;">
-                    \${Math.round(rr.avg_collectability_score)}
-                  </div>
-                  <p style="margin: 0; color: \${BRAND.muted}; font-size: 9px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Avg Collectability</p>
-                </td>
-                <td width="33%" style="padding: 14px; text-align: center; border-right: 1px solid \${BRAND.border};">
-                  <p style="margin: 0 0 2px; color: #dc2626; font-size: 16px; font-weight: 700; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">\${formatCurrency(rr.total_ecl)}</p>
-                  <p style="margin: 0; color: \${BRAND.muted}; font-size: 9px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Total ECL</p>
-                </td>
-                <td width="33%" style="padding: 14px; text-align: center;">
-                  <p style="margin: 0 0 2px; color: \${BRAND.foreground}; font-size: 16px; font-weight: 700; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">\${eclPct}%</p>
-                  <p style="margin: 0; color: \${BRAND.muted}; font-size: 9px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">ECL Rate</p>
-                </td>
-              </tr>
-            </table>
-            
-            <!-- Risk Tier Distribution -->
-            <div style="padding: 12px 16px; border-top: 1px solid \${BRAND.border}; border-bottom: 1px solid \${BRAND.border};">
-              <p style="margin: 0 0 8px; color: \${BRAND.muted}; font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-                Risk Distribution · \${rr.accounts_scored} accounts
-              </p>
-              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-                <tr>
-                  <td width="25%" style="text-align: center;">
-                    <p style="margin: 0; color: #16a34a; font-size: 14px; font-weight: 700;">\${rr.risk_tiers.low}</p>
-                    <p style="margin: 2px 0 0; color: #15803d; font-size: 8px;">Low</p>
-                  </td>
-                  <td width="25%" style="text-align: center;">
-                    <p style="margin: 0; color: #ca8a04; font-size: 14px; font-weight: 700;">\${rr.risk_tiers.moderate}</p>
-                    <p style="margin: 2px 0 0; color: #a16207; font-size: 8px;">Moderate</p>
-                  </td>
-                  <td width="25%" style="text-align: center;">
-                    <p style="margin: 0; color: #ea580c; font-size: 14px; font-weight: 700;">\${rr.risk_tiers.at_risk}</p>
-                    <p style="margin: 2px 0 0; color: #c2410c; font-size: 8px;">At Risk</p>
-                  </td>
-                  <td width="25%" style="text-align: center;">
-                    <p style="margin: 0; color: #dc2626; font-size: 14px; font-weight: 700;">\${rr.risk_tiers.high_risk}</p>
-                    <p style="margin: 2px 0 0; color: #b91c1c; font-size: 8px;">High Risk</p>
-                  </td>
-                </tr>
-              </table>
-            </div>
-            
-            \${topRiskHtml}
-            
-            <div style="padding: 10px 14px; text-align: center;">
-              <a href="https://recouply.ai/revenue-risk" style="color: #b45309; font-size: 11.5px; font-weight: 600; text-decoration: none; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-                View Full Revenue Risk Report →
-              </a>
+        return '<div style="margin-bottom: 20px;"><div style="background: ' + BRAND.cardBg + '; border: 1px solid #f59e0b40; border-radius: 10px; overflow: hidden;"><div style="height: 4px; background: ' + scoreColor + ';"></div><div style="padding: 10px 16px; border-bottom: 1px solid ' + BRAND.border + ';"><p style="color: #b45309; margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.3px; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif;">🛡️ REVENUE RISK &amp; ECL INTELLIGENCE</p></div><table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"><tr><td width="33%" style="padding: 14px; text-align: center; border-right: 1px solid ' + BRAND.border + ';"><div style="width: 44px; height: 44px; border-radius: 50%; background: ' + scoreColor + '; color: white; font-weight: 700; font-size: 16px; line-height: 44px; text-align: center; margin: 0 auto 4px;">' + Math.round(rr.avg_collectability_score) + '</div><p style="margin: 0; color: ' + BRAND.muted + '; font-size: 9px; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif;">Avg Collectability</p></td><td width="33%" style="padding: 14px; text-align: center; border-right: 1px solid ' + BRAND.border + ';"><p style="margin: 0 0 2px; color: #dc2626; font-size: 16px; font-weight: 700; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif;">' + formatCurrency(rr.total_ecl) + '</p><p style="margin: 0; color: ' + BRAND.muted + '; font-size: 9px; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif;">Total ECL</p></td><td width="33%" style="padding: 14px; text-align: center;"><p style="margin: 0 0 2px; color: ' + BRAND.foreground + '; font-size: 16px; font-weight: 700; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif;">' + eclPct + '%</p><p style="margin: 0; color: ' + BRAND.muted + '; font-size: 9px; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif;">ECL Rate</p></td></tr></table><div style="padding: 12px 16px; border-top: 1px solid ' + BRAND.border + '; border-bottom: 1px solid ' + BRAND.border + ';"><p style="margin: 0 0 8px; color: ' + BRAND.muted + '; font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif;">Risk Distribution · ' + rr.accounts_scored + ' accounts</p><table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"><tr><td width="25%" style="text-align: center;"><p style="margin: 0; color: #16a34a; font-size: 14px; font-weight: 700;">' + rr.risk_tiers.low + '</p><p style="margin: 2px 0 0; color: #15803d; font-size: 8px;">Low</p></td><td width="25%" style="text-align: center;"><p style="margin: 0; color: #ca8a04; font-size: 14px; font-weight: 700;">' + rr.risk_tiers.moderate + '</p><p style="margin: 2px 0 0; color: #a16207; font-size: 8px;">Moderate</p></td><td width="25%" style="text-align: center;"><p style="margin: 0; color: #ea580c; font-size: 14px; font-weight: 700;">' + rr.risk_tiers.at_risk + '</p><p style="margin: 2px 0 0; color: #c2410c; font-size: 8px;">At Risk</p></td><td width="25%" style="text-align: center;"><p style="margin: 0; color: #dc2626; font-size: 14px; font-weight: 700;">' + rr.risk_tiers.high_risk + '</p><p style="margin: 2px 0 0; color: #b91c1c; font-size: 8px;">High Risk</p></td></tr></table></div>' + topRiskHtml + '<div style="padding: 10px 14px; text-align: center;"><a href="https://recouply.ai/revenue-risk" style="color: #b45309; font-size: 11.5px; font-weight: 600; text-decoration: none; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif;">View Full Revenue Risk Report →</a></div></div></div>';
+      })()}
             </div>
           </div>
         </div>\`;
