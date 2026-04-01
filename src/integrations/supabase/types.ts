@@ -3801,7 +3801,10 @@ export type Database = {
           created_at: string
           debtor_id: string | null
           drive_file_id: string
+          folder_path: string | null
           id: string
+          last_pull_at: string | null
+          last_push_at: string | null
           last_synced_at: string | null
           organization_id: string | null
           rows_synced: number | null
@@ -3809,6 +3812,7 @@ export type Database = {
           sheet_name: string
           sheet_url: string
           status: string
+          sync_direction: string | null
           template_type: string
           updated_at: string
           user_id: string
@@ -3818,7 +3822,10 @@ export type Database = {
           created_at?: string
           debtor_id?: string | null
           drive_file_id: string
+          folder_path?: string | null
           id?: string
+          last_pull_at?: string | null
+          last_push_at?: string | null
           last_synced_at?: string | null
           organization_id?: string | null
           rows_synced?: number | null
@@ -3826,6 +3833,7 @@ export type Database = {
           sheet_name: string
           sheet_url: string
           status?: string
+          sync_direction?: string | null
           template_type?: string
           updated_at?: string
           user_id: string
@@ -3835,7 +3843,10 @@ export type Database = {
           created_at?: string
           debtor_id?: string | null
           drive_file_id?: string
+          folder_path?: string | null
           id?: string
+          last_pull_at?: string | null
+          last_push_at?: string | null
           last_synced_at?: string | null
           organization_id?: string | null
           rows_synced?: number | null
@@ -3843,6 +3854,7 @@ export type Database = {
           sheet_name?: string
           sheet_url?: string
           status?: string
+          sync_direction?: string | null
           template_type?: string
           updated_at?: string
           user_id?: string
