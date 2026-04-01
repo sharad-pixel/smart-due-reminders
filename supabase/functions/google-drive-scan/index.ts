@@ -96,12 +96,22 @@ Deno.serve(async (req) => {
 
     if (action === 'list_folders') {
       const folderId = body.parentId || 'root';
+      logStep('Listing folders', { parentId: folderId });
+      const params = new URLSearchParams({
+        q: `'${folderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+        fields: 'files(id,name)',
+        pageSize: '100',
+        orderBy: 'name',
+        supportsAllDrives: 'true',
+        includeItemsFromAllDrives: 'true',
+      });
       const res = await fetch(
-        `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+mimeType='application/vnd.google-apps.folder'+and+trashed=false&fields=files(id,name)&pageSize=100`,
+        `https://www.googleapis.com/drive/v3/files?${params}`,
         { headers: { Authorization: `Bearer ${accessToken}` } }
       );
       const data = await res.json();
       if (!res.ok) throw new Error(`Drive API error: ${JSON.stringify(data)}`);
+      logStep('Folders found', { count: (data.files || []).length });
 
       return new Response(JSON.stringify({ folders: data.files || [] }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
