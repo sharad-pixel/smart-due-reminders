@@ -193,19 +193,39 @@ async function pushPayments(supabase: any, accessToken: string, template: any, u
 }
 
 async function pullAccounts(supabase: any, accessToken: string, template: any, userId: string, orgId: string) {
-  const rows = await readSheet(accessToken, template.sheet_id, 'Accounts!A1:N5000');
+  const rows = await readSheet(accessToken, template.sheet_id, 'Accounts!A1:S5000');
   if (rows.length <= 1) return { created: 0, updated: 0, skipped: 0 };
 
   const headers = rows[0].map((h: string) => h.toLowerCase().trim());
   const raidIdx = headers.indexOf('raid');
   const companyIdx = headers.indexOf('company name');
-  const nameIdx = headers.indexOf('contact name');
-  const emailIdx = headers.indexOf('email');
-  const phoneIdx = headers.indexOf('phone');
+  const typeIdx = headers.indexOf('type (b2b/b2c)');
+  const nameIdx = headers.findIndex(h => h === 'contact name' || h === 'name');
+  const emailIdx = headers.findIndex(h => h === 'contact email' || h === 'email');
+  const phoneIdx = headers.findIndex(h => h === 'contact phone' || h === 'phone');
+  const addr1Idx = headers.indexOf('address line 1');
+  const addr2Idx = headers.indexOf('address line 2');
+  const cityIdx = headers.indexOf('city');
+  const stateIdx = headers.indexOf('state');
+  const postalIdx = headers.findIndex(h => h === 'postal code' || h === 'zip' || h === 'zip code');
+  const countryIdx = headers.indexOf('country');
+  const industryIdx = headers.indexOf('industry');
+  const extCustIdx = headers.indexOf('external customer id');
+  const crmIdx = headers.indexOf('crm id');
+  const payTermsIdx = headers.indexOf('default payment terms');
+  const notesIdx = headers.indexOf('notes');
   const sourceIdx = headers.indexOf('source');
 
   let created = 0, updated = 0, skipped = 0;
   const sheetUpdates: any[] = [];
+
+  // Helper to get column letter (supports multi-letter columns)
+  const colLetter = (idx: number) => {
+    let letter = '';
+    let n = idx;
+    while (n >= 0) { letter = String.fromCharCode(65 + (n % 26)) + letter; n = Math.floor(n / 26) - 1; }
+    return letter;
+  };
 
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
@@ -219,31 +239,43 @@ async function pullAccounts(supabase: any, accessToken: string, template: any, u
 
     if (!companyName && !contactName) continue;
 
-    if (raid && source.toLowerCase() === 'recouply') {
-      const updateData: any = {};
-      if (companyName) updateData.company_name = companyName;
-      if (contactName) updateData.name = contactName;
-      if (email) updateData.email = email;
-      if (getVal(row, phoneIdx)) updateData.phone = getVal(row, phoneIdx);
+    // Build field data from row
+    const fieldData: any = {};
+    if (companyName) fieldData.company_name = companyName;
+    if (contactName) fieldData.name = contactName;
+    if (email) fieldData.email = email;
+    if (getVal(row, phoneIdx)) fieldData.phone = getVal(row, phoneIdx);
+    if (getVal(row, typeIdx)) fieldData.type = getVal(row, typeIdx);
+    if (getVal(row, addr1Idx)) fieldData.address_line1 = getVal(row, addr1Idx);
+    if (getVal(row, addr2Idx)) fieldData.address_line2 = getVal(row, addr2Idx);
+    if (getVal(row, cityIdx)) fieldData.city = getVal(row, cityIdx);
+    if (getVal(row, stateIdx)) fieldData.state = getVal(row, stateIdx);
+    if (getVal(row, postalIdx)) fieldData.postal_code = getVal(row, postalIdx);
+    if (getVal(row, countryIdx)) fieldData.country = getVal(row, countryIdx);
+    if (getVal(row, industryIdx)) fieldData.industry = getVal(row, industryIdx);
+    if (getVal(row, extCustIdx)) fieldData.external_customer_id = getVal(row, extCustIdx);
+    if (getVal(row, crmIdx)) fieldData.crm_account_id_external = getVal(row, crmIdx);
+    if (getVal(row, payTermsIdx)) fieldData.payment_terms_default = getVal(row, payTermsIdx);
+    if (getVal(row, notesIdx)) fieldData.notes = getVal(row, notesIdx);
 
+    if (raid && source.toLowerCase() === 'recouply') {
+      // Update existing record
       const { error } = await supabase
         .from('debtors')
-        .update(updateData)
+        .update(fieldData)
         .eq('reference_id', raid)
         .eq('user_id', userId);
 
       if (!error) updated++;
       else skipped++;
     } else if (!raid || source.toLowerCase() !== 'recouply') {
+      // Create new debtor — no RAID means new account
       const { data: newDebtor, error } = await supabase
         .from('debtors')
         .insert({
           user_id: userId,
           organization_id: orgId,
-          company_name: companyName || null,
-          name: contactName || null,
-          email: email || null,
-          phone: getVal(row, phoneIdx) || null,
+          ...fieldData,
           source_system: 'google_sheets',
         })
         .select('reference_id')
@@ -251,11 +283,12 @@ async function pullAccounts(supabase: any, accessToken: string, template: any, u
 
       if (!error && newDebtor) {
         created++;
+        // Write back the generated RAID to the sheet
         if (raidIdx >= 0) {
-          sheetUpdates.push({ range: `Accounts!${String.fromCharCode(65 + raidIdx)}${i + 1}`, values: [[newDebtor.reference_id]] });
+          sheetUpdates.push({ range: `Accounts!${colLetter(raidIdx)}${i + 1}`, values: [[newDebtor.reference_id]] });
         }
         if (sourceIdx >= 0) {
-          sheetUpdates.push({ range: `Accounts!${String.fromCharCode(65 + sourceIdx)}${i + 1}`, values: [['recouply']] });
+          sheetUpdates.push({ range: `Accounts!${colLetter(sourceIdx)}${i + 1}`, values: [['recouply']] });
         }
       } else {
         skipped++;
