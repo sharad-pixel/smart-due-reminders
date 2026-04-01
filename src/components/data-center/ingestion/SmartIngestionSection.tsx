@@ -22,6 +22,7 @@ import {
   BarChart3,
   Shield,
   Sheet,
+  Trash2,
 } from "lucide-react";
 import { IngestionReviewQueue } from "./IngestionReviewQueue";
 import { IngestionDashboard } from "./IngestionDashboard";
@@ -768,7 +769,9 @@ function ScannedFilesTable({ onExtract, extracting }: { onExtract: (id: string) 
 // Scan History Log Component
 function ScanHistoryLog() {
   const [currentPage, setCurrentPage] = useState(1);
+  const [clearing, setClearing] = useState(false);
   const PAGE_SIZE = 15;
+  const queryClient = useQueryClient();
 
   const { data: auditLogs, isLoading } = useQuery({
     queryKey: ["ingestion-scan-history"],
@@ -783,6 +786,38 @@ function ScanHistoryLog() {
       return data || [];
     },
   });
+
+  const handleClearHistory = async () => {
+    if (!confirm("Clear all scan history and reset pending scanned files? This cannot be undone.")) return;
+    setClearing(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      // Delete audit logs
+      await supabase
+        .from("ingestion_audit_log")
+        .delete()
+        .eq("user_id", user.id);
+
+      // Delete pending/skipped scanned files (keep processed ones tied to approved invoices)
+      await supabase
+        .from("ingestion_scanned_files")
+        .delete()
+        .eq("user_id", user.id)
+        .in("processing_status", ["pending", "skipped_duplicate", "error"]);
+
+      toast.success("Scan history and pending files cleared");
+      queryClient.invalidateQueries({ queryKey: ["ingestion-scan-history"] });
+      queryClient.invalidateQueries({ queryKey: ["ingestion-scan-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["ingestion-pending-files"] });
+      setCurrentPage(1);
+    } catch (err: any) {
+      toast.error("Failed to clear history", { description: err.message });
+    } finally {
+      setClearing(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -816,6 +851,7 @@ function ScanHistoryLog() {
     file_approved: CheckCircle2,
     file_rejected: XCircle,
     extraction_error: XCircle,
+    file_skipped_duplicate: Shield,
   };
 
   const eventLabels: Record<string, string> = {
@@ -824,13 +860,28 @@ function ScanHistoryLog() {
     file_approved: "File Approved",
     file_rejected: "File Rejected",
     extraction_error: "Extraction Error",
+    file_skipped_duplicate: "Skipped (Duplicate)",
   };
 
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-base">Scan History</CardTitle>
-        <CardDescription>Historical log of all ingestion activity ({auditLogs.length} events)</CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-base">Scan History</CardTitle>
+            <CardDescription>Historical log of all ingestion activity ({auditLogs.length} events)</CardDescription>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleClearHistory}
+            disabled={clearing}
+            className="gap-2 text-destructive hover:text-destructive"
+          >
+            {clearing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+            Clear History
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
