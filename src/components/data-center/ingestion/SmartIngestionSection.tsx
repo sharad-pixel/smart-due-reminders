@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -25,6 +25,9 @@ import {
   Zap,
   BarChart3,
   Shield,
+  Unplug,
+  Info,
+  LogIn,
 } from "lucide-react";
 import { IngestionReviewQueue } from "./IngestionReviewQueue";
 import { IngestionDashboard } from "./IngestionDashboard";
@@ -35,7 +38,19 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export function SmartIngestionSection() {
   const queryClient = useQueryClient();
