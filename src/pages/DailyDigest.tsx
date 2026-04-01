@@ -294,6 +294,10 @@ const DailyDigest = () => {
             totalCreditLimitRecommended={digest.total_credit_limit_recommended || 0}
             portfolioRiskSummary={digest.portfolio_risk_summary}
           />
+
+          {/* Revenue Risk & ECL Intelligence */}
+          <RevenueRiskDigestCard revenueRiskSummary={digest.revenue_risk_summary} />
+
           <Card>
             <CardHeader>
               <CardTitle>AR Aging Breakdown</CardTitle>
