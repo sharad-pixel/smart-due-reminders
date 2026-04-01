@@ -89,6 +89,10 @@ export function IngestionReviewQueue() {
   const [bulkSelectedDebtorId, setBulkSelectedDebtorId] = useState<string | null>(null);
   const [bulkProgress, setBulkProgress] = useState<{ current: number; total: number } | null>(null);
 
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 15;
+
   // Fetch review queue
   const { data: reviewItems, isLoading } = useQuery({
     queryKey: ["ingestion-review-queue", statusFilter, searchTerm],
