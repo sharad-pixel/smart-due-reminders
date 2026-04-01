@@ -168,11 +168,10 @@ Deno.serve(async (req) => {
     // Get org ID
     const { data: orgId } = await supabase.rpc('get_user_organization_id', { p_user_id: user.id });
 
-    // Ensure folder structure: Drive Root (or connected folder) > Recouply > Templates
+    // Ensure folder structure: Drive Root (or connected folder) > recouply.ai data center
     const rootFolderId = connection.folder_id || null;
-    const recouplyFolderId = await ensureFolder(accessToken, rootFolderId, 'Recouply');
-    const templatesFolderId = await ensureFolder(accessToken, recouplyFolderId, 'Templates');
-    const folderPath = `Recouply/Templates`;
+    const templatesFolderId = await ensureFolder(accessToken, rootFolderId, 'recouply.ai data center');
+    const folderPath = `recouply.ai data center`;
 
     // Build sheet based on template type
     let sheetTitle: string;
