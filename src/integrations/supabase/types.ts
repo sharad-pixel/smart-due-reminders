@@ -1800,6 +1800,7 @@ export type Database = {
           plan_type: string | null
           portfolio_risk_summary: Json | null
           remaining_quota: number | null
+          revenue_risk_summary: Json | null
           subscription_status: string | null
           tasks_created_today: number | null
           total_ar_outstanding: number | null
@@ -1848,6 +1849,7 @@ export type Database = {
           plan_type?: string | null
           portfolio_risk_summary?: Json | null
           remaining_quota?: number | null
+          revenue_risk_summary?: Json | null
           subscription_status?: string | null
           tasks_created_today?: number | null
           total_ar_outstanding?: number | null
@@ -1896,6 +1898,7 @@ export type Database = {
           plan_type?: string | null
           portfolio_risk_summary?: Json | null
           remaining_quota?: number | null
+          revenue_risk_summary?: Json | null
           subscription_status?: string | null
           tasks_created_today?: number | null
           total_ar_outstanding?: number | null
