@@ -55,7 +55,7 @@ export const DraftPreviewModal = ({
     try {
       await onRegenerate(draft.id, toneIntensity);
       toast.success("Draft regenerated with new tone");
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to regenerate draft");
     } finally {
       setIsRegenerating(false);

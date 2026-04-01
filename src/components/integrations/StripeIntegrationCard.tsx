@@ -55,7 +55,7 @@ export const StripeIntegrationCard = () => {
 
       if (error && error.code !== 'PGRST116') throw error;
       setIntegration(data);
-    } catch (error: any) {
+    } catch (_error: any) {
       console.error("Failed to fetch Stripe integration:", error);
     } finally {
       setLoading(false);
@@ -85,7 +85,7 @@ export const StripeIntegrationCard = () => {
       setStripeKey("");
       setShowKeyInput(false);
       await fetchIntegration();
-    } catch (error: any) {
+    } catch (_error: any) {
       console.error("Save key error:", error);
       toast.error(error.message || "Failed to save Stripe API key");
     } finally {
@@ -111,7 +111,7 @@ export const StripeIntegrationCard = () => {
        });
 
       await fetchIntegration();
-    } catch (error: any) {
+    } catch (_error: any) {
       console.error("Sync error:", error);
       toast.error(error.message || "Failed to sync Stripe invoices");
     } finally {
@@ -140,7 +140,7 @@ export const StripeIntegrationCard = () => {
 
       toast.success("Stripe integration disconnected");
       await fetchIntegration();
-    } catch (error: any) {
+    } catch (_error: any) {
       toast.error("Failed to disconnect");
     }
   };
@@ -162,7 +162,7 @@ export const StripeIntegrationCard = () => {
 
       setIntegration(prev => prev ? { ...prev, auto_sync_enabled: enabled } : null);
       toast.success(enabled ? "Auto-sync enabled" : "Auto-sync disabled");
-    } catch (error: any) {
+    } catch (_error: any) {
       toast.error("Failed to update setting");
     }
   };

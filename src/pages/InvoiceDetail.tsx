@@ -385,7 +385,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
           setPrimaryContactEmail(invoiceRes.data.debtors?.email || null);
         }
       }
-    } catch (error: any) {
+    } catch (_error: any) {
       toast.error("Failed to load invoice details");
       navigate("/invoices");
     } finally {
@@ -434,7 +434,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
           : `Invoice marked as ${newStatus}`;
         toast.success(successMessage);
         fetchData();
-      } catch (error: any) {
+      } catch (_error: any) {
         toast.error(error.message || "Failed to update status");
       }
     };
@@ -467,7 +467,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
         toast.success("Draft approved");
       }
       fetchData();
-    } catch (error: any) {
+    } catch (_error: any) {
       toast.error(error.message || "Failed to update draft");
     }
   };
@@ -498,7 +498,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
       
       toast.success("AI draft generated! Review and approve to send.");
       fetchData();
-    } catch (error: any) {
+    } catch (_error: any) {
       toast.error(error.message || "Failed to generate draft");
     } finally {
       setGeneratingDraft(false);
@@ -527,7 +527,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
       toast.success("Email sent to " + (primaryContactEmail || invoice?.debtors?.email || "account contact") + "!");
       setPreviewModalOpen(false);
       fetchData();
-    } catch (error: any) {
+    } catch (_error: any) {
       toast.error(error.message || "Failed to send email");
     } finally {
       setSendingDraft(null);
@@ -557,7 +557,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
       toast.success("Draft updated successfully");
       setEditDialogOpen(false);
       fetchData();
-    } catch (error: any) {
+    } catch (_error: any) {
       toast.error(error.message || "Failed to update draft");
     }
   };
@@ -574,7 +574,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
       
       toast.success(data?.message || "Draft sent successfully!");
       fetchData();
-    } catch (error: any) {
+    } catch (_error: any) {
       toast.error(error.message || "Failed to send draft");
     } finally {
       setSendingDraft(null);
@@ -616,7 +616,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
       
       // Refresh drafts
       fetchData();
-    } catch (error: any) {
+    } catch (_error: any) {
       toast.error(error.message || "Failed to process command");
     }
   };
@@ -638,7 +638,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
       if (error) throw error;
       toast.success("Draft updated successfully");
       fetchData();
-    } catch (error: any) {
+    } catch (_error: any) {
       toast.error(error.message || "Failed to update draft");
     }
   };
@@ -727,7 +727,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
         toast.success(successMessage);
         setEditInvoiceDialogOpen(false);
         fetchData();
-      } catch (error: any) {
+      } catch (_error: any) {
         toast.error(error.message || "Failed to update invoice");
       }
     };
@@ -919,7 +919,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
         setPaymentReference("");
         setTransactionRefreshKey(prev => prev + 1);
         fetchData();
-      } catch (error: any) {
+      } catch (_error: any) {
         toast.error(error.message || "Failed to apply payment");
       } finally {
         setApplyingPayment(false);
@@ -1054,7 +1054,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
         setCreditWriteOffNotes("");
         setTransactionRefreshKey(prev => prev + 1);
         fetchData();
-      } catch (error: any) {
+      } catch (_error: any) {
         toast.error(error.message || `Failed to apply ${creditWriteOffType === 'credit' ? 'credit' : 'write-off'}`);
       } finally {
         setApplyingCreditWriteOff(false);
@@ -1136,7 +1136,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
       setPreviewModalOpen(true);
       
       fetchData();
-    } catch (error: any) {
+    } catch (_error: any) {
       toast.error(error.message || "Failed to generate payment acknowledgment");
     } finally {
       setGeneratingPaymentMessage(false);

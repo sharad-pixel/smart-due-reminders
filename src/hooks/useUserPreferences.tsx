@@ -33,7 +33,7 @@ export function useUserPreferences(pagePath: string) {
         if (data && !error) {
           setPreferences((data.view_config as PagePreferences) || {});
         }
-      } catch (error) {
+      } catch (_error) {
         // No preferences saved yet, that's fine
         // No preferences saved yet, that's expected
       } finally {
@@ -65,7 +65,7 @@ export function useUserPreferences(pagePath: string) {
       if (error) {
         console.error('Error saving preferences:', error);
       }
-    } catch (error) {
+    } catch (_error) {
       console.error('Error saving preferences:', error);
     }
   }, [userId, pagePath]);

@@ -245,7 +245,7 @@ const DebtorDetail = () => {
 
       if (error) throw error;
       setInboundReplies(data || []);
-    } catch (error) {
+    } catch (_error) {
       console.error("Error fetching inbound replies:", error);
     }
   };
@@ -261,7 +261,7 @@ const DebtorDetail = () => {
       
       if (error) throw error;
       setContacts(data || []);
-    } catch (error) {
+    } catch (_error) {
       console.error("Error fetching contacts:", error);
     }
   };
@@ -300,7 +300,7 @@ const DebtorDetail = () => {
       setIsAddContactOpen(false);
       setNewContact({ name: "", title: "", email: "", phone: "", outreach_enabled: true });
       fetchContacts();
-    } catch (error: any) {
+    } catch (_error: any) {
       toast.error(error.message || "Failed to add contact");
     }
   };
@@ -319,7 +319,7 @@ const DebtorDetail = () => {
       if (error) throw error;
       toast.success("Contact deleted");
       fetchContacts();
-    } catch (error: any) {
+    } catch (_error: any) {
       toast.error(error.message || "Failed to delete contact");
     }
   };
@@ -333,7 +333,7 @@ const DebtorDetail = () => {
 
       if (error) throw error;
       fetchContacts();
-    } catch (error: any) {
+    } catch (_error: any) {
       toast.error("Failed to update outreach setting");
     }
   };
@@ -392,7 +392,7 @@ const DebtorDetail = () => {
 
       toast.success("Outreach resumed! Collection emails will resume on the next scheduled date.");
       fetchDebtor();
-    } catch (error: any) {
+    } catch (_error: any) {
       console.error("Error resuming outreach:", error);
       toast.error(error.message || "Failed to resume outreach");
     } finally {
@@ -438,7 +438,7 @@ const DebtorDetail = () => {
 
       if (error) throw error;
       setTasks(data || []);
-    } catch (error) {
+    } catch (_error) {
       console.error("Error fetching tasks:", error);
     }
   };
@@ -460,7 +460,7 @@ const DebtorDetail = () => {
         address: data.address || "",
         notes: data.notes || "",
       });
-    } catch (error: any) {
+    } catch (_error: any) {
       toast.error("Failed to load account details");
       navigate("/debtors");
     } finally {
@@ -496,7 +496,7 @@ const DebtorDetail = () => {
       } else {
         setInvoices([]);
       }
-    } catch (error: any) {
+    } catch (_error: any) {
       console.error("Error fetching invoices:", error);
     }
   };
@@ -602,7 +602,7 @@ const DebtorDetail = () => {
         });
 
       setOutreach(combined);
-    } catch (error: any) {
+    } catch (_error: any) {
       console.error("Error fetching outreach:", error);
     }
   };
@@ -620,7 +620,7 @@ const DebtorDetail = () => {
 
       if (error) throw error;
       setCrmAccounts(data || []);
-    } catch (error: any) {
+    } catch (_error: any) {
       console.error("Error fetching CRM accounts:", error);
     }
   };
@@ -638,7 +638,7 @@ const DebtorDetail = () => {
       toast.success("Account updated successfully");
       setIsEditOpen(false);
       fetchDebtor();
-    } catch (error: any) {
+    } catch (_error: any) {
       toast.error(error.message || "Failed to update account");
     }
   };
@@ -653,7 +653,7 @@ const DebtorDetail = () => {
       if (error) throw error;
       toast.success("Account archived successfully");
       navigate("/debtors");
-    } catch (error: any) {
+    } catch (_error: any) {
       toast.error(error.message || "Failed to archive account");
     }
   };
@@ -669,7 +669,7 @@ const DebtorDetail = () => {
       if (error) throw error;
       toast.success(crmAccountId === "none" ? "CRM account unlinked" : "CRM account linked successfully");
       fetchDebtor();
-    } catch (error: any) {
+    } catch (_error: any) {
       toast.error(error.message || "Failed to link CRM account");
     } finally {
       setLinkingCrm(false);
@@ -899,7 +899,7 @@ const DebtorDetail = () => {
                         if (error) throw error;
                         toast.success("Primary contact created successfully");
                         fetchContacts();
-                      } catch (error: any) {
+                      } catch (_error: any) {
                         toast.error(error.message || "Failed to create contact");
                       }
                     }}
