@@ -234,20 +234,26 @@ Deno.serve(async (req) => {
           .order('due_date', { ascending: false })
           .limit(500);
 
-        const headers = ['Account RAID', 'Account Name', 'Invoice Number', 'Amount', 'Amount Outstanding', 'Currency', 'Issue Date', 'Due Date', 'Status', 'PO Number', 'Product/Description', 'Payment Terms', 'Notes', 'Recouply Ref (DO NOT EDIT)', 'Source'];
+        const headers = [
+          'Account RAID', 'Account Name', 'Invoice Number', 'Original Amount', 'Amount Outstanding',
+          'Currency', 'Issue Date', 'Due Date', 'Status', 'PO Number', 'Product/Description',
+          'Payment Terms', 'Paid Date', 'Notes', 'Recouply Ref (DO NOT EDIT)', 'Source'
+        ];
         const openRows = (invoices || []).map((inv: any) => [
           inv.debtors?.reference_id || '', inv.debtors?.company_name || '',
-          inv.invoice_number || '', inv.amount || 0, inv.amount_outstanding || inv.amount || 0,
+          inv.invoice_number || '', inv.amount_original || inv.amount || 0,
+          inv.amount_outstanding || inv.amount || 0,
           inv.currency || 'USD', inv.issue_date || '', inv.due_date || '', inv.status || 'Open',
           inv.po_number || '', inv.product_description || '', inv.payment_terms || '',
-          inv.notes || '', inv.reference_id || '', 'recouply'
+          inv.paid_date || '', inv.notes || '', inv.reference_id || '', 'recouply'
         ]);
         const paidRows = (paidInvoices || []).map((inv: any) => [
           inv.debtors?.reference_id || '', inv.debtors?.company_name || '',
-          inv.invoice_number || '', inv.amount || 0, inv.amount_outstanding || 0,
+          inv.invoice_number || '', inv.amount_original || inv.amount || 0,
+          inv.amount_outstanding || 0,
           inv.currency || 'USD', inv.issue_date || '', inv.due_date || '', inv.status || 'Paid',
           inv.po_number || '', inv.product_description || '', inv.payment_terms || '',
-          inv.notes || '', inv.reference_id || '', 'recouply'
+          inv.paid_date || '', inv.notes || '', inv.reference_id || '', 'recouply'
         ]);
         rowCount = openRows.length;
         sheets = [
