@@ -25,6 +25,8 @@ const headlines = [
   "Agentic AI for Repeatable Revenue Recovery",
   "Better Signals. Faster Recovery. Less Manual Effort.",
   "Your Revenue Recovery Engine, Always On",
+  "One Payment Portal. Every Outstanding Invoice.",
+  "Give Debtors a Self-Service Path to Pay",
 ];
 
 const subheadlines = [
