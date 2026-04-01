@@ -19,10 +19,12 @@ import AssessmentCTA from "@/components/marketing/AssessmentCTA";
 
 const Home = () => {
   const homeFaqs = [
-    { question: 'What is Collection Intelligence?', answer: 'Collection Intelligence is AI-powered technology that analyzes payment behavior patterns to predict risk, optimize outreach timing, and maximize invoice recovery rates.' },
-    { question: 'How does Recouply automate invoice collection?', answer: 'Recouply uses AI agents to automatically generate and send personalized follow-up emails based on invoice age, customer history, and payment patterns—all with human approval before sending.' },
-    { question: 'Does Recouply integrate with Stripe and QuickBooks?', answer: 'Yes, Recouply offers native integrations with Stripe and QuickBooks for real-time invoice sync and automatic payment reconciliation.' },
-    { question: 'Is there a free trial available?', answer: 'Yes, Recouply offers a 7-day free trial with full access to collection intelligence features. Payment info required upfront; auto-converts unless cancelled. Trial includes 5 invoices.' },
+    { question: 'What is AI accounts receivable automation?', answer: 'AI accounts receivable automation uses artificial intelligence to automate invoice follow-ups, predict payment behavior, score credit risk, and optimize collection timing — replacing manual AR processes with intelligent, data-driven workflows.' },
+    { question: 'How does Recouply automate invoice collection with AI?', answer: 'Recouply uses AI agents to automatically generate and send personalized follow-up emails based on invoice age, customer payment history, risk score, and engagement patterns — all with human approval before sending.' },
+    { question: 'Does Recouply integrate with Stripe and QuickBooks?', answer: 'Yes, Recouply offers native integrations with Stripe and QuickBooks for real-time invoice sync, automatic payment reconciliation, failed payment recovery, and seamless accounts receivable management.' },
+    { question: 'How does AI predict payment risk in accounts receivable?', answer: 'Recouply\'s AI analyzes debtor payment history, engagement signals, invoice characteristics, and behavioral patterns to generate risk scores and predict which invoices are likely to age, enabling proactive intervention before payments become overdue.' },
+    { question: 'Is there a free trial for the AI accounts receivable software?', answer: 'Yes, Recouply offers a 7-day free trial with full access to AI collection intelligence, risk scoring, Stripe integration, and automated outreach features. Payment info required upfront; auto-converts unless cancelled. Trial includes 5 invoices.' },
+    { question: 'What is Collection Intelligence?', answer: 'Collection Intelligence is Recouply\'s AI-powered technology that analyzes every touchpoint — payment behavior, communication engagement, invoice aging, and risk signals — to predict outcomes, optimize outreach timing, and maximize accounts receivable recovery rates.' },
   ];
 
   return (
