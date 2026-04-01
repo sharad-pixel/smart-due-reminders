@@ -733,6 +733,15 @@ const Debtors = () => {
                   <Sparkles className="h-4 w-4" />
                   Find Duplicates
                 </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowManualMerge(true)}
+                  className="gap-2"
+                >
+                  <Merge className="h-4 w-4" />
+                  Merge by Name/Email
+                </Button>
               </div>
               
               {/* Bulk Actions Bar */}
