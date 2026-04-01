@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -8,6 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Progress } from "@/components/ui/progress";
 import {
   Dialog,
   DialogContent,
@@ -37,6 +40,12 @@ import {
   Search,
   Filter,
   Shield,
+  CheckSquare,
+  Layers,
+  Sparkles,
+  Building2,
+  Mail,
+  Hash,
 } from "lucide-react";
 
 interface ReviewItem {
@@ -72,6 +81,14 @@ export function IngestionReviewQueue() {
   const [editMode, setEditMode] = useState(false);
   const [editData, setEditData] = useState<any>({});
   const [showDebtorSelector, setShowDebtorSelector] = useState(false);
+  const [debtorSearchTerm, setDebtorSearchTerm] = useState("");
+
+  // Bulk state
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
+  const [showBulkMatchDialog, setShowBulkMatchDialog] = useState(false);
+  const [bulkDebtorSearch, setBulkDebtorSearch] = useState("");
+  const [bulkSelectedDebtorId, setBulkSelectedDebtorId] = useState<string | null>(null);
+  const [bulkProgress, setBulkProgress] = useState<{ current: number; total: number } | null>(null);
 
   // Fetch review queue
   const { data: reviewItems, isLoading } = useQuery({
@@ -123,13 +140,62 @@ export function IngestionReviewQueue() {
     },
   });
 
-  // Approve import
+  // Filtered debtors for single-item selector
+  const filteredDebtors = useMemo(() => {
+    if (!debtors) return [];
+    if (!debtorSearchTerm) return debtors;
+    const term = debtorSearchTerm.toLowerCase();
+    return debtors.filter((d: any) =>
+      d.company_name?.toLowerCase().includes(term) ||
+      d.name?.toLowerCase().includes(term) ||
+      d.email?.toLowerCase().includes(term) ||
+      d.reference_id?.toLowerCase().includes(term)
+    );
+  }, [debtors, debtorSearchTerm]);
+
+  // Filtered debtors for bulk match dialog
+  const bulkFilteredDebtors = useMemo(() => {
+    if (!debtors) return [];
+    if (!bulkDebtorSearch) return debtors;
+    const term = bulkDebtorSearch.toLowerCase();
+    return debtors.filter((d: any) =>
+      d.company_name?.toLowerCase().includes(term) ||
+      d.name?.toLowerCase().includes(term) ||
+      d.email?.toLowerCase().includes(term) ||
+      d.reference_id?.toLowerCase().includes(term)
+    );
+  }, [debtors, bulkDebtorSearch]);
+
+  // Pending items for bulk selection
+  const pendingItems = useMemo(() =>
+    reviewItems?.filter(i => i.review_status === "pending") || [],
+    [reviewItems]
+  );
+
+  // Select all / none
+  const toggleSelectAll = () => {
+    if (selectedRows.size === pendingItems.length) {
+      setSelectedRows(new Set());
+    } else {
+      setSelectedRows(new Set(pendingItems.map(i => i.id)));
+    }
+  };
+
+  const toggleRow = (id: string) => {
+    setSelectedRows(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  // Approve import (single)
   const approveMutation = useMutation({
     mutationFn: async (item: ReviewItem) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // Validate
       const errors: string[] = [];
       const inv = editMode ? editData : item;
       if (!inv.extracted_invoice_number) errors.push("Invoice number is required");
@@ -140,14 +206,9 @@ export function IngestionReviewQueue() {
       if (!inv.matched_debtor_id && !inv.extracted_company_name && !inv.extracted_debtor_name) {
         errors.push("A debtor must be matched or created");
       }
-
-      if (errors.length > 0) {
-        throw new Error(errors.join("; "));
-      }
+      if (errors.length > 0) throw new Error(errors.join("; "));
 
       let debtorId = inv.matched_debtor_id;
-
-      // Create debtor if not matched
       if (!debtorId) {
         const { data: orgId } = await supabase.rpc("get_user_organization_id" as any, { p_user_id: user.id });
         const { data: newDebtor, error: debtorErr } = await supabase
@@ -161,12 +222,10 @@ export function IngestionReviewQueue() {
           } as any)
           .select("id")
           .single();
-
         if (debtorErr) throw new Error(`Failed to create debtor: ${debtorErr.message}`);
         debtorId = newDebtor.id;
       }
 
-      // Create invoice
       const { data: orgId } = await supabase.rpc("get_user_organization_id" as any, { p_user_id: user.id });
       const { data: newInvoice, error: invErr } = await supabase
         .from("invoices")
@@ -188,18 +247,9 @@ export function IngestionReviewQueue() {
 
       if (invErr) throw new Error(`Failed to create invoice: ${invErr.message}`);
 
-      // Update review queue item
       const edits = editMode ? {
-        original: {
-          invoice_number: item.extracted_invoice_number,
-          amount: item.extracted_amount,
-          due_date: item.extracted_due_date,
-        },
-        edited: {
-          invoice_number: inv.extracted_invoice_number,
-          amount: inv.extracted_amount,
-          due_date: inv.extracted_due_date,
-        },
+        original: { invoice_number: item.extracted_invoice_number, amount: item.extracted_amount, due_date: item.extracted_due_date },
+        edited: { invoice_number: inv.extracted_invoice_number, amount: inv.extracted_amount, due_date: inv.extracted_due_date },
       } : null;
 
       await supabase
@@ -215,7 +265,6 @@ export function IngestionReviewQueue() {
         })
         .eq("id", item.id);
 
-      // Record ingestion usage charge ($0.75 per approved file)
       const now = new Date();
       const billingPeriod = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
       await supabase.from("ingestion_usage_charges").insert({
@@ -228,7 +277,6 @@ export function IngestionReviewQueue() {
         billing_period: billingPeriod,
       } as any);
 
-      // Audit log
       await supabase.from("ingestion_audit_log").insert({
         user_id: user.id,
         organization_id: orgId,
@@ -255,21 +303,15 @@ export function IngestionReviewQueue() {
     onError: (err: any) => toast.error("Import failed", { description: err.message }),
   });
 
-  // Reject
+  // Reject (single)
   const rejectMutation = useMutation({
     mutationFn: async (itemId: string) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
-
       await supabase
         .from("ingestion_review_queue")
-        .update({
-          review_status: "rejected",
-          reviewed_by: user.id,
-          reviewed_at: new Date().toISOString(),
-        })
+        .update({ review_status: "rejected", reviewed_by: user.id, reviewed_at: new Date().toISOString() })
         .eq("id", itemId);
-
       const { data: orgId } = await supabase.rpc("get_user_organization_id" as any, { p_user_id: user.id });
       await supabase.from("ingestion_audit_log").insert({
         user_id: user.id,
@@ -286,10 +328,161 @@ export function IngestionReviewQueue() {
     },
   });
 
+  // Bulk match mutation
+  const bulkMatchMutation = useMutation({
+    mutationFn: async ({ rowIds, debtorId }: { rowIds: string[]; debtorId: string }) => {
+      const { error } = await supabase
+        .from("ingestion_review_queue")
+        .update({ matched_debtor_id: debtorId, debtor_match_confidence: 100 })
+        .in("id", rowIds);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success(`${selectedRows.size} items matched to debtor`);
+      setSelectedRows(new Set());
+      setShowBulkMatchDialog(false);
+      setBulkSelectedDebtorId(null);
+      setBulkDebtorSearch("");
+      queryClient.invalidateQueries({ queryKey: ["ingestion-review-queue"] });
+    },
+    onError: (err: any) => toast.error("Bulk match failed", { description: err.message }),
+  });
+
+  // Bulk approve
+  const bulkApproveMutation = useMutation({
+    mutationFn: async (rowIds: string[]) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+      const { data: orgId } = await supabase.rpc("get_user_organization_id" as any, { p_user_id: user.id });
+
+      const items = reviewItems?.filter(i => rowIds.includes(i.id)) || [];
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (let idx = 0; idx < items.length; idx++) {
+        const item = items[idx];
+        setBulkProgress({ current: idx + 1, total: items.length });
+        try {
+          if (!item.extracted_invoice_number || !item.extracted_amount || item.extracted_amount <= 0) {
+            errorCount++;
+            continue;
+          }
+
+          let debtorId = item.matched_debtor_id;
+          if (!debtorId) {
+            if (!item.extracted_company_name && !item.extracted_debtor_name) {
+              errorCount++;
+              continue;
+            }
+            const { data: newDebtor, error: dErr } = await supabase
+              .from("debtors")
+              .insert({
+                user_id: user.id,
+                organization_id: orgId,
+                company_name: item.extracted_company_name || item.extracted_debtor_name || "Unknown",
+                name: item.extracted_debtor_name || null,
+                email: item.extracted_billing_email || null,
+              } as any)
+              .select("id")
+              .single();
+            if (dErr) { errorCount++; continue; }
+            debtorId = newDebtor.id;
+          }
+
+          const { data: newInvoice, error: iErr } = await supabase
+            .from("invoices")
+            .insert({
+              user_id: user.id,
+              organization_id: orgId,
+              debtor_id: debtorId,
+              invoice_number: item.extracted_invoice_number,
+              amount: item.extracted_amount,
+              amount_outstanding: item.extracted_outstanding_balance || item.extracted_amount,
+              issue_date: item.extracted_invoice_date || new Date().toISOString().split("T")[0],
+              due_date: item.extracted_due_date || new Date().toISOString().split("T")[0],
+              status: "Open",
+              source_system: "google_drive",
+              notes: "Imported from Google Drive PDF ingestion (bulk)",
+            } as any)
+            .select("id")
+            .single();
+
+          if (iErr) { errorCount++; continue; }
+
+          await supabase
+            .from("ingestion_review_queue")
+            .update({
+              review_status: "approved",
+              reviewed_by: user.id,
+              reviewed_at: new Date().toISOString(),
+              created_invoice_id: newInvoice.id,
+              created_debtor_id: debtorId,
+              matched_debtor_id: debtorId,
+            })
+            .eq("id", item.id);
+
+          const now = new Date();
+          const billingPeriod = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+          await supabase.from("ingestion_usage_charges").insert({
+            user_id: user.id,
+            organization_id: orgId,
+            review_item_id: item.id,
+            scanned_file_id: item.scanned_file_id,
+            file_name: item.ingestion_scanned_files?.file_name || item.extracted_invoice_number || "Unknown",
+            charge_amount: 0.75,
+            billing_period: billingPeriod,
+          } as any);
+
+          successCount++;
+        } catch {
+          errorCount++;
+        }
+      }
+
+      setBulkProgress(null);
+      return { successCount, errorCount };
+    },
+    onSuccess: (result) => {
+      toast.success(`Bulk import complete: ${result.successCount} approved, ${result.errorCount} failed`);
+      setSelectedRows(new Set());
+      queryClient.invalidateQueries({ queryKey: ["ingestion-review-queue"] });
+      queryClient.invalidateQueries({ queryKey: ["ingestion-scan-stats"] });
+    },
+    onError: (err: any) => {
+      setBulkProgress(null);
+      toast.error("Bulk approve failed", { description: err.message });
+    },
+  });
+
+  // Bulk reject
+  const bulkRejectMutation = useMutation({
+    mutationFn: async (rowIds: string[]) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+      await supabase
+        .from("ingestion_review_queue")
+        .update({ review_status: "rejected", reviewed_by: user.id, reviewed_at: new Date().toISOString() })
+        .in("id", rowIds);
+    },
+    onSuccess: () => {
+      toast.success(`${selectedRows.size} items rejected`);
+      setSelectedRows(new Set());
+      queryClient.invalidateQueries({ queryKey: ["ingestion-review-queue"] });
+      queryClient.invalidateQueries({ queryKey: ["ingestion-scan-stats"] });
+    },
+  });
+
   const getConfidenceColor = (score: number) => {
-    if (score >= 80) return "text-green-600 bg-green-100";
-    if (score >= 50) return "text-amber-600 bg-amber-100";
-    return "text-red-600 bg-red-100";
+    if (score >= 80) return "text-green-600 bg-green-100 dark:bg-green-900/30";
+    if (score >= 50) return "text-amber-600 bg-amber-100 dark:bg-amber-900/30";
+    return "text-red-600 bg-red-100 dark:bg-red-900/30";
+  };
+
+  const getConfidenceLabel = (score: number) => {
+    if (score >= 90) return "High";
+    if (score >= 70) return "Medium";
+    if (score >= 50) return "Low";
+    return "Very Low";
   };
 
   const statusCounts = {
@@ -304,15 +497,33 @@ export function IngestionReviewQueue() {
     );
   }
 
+  const selectedDebtorForBulk = debtors?.find((d: any) => d.id === bulkSelectedDebtorId);
+
   return (
     <div className="space-y-4">
-      {/* Filters */}
+      {/* Stats Bar */}
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { label: "Pending", count: statusCounts.pending, color: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-900/20" },
+          { label: "Approved", count: statusCounts.approved, color: "text-green-600", bg: "bg-green-50 dark:bg-green-900/20" },
+          { label: "Rejected", count: statusCounts.rejected, color: "text-red-600", bg: "bg-red-50 dark:bg-red-900/20" },
+        ].map(s => (
+          <Card key={s.label} className={s.bg}>
+            <CardContent className="py-3 px-4 flex items-center justify-between">
+              <span className="text-xs font-medium text-muted-foreground">{s.label}</span>
+              <span className={`text-lg font-bold ${s.color}`}>{s.count}</span>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Filters & Bulk Actions Bar */}
       <Card>
-        <CardContent className="pt-4">
-          <div className="flex items-center gap-4 flex-wrap">
+        <CardContent className="pt-4 pb-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <div className="flex items-center gap-2">
               <Filter className="h-4 w-4 text-muted-foreground" />
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setSelectedRows(new Set()); }}>
                 <SelectTrigger className="w-40">
                   <SelectValue />
                 </SelectTrigger>
@@ -327,13 +538,72 @@ export function IngestionReviewQueue() {
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search invoices..."
+                placeholder="Search invoices, companies, files..."
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
                 className="pl-10"
               />
             </div>
+
+            {/* Bulk controls */}
+            {statusFilter === "pending" && pendingItems.length > 0 && (
+              <div className="flex items-center gap-2 ml-auto">
+                <Button size="sm" variant="ghost" onClick={toggleSelectAll} className="text-xs">
+                  <CheckSquare className="h-3.5 w-3.5 mr-1" />
+                  {selectedRows.size === pendingItems.length ? "Deselect All" : "Select All"}
+                </Button>
+                {selectedRows.size > 0 && (
+                  <Badge variant="secondary" className="text-xs">
+                    {selectedRows.size} selected
+                  </Badge>
+                )}
+              </div>
+            )}
           </div>
+
+          {/* Bulk Action Buttons */}
+          {selectedRows.size > 0 && (
+            <div className="flex items-center gap-2 mt-3 pt-3 border-t">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium mr-2">Bulk Actions:</span>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => { setShowBulkMatchDialog(true); setBulkDebtorSearch(""); setBulkSelectedDebtorId(null); }}
+              >
+                <Link2 className="h-3.5 w-3.5 mr-1" />
+                Match to Debtor
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => bulkApproveMutation.mutate(Array.from(selectedRows))}
+                disabled={bulkApproveMutation.isPending}
+              >
+                {bulkApproveMutation.isPending ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5 mr-1" />}
+                Approve ({selectedRows.size})
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => bulkRejectMutation.mutate(Array.from(selectedRows))}
+                disabled={bulkRejectMutation.isPending}
+              >
+                <XCircle className="h-3.5 w-3.5 mr-1" />
+                Reject ({selectedRows.size})
+              </Button>
+            </div>
+          )}
+
+          {/* Bulk progress */}
+          {bulkProgress && (
+            <div className="mt-3 space-y-1">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>Processing {bulkProgress.current} of {bulkProgress.total}...</span>
+                <span>{Math.round((bulkProgress.current / bulkProgress.total) * 100)}%</span>
+              </div>
+              <Progress value={(bulkProgress.current / bulkProgress.total) * 100} className="h-1.5" />
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -349,60 +619,84 @@ export function IngestionReviewQueue() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-2">
-          {reviewItems.map(item => (
-            <Card
-              key={item.id}
-              className="cursor-pointer hover:border-primary/40 transition-colors"
-              onClick={() => {
-                setSelectedItem(item);
-                setEditData({ ...item });
-                setEditMode(false);
-              }}
-            >
-              <CardContent className="flex items-center justify-between py-3 px-4">
-                <div className="flex items-center gap-4 min-w-0">
-                  <FileText className="h-5 w-5 text-red-500 shrink-0" />
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium truncate">
-                        {item.extracted_invoice_number || "No invoice number"}
-                      </p>
-                      {item.is_duplicate && (
-                        <Badge variant="outline" className="text-xs text-amber-600 border-amber-300">
-                          <AlertTriangle className="h-3 w-3 mr-1" /> Duplicate
+        <div className="space-y-1.5">
+          {reviewItems.map(item => {
+            const isPending = item.review_status === "pending";
+            const isSelected = selectedRows.has(item.id);
+            return (
+              <Card
+                key={item.id}
+                className={`transition-all ${isSelected ? "border-primary/60 bg-primary/5" : "hover:border-primary/30"}`}
+              >
+                <CardContent className="flex items-center gap-3 py-2.5 px-4">
+                  {/* Checkbox */}
+                  {isPending && statusFilter === "pending" && (
+                    <Checkbox
+                      checked={isSelected}
+                      onCheckedChange={() => toggleRow(item.id)}
+                      onClick={e => e.stopPropagation()}
+                    />
+                  )}
+
+                  {/* Content - clickable */}
+                  <div
+                    className="flex items-center justify-between flex-1 min-w-0 cursor-pointer"
+                    onClick={() => {
+                      setSelectedItem(item);
+                      setEditData({ ...item });
+                      setEditMode(false);
+                      setDebtorSearchTerm("");
+                    }}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <FileText className="h-4 w-4 text-red-500 shrink-0" />
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium truncate">
+                            {item.extracted_invoice_number || "No invoice number"}
+                          </p>
+                          {item.is_duplicate && (
+                            <Badge variant="outline" className="text-xs text-amber-600 border-amber-300">
+                              <AlertTriangle className="h-3 w-3 mr-1" /> Duplicate
+                            </Badge>
+                          )}
+                          {item.matched_debtor_id && (
+                            <Badge variant="outline" className="text-xs text-green-600 border-green-300">
+                              <Link2 className="h-3 w-3 mr-1" /> Matched
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {item.extracted_company_name || item.extracted_debtor_name || "Unknown debtor"}
+                          {item.extracted_amount != null && ` · $${item.extracted_amount.toLocaleString()}`}
+                          {" · "}{(item.ingestion_scanned_files as any)?.file_name}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0 ml-3">
+                      <Badge className={`text-xs ${getConfidenceColor(item.confidence_score)}`}>
+                        {item.confidence_score}% · {getConfidenceLabel(item.confidence_score)}
+                      </Badge>
+                      {item.validation_errors && item.validation_errors.length > 0 && (
+                        <Badge variant="outline" className="text-xs text-destructive border-destructive/30">
+                          {item.validation_errors.length} issues
                         </Badge>
                       )}
+                      <Badge variant={item.review_status === "approved" ? "default" : item.review_status === "rejected" ? "destructive" : "secondary"}>
+                        {item.review_status}
+                      </Badge>
+                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      {item.extracted_company_name || item.extracted_debtor_name || "Unknown debtor"}
-                      {item.extracted_amount && ` • $${item.extracted_amount.toLocaleString()}`}
-                      {" • "}{(item.ingestion_scanned_files as any)?.file_name}
-                    </p>
                   </div>
-                </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  <Badge className={`text-xs ${getConfidenceColor(item.confidence_score)}`}>
-                    {item.confidence_score}%
-                  </Badge>
-                  {item.validation_errors && item.validation_errors.length > 0 && (
-                    <Badge variant="outline" className="text-xs text-destructive border-destructive/30">
-                      {item.validation_errors.length} issues
-                    </Badge>
-                  )}
-                  <Badge variant={item.review_status === "approved" ? "default" : item.review_status === "rejected" ? "destructive" : "secondary"}>
-                    {item.review_status}
-                  </Badge>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 
-      {/* Review Detail Dialog */}
-      <Dialog open={!!selectedItem} onOpenChange={(open) => { if (!open) { setSelectedItem(null); setEditMode(false); }}}>
+      {/* =============== REVIEW DETAIL DIALOG =============== */}
+      <Dialog open={!!selectedItem} onOpenChange={(open) => { if (!open) { setSelectedItem(null); setEditMode(false); setShowDebtorSelector(false); }}}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           {selectedItem && (
             <>
@@ -432,15 +726,17 @@ export function IngestionReviewQueue() {
                     )}
                   </div>
 
-                  {/* Validation Errors */}
                   {selectedItem.validation_errors && selectedItem.validation_errors.length > 0 && (
                     <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
-                      <p className="text-xs font-medium text-destructive mb-1">Validation Issues:</p>
+                      <p className="text-xs font-medium text-destructive mb-1">Extraction Errors:</p>
                       {selectedItem.validation_errors.map((err, i) => (
                         <p key={i} className="text-xs text-destructive flex items-center gap-1">
                           <XCircle className="h-3 w-3" /> {err}
                         </p>
                       ))}
+                      <p className="text-xs text-muted-foreground mt-2 italic">
+                        You can fix these using "Edit Fields" before approving.
+                      </p>
                     </div>
                   )}
 
@@ -454,14 +750,14 @@ export function IngestionReviewQueue() {
 
                   <div className="space-y-3">
                     {[
-                      { label: "Invoice Number", key: "extracted_invoice_number" },
+                      { label: "Invoice Number", key: "extracted_invoice_number", icon: Hash },
                       { label: "Invoice Date", key: "extracted_invoice_date", type: "date" },
                       { label: "Due Date", key: "extracted_due_date", type: "date" },
                       { label: "Amount", key: "extracted_amount", type: "number" },
                       { label: "Outstanding Balance", key: "extracted_outstanding_balance", type: "number" },
-                      { label: "Company Name", key: "extracted_company_name" },
+                      { label: "Company Name", key: "extracted_company_name", icon: Building2 },
                       { label: "Contact Name", key: "extracted_debtor_name" },
-                      { label: "Billing Email", key: "extracted_billing_email" },
+                      { label: "Billing Email", key: "extracted_billing_email", icon: Mail },
                       { label: "PO Number", key: "extracted_po_number" },
                       { label: "Address", key: "extracted_address" },
                     ].map(field => (
@@ -491,7 +787,6 @@ export function IngestionReviewQueue() {
 
                 {/* Right: Debtor Matching & Confidence */}
                 <div className="space-y-4">
-                  {/* Debtor Match */}
                   <div>
                     <h3 className="text-sm font-semibold mb-2">Debtor Matching</h3>
                     {selectedItem.matched_debtor_id ? (
@@ -502,10 +797,19 @@ export function IngestionReviewQueue() {
                             <div>
                               <p className="text-sm font-medium">Matched to existing debtor</p>
                               <p className="text-xs text-muted-foreground">
-                                Confidence: {selectedItem.debtor_match_confidence}%
+                                {debtors?.find((d: any) => d.id === selectedItem.matched_debtor_id)?.company_name || "Unknown"} · Confidence: {selectedItem.debtor_match_confidence}%
                               </p>
                             </div>
                           </div>
+                          {selectedItem.review_status === "pending" && (
+                            <Button size="sm" variant="ghost" className="mt-2 text-xs" onClick={() => {
+                              setSelectedItem(prev => prev ? { ...prev, matched_debtor_id: null, debtor_match_confidence: null } : null);
+                              setEditData((prev: any) => ({ ...prev, matched_debtor_id: null }));
+                              setShowDebtorSelector(true);
+                            }}>
+                              Change Match
+                            </Button>
+                          )}
                         </CardContent>
                       </Card>
                     ) : (
@@ -513,7 +817,7 @@ export function IngestionReviewQueue() {
                         <CardContent className="py-3">
                           <p className="text-sm text-amber-700 dark:text-amber-400 mb-2">No debtor match found</p>
                           <div className="flex gap-2">
-                            <Button size="sm" variant="outline" onClick={() => setShowDebtorSelector(!showDebtorSelector)}>
+                            <Button size="sm" variant="outline" onClick={() => { setShowDebtorSelector(!showDebtorSelector); setDebtorSearchTerm(""); }}>
                               <Link2 className="h-3 w-3 mr-1" />
                               Match Existing
                             </Button>
@@ -528,24 +832,42 @@ export function IngestionReviewQueue() {
 
                     {showDebtorSelector && (
                       <Card className="mt-2">
-                        <CardContent className="py-3 max-h-48 overflow-y-auto">
-                          {debtors?.map((d: any) => (
-                            <div
-                              key={d.id}
-                              className="flex items-center justify-between p-2 hover:bg-muted/50 rounded cursor-pointer"
-                              onClick={() => {
-                                setEditData((prev: any) => ({ ...prev, matched_debtor_id: d.id }));
-                                setSelectedItem(prev => prev ? { ...prev, matched_debtor_id: d.id, debtor_match_confidence: 100 } : null);
-                                setShowDebtorSelector(false);
-                              }}
-                            >
-                              <div>
-                                <p className="text-sm font-medium">{d.company_name}</p>
-                                <p className="text-xs text-muted-foreground">{d.email || d.reference_id}</p>
-                              </div>
-                              <ArrowRight className="h-3 w-3" />
-                            </div>
-                          ))}
+                        <CardContent className="py-3">
+                          <div className="relative mb-2">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                            <Input
+                              placeholder="Search by name, email, or ID..."
+                              value={debtorSearchTerm}
+                              onChange={e => setDebtorSearchTerm(e.target.value)}
+                              className="pl-9 h-8 text-sm"
+                              autoFocus
+                            />
+                          </div>
+                          <ScrollArea className="max-h-48">
+                            {filteredDebtors.length === 0 ? (
+                              <p className="text-xs text-muted-foreground text-center py-4">No debtors found</p>
+                            ) : (
+                              filteredDebtors.map((d: any) => (
+                                <div
+                                  key={d.id}
+                                  className="flex items-center justify-between p-2 hover:bg-muted/50 rounded cursor-pointer"
+                                  onClick={() => {
+                                    setEditData((prev: any) => ({ ...prev, matched_debtor_id: d.id }));
+                                    setSelectedItem(prev => prev ? { ...prev, matched_debtor_id: d.id, debtor_match_confidence: 100 } : null);
+                                    setShowDebtorSelector(false);
+                                  }}
+                                >
+                                  <div className="min-w-0">
+                                    <p className="text-sm font-medium truncate">{d.company_name || d.name}</p>
+                                    <p className="text-xs text-muted-foreground truncate">
+                                      {d.email && `${d.email} · `}{d.reference_id || ""}
+                                    </p>
+                                  </div>
+                                  <ArrowRight className="h-3 w-3 shrink-0 ml-2" />
+                                </div>
+                              ))
+                            )}
+                          </ScrollArea>
                         </CardContent>
                       </Card>
                     )}
@@ -599,6 +921,93 @@ export function IngestionReviewQueue() {
               )}
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* =============== BULK MATCH DIALOG =============== */}
+      <Dialog open={showBulkMatchDialog} onOpenChange={setShowBulkMatchDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Layers className="h-5 w-5" />
+              Bulk Match to Debtor
+            </DialogTitle>
+            <DialogDescription>
+              Match {selectedRows.size} selected invoice{selectedRows.size !== 1 ? "s" : ""} to an existing debtor account.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search debtors by name, email, or RAID..."
+                value={bulkDebtorSearch}
+                onChange={e => setBulkDebtorSearch(e.target.value)}
+                className="pl-10"
+                autoFocus
+              />
+            </div>
+
+            {bulkSelectedDebtorId && selectedDebtorForBulk && (
+              <Card className="bg-primary/5 border-primary/30">
+                <CardContent className="py-3 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">{selectedDebtorForBulk.company_name || selectedDebtorForBulk.name}</p>
+                    <p className="text-xs text-muted-foreground">{selectedDebtorForBulk.email} · {selectedDebtorForBulk.reference_id}</p>
+                  </div>
+                  <Badge>Selected</Badge>
+                </CardContent>
+              </Card>
+            )}
+
+            <ScrollArea className="h-[280px] border rounded-lg">
+              {bulkFilteredDebtors.length === 0 ? (
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-sm text-muted-foreground">No matching debtors found</p>
+                </div>
+              ) : (
+                <div className="p-1">
+                  {bulkFilteredDebtors.map((d: any) => (
+                    <div
+                      key={d.id}
+                      className={`flex items-center justify-between p-2.5 rounded cursor-pointer transition-colors ${
+                        bulkSelectedDebtorId === d.id
+                          ? "bg-primary/10 border border-primary/30"
+                          : "hover:bg-muted/50"
+                      }`}
+                      onClick={() => setBulkSelectedDebtorId(d.id)}
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{d.company_name || d.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {d.email && `${d.email} · `}{d.reference_id || ""}
+                        </p>
+                      </div>
+                      {bulkSelectedDebtorId === d.id && (
+                        <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </ScrollArea>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBulkMatchDialog(false)}>Cancel</Button>
+            <Button
+              disabled={!bulkSelectedDebtorId || bulkMatchMutation.isPending}
+              onClick={() => {
+                if (bulkSelectedDebtorId) {
+                  bulkMatchMutation.mutate({ rowIds: Array.from(selectedRows), debtorId: bulkSelectedDebtorId });
+                }
+              }}
+            >
+              {bulkMatchMutation.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Link2 className="h-4 w-4 mr-1" />}
+              Match {selectedRows.size} Items
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
