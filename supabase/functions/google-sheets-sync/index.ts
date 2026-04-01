@@ -65,24 +65,36 @@ async function batchUpdateSheet(accessToken: string, spreadsheetId: string, upda
 async function pushAccounts(supabase: any, accessToken: string, template: any, userId: string) {
   const { data: debtors } = await supabase
     .from('debtors')
-    .select('reference_id, company_name, name, email, phone, address, city, state, zip_code, country, industry, notes, current_balance')
+    .select('reference_id, company_name, type, name, email, phone, address_line1, address_line2, city, state, postal_code, country, industry, external_customer_id, crm_account_id_external, payment_terms_default, notes, current_balance')
     .eq('user_id', userId)
     .eq('is_archived', false)
     .order('company_name', { ascending: true });
 
-  const headers = ['RAID', 'Company Name', 'Contact Name', 'Email', 'Phone', 'Address', 'City', 'State', 'Zip', 'Country', 'Industry', 'Notes', 'Current Balance', 'Source'];
+  const headers = [
+    'RAID', 'Company Name', 'Type (B2B/B2C)', 'Contact Name', 'Contact Email', 'Contact Phone',
+    'Address Line 1', 'Address Line 2', 'City', 'State', 'Postal Code', 'Country',
+    'Industry', 'External Customer ID', 'CRM ID', 'Default Payment Terms',
+    'Notes', 'Current Balance', 'Source'
+  ];
   const rows = [headers, ...(debtors || []).map((d: any) => [
-    d.reference_id || '', d.company_name || '', d.name || '', d.email || '',
-    d.phone || '', d.address || '', d.city || '', d.state || '', d.zip_code || '',
-    d.country || '', d.industry || '', d.notes || '', d.current_balance || 0, 'recouply',
+    d.reference_id || '', d.company_name || '', d.type || 'B2B',
+    d.name || '', d.email || '', d.phone || '',
+    d.address_line1 || '', d.address_line2 || '', d.city || '', d.state || '',
+    d.postal_code || '', d.country || '', d.industry || '',
+    d.external_customer_id || '', d.crm_account_id_external || '',
+    d.payment_terms_default || '', d.notes || '', d.current_balance || 0, 'recouply',
   ])];
 
+  // Clear existing data then write
+  await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${template.sheet_id}/values/Accounts!A:S:clear`, {
+    method: 'POST', headers: { Authorization: `Bearer ${accessToken}` },
+  });
   await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${template.sheet_id}/values/Accounts!A1:N${rows.length}?valueInputOption=RAW`,
+    `https://sheets.googleapis.com/v4/spreadsheets/${template.sheet_id}/values/Accounts!A1?valueInputOption=RAW`,
     {
       method: 'PUT',
       headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ range: `Accounts!A1:N${rows.length}`, majorDimension: 'ROWS', values: rows }),
+      body: JSON.stringify({ values: rows }),
     }
   );
 
