@@ -145,7 +145,7 @@ export function SheetTemplatesSection() {
       <Card className="border-dashed">
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
-            <Sheet className="h-5 w-5 text-muted-foreground" />
+            <GoogleSheetsIcon className="h-5 w-5" />
             Google Sheet Templates
           </CardTitle>
           <CardDescription>
