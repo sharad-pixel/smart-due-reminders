@@ -259,6 +259,25 @@ export const IntegrationSourceBanner = ({
     );
   }
 
+  // Google Drive / Smart Ingestion
+  if (source === "google_drive") {
+    return (
+      <Alert className="bg-cyan-50 border-cyan-200 dark:bg-cyan-950/30 dark:border-cyan-800">
+        <FileText className="h-4 w-4 text-cyan-600" />
+        <AlertDescription className="flex items-center justify-between w-full">
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-cyan-800 dark:text-cyan-200">
+              🤖 Smart Ingestion Invoice
+            </span>
+            <span className="text-cyan-700 dark:text-cyan-300">
+              — Extracted from Google Drive PDF
+            </span>
+          </div>
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
   return null;
 };
 
