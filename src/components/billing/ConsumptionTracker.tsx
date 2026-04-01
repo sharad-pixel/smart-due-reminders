@@ -100,6 +100,7 @@ const ConsumptionTracker = () => {
   const [upcomingCharges, setUpcomingCharges] = useState<UpcomingCharges | null>(null);
   const [subscriptionTerm, setSubscriptionTerm] = useState<SubscriptionTerm | null>(null);
   const [stripeInvoices, setStripeInvoices] = useState<StripeInvoice[]>([]);
+  const [ingestionCharges, setIngestionCharges] = useState<IngestionChargesData | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [showInvoices, setShowInvoices] = useState(true);
 
