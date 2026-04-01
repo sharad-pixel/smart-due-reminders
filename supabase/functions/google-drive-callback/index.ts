@@ -19,7 +19,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { userId } = JSON.parse(atob(state));
+    const stateData = JSON.parse(atob(state));
+    const userId = stateData.userId;
+    const effectiveSiteUrl = stateData.origin || siteUrl;
     const redirectUri = `${supabaseUrl}/functions/v1/google-drive-callback`;
 
     // Exchange code for tokens
