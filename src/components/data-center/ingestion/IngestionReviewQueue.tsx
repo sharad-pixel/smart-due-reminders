@@ -215,6 +215,19 @@ export function IngestionReviewQueue() {
         })
         .eq("id", item.id);
 
+      // Record ingestion usage charge ($0.75 per approved file)
+      const now = new Date();
+      const billingPeriod = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+      await supabase.from("ingestion_usage_charges").insert({
+        user_id: user.id,
+        organization_id: orgId,
+        review_item_id: item.id,
+        scanned_file_id: item.scanned_file_id,
+        file_name: item.file_name || item.extracted_invoice_number || "Unknown",
+        charge_amount: 0.75,
+        billing_period: billingPeriod,
+      } as any);
+
       // Audit log
       await supabase.from("ingestion_audit_log").insert({
         user_id: user.id,
@@ -226,6 +239,7 @@ export function IngestionReviewQueue() {
           invoice_id: newInvoice.id,
           debtor_id: debtorId,
           edits_made: !!edits,
+          ingestion_charge: 0.75,
         },
       });
 
