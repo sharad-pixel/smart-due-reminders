@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
-  HardDrive,
   FolderOpen,
   RefreshCw,
   CheckCircle2,
@@ -21,9 +20,9 @@ import {
   Zap,
   BarChart3,
   Shield,
-  Sheet,
   Trash2,
 } from "lucide-react";
+import { GoogleDriveIcon, GoogleSheetsIcon } from "@/components/icons/GoogleIcons";
 import { IngestionReviewQueue } from "./IngestionReviewQueue";
 import { IngestionDashboard } from "./IngestionDashboard";
 import { SheetTemplatesSection } from "./SheetTemplatesSection";
@@ -319,7 +318,7 @@ export function SmartIngestionSection() {
       <Card className="border-dashed border-2">
         <CardContent className="flex flex-col items-center justify-center py-12 text-center">
           <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-            <HardDrive className="h-8 w-8 text-primary" />
+            <GoogleDriveIcon className="h-8 w-8" />
           </div>
           <h3 className="text-lg font-semibold mb-2">Connect Google Drive</h3>
           <p className="text-sm text-muted-foreground max-w-md mb-6">
@@ -340,7 +339,7 @@ export function SmartIngestionSection() {
             <span className="flex items-center gap-1"><Zap className="h-3 w-3" /> AI-powered extraction</span>
           </div>
           <Button onClick={() => connectMutation.mutate()} disabled={connectMutation.isPending}>
-            {connectMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <HardDrive className="h-4 w-4 mr-2" />}
+            {connectMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <GoogleDriveIcon className="h-4 w-4 mr-2" />}
             {isGoogleUser ? "Connect with Your Google Account" : "Connect Google Drive"}
           </Button>
         </CardContent>
@@ -356,7 +355,7 @@ export function SmartIngestionSection() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${isTokenExpired ? 'bg-destructive/10' : 'bg-primary/10'}`}>
-                <HardDrive className={`h-5 w-5 ${isTokenExpired ? 'text-destructive' : 'text-primary'}`} />
+                <GoogleDriveIcon className="h-5 w-5" />
               </div>
               <div>
                 <CardTitle className="text-base flex items-center gap-2">
@@ -514,7 +513,7 @@ export function SmartIngestionSection() {
             <FileText className="h-4 w-4" /> Scanned Files
           </TabsTrigger>
           <TabsTrigger value="sheets" className="gap-2">
-            <Sheet className="h-4 w-4" /> Sheet Templates
+            <GoogleSheetsIcon className="h-4 w-4" /> Sheet Templates
           </TabsTrigger>
           <TabsTrigger value="review" className="gap-2">
             <Eye className="h-4 w-4" /> Review Queue

@@ -17,7 +17,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  Sheet,
   ExternalLink,
   Loader2,
   CheckCircle2,
@@ -30,6 +29,7 @@ import {
   Sparkles,
   Trash2,
 } from "lucide-react";
+import { GoogleSheetsIcon } from "@/components/icons/GoogleIcons";
 
 const TEMPLATE_TYPES = [
   { key: 'accounts', label: 'Accounts', icon: Users, description: 'Customer accounts with RAID, contacts & balances' },
@@ -145,7 +145,7 @@ export function SheetTemplatesSection() {
       <Card className="border-dashed">
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
-            <Sheet className="h-5 w-5 text-muted-foreground" />
+            <GoogleSheetsIcon className="h-5 w-5" />
             Google Sheet Templates
           </CardTitle>
           <CardDescription>
@@ -163,7 +163,7 @@ export function SheetTemplatesSection() {
           <div className="flex items-start justify-between gap-4">
             <div>
               <CardTitle className="text-base flex items-center gap-2">
-                <Sheet className="h-5 w-5 text-primary" />
+                <GoogleSheetsIcon className="h-5 w-5" />
                 Data Center Templates
                 {allCreated && (
                   <Badge variant="default" className="text-[10px] px-1.5 py-0 ml-1">
