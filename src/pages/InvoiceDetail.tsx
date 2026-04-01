@@ -1456,6 +1456,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                   <XCircle className="h-3.5 w-3.5 mr-1.5" />
                   Cancel Invoice
                 </Button>
+                </div>
               </CardContent>
             </Card>
           </div>
