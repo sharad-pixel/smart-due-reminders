@@ -226,13 +226,27 @@ export function IngestionReviewQueue() {
       }
 
       const { data: orgId } = await supabase.rpc("get_user_organization_id" as any, { p_user_id: user.id });
+      
+      // Check for duplicate invoice number and make unique if needed
+      let invoiceNumber = inv.extracted_invoice_number;
+      const { data: existing } = await supabase
+        .from("invoices")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("invoice_number", invoiceNumber)
+        .limit(1);
+      if (existing && existing.length > 0) {
+        const suffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+        invoiceNumber = `${invoiceNumber}-${suffix}`;
+      }
+
       const { data: newInvoice, error: invErr } = await supabase
         .from("invoices")
         .insert({
           user_id: user.id,
           organization_id: orgId,
           debtor_id: debtorId,
-          invoice_number: inv.extracted_invoice_number,
+          invoice_number: invoiceNumber,
           amount: inv.extracted_amount,
           amount_outstanding: inv.extracted_outstanding_balance || inv.extracted_amount,
           issue_date: inv.extracted_invoice_date || new Date().toISOString().split("T")[0],
