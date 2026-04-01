@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Upload, Brain, Zap, CreditCard, BarChart3, ArrowRight } from "lucide-react";
 
 const steps = [
-  { icon: Upload, title: "Upload or Sync Invoices", description: "Integrate with Stripe, QuickBooks, or import from any billing system" },
+  { icon: Upload, title: "Upload, Sync, or Smart Ingest", description: "Integrate with Stripe, QuickBooks, or extract invoices from Google Drive PDFs with AI" },
   { icon: Brain, title: "AI Agents Read, Classify & Engage", description: "Smart analysis and customer profiling" },
   { icon: Zap, title: "Smart Follow-Up & Escalation", description: "Automated outreach based on aging" },
   { icon: CreditCard, title: "Payment Captured", description: "Seamless payment collection" },

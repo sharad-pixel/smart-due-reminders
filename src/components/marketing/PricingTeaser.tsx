@@ -94,7 +94,7 @@ const PricingTeaser = () => {
                   </li>
                   <li className="flex items-center gap-2 text-sm">
                     <Check className="h-4 w-4 text-accent flex-shrink-0" />
-                    Stripe & QuickBooks integrations
+                    Stripe, QuickBooks & Smart Ingestion
                   </li>
                   <li className="flex items-center gap-2 text-sm">
                     <Check className="h-4 w-4 text-accent flex-shrink-0" />

@@ -353,6 +353,17 @@ export const IntegrationSourceBadge = ({
     );
   }
 
+  if (sourceValue === "google_drive") {
+    return (
+      <Badge 
+        variant="outline" 
+        className={`bg-cyan-50 border-cyan-200 text-cyan-700 dark:bg-cyan-950/30 dark:border-cyan-800 dark:text-cyan-300 ${sizeClasses}`}
+      >
+        🤖 Smart Ingestion
+      </Badge>
+    );
+  }
+
   return null;
 };
 

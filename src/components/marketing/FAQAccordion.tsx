@@ -24,7 +24,7 @@ const faqs = [
   },
   {
     question: "Do you integrate with my existing tools?",
-    answer: "Integrations coming soon! Recouply.ai will integrate with popular billing systems, ERPs, and CRMs including QuickBooks, Stripe, Salesforce, NetSuite, and more. Our Enterprise plan will include custom integrations."
+    answer: "Yes! Recouply.ai integrates with Stripe and QuickBooks for real-time invoice syncing. We also offer AI Smart Ingestion — connect your Google Drive folder and our AI extracts invoice data from PDFs automatically. Additional integrations with NetSuite, Salesforce, and more are coming soon."
   },
 ];
 
