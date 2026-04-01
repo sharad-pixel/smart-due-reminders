@@ -907,6 +907,8 @@ serve(async (req) => {
               avgPaymentTrend,
               totalCreditLimitRecommended,
               portfolioRiskSummary,
+              // Revenue Risk & ECL
+              revenueRiskSummary,
             };
             
             logStep('Email data prepared for user', {
