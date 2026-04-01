@@ -1,0 +1,561 @@
+import { useState, useCallback } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
+import {
+  HardDrive,
+  FolderOpen,
+  RefreshCw,
+  CheckCircle2,
+  XCircle,
+  Loader2,
+  ChevronRight,
+  FileText,
+  Scan,
+  AlertTriangle,
+  ArrowRight,
+  Eye,
+  Trash2,
+  Clock,
+  Zap,
+  BarChart3,
+  Shield,
+} from "lucide-react";
+import { IngestionReviewQueue } from "./IngestionReviewQueue";
+import { IngestionDashboard } from "./IngestionDashboard";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+
+export function SmartIngestionSection() {
+  const queryClient = useQueryClient();
+  const [folderBrowserOpen, setFolderBrowserOpen] = useState(false);
+  const [folderPath, setFolderPath] = useState<Array<{ id: string; name: string }>>([{ id: "root", name: "My Drive" }]);
+  const [activeTab, setActiveTab] = useState("overview");
+
+  // Check for drive connection
+  const { data: connection, isLoading: connectionLoading } = useQuery({
+    queryKey: ["drive-connection"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+      const { data } = await supabase
+        .from("drive_connections")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .maybeSingle();
+      return data;
+    },
+  });
+
+  // Get scanned files stats
+  const { data: scanStats } = useQuery({
+    queryKey: ["ingestion-scan-stats"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+      const [pending, processed, errors, reviewPending] = await Promise.all([
+        supabase.from("ingestion_scanned_files").select("id", { count: "exact" }).eq("user_id", user.id).eq("processing_status", "pending"),
+        supabase.from("ingestion_scanned_files").select("id", { count: "exact" }).eq("user_id", user.id).eq("processing_status", "processed"),
+        supabase.from("ingestion_scanned_files").select("id", { count: "exact" }).eq("user_id", user.id).eq("processing_status", "error"),
+        supabase.from("ingestion_review_queue").select("id", { count: "exact" }).eq("user_id", user.id).eq("review_status", "pending"),
+      ]);
+      return {
+        pending: pending.count || 0,
+        processed: processed.count || 0,
+        errors: errors.count || 0,
+        reviewPending: reviewPending.count || 0,
+      };
+    },
+    enabled: !!connection,
+  });
+
+  // Get pending files for extraction
+  const { data: pendingFiles } = useQuery({
+    queryKey: ["ingestion-pending-files"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+      const { data } = await supabase
+        .from("ingestion_scanned_files")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("processing_status", "pending")
+        .order("created_at", { ascending: true })
+        .limit(50);
+      return data || [];
+    },
+    enabled: !!connection,
+  });
+
+  // Connect to Google Drive
+  const connectMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke("google-drive-auth");
+      if (error) throw error;
+      if (data?.authUrl) {
+        window.location.href = data.authUrl;
+      }
+    },
+    onError: (err: any) => toast.error("Connection failed", { description: err.message }),
+  });
+
+  // Scan folder
+  const scanMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke("google-drive-scan", {
+        body: { action: "scan" },
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      toast.success("Folder scanned", {
+        description: `Found ${data.new_files} new files (${data.already_tracked} already tracked)`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["ingestion-scan-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["ingestion-pending-files"] });
+    },
+    onError: (err: any) => toast.error("Scan failed", { description: err.message }),
+  });
+
+  // List folders
+  const { data: folderList, isLoading: foldersLoading, refetch: refetchFolders } = useQuery({
+    queryKey: ["drive-folders", folderPath[folderPath.length - 1]?.id],
+    queryFn: async () => {
+      const parentId = folderPath[folderPath.length - 1]?.id || "root";
+      const { data, error } = await supabase.functions.invoke("google-drive-scan", {
+        body: { action: "list_folders", parentId },
+      });
+      if (error) throw error;
+      return data?.folders || [];
+    },
+    enabled: folderBrowserOpen && !!connection,
+  });
+
+  // Set folder
+  const setFolderMutation = useMutation({
+    mutationFn: async ({ folderId, folderName }: { folderId: string; folderName: string }) => {
+      const { data, error } = await supabase.functions.invoke("google-drive-scan", {
+        body: { action: "set_folder", folderId, folderName },
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Folder selected");
+      setFolderBrowserOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["drive-connection"] });
+    },
+    onError: (err: any) => toast.error("Failed to set folder", { description: err.message }),
+  });
+
+  // Extract single file
+  const extractMutation = useMutation({
+    mutationFn: async (scannedFileId: string) => {
+      const { data, error } = await supabase.functions.invoke("extract-invoice-pdf", {
+        body: { scannedFileId },
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["ingestion-scan-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["ingestion-pending-files"] });
+      queryClient.invalidateQueries({ queryKey: ["ingestion-review-queue"] });
+    },
+    onError: (err: any) => toast.error("Extraction failed", { description: err.message }),
+  });
+
+  // Batch extract
+  const [extracting, setExtracting] = useState(false);
+  const [extractProgress, setExtractProgress] = useState({ current: 0, total: 0 });
+
+  const handleBatchExtract = useCallback(async () => {
+    if (!pendingFiles || pendingFiles.length === 0) return;
+    setExtracting(true);
+    setExtractProgress({ current: 0, total: pendingFiles.length });
+
+    for (let i = 0; i < pendingFiles.length; i++) {
+      try {
+        setExtractProgress({ current: i + 1, total: pendingFiles.length });
+        await supabase.functions.invoke("extract-invoice-pdf", {
+          body: { scannedFileId: pendingFiles[i].id },
+        });
+        // Small delay between calls
+        if (i < pendingFiles.length - 1) {
+          await new Promise(r => setTimeout(r, 2000));
+        }
+      } catch (err) {
+        console.error(`Error extracting file ${pendingFiles[i].file_name}:`, err);
+      }
+    }
+
+    setExtracting(false);
+    toast.success("Batch extraction complete");
+    queryClient.invalidateQueries({ queryKey: ["ingestion-scan-stats"] });
+    queryClient.invalidateQueries({ queryKey: ["ingestion-pending-files"] });
+    queryClient.invalidateQueries({ queryKey: ["ingestion-review-queue"] });
+  }, [pendingFiles, queryClient]);
+
+  const navigateFolder = (folderId: string, folderName: string) => {
+    setFolderPath(prev => [...prev, { id: folderId, name: folderName }]);
+  };
+
+  const navigateBack = (index: number) => {
+    setFolderPath(prev => prev.slice(0, index + 1));
+  };
+
+  if (connectionLoading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-12">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Not connected state
+  if (!connection) {
+    return (
+      <Card className="border-dashed border-2">
+        <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+          <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+            <HardDrive className="h-8 w-8 text-primary" />
+          </div>
+          <h3 className="text-lg font-semibold mb-2">Connect Google Drive</h3>
+          <p className="text-sm text-muted-foreground max-w-md mb-6">
+            Connect your Google Drive to automatically scan invoice PDFs, extract data using AI, 
+            and import clean records into Recouply with full review control.
+          </p>
+          <div className="flex flex-wrap justify-center gap-3 mb-6 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1"><Shield className="h-3 w-3" /> Read-only access</span>
+            <span className="flex items-center gap-1"><Eye className="h-3 w-3" /> Review before import</span>
+            <span className="flex items-center gap-1"><Zap className="h-3 w-3" /> AI-powered extraction</span>
+          </div>
+          <Button onClick={() => connectMutation.mutate()} disabled={connectMutation.isPending}>
+            {connectMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <HardDrive className="h-4 w-4 mr-2" />}
+            Connect Google Drive
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Connection Status & Quick Actions */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                <HardDrive className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <CardTitle className="text-base">Google Drive Connected</CardTitle>
+                <CardDescription className="text-xs">
+                  {connection.folder_name ? (
+                    <span className="flex items-center gap-1">
+                      <FolderOpen className="h-3 w-3" /> Monitoring: {connection.folder_name}
+                    </span>
+                  ) : (
+                    "No folder selected — select a folder to start scanning"
+                  )}
+                </CardDescription>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setFolderBrowserOpen(true)}>
+                <FolderOpen className="h-4 w-4 mr-1" />
+                {connection.folder_id ? "Change Folder" : "Select Folder"}
+              </Button>
+              {connection.folder_id && (
+                <Button size="sm" onClick={() => scanMutation.mutate()} disabled={scanMutation.isPending}>
+                  {scanMutation.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Scan className="h-4 w-4 mr-1" />}
+                  Scan Now
+                </Button>
+              )}
+            </div>
+          </div>
+        </CardHeader>
+        {scanStats && (
+          <CardContent className="pt-0">
+            <div className="grid grid-cols-4 gap-4">
+              <div className="text-center p-3 bg-muted/50 rounded-lg">
+                <p className="text-2xl font-bold text-primary">{scanStats.pending}</p>
+                <p className="text-xs text-muted-foreground">Pending</p>
+              </div>
+              <div className="text-center p-3 bg-muted/50 rounded-lg">
+                <p className="text-2xl font-bold text-green-600">{scanStats.processed}</p>
+                <p className="text-xs text-muted-foreground">Processed</p>
+              </div>
+              <div className="text-center p-3 bg-muted/50 rounded-lg">
+                <p className="text-2xl font-bold text-amber-600">{scanStats.reviewPending}</p>
+                <p className="text-xs text-muted-foreground">Review Queue</p>
+              </div>
+              <div className="text-center p-3 bg-muted/50 rounded-lg">
+                <p className="text-2xl font-bold text-destructive">{scanStats.errors}</p>
+                <p className="text-xs text-muted-foreground">Errors</p>
+              </div>
+            </div>
+
+            {scanStats.pending > 0 && (
+              <div className="mt-4 p-3 bg-primary/5 rounded-lg border border-primary/20">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">{scanStats.pending} files ready for extraction</p>
+                    <p className="text-xs text-muted-foreground">AI will analyze each PDF and extract invoice data</p>
+                  </div>
+                  <Button size="sm" onClick={handleBatchExtract} disabled={extracting}>
+                    {extracting ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Zap className="h-4 w-4 mr-1" />}
+                    {extracting ? `Extracting ${extractProgress.current}/${extractProgress.total}` : "Extract All"}
+                  </Button>
+                </div>
+                {extracting && (
+                  <Progress value={(extractProgress.current / extractProgress.total) * 100} className="mt-2" />
+                )}
+              </div>
+            )}
+
+            {connection.last_sync_at && (
+              <p className="text-xs text-muted-foreground mt-3 flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                Last scanned: {new Date(connection.last_sync_at).toLocaleString()}
+              </p>
+            )}
+          </CardContent>
+        )}
+      </Card>
+
+      {/* Tabs: Review Queue / Dashboard */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="overview" className="gap-2">
+            <FileText className="h-4 w-4" /> Scanned Files
+          </TabsTrigger>
+          <TabsTrigger value="review" className="gap-2">
+            <Eye className="h-4 w-4" /> Review Queue
+            {scanStats && scanStats.reviewPending > 0 && (
+              <Badge variant="destructive" className="ml-1 text-xs px-1.5">{scanStats.reviewPending}</Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="dashboard" className="gap-2">
+            <BarChart3 className="h-4 w-4" /> Ingestion Dashboard
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview">
+          <ScannedFilesTable onExtract={(id) => extractMutation.mutate(id)} extracting={extractMutation.isPending} />
+        </TabsContent>
+
+        <TabsContent value="review">
+          <IngestionReviewQueue />
+        </TabsContent>
+
+        <TabsContent value="dashboard">
+          <IngestionDashboard />
+        </TabsContent>
+      </Tabs>
+
+      {/* Folder Browser Dialog */}
+      <Dialog open={folderBrowserOpen} onOpenChange={setFolderBrowserOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Select Google Drive Folder</DialogTitle>
+            <DialogDescription>Choose a folder containing your invoice PDFs</DialogDescription>
+          </DialogHeader>
+
+          {/* Breadcrumb */}
+          <div className="flex items-center gap-1 text-sm overflow-x-auto">
+            {folderPath.map((f, i) => (
+              <span key={f.id} className="flex items-center gap-1">
+                {i > 0 && <ChevronRight className="h-3 w-3 text-muted-foreground" />}
+                <button
+                  className="text-primary hover:underline text-sm"
+                  onClick={() => navigateBack(i)}
+                >
+                  {f.name}
+                </button>
+              </span>
+            ))}
+          </div>
+
+          <div className="border rounded-lg max-h-64 overflow-y-auto">
+            {foldersLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-5 w-5 animate-spin" />
+              </div>
+            ) : !folderList || folderList.length === 0 ? (
+              <div className="text-center py-8 text-sm text-muted-foreground">
+                No subfolders found
+              </div>
+            ) : (
+              folderList.map((folder: any) => (
+                <div
+                  key={folder.id}
+                  className="flex items-center justify-between px-3 py-2 hover:bg-muted/50 border-b last:border-b-0 cursor-pointer"
+                  onClick={() => navigateFolder(folder.id, folder.name)}
+                >
+                  <div className="flex items-center gap-2">
+                    <FolderOpen className="h-4 w-4 text-primary" />
+                    <span className="text-sm">{folder.name}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setFolderMutation.mutate({ folderId: folder.id, folderName: folder.name });
+                      }}
+                    >
+                      Select
+                    </Button>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Select current folder */}
+          {folderPath.length > 1 && (
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => {
+                const current = folderPath[folderPath.length - 1];
+                setFolderMutation.mutate({ folderId: current.id, folderName: current.name });
+              }}
+            >
+              Select "{folderPath[folderPath.length - 1].name}" as ingestion folder
+            </Button>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// Scanned Files Table Component
+function ScannedFilesTable({ onExtract, extracting }: { onExtract: (id: string) => void; extracting: boolean }) {
+  const { data: files, isLoading } = useQuery({
+    queryKey: ["ingestion-scanned-files-list"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+      const { data } = await supabase
+        .from("ingestion_scanned_files")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(100);
+      return data || [];
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-8">
+          <Loader2 className="h-5 w-5 animate-spin" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!files || files.length === 0) {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+          <FileText className="h-10 w-10 text-muted-foreground mb-3" />
+          <p className="text-sm text-muted-foreground">No files scanned yet. Select a folder and scan to get started.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
+    pending: { label: "Pending", color: "bg-amber-100 text-amber-800", icon: Clock },
+    processing: { label: "Processing", color: "bg-blue-100 text-blue-800", icon: Loader2 },
+    processed: { label: "Processed", color: "bg-green-100 text-green-800", icon: CheckCircle2 },
+    error: { label: "Error", color: "bg-red-100 text-red-800", icon: XCircle },
+  };
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base">Scanned Files</CardTitle>
+        <CardDescription>All PDF files detected in your connected folder</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-2">
+          {files.map((file: any) => {
+            const status = statusConfig[file.processing_status] || statusConfig.pending;
+            const StatusIcon = status.icon;
+            return (
+              <div key={file.id} className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/30 transition-colors">
+                <div className="flex items-center gap-3 min-w-0">
+                  <FileText className="h-5 w-5 text-red-500 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{file.file_name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Scanned {new Date(file.scan_timestamp || file.created_at).toLocaleDateString()}
+                      {file.file_size && ` • ${(file.file_size / 1024).toFixed(0)} KB`}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  {file.confidence_score != null && (
+                    <Badge variant="outline" className="text-xs">
+                      {file.confidence_score}% confidence
+                    </Badge>
+                  )}
+                  <Badge className={`text-xs ${status.color}`}>
+                    <StatusIcon className={`h-3 w-3 mr-1 ${file.processing_status === 'processing' ? 'animate-spin' : ''}`} />
+                    {status.label}
+                  </Badge>
+                  {file.processing_status === "pending" && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => onExtract(file.id)}
+                      disabled={extracting}
+                    >
+                      <Zap className="h-3 w-3 mr-1" />
+                      Extract
+                    </Button>
+                  )}
+                  {file.processing_status === "error" && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => onExtract(file.id)}
+                      disabled={extracting}
+                    >
+                      <RefreshCw className="h-3 w-3 mr-1" />
+                      Retry
+                    </Button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
