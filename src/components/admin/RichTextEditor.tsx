@@ -30,7 +30,7 @@ const colors = [
   "#C026D3", "#DB2777", "#E11D48", "#1e3a5f",
 ];
 
-export function RichTextEditor({ content, onChange, _placeholder, className }: RichTextEditorProps) {
+export function RichTextEditor({ content, onChange, placeholder, className }: RichTextEditorProps) {
   const [linkUrl, setLinkUrl] = useState("");
   const [linkOpen, setLinkOpen] = useState(false);
 

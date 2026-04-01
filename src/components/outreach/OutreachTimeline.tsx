@@ -31,7 +31,7 @@ interface AggregatedError {
   recipientEmail: string;
 }
 
-export function OutreachTimeline({ invoiceId, invoiceDueDate, _agingBucket }: OutreachTimelineProps) {
+export function OutreachTimeline({ invoiceId, invoiceDueDate, agingBucket }: OutreachTimelineProps) {
   const navigate = useNavigate();
   const [failedOpen, setFailedOpen] = useState(false);
   const [sentOpen, setSentOpen] = useState(true);
@@ -125,7 +125,7 @@ export function OutreachTimeline({ invoiceId, invoiceDueDate, _agingBucket }: Ou
     );
   }
 
-  const { outreach, successLogs, aggregatedErrors, totalFailed, _totalBounced, daysPastDue, currentAgent, nextEmail } = data || {};
+  const { outreach, successLogs, aggregatedErrors, totalFailed, totalBounced, daysPastDue, currentAgent, nextEmail } = data || {};
 
   if (!daysPastDue || daysPastDue <= 0) {
     return (

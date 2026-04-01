@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 
 export const DemoResults = () => {
-  const { stats, recoveredAmount, sentCount, _drafts, exitDemo } = useDemoContext();
+  const { stats, recoveredAmount, sentCount, drafts, exitDemo } = useDemoContext();
   const navigate = useNavigate();
 
   const remainingOverdue = stats.totalOverdue - recoveredAmount;

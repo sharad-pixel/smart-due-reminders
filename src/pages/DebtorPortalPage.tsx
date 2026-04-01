@@ -171,7 +171,7 @@ export default function DebtorPortalPage() {
     setIsSubmitting(true);
     
     try {
-      const { _data, error } = await supabase.functions.invoke("send-debtor-portal-link", {
+      const { data, error } = await supabase.functions.invoke("send-debtor-portal-link", {
         body: { email },
       });
 

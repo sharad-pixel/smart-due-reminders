@@ -35,7 +35,7 @@ export const SyncActivityLog = () => {
   const [filter, setFilter] = useState<"all" | "stripe" | "quickbooks">("all");
   const [limit, setLimit] = useState(3);
 
-  const { data: logs, isLoading, _refetch } = useQuery({
+  const { data: logs, isLoading, refetch } = useQuery({
     queryKey: ["sync-activity-log", filter, limit],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();

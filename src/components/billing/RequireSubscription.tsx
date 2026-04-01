@@ -32,7 +32,7 @@ export function RequireSubscription({ children }: RequireSubscriptionProps) {
     profile, 
     isTeamMember,
     teamMemberLockout,
-    _refreshAccess 
+    refreshAccess 
   } = useAccess();
   
   const [pathChecked, setPathChecked] = useState(false);

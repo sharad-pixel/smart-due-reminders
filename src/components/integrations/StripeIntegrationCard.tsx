@@ -75,7 +75,7 @@ export const StripeIntegrationCard = () => {
 
     setSavingKey(true);
     try {
-      const { _data, error } = await supabase.functions.invoke('save-stripe-credentials', {
+      const { data, error } = await supabase.functions.invoke('save-stripe-credentials', {
         body: { stripe_secret_key: stripeKey }
       });
 

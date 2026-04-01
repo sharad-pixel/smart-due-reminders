@@ -190,7 +190,7 @@ const Profile = () => {
     ownerPlanType, 
     ownerSubscriptionStatus,
     ownerAvatarUrl,
-    _memberRole 
+    memberRole 
   } = useEffectiveAccount();
 
   useEffect(() => {

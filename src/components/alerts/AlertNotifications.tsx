@@ -130,7 +130,7 @@ function AlertItem({
 
 function NotificationItem({
   notification,
-  _onMarkRead,
+  onMarkRead,
   onDelete,
   onClick
 }: {

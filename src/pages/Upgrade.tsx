@@ -21,7 +21,7 @@ const Upgrade = () => {
   const [processingPlan, setProcessingPlan] = useState<string | null>(null);
   const [isAnnual, setIsAnnual] = useState(false);
   const [additionalSeats, setAdditionalSeats] = useState(0);
-  const { _role, loading: roleLoading, canManageBilling } = useUserRole();
+  const { role, loading: roleLoading, canManageBilling } = useUserRole();
   const { 
     plan: currentPlan, 
     subscriptionStatus, 

@@ -48,7 +48,7 @@ const PERSONA_OPTIONS = [
 
 export const AccountOutreachSettings = ({
   debtorId,
-  _debtorName,
+  debtorName,
   initialSettings,
   onSettingsChange,
 }: AccountOutreachSettingsProps) => {

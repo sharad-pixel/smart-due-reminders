@@ -110,7 +110,7 @@ export const useOrgAvgDPD = () => {
       today.setHours(0, 0, 0, 0);
 
       let totalDpd = 0;
-      let _overdueCount = 0;
+      let overdueCount = 0;
       const accountsWithOverdue = new Set<string>();
 
       (invoices || []).forEach((inv: any) => {
