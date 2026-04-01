@@ -226,13 +226,27 @@ export function IngestionReviewQueue() {
       }
 
       const { data: orgId } = await supabase.rpc("get_user_organization_id" as any, { p_user_id: user.id });
+      
+      // Check for duplicate invoice number and make unique if needed
+      let invoiceNumber = inv.extracted_invoice_number;
+      const { data: existing } = await supabase
+        .from("invoices")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("invoice_number", invoiceNumber)
+        .limit(1);
+      if (existing && existing.length > 0) {
+        const suffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+        invoiceNumber = `${invoiceNumber}-${suffix}`;
+      }
+
       const { data: newInvoice, error: invErr } = await supabase
         .from("invoices")
         .insert({
           user_id: user.id,
           organization_id: orgId,
           debtor_id: debtorId,
-          invoice_number: inv.extracted_invoice_number,
+          invoice_number: invoiceNumber,
           amount: inv.extracted_amount,
           amount_outstanding: inv.extracted_outstanding_balance || inv.extracted_amount,
           issue_date: inv.extracted_invoice_date || new Date().toISOString().split("T")[0],
@@ -388,13 +402,26 @@ export function IngestionReviewQueue() {
             debtorId = newDebtor.id;
           }
 
+          // Check for duplicate invoice number and make unique if needed
+          let invoiceNumber = item.extracted_invoice_number;
+          const { data: existingInv } = await supabase
+            .from("invoices")
+            .select("id")
+            .eq("user_id", user.id)
+            .eq("invoice_number", invoiceNumber)
+            .limit(1);
+          if (existingInv && existingInv.length > 0) {
+            const suffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+            invoiceNumber = `${invoiceNumber}-${suffix}`;
+          }
+
           const { data: newInvoice, error: iErr } = await supabase
             .from("invoices")
             .insert({
               user_id: user.id,
               organization_id: orgId,
               debtor_id: debtorId,
-              invoice_number: item.extracted_invoice_number,
+              invoice_number: invoiceNumber,
               amount: item.extracted_amount,
               amount_outstanding: item.extracted_outstanding_balance || item.extracted_amount,
               issue_date: item.extracted_invoice_date || new Date().toISOString().split("T")[0],
@@ -820,7 +847,33 @@ export function IngestionReviewQueue() {
                               <Link2 className="h-3 w-3 mr-1" />
                               Match Existing
                             </Button>
-                            <Button size="sm" variant="outline">
+                            <Button size="sm" variant="outline" onClick={async () => {
+                              try {
+                                const { data: { user } } = await supabase.auth.getUser();
+                                if (!user) { toast.error("Not authenticated"); return; }
+                                const companyName = selectedItem.extracted_company_name || selectedItem.extracted_debtor_name;
+                                if (!companyName) { toast.error("No debtor name available to create account"); return; }
+                                const { data: orgId } = await supabase.rpc("get_user_organization_id" as any, { p_user_id: user.id });
+                                const { data: newDebtor, error: dErr } = await supabase
+                                  .from("debtors")
+                                  .insert({
+                                    user_id: user.id,
+                                    organization_id: orgId,
+                                    company_name: selectedItem.extracted_company_name || selectedItem.extracted_debtor_name || "Unknown",
+                                    name: selectedItem.extracted_debtor_name || selectedItem.extracted_company_name || "Unknown",
+                                    email: selectedItem.extracted_billing_email || null,
+                                  } as any)
+                                  .select("id")
+                                  .single();
+                                if (dErr) throw dErr;
+                                setEditData((prev: any) => ({ ...prev, matched_debtor_id: newDebtor.id }));
+                                setSelectedItem(prev => prev ? { ...prev, matched_debtor_id: newDebtor.id, debtor_match_confidence: 100 } : null);
+                                queryClient.invalidateQueries({ queryKey: ["debtors"] });
+                                toast.success("New debtor account created and linked");
+                              } catch (err: any) {
+                                toast.error("Failed to create debtor", { description: err.message });
+                              }
+                            }}>
                               <UserPlus className="h-3 w-3 mr-1" />
                               Create New
                             </Button>
