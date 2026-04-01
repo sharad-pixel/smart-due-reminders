@@ -11,17 +11,41 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const clientId = Deno.env.get('GOOGLE_DRIVE_CLIENT_ID')!;
     const clientSecret = Deno.env.get('GOOGLE_DRIVE_CLIENT_SECRET')!;
-    const siteUrl = Deno.env.get('SITE_URL') || 'https://smart-due-reminders.lovable.app';
+
+    // Parse state to extract origin and userId
+    let stateData: { userId?: string; origin?: string } = {};
+    let effectiveSiteUrl = 'https://recouply.ai';
+
+    if (state) {
+      try {
+        stateData = JSON.parse(atob(state));
+        console.log('[DRIVE-CALLBACK] State decoded:', JSON.stringify({ 
+          userId: stateData.userId, 
+          origin: stateData.origin 
+        }));
+        if (stateData.origin) {
+          effectiveSiteUrl = stateData.origin;
+        }
+      } catch (parseErr) {
+        console.error('[DRIVE-CALLBACK] Failed to parse state:', parseErr);
+      }
+    }
 
     if (error || !code || !state) {
-      return new Response(redirectHtml(siteUrl, '/data-center', 'error', error || 'Missing authorization code'), {
+      console.error('[DRIVE-CALLBACK] OAuth error or missing params:', { error, hasCode: !!code, hasState: !!state });
+      return new Response(redirectHtml(effectiveSiteUrl, '/data-center', 'error', error || 'Missing authorization code'), {
         headers: { 'Content-Type': 'text/html' },
       });
     }
 
-    const stateData = JSON.parse(atob(state));
     const userId = stateData.userId;
-    const effectiveSiteUrl = stateData.origin || siteUrl;
+    if (!userId) {
+      console.error('[DRIVE-CALLBACK] No userId in state');
+      return new Response(redirectHtml(effectiveSiteUrl, '/data-center', 'error', 'Invalid state: missing user'), {
+        headers: { 'Content-Type': 'text/html' },
+      });
+    }
+
     const redirectUri = `${supabaseUrl}/functions/v1/google-drive-callback`;
 
     // Exchange code for tokens
@@ -39,11 +63,13 @@ Deno.serve(async (req) => {
 
     const tokenData = await tokenRes.json();
     if (!tokenRes.ok) {
-      console.error('Token exchange failed:', tokenData);
-      return new Response(redirectHtml(effectiveSiteUrl, '/data-center', 'error', 'Token exchange failed'), {
+      console.error('[DRIVE-CALLBACK] Token exchange failed:', tokenData);
+      return new Response(redirectHtml(effectiveSiteUrl, '/data-center', 'error', 'Token exchange failed: ' + (tokenData.error_description || tokenData.error || 'unknown')), {
         headers: { 'Content-Type': 'text/html' },
       });
     }
+
+    console.log('[DRIVE-CALLBACK] Token exchange successful for user:', userId);
 
     const supabase = createClient(supabaseUrl, serviceKey);
 
@@ -65,7 +91,7 @@ Deno.serve(async (req) => {
       .select();
 
     if (upsertError) {
-      // If conflict on user_id doesn't work, try insert
+      console.warn('[DRIVE-CALLBACK] Upsert failed, trying insert/update:', upsertError.message);
       const { error: insertError } = await supabase
         .from('drive_connections')
         .insert({
@@ -79,7 +105,6 @@ Deno.serve(async (req) => {
         });
       
       if (insertError) {
-        // Update existing
         await supabase
           .from('drive_connections')
           .update({
@@ -93,13 +118,13 @@ Deno.serve(async (req) => {
       }
     }
 
+    console.log('[DRIVE-CALLBACK] Success, redirecting to:', effectiveSiteUrl);
     return new Response(redirectHtml(effectiveSiteUrl, '/data-center', 'success', 'Google Drive connected successfully'), {
       headers: { 'Content-Type': 'text/html' },
     });
   } catch (err) {
-    console.error('Callback error:', err);
-    const siteUrl = Deno.env.get('SITE_URL') || 'https://smart-due-reminders.lovable.app';
-    return new Response(redirectHtml(siteUrl, '/data-center', 'error', String(err)), {
+    console.error('[DRIVE-CALLBACK] Unhandled error:', err);
+    return new Response(redirectHtml('https://recouply.ai', '/data-center', 'error', String(err)), {
       headers: { 'Content-Type': 'text/html' },
     });
   }
