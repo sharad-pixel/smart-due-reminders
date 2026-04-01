@@ -477,43 +477,43 @@ export const generateArticleSchema = (article: {
 export const generateServiceSchema = () => ({
   '@context': 'https://schema.org',
   '@type': 'Service',
-  name: 'Cash Collections, Accounts Receivable & Collection Intelligence Platform',
+  name: 'AI Accounts Receivable Automation & Risk Management Platform',
   provider: {
     '@type': 'Organization',
     name: SITE_CONFIG.companyName,
   },
-  description: 'AI automation for receivables — automate cash collections, monitor collections health, track payments, and accelerate accounts receivable recovery.',
-  serviceType: 'Cash Collections & Accounts Receivable Automation',
+  description: 'AI-powered accounts receivable automation and risk management service. Automate invoice collections, predict payment behavior, score credit risk, integrate with Stripe, and reduce days sales outstanding.',
+  serviceType: 'Accounts Receivable AI Software',
   areaServed: {
     '@type': 'Place',
     name: 'Worldwide',
   },
   hasOfferCatalog: {
     '@type': 'OfferCatalog',
-    name: 'Collection Intelligence Plans',
+    name: 'AI Accounts Receivable Plans',
     itemListElement: [
       {
         '@type': 'Offer',
         itemOffered: {
           '@type': 'Service',
-          name: 'AI Invoice Collection',
-          description: 'Automated invoice follow-ups with AI-powered outreach',
+          name: 'AI Invoice Collection Automation',
+          description: 'Automated invoice follow-ups with AI-powered outreach, Stripe integration, and payment reconciliation',
         },
       },
       {
         '@type': 'Offer',
         itemOffered: {
           '@type': 'Service',
-          name: 'Payment Prediction',
-          description: 'Predictive analytics for payment behavior',
+          name: 'Payment Risk Prediction & Credit Scoring',
+          description: 'AI-powered payment behavior prediction, credit risk scoring, and expected credit loss calculation',
         },
       },
       {
         '@type': 'Offer',
         itemOffered: {
           '@type': 'Service',
-          name: 'Risk Assessment',
-          description: 'AI-powered risk scoring and collection prioritization',
+          name: 'Accounts Receivable Risk Management',
+          description: 'Portfolio-level risk assessment, revenue risk intelligence, and DSO reduction analytics',
         },
       },
     ],
