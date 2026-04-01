@@ -301,7 +301,7 @@ async function pullAccounts(supabase: any, accessToken: string, template: any, u
 }
 
 async function pullInvoices(supabase: any, accessToken: string, template: any, userId: string, orgId: string) {
-  const rows = await readSheet(accessToken, template.sheet_id, "'Open Invoices'!A1:O5000");
+  const rows = await readSheet(accessToken, template.sheet_id, "'Open Invoices'!A1:P5000");
   if (rows.length <= 1) return { created: 0, updated: 0, skipped: 0, movedToPaid: 0 };
 
   const headers = rows[0].map((h: string) => h.toLowerCase().trim());
