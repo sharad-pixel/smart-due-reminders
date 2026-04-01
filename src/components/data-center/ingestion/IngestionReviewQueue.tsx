@@ -379,7 +379,7 @@ export function IngestionReviewQueue() {
                 user_id: user.id,
                 organization_id: orgId,
                 company_name: item.extracted_company_name || item.extracted_debtor_name || "Unknown",
-                name: item.extracted_debtor_name || null,
+                name: item.extracted_debtor_name || item.extracted_company_name || "Unknown",
                 email: item.extracted_billing_email || null,
               } as any)
               .select("id")
