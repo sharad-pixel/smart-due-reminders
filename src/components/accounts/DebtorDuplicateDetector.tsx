@@ -128,8 +128,9 @@ function detectDuplicates(debtors: Debtor[], mode: MatchMode): DuplicateGroup[] 
 export function DebtorDuplicateDetector({ open, onOpenChange, debtors, onMergeComplete }: Props) {
   const [selectedGroup, setSelectedGroup] = useState<DuplicateGroup | null>(null);
   const [showMerge, setShowMerge] = useState(false);
+  const [matchMode, setMatchMode] = useState<MatchMode>("both");
 
-  const duplicateGroups = useMemo(() => detectDuplicates(debtors), [debtors]);
+  const duplicateGroups = useMemo(() => detectDuplicates(debtors, matchMode), [debtors, matchMode]);
 
   const handleMergeGroup = (group: DuplicateGroup) => {
     setSelectedGroup(group);
@@ -149,6 +150,27 @@ export function DebtorDuplicateDetector({ open, onOpenChange, debtors, onMergeCo
               Found {duplicateGroups.length} potential duplicate group{duplicateGroups.length !== 1 ? "s" : ""} across {debtors.length} accounts.
             </DialogDescription>
           </DialogHeader>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-muted-foreground">Match by:</span>
+            <div className="flex gap-1">
+              {([
+                { value: "both", label: "Name & Email" },
+                { value: "name", label: "Name Only" },
+                { value: "email", label: "Email Only" },
+              ] as const).map((opt) => (
+                <Button
+                  key={opt.value}
+                  size="sm"
+                  variant={matchMode === opt.value ? "default" : "outline"}
+                  className="h-7 text-xs px-3"
+                  onClick={() => setMatchMode(opt.value)}
+                >
+                  {opt.label}
+                </Button>
+              ))}
+            </div>
+          </div>
 
           {duplicateGroups.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
