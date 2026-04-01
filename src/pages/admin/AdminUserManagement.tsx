@@ -122,7 +122,7 @@ const AdminUserManagement = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const [totalUsers, setTotalUsers] = useState(0);
   const [activeView, setActiveView] = useState<"users" | "accounts">("users");
-  const pageSize = 25;
+  const pageSize = 15;
 
   useEffect(() => {
     fetchUsers();

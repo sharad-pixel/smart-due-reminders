@@ -164,7 +164,7 @@ const DebtorDetail = () => {
   const [newContact, setNewContact] = useState({ name: "", title: "", email: "", phone: "", outreach_enabled: true });
   const [outreachSearch, setOutreachSearch] = useState("");
   const [outreachPage, setOutreachPage] = useState(1);
-  const OUTREACH_PAGE_SIZE = 10;
+  const OUTREACH_PAGE_SIZE = 15;
   const [selectedOutreach, setSelectedOutreach] = useState<OutreachRecord | null>(null);
   const [outreachDetailOpen, setOutreachDetailOpen] = useState(false);
   const [editingContactId, setEditingContactId] = useState<string | null>(null);

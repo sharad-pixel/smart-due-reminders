@@ -73,7 +73,7 @@ interface Debtor {
   last_bounce_reason: string | null;
 }
 
-const ROWS_PER_PAGE = 25;
+const ROWS_PER_PAGE = 15;
 
 const getCurrencySymbol = (currency: string) => {
   const symbols: Record<string, string> = { USD: "$", EUR: "€", GBP: "£", CAD: "CA$", AUD: "A$" };

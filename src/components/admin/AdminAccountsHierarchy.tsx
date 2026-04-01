@@ -81,7 +81,7 @@ const AdminAccountsHierarchy = () => {
   const [expandedAccounts, setExpandedAccounts] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(0);
   const [totalAccounts, setTotalAccounts] = useState(0);
-  const pageSize = 25;
+  const pageSize = 15;
 
   useEffect(() => {
     fetchAccounts();
