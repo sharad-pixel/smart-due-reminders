@@ -10,39 +10,22 @@ import {
   ExternalLink,
   Loader2,
   CheckCircle2,
+  Upload,
   Download,
-  RefreshCw,
+  Users,
+  FileText,
+  CreditCard,
 } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
+const TEMPLATE_TYPES = [
+  { key: 'accounts', label: 'Accounts', icon: Users, description: 'All customer accounts with RAID, contacts, and balances' },
+  { key: 'invoices', label: 'Invoices', icon: FileText, description: 'Open invoices with auto Paid-tab management' },
+  { key: 'payments', label: 'Payments', icon: CreditCard, description: 'Payment records with partial payment support' },
+] as const;
 
 export function SheetTemplatesSection() {
   const queryClient = useQueryClient();
-  const [selectedDebtor, setSelectedDebtor] = useState<string>("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const PAGE_SIZE = 15;
-
-  // Get debtors for the push dropdown
-  const { data: debtors } = useQuery({
-    queryKey: ["debtors-for-sheets"],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
-      const { data } = await supabase
-        .from("debtors")
-        .select("id, company_name, name, reference_id")
-        .eq("user_id", user.id)
-        .eq("is_archived", false)
-        .order("company_name", { ascending: true })
-        .limit(500);
-      return data || [];
-    },
-  });
+  const [syncingId, setSyncingId] = useState<string | null>(null);
 
   // Get existing sheet templates
   const { data: templates, isLoading } = useQuery({
@@ -52,205 +35,195 @@ export function SheetTemplatesSection() {
       if (!user) return [];
       const { data } = await supabase
         .from("google_sheet_templates")
-        .select("*, debtors(company_name, name, reference_id)")
+        .select("*")
         .eq("user_id", user.id)
+        .eq("status", "active")
         .order("created_at", { ascending: false });
       return data || [];
     },
   });
 
-  // Push template mutation
-  const pushMutation = useMutation({
-    mutationFn: async (debtorId: string) => {
-      const { data, error } = await supabase.functions.invoke("google-sheets-push-template", {
-        body: { debtorId },
-      });
-      if (error) throw error;
-      return data;
+  // Check drive connection
+  const { data: hasDrive } = useQuery({
+    queryKey: ["drive-connection-check"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return false;
+      const { data } = await supabase
+        .from("drive_connections")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .maybeSingle();
+      return !!data;
     },
-    onSuccess: (data) => {
-      toast.success("Sheet template created!", {
-        description: `${data.existingInvoices} existing invoices pushed. Sheet: ${data.sheetTitle}`,
-      });
-      setSelectedDebtor("");
-      queryClient.invalidateQueries({ queryKey: ["sheet-templates"] });
-    },
-    onError: (err: any) => toast.error("Failed to create sheet", { description: err.message }),
   });
 
-  // Ingest (scan all sheets) mutation
-  const ingestMutation = useMutation({
-    mutationFn: async (sheetTemplateId?: string) => {
-      const { data, error } = await supabase.functions.invoke("google-sheets-ingest", {
-        body: sheetTemplateId ? { sheetTemplateId } : {},
-      } as any);
+  const existingTypes = new Set((templates || []).map((t: any) => t.template_type));
+
+  // Push template creation
+  const pushTemplateMutation = useMutation({
+    mutationFn: async (templateType: string) => {
+      const { data, error } = await supabase.functions.invoke("google-sheets-push-template", {
+        body: { templateType },
+      });
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
       return data;
     },
     onSuccess: (data) => {
-      if (data.newInvoices > 0) {
-        toast.success(`Imported ${data.newInvoices} new invoices`, {
-          description: `${data.skipped} already existed, ${data.errors} errors`,
-        });
-      } else {
-        toast.info("No new invoices found", {
-          description: `${data.skipped} rows skipped (already imported)`,
-        });
-      }
+      toast.success(`${data.templateType} template created!`, {
+        description: `${data.rowCount} rows pushed to ${data.folderPath}`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["sheet-templates"] });
+    },
+    onError: (err: any) => toast.error("Failed to create template", { description: err.message }),
+  });
+
+  // Sync mutation (push or pull)
+  const syncMutation = useMutation({
+    mutationFn: async ({ sheetTemplateId, direction }: { sheetTemplateId: string; direction: 'push' | 'pull' }) => {
+      setSyncingId(`${sheetTemplateId}-${direction}`);
+      const { data, error } = await supabase.functions.invoke("google-sheets-sync", {
+        body: { sheetTemplateId, direction },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: (data) => {
+      const dir = data.direction === 'push' ? 'Push' : 'Pull';
+      const details = data.direction === 'push'
+        ? `${data.pushed || data.openPushed || 0} rows pushed`
+        : `Created: ${data.created || 0}, Updated: ${data.updated || 0}, Skipped: ${data.skipped || 0}${data.movedToPaid ? `, Moved to Paid: ${data.movedToPaid}` : ''}`;
+      toast.success(`${dir} complete for ${data.templateType}`, { description: details });
       queryClient.invalidateQueries({ queryKey: ["sheet-templates"] });
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["debtors"] });
     },
-    onError: (err: any) => toast.error("Ingestion failed", { description: err.message }),
+    onError: (err: any) => toast.error("Sync failed", { description: err.message }),
+    onSettled: () => setSyncingId(null),
   });
 
-  const totalPages = Math.max(1, Math.ceil((templates || []).length / PAGE_SIZE));
-  const safeCurrentPage = Math.min(currentPage, totalPages);
-  const startIdx = (safeCurrentPage - 1) * PAGE_SIZE;
-  const paginatedTemplates = (templates || []).slice(startIdx, startIdx + PAGE_SIZE);
+  if (!hasDrive) {
+    return (
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Sheet className="h-5 w-5 text-primary" />
+            Google Sheet Templates
+          </CardTitle>
+          <CardDescription>
+            Connect Google Drive first to use Sheet Templates for data synchronization.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
 
   return (
     <Card>
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Sheet className="h-5 w-5 text-primary" />
-              Google Sheet Templates
-            </CardTitle>
-            <CardDescription>
-              Push invoice templates to Google Sheets for customers to populate, then scan for new entries
-            </CardDescription>
-          </div>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => ingestMutation.mutate(undefined)}
-            disabled={ingestMutation.isPending || !templates || templates.length === 0}
-          >
-            {ingestMutation.isPending ? (
-              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-            ) : (
-              <Download className="h-4 w-4 mr-1" />
-            )}
-            Scan All Sheets
-          </Button>
+        <div>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Sheet className="h-5 w-5 text-primary" />
+            Google Sheet Templates
+          </CardTitle>
+          <CardDescription>
+            Master templates for Accounts, Invoices, and Payments synced to Google Drive → Recouply/Templates
+          </CardDescription>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Push Template Form */}
-        <div className="p-4 bg-muted/50 rounded-lg border">
-          <h4 className="text-sm font-medium mb-2">Push New Template to Google Drive</h4>
-          <p className="text-xs text-muted-foreground mb-3">
-            Select a customer to create a Google Sheet pre-filled with their existing invoices.
-            They can add new invoices directly in the sheet.
-          </p>
-          <div className="flex gap-2">
-            <Select value={selectedDebtor} onValueChange={setSelectedDebtor}>
-              <SelectTrigger className="flex-1">
-                <SelectValue placeholder="Select a customer..." />
-              </SelectTrigger>
-              <SelectContent>
-                {(debtors || []).map((d: any) => (
-                  <SelectItem key={d.id} value={d.id}>
-                    {d.company_name || d.name || d.reference_id}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button
-              onClick={() => selectedDebtor && pushMutation.mutate(selectedDebtor)}
-              disabled={!selectedDebtor || pushMutation.isPending}
-            >
-              {pushMutation.isPending ? (
-                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-              ) : (
-                <Sheet className="h-4 w-4 mr-1" />
-              )}
-              Push Template
-            </Button>
-          </div>
-        </div>
+        {/* Create Templates */}
+        <div className="grid gap-3 sm:grid-cols-3">
+          {TEMPLATE_TYPES.map(({ key, label, icon: Icon, description }) => {
+            const exists = existingTypes.has(key);
+            const tmpl = (templates || []).find((t: any) => t.template_type === key);
+            return (
+              <div key={key} className="p-4 rounded-lg border bg-muted/30 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Icon className="h-5 w-5 text-primary" />
+                  <span className="font-medium text-sm">{label}</span>
+                  {exists && (
+                    <Badge variant="default" className="text-xs ml-auto">
+                      <CheckCircle2 className="h-3 w-3 mr-1" /> Active
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">{description}</p>
 
-        {/* Templates List */}
-        {isLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-5 w-5 animate-spin" />
-          </div>
-        ) : !templates || templates.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <Sheet className="h-10 w-10 text-muted-foreground mb-3" />
-            <p className="text-sm text-muted-foreground">
-              No sheet templates yet. Select a customer above to push your first template.
-            </p>
-          </div>
-        ) : (
-          <>
-            <div className="space-y-2">
-              {paginatedTemplates.map((tmpl: any) => {
-                const debtorName = tmpl.debtors?.company_name || tmpl.debtors?.name || 'Unknown';
-                return (
-                  <div key={tmpl.id} className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/30 transition-colors">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <Sheet className="h-5 w-5 text-primary shrink-0" />
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium truncate">{tmpl.sheet_name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Customer: {debtorName}
-                          {tmpl.rows_synced > 0 && ` • ${tmpl.rows_synced} rows synced`}
-                          {tmpl.last_synced_at && ` • Last scan: ${new Date(tmpl.last_synced_at).toLocaleDateString()}`}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={tmpl.status === 'active' ? 'default' : 'secondary'} className="text-xs">
-                        {tmpl.status === 'active' ? (
-                          <><CheckCircle2 className="h-3 w-3 mr-1" /> Active</>
-                        ) : tmpl.status}
-                      </Badge>
+                {!exists ? (
+                  <Button
+                    size="sm"
+                    className="w-full"
+                    onClick={() => pushTemplateMutation.mutate(key)}
+                    disabled={pushTemplateMutation.isPending}
+                  >
+                    {pushTemplateMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    ) : (
+                      <Sheet className="h-4 w-4 mr-1" />
+                    )}
+                    Create Template
+                  </Button>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
                       <Button
                         size="sm"
-                        variant="ghost"
-                        onClick={() => window.open(tmpl.sheet_url, '_blank')}
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => syncMutation.mutate({ sheetTemplateId: tmpl.id, direction: 'push' })}
+                        disabled={syncMutation.isPending}
                       >
-                        <ExternalLink className="h-3 w-3 mr-1" />
-                        Open
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => ingestMutation.mutate(tmpl.id)}
-                        disabled={ingestMutation.isPending}
-                      >
-                        {ingestMutation.isPending ? (
+                        {syncingId === `${tmpl.id}-push` ? (
                           <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                         ) : (
-                          <RefreshCw className="h-3 w-3 mr-1" />
+                          <Upload className="h-3 w-3 mr-1" />
                         )}
-                        Scan
+                        Push
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => syncMutation.mutate({ sheetTemplateId: tmpl.id, direction: 'pull' })}
+                        disabled={syncMutation.isPending}
+                      >
+                        {syncingId === `${tmpl.id}-pull` ? (
+                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                        ) : (
+                          <Download className="h-3 w-3 mr-1" />
+                        )}
+                        Pull
                       </Button>
                     </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="w-full text-xs"
+                      onClick={() => window.open(tmpl.sheet_url, '_blank')}
+                    >
+                      <ExternalLink className="h-3 w-3 mr-1" />
+                      Open in Sheets
+                    </Button>
+                    {tmpl.last_synced_at && (
+                      <p className="text-[11px] text-muted-foreground text-center">
+                        Last synced: {new Date(tmpl.last_synced_at).toLocaleString()}
+                      </p>
+                    )}
                   </div>
-                );
-              })}
-            </div>
-
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between pt-4 mt-4 border-t">
-                <p className="text-xs text-muted-foreground">
-                  Showing {startIdx + 1}–{Math.min(startIdx + PAGE_SIZE, templates.length)} of {templates.length}
-                </p>
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={safeCurrentPage <= 1}>
-                    Previous
-                  </Button>
-                  <span className="text-sm text-muted-foreground">Page {safeCurrentPage} of {totalPages}</span>
-                  <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={safeCurrentPage >= totalPages}>
-                    Next
-                  </Button>
-                </div>
+                )}
               </div>
-            )}
-          </>
+            );
+          })}
+        </div>
+
+        {isLoading && (
+          <div className="flex items-center justify-center py-4">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
         )}
       </CardContent>
     </Card>
