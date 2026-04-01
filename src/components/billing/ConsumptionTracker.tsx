@@ -185,10 +185,11 @@ const ConsumptionTracker = () => {
           invoiceType: 'none',
           amountDue: 0,
           nextPaymentDate: null,
-          breakdown: {
+           breakdown: {
             baseSubscription: 0,
             seatCharges: 0,
             overageCharges: 0,
+            ingestionCharges: 0,
             prorations: 0,
           },
           lineItems: [],
