@@ -98,6 +98,8 @@ const Debtors = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkUpdating, setBulkUpdating] = useState(false);
+  const [showDuplicateDetector, setShowDuplicateDetector] = useState(false);
+  const [showMergeDialog, setShowMergeDialog] = useState(false);
   const [contacts, setContacts] = useState<Contact[]>([
     { name: "", title: "", email: "", phone: "", outreach_enabled: true }
   ]);
