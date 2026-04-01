@@ -51,11 +51,10 @@ const FIELD_DEFINITIONS = {
   payment: [
     { key: "payment_date", label: "Payment Date", aliases: ["payment date", "pay date", "date paid", "received date", "deposit date"] },
     { key: "payment_amount", label: "Payment Amount", aliases: ["payment", "amount", "payment amount", "amount paid", "paid amount"] },
-    { key: "payment_reference", label: "Payment Reference", aliases: ["reference", "check number", "check no", "check #", "transaction id", "confirmation"] },
-    { key: "payment_method", label: "Payment Method", aliases: ["method", "payment method", "pay method", "type"] },
+    { key: "payment_currency", label: "Currency", aliases: ["currency", "curr", "ccy", "payment currency"] },
+    { key: "payment_reference", label: "Payment Reference", aliases: ["reference", "check number", "check no", "check #", "transaction id", "confirmation", "payment reference"] },
     { key: "payment_notes", label: "Payment Notes", aliases: ["notes", "memo", "comments", "payment notes"] },
     { key: "recouply_account_id", label: "Recouply Account ID (RAID)", aliases: ["raid", "recouply id", "recouply account id", "account raid"] },
-    { key: "recouply_invoice_id", label: "Recouply Invoice ID", aliases: ["rinvd", "recouply invoice", "invoice raid"] },
     { key: "payment_invoice_number", label: "Invoice Number", aliases: ["invoice", "invoice number", "inv no", "invoice #"] },
   ],
   meta: [
