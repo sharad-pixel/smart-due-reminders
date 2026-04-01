@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ShieldAlert, TrendingDown, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { ShieldAlert } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { RevenueRiskSummary } from '@/hooks/useDailyDigest';
 import { Link } from 'react-router-dom';
