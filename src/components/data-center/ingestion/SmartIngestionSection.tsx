@@ -214,22 +214,59 @@ export function SmartIngestionSection() {
   const [extractProgress, setExtractProgress] = useState({ current: 0, total: 0 });
 
   const handleBatchExtract = useCallback(async () => {
-    if (!pendingFiles || pendingFiles.length === 0) return;
     setExtracting(true);
-    setExtractProgress({ current: 0, total: pendingFiles.length });
+    setExtractProgress({ current: 0, total: 0 });
 
-    for (let i = 0; i < pendingFiles.length; i++) {
+    // Step 1: Always scan first to identify new files and prevent duplicates
+    toast.info("Scanning folder for new invoices...");
+    try {
+      const { data: scanResult, error: scanError } = await supabase.functions.invoke("google-drive-scan", {
+        body: { action: "scan" },
+      });
+      if (scanError) throw scanError;
+      toast.success(`Scan complete: ${scanResult.new_files} new, ${scanResult.already_tracked} already tracked`);
+    } catch (err: any) {
+      toast.error("Scan failed — aborting extraction", { description: err.message });
+      setExtracting(false);
+      return;
+    }
+
+    // Refresh pending files list after scan
+    await queryClient.invalidateQueries({ queryKey: ["ingestion-scan-stats"] });
+    await queryClient.invalidateQueries({ queryKey: ["ingestion-pending-files"] });
+
+    // Re-fetch the latest pending files after scan
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data: freshPending } = await supabase
+      .from("ingestion_scanned_files")
+      .select("*")
+      .eq("user_id", user!.id)
+      .eq("processing_status", "pending")
+      .order("created_at", { ascending: true })
+      .limit(50);
+
+    const filesToExtract = freshPending || [];
+    if (filesToExtract.length === 0) {
+      toast.info("No new files to extract");
+      setExtracting(false);
+      return;
+    }
+
+    // Step 2: Extract only the new pending files
+    setExtractProgress({ current: 0, total: filesToExtract.length });
+    toast.info(`Extracting ${filesToExtract.length} files...`);
+
+    for (let i = 0; i < filesToExtract.length; i++) {
       try {
-        setExtractProgress({ current: i + 1, total: pendingFiles.length });
+        setExtractProgress({ current: i + 1, total: filesToExtract.length });
         await supabase.functions.invoke("extract-invoice-pdf", {
-          body: { scannedFileId: pendingFiles[i].id },
+          body: { scannedFileId: filesToExtract[i].id },
         });
-        // Small delay between calls
-        if (i < pendingFiles.length - 1) {
+        if (i < filesToExtract.length - 1) {
           await new Promise(r => setTimeout(r, 2000));
         }
       } catch (err) {
-        console.error(`Error extracting file ${pendingFiles[i].file_name}:`, err);
+        console.error(`Error extracting file ${filesToExtract[i].file_name}:`, err);
       }
     }
 
@@ -238,7 +275,7 @@ export function SmartIngestionSection() {
     queryClient.invalidateQueries({ queryKey: ["ingestion-scan-stats"] });
     queryClient.invalidateQueries({ queryKey: ["ingestion-pending-files"] });
     queryClient.invalidateQueries({ queryKey: ["ingestion-review-queue"] });
-  }, [pendingFiles, queryClient]);
+  }, [queryClient]);
 
   const navigateFolder = (folderId: string, folderName: string) => {
     setFolderPath(prev => [...prev, { id: folderId, name: folderName }]);
