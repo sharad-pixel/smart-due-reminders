@@ -437,6 +437,17 @@ Deno.serve(async (req) => {
       .eq("status", "active")
       .eq("is_owner", false);
 
+    // Fetch ingestion usage charges for current period
+    const { data: ingestionData, count: ingestionCount } = await supabaseClient
+      .from("ingestion_usage_charges")
+      .select("charge_amount", { count: "exact" })
+      .eq("user_id", accountId)
+      .eq("billing_period", currentMonth);
+
+    const ingestionFileCount = ingestionCount || 0;
+    const ingestionTotal = (ingestionData || []).reduce((sum: number, row: any) => sum + (row.charge_amount || 0), 0);
+    logStep("Ingestion charges", { fileCount: ingestionFileCount, total: ingestionTotal });
+
     // Fetch recent Stripe invoices
     let recentInvoices: any[] = [];
     try {
