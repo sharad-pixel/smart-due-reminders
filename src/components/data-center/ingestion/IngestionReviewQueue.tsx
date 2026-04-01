@@ -565,7 +565,7 @@ export function IngestionReviewQueue() {
           <div className="flex items-center gap-3 flex-wrap">
             <div className="flex items-center gap-2">
               <Filter className="h-4 w-4 text-muted-foreground" />
-              <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setSelectedRows(new Set()); }}>
+              <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setSelectedRows(new Set()); setCurrentPage(1); }}>
                 <SelectTrigger className="w-40">
                   <SelectValue />
                 </SelectTrigger>
