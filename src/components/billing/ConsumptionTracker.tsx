@@ -489,6 +489,7 @@ const ConsumptionTracker = () => {
                   </div>
                 </div>
               )}
+            </div>
           )}
         </div>
 
