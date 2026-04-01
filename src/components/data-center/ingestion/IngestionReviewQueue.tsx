@@ -129,12 +129,16 @@ export function IngestionReviewQueue() {
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
+      // Use effective account ID so team members see parent's debtors
+      const { data: effectiveId } = await supabase.rpc("get_effective_account_id" as any, { p_user_id: user.id });
+      const accountId = effectiveId || user.id;
       const { data } = await supabase
         .from("debtors")
         .select("id, company_name, name, email, reference_id")
-        .eq("user_id", user.id)
+        .eq("user_id", accountId)
+        .eq("is_archived", false)
         .order("company_name")
-        .limit(500);
+        .limit(1000);
       return data || [];
     },
   });
