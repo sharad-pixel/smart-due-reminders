@@ -5,7 +5,7 @@
   <!-- Homepage - Highest Priority -->
   <url>
     <loc>https://recouply.ai/</loc>
-    <lastmod>2026-03-18</lastmod>
+    <lastmod>2026-04-01</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
@@ -13,25 +13,25 @@
   <!-- Core Product Pages -->
   <url>
     <loc>https://recouply.ai/features</loc>
-    <lastmod>2026-03-15</lastmod>
+    <lastmod>2026-04-01</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.95</priority>
   </url>
   <url>
     <loc>https://recouply.ai/collection-intelligence</loc>
-    <lastmod>2026-03-15</lastmod>
+    <lastmod>2026-04-01</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.95</priority>
   </url>
   <url>
     <loc>https://recouply.ai/pricing</loc>
-    <lastmod>2026-03-15</lastmod>
+    <lastmod>2026-04-01</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.95</priority>
   </url>
   <url>
     <loc>https://recouply.ai/integrations</loc>
-    <lastmod>2026-03-10</lastmod>
+    <lastmod>2026-04-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.90</priority>
   </url>
@@ -125,25 +125,85 @@
   <!-- Blog Pages -->
   <url>
     <loc>https://recouply.ai/blog</loc>
-    <lastmod>2026-03-15</lastmod>
+    <lastmod>2026-04-01</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://recouply.ai/blog/celebrate-cash</loc>
-    <lastmod>2026-02-15</lastmod>
+    <lastmod>2026-01-17</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
     <loc>https://recouply.ai/blog/power-of-outreach</loc>
-    <lastmod>2026-02-10</lastmod>
+    <lastmod>2026-01-17</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
     <loc>https://recouply.ai/blog/cash-leakage</loc>
+    <lastmod>2026-01-22</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.75</priority>
+  </url>
+  <url>
+    <loc>https://recouply.ai/blog/future-of-ai-in-collections</loc>
     <lastmod>2026-02-05</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.75</priority>
+  </url>
+  <url>
+    <loc>https://recouply.ai/blog/revenue-does-not-equal-cash-flow</loc>
+    <lastmod>2026-02-12</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.75</priority>
+  </url>
+  <url>
+    <loc>https://recouply.ai/blog/rise-of-collections-intelligence</loc>
+    <lastmod>2026-02-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.75</priority>
+  </url>
+  <url>
+    <loc>https://recouply.ai/blog/timing-matters-more-than-tone</loc>
+    <lastmod>2026-03-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.75</priority>
+  </url>
+  <url>
+    <loc>https://recouply.ai/blog/engagement-as-credit-signal</loc>
+    <lastmod>2026-03-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.75</priority>
+  </url>
+  <url>
+    <loc>https://recouply.ai/blog/hidden-cost-of-delayed-payments</loc>
+    <lastmod>2026-03-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.75</priority>
+  </url>
+  <url>
+    <loc>https://recouply.ai/blog/data-trust-in-ar-automation</loc>
+    <lastmod>2026-03-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.75</priority>
+  </url>
+  <url>
+    <loc>https://recouply.ai/blog/spreadsheets-to-systems-of-record</loc>
+    <lastmod>2026-03-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.75</priority>
+  </url>
+  <url>
+    <loc>https://recouply.ai/blog/predictive-collections-revenue-risk</loc>
+    <lastmod>2026-03-28</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.75</priority>
+  </url>
+  <url>
+    <loc>https://recouply.ai/blog/next-generation-ar-teams</loc>
+    <lastmod>2026-04-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.75</priority>
   </url>
@@ -188,7 +248,7 @@
     <priority>0.75</priority>
   </url>
 
-  <!-- Auth Pages (for SEO of signup/conversion) -->
+  <!-- Auth Pages -->
   <url>
     <loc>https://recouply.ai/signup</loc>
     <lastmod>2026-03-15</lastmod>
