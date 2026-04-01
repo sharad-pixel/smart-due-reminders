@@ -355,7 +355,7 @@ export function SmartIngestionSection() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${isTokenExpired ? 'bg-destructive/10' : 'bg-primary/10'}`}>
-                <HardDrive className={`h-5 w-5 ${isTokenExpired ? 'text-destructive' : 'text-primary'}`} />
+                <GoogleDriveIcon className="h-5 w-5" />
               </div>
               <div>
                 <CardTitle className="text-base flex items-center gap-2">
