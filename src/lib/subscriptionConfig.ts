@@ -54,6 +54,7 @@ export const STRIPE_PRODUCTS = {
   seat: 'prod_TZkmoqr5xpSBtV',
   seatAnnual: 'prod_TZkmyzUeLp2SmA',
   invoice: 'prod_TZ47dBqm7afkzi',
+  smartIngestion: 'prod_UFnEUWvQL0RlJ0',
 } as const;
 
 // ============================================================================
