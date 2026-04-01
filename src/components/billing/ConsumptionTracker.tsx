@@ -580,6 +580,12 @@ const ConsumptionTracker = () => {
                     <span>{formatPrice(upcomingCharges.breakdown.overageCharges)}</span>
                   </div>
                 )}
+                {upcomingCharges.breakdown.ingestionCharges > 0 && (
+                  <div className="flex justify-between text-sm text-primary">
+                    <span>Smart Ingestion ({ingestionCharges?.fileCount || 0} files)</span>
+                    <span>{formatPrice(upcomingCharges.breakdown.ingestionCharges)}</span>
+                  </div>
+                )}
                 {upcomingCharges.breakdown.prorations !== 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Prorations/Credits</span>
