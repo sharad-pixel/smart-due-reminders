@@ -284,9 +284,9 @@ Deno.serve(async (req) => {
           .limit(1000);
 
         const headers = [
-          'Account RAID', 'Account Name', 'Invoice Number', 'Payment Amount', 'Currency',
+          'Account RAID', 'Account Name', 'SS Invoice #', 'Payment Amount', 'Currency',
           'Payment Date', 'Payment Reference', 'Reconciliation Status',
-          'Notes', 'Recouply Pay Ref (DO NOT EDIT)', 'Source'
+          'Notes', 'Recouply Payment Ref (DO NOT EDIT)', 'Source'
         ];
         const dataRows = (payments || []).map((p: any) => [
           p.debtors?.reference_id || '', p.debtors?.company_name || '',
