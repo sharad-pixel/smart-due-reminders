@@ -722,6 +722,15 @@ const Debtors = () => {
                     <List className="h-4 w-4" />
                   </Button>
                 </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowDuplicateDetector(true)}
+                  className="gap-2"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  Find Duplicates
+                </Button>
               </div>
               
               {/* Bulk Actions Bar */}
