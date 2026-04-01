@@ -1,10 +1,10 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -14,7 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Search, Upload, Building2, User, Mail, Phone, MapPin, Clock, DollarSign, TrendingUp, FileBarChart, MoreHorizontal, ExternalLink, CreditCard, LayoutGrid, List, Trash2, UserPlus, ChevronLeft, ChevronRight, Radio, Zap, HelpCircle, AlertTriangle, Merge, Sparkles } from "lucide-react";
+import { Plus, Search, Upload, Building2, User, Mail, MapPin, Clock, DollarSign, TrendingUp, FileBarChart, ExternalLink, CreditCard, LayoutGrid, List, Trash2, UserPlus, ChevronLeft, ChevronRight, Radio, Zap, Merge, Sparkles } from "lucide-react";
 import { EmailStatusBadge } from "@/components/alerts/EmailStatusBadge";
 import { ScoringModelTooltip } from "@/components/ai/ScoringModelTooltip";
 import { useNavigate } from "react-router-dom";
@@ -174,7 +174,7 @@ const Debtors = () => {
       }));
       
       setDebtors(debtorsWithContacts);
-    } catch (error: any) {
+    } catch (_error: any) {
       toast.error("Failed to load accounts");
     } finally {
       setLoading(false);

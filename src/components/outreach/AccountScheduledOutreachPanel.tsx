@@ -9,22 +9,7 @@ import { Input } from "@/components/ui/input";
 import { PersonaAvatar } from "@/components/ai/PersonaAvatar";
 import { personaConfig, PersonaConfig } from "@/lib/personaConfig";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
-import { 
-  Mail, 
-  Clock, 
-  ChevronLeft, 
-  ChevronRight, 
-  Loader2, 
-  Calendar,
-  Building2,
-  ExternalLink,
-  RefreshCw,
-  Search,
-  Filter,
-  FileText,
-  Sparkles,
-  Bot
-} from "lucide-react";
+import { Clock, ChevronLeft, ChevronRight, Loader2, Calendar, Building2, RefreshCw, Search, Filter, FileText, Sparkles, Bot } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -33,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { format, addDays, isToday, isTomorrow, isPast } from "date-fns";
+import { format, isToday, isTomorrow, isPast } from "date-fns";
 import {
   Table,
   TableBody,

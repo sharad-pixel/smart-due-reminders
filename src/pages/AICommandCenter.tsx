@@ -7,23 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PersonaAvatar } from "@/components/ai/PersonaAvatar";
 import { personaConfig } from "@/lib/personaConfig";
-import { 
-  Brain, 
-  MessageSquare, 
-  TrendingUp, 
-  CheckCircle2, 
-  Bot,
-  Clock,
-  ListChecks,
-  BarChart3,
-  Zap,
-  Shield,
-  Users,
-  FileText,
-  AlertCircle,
-  Target,
-  Sparkles
-} from "lucide-react";
+import { Brain, MessageSquare, TrendingUp, CheckCircle2, Bot, Clock, ListChecks, BarChart3, Zap, Shield, Users, FileText, Target, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 

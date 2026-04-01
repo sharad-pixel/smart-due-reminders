@@ -1,6 +1,6 @@
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, ChevronDown, ChevronUp, Info, X, CheckCircle2, Wrench, ExternalLink } from 'lucide-react';
+import { AlertTriangle, ChevronDown, ChevronUp, Info, X, CheckCircle2, Wrench } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { groupSyncErrors, type GroupedErrors } from './syncErrorParser';

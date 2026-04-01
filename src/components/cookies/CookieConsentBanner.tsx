@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { Cookie, Settings, X } from 'lucide-react';
+import { Cookie, Settings } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface CookieConsentBannerProps {

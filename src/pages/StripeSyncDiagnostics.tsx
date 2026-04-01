@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,8 +6,6 @@ import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -20,40 +18,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { toast } from "sonner";
-import {
-  RefreshCw,
-  Check,
-  X,
-  Loader2,
-  AlertTriangle,
-  ChevronDown,
-  ChevronLeft,
-  ExternalLink,
-  Copy,
-  Clock,
-  Users,
-  FileText,
-  CreditCard,
-  CheckCircle2,
-  XCircle,
-  Info,
-  Lightbulb,
-  ArrowRight,
-  Zap,
-} from "lucide-react";
-import { format, differenceInSeconds, formatDistanceToNow } from "date-fns";
+import { RefreshCw, Loader2, AlertTriangle, ChevronDown, ChevronLeft, Copy, Clock, Users, FileText, CreditCard, CheckCircle2, XCircle, Info, Lightbulb, ArrowRight, Zap } from "lucide-react";
+import { differenceInSeconds, formatDistanceToNow } from "date-fns";
 import stripeLogo from "@/assets/stripe-logo.png";
 import {
   groupSyncErrors,

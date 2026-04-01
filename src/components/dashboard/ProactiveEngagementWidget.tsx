@@ -5,15 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import {
-  Zap, AlertTriangle, Clock, Mail, ChevronDown, ChevronUp,
-  Loader2, Send, FileText, TrendingUp, VolumeX
-} from "lucide-react";
+import { Zap, AlertTriangle, Clock, Mail, ChevronDown, ChevronUp, Loader2, Send, TrendingUp, VolumeX } from "lucide-react";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { differenceInDays, format } from "date-fns";
+import { differenceInDays } from "date-fns";
 import { ProactiveDraftPreviewCard } from "./ProactiveDraftPreviewCard";
 
 type ActionCategory = "due_soon" | "newly_past_due" | "gone_silent";

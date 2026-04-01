@@ -4,25 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { 
-  RefreshCw, 
-  Check, 
-  X, 
-  AlertTriangle, 
-  Loader2, 
-  CreditCard,
-  Calendar,
-  FileText,
-  Zap,
-  Key,
-  Eye,
-  EyeOff
-} from "lucide-react";
+import { RefreshCw, Check, X, AlertTriangle, Loader2, CreditCard, Calendar, FileText, Key, Eye, EyeOff } from "lucide-react";
 import { format } from "date-fns";
 
 interface StripeIntegration {

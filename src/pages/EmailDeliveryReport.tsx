@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Mail, Send, CheckCircle, XCircle, AlertTriangle, Download, ExternalLink, Search, Filter, RefreshCw } from 'lucide-react';
+import { Mail, Send, CheckCircle, XCircle, AlertTriangle, Download, Search, Filter, RefreshCw } from 'lucide-react';
 import { format, subDays, parseISO } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';

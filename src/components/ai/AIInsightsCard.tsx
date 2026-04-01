@@ -5,21 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Skeleton } from "@/components/ui/skeleton";
-import { 
-  Brain, 
-  TrendingUp, 
-  TrendingDown, 
-  Minus, 
-  Lightbulb, 
-  Target, 
-  AlertTriangle, 
-  ChevronDown,
-  ChevronUp,
-  RefreshCw,
-  Sparkles,
-  ArrowRight,
-  DollarSign
-} from "lucide-react";
+import { Brain, TrendingUp, TrendingDown, Minus, Lightbulb, Target, AlertTriangle, ChevronDown, ChevronUp, RefreshCw, ArrowRight, DollarSign } from "lucide-react";
 import { useAIAnalytics, TrendAnalysis, Recommendation, Prediction, RiskAlert } from "@/hooks/useAIAnalytics";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";

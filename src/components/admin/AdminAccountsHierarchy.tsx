@@ -5,23 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import {
-  Search,
-  Loader2,
-  Users,
-  ChevronDown,
-  ChevronRight,
-  Building2,
-  CreditCard,
-  Receipt,
-  UserPlus,
-  Crown,
-  Clock,
-  AlertCircle,
-  CheckCircle,
-  Ban,
-  TrendingUp,
-} from "lucide-react";
+import { Search, Loader2, Users, ChevronDown, ChevronRight, Building2, CreditCard, UserPlus, Crown, Clock, AlertCircle, CheckCircle, Ban } from "lucide-react";
 import {
   Table,
   TableBody,

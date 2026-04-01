@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Calendar, Settings, Users, Zap, AlertCircle, Brain, Sparkles, Send, Eye, CheckCircle, Volume2 } from "lucide-react";
+import { Calendar, Users, Zap, AlertCircle, Brain, Sparkles, Send, Eye, CheckCircle, Volume2 } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { PersonaAvatar } from "@/components/ai/PersonaAvatar";
 import { personaConfig } from "@/lib/personaConfig";

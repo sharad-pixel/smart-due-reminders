@@ -11,7 +11,6 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -35,27 +34,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { 
-  User, 
-  Shield, 
-  CheckCircle2, 
-  XCircle, 
-  Users,
-  Settings as SettingsIcon,
-  FileText,
-  Zap,
-  Info,
-  UserX,
-  AlertTriangle,
-  Crown,
-  Building2,
-  Pencil,
-  Copy,
-  Bell,
-  KeyRound,
-  Lock,
-  Mail
-} from "lucide-react";
+import { User, Shield, CheckCircle2, XCircle, Users, Settings as SettingsIcon, FileText, Info, UserX, AlertTriangle, Crown, Building2, Pencil, Copy, Bell, KeyRound, Lock, Mail } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { PLAN_FEATURES } from "@/lib/planGating";
 import BillingSection from "@/components/billing/BillingSection";

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -7,34 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import AdminAccountsHierarchy from "@/components/admin/AdminAccountsHierarchy";
-import {
-  Search,
-  UserX,
-  UserCheck,
-  Shield,
-  ShieldOff,
-  Loader2,
-  Download,
-  Eye,
-  Users,
-  TrendingUp,
-  AlertTriangle,
-  CheckCircle,
-  MoreHorizontal,
-  FileText,
-  Building2,
-  Calendar,
-  Mail,
-  DollarSign,
-  BarChart3,
-  RefreshCw,
-  Filter,
-  ChevronLeft,
-  ChevronRight,
-  Trash2,
-  Ban,
-  UserPlus,
-} from "lucide-react";
+import { Search, UserX, UserCheck, Shield, ShieldOff, Loader2, Download, Eye, Users, TrendingUp, AlertTriangle, CheckCircle, MoreHorizontal, FileText, Building2, Calendar, DollarSign, RefreshCw, Filter, ChevronLeft, ChevronRight, Trash2, Ban, UserPlus } from "lucide-react";
 import {
   Table,
   TableBody,

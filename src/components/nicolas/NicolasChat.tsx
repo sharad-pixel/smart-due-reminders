@@ -1,23 +1,10 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { 
-  MessageCircle, 
-  X, 
-  Send, 
-  User, 
-  Loader2, 
-  AlertTriangle,
-  ThumbsDown,
-  ExternalLink,
-  Calendar,
-  Mail,
-  Settings2,
-  Book
-} from "lucide-react";
+import { X, Send, User, Loader2, AlertTriangle, ThumbsDown, ExternalLink, Calendar, Mail, Settings2, Book } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLocation, Link } from "react-router-dom";
 import { toast } from "sonner";
@@ -25,7 +12,7 @@ import nicolasAvatar from "@/assets/personas/nicolas.png";
 import { founderConfig } from "@/lib/founderConfig";
 import { useNicolasPreferences } from "@/hooks/useNicolasPreferences";
 import { getPageOnboardingContent } from "@/lib/onboardingContent";
-import { KNOWLEDGE_BASE, ESCALATION_TRIGGERS, ISSUE_CATEGORIES } from "./nicolasKnowledge";
+import { KNOWLEDGE_BASE, ESCALATION_TRIGGERS } from "./nicolasKnowledge";
 
 interface Message {
   id: string;

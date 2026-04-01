@@ -120,7 +120,7 @@ const Settings = () => {
         receive_product_updates: data.receive_product_updates ?? true,
         receive_collection_alerts: data.receive_collection_alerts ?? true,
       });
-    } catch (error: any) {
+    } catch (_error: any) {
       toast.error("Failed to load profile");
     } finally {
       setLoading(false);

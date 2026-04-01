@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { format, addWeeks, addMonths } from "date-fns";
-import { Calendar, Send, Copy, Check, DollarSign, FileText, Mail } from "lucide-react";
+import { Send, Copy, Check, DollarSign } from "lucide-react";
 import { usePaymentPlans, getPaymentPlanARUrl, CreatePaymentPlanData } from "@/hooks/usePaymentPlans";
 import { getPlatformFromAddress, getDebtorReplyTo } from "@/lib/emailSending";
 

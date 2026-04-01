@@ -1,8 +1,7 @@
-import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { addDays, addWeeks, addMonths, format } from "date-fns";
+import { addWeeks, addMonths, format } from "date-fns";
 
 export interface PaymentPlan {
   id: string;

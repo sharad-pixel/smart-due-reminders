@@ -65,7 +65,7 @@ const InvoicesList = ({ onUpdate }: InvoicesListProps) => {
         orderBy: { column: "created_at", ascending: false },
       });
       setInvoices(allInvoices as unknown as Invoice[]);
-    } catch (error: any) {
+    } catch (_error: any) {
       toast.error("Failed to load invoices");
     } finally {
       setLoading(false);
@@ -76,7 +76,7 @@ const InvoicesList = ({ onUpdate }: InvoicesListProps) => {
     try {
       const data = await fetchDebtorsList();
       setDebtors(data);
-    } catch (error: any) {
+    } catch (_error: any) {
       console.error("Failed to load debtors");
     }
   };
@@ -132,7 +132,7 @@ const InvoicesList = ({ onUpdate }: InvoicesListProps) => {
       toast.success("Invoice deleted");
       fetchInvoices();
       onUpdate();
-    } catch (error: any) {
+    } catch (_error: any) {
       toast.error("Failed to delete invoice");
     }
   };

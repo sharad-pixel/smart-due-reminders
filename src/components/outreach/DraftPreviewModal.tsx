@@ -3,13 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PersonaAvatar } from "@/components/ai/PersonaAvatar";
 import { getPersonaByName } from "@/lib/personaConfig";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 import { ToneGauge } from "@/components/ai/ToneGauge";
 import { RefreshCw } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 interface DraftPreviewModalProps {
@@ -57,7 +55,7 @@ export const DraftPreviewModal = ({
     try {
       await onRegenerate(draft.id, toneIntensity);
       toast.success("Draft regenerated with new tone");
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to regenerate draft");
     } finally {
       setIsRegenerating(false);

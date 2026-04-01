@@ -1,4 +1,4 @@
-import { PLAN_CONFIGS, type PlanType } from './subscriptionConfig';
+import { type PlanType } from './subscriptionConfig';
 
 // Plan features configuration
 export const PLAN_FEATURES = {

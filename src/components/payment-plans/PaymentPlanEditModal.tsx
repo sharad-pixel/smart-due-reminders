@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { format, addWeeks, addMonths } from "date-fns";
-import { Edit2, Calendar, DollarSign } from "lucide-react";
+import { Edit2, DollarSign } from "lucide-react";
 import { PaymentPlan, usePaymentPlans } from "@/hooks/usePaymentPlans";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 

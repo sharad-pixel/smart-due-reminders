@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
 import { getInvoiceStatusColor as getStatusColor } from "@/lib/invoiceStatuses";
-import { formatCurrency } from "@/lib/formatters";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllInvoicesPaginated, createInvoice as createInvoiceService } from "@/lib/supabase/invoices";
@@ -16,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Eye, AlertCircle, X, ListChecks } from "lucide-react";
+import { Plus, Search, AlertCircle, X, ListChecks } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
@@ -141,7 +140,7 @@ const Invoices = () => {
 
       setInvoices(allInvoices as any);
       setDebtors(debtorsList);
-    } catch (error: any) {
+    } catch (_error: any) {
       toast.error("Failed to load data");
     } finally {
       setLoading(false);
@@ -176,7 +175,7 @@ const Invoices = () => {
 
       toast.success("Invoice removed from workflow");
       fetchData();
-    } catch (error: any) {
+    } catch (_error: any) {
       toast.error("Failed to remove from workflow");
     }
   };

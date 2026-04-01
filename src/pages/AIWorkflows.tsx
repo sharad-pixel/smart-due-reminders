@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { toast } from "sonner";
-import { Workflow, Mail, MessageSquare, Clock, Sparkles, BarChart3, Eye, Loader2, ChevronDown, ChevronUp, Check, X, ExternalLink, RefreshCw, Pencil, Trash2, AlertTriangle, RotateCcw, Zap } from "lucide-react";
+import { Workflow, Mail, Sparkles, BarChart3, Eye, Loader2, ChevronDown, ChevronUp, Check, X, RefreshCw, Pencil, Trash2, AlertTriangle, RotateCcw, Zap } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";

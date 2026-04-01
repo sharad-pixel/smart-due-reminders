@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Mail, MessageSquare, Phone, FileText, Link2, ExternalLink, CheckSquare } from "lucide-react";
+import { Mail, Phone, FileText, Link2, ExternalLink, CheckSquare } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";

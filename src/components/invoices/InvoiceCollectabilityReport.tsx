@@ -6,32 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { SortableTableHead, SortDirection } from "@/components/ui/sortable-table-head";
-import {
-  RefreshCw,
-  TrendingUp,
-  TrendingDown,
-  AlertTriangle,
-  CheckCircle2,
-  Brain,
-  ChevronDown,
-  ChevronUp,
-  ExternalLink,
-  FileText,
-  Target,
-} from "lucide-react";
+import { SortDirection } from "@/components/ui/sortable-table-head";
+import { RefreshCw, TrendingUp, TrendingDown, AlertTriangle, CheckCircle2, Brain, FileText, Target } from "lucide-react";
 import { toast } from "sonner";
-import { Link } from "react-router-dom";
 
 interface InvoiceReport {
   invoice_id: string;

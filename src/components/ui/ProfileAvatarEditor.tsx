@@ -6,7 +6,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Camera, Trash2, User, Upload } from "lucide-react";
+import { Camera, Trash2, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ProfileAvatarEditorProps {

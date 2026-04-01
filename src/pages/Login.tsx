@@ -210,7 +210,7 @@ const Login = () => {
       toast.success("If an account exists with this email, you'll receive a password reset link shortly.");
       setShowForgotPassword(false);
       setResetEmail("");
-    } catch (error: any) {
+    } catch (_error: any) {
       toast.success("If an account exists with this email, you'll receive a password reset link shortly.");
       setShowForgotPassword(false);
       setResetEmail("");

@@ -10,7 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, differenceInDays, addDays } from "date-fns";
-import { CalendarIcon, TrendingUp, Eye, ChevronDown, ChevronUp, Mail, Clock, ChevronLeft, ChevronRight, ExternalLink, Building2, FileText, Filter } from "lucide-react";
+import { CalendarIcon, Eye, ChevronDown, ChevronUp, Mail, Clock, ChevronLeft, ChevronRight, ExternalLink, Building2, FileText, Filter } from "lucide-react";
 import { personaConfig } from "@/lib/personaConfig";
 import { PersonaAvatar } from "@/components/ai/PersonaAvatar";
 import { cn } from "@/lib/utils";

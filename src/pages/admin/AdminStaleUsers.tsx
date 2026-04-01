@@ -6,24 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import {
-  Search,
-  RefreshCw,
-  Download,
-  Users,
-  UserX,
-  Clock,
-  AlertTriangle,
-  ChevronLeft,
-  ChevronRight,
-  Eye,
-  Filter,
-  Calendar,
-  TrendingDown,
-  Mail,
-  Copy,
-  MessageSquare,
-} from "lucide-react";
+import { Search, RefreshCw, Download, Users, UserX, AlertTriangle, ChevronLeft, ChevronRight, Eye, Filter, Calendar, TrendingDown, Mail, Copy, MessageSquare } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -46,8 +29,6 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { format as formatDate, differenceInDays } from "date-fns";
 import { reEngagementTemplates, hydrateTemplate, FounderMessage } from "@/lib/founderMessaging";

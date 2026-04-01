@@ -19,18 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { 
-  CheckCircle2, 
-  AlertTriangle, 
-  XCircle, 
-  Clock,
-  ChevronRight,
-  Users,
-  FileText,
-  CreditCard,
-  UserCircle,
-  X
-} from 'lucide-react';
+import { CheckCircle2, AlertTriangle, XCircle, Clock, ChevronRight, Users, FileText, CreditCard, UserCircle } from 'lucide-react';
 import { format, differenceInSeconds } from 'date-fns';
 import { groupSyncErrors } from './syncErrorParser';
 import { useIsMobile } from '@/hooks/use-mobile';

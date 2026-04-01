@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Building, Shield, Brain, TrendingUp, CheckCircle, ArrowRight, Database, AlertTriangle, FileText, Users, Lock, Globe } from "lucide-react";
+import { Building, Shield, Brain, CheckCircle, ArrowRight, Database, AlertTriangle, FileText, Users, Lock, Globe } from "lucide-react";
 import MarketingLayout from "@/components/layout/MarketingLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { PersonaAvatar } from "@/components/ai/PersonaAvatar";

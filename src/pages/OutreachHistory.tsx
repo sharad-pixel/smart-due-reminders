@@ -4,14 +4,12 @@ import { useQuery } from "@tanstack/react-query";
 import Layout from "@/components/layout/Layout";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { PersonaAvatar } from "@/components/ai/PersonaAvatar";
-import { personaConfig } from "@/lib/personaConfig";
 import {
   Select,
   SelectContent,
@@ -34,30 +32,9 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  Mail,
-  Search,
-  Filter,
-  Calendar,
-  Building2,
-  FileText,
-  Clock,
-  CheckCircle,
-  Archive,
-  ExternalLink,
-  ChevronLeft,
-  ChevronRight,
-  Loader2,
-  RefreshCw,
-  History,
-  MessageSquare,
-  Send,
-  Inbox,
-  Eye
-} from "lucide-react";
+import { Mail, Search, Filter, Calendar, Building2, FileText, CheckCircle, Archive, ChevronLeft, ChevronRight, Loader2, RefreshCw, History, MessageSquare, Send, Inbox, Eye } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
 
 interface OutreachRecord {
   id: string;

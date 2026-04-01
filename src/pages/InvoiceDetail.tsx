@@ -12,12 +12,11 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { ArrowLeft, CheckCircle, AlertCircle, XCircle, Info, Copy, Check, Sparkles, Edit, Plus, DollarSign, Mail, FileText, ChevronRight, X, PauseCircle, PlayCircle, Search, MessageSquare, CreditCard, FileX } from "lucide-react";
+import { ArrowLeft, CheckCircle, AlertCircle, XCircle, Info, Copy, Check, Sparkles, Edit, DollarSign, Mail, FileText, X, PauseCircle, PlayCircle, Search, MessageSquare, CreditCard, FileX } from "lucide-react";
 import { InvoiceTransactionLog } from "@/components/invoices/InvoiceTransactionLog";
 import { PersonaAvatar } from "@/components/ai/PersonaAvatar";
 import { getPersonaByDaysPastDue } from "@/lib/personaConfig";
@@ -386,7 +385,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
           setPrimaryContactEmail(invoiceRes.data.debtors?.email || null);
         }
       }
-    } catch (error: any) {
+    } catch (_error: any) {
       toast.error("Failed to load invoice details");
       navigate("/invoices");
     } finally {

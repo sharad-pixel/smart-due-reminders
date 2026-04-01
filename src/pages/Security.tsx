@@ -5,23 +5,7 @@ import SEOHead from "@/components/seo/SEOHead";
 import { PAGE_SEO } from "@/lib/seoConfig";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { 
-  Shield, 
-  Lock, 
-  Eye, 
-  Server, 
-  CheckCircle2, 
-  FileText,
-  Key,
-  AlertTriangle, // kept for potential future use
-  Globe,
-  Brain,
-  Download,
-  Mail
-} from "lucide-react";
+import { Shield, Lock, Eye, Server, CheckCircle2, FileText, Key, Globe, Brain, Download } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 

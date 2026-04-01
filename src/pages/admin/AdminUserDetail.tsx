@@ -36,34 +36,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import {
-  ArrowLeft,
-  Loader2,
-  User,
-  Building2,
-  CreditCard,
-  Receipt,
-  Users,
-  Crown,
-  Clock,
-  AlertCircle,
-  CheckCircle,
-  Ban,
-  Mail,
-  Phone,
-  Calendar,
-  Shield,
-  Settings,
-  Trash2,
-  Save,
-  RefreshCw,
-  ExternalLink,
-  FileText,
-  Activity,
-  UserMinus,
-  UserPlus,
-  Link2,
-} from "lucide-react";
+import { ArrowLeft, Loader2, User, CreditCard, Users, Crown, Clock, AlertCircle, CheckCircle, Ban, Shield, Trash2, Save, RefreshCw, ExternalLink, FileText, Activity, UserPlus, Link2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format as formatDate } from "date-fns";
 
