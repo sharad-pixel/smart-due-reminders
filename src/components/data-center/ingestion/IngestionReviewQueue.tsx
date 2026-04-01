@@ -304,6 +304,11 @@ export function IngestionReviewQueue() {
         },
       });
 
+      // Report usage to Stripe (non-blocking)
+      supabase.functions.invoke("report-ingestion-usage").catch((err) =>
+        console.warn("[Ingestion] Stripe usage report failed:", err)
+      );
+
       return newInvoice;
     },
     onSuccess: () => {
@@ -458,6 +463,9 @@ export function IngestionReviewQueue() {
             charge_amount: 0.75,
             billing_period: billingPeriod,
           } as any);
+
+          // Report each file usage to Stripe (non-blocking)
+          supabase.functions.invoke("report-ingestion-usage").catch(() => {});
 
           successCount++;
         } catch {
