@@ -101,6 +101,7 @@ const Debtors = () => {
   const [bulkUpdating, setBulkUpdating] = useState(false);
   const [showDuplicateDetector, setShowDuplicateDetector] = useState(false);
   const [showMergeDialog, setShowMergeDialog] = useState(false);
+  const [showManualMerge, setShowManualMerge] = useState(false);
   const [contacts, setContacts] = useState<Contact[]>([
     { name: "", title: "", email: "", phone: "", outreach_enabled: true }
   ]);
