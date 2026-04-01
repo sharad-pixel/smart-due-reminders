@@ -89,7 +89,7 @@ export function SmartIngestionSection() {
   });
 
   // Get pending files for extraction
-  const { data: pendingFiles } = useQuery({
+  const { data: _pendingFiles } = useQuery({
     queryKey: ["ingestion-pending-files"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
