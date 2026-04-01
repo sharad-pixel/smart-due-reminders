@@ -37,6 +37,9 @@ export const STRIPE_PRICES = {
     monthly: 'price_1ScbGhBfb0dWgtCDZukktOuA',      // $75/user/month
     annual: 'price_1ScbGiBfb0dWgtCDOrLwli7A',       // $720/year per user
   },
+
+  // AI Smart Ingestion - metered usage pricing
+  smartIngestion: 'price_1THHe6Bfb0dWgtCDh4iTrzAe',  // $0.75/file/month (metered)
 } as const;
 
 export const STRIPE_PRODUCTS = {
@@ -51,6 +54,7 @@ export const STRIPE_PRODUCTS = {
   seat: 'prod_TZkmoqr5xpSBtV',
   seatAnnual: 'prod_TZkmyzUeLp2SmA',
   invoice: 'prod_TZ47dBqm7afkzi',
+  smartIngestion: 'prod_UFnEUWvQL0RlJ0',
 } as const;
 
 // ============================================================================
