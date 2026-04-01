@@ -506,9 +506,12 @@ export function SmartIngestionSection() {
 
       {/* Tabs: Review Queue / Dashboard */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
+        <TabsList className="flex-wrap">
           <TabsTrigger value="overview" className="gap-2">
             <FileText className="h-4 w-4" /> Scanned Files
+          </TabsTrigger>
+          <TabsTrigger value="sheets" className="gap-2">
+            <Sheet className="h-4 w-4" /> Sheet Templates
           </TabsTrigger>
           <TabsTrigger value="review" className="gap-2">
             <Eye className="h-4 w-4" /> Review Queue
@@ -526,6 +529,10 @@ export function SmartIngestionSection() {
 
         <TabsContent value="overview">
           <ScannedFilesTable onExtract={(id) => extractMutation.mutate(id)} extracting={extractMutation.isPending} />
+        </TabsContent>
+
+        <TabsContent value="sheets">
+          <SheetTemplatesSection />
         </TabsContent>
 
         <TabsContent value="review">
