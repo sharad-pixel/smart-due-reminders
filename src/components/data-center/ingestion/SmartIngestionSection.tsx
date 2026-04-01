@@ -22,6 +22,7 @@ import {
   BarChart3,
   Shield,
   Sheet,
+  Trash2,
 } from "lucide-react";
 import { IngestionReviewQueue } from "./IngestionReviewQueue";
 import { IngestionDashboard } from "./IngestionDashboard";
