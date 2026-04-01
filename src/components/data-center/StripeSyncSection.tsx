@@ -112,7 +112,7 @@ export const StripeSyncSection = () => {
   const latestSync = syncLogs?.[0] || null;
   const isSyncRunning = latestSync?.status === 'running' || syncing;
 
-  const { data: transactions, isLoading: transactionsLoading, refetch: refetchTransactions } = useQuery({
+  const { data: transactions, isLoading: _transactionsLoading, refetch: refetchTransactions } = useQuery({
     queryKey: ["stripe-synced-transactions"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();

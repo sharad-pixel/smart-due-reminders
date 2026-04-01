@@ -261,7 +261,7 @@ export default function EmailDeliveryReport() {
   };
 
   const deliveryRate = stats.sent > 0 ? ((stats.delivered / stats.sent) * 100).toFixed(1) : '0';
-  const totalFailed = stats.bounced + stats.failed + stats.complained;
+  const _totalFailed = stats.bounced + stats.failed + stats.complained;
 
   return (
     <Layout>

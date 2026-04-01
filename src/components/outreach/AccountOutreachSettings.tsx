@@ -48,7 +48,7 @@ const PERSONA_OPTIONS = [
 
 export const AccountOutreachSettings = ({
   debtorId,
-  debtorName,
+  _debtorName,
   initialSettings,
   onSettingsChange,
 }: AccountOutreachSettingsProps) => {
@@ -243,7 +243,7 @@ export const AccountOutreachSettings = ({
                 <Label>Select AI Agent Persona</Label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {PERSONA_OPTIONS.map((persona) => {
-                    const config = personaConfig[persona.value];
+                    const _config = personaConfig[persona.value];
                     const isSelected = selectedPersona === persona.value;
                     return (
                       <button

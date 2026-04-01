@@ -44,7 +44,7 @@ const OutreachMessagePreview = ({
   outreachSequence
 }: OutreachMessagePreviewProps) => {
   const [loading, setLoading] = useState(true);
-  const [draft, setDraft] = useState<DraftData | null>(null);
+  const [_draft, setDraft] = useState<DraftData | null>(null);
   const [editedSubject, setEditedSubject] = useState("");
   const [editedBody, setEditedBody] = useState("");
   const [isEditing, setIsEditing] = useState(false);

@@ -264,7 +264,7 @@ export const InvoiceWorkflowCard = ({
           <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Agent Progression</p>
           <div className="flex items-center justify-between gap-1">
             {personaProgression.map((stage, index) => {
-              const persona = personaConfig[stage.key];
+              const _persona = personaConfig[stage.key];
               const isPast = index < currentPersonaIndex;
               const isCurrent = index === currentPersonaIndex;
               

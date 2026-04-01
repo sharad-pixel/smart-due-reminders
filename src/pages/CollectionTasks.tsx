@@ -83,7 +83,7 @@ export default function CollectionTasks() {
   const [searchParams, setSearchParams] = useSearchParams();
   const debtorIdFromUrl = searchParams.get('debtor');
   const taskIdFromUrl = searchParams.get('taskId');
-  const { permissions, loading: roleLoading } = useRoleAccess();
+  const { permissions, loading: _roleLoading } = useRoleAccess();
   const { getPreference, setPreference, isLoaded: prefsLoaded } = useUserPreferences('/tasks');
   
   const [tasks, setTasks] = useState<TaskWithRelations[]>([]);

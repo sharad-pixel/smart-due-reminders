@@ -433,7 +433,7 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
     }
   };
 
-  const getStatusBadge = (status: string, scheduledDate: string, createdAt?: string, updatedAt?: string) => {
+  const getStatusBadge = (status: string, scheduledDate: string, _createdAt?: string, _updatedAt?: string) => {
     const scheduled = new Date(scheduledDate);
     const now = new Date();
     const isScheduledFuture = scheduled > now;

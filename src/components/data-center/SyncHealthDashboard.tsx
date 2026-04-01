@@ -100,7 +100,7 @@ export const SyncHealthDashboard = () => {
     return "text-red-600";
   };
 
-  const getProgressColor = (rate: number) => {
+  const _getProgressColor = (rate: number) => {
     if (rate >= 90) return "bg-green-500";
     if (rate >= 70) return "bg-amber-500";
     return "bg-red-500";

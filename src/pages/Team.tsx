@@ -387,7 +387,7 @@ const Team = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data, error } = await supabase.functions.invoke("sync-seat-billing", {
+      const { _data, error } = await supabase.functions.invoke("sync-seat-billing", {
         body: {
           accountId: user.id,
           action: "recalculate",

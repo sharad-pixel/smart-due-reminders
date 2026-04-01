@@ -28,7 +28,7 @@ export function TrialCountdown({ variant = 'card', showUpgradeButton = true }: T
   } = useSubscription();
 
   const [daysRemaining, setDaysRemaining] = useState<number | null>(null);
-  const [hoursRemaining, setHoursRemaining] = useState<number | null>(null);
+  const [_hoursRemaining, setHoursRemaining] = useState<number | null>(null);
   const [invoicesUsed, setInvoicesUsed] = useState(0);
 
   const invoiceLimit = 5;

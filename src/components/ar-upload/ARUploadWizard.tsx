@@ -76,7 +76,7 @@ const getOptionalFields = (uploadType: UploadType): string[] => {
 
 export const ARUploadWizard = ({ open, onClose, uploadType }: ARUploadWizardProps) => {
   const [currentStep, setCurrentStep] = useState(0);
-  const [file, setFile] = useState<File | null>(null);
+  const [_file, setFile] = useState<File | null>(null);
   const [parsedData, setParsedData] = useState<ParsedData | null>(null);
   const [columnMapping, setColumnMapping] = useState<ColumnMapping>({});
   const [batchId, setBatchId] = useState<string | null>(null);

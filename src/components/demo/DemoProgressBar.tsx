@@ -8,7 +8,7 @@ export const DemoProgressBar = () => {
 
   return (
     <div className="hidden lg:flex items-center gap-0.5">
-      {visibleSteps.map((s, i) => {
+      {visibleSteps.map((s, _i) => {
         const realIdx = DEMO_STEPS.findIndex(st => st.key === s.key);
         const isActive = realIdx === currentIdx;
         const isDone = completedSteps.includes(s.key) || realIdx < currentIdx;

@@ -25,7 +25,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
-const SUPPORTED_CURRENCIES = ["USD", "EUR", "GBP", "CAD", "AUD"];
+const _SUPPORTED_CURRENCIES = ["USD", "EUR", "GBP", "CAD", "AUD"];
 
 const getCurrencyLabel = (currency: string) => {
   const labels: Record<string, string> = { USD: "USD – US Dollar", EUR: "EUR – Euro", GBP: "GBP – British Pound", CAD: "CAD – Canadian Dollar", AUD: "AUD – Australian Dollar" };

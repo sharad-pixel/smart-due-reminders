@@ -33,7 +33,7 @@ export const IntegrationSourceBanner = ({
   overrideCount,
   lastSyncedAt,
   invoiceId,
-  onSync,
+  _onSync,
   onDiscardOverrides,
 }: IntegrationSourceBannerProps) => {
   const [discarding, setDiscarding] = useState(false);

@@ -42,7 +42,7 @@ export const LastSyncRunCard = ({
   syncLog, 
   isLoading, 
   onViewDetails,
-  integrationName = 'Integration'
+  _integrationName = 'Integration'
 }: LastSyncRunCardProps) => {
   if (isLoading) {
     return (

@@ -12,7 +12,7 @@ interface MarketingLayoutProps {
 }
 
 // Company Information
-const COMPANY_INFO = {
+const _COMPANY_INFO = {
   legalName: "RecouplyAI Inc.",
   displayName: "Recouply.ai",
   tagline: "Collection Intelligence Platform",

@@ -75,7 +75,7 @@ export const StripeIntegrationCard = () => {
 
     setSavingKey(true);
     try {
-      const { data, error } = await supabase.functions.invoke('save-stripe-credentials', {
+      const { _data, error } = await supabase.functions.invoke('save-stripe-credentials', {
         body: { stripe_secret_key: stripeKey }
       });
 
@@ -145,7 +145,7 @@ export const StripeIntegrationCard = () => {
     }
   };
 
-  const handleToggleAutoSync = async (enabled: boolean) => {
+  const _handleToggleAutoSync = async (enabled: boolean) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;

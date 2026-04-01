@@ -212,7 +212,7 @@ export function PaymentPlanModal({
       }
 
       // Get branding settings for from email
-      const { data: branding } = await supabase
+      const { data: _branding } = await supabase
         .from("branding_settings")
         .select("from_name, from_email, business_name")
         .eq("user_id", user.id)

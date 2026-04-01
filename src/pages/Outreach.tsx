@@ -194,7 +194,7 @@ const Outreach = () => {
   };
 
   // Fetch outreach errors
-  const { data: outreachErrors, isLoading: errorsLoading, refetch: refetchErrors } = useQuery({
+  const { data: outreachErrors, isLoading: _errorsLoading, refetch: _refetchErrors } = useQuery({
     queryKey: ["outreach-errors"],
     staleTime: 30_000,
     refetchOnWindowFocus: false,

@@ -92,7 +92,7 @@ export function CampaignDetailsModal({
   leads,
   isLoadingLeads,
   onRemoveLeads,
-  isRemovingLeads,
+  _isRemovingLeads,
 }: CampaignDetailsModalProps) {
   const queryClient = useQueryClient();
 

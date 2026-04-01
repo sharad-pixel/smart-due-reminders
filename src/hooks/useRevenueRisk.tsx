@@ -104,7 +104,7 @@ export function useRevenueRisk() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
 
-      const { data: result, error } = await supabase.functions.invoke("revenue-risk-engine", {
+      const { data: _result, error } = await supabase.functions.invoke("revenue-risk-engine", {
         body: { user_id: session.user.id, generate_ai_summary: true },
       });
 

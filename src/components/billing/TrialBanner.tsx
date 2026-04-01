@@ -24,7 +24,7 @@ export function TrialBanner() {
   const [usage, setUsage] = useState<TrialUsage | null>(null);
   const [dismissed, setDismissed] = useState(false);
   const [daysRemaining, setDaysRemaining] = useState<number | null>(null);
-  const [hoursRemaining, setHoursRemaining] = useState<number | null>(null);
+  const [_hoursRemaining, setHoursRemaining] = useState<number | null>(null);
   const [hasAdminOverride, setHasAdminOverride] = useState(false);
   const [checkingOverride, setCheckingOverride] = useState(true);
 

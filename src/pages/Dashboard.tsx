@@ -76,7 +76,7 @@ const Dashboard = () => {
   const onboardingStatus = useOnboardingStatus();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [_invoices, setInvoices] = useState<Invoice[]>([]);
   const [pendingTasks, setPendingTasks] = useState<DashboardTask[]>([]);
   const [selectedTask, setSelectedTask] = useState<CollectionTask | null>(null);
   const [taskModalOpen, setTaskModalOpen] = useState(false);

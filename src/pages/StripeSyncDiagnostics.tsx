@@ -149,7 +149,7 @@ const StripeSyncDiagnostics = () => {
   });
 
   // Fetch sync logs
-  const { data: syncLogs, isLoading: logsLoading } = useQuery({
+  const { data: syncLogs, isLoading: _logsLoading } = useQuery({
     queryKey: ["stripe-sync-logs-diagnostic"],
     queryFn: async () => {
       const {
@@ -235,7 +235,7 @@ const StripeSyncDiagnostics = () => {
     }
   };
 
-  const getStripeInvoiceUrl = (stripeInvoiceId: string) => {
+  const _getStripeInvoiceUrl = (stripeInvoiceId: string) => {
     const baseUrl = isTestMode
       ? "https://dashboard.stripe.com/test"
       : "https://dashboard.stripe.com";

@@ -80,7 +80,7 @@ export function getInvoiceLimit(planType: PlanType | 'pro' | null): number {
 
 export const OVERAGE_RATE = 1.99; // $1.99 per invoice overage
 
-export function getMaxAgents(planType: PlanType | 'pro' | null): number {
+export function getMaxAgents(_planType: PlanType | 'pro' | null): number {
   // All users get access to all 6 agents (Stripe disconnected)
   return 6;
 }

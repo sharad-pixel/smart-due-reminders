@@ -215,7 +215,7 @@ const Layout = ({ children }: LayoutProps) => {
     checkTeamAccess();
   }, [user]);
 
-  const navItems = [
+  const _navItems = [
     { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { path: "/debtors", label: "Accounts", icon: Users },
     { path: "/invoices", label: "Invoices", icon: FileText },

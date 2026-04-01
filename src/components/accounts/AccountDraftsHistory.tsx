@@ -64,7 +64,7 @@ const getPersonaFromDpd = (dpd: number | null): string => {
 };
 
 export function AccountDraftsHistory({ debtorId }: AccountDraftsHistoryProps) {
-  const navigate = useNavigate();
+  const _navigate = useNavigate();
   const { effectiveAccountId, loading: accountLoading } = useEffectiveAccount();
   const [drafts, setDrafts] = useState<DraftItem[]>([]);
   const [loading, setLoading] = useState(true);

@@ -165,7 +165,7 @@ const Profile = () => {
   const [membership, setMembership] = useState<Membership | null>(null);
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [planInfo, setPlanInfo] = useState<PlanInfo | null>(null);
-  const [teamMemberCount, setTeamMemberCount] = useState(0);
+  const [_teamMemberCount, setTeamMemberCount] = useState(0);
   const [uploading, setUploading] = useState(false);
   const [requestingDeletion, setRequestingDeletion] = useState(false);
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
@@ -190,7 +190,7 @@ const Profile = () => {
     ownerPlanType, 
     ownerSubscriptionStatus,
     ownerAvatarUrl,
-    memberRole 
+    _memberRole 
   } = useEffectiveAccount();
 
   useEffect(() => {
@@ -373,7 +373,7 @@ const Profile = () => {
     }
   };
 
-  const getInitials = (name: string | null, email: string | null): string => {
+  const _getInitials = (name: string | null, email: string | null): string => {
     if (name) {
       return name
         .split(" ")
@@ -388,7 +388,7 @@ const Profile = () => {
     return "U";
   };
 
-  const getPlanName = (): string => {
+  const _getPlanName = (): string => {
     if (planInfo?.name) return planInfo.name;
     if (profile?.plan_type) {
       return profile.plan_type.charAt(0).toUpperCase() + profile.plan_type.slice(1);
@@ -715,7 +715,7 @@ const Profile = () => {
   const permissions = getPermissions(role);
   const canManageBilling = permissions.manage_billing;
   const planFeatures = getPlanFeatures();
-  const maxUsers = planFeatures.max_invited_users;
+  const _maxUsers = planFeatures.max_invited_users;
 
   return (
     <Layout>

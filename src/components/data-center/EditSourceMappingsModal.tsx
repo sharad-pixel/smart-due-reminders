@@ -48,7 +48,7 @@ interface CustomField {
   isNew?: boolean;
 }
 
-interface Mapping {
+interface _Mapping {
   id?: string;
   file_column_name: string;
   confirmed_field_key: string | null;
@@ -79,7 +79,7 @@ export const EditSourceMappingsModal = ({
 }: EditSourceMappingsModalProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [customFields, setCustomFields] = useState<CustomField[]>([]);
+  const [_customFields, _setCustomFields] = useState<CustomField[]>([]);
   const [newField, setNewField] = useState<CustomField>({
     key: "",
     label: "",

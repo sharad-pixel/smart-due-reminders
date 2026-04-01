@@ -89,7 +89,7 @@ export const ResponseActivityCard = ({ activity, showLinkedOutreach = true }: Re
   };
 
   const isInbound = activity.direction === 'inbound';
-  const hasLinkedOutreach = !!activity.linked_outreach_log_id;
+  const _hasLinkedOutreach = !!activity.linked_outreach_log_id;
 
   
 

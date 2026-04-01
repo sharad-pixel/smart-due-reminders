@@ -17,8 +17,8 @@ interface PersonaCommandInputProps {
 export const PersonaCommandInput = ({
   placeholder = "Ask your AI agents… e.g., 'Send a reminder for this invoice'",
   onSubmit,
-  contextType = "global",
-  contextId,
+  _contextType = "global",
+  _contextId,
   suggestions = [
     "Send an email for this invoice",
     "Draft a friendly reminder",

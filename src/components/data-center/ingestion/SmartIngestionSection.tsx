@@ -160,7 +160,7 @@ export function SmartIngestionSection() {
   });
 
   // List folders
-  const { data: folderList, isLoading: foldersLoading, refetch: refetchFolders } = useQuery({
+  const { data: folderList, isLoading: foldersLoading, refetch: _refetchFolders } = useQuery({
     queryKey: ["drive-folders", folderPath[folderPath.length - 1]?.id],
     queryFn: async () => {
       const parentId = folderPath[folderPath.length - 1]?.id || "root";
@@ -201,7 +201,7 @@ export function SmartIngestionSection() {
       if (error) throw error;
       return data;
     },
-    onSuccess: (data) => {
+    onSuccess: (_data) => {
       queryClient.invalidateQueries({ queryKey: ["ingestion-scan-stats"] });
       queryClient.invalidateQueries({ queryKey: ["ingestion-pending-files"] });
       queryClient.invalidateQueries({ queryKey: ["ingestion-review-queue"] });

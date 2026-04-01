@@ -69,7 +69,7 @@ const getPersonaForBucket = (agingBucket: string): { key: string; persona: Perso
   return null;
 };
 
-export function AccountScheduledOutreachPanel({ debtorId, showAllAccounts = false }: AccountScheduledOutreachPanelProps) {
+export function AccountScheduledOutreachPanel({ debtorId, _showAllAccounts = false }: AccountScheduledOutreachPanelProps) {
   const navigate = useNavigate();
   const { effectiveAccountId, loading: accountLoading } = useEffectiveAccount();
   const [items, setItems] = useState<ScheduledItem[]>([]);

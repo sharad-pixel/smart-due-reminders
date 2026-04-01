@@ -233,7 +233,7 @@ const AccountSummaryModal = ({ open, onOpenChange, debtor }: AccountSummaryModal
 
     setSending(true);
     try {
-      const { data, error } = await supabase.functions.invoke("send-account-summary", {
+      const { _data, error } = await supabase.functions.invoke("send-account-summary", {
         body: {
           debtorId: debtor.id,
           subject,

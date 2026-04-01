@@ -45,7 +45,7 @@ const WorkflowGraph = ({ steps, onGenerateContent, onPreviewMessage, isGeneratin
           
           {/* Steps */}
           <div className="space-y-8">
-            {sortedSteps.map((step, index) => {
+            {sortedSteps.map((step, _index) => {
               const widthPercent = maxDayOffset > 0 ? (step.day_offset / maxDayOffset) * 80 : 50;
               
               return (
