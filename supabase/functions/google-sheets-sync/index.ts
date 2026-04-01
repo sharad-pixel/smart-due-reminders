@@ -306,8 +306,8 @@ async function pullInvoices(supabase: any, accessToken: string, template: any, u
 
   const headers = rows[0].map((h: string) => h.toLowerCase().trim());
   const accountRaidIdx = headers.indexOf('account raid');
-  const invNumIdx = headers.indexOf('invoice number');
-  const amountIdx = headers.indexOf('amount');
+  const invNumIdx = headers.findIndex(h => h === 'ss invoice #' || h === 'invoice number');
+  const amountIdx = headers.findIndex(h => h === 'original amount' || h === 'amount');
   const amtOutIdx = headers.indexOf('amount outstanding');
   const currIdx = headers.indexOf('currency');
   const issueDateIdx = headers.indexOf('issue date');
