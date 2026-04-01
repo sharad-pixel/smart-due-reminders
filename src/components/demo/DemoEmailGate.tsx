@@ -68,9 +68,9 @@ export const DemoEmailGate = () => {
 
         <div className="grid grid-cols-3 gap-4">
           {[
-            { icon: Clock, label: "5 min walkthrough" },
-            { icon: Shield, label: "No real data needed" },
-            { icon: DollarSign, label: "See ROI instantly" },
+            { icon: Clock, label: "Always-on AI agents" },
+            { icon: Shield, label: "Zero manual follow-ups" },
+            { icon: DollarSign, label: "Predictable cash flow" },
           ].map(({ icon: Icon, label }) => (
             <div key={label} className="text-center">
               <Icon className="h-5 w-5 text-muted-foreground mx-auto mb-1" />

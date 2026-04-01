@@ -46,13 +46,13 @@ export const DemoWelcome = () => {
       </div>
 
       <DemoTutorialCallout
-        title="How This Onboarding Works"
-        description="Each step below represents a core feature of Recouply.ai. You'll see mockup screenshots of the real interface, step-by-step instructions, and interactive 'Try It' prompts with pre-loaded demo data."
+        title="How AI-Agentic Recovery Works"
+        description="Each step showcases how Recouply.ai's six AI agents orchestrate revenue recovery — from risk intelligence to autonomous outreach to cash flow results."
         variant="info"
         steps={[
-          { title: "Follow the guided path", description: "Click 'Next' to progress through each feature in order, or jump to any step using the sidebar." },
-          { title: "Interact with demo data", description: "25 realistic customer accounts and 75 invoices are pre-loaded. Simulate imports, activate AI agents, and watch payments come in." },
-          { title: "Learn by doing", description: "Each step has expandable tutorials with detailed instructions for the real platform." },
+          { title: "AI agents handle the repetitive work", description: "Each agent adapts tone and cadence to invoice aging — no human bottlenecks, consistent outreach every time." },
+          { title: "Interact with realistic data", description: "25 customer accounts and 75 invoices are pre-loaded. Activate agents, trigger outreach, and watch revenue recover." },
+          { title: "See the cash flow impact", description: "Track how agentic automation translates directly into healthier cash flow and predictable revenue procurement." },
         ]}
       />
 
