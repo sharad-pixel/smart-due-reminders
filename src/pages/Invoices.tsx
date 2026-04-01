@@ -693,7 +693,7 @@ const Invoices = () => {
                         <SelectItem value="stripe">🔗 Stripe</SelectItem>
                         <SelectItem value="quickbooks">🔗 QuickBooks</SelectItem>
                         <SelectItem value="xero">🔗 Xero</SelectItem>
-                        <SelectItem value="google_drive">🤖 Smart Ingestion</SelectItem>
+                        <SelectItem value="ai_ingestion">🤖 Smart Ingestion</SelectItem>
                       </SelectContent>
                     </Select>
                     <Select value={currencyFilter} onValueChange={setCurrencyFilter}>
