@@ -102,7 +102,9 @@ export function SmartIngestionSection() {
   // Connect to Google Drive
   const connectMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke("google-drive-auth");
+      const { data, error } = await supabase.functions.invoke("google-drive-auth", {
+        body: { origin: window.location.origin },
+      });
       if (error) throw error;
       if (data?.authUrl) {
         window.location.href = data.authUrl;
