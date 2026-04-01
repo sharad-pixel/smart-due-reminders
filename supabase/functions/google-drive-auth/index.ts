@@ -46,7 +46,12 @@ Deno.serve(async (req) => {
     const origin = body.origin || supabaseUrl;
     const state = btoa(JSON.stringify({ userId: user.id, origin }));
 
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+    // If user signed in with Google, use their email as login_hint for seamless auth
+    const isGoogleUser = user.app_metadata?.provider === 'google' || 
+                         user.app_metadata?.providers?.includes('google');
+    const loginHint = isGoogleUser ? user.email : '';
+
+    let authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
       `client_id=${encodeURIComponent(clientId)}` +
       `&redirect_uri=${encodeURIComponent(redirectUri)}` +
       `&response_type=code` +
@@ -54,6 +59,11 @@ Deno.serve(async (req) => {
       `&access_type=offline` +
       `&prompt=consent` +
       `&state=${encodeURIComponent(state)}`;
+
+    // Add login_hint for Google OAuth users so they don't need to pick an account
+    if (loginHint) {
+      authUrl += `&login_hint=${encodeURIComponent(loginHint)}`;
+    }
 
     return new Response(JSON.stringify({ authUrl }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
