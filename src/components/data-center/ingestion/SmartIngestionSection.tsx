@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
-  HardDrive,
   FolderOpen,
   RefreshCw,
   CheckCircle2,
@@ -21,9 +20,9 @@ import {
   Zap,
   BarChart3,
   Shield,
-  Sheet,
   Trash2,
 } from "lucide-react";
+import { GoogleDriveIcon, GoogleSheetsIcon } from "@/components/icons/GoogleIcons";
 import { IngestionReviewQueue } from "./IngestionReviewQueue";
 import { IngestionDashboard } from "./IngestionDashboard";
 import { SheetTemplatesSection } from "./SheetTemplatesSection";
