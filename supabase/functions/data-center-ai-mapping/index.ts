@@ -15,7 +15,7 @@ interface MappingRequest {
 const FIELD_DEFINITIONS = {
   customer: [
     { key: "company_name", label: "Company Name", aliases: ["company", "company name", "business name", "account name", "customer name", "client name", "name"] },
-    { key: "account_type", label: "Type", aliases: ["type", "account type", "customer type", "business type", "b2b", "b2c"] },
+    { key: "account_type", label: "Type (B2B/B2C)", aliases: ["type", "account type", "customer type", "business type", "b2b", "b2c", "b2b/b2c"] },
     { key: "contact_name", label: "Contact Name", aliases: ["contact", "contact name", "primary contact", "contact person", "full name", "name"] },
     { key: "contact_title", label: "Contact Title", aliases: ["title", "contact title", "job title", "position", "role"] },
     { key: "contact_email", label: "Contact Email", aliases: ["email", "contact email", "customer email", "primary email", "email address"] },
@@ -26,9 +26,10 @@ const FIELD_DEFINITIONS = {
     { key: "state", label: "State", aliases: ["state", "province", "region"] },
     { key: "postal_code", label: "Postal Code", aliases: ["postal code", "zip", "zip code", "postcode"] },
     { key: "country", label: "Country", aliases: ["country", "nation"] },
-    { key: "external_customer_id", label: "Account ID (Billing System)", aliases: ["account id", "billing id", "customer id", "external id", "qb id", "quickbooks id"] },
-    { key: "crm_id", label: "CRM ID", aliases: ["crm id", "salesforce id", "sf id", "hubspot id", "crm account"] },
+    { key: "external_customer_id", label: "External Customer ID", aliases: ["account id", "billing id", "customer id", "external id", "external customer id", "qb id", "quickbooks id"] },
+    { key: "crm_id", label: "CRM ID", aliases: ["crm id", "salesforce id", "sf id", "hubspot id", "crm account", "crm account id"] },
     { key: "industry", label: "Industry", aliases: ["industry", "sector", "vertical", "business industry"] },
+    { key: "payment_terms_default", label: "Default Payment Terms", aliases: ["payment terms", "default payment terms", "terms", "net terms", "net 30", "net 60"] },
     { key: "account_notes", label: "Notes", aliases: ["notes", "comments", "remarks", "account notes"] },
     { key: "recouply_account_id", label: "Recouply Account ID (RAID)", aliases: ["raid", "recouply id", "recouply account id", "account raid"] },
   ],
