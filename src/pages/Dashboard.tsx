@@ -450,25 +450,6 @@ const Dashboard = () => {
           />
         </div>
 
-        {/* Try Demo CTA */}
-        <Card className="bg-gradient-to-r from-accent/10 via-primary/5 to-accent/10 border-accent/20 cursor-pointer hover:shadow-md transition-shadow"
-          onClick={() => navigate("/demo")}
-        >
-          <CardContent className="p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-accent/20 flex items-center justify-center">
-                <Play className="h-5 w-5 text-accent" />
-              </div>
-              <div>
-                <p className="font-semibold text-foreground">See How Much Cash You're Missing</p>
-                <p className="text-sm text-muted-foreground">Try our interactive demo — experience automated collections in 60 seconds</p>
-              </div>
-            </div>
-            <Button size="sm" className="bg-accent hover:bg-accent/90 text-accent-foreground shrink-0">
-              Try Demo
-            </Button>
-          </CardContent>
-        </Card>
 
         {/* Usage Indicator */}
         <UsageIndicator />
