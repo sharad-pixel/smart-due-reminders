@@ -462,7 +462,7 @@ async function pullPayments(supabase: any, accessToken: string, template: any, u
     if (!amount || isNaN(amount)) continue;
 
     const accountRaid = getVal(row, accountRaidIdx);
-    const invoiceRef = getVal(row, invRefIdx);
+    const invoiceNum = getVal(row, invNumIdx);
     const paymentDate = parseDate(getVal(row, dateIdx));
 
     let debtorId: string | null = null;
@@ -472,8 +472,9 @@ async function pullPayments(supabase: any, accessToken: string, template: any, u
       const { data: debtor } = await supabase.from('debtors').select('id').eq('reference_id', accountRaid).eq('user_id', userId).maybeSingle();
       debtorId = debtor?.id || null;
     }
-    if (invoiceRef) {
-      const { data: inv } = await supabase.from('invoices').select('id, debtor_id').eq('reference_id', invoiceRef).eq('user_id', userId).maybeSingle();
+    if (invoiceNum) {
+      // Try matching by invoice number (SS Invoice #)
+      const { data: inv } = await supabase.from('invoices').select('id, debtor_id').eq('invoice_number', invoiceNum).eq('user_id', userId).maybeSingle();
       if (inv) {
         invoiceId = inv.id;
         if (!debtorId) debtorId = inv.debtor_id;
@@ -490,9 +491,11 @@ async function pullPayments(supabase: any, accessToken: string, template: any, u
         debtor_id: debtorId,
         invoice_id: invoiceId,
         amount,
+        currency: (getVal(row, currIdx) || 'USD').toUpperCase(),
         payment_date: paymentDate || new Date().toISOString().split('T')[0],
-        payment_method: getVal(row, methodIdx) || null,
-        status: getVal(row, statusIdx) || 'completed',
+        reference: getVal(row, refIdx) || null,
+        invoice_number_hint: invoiceNum || null,
+        reconciliation_status: getVal(row, reconIdx) || 'pending',
         notes: getVal(row, notesIdx) ? `[Sheet] ${getVal(row, notesIdx)}` : '[Sheet Import]',
         source_system: 'google_sheets',
       })
