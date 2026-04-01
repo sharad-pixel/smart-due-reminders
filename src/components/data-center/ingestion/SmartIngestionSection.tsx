@@ -409,9 +409,9 @@ export function SmartIngestionSection() {
                 <Clock className="h-3 w-3" /> Connected: {new Date(connection.created_at).toLocaleDateString()}
               </span>
             )}
-            {connection.token_expires_at && (
+            {connection.refresh_token && (
               <span className="flex items-center gap-1">
-                <Clock className="h-3 w-3" /> Token expires: {new Date(connection.token_expires_at).toLocaleString()}
+                <RefreshCw className="h-3 w-3" /> Token auto-refreshes
               </span>
             )}
             {connection.sync_frequency && (
