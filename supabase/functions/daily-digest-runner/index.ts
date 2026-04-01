@@ -512,6 +512,75 @@ serve(async (req) => {
           });
         }
 
+        // ==========================================
+        // REVENUE RISK & ECL INTELLIGENCE
+        // ==========================================
+        let revenueRiskSummary: any = null;
+
+        const { data: riskProfiles } = await supabase
+          .from('debtor_risk_profiles')
+          .select('debtor_id, overall_collectability_score, total_ecl, total_open_balance, risk_classification, total_engagement_adjusted_ecl')
+          .eq('user_id', accountId);
+
+        if (riskProfiles && riskProfiles.length > 0) {
+          const totalEcl = riskProfiles.reduce((sum, r) => sum + Number(r.total_engagement_adjusted_ecl || r.total_ecl || 0), 0);
+          const totalOpenBalance = riskProfiles.reduce((sum, r) => sum + Number(r.total_open_balance || 0), 0);
+          const avgCollectability = riskProfiles.reduce((sum, r) => sum + Number(r.overall_collectability_score || 0), 0) / riskProfiles.length;
+
+          const riskTiers = { low: 0, moderate: 0, at_risk: 0, high_risk: 0 };
+          for (const r of riskProfiles) {
+            const score = Number(r.overall_collectability_score || 0);
+            if (score >= 80) riskTiers.low++;
+            else if (score >= 60) riskTiers.moderate++;
+            else if (score >= 40) riskTiers.at_risk++;
+            else riskTiers.high_risk++;
+          }
+
+          // Get top risk accounts (lowest collectability)
+          const sortedByRisk = [...riskProfiles]
+            .filter(r => r.overall_collectability_score !== null)
+            .sort((a, b) => Number(a.overall_collectability_score || 0) - Number(b.overall_collectability_score || 0))
+            .slice(0, 5);
+
+          // Fetch debtor names for top risk accounts
+          const topRiskDebtorIds = sortedByRisk.map(r => r.debtor_id);
+          let topRiskDebtorNames: Record<string, string> = {};
+          if (topRiskDebtorIds.length > 0) {
+            const { data: topDebtors } = await supabase
+              .from('debtors')
+              .select('id, company_name')
+              .in('id', topRiskDebtorIds);
+            topRiskDebtorNames = (topDebtors || []).reduce((acc, d) => {
+              acc[d.id] = d.company_name || 'Unknown';
+              return acc;
+            }, {} as Record<string, string>);
+          }
+
+          const topRiskAccounts = sortedByRisk.map(r => ({
+            company_name: topRiskDebtorNames[r.debtor_id] || 'Unknown',
+            collectability_score: Number(r.overall_collectability_score || 0),
+            ecl: Number(r.total_engagement_adjusted_ecl || r.total_ecl || 0),
+            open_balance: Number(r.total_open_balance || 0),
+            risk_classification: r.risk_classification || 'Unknown',
+          }));
+
+          revenueRiskSummary = {
+            total_ecl: totalEcl,
+            total_open_balance: totalOpenBalance,
+            avg_collectability_score: Math.round(avgCollectability),
+            accounts_scored: riskProfiles.length,
+            risk_tiers: riskTiers,
+            top_risk_accounts: topRiskAccounts,
+          };
+
+          logStep('Revenue risk summary calculated', {
+            totalEcl,
+            avgCollectability: Math.round(avgCollectability),
+            accountsScored: riskProfiles.length,
+            riskTiers,
+          });
+        }
+
         // HEALTH SCORE CALCULATION - Enterprise Risk Scoring System
         // Uses weighted factors aligned with risk-engine scoring:
         // - 40% Outstanding Balance & Aging Concentration
