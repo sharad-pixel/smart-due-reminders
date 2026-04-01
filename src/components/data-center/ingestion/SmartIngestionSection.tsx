@@ -28,14 +28,8 @@ import {
 } from "lucide-react";
 import { IngestionReviewQueue } from "./IngestionReviewQueue";
 import { IngestionDashboard } from "./IngestionDashboard";
+import { SheetTemplatesSection } from "./SheetTemplatesSection";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,

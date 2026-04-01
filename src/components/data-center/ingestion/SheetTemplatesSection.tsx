@@ -84,7 +84,7 @@ export function SheetTemplatesSection() {
     mutationFn: async (sheetTemplateId?: string) => {
       const { data, error } = await supabase.functions.invoke("google-sheets-ingest", {
         body: sheetTemplateId ? { sheetTemplateId } : {},
-      });
+      } as any);
       if (error) throw error;
       return data;
     },
