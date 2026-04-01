@@ -33,7 +33,7 @@ export function useUserPreferences(pagePath: string) {
         if (data && !error) {
           setPreferences((data.view_config as PagePreferences) || {});
         }
-      } catch (error) {
+      } catch (_error) {
         // No preferences saved yet, that's fine
         // No preferences saved yet, that's expected
       } finally {

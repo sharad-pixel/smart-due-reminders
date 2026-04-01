@@ -50,7 +50,7 @@ const AdminSystem = () => {
       } else {
         throw new Error("Failed to save");
       }
-    } catch (error) {
+    } catch (_error) {
       toast({ title: "Error", description: "Failed to save configuration", variant: "destructive" });
     } finally {
       setSaving(false);

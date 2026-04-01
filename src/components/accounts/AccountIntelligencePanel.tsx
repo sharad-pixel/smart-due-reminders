@@ -127,7 +127,7 @@ export function AccountIntelligencePanel({
       
       setReportLoading(false);
       setInitialLoadDone(true);
-    } catch (error) {
+    } catch (_error) {
       setReportLoading(false);
       setInitialLoadDone(true);
     }

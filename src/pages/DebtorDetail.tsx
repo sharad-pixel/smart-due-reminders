@@ -333,7 +333,7 @@ const DebtorDetail = () => {
 
       if (error) throw error;
       fetchContacts();
-    } catch (error: any) {
+    } catch (_error: any) {
       toast.error("Failed to update outreach setting");
     }
   };
@@ -460,7 +460,7 @@ const DebtorDetail = () => {
         address: data.address || "",
         notes: data.notes || "",
       });
-    } catch (error: any) {
+    } catch (_error: any) {
       toast.error("Failed to load account details");
       navigate("/debtors");
     } finally {

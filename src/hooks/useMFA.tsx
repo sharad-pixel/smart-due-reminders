@@ -46,7 +46,7 @@ export function useMFA() {
       let encryptedBackupCodes: string | null = null;
       try {
         encryptedBackupCodes = await encryptField(JSON.stringify(backupCodes));
-      } catch (e) {
+      } catch (_e) {
         console.warn("Encryption not available, storing backup codes in legacy format");
       }
 

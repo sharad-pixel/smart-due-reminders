@@ -385,7 +385,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
           setPrimaryContactEmail(invoiceRes.data.debtors?.email || null);
         }
       }
-    } catch (error: any) {
+    } catch (_error: any) {
       toast.error("Failed to load invoice details");
       navigate("/invoices");
     } finally {

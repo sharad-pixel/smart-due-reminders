@@ -140,7 +140,7 @@ const Invoices = () => {
 
       setInvoices(allInvoices as any);
       setDebtors(debtorsList);
-    } catch (error: any) {
+    } catch (_error: any) {
       toast.error("Failed to load data");
     } finally {
       setLoading(false);
@@ -175,7 +175,7 @@ const Invoices = () => {
 
       toast.success("Invoice removed from workflow");
       fetchData();
-    } catch (error: any) {
+    } catch (_error: any) {
       toast.error("Failed to remove from workflow");
     }
   };

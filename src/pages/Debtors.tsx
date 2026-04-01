@@ -174,7 +174,7 @@ const Debtors = () => {
       }));
       
       setDebtors(debtorsWithContacts);
-    } catch (error: any) {
+    } catch (_error: any) {
       toast.error("Failed to load accounts");
     } finally {
       setLoading(false);
