@@ -170,10 +170,11 @@ const ConsumptionTracker = () => {
           invoiceUrl: chargesData.open_invoice.hosted_invoice_url || null,
           amountDue: chargesData.open_invoice.amount_due,
           nextPaymentDate: chargesData.open_invoice.due_date || chargesData.open_invoice.created_at,
-          breakdown: {
+           breakdown: {
             baseSubscription: 0,
             seatCharges: 0,
             overageCharges: 0,
+            ingestionCharges: 0,
             prorations: 0,
           },
           lineItems: [],
