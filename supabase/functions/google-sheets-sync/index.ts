@@ -437,13 +437,14 @@ async function pullPayments(supabase: any, accessToken: string, template: any, u
 
   const headers = rows[0].map((h: string) => h.toLowerCase().trim());
   const accountRaidIdx = headers.indexOf('account raid');
-  const invRefIdx = headers.indexOf('invoice ref');
+  const invNumIdx = headers.findIndex(h => h === 'ss invoice #' || h === 'invoice number' || h === 'invoice ref');
   const amountIdx = headers.indexOf('payment amount');
+  const currIdx = headers.indexOf('currency');
   const dateIdx = headers.indexOf('payment date');
-  const methodIdx = headers.indexOf('payment method');
-  const statusIdx = headers.indexOf('status');
+  const refIdx = headers.indexOf('payment reference');
+  const reconIdx = headers.findIndex(h => h === 'reconciliation status' || h === 'status');
   const notesIdx = headers.indexOf('notes');
-  const payRefIdx = headers.indexOf('recouply pay ref (do not edit)');
+  const payRefIdx = headers.findIndex(h => h.includes('recouply') && h.includes('ref') && h.includes('do not edit'));
   const sourceIdx = headers.indexOf('source');
 
   let created = 0, skipped = 0;
