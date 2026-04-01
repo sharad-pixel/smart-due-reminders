@@ -259,8 +259,8 @@ export const IntegrationSourceBanner = ({
     );
   }
 
-  // Google Drive / Smart Ingestion
-  if (source === "google_drive") {
+  // AI Smart Ingestion (Google Drive)
+  if (source === "google_drive" || source === "ai_ingestion") {
     return (
       <Alert className="bg-cyan-50 border-cyan-200 dark:bg-cyan-950/30 dark:border-cyan-800">
         <FileText className="h-4 w-4 text-cyan-600" />
@@ -353,13 +353,13 @@ export const IntegrationSourceBadge = ({
     );
   }
 
-  if (sourceValue === "google_drive") {
+  if (sourceValue === "google_drive" || sourceValue === "ai_ingestion") {
     return (
       <Badge 
         variant="outline" 
         className={`bg-cyan-50 border-cyan-200 text-cyan-700 dark:bg-cyan-950/30 dark:border-cyan-800 dark:text-cyan-300 ${sizeClasses}`}
       >
-        🤖 Smart Ingestion
+        🤖 AI Smart Ingestion
       </Badge>
     );
   }
