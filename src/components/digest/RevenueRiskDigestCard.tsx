@@ -17,13 +17,6 @@ const getRiskBadgeVariant = (classification: string): "default" | "secondary" | 
   }
 };
 
-const getScoreColor = (score: number) => {
-  if (score >= 80) return 'text-green-600';
-  if (score >= 60) return 'text-yellow-600';
-  if (score >= 40) return 'text-orange-600';
-  return 'text-red-600';
-};
-
 const getScoreBg = (score: number) => {
   if (score >= 80) return 'bg-green-500';
   if (score >= 60) return 'bg-yellow-500';
