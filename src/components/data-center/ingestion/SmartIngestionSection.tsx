@@ -22,9 +22,6 @@ import {
   BarChart3,
   Shield,
   Sheet,
-  ExternalLink,
-  Send,
-  Download,
 } from "lucide-react";
 import { IngestionReviewQueue } from "./IngestionReviewQueue";
 import { IngestionDashboard } from "./IngestionDashboard";
