@@ -93,6 +93,16 @@ export const SEAT_PRICING = {
 } as const;
 
 /**
+ * AI Smart Ingestion pricing (per-file, usage-based)
+ */
+export const SMART_INGESTION_PRICING = {
+  perFile: 0.75,
+  currency: 'USD',
+  billingCadence: 'monthly',
+  chargeOnApprovalOnly: true,
+} as const;
+
+/**
  * Calculate annual price from monthly price
  * Formula: monthly * 12 * 0.8 (20% discount)
  */

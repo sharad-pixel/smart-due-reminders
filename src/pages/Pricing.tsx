@@ -566,10 +566,49 @@ const Pricing = () => {
             ))}
           </div>
 
-          <div className="mt-8 text-center">
+          <div className="mt-8 text-center space-y-2">
             <p className="text-sm text-muted-foreground bg-background/50 inline-block px-6 py-3 rounded-lg">
               Overage charges are calculated monthly based on actual active invoice usage.
             </p>
+          </div>
+
+          {/* Smart Ingestion Add-on */}
+          <div className="mt-10 max-w-2xl mx-auto">
+            <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-background">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2.5 rounded-xl bg-primary/10">
+                    <ScanSearch className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold">AI Smart Ingestion</h3>
+                    <p className="text-sm text-muted-foreground">Google Drive PDF extraction — available on all plans</p>
+                  </div>
+                  <Badge className="ml-auto bg-primary/10 text-primary border-primary/20 hover:bg-primary/15">Add-on</Badge>
+                </div>
+                <div className="flex items-baseline gap-1 mb-3">
+                  <span className="text-4xl font-bold text-primary">{formatPrice(SMART_INGESTION_PRICING.perFile, { showCents: true })}</span>
+                  <span className="text-muted-foreground">per approved file</span>
+                </div>
+                <ul className="space-y-2 text-sm text-muted-foreground mb-4">
+                  <li className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-primary shrink-0" />
+                    AI extracts invoice data from PDF files in your Google Drive
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-primary shrink-0" />
+                    Only charged when you approve — rejected & duplicate files are free
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-primary shrink-0" />
+                    Charges aggregated monthly on your existing billing cycle
+                  </li>
+                </ul>
+                <Button variant="outline" className="w-full gap-2" onClick={() => navigate("/signup")}>
+                  Get Started <ArrowRight className="h-4 w-4" />
+                </Button>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>
