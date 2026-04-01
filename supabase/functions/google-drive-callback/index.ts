@@ -33,9 +33,8 @@ Deno.serve(async (req) => {
 
     if (error || !code || !state) {
       console.error('[DRIVE-CALLBACK] OAuth error or missing params:', { error, hasCode: !!code, hasState: !!state });
-      return new Response(redirectHtml(effectiveSiteUrl, '/data-center', 'error', error || 'Missing authorization code'), {
-        headers: { 'Content-Type': 'text/html' },
-      });
+      const errUrl = `${effectiveSiteUrl}/data-center?drive_status=error&drive_message=${encodeURIComponent(error || 'Missing authorization code')}`;
+      return Response.redirect(errUrl, 302);
     }
 
     const userId = stateData.userId;
