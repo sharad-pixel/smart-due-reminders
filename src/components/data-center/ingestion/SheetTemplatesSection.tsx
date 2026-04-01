@@ -125,7 +125,7 @@ export function SheetTemplatesSection() {
           <Button
             size="sm"
             variant="outline"
-            onClick={() => ingestMutation.mutate()}
+            onClick={() => ingestMutation.mutate(undefined)}
             disabled={ingestMutation.isPending || !templates || templates.length === 0}
           >
             {ingestMutation.isPending ? (
