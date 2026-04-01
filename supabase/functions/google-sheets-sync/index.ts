@@ -422,8 +422,8 @@ async function pullInvoices(supabase: any, accessToken: string, template: any, u
     );
     movedToPaid = rowsToMoveToPaid.length;
     const clearUpdates = rowsToMoveToPaid.map(ri => ({
-      range: `'Open Invoices'!A${ri + 1}:O${ri + 1}`,
-      values: [Array(15).fill('')],
+      range: `'Open Invoices'!A${ri + 1}:P${ri + 1}`,
+      values: [Array(16).fill('')],
     }));
     await batchUpdateSheet(accessToken, template.sheet_id, clearUpdates);
   }
