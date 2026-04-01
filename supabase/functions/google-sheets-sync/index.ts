@@ -163,17 +163,21 @@ async function pushInvoices(supabase: any, accessToken: string, template: any, u
 async function pushPayments(supabase: any, accessToken: string, template: any, userId: string) {
   const { data: payments } = await supabase
     .from('payments')
-    .select('reference_id, amount, payment_date, payment_method, status, notes, invoices(invoice_number, reference_id), debtors(reference_id, company_name)')
+    .select('reference_id, amount, currency, payment_date, reference, reconciliation_status, invoice_number_hint, notes, debtors(reference_id, company_name)')
     .eq('user_id', userId)
     .order('payment_date', { ascending: false })
     .limit(1000);
 
-  const headers = ['Account RAID', 'Account Name', 'Invoice Ref', 'Invoice Number', 'Payment Amount', 'Payment Date', 'Payment Method', 'Status', 'Notes', 'Recouply Pay Ref (DO NOT EDIT)', 'Source'];
+  const headers = [
+    'Account RAID', 'Account Name', 'SS Invoice #', 'Payment Amount', 'Currency',
+    'Payment Date', 'Payment Reference', 'Reconciliation Status',
+    'Notes', 'Recouply Payment Ref (DO NOT EDIT)', 'Source'
+  ];
   const rows = [headers, ...(payments || []).map((p: any) => [
     p.debtors?.reference_id || '', p.debtors?.company_name || '',
-    p.invoices?.reference_id || '', p.invoices?.invoice_number || '',
-    p.amount || 0, p.payment_date || '', p.payment_method || '',
-    p.status || '', p.notes || '', p.reference_id || '', 'recouply',
+    p.invoice_number_hint || '', p.amount || 0, p.currency || 'USD',
+    p.payment_date || '', p.reference || '',
+    p.reconciliation_status || 'pending', p.notes || '', p.reference_id || '', 'recouply',
   ])];
 
   await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${template.sheet_id}/values/Payments!A:K:clear`, {
