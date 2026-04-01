@@ -462,7 +462,33 @@ const ConsumptionTracker = () => {
                   </p>
                 </div>
               )}
-            </div>
+
+              {/* Smart Ingestion Charges */}
+              {ingestionCharges && ingestionCharges.fileCount > 0 && (
+                <div className="mt-4 p-4 rounded-lg border-2 border-primary/30 bg-primary/5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <FileText className="h-5 w-5 text-primary" />
+                    <h4 className="font-semibold">Smart Ingestion Charges</h4>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center p-3 bg-primary/10 rounded-lg">
+                      <p className="text-3xl font-bold text-primary">{ingestionCharges.fileCount}</p>
+                      <p className="text-xs text-muted-foreground">Files Processed</p>
+                    </div>
+                    <div className="text-center p-3 bg-primary/10 rounded-lg">
+                      <p className="text-3xl font-bold text-primary">
+                        {formatPrice(ingestionCharges.totalCharges)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">Ingestion Charges</p>
+                    </div>
+                  </div>
+                  <div className="mt-3 text-sm text-muted-foreground text-center">
+                    <span className="font-medium">{ingestionCharges.fileCount} files</span> × 
+                    <span className="font-medium ml-1">${ingestionCharges.ratePerFile.toFixed(2)}/file</span> = 
+                    <span className="font-bold ml-1 text-foreground">{formatPrice(ingestionCharges.totalCharges)}</span>
+                  </div>
+                </div>
+              )}
           )}
         </div>
 
