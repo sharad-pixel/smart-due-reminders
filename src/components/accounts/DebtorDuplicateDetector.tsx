@@ -51,64 +51,62 @@ function normalize(str: string | null | undefined): string {
   return str.toLowerCase().replace(/[^a-z0-9]/g, "").trim();
 }
 
-function detectDuplicates(debtors: Debtor[]): DuplicateGroup[] {
+type MatchMode = "both" | "name" | "email";
+
+function detectDuplicates(debtors: Debtor[], mode: MatchMode): DuplicateGroup[] {
   const groups: DuplicateGroup[] = [];
   const seen = new Set<string>();
 
-  // 1. Exact email match
-  const emailMap = new Map<string, Debtor[]>();
-  for (const d of debtors) {
-    const email = normalize(d.email);
-    if (!email) continue;
-    if (!emailMap.has(email)) emailMap.set(email, []);
-    emailMap.get(email)!.push(d);
-  }
-  for (const [email, dups] of emailMap) {
-    if (dups.length < 2) continue;
-    const key = `email:${email}`;
-    groups.push({ key, reason: `Same email: ${dups[0].email}`, confidence: "high", debtors: dups });
-    dups.forEach(d => seen.add(d.id));
+  // 1. Email match
+  if (mode === "email" || mode === "both") {
+    const emailMap = new Map<string, Debtor[]>();
+    for (const d of debtors) {
+      const email = normalize(d.email);
+      if (!email) continue;
+      if (!emailMap.has(email)) emailMap.set(email, []);
+      emailMap.get(email)!.push(d);
+    }
+    for (const [, dups] of emailMap) {
+      if (dups.length < 2) continue;
+      const key = `email:${normalize(dups[0].email)}`;
+      groups.push({ key, reason: `Same email: ${dups[0].email}`, confidence: "high", debtors: dups });
+      dups.forEach(d => seen.add(d.id));
+    }
   }
 
-  // 2. Fuzzy company name match (normalized)
-  const nameMap = new Map<string, Debtor[]>();
-  for (const d of debtors) {
-    const name = normalize(d.company_name);
-    if (!name || name.length < 3) continue;
-    if (!nameMap.has(name)) nameMap.set(name, []);
-    nameMap.get(name)!.push(d);
-  }
-  for (const [, dups] of nameMap) {
-    if (dups.length < 2) continue;
-    // Skip if all already captured by email
-    const newIds = dups.filter(d => !seen.has(d.id));
-    if (newIds.length === 0 && dups.every(d => seen.has(d.id))) {
-      // Check if this group is different from email groups
+  // 2. Exact company name match
+  if (mode === "name" || mode === "both") {
+    const nameMap = new Map<string, Debtor[]>();
+    for (const d of debtors) {
+      const name = normalize(d.company_name);
+      if (!name || name.length < 3) continue;
+      if (!nameMap.has(name)) nameMap.set(name, []);
+      nameMap.get(name)!.push(d);
+    }
+    for (const [, dups] of nameMap) {
+      if (dups.length < 2) continue;
       const key = `name:${normalize(dups[0].company_name)}`;
       if (!groups.find(g => g.key === key)) {
         groups.push({ key, reason: `Same company name: ${dups[0].company_name}`, confidence: "high", debtors: dups });
       }
-    } else {
-      const key = `name:${normalize(dups[0].company_name)}`;
-      groups.push({ key, reason: `Same company name: ${dups[0].company_name}`, confidence: "high", debtors: dups });
+      dups.forEach(d => seen.add(d.id));
     }
-    dups.forEach(d => seen.add(d.id));
-  }
 
-  // 3. Similar name match (first 6 chars)
-  const prefixMap = new Map<string, Debtor[]>();
-  for (const d of debtors) {
-    if (seen.has(d.id)) continue;
-    const name = normalize(d.company_name);
-    if (!name || name.length < 6) continue;
-    const prefix = name.substring(0, 6);
-    if (!prefixMap.has(prefix)) prefixMap.set(prefix, []);
-    prefixMap.get(prefix)!.push(d);
-  }
-  for (const [, dups] of prefixMap) {
-    if (dups.length < 2) continue;
-    const key = `prefix:${normalize(dups[0].company_name).substring(0, 6)}`;
-    groups.push({ key, reason: `Similar company name`, confidence: "medium", debtors: dups });
+    // 3. Fuzzy name match (first 6 chars) — only in name/both mode
+    const prefixMap = new Map<string, Debtor[]>();
+    for (const d of debtors) {
+      if (seen.has(d.id)) continue;
+      const name = normalize(d.company_name);
+      if (!name || name.length < 6) continue;
+      const prefix = name.substring(0, 6);
+      if (!prefixMap.has(prefix)) prefixMap.set(prefix, []);
+      prefixMap.get(prefix)!.push(d);
+    }
+    for (const [, dups] of prefixMap) {
+      if (dups.length < 2) continue;
+      const key = `prefix:${normalize(dups[0].company_name).substring(0, 6)}`;
+      groups.push({ key, reason: `Similar company name`, confidence: "medium", debtors: dups });
+    }
   }
 
   // Deduplicate groups
