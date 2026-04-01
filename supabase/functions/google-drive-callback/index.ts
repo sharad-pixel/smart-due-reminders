@@ -123,8 +123,3 @@ Deno.serve(async (req) => {
     return Response.redirect(`https://recouply.ai/data-center?drive_status=error&drive_message=${encodeURIComponent(String(err))}`, 302);
   }
 });
-
-function redirectHtml(base: string, path: string, status: string, message: string) {
-  const url = `${base}${path}?drive_status=${status}&drive_message=${encodeURIComponent(message)}`;
-  return `<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;url=${url}"><script>window.location.href="${url}";</script></head><body>Redirecting...</body></html>`;
-}
