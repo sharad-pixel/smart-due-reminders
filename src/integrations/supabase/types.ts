@@ -3146,6 +3146,65 @@ export type Database = {
           },
         ]
       }
+      drive_connections: {
+        Row: {
+          access_token: string | null
+          created_at: string | null
+          folder_id: string | null
+          folder_name: string | null
+          id: string
+          is_active: boolean | null
+          last_sync_at: string | null
+          organization_id: string | null
+          provider: string
+          refresh_token: string | null
+          sync_frequency: string | null
+          token_expires_at: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          access_token?: string | null
+          created_at?: string | null
+          folder_id?: string | null
+          folder_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_sync_at?: string | null
+          organization_id?: string | null
+          provider?: string
+          refresh_token?: string | null
+          sync_frequency?: string | null
+          token_expires_at?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          access_token?: string | null
+          created_at?: string | null
+          folder_id?: string | null
+          folder_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_sync_at?: string | null
+          organization_id?: string | null
+          provider?: string
+          refresh_token?: string | null
+          sync_frequency?: string | null
+          token_expires_at?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drive_connections_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       early_access_whitelist: {
         Row: {
           email: string
@@ -3916,6 +3975,280 @@ export type Database = {
             columns: ["invoice_id"]
             isOneToOne: false
             referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ingestion_audit_log: {
+        Row: {
+          created_at: string | null
+          event_details: Json | null
+          event_type: string
+          id: string
+          organization_id: string | null
+          review_item_id: string | null
+          scanned_file_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          event_details?: Json | null
+          event_type: string
+          id?: string
+          organization_id?: string | null
+          review_item_id?: string | null
+          scanned_file_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          event_details?: Json | null
+          event_type?: string
+          id?: string
+          organization_id?: string | null
+          review_item_id?: string | null
+          scanned_file_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingestion_audit_log_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingestion_audit_log_review_item_id_fkey"
+            columns: ["review_item_id"]
+            isOneToOne: false
+            referencedRelation: "ingestion_review_queue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingestion_audit_log_scanned_file_id_fkey"
+            columns: ["scanned_file_id"]
+            isOneToOne: false
+            referencedRelation: "ingestion_scanned_files"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ingestion_review_queue: {
+        Row: {
+          confidence_breakdown: Json | null
+          confidence_score: number | null
+          created_at: string | null
+          created_debtor_id: string | null
+          created_invoice_id: string | null
+          debtor_match_confidence: number | null
+          duplicate_invoice_id: string | null
+          edits_made: Json | null
+          extracted_address: string | null
+          extracted_amount: number | null
+          extracted_billing_email: string | null
+          extracted_company_name: string | null
+          extracted_debtor_name: string | null
+          extracted_due_date: string | null
+          extracted_invoice_date: string | null
+          extracted_invoice_number: string | null
+          extracted_outstanding_balance: number | null
+          extracted_po_number: string | null
+          id: string
+          is_duplicate: boolean | null
+          matched_debtor_id: string | null
+          organization_id: string | null
+          review_notes: string | null
+          review_status: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          scanned_file_id: string
+          updated_at: string | null
+          user_id: string
+          validation_errors: Json | null
+        }
+        Insert: {
+          confidence_breakdown?: Json | null
+          confidence_score?: number | null
+          created_at?: string | null
+          created_debtor_id?: string | null
+          created_invoice_id?: string | null
+          debtor_match_confidence?: number | null
+          duplicate_invoice_id?: string | null
+          edits_made?: Json | null
+          extracted_address?: string | null
+          extracted_amount?: number | null
+          extracted_billing_email?: string | null
+          extracted_company_name?: string | null
+          extracted_debtor_name?: string | null
+          extracted_due_date?: string | null
+          extracted_invoice_date?: string | null
+          extracted_invoice_number?: string | null
+          extracted_outstanding_balance?: number | null
+          extracted_po_number?: string | null
+          id?: string
+          is_duplicate?: boolean | null
+          matched_debtor_id?: string | null
+          organization_id?: string | null
+          review_notes?: string | null
+          review_status?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          scanned_file_id: string
+          updated_at?: string | null
+          user_id: string
+          validation_errors?: Json | null
+        }
+        Update: {
+          confidence_breakdown?: Json | null
+          confidence_score?: number | null
+          created_at?: string | null
+          created_debtor_id?: string | null
+          created_invoice_id?: string | null
+          debtor_match_confidence?: number | null
+          duplicate_invoice_id?: string | null
+          edits_made?: Json | null
+          extracted_address?: string | null
+          extracted_amount?: number | null
+          extracted_billing_email?: string | null
+          extracted_company_name?: string | null
+          extracted_debtor_name?: string | null
+          extracted_due_date?: string | null
+          extracted_invoice_date?: string | null
+          extracted_invoice_number?: string | null
+          extracted_outstanding_balance?: number | null
+          extracted_po_number?: string | null
+          id?: string
+          is_duplicate?: boolean | null
+          matched_debtor_id?: string | null
+          organization_id?: string | null
+          review_notes?: string | null
+          review_status?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          scanned_file_id?: string
+          updated_at?: string | null
+          user_id?: string
+          validation_errors?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingestion_review_queue_created_invoice_id_fkey"
+            columns: ["created_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingestion_review_queue_matched_debtor_id_fkey"
+            columns: ["matched_debtor_id"]
+            isOneToOne: false
+            referencedRelation: "debtor_contact_emails"
+            referencedColumns: ["debtor_id"]
+          },
+          {
+            foreignKeyName: "ingestion_review_queue_matched_debtor_id_fkey"
+            columns: ["matched_debtor_id"]
+            isOneToOne: false
+            referencedRelation: "debtors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingestion_review_queue_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingestion_review_queue_scanned_file_id_fkey"
+            columns: ["scanned_file_id"]
+            isOneToOne: false
+            referencedRelation: "ingestion_scanned_files"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ingestion_scanned_files: {
+        Row: {
+          confidence_score: number | null
+          connection_id: string
+          created_at: string | null
+          duplicate_of_invoice_id: string | null
+          error_message: string | null
+          extraction_result: Json | null
+          file_id: string
+          file_name: string
+          file_size: number | null
+          folder_path: string | null
+          id: string
+          is_duplicate: boolean | null
+          mime_type: string | null
+          organization_id: string | null
+          processing_completed_at: string | null
+          processing_started_at: string | null
+          processing_status: string | null
+          scan_timestamp: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          confidence_score?: number | null
+          connection_id: string
+          created_at?: string | null
+          duplicate_of_invoice_id?: string | null
+          error_message?: string | null
+          extraction_result?: Json | null
+          file_id: string
+          file_name: string
+          file_size?: number | null
+          folder_path?: string | null
+          id?: string
+          is_duplicate?: boolean | null
+          mime_type?: string | null
+          organization_id?: string | null
+          processing_completed_at?: string | null
+          processing_started_at?: string | null
+          processing_status?: string | null
+          scan_timestamp?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          confidence_score?: number | null
+          connection_id?: string
+          created_at?: string | null
+          duplicate_of_invoice_id?: string | null
+          error_message?: string | null
+          extraction_result?: Json | null
+          file_id?: string
+          file_name?: string
+          file_size?: number | null
+          folder_path?: string | null
+          id?: string
+          is_duplicate?: boolean | null
+          mime_type?: string | null
+          organization_id?: string | null
+          processing_completed_at?: string | null
+          processing_started_at?: string | null
+          processing_status?: string | null
+          scan_timestamp?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingestion_scanned_files_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "drive_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingestion_scanned_files_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
