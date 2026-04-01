@@ -116,6 +116,7 @@ export function DebtorMergeDialog({ open, onOpenChange, debtors, onMergeComplete
                 { label: "Payments Moved", value: result.payments_moved },
                 { label: "Activities Moved", value: result.activities_moved },
                 { label: "Contacts Moved", value: result.contacts_moved },
+                { label: "Contacts Deduped", value: result.contacts_deduped },
               ].map(stat => (
                 <Card key={stat.label}>
                   <CardContent className="py-3 px-4 flex items-center justify-between">

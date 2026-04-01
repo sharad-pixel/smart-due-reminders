@@ -24,6 +24,7 @@ import { useAccountsAvgDPD, getAccountAvgDPD } from "@/hooks/useAvgDPD";
 import { AIInsightsCard } from "@/components/ai/AIInsightsCard";
 import { DebtorMergeDialog } from "@/components/accounts/DebtorMergeDialog";
 import { DebtorDuplicateDetector } from "@/components/accounts/DebtorDuplicateDetector";
+import { DebtorManualMerge } from "@/components/accounts/DebtorManualMerge";
 
 interface Contact {
   name: string;
@@ -100,6 +101,7 @@ const Debtors = () => {
   const [bulkUpdating, setBulkUpdating] = useState(false);
   const [showDuplicateDetector, setShowDuplicateDetector] = useState(false);
   const [showMergeDialog, setShowMergeDialog] = useState(false);
+  const [showManualMerge, setShowManualMerge] = useState(false);
   const [contacts, setContacts] = useState<Contact[]>([
     { name: "", title: "", email: "", phone: "", outreach_enabled: true }
   ]);
@@ -731,6 +733,15 @@ const Debtors = () => {
                   <Sparkles className="h-4 w-4" />
                   Find Duplicates
                 </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowManualMerge(true)}
+                  className="gap-2"
+                >
+                  <Merge className="h-4 w-4" />
+                  Merge by Name/Email
+                </Button>
               </div>
               
               {/* Bulk Actions Bar */}
@@ -1222,6 +1233,17 @@ const Debtors = () => {
           }}
         />
       )}
+
+      {/* Manual Merge by Name/Email */}
+      <DebtorManualMerge
+        open={showManualMerge}
+        onOpenChange={setShowManualMerge}
+        debtors={debtors}
+        onMergeComplete={() => {
+          fetchDebtors();
+          setSelectedIds(new Set());
+        }}
+      />
     </Layout>
   );
 };
