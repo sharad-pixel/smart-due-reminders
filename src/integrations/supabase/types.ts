@@ -3795,6 +3795,89 @@ export type Database = {
           },
         ]
       }
+      google_sheet_templates: {
+        Row: {
+          connection_id: string | null
+          created_at: string
+          debtor_id: string | null
+          drive_file_id: string
+          id: string
+          last_synced_at: string | null
+          organization_id: string | null
+          rows_synced: number | null
+          sheet_id: string
+          sheet_name: string
+          sheet_url: string
+          status: string
+          template_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          connection_id?: string | null
+          created_at?: string
+          debtor_id?: string | null
+          drive_file_id: string
+          id?: string
+          last_synced_at?: string | null
+          organization_id?: string | null
+          rows_synced?: number | null
+          sheet_id: string
+          sheet_name: string
+          sheet_url: string
+          status?: string
+          template_type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          connection_id?: string | null
+          created_at?: string
+          debtor_id?: string | null
+          drive_file_id?: string
+          id?: string
+          last_synced_at?: string | null
+          organization_id?: string | null
+          rows_synced?: number | null
+          sheet_id?: string
+          sheet_name?: string
+          sheet_url?: string
+          status?: string
+          template_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_sheet_templates_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "drive_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "google_sheet_templates_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
+            referencedRelation: "debtor_contact_emails"
+            referencedColumns: ["debtor_id"]
+          },
+          {
+            foreignKeyName: "google_sheet_templates_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
+            referencedRelation: "debtors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "google_sheet_templates_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       image_moderation_logs: {
         Row: {
           categories: Json | null

@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
     }
 
     const redirectUri = `${supabaseUrl}/functions/v1/google-drive-callback`;
-    const scope = 'https://www.googleapis.com/auth/drive.readonly';
+    const scope = 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file';
     // Pass the origin so callback redirects back to the correct environment
     const body = await req.json().catch(() => ({}));
     const origin = body.origin || supabaseUrl;
