@@ -308,8 +308,8 @@ export function SmartIngestionSection() {
     );
   }
 
-  // Check if token is expired
-  const isTokenExpired = connection?.token_expires_at && new Date(connection.token_expires_at) < new Date();
+  // Token auto-refreshes server-side, so we only flag if there's no refresh token (truly broken)
+  const isTokenExpired = connection && !connection.refresh_token;
 
   // Not connected state
   if (!connection) {
