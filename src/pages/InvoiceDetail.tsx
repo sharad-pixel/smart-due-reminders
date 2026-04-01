@@ -1340,7 +1340,24 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                   </CardDescription>
                 )}
               </CardHeader>
-              <CardContent className="grid grid-cols-2 gap-2">
+              <CardContent className="space-y-3">
+                {/* Quick Pay button for non-integrated invoices */}
+                {!isIntegratedInvoice && invoice.status !== "Paid" && (
+                  <div className="pb-2 border-b">
+                    <ApplyPaymentButton
+                      invoiceId={invoice.id}
+                      invoiceNumber={invoice.invoice_number}
+                      debtorId={invoice.debtor_id}
+                      amount={invoice.amount}
+                      amountOutstanding={invoice.amount_outstanding}
+                      currency={invoice.currency || "USD"}
+                      status={invoice.status}
+                      integrationSource={invoice.integration_source}
+                      onSuccess={fetchData}
+                    />
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-2">
                 <Button
                   variant="default"
                   size="sm"
