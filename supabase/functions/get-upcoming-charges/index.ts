@@ -517,6 +517,16 @@ Deno.serve(async (req) => {
           total: overageCharges.reduce((sum: number, item: any) => sum + item.amount, 0),
           invoice_overages: usageData?.overage_invoices || 0,
         },
+        ingestion_charges: {
+          items: ingestionFileCount > 0 ? [{
+            description: `Smart Ingestion (${ingestionFileCount} files × $0.75)`,
+            amount: ingestionTotal,
+            quantity: ingestionFileCount,
+          }] : [],
+          total: ingestionTotal,
+          file_count: ingestionFileCount,
+          rate_per_file: 0.75,
+        },
         prorations: {
           items: prorations,
           total: prorations.reduce((sum: number, item: any) => sum + item.amount, 0),
@@ -527,6 +537,11 @@ Deno.serve(async (req) => {
           used: usageData?.included_invoices_used || 0,
           overage: usageData?.overage_invoices || 0,
           overage_charges: usageData?.overage_charges_total || 0,
+        },
+        ingestion: {
+          file_count: ingestionFileCount,
+          total_charges: ingestionTotal,
+          rate_per_file: 0.75,
         },
         seats: {
           billable: seatCount || 0,
