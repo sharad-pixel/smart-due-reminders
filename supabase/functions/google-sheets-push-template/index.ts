@@ -274,19 +274,24 @@ Deno.serve(async (req) => {
         ];
       } else {
         sheetTitle = `${businessName} - Payments Master`;
+        // Payments link to invoices via payment_invoice_links
         const { data: payments } = await supabase
           .from('payments')
-          .select('reference_id, amount, payment_date, payment_method, status, notes, invoices(invoice_number, reference_id), debtors(reference_id, company_name)')
+          .select('reference_id, amount, currency, payment_date, reference, reconciliation_status, invoice_number_hint, notes, debtors(reference_id, company_name)')
           .eq('user_id', user.id)
           .order('payment_date', { ascending: false })
           .limit(1000);
 
-        const headers = ['Account RAID', 'Account Name', 'Invoice Ref', 'Invoice Number', 'Payment Amount', 'Payment Date', 'Payment Method', 'Status', 'Notes', 'Recouply Pay Ref (DO NOT EDIT)', 'Source'];
+        const headers = [
+          'Account RAID', 'Account Name', 'Invoice Number', 'Payment Amount', 'Currency',
+          'Payment Date', 'Payment Reference', 'Reconciliation Status',
+          'Notes', 'Recouply Pay Ref (DO NOT EDIT)', 'Source'
+        ];
         const dataRows = (payments || []).map((p: any) => [
           p.debtors?.reference_id || '', p.debtors?.company_name || '',
-          p.invoices?.reference_id || '', p.invoices?.invoice_number || '',
-          p.amount || 0, p.payment_date || '', p.payment_method || '',
-          p.status || '', p.notes || '', p.reference_id || '', 'recouply'
+          p.invoice_number_hint || '', p.amount || 0, p.currency || 'USD',
+          p.payment_date || '', p.reference || '',
+          p.reconciliation_status || 'pending', p.notes || '', p.reference_id || '', 'recouply'
         ]);
         rowCount = dataRows.length;
         sheets = [{
