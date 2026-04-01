@@ -236,9 +236,9 @@ Deno.serve(async (req) => {
           .limit(500);
 
         const headers = [
-          'Account RAID', 'Account Name', 'Invoice Number', 'Original Amount', 'Amount Outstanding',
+          'Account RAID', 'Account Name', 'SS Invoice #', 'Original Amount', 'Amount Outstanding',
           'Currency', 'Issue Date', 'Due Date', 'Status', 'PO Number', 'Product/Description',
-          'Payment Terms', 'Paid Date', 'Notes', 'Recouply Ref (DO NOT EDIT)', 'Source'
+          'Payment Terms', 'Paid Date', 'Notes', 'Recouply Invoice Ref (DO NOT EDIT)', 'Source'
         ];
         const openRows = (invoices || []).map((inv: any) => [
           inv.debtors?.reference_id || '', inv.debtors?.company_name || '',
@@ -284,9 +284,9 @@ Deno.serve(async (req) => {
           .limit(1000);
 
         const headers = [
-          'Account RAID', 'Account Name', 'Invoice Number', 'Payment Amount', 'Currency',
+          'Account RAID', 'Account Name', 'SS Invoice #', 'Payment Amount', 'Currency',
           'Payment Date', 'Payment Reference', 'Reconciliation Status',
-          'Notes', 'Recouply Pay Ref (DO NOT EDIT)', 'Source'
+          'Notes', 'Recouply Payment Ref (DO NOT EDIT)', 'Source'
         ];
         const dataRows = (payments || []).map((p: any) => [
           p.debtors?.reference_id || '', p.debtors?.company_name || '',
