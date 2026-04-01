@@ -10,16 +10,16 @@ const FEATURE_STEPS = [
   { icon: FileText, label: "Invoice Portfolio", desc: "75 invoices across aging buckets", step: "setup_invoices" as const },
   { icon: Link, label: "Integrations", desc: "Stripe & QuickBooks sync", step: "integrations" as const },
   { icon: Database, label: "Data Import", desc: "CSV, Excel, API import", step: "data_import" as const },
-  { icon: BarChart3, label: "Revenue Risk", desc: "ECL & collectability scores", step: "revenue_risk" as const },
-  { icon: Brain, label: "Collection Intelligence", desc: "AI-powered account analysis", step: "collection_intelligence" as const },
-  { icon: BrainCircuit, label: "Inbound AI", desc: "AI reads & responds to emails", step: "inbound_ai" as const },
-  { icon: Sparkles, label: "AI Activation", desc: "Generate outreach drafts", step: "activate" as const },
-  { icon: Send, label: "Draft Review", desc: "Review & approve messages", step: "drafts" as const },
-  { icon: CalendarRange, label: "Outreach Forecast", desc: "7-day communication plan", step: "outreach_forecast" as const },
-  { icon: Send, label: "Live Sending", desc: "Watch emails go out", step: "sending" as const },
-  { icon: History, label: "Outreach History", desc: "Track opens & replies", step: "outreach_history" as const },
-  { icon: DollarSign, label: "Payment Recovery", desc: "Watch payments come in", step: "payments" as const },
-  { icon: Download, label: "Data Export", desc: "Reports & analytics", step: "data_export" as const },
+  { icon: BarChart3, label: "Revenue Risk Intelligence", desc: "ECL scoring & cash flow forecasting", step: "revenue_risk" as const },
+  { icon: Brain, label: "AI Agent Orchestration", desc: "Six agents adapt to invoice aging", step: "collection_intelligence" as const },
+  { icon: BrainCircuit, label: "Inbound AI Agent", desc: "Autonomous debtor response handling", step: "inbound_ai" as const },
+  { icon: Sparkles, label: "Agentic Outreach", desc: "AI-generated, tone-matched drafts", step: "activate" as const },
+  { icon: Send, label: "Human-in-the-Loop Review", desc: "Approve or refine before sending", step: "drafts" as const },
+  { icon: CalendarRange, label: "Outreach Cadence", desc: "Automated 7-day recovery plan", step: "outreach_forecast" as const },
+  { icon: Send, label: "Autonomous Sending", desc: "Consistent, always-on outreach", step: "sending" as const },
+  { icon: History, label: "Engagement Intelligence", desc: "Track opens, clicks & replies", step: "outreach_history" as const },
+  { icon: DollarSign, label: "Revenue Recovery", desc: "Cash flow impact in real time", step: "payments" as const },
+  { icon: Download, label: "Data Export", desc: "Reports & reconciliation", step: "data_export" as const },
 ];
 
 export const DemoWelcome = () => {
@@ -33,7 +33,7 @@ export const DemoWelcome = () => {
           animate={{ opacity: 1, y: 0 }}
           className="text-3xl md:text-4xl font-bold text-foreground"
         >
-          Welcome to Your Guided Onboarding
+          Your AI-Agentic Revenue Recovery Platform
         </motion.h1>
         <motion.p
           initial={{ opacity: 0 }}
@@ -41,18 +41,18 @@ export const DemoWelcome = () => {
           transition={{ delay: 0.2 }}
           className="text-muted-foreground text-lg"
         >
-          {demoEmail ? `Great to have you! ` : ""}Walk through every feature step by step with interactive tutorials and real data.
+          {demoEmail ? `Great to have you! ` : ""}See how intelligent AI agents replace manual follow-ups with consistent, always-on revenue procurement — strengthening cash flow without adding headcount.
         </motion.p>
       </div>
 
       <DemoTutorialCallout
-        title="How This Onboarding Works"
-        description="Each step below represents a core feature of Recouply.ai. You'll see mockup screenshots of the real interface, step-by-step instructions, and interactive 'Try It' prompts with pre-loaded demo data."
+        title="How AI-Agentic Recovery Works"
+        description="Each step showcases how Recouply.ai's six AI agents orchestrate revenue recovery — from risk intelligence to autonomous outreach to cash flow results."
         variant="info"
         steps={[
-          { title: "Follow the guided path", description: "Click 'Next' to progress through each feature in order, or jump to any step using the sidebar." },
-          { title: "Interact with demo data", description: "25 realistic customer accounts and 75 invoices are pre-loaded. Simulate imports, activate AI agents, and watch payments come in." },
-          { title: "Learn by doing", description: "Each step has expandable tutorials with detailed instructions for the real platform." },
+          { title: "AI agents handle the repetitive work", description: "Each agent adapts tone and cadence to invoice aging — no human bottlenecks, consistent outreach every time." },
+          { title: "Interact with realistic data", description: "25 customer accounts and 75 invoices are pre-loaded. Activate agents, trigger outreach, and watch revenue recover." },
+          { title: "See the cash flow impact", description: "Track how agentic automation translates directly into healthier cash flow and predictable revenue procurement." },
         ]}
       />
 

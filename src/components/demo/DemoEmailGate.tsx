@@ -39,10 +39,10 @@ export const DemoEmailGate = () => {
             <RecouplyLogo size="xl" animated />
           </motion.div>
           <h1 className="text-3xl md:text-4xl font-bold text-foreground">
-            Experience Recouply.ai
+            AI-Agentic Revenue Recovery
           </h1>
           <p className="text-muted-foreground text-lg">
-            Walk through every feature with realistic data. See exactly how automated collections work.
+            See how six intelligent AI agents eliminate manual follow-ups — delivering consistent revenue procurement and healthy cash flow, on autopilot.
           </p>
         </div>
 
@@ -68,9 +68,9 @@ export const DemoEmailGate = () => {
 
         <div className="grid grid-cols-3 gap-4">
           {[
-            { icon: Clock, label: "5 min walkthrough" },
-            { icon: Shield, label: "No real data needed" },
-            { icon: DollarSign, label: "See ROI instantly" },
+            { icon: Clock, label: "Always-on AI agents" },
+            { icon: Shield, label: "Zero manual follow-ups" },
+            { icon: DollarSign, label: "Predictable cash flow" },
           ].map(({ icon: Icon, label }) => (
             <div key={label} className="text-center">
               <Icon className="h-5 w-5 text-muted-foreground mx-auto mb-1" />
