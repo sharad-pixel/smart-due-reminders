@@ -72,6 +72,16 @@ const BlogIndex = lazy(() => import("./pages/blog/BlogIndex"));
 const CelebrateCash = lazy(() => import("./pages/blog/CelebrateCash"));
 const PowerOfOutreach = lazy(() => import("./pages/blog/PowerOfOutreach"));
 const CashLeakage = lazy(() => import("./pages/blog/CashLeakage"));
+const FutureOfAiInCollections = lazy(() => import("./pages/blog/FutureOfAiInCollections"));
+const RevenueNotCashFlow = lazy(() => import("./pages/blog/RevenueNotCashFlow"));
+const RiseOfCollectionsIntelligence = lazy(() => import("./pages/blog/RiseOfCollectionsIntelligence"));
+const TimingMattersMoreThanTone = lazy(() => import("./pages/blog/TimingMattersMoreThanTone"));
+const EngagementAsCreditSignal = lazy(() => import("./pages/blog/EngagementAsCreditSignal"));
+const HiddenCostDelayedPayments = lazy(() => import("./pages/blog/HiddenCostDelayedPayments"));
+const DataTrustInArAutomation = lazy(() => import("./pages/blog/DataTrustInArAutomation"));
+const SpreadsheetsToSystems = lazy(() => import("./pages/blog/SpreadsheetsToSystems"));
+const PredictiveCollections = lazy(() => import("./pages/blog/PredictiveCollections"));
+const NextGenerationArTeams = lazy(() => import("./pages/blog/NextGenerationArTeams"));
 
 // Legal Pages
 const Terms = lazy(() => import("./pages/legal/Terms"));
@@ -210,6 +220,16 @@ const App = () => (
             <Route path="/blog/celebrate-cash" element={<CelebrateCash />} />
             <Route path="/blog/power-of-outreach" element={<PowerOfOutreach />} />
             <Route path="/blog/cash-leakage" element={<CashLeakage />} />
+            <Route path="/blog/future-of-ai-in-collections" element={<FutureOfAiInCollections />} />
+            <Route path="/blog/revenue-does-not-equal-cash-flow" element={<RevenueNotCashFlow />} />
+            <Route path="/blog/rise-of-collections-intelligence" element={<RiseOfCollectionsIntelligence />} />
+            <Route path="/blog/timing-matters-more-than-tone" element={<TimingMattersMoreThanTone />} />
+            <Route path="/blog/engagement-as-credit-signal" element={<EngagementAsCreditSignal />} />
+            <Route path="/blog/hidden-cost-of-delayed-payments" element={<HiddenCostDelayedPayments />} />
+            <Route path="/blog/data-trust-in-ar-automation" element={<DataTrustInArAutomation />} />
+            <Route path="/blog/spreadsheets-to-systems-of-record" element={<SpreadsheetsToSystems />} />
+            <Route path="/blog/predictive-collections-revenue-risk" element={<PredictiveCollections />} />
+            <Route path="/blog/next-generation-ar-teams" element={<NextGenerationArTeams />} />
 
             {/* Legal Pages */}
             <Route path="/legal/terms" element={<Terms />} />
