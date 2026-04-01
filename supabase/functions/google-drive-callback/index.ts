@@ -62,9 +62,8 @@ Deno.serve(async (req) => {
     const tokenData = await tokenRes.json();
     if (!tokenRes.ok) {
       console.error('[DRIVE-CALLBACK] Token exchange failed:', tokenData);
-      return new Response(redirectHtml(effectiveSiteUrl, '/data-center', 'error', 'Token exchange failed: ' + (tokenData.error_description || tokenData.error || 'unknown')), {
-        headers: { 'Content-Type': 'text/html' },
-      });
+      const errUrl = `${effectiveSiteUrl}/data-center?drive_status=error&drive_message=${encodeURIComponent('Token exchange failed: ' + (tokenData.error_description || tokenData.error || 'unknown'))}`;
+      return Response.redirect(errUrl, 302);
     }
 
     console.log('[DRIVE-CALLBACK] Token exchange successful for user:', userId);
