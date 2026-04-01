@@ -39,9 +39,26 @@ import * as XLSX from "xlsx";
 import { Zap } from "lucide-react";
 
 const DataCenter = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [uploadWizardOpen, setUploadWizardOpen] = useState(false);
   const [createSourceOpen, setCreateSourceOpen] = useState(false);
   const [selectedFileType, setSelectedFileType] = useState<"invoice_aging" | "payments" | "accounts">("invoice_aging");
+
+  // Handle Google Drive OAuth callback
+  useEffect(() => {
+    const driveStatus = searchParams.get("drive_status");
+    const driveMessage = searchParams.get("drive_message");
+    if (driveStatus) {
+      if (driveStatus === "success") {
+        toast.success("Google Drive Connected", { description: driveMessage || "You can now select a folder to scan." });
+      } else {
+        toast.error("Google Drive Connection Failed", { description: driveMessage || "Please try again." });
+      }
+      searchParams.delete("drive_status");
+      searchParams.delete("drive_message");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ["data-center-stats"],
