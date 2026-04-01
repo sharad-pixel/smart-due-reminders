@@ -164,7 +164,7 @@ const AdminUserManagement = () => {
         recentSignups7d: recent7d || 0,
         recentSignups30d: recent30d || 0,
       });
-    } catch (_error) {
+    } catch (error) {
       console.error("Error fetching stats:", error);
     }
   };
@@ -207,7 +207,7 @@ const AdminUserManagement = () => {
 
       setUsers(filteredUsers);
       setTotalUsers(response.data?.total || 0);
-    } catch (_error: any) {
+    } catch (error: any) {
       console.error("Error fetching users:", error);
       toast.error(error?.message ? `Failed to load users: ${error.message}` : "Failed to load users");
     } finally {
@@ -223,7 +223,7 @@ const AdminUserManagement = () => {
 
       if (error) throw error;
       setUserDetailData(data);
-    } catch (_error) {
+    } catch (error) {
       console.error("Error fetching user details:", error);
       toast.error("Failed to load user details");
     }
@@ -320,7 +320,7 @@ const AdminUserManagement = () => {
       setSuspendDialogOpen(false);
       await fetchUsers();
       await fetchStats();
-    } catch (_error: any) {
+    } catch (error: any) {
       console.error("Error suspending user:", error);
       toast.error("Failed to suspend user");
     } finally {
@@ -343,7 +343,7 @@ const AdminUserManagement = () => {
       toast.success(`User ${user.email} has been unsuspended`);
       await fetchUsers();
       await fetchStats();
-    } catch (_error: any) {
+    } catch (error: any) {
       console.error("Error unsuspending user:", error);
       toast.error("Failed to unsuspend user");
     } finally {
@@ -366,7 +366,7 @@ const AdminUserManagement = () => {
       toast.success(`Admin status updated for ${user.email}`);
       await fetchUsers();
       await fetchStats();
-    } catch (_error: any) {
+    } catch (error: any) {
       console.error("Error toggling admin:", error);
       toast.error("Failed to update admin status");
     } finally {
@@ -484,7 +484,7 @@ const AdminUserManagement = () => {
       setScheduledDeleteDialogOpen(false);
       await fetchUsers();
       await fetchStats();
-    } catch (_error: any) {
+    } catch (error: any) {
       console.error("Error scheduling deletion:", error);
       toast.error(error.message || "Failed to schedule deletion");
     } finally {
@@ -504,7 +504,7 @@ const AdminUserManagement = () => {
       }).eq("id", deletionId);
       toast.success("Scheduled deletion has been cancelled");
       await fetchUsers();
-    } catch (_error: any) {
+    } catch (error: any) {
       toast.error("Failed to cancel deletion");
     }
   };
@@ -646,7 +646,7 @@ Delaware, USA`;
       setBlockDialogOpen(false);
       await fetchUsers();
       await fetchStats();
-    } catch (_error: any) {
+    } catch (error: any) {
       console.error("Error blocking user:", error);
       toast.error("Failed to block user");
     } finally {
@@ -669,7 +669,7 @@ Delaware, USA`;
       toast.success(`User ${user.email} has been unblocked`);
       await fetchUsers();
       await fetchStats();
-    } catch (_error: any) {
+    } catch (error: any) {
       console.error("Error unblocking user:", error);
       toast.error("Failed to unblock user");
     } finally {
@@ -742,7 +742,7 @@ Delaware, USA`;
       }
 
       toast.success(`Users exported as ${format.toUpperCase()}`);
-    } catch (_error) {
+    } catch (error) {
       console.error("Export error:", error);
       toast.error("Failed to export users");
     }

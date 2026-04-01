@@ -127,7 +127,7 @@ export function AccountIntelligencePanel({
       
       setReportLoading(false);
       setInitialLoadDone(true);
-    } catch (_error) {
+    } catch (error) {
       setReportLoading(false);
       setInitialLoadDone(true);
     }
@@ -157,7 +157,7 @@ export function AccountIntelligencePanel({
       await refetchScorecard();
       onIntelligenceCalculated?.();
       toast.success("Intelligence updated");
-    } catch (_error: any) {
+    } catch (error: any) {
       console.error("Error calculating intelligence:", error);
       toast.error(error.message || "Failed to run intelligence");
     } finally {

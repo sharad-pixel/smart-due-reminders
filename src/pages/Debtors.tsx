@@ -174,7 +174,7 @@ const Debtors = () => {
       }));
       
       setDebtors(debtorsWithContacts);
-    } catch (_error: any) {
+    } catch (error: any) {
       toast.error("Failed to load accounts");
     } finally {
       setLoading(false);
@@ -262,7 +262,7 @@ const Debtors = () => {
       toast.success(`${enable ? "Enabled" : "Disabled"} Account Level Outreach for ${selectedIds.size} accounts`);
       setSelectedIds(new Set());
       fetchDebtors();
-    } catch (_error: any) {
+    } catch (error: any) {
       toast.error(error.message || "Failed to update accounts");
     } finally {
       setBulkUpdating(false);
@@ -367,7 +367,7 @@ const Debtors = () => {
       });
       setContacts([{ name: "", title: "", email: "", phone: "", outreach_enabled: true }]);
       fetchDebtors();
-    } catch (_error: any) {
+    } catch (error: any) {
       toast.error(error.message || "Failed to create account");
     }
   };

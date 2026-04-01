@@ -47,7 +47,7 @@ const DailyDigest = () => {
       if (error) throw error;
       toast({ title: 'Digest Generated', description: 'Your daily digest has been created.' });
       refetch();
-    } catch (_error) {
+    } catch (error) {
       toast({ title: 'Error', description: 'Failed to generate digest.', variant: 'destructive' });
     } finally {
       setIsGenerating(false);

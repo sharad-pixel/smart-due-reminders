@@ -155,7 +155,7 @@ const Login = () => {
       toast.success("Welcome back!");
       const returnTo = getSafeReturnTo();
       navigate(returnTo ?? "/dashboard");
-    } catch (_error: any) {
+    } catch (error: any) {
       toast.error(error.message || "Login failed");
     } finally {
       setLoading(false);
@@ -183,7 +183,7 @@ const Login = () => {
           throw error;
         }
       }
-    } catch (_error: any) {
+    } catch (error: any) {
       toast.error(error.message || "Google sign in failed");
     }
   };
@@ -210,7 +210,7 @@ const Login = () => {
       toast.success("If an account exists with this email, you'll receive a password reset link shortly.");
       setShowForgotPassword(false);
       setResetEmail("");
-    } catch (_error: any) {
+    } catch (error: any) {
       toast.success("If an account exists with this email, you'll receive a password reset link shortly.");
       setShowForgotPassword(false);
       setResetEmail("");

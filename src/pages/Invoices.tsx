@@ -140,7 +140,7 @@ const Invoices = () => {
 
       setInvoices(allInvoices as any);
       setDebtors(debtorsList);
-    } catch (_error: any) {
+    } catch (error: any) {
       toast.error("Failed to load data");
     } finally {
       setLoading(false);
@@ -175,7 +175,7 @@ const Invoices = () => {
 
       toast.success("Invoice removed from workflow");
       fetchData();
-    } catch (_error: any) {
+    } catch (error: any) {
       toast.error("Failed to remove from workflow");
     }
   };
@@ -216,7 +216,7 @@ const Invoices = () => {
       setShowBulkAssignDialog(false);
       setSelectedAgingBucket("");
       fetchData();
-    } catch (_error: any) {
+    } catch (error: any) {
       console.error('Bulk assign error:', error);
       toast.error(error.message || "Failed to assign invoices to workflow");
     }
@@ -236,7 +236,7 @@ const Invoices = () => {
       toast.success(data.message || "Invoices removed from workflows");
       setSelectedInvoices([]);
       fetchData();
-    } catch (_error: any) {
+    } catch (error: any) {
       toast.error("Failed to remove invoices from workflows");
       console.error(error);
     }
@@ -261,7 +261,7 @@ const Invoices = () => {
       setShowBulkStatusDialog(false);
       setSelectedBulkStatus("");
       fetchData();
-    } catch (_error: any) {
+    } catch (error: any) {
       toast.error("Failed to update invoice statuses");
       console.error(error);
     }
@@ -374,7 +374,7 @@ const Invoices = () => {
         po_number: "",
       });
       fetchData();
-    } catch (_error: any) {
+    } catch (error: any) {
       toast.error(error.message || "Failed to create invoice");
     }
   };

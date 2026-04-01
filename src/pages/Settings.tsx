@@ -120,7 +120,7 @@ const Settings = () => {
         receive_product_updates: data.receive_product_updates ?? true,
         receive_collection_alerts: data.receive_collection_alerts ?? true,
       });
-    } catch (_error: any) {
+    } catch (error: any) {
       toast.error("Failed to load profile");
     } finally {
       setLoading(false);
@@ -155,7 +155,7 @@ const Settings = () => {
 
       if (profileError) throw profileError;
       toast.success("Settings saved successfully");
-    } catch (_error: any) {
+    } catch (error: any) {
       toast.error(error.message || "Failed to save settings");
     } finally {
       setSaving(false);
@@ -174,7 +174,7 @@ const Settings = () => {
         .single();
 
       setSubscriptionInfo(profile);
-    } catch (_error: any) {
+    } catch (error: any) {
       console.error("Failed to load subscription info:", error);
     }
   };
@@ -192,7 +192,7 @@ const Settings = () => {
       } else {
         throw new Error("No portal URL returned");
       }
-    } catch (_error: any) {
+    } catch (error: any) {
       console.error("Portal error:", error);
       toast.error(error.message || "Failed to open billing portal");
     } finally {
