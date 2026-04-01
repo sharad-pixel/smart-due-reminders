@@ -27,6 +27,7 @@ import { calculateDueDateFromTerms } from "@/lib/paymentTerms";
 import { SortableTableHead, useSorting } from "@/components/ui/sortable-table-head";
 import { AIInsightsCard } from "@/components/ai/AIInsightsCard";
 import { IntegrationSourceBadge } from "@/components/integrations/IntegrationSourceBanner";
+import { ApplyPaymentButton } from "@/components/invoices/ApplyPaymentButton";
 
 interface Invoice {
   id: string;
