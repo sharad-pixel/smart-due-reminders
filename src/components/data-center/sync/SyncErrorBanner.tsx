@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { AlertTriangle, ChevronDown, ChevronUp, Info, X, CheckCircle2, Wrench } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { groupSyncErrors, type GroupedErrors } from './syncErrorParser';
+import { groupSyncErrors } from './syncErrorParser';
 
 interface SyncErrorBannerProps {
   errors: any[] | null | undefined;
