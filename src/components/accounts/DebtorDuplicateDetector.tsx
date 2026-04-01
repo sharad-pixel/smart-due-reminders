@@ -3,7 +3,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   Dialog,
   DialogContent,
@@ -12,13 +11,11 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import {
-  Search,
   AlertTriangle,
   Merge,
   Building2,
   Mail,
   CheckCircle2,
-  Loader2,
   Sparkles,
 } from "lucide-react";
 import { DebtorMergeDialog } from "./DebtorMergeDialog";
