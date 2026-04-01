@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { PLAN_CONFIGS, SEAT_PRICING, ANNUAL_DISCOUNT_RATE, INVOICE_PRICING, formatPrice } from "@/lib/subscriptionConfig";
+import { PLAN_CONFIGS, SEAT_PRICING, ANNUAL_DISCOUNT_RATE, INVOICE_PRICING, SMART_INGESTION_PRICING, formatPrice } from "@/lib/subscriptionConfig";
 import { CostComparisonSection } from "@/components/marketing/CostComparisonSection";
 import SEOHead from "@/components/seo/SEOHead";
 import { PAGE_SEO, generateFAQSchema } from "@/lib/seoConfig";
