@@ -33,6 +33,7 @@ interface Invoice {
   reference_id: string;
   invoice_number: string;
   amount: number;
+  amount_outstanding: number | null;
   issue_date: string;
   due_date: string;
   payment_terms: string | null;
