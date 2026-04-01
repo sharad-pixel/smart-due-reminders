@@ -402,13 +402,26 @@ export function IngestionReviewQueue() {
             debtorId = newDebtor.id;
           }
 
+          // Check for duplicate invoice number and make unique if needed
+          let invoiceNumber = item.extracted_invoice_number;
+          const { data: existingInv } = await supabase
+            .from("invoices")
+            .select("id")
+            .eq("user_id", user.id)
+            .eq("invoice_number", invoiceNumber)
+            .limit(1);
+          if (existingInv && existingInv.length > 0) {
+            const suffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+            invoiceNumber = `${invoiceNumber}-${suffix}`;
+          }
+
           const { data: newInvoice, error: iErr } = await supabase
             .from("invoices")
             .insert({
               user_id: user.id,
               organization_id: orgId,
               debtor_id: debtorId,
-              invoice_number: item.extracted_invoice_number,
+              invoice_number: invoiceNumber,
               amount: item.extracted_amount,
               amount_outstanding: item.extracted_outstanding_balance || item.extracted_amount,
               issue_date: item.extracted_invoice_date || new Date().toISOString().split("T")[0],
