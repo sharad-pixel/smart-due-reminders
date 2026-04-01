@@ -29,6 +29,7 @@ import {
   Sparkles,
   Trash2,
 } from "lucide-react";
+import { GoogleSheetsIcon } from "@/components/icons/GoogleIcons";
 
 const TEMPLATE_TYPES = [
   { key: 'accounts', label: 'Accounts', icon: Users, description: 'Customer accounts with RAID, contacts & balances' },
