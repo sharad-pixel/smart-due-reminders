@@ -464,6 +464,9 @@ export function IngestionReviewQueue() {
             billing_period: billingPeriod,
           } as any);
 
+          // Report each file usage to Stripe (non-blocking)
+          supabase.functions.invoke("report-ingestion-usage").catch(() => {});
+
           successCount++;
         } catch {
           errorCount++;
