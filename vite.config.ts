@@ -67,7 +67,9 @@ export default defineConfig(({ mode }) => ({
           // Supabase
           "vendor-supabase": ["@supabase/supabase-js"],
           // Data & utilities
-          "vendor-utils": ["date-fns", "zod", "xlsx", "class-variance-authority", "clsx", "tailwind-merge"],
+          "vendor-utils": ["date-fns", "zod", "class-variance-authority", "clsx", "tailwind-merge"],
+          // Spreadsheet (heavy, only needed for data import/export)
+          "vendor-xlsx": ["xlsx"],
           // Rich text editor
           "vendor-tiptap": [
             "@tiptap/react",
