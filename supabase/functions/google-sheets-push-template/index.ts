@@ -190,56 +190,70 @@ Deno.serve(async (req) => {
         sheetTitle = `${businessName} - Accounts Master`;
         const { data: debtors } = await supabase
           .from('debtors')
-          .select('reference_id, company_name, name, email, phone, address, city, state, zip_code, country, industry, notes, current_balance')
+          .select('reference_id, company_name, type, name, email, phone, address_line1, address_line2, city, state, postal_code, country, industry, external_customer_id, crm_account_id_external, payment_terms_default, notes, current_balance')
           .eq('user_id', user.id)
           .eq('is_archived', false)
           .order('company_name', { ascending: true });
 
-        const headers = ['RAID', 'Company Name', 'Contact Name', 'Email', 'Phone', 'Address', 'City', 'State', 'Zip', 'Country', 'Industry', 'Notes', 'Current Balance', 'Source'];
-        const dataRows = (debtors || []).map(d => [
-          d.reference_id || '', d.company_name || '', d.name || '', d.email || '',
-          d.phone || '', d.address || '', d.city || '', d.state || '', d.zip_code || '',
-          d.country || '', d.industry || '', d.notes || '', d.current_balance || 0, 'recouply'
+        const headers = [
+          'RAID', 'Company Name', 'Type (B2B/B2C)', 'Contact Name', 'Contact Email', 'Contact Phone',
+          'Address Line 1', 'Address Line 2', 'City', 'State', 'Postal Code', 'Country',
+          'Industry', 'External Customer ID', 'CRM ID', 'Default Payment Terms',
+          'Notes', 'Current Balance', 'Source'
+        ];
+        const dataRows = (debtors || []).map((d: any) => [
+          d.reference_id || '', d.company_name || '', d.type || 'B2B',
+          d.name || '', d.email || '', d.phone || '',
+          d.address_line1 || '', d.address_line2 || '', d.city || '', d.state || '',
+          d.postal_code || '', d.country || '', d.industry || '',
+          d.external_customer_id || '', d.crm_account_id_external || '',
+          d.payment_terms_default || '', d.notes || '', d.current_balance || 0, 'recouply'
         ]);
         rowCount = dataRows.length;
         sheets = [{
           properties: { title: 'Accounts', gridProperties: { frozenRowCount: 1 } },
           data: [{ startRow: 0, startColumn: 0, rowData: [
             buildHeaderRow(headers),
-            ...dataRows.map(r => buildDataRow(r, [12])),
+            ...dataRows.map(r => buildDataRow(r, [17])),
           ]}],
         }];
       } else if (currentType === 'invoices') {
         sheetTitle = `${businessName} - Invoices Master`;
         const { data: invoices } = await supabase
           .from('invoices')
-          .select('invoice_number, amount, amount_outstanding, currency, issue_date, due_date, status, po_number, product_description, payment_terms, notes, reference_id, debtors(reference_id, company_name)')
+          .select('invoice_number, amount, amount_original, amount_outstanding, currency, issue_date, due_date, paid_date, status, po_number, product_description, payment_terms, notes, reference_id, debtors(reference_id, company_name)')
           .eq('user_id', user.id)
           .in('status', ['Open', 'InPaymentPlan', 'PartiallyPaid'])
           .order('due_date', { ascending: false });
 
         const { data: paidInvoices } = await supabase
           .from('invoices')
-          .select('invoice_number, amount, amount_outstanding, currency, issue_date, due_date, status, po_number, product_description, payment_terms, notes, reference_id, debtors(reference_id, company_name)')
+          .select('invoice_number, amount, amount_original, amount_outstanding, currency, issue_date, due_date, paid_date, status, po_number, product_description, payment_terms, notes, reference_id, debtors(reference_id, company_name)')
           .eq('user_id', user.id)
           .in('status', ['Paid', 'Canceled', 'Voided', 'Settled', 'FinalInternalCollections'])
           .order('due_date', { ascending: false })
           .limit(500);
 
-        const headers = ['Account RAID', 'Account Name', 'Invoice Number', 'Amount', 'Amount Outstanding', 'Currency', 'Issue Date', 'Due Date', 'Status', 'PO Number', 'Product/Description', 'Payment Terms', 'Notes', 'Recouply Ref (DO NOT EDIT)', 'Source'];
+        const headers = [
+          'Account RAID', 'Account Name', 'Invoice Number', 'Original Amount', 'Amount Outstanding',
+          'Currency', 'Issue Date', 'Due Date', 'Status', 'PO Number', 'Product/Description',
+          'Payment Terms', 'Paid Date', 'Notes', 'Recouply Ref (DO NOT EDIT)', 'Source'
+        ];
         const openRows = (invoices || []).map((inv: any) => [
           inv.debtors?.reference_id || '', inv.debtors?.company_name || '',
-          inv.invoice_number || '', inv.amount || 0, inv.amount_outstanding || inv.amount || 0,
+          inv.invoice_number || '', inv.amount_original || inv.amount || 0,
+          inv.amount_outstanding || inv.amount || 0,
           inv.currency || 'USD', inv.issue_date || '', inv.due_date || '', inv.status || 'Open',
           inv.po_number || '', inv.product_description || '', inv.payment_terms || '',
-          inv.notes || '', inv.reference_id || '', 'recouply'
+          inv.paid_date || '', inv.notes || '', inv.reference_id || '', 'recouply'
         ]);
         const paidRows = (paidInvoices || []).map((inv: any) => [
           inv.debtors?.reference_id || '', inv.debtors?.company_name || '',
-          inv.invoice_number || '', inv.amount || 0, inv.amount_outstanding || 0,
+          inv.invoice_number || '', inv.amount_original || inv.amount || 0,
+          inv.amount_outstanding || 0,
           inv.currency || 'USD', inv.issue_date || '', inv.due_date || '', inv.status || 'Paid',
           inv.po_number || '', inv.product_description || '', inv.payment_terms || '',
-          inv.notes || '', inv.reference_id || '', 'recouply'
+          inv.paid_date || '', inv.notes || '', inv.reference_id || '', 'recouply'
         ]);
         rowCount = openRows.length;
         sheets = [
@@ -260,19 +274,24 @@ Deno.serve(async (req) => {
         ];
       } else {
         sheetTitle = `${businessName} - Payments Master`;
+        // Payments link to invoices via payment_invoice_links
         const { data: payments } = await supabase
           .from('payments')
-          .select('reference_id, amount, payment_date, payment_method, status, notes, invoices(invoice_number, reference_id), debtors(reference_id, company_name)')
+          .select('reference_id, amount, currency, payment_date, reference, reconciliation_status, invoice_number_hint, notes, debtors(reference_id, company_name)')
           .eq('user_id', user.id)
           .order('payment_date', { ascending: false })
           .limit(1000);
 
-        const headers = ['Account RAID', 'Account Name', 'Invoice Ref', 'Invoice Number', 'Payment Amount', 'Payment Date', 'Payment Method', 'Status', 'Notes', 'Recouply Pay Ref (DO NOT EDIT)', 'Source'];
+        const headers = [
+          'Account RAID', 'Account Name', 'Invoice Number', 'Payment Amount', 'Currency',
+          'Payment Date', 'Payment Reference', 'Reconciliation Status',
+          'Notes', 'Recouply Pay Ref (DO NOT EDIT)', 'Source'
+        ];
         const dataRows = (payments || []).map((p: any) => [
           p.debtors?.reference_id || '', p.debtors?.company_name || '',
-          p.invoices?.reference_id || '', p.invoices?.invoice_number || '',
-          p.amount || 0, p.payment_date || '', p.payment_method || '',
-          p.status || '', p.notes || '', p.reference_id || '', 'recouply'
+          p.invoice_number_hint || '', p.amount || 0, p.currency || 'USD',
+          p.payment_date || '', p.reference || '',
+          p.reconciliation_status || 'pending', p.notes || '', p.reference_id || '', 'recouply'
         ]);
         rowCount = dataRows.length;
         sheets = [{
