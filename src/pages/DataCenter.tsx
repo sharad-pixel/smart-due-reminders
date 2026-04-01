@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,12 +34,31 @@ import { QuickBooksSyncSection } from "@/components/data-center/QuickBooksSyncSe
 import { StripeSyncSection } from "@/components/data-center/StripeSyncSection";
 import { SyncHealthDashboard } from "@/components/data-center/SyncHealthDashboard";
 import { SyncActivityLog } from "@/components/data-center/SyncActivityLog";
+import { SmartIngestionSection } from "@/components/data-center/ingestion/SmartIngestionSection";
 import * as XLSX from "xlsx";
+import { Zap } from "lucide-react";
 
 const DataCenter = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [uploadWizardOpen, setUploadWizardOpen] = useState(false);
   const [createSourceOpen, setCreateSourceOpen] = useState(false);
   const [selectedFileType, setSelectedFileType] = useState<"invoice_aging" | "payments" | "accounts">("invoice_aging");
+
+  // Handle Google Drive OAuth callback
+  useEffect(() => {
+    const driveStatus = searchParams.get("drive_status");
+    const driveMessage = searchParams.get("drive_message");
+    if (driveStatus) {
+      if (driveStatus === "success") {
+        toast.success("Google Drive Connected", { description: driveMessage || "You can now select a folder to scan." });
+      } else {
+        toast.error("Google Drive Connection Failed", { description: driveMessage || "Please try again." });
+      }
+      searchParams.delete("drive_status");
+      searchParams.delete("drive_message");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ["data-center-stats"],
@@ -283,6 +303,25 @@ const DataCenter = () => {
         <Separator />
 
         {/* ═══════════════════════════════════════════════════════════════ */}
+        {/* SECTION 1.5: SMART INVOICE INGESTION (Google Drive)            */}
+        {/* ═══════════════════════════════════════════════════════════════ */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Zap className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold">Smart Invoice Ingestion</h2>
+              <p className="text-xs text-muted-foreground">
+                Connect Google Drive to scan invoice PDFs, extract data with AI, and import with full review control
+              </p>
+            </div>
+          </div>
+
+          <SmartIngestionSection />
+        </section>
+
+        <Separator />
         {/* SECTION 2: FILE UPLOADS (CSV / Excel)                         */}
         {/* ═══════════════════════════════════════════════════════════════ */}
         <section className="space-y-4">
