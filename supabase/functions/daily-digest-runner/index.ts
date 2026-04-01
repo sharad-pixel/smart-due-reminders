@@ -1690,6 +1690,13 @@ function generateEmailHtml(data: {
             </td>
           </tr>
           <tr>
+            <td style="padding-bottom: 7px;">
+              <a href="https://recouply.ai/revenue-risk" style="color: ${BRAND.primary}; font-size: 12px; text-decoration: none; font-weight: 500; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                🛡️ Revenue Risk & ECL Report →
+              </a>
+            </td>
+          </tr>
+          <tr>
             <td>
               <a href="https://recouply.ai/data-center" style="color: ${BRAND.primary}; font-size: 12px; text-decoration: none; font-weight: 500; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
                 📥 Import & Reconcile AR →
