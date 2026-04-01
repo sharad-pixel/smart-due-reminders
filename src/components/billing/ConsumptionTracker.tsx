@@ -83,6 +83,7 @@ interface UpcomingCharges {
     baseSubscription: number;
     seatCharges: number;
     overageCharges: number;
+    ingestionCharges: number;
     prorations: number;
   };
   lineItems: Array<{
