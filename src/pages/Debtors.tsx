@@ -1233,6 +1233,17 @@ const Debtors = () => {
           }}
         />
       )}
+
+      {/* Manual Merge by Name/Email */}
+      <DebtorManualMerge
+        open={showManualMerge}
+        onOpenChange={setShowManualMerge}
+        debtors={debtors}
+        onMergeComplete={() => {
+          fetchDebtors();
+          setSelectedIds(new Set());
+        }}
+      />
     </Layout>
   );
 };
