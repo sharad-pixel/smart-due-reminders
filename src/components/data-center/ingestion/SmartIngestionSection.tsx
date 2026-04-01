@@ -566,8 +566,11 @@ export function SmartIngestionSection() {
   );
 }
 
-// Scanned Files Table Component
+// Scanned Files Table Component with pagination
 function ScannedFilesTable({ onExtract, extracting }: { onExtract: (id: string) => void; extracting: boolean }) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 15;
+
   const { data: files, isLoading } = useQuery({
     queryKey: ["ingestion-scanned-files-list"],
     queryFn: async () => {
@@ -577,8 +580,7 @@ function ScannedFilesTable({ onExtract, extracting }: { onExtract: (id: string) 
         .from("ingestion_scanned_files")
         .select("*")
         .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(100);
+        .order("created_at", { ascending: false });
       return data || [];
     },
   });
@@ -611,15 +613,20 @@ function ScannedFilesTable({ onExtract, extracting }: { onExtract: (id: string) 
     error: { label: "Error", color: "bg-red-100 text-red-800", icon: XCircle },
   };
 
+  const totalPages = Math.max(1, Math.ceil(files.length / PAGE_SIZE));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const startIdx = (safeCurrentPage - 1) * PAGE_SIZE;
+  const paginatedFiles = files.slice(startIdx, startIdx + PAGE_SIZE);
+
   return (
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="text-base">Scanned Files</CardTitle>
-        <CardDescription>All PDF files detected in your connected folder</CardDescription>
+        <CardDescription>All PDF files detected in your connected folder ({files.length} total)</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
-          {files.map((file: any) => {
+          {paginatedFiles.map((file: any) => {
             const status = statusConfig[file.processing_status] || statusConfig.pending;
             const StatusIcon = status.icon;
             return (
@@ -671,6 +678,144 @@ function ScannedFilesTable({ onExtract, extracting }: { onExtract: (id: string) 
             );
           })}
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between pt-4 mt-4 border-t">
+            <p className="text-xs text-muted-foreground">
+              Showing {startIdx + 1}–{Math.min(startIdx + PAGE_SIZE, files.length)} of {files.length} files
+            </p>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={safeCurrentPage <= 1}>
+                Previous
+              </Button>
+              <span className="text-sm text-muted-foreground">Page {safeCurrentPage} of {totalPages}</span>
+              <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={safeCurrentPage >= totalPages}>
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// Scan History Log Component
+function ScanHistoryLog() {
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 15;
+
+  const { data: auditLogs, isLoading } = useQuery({
+    queryKey: ["ingestion-scan-history"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+      const { data } = await supabase
+        .from("ingestion_audit_log")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+      return data || [];
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-8">
+          <Loader2 className="h-5 w-5 animate-spin" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!auditLogs || auditLogs.length === 0) {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+          <Clock className="h-10 w-10 text-muted-foreground mb-3" />
+          <p className="text-sm text-muted-foreground">No scan history yet. Run a scan to see activity here.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const totalPages = Math.max(1, Math.ceil(auditLogs.length / PAGE_SIZE));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const startIdx = (safeCurrentPage - 1) * PAGE_SIZE;
+  const paginatedLogs = auditLogs.slice(startIdx, startIdx + PAGE_SIZE);
+
+  const eventIcons: Record<string, any> = {
+    folder_scanned: Scan,
+    file_extracted: Zap,
+    file_approved: CheckCircle2,
+    file_rejected: XCircle,
+    extraction_error: XCircle,
+  };
+
+  const eventLabels: Record<string, string> = {
+    folder_scanned: "Folder Scanned",
+    file_extracted: "File Extracted",
+    file_approved: "File Approved",
+    file_rejected: "File Rejected",
+    extraction_error: "Extraction Error",
+  };
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base">Scan History</CardTitle>
+        <CardDescription>Historical log of all ingestion activity ({auditLogs.length} events)</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-2">
+          {paginatedLogs.map((log: any) => {
+            const EventIcon = eventIcons[log.event_type] || Clock;
+            const details = log.event_details || {};
+            return (
+              <div key={log.id} className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/30 transition-colors">
+                <div className="flex items-center gap-3 min-w-0">
+                  <EventIcon className="h-5 w-5 text-primary shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">{eventLabels[log.event_type] || log.event_type}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(log.created_at).toLocaleString()}
+                      {details.total_files != null && ` • ${details.total_files} files found`}
+                      {details.new_files != null && ` • ${details.new_files} new`}
+                      {details.skipped != null && details.skipped > 0 && ` • ${details.skipped} skipped`}
+                      {details.file_name && ` • ${details.file_name}`}
+                      {details.confidence_score != null && ` • ${details.confidence_score}% confidence`}
+                    </p>
+                  </div>
+                </div>
+                {details.skippedByName != null && details.skippedByName > 0 && (
+                  <Badge variant="outline" className="text-xs">
+                    {details.skippedByName} filename duplicates
+                  </Badge>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between pt-4 mt-4 border-t">
+            <p className="text-xs text-muted-foreground">
+              Showing {startIdx + 1}–{Math.min(startIdx + PAGE_SIZE, auditLogs.length)} of {auditLogs.length} events
+            </p>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={safeCurrentPage <= 1}>
+                Previous
+              </Button>
+              <span className="text-sm text-muted-foreground">Page {safeCurrentPage} of {totalPages}</span>
+              <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={safeCurrentPage >= totalPages}>
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
