@@ -118,10 +118,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log('[DRIVE-CALLBACK] Success, redirecting to:', effectiveSiteUrl);
-    return new Response(redirectHtml(effectiveSiteUrl, '/data-center', 'success', 'Google Drive connected successfully'), {
-      headers: { 'Content-Type': 'text/html' },
-    });
+    const redirectUrl = `${effectiveSiteUrl}/data-center?drive_status=success&drive_message=${encodeURIComponent('Google Drive connected successfully')}`;
+    console.log('[DRIVE-CALLBACK] Success, redirecting to:', redirectUrl);
+    return Response.redirect(redirectUrl, 302);
   } catch (err) {
     console.error('[DRIVE-CALLBACK] Unhandled error:', err);
     return new Response(redirectHtml('https://recouply.ai', '/data-center', 'error', String(err)), {
