@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
     const tokenData = await tokenRes.json();
     if (!tokenRes.ok) {
       console.error('Token exchange failed:', tokenData);
-      return new Response(redirectHtml(siteUrl, '/data-center', 'error', 'Token exchange failed'), {
+      return new Response(redirectHtml(effectiveSiteUrl, '/data-center', 'error', 'Token exchange failed'), {
         headers: { 'Content-Type': 'text/html' },
       });
     }
