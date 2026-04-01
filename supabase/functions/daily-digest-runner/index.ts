@@ -815,6 +815,8 @@ serve(async (req) => {
           is_over_limit: digestIsOverLimit,
           // Collection Alerts
           collection_alerts_summary: collectionAlertsSummary,
+          // Revenue Risk & ECL Intelligence
+          revenue_risk_summary: revenueRiskSummary,
           updated_at: new Date().toISOString(),
         };
 
