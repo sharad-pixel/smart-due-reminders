@@ -26,7 +26,7 @@ import {
 import { toast } from "sonner";
 import { format, subDays } from "date-fns";
 import { useDropzone } from "react-dropzone";
-import { Upload, Plus, Send, Trash2, Mail, Users, FileSpreadsheet, Sparkles, Loader2, RefreshCw, Eye, Target, BarChart3, Zap, Search, UserPlus, ClipboardPaste, BellOff } from "lucide-react";
+import { Plus, Send, Trash2, Mail, Users, FileSpreadsheet, Sparkles, Loader2, RefreshCw, Eye, Target, Search, UserPlus, ClipboardPaste, BellOff } from "lucide-react";
 import * as XLSX from "xlsx";
 import { MarketingLeadStats } from "@/components/admin/MarketingLeadStats";
 import { MarketingCampaignCard } from "@/components/admin/MarketingCampaignCard";

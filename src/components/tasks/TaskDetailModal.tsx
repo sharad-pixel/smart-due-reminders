@@ -18,7 +18,6 @@ import { CheckCircle2, Archive, Mail, Loader2, UserPlus, Info, CalendarClock, Me
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { MentionInput, MentionUser, renderNoteWithMentions } from "@/components/ui/MentionInput";
 import { createMentionNotification } from "@/hooks/useNotifications";
 import { getDebtorReplyTo, getInvoiceReplyTo, getPlatformFromAddress } from "@/lib/emailSending";

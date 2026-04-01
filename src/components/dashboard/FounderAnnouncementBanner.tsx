@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { X, Megaphone, Sparkles } from "lucide-react";
+import { X, Sparkles } from "lucide-react";
 import { founderAnnouncements, FounderMessage } from "@/lib/founderMessaging";
 import { founderConfig } from "@/lib/founderConfig";
 

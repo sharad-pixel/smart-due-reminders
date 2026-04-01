@@ -7,11 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PersonaAvatar } from "@/components/ai/PersonaAvatar";
-import { personaConfig, PersonaConfig } from "@/lib/personaConfig";
+import { personaConfig } from "@/lib/personaConfig";
 import { ScheduledOutreachPreviewDialog } from "./ScheduledOutreachPreviewDialog";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
 import { 
   Mail, 
   Clock, 

@@ -5,10 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
-import { DollarSign, Calendar, CheckCircle, Clock, XCircle, Building2, FileText, ExternalLink, User, ShieldCheck, HelpCircle, Loader2 } from "lucide-react";
+import { DollarSign, Calendar, CheckCircle, Clock, XCircle, Building2, ExternalLink, User, ShieldCheck, HelpCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface PaymentPlan {

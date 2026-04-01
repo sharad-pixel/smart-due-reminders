@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TaskDetailModal } from "@/components/tasks/TaskDetailModal";
-import { CheckSquare, Filter, Loader2, Search, DollarSign, AlertCircle, Phone, HelpCircle, Mail, Archive, ArchiveRestore, UserPlus, Lock, CalendarClock } from "lucide-react";
+import { CheckSquare, Filter, Loader2, Search, DollarSign, AlertCircle, Phone, HelpCircle, Mail, Archive, ArchiveRestore, UserPlus, CalendarClock } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useSearchParams, Link } from "react-router-dom";

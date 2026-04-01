@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -25,7 +25,7 @@ import nicolasAvatar from "@/assets/personas/nicolas.png";
 import { founderConfig } from "@/lib/founderConfig";
 import { useNicolasPreferences } from "@/hooks/useNicolasPreferences";
 import { getPageOnboardingContent } from "@/lib/onboardingContent";
-import { KNOWLEDGE_BASE, ESCALATION_TRIGGERS, ISSUE_CATEGORIES } from "./nicolasKnowledge";
+import { KNOWLEDGE_BASE, ESCALATION_TRIGGERS } from "./nicolasKnowledge";
 
 interface Message {
   id: string;

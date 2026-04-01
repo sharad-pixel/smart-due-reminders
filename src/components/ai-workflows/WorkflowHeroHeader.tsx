@@ -1,5 +1,4 @@
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Sparkles, Workflow, Zap, Loader2 } from "lucide-react";
 
 interface WorkflowHeroHeaderProps {

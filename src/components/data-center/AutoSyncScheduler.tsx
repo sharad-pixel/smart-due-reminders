@@ -5,7 +5,6 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Clock, CalendarClock, Loader2 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 
 interface AutoSyncSchedulerProps {

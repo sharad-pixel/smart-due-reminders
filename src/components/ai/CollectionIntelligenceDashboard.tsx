@@ -16,7 +16,7 @@ import {
   Eye,
   Zap
 } from "lucide-react";
-import { useCollectionIntelligenceDashboard, useCollectionIntelligence, CollectionIntelligenceData, BatchProgress } from "@/hooks/useCollectionIntelligence";
+import { useCollectionIntelligenceDashboard, useCollectionIntelligence, CollectionIntelligenceData } from "@/hooks/useCollectionIntelligence";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 

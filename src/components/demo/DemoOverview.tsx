@@ -1,7 +1,7 @@
 import { useDemoContext } from "@/contexts/DemoContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { DollarSign, AlertTriangle, TrendingUp, Users, Zap } from "lucide-react";
+import { AlertTriangle, TrendingUp, Users, Zap } from "lucide-react";
 import { motion } from "framer-motion";
 
 export const DemoOverview = () => {

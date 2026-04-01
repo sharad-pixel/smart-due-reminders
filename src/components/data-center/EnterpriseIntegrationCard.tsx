@@ -14,7 +14,7 @@ import {
   Loader2,
   Clock
 } from "lucide-react";
-import { formatDistanceToNow, format } from "date-fns";
+import { format } from "date-fns";
 
 interface SyncResult {
   status: 'success' | 'partial' | 'failed' | 'running';

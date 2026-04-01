@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { Card, CardContent } from "@/components/ui/card";
-import { RecouplyLogo } from "@/components/layout/RecouplyLogo";
 import { founderConfig } from "@/lib/founderConfig";
 import founderPhoto from "@/assets/founder-sharad-cartoon.png";
 import MarketingLayout from "@/components/layout/MarketingLayout";

@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Mail, MessageSquare, Users, CreditCard, CheckCircle, Bot, BarChart3, Shield, Brain, Clock, TrendingUp, Heart } from "lucide-react";
+import { Mail, MessageSquare, Users, CreditCard, CheckCircle, Bot, Shield, Brain, Clock } from "lucide-react";
 import MarketingLayout from "@/components/layout/MarketingLayout";
 import AIAgentRoles from "@/components/ai/AIAgentRoles";
 import { Card, CardContent } from "@/components/ui/card";

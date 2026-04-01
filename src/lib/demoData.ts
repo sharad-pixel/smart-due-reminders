@@ -1,7 +1,6 @@
 // Demo Mode - Preloaded realistic mock data
 // This data is NEVER written to production tables
 
-import { personaConfig } from "@/lib/personaConfig";
 
 export interface DemoCustomer {
   id: string;

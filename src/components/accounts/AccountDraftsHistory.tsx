@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PersonaAvatar } from "@/components/ai/PersonaAvatar";
-import { personaConfig, getPersonaByName } from "@/lib/personaConfig";
+import { personaConfig } from "@/lib/personaConfig";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
 import { DraftPreviewModal } from "@/components/outreach/DraftPreviewModal";
 import { toast } from "sonner";

@@ -26,7 +26,7 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { Json } from "@/integrations/supabase/types";
-import { useAIAnalytics, TrendAnalysis, Recommendation, Prediction, RiskAlert } from "@/hooks/useAIAnalytics";
+import { useAIAnalytics, TrendAnalysis, Recommendation, RiskAlert } from "@/hooks/useAIAnalytics";
 import { cn } from "@/lib/utils";
 
 interface IntelligenceReport {

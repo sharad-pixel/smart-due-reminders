@@ -1,4 +1,4 @@
-import { useDemoContext, DEMO_STEPS, DemoStep } from "@/contexts/DemoContext";
+import { useDemoContext, DEMO_STEPS } from "@/contexts/DemoContext";
 
 export const DemoProgressBar = () => {
   const { step, completedSteps } = useDemoContext();

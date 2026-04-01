@@ -46,8 +46,6 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { format as formatDate, differenceInDays } from "date-fns";
 import { reEngagementTemplates, hydrateTemplate, FounderMessage } from "@/lib/founderMessaging";

@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { 
   DollarSign, Calendar, CheckCircle, Clock, XCircle, 
   Building2, ExternalLink, Mail, Loader2, ArrowLeft,

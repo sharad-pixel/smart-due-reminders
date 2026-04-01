@@ -1,13 +1,13 @@
 import { useState, useMemo } from "react";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { format, addDays, differenceInCalendarDays } from "date-fns";
+import { format, differenceInCalendarDays } from "date-fns";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Mail, Clock, Brain, PauseCircle, PlayCircle, Filter, Users, Send, FileText, CheckCircle, Trash2, Check, X, ChevronDown, ChevronUp, AlertCircle, RefreshCw, Zap, Search, AlertTriangle, RotateCcw, Eye } from "lucide-react";
+import { Mail, Clock, Brain, Filter, Users, Send, FileText, CheckCircle, Trash2, Check, X, ChevronDown, ChevronUp, AlertCircle, RefreshCw, Zap, Search, AlertTriangle, RotateCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";

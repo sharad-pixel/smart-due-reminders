@@ -13,7 +13,7 @@ import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { differenceInDays, format } from "date-fns";
+import { differenceInDays } from "date-fns";
 import { ProactiveDraftPreviewCard } from "./ProactiveDraftPreviewCard";
 
 type ActionCategory = "due_soon" | "newly_past_due" | "gone_silent";

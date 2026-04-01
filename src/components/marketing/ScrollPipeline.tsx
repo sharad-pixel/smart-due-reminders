@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Upload, Brain, Zap, CreditCard, BarChart3, ArrowRight } from "lucide-react";
+import { Upload, Brain, Zap, CreditCard, BarChart3 } from "lucide-react";
 
 const steps = [
   { icon: Upload, title: "Upload, Sync, or Smart Ingest", description: "Integrate with Stripe, QuickBooks, or extract invoices from Google Drive PDFs with AI" },

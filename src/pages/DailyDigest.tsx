@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { format, subDays, addDays, parseISO } from 'date-fns';
-import { ChevronLeft, ChevronRight, Calendar, ListTodo, DollarSign, AlertTriangle, TrendingUp, TrendingDown, Minus, RefreshCw, Newspaper, Lightbulb, ExternalLink, Sparkles, PanelLeft } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, ListTodo, DollarSign, AlertTriangle, TrendingUp, TrendingDown, Minus, RefreshCw, Newspaper, Lightbulb, ExternalLink, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useDailyDigest, PortfolioRiskSummary } from '@/hooks/useDailyDigest';
+import { useDailyDigest } from '@/hooks/useDailyDigest';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'react-router-dom';
