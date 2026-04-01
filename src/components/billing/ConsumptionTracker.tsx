@@ -24,6 +24,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatPrice } from "@/lib/subscriptionConfig";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
+interface IngestionChargesData {
+  fileCount: number;
+  totalCharges: number;
+  ratePerFile: number;
+  period: string;
+}
+
 interface ConsumptionData {
   invoices: {
     used: number;
