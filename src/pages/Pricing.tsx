@@ -696,7 +696,7 @@ const Pricing = () => {
                       <div className="pt-2 border-t mt-2">
                         <p className="text-xs font-semibold mb-1">Coverage:</p>
                         <p className="text-xs text-muted-foreground">
-                          {persona.bucketMin}-{persona.bucketMax || "+"} Days Past Due
+                          {key === "nicolas" ? "Account-Level Support" : `${persona.bucketMin}-${persona.bucketMax || "+"} Days Past Due`}
                         </p>
                       </div>
                     </div>

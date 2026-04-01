@@ -8,7 +8,7 @@ const agents = Object.entries(personaConfig)
   .map(([key, persona]) => ({
     key,
     ...persona,
-    range: persona.bucketMax ? `${persona.bucketMin}–${persona.bucketMax} Days` : `${persona.bucketMin}+ Days`,
+    range: key === "nicolas" ? "Account-Level" : persona.bucketMax ? `${persona.bucketMin}–${persona.bucketMax} Days` : `${persona.bucketMin}+ Days`,
   }));
 
 export function AIAgentCarousel() {
