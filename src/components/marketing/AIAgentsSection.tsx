@@ -53,7 +53,7 @@ const AIAgentsSection = () => {
                   <div>
                     <h4 className="font-bold text-lg">{persona.name}</h4>
                     <p className="text-xs text-muted-foreground">
-                      {persona.bucketMin}-{persona.bucketMax || "150+"} Days
+                      {key === "nicolas" ? "Account-Level Support" : `${persona.bucketMin}-${persona.bucketMax || "150+"} Days`}
                     </p>
                   </div>
                 </div>
@@ -146,7 +146,7 @@ const AIAgentsSection = () => {
                     <div>
                       <h3 className="text-2xl font-bold">{personaConfig[selectedAgent]?.name}</h3>
                       <p className="text-muted-foreground">
-                        {personaConfig[selectedAgent]?.bucketMin}-{personaConfig[selectedAgent]?.bucketMax || "150+"} Days Past Due
+                        {selectedAgent === "nicolas" ? "Account-Level Support" : `${personaConfig[selectedAgent]?.bucketMin}-${personaConfig[selectedAgent]?.bucketMax || "150+"} Days Past Due`}
                       </p>
                     </div>
                   </div>

@@ -196,7 +196,7 @@ const AICommandCenter = () => {
                         <div>
                           <p className="font-bold text-lg">{persona.name}</p>
                           <p className="text-sm text-muted-foreground">
-                            {persona.bucketMin}-{persona.bucketMax || "+"} Days
+                            {key === "nicolas" ? "Account-Level Support" : `${persona.bucketMin}-${persona.bucketMax || "+"} Days`}
                           </p>
                         </div>
                       </CardContent>

@@ -371,7 +371,7 @@ const ComingSoon = () => {
                     <div>
                       <h4 className="font-bold text-lg">{persona.name}</h4>
                       <p className="text-xs text-muted-foreground">
-                        {persona.bucketMin}-{persona.bucketMax || "150+"} Days
+                        {key === "nicolas" ? "Account-Level Support" : `${persona.bucketMin}-${persona.bucketMax || "150+"} Days`}
                       </p>
                     </div>
                   </div>
