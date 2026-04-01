@@ -41,7 +41,10 @@ Deno.serve(async (req) => {
 
     const redirectUri = `${supabaseUrl}/functions/v1/google-drive-callback`;
     const scope = 'https://www.googleapis.com/auth/drive.readonly';
-    const state = btoa(JSON.stringify({ userId: user.id }));
+    // Pass the origin so callback redirects back to the correct environment
+    const body = await req.json().catch(() => ({}));
+    const origin = body.origin || supabaseUrl;
+    const state = btoa(JSON.stringify({ userId: user.id, origin }));
 
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
       `client_id=${encodeURIComponent(clientId)}` +
