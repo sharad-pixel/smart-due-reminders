@@ -863,6 +863,7 @@ const Invoices = () => {
                       Last Contact
                     </SortableTableHead>
                     <TableHead className="w-20 font-semibold text-right">Actions</TableHead>
+                  </TableRow>
                 </TableHeader>
                 <TableBody>
                   {sortedInvoices.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((invoice) => {
