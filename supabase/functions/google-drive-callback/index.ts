@@ -120,9 +120,7 @@ Deno.serve(async (req) => {
     return Response.redirect(redirectUrl, 302);
   } catch (err) {
     console.error('[DRIVE-CALLBACK] Unhandled error:', err);
-    return new Response(redirectHtml('https://recouply.ai', '/data-center', 'error', String(err)), {
-      headers: { 'Content-Type': 'text/html' },
-    });
+    return Response.redirect(`https://recouply.ai/data-center?drive_status=error&drive_message=${encodeURIComponent(String(err))}`, 302);
   }
 });
 
