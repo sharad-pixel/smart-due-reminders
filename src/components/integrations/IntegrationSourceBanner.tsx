@@ -332,6 +332,16 @@ export const IntegrationSourceBadge = ({
       icon: <svg className={iconSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>,
       classes: "bg-cyan-50 border-cyan-200/80 text-cyan-700 dark:bg-cyan-950/30 dark:border-cyan-800/60 dark:text-cyan-300",
     },
+    netsuite: {
+      label: "NetSuite",
+      icon: <svg className={iconSize} viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="4" fill="#1A1A2E"/><path d="M6 7h2.5l3.5 6V7h2.5v10h-2.5l-3.5-6v6H6V7z" fill="#00A1E0"/></svg>,
+      classes: "bg-indigo-50 border-indigo-200/80 text-indigo-700 dark:bg-indigo-950/30 dark:border-indigo-800/60 dark:text-indigo-300",
+    },
+    sage: {
+      label: "Sage",
+      icon: <svg className={iconSize} viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="4" fill="#00DC00"/><path d="M8 15c0-.8.6-1.3 1.5-1.6 1-.4 2.2-.5 3-1.2.4-.3.6-.8.6-1.3 0-1-.8-1.7-1.9-1.7-1.2 0-2 .8-2.1 1.9H7.4c.2-2 1.6-3.4 3.8-3.4 2.1 0 3.6 1.3 3.6 3 0 1.1-.5 1.9-1.4 2.5-.8.5-1.8.7-2.6 1-.4.2-.7.4-.7.8v.2h4.6V17H8v-2z" fill="white"/></svg>,
+      classes: "bg-lime-50 border-lime-200/80 text-lime-700 dark:bg-lime-950/30 dark:border-lime-800/60 dark:text-lime-300",
+    },
   };
 
   // Map google_drive to ai_ingestion
