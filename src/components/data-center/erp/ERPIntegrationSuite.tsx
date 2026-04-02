@@ -208,7 +208,7 @@ export const ERPIntegrationSuite = () => {
     }, 3000);
   };
 
-  const connectedCount = connections.filter((c) => c.status === "connected").length;
+  
 
   return (
     <div className="space-y-6">
