@@ -293,78 +293,61 @@ export const IntegrationSourceBadge = ({
 }) => {
   const sourceValue = source || "recouply_manual";
   
-  const sizeClasses = size === "xs" ? "text-[10px] px-1.5 py-0.5" : "text-xs px-2 py-0.5";
+  const sizeClasses = size === "xs" 
+    ? "text-[10px] px-1.5 py-0.5 gap-1" 
+    : "text-xs px-2.5 py-1 gap-1.5";
 
-  if (sourceValue === "recouply_manual") {
-    return (
-      <Badge 
-        variant="outline" 
-        className={`bg-green-50 border-green-200 text-green-700 dark:bg-green-950/30 dark:border-green-800 dark:text-green-300 ${sizeClasses}`}
-      >
-        📝 Recouply
-      </Badge>
-    );
-  }
+  const iconSize = size === "xs" ? "h-3 w-3" : "h-3.5 w-3.5";
 
-  if (sourceValue === "csv_upload") {
-    return (
-      <Badge 
-        variant="outline" 
-        className={`bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-950/30 dark:border-blue-800 dark:text-blue-300 ${sizeClasses}`}
-      >
-        📊 CSV
-      </Badge>
-    );
-  }
+  const configs: Record<string, { label: string; icon: React.ReactNode; classes: string }> = {
+    recouply_manual: {
+      label: "Manual",
+      icon: <svg className={iconSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z"/></svg>,
+      classes: "bg-emerald-50 border-emerald-200/80 text-emerald-700 dark:bg-emerald-950/30 dark:border-emerald-800/60 dark:text-emerald-300",
+    },
+    csv_upload: {
+      label: "CSV Import",
+      icon: <svg className={iconSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 12l-2 4h4l-2 4"/></svg>,
+      classes: "bg-blue-50 border-blue-200/80 text-blue-700 dark:bg-blue-950/30 dark:border-blue-800/60 dark:text-blue-300",
+    },
+    stripe: {
+      label: hasOverrides ? "Stripe ⚡" : "Stripe",
+      icon: <svg className={iconSize} viewBox="0 0 24 24" fill="currentColor"><path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.236 2.525-5.732 0-4.128-2.524-5.851-6.591-7.305z"/></svg>,
+      classes: hasOverrides 
+        ? "bg-amber-50 border-amber-300/80 text-amber-700 dark:bg-amber-950/30 dark:border-amber-700/60 dark:text-amber-300" 
+        : "bg-violet-50 border-violet-200/80 text-violet-700 dark:bg-violet-950/30 dark:border-violet-800/60 dark:text-violet-300",
+    },
+    quickbooks: {
+      label: "QuickBooks",
+      icon: <svg className={iconSize} viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="12" fill="#2CA01C"/><path d="M7.5 7a3 3 0 0 0-3 3v4a3 3 0 0 0 3 3h1v-1.5h-1a1.5 1.5 0 0 1-1.5-1.5v-4A1.5 1.5 0 0 1 7.5 8.5H9V15a2 2 0 0 0 4 0V7H7.5zm9 10a3 3 0 0 0 3-3v-4a3 3 0 0 0-3-3h-1v1.5h1a1.5 1.5 0 0 1 1.5 1.5v4a1.5 1.5 0 0 1-1.5 1.5H15V9a2 2 0 0 0-4 0v8h5.5z" fill="white"/></svg>,
+      classes: "bg-green-50 border-green-200/80 text-green-700 dark:bg-green-950/30 dark:border-green-800/60 dark:text-green-300",
+    },
+    xero: {
+      label: "Xero",
+      icon: <svg className={iconSize} viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="12" fill="#13B5EA"/><path d="M7.5 8.5l4 3.5-4 3.5M12.5 8.5l4 3.5-4 3.5" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+      classes: "bg-sky-50 border-sky-200/80 text-sky-700 dark:bg-sky-950/30 dark:border-sky-800/60 dark:text-sky-300",
+    },
+    ai_ingestion: {
+      label: "AI Scan",
+      icon: <svg className={iconSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>,
+      classes: "bg-cyan-50 border-cyan-200/80 text-cyan-700 dark:bg-cyan-950/30 dark:border-cyan-800/60 dark:text-cyan-300",
+    },
+  };
 
-  if (sourceValue === "stripe") {
-    return (
-      <Badge 
-        variant="outline" 
-        className={`${hasOverrides 
-          ? "bg-amber-50 border-amber-300 text-amber-700 dark:bg-amber-950/30 dark:border-amber-700 dark:text-amber-300" 
-          : "bg-orange-50 border-orange-200 text-orange-700 dark:bg-orange-950/30 dark:border-orange-800 dark:text-orange-300"
-        } ${sizeClasses}`}
-      >
-        {hasOverrides ? "⚠️" : "🔗"} Stripe
-      </Badge>
-    );
-  }
+  // Map google_drive to ai_ingestion
+  const key = sourceValue === "google_drive" ? "ai_ingestion" : sourceValue;
+  const config = configs[key];
+  if (!config) return null;
 
-  if (sourceValue === "quickbooks") {
-    return (
-      <Badge 
-        variant="outline" 
-        className={`bg-purple-50 border-purple-200 text-purple-700 dark:bg-purple-950/30 dark:border-purple-800 dark:text-purple-300 ${sizeClasses}`}
-      >
-        🔗 QuickBooks
-      </Badge>
-    );
-  }
-
-  if (sourceValue === "xero") {
-    return (
-      <Badge 
-        variant="outline" 
-        className={`bg-teal-50 border-teal-200 text-teal-700 dark:bg-teal-950/30 dark:border-teal-800 dark:text-teal-300 ${sizeClasses}`}
-      >
-        🔗 Xero
-      </Badge>
-    );
-  }
-
-  if (sourceValue === "google_drive" || sourceValue === "ai_ingestion") {
-    return (
-      <Badge 
-        variant="outline" 
-        className={`bg-cyan-50 border-cyan-200 text-cyan-700 dark:bg-cyan-950/30 dark:border-cyan-800 dark:text-cyan-300 ${sizeClasses}`}
-      >
-        🤖 AI Smart Ingestion
-      </Badge>
-    );
-  }
-
-  return null;
+  return (
+    <Badge 
+      variant="outline" 
+      className={`inline-flex items-center font-medium ${config.classes} ${sizeClasses}`}
+    >
+      {config.icon}
+      {config.label}
+    </Badge>
+  );
 };
 
 export default IntegrationSourceBanner;
