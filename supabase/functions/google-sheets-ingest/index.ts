@@ -131,8 +131,8 @@ Deno.serve(async (req) => {
     const results: any[] = [];
 
     for (const template of templates) {
-      const connection = template.drive_connections;
-      if (!connection || !connection.is_active) continue;
+      // Use the current user's connection, not the template's stored connection
+      const connection = userConnection;
 
       try {
         const accessToken = await getValidAccessToken(supabase, connection);
