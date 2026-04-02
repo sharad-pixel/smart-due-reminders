@@ -322,6 +322,27 @@ const DataCenter = () => {
         </section>
 
         <Separator />
+
+        {/* ═══════════════════════════════════════════════════════════════ */}
+        {/* SECTION 1.6: ERP INTEGRATION SUITE (NetSuite & Sage)          */}
+        {/* ═══════════════════════════════════════════════════════════════ */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Server className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold">ERP Integration Suite</h2>
+              <p className="text-xs text-muted-foreground">
+                Connect NetSuite or Sage to sync customers, invoices, and payments for full AR orchestration
+              </p>
+            </div>
+          </div>
+
+          <ERPIntegrationSuite />
+        </section>
+
+        <Separator />
         {/* SECTION 2: FILE UPLOADS (CSV / Excel)                         */}
         {/* ═══════════════════════════════════════════════════════════════ */}
         <section className="space-y-4">
