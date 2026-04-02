@@ -86,19 +86,34 @@ Deno.serve(async (req) => {
     // Get org ID
     const { data: orgId } = await supabase.rpc('get_user_organization_id', { p_user_id: user.id });
 
-    // If specific template, scan that one; otherwise scan all active templates
+    // Always use the current user's drive connection
+    const { data: userConnection } = await supabase
+      .from('drive_connections')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('is_active', true)
+      .single();
+
+    if (!userConnection) {
+      return new Response(JSON.stringify({ error: 'No active Google Drive connection. Please connect your own Google Drive first.' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // If specific template, scan that one; otherwise scan all active templates for this user
     let templates: any[] = [];
     if (sheetTemplateId) {
       const { data } = await supabase
         .from('google_sheet_templates')
-        .select('*, drive_connections(*)')
+        .select('*')
         .eq('id', sheetTemplateId)
+        .eq('user_id', user.id)
         .single();
       if (data) templates = [data];
     } else {
       const { data } = await supabase
         .from('google_sheet_templates')
-        .select('*, drive_connections(*)')
+        .select('*')
         .eq('user_id', user.id)
         .eq('status', 'active');
       templates = data || [];

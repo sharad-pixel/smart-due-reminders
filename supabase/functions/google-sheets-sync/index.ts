@@ -566,22 +566,30 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, serviceKey);
     const { data: orgId } = await supabase.rpc('get_user_organization_id', { p_user_id: user.id });
 
-    const { data: template } = await supabase
-      .from('google_sheet_templates')
-      .select('*, drive_connections(*)')
-      .eq('id', sheetTemplateId)
+    // Always use the CURRENT user's drive connection, not the template creator's
+    const { data: connection } = await supabase
+      .from('drive_connections')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('is_active', true)
       .single();
 
-    if (!template) {
-      return new Response(JSON.stringify({ error: 'Template not found' }), {
-        status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    if (!connection) {
+      return new Response(JSON.stringify({ error: 'No active Google Drive connection. Please connect your own Google Drive first.' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const connection = template.drive_connections;
-    if (!connection || !connection.is_active) {
-      return new Response(JSON.stringify({ error: 'Drive connection inactive' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    const { data: template } = await supabase
+      .from('google_sheet_templates')
+      .select('*')
+      .eq('id', sheetTemplateId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (!template) {
+      return new Response(JSON.stringify({ error: 'Template not found or does not belong to you' }), {
+        status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
