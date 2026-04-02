@@ -34,8 +34,9 @@ import { StripeSyncSection } from "@/components/data-center/StripeSyncSection";
 import { SyncHealthDashboard } from "@/components/data-center/SyncHealthDashboard";
 import { SyncActivityLog } from "@/components/data-center/SyncActivityLog";
 import { SmartIngestionSection } from "@/components/data-center/ingestion/SmartIngestionSection";
+import { ERPIntegrationSuite } from "@/components/data-center/erp/ERPIntegrationSuite";
 import * as XLSX from "xlsx";
-import { Zap } from "lucide-react";
+import { Zap, Server } from "lucide-react";
 
 const DataCenter = () => {
   const [searchParams, setSearchParams] = useSearchParams();
