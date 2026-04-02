@@ -19,7 +19,7 @@ import {
   Webhook,
   Calendar,
   Play,
-  Pause,
+  Play,
   Users,
   FileText,
   DollarSign,
