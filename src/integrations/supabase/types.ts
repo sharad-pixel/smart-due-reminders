@@ -4269,6 +4269,7 @@ export type Database = {
       }
       ingestion_scanned_files: {
         Row: {
+          archived_at: string | null
           confidence_score: number | null
           connection_id: string
           created_at: string | null
@@ -4280,6 +4281,7 @@ export type Database = {
           file_size: number | null
           folder_path: string | null
           id: string
+          is_archived: boolean | null
           is_duplicate: boolean | null
           mime_type: string | null
           organization_id: string | null
@@ -4291,6 +4293,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          archived_at?: string | null
           confidence_score?: number | null
           connection_id: string
           created_at?: string | null
@@ -4302,6 +4305,7 @@ export type Database = {
           file_size?: number | null
           folder_path?: string | null
           id?: string
+          is_archived?: boolean | null
           is_duplicate?: boolean | null
           mime_type?: string | null
           organization_id?: string | null
@@ -4313,6 +4317,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          archived_at?: string | null
           confidence_score?: number | null
           connection_id?: string
           created_at?: string | null
@@ -4324,6 +4329,7 @@ export type Database = {
           file_size?: number | null
           folder_path?: string | null
           id?: string
+          is_archived?: boolean | null
           is_duplicate?: boolean | null
           mime_type?: string | null
           organization_id?: string | null
