@@ -197,7 +197,7 @@ async function pushPayments(supabase: any, accessToken: string, template: any, u
 
 async function pullAccounts(supabase: any, accessToken: string, template: any, userId: string, orgId: string) {
   const rows = await readSheet(accessToken, template.sheet_id, 'Accounts!A1:S5000');
-  if (rows.length <= 1) return { created: 0, updated: 0, skipped: 0 };
+  if (rows.length <= 1) return { created: 0, updated: 0, skipped: 0, syncProtected: 0 };
 
   const headers = rows[0].map((h: string) => h.toLowerCase().trim());
   const raidIdx = headers.indexOf('raid');
@@ -219,16 +219,23 @@ async function pullAccounts(supabase: any, accessToken: string, template: any, u
   const notesIdx = headers.indexOf('notes');
   const sourceIdx = headers.indexOf('source');
 
-  let created = 0, updated = 0, skipped = 0;
+  let created = 0, updated = 0, skipped = 0, syncProtected = 0;
   const sheetUpdates: any[] = [];
 
-  // Helper to get column letter (supports multi-letter columns)
   const colLetter = (idx: number) => {
     let letter = '';
     let n = idx;
     while (n >= 0) { letter = String.fromCharCode(65 + (n % 26)) + letter; n = Math.floor(n / 26) - 1; }
     return letter;
   };
+
+  // PROTECTION: Pre-load sync-enabled status for all accounts to enforce per-account control
+  const { data: syncProtectedAccounts } = await supabase
+    .from('debtors')
+    .select('reference_id')
+    .eq('user_id', userId)
+    .eq('sheet_sync_enabled', false);
+  const protectedRaids = new Set((syncProtectedAccounts || []).map((d: any) => d.reference_id));
 
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
@@ -241,6 +248,12 @@ async function pullAccounts(supabase: any, accessToken: string, template: any, u
     const source = getVal(row, sourceIdx);
 
     if (!companyName && !contactName) continue;
+
+    // PROTECTION: Skip sync-protected accounts
+    if (raid && protectedRaids.has(raid)) {
+      syncProtected++;
+      continue;
+    }
 
     // Build field data from row
     const fieldData: any = {};
@@ -261,8 +274,8 @@ async function pullAccounts(supabase: any, accessToken: string, template: any, u
     if (getVal(row, payTermsIdx)) fieldData.payment_terms_default = getVal(row, payTermsIdx);
     if (getVal(row, notesIdx)) fieldData.notes = getVal(row, notesIdx);
 
+    // PROTECTION: Only update existing records via RAID match — never delete
     if (raid && source.toLowerCase() === 'recouply') {
-      // Update existing record
       const { error } = await supabase
         .from('debtors')
         .update(fieldData)
@@ -286,7 +299,6 @@ async function pullAccounts(supabase: any, accessToken: string, template: any, u
 
       if (!error && newDebtor) {
         created++;
-        // Write back the generated RAID to the sheet
         if (raidIdx >= 0) {
           sheetUpdates.push({ range: `Accounts!${colLetter(raidIdx)}${i + 1}`, values: [[newDebtor.reference_id]] });
         }
@@ -299,8 +311,9 @@ async function pullAccounts(supabase: any, accessToken: string, template: any, u
     }
   }
 
+  // PROTECTION: Pull NEVER deletes records — missing rows in the sheet are simply ignored
   await batchUpdateSheet(accessToken, template.sheet_id, sheetUpdates);
-  return { created, updated, skipped };
+  return { created, updated, skipped, syncProtected };
 }
 
 async function pullInvoices(supabase: any, accessToken: string, template: any, userId: string, orgId: string) {
