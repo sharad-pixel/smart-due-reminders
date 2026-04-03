@@ -11,6 +11,8 @@ import {
   ExternalLink,
   CloudCog,
   Briefcase,
+  Lock,
+  Crown,
 } from "lucide-react";
 
 export const SalesforceSyncSection = () => {
