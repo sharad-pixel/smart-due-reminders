@@ -163,11 +163,16 @@ Deno.serve(async (req) => {
   try {
     // Parse request body to check for specific draft IDs
     let requestedDraftIds: string[] | null = null;
+    let sendWindowDate: string | null = null;
     try {
       const body = await req.json();
       if (body?.draftIds && Array.isArray(body.draftIds) && body.draftIds.length > 0) {
         requestedDraftIds = body.draftIds as string[];
         console.log(`[AUTO-SEND] Requested specific draft IDs: ${(requestedDraftIds as string[]).join(', ')}`);
+      }
+      if (body?.send_window_date) {
+        sendWindowDate = body.send_window_date;
+        console.log(`[AUTO-SEND] Using send window date: ${sendWindowDate}`);
       }
     } catch {
       // No body or invalid JSON - process all eligible drafts
