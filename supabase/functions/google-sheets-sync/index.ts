@@ -65,7 +65,7 @@ async function batchUpdateSheet(accessToken: string, spreadsheetId: string, upda
 async function pushAccounts(supabase: any, accessToken: string, template: any, userId: string) {
   const { data: debtors } = await supabase
     .from('debtors')
-    .select('reference_id, company_name, type, name, email, phone, address_line1, address_line2, city, state, postal_code, country, industry, external_customer_id, crm_account_id_external, payment_terms_default, notes, current_balance')
+    .select('reference_id, company_name, type, name, email, phone, address_line1, address_line2, city, state, postal_code, country, industry, external_customer_id, crm_account_id_external, payment_terms_default, notes, current_balance, integration_source, source_system')
     .eq('user_id', userId)
     .eq('is_archived', false)
     .order('company_name', { ascending: true });
@@ -82,7 +82,8 @@ async function pushAccounts(supabase: any, accessToken: string, template: any, u
     d.address_line1 || '', d.address_line2 || '', d.city || '', d.state || '',
     d.postal_code || '', d.country || '', d.industry || '',
     d.external_customer_id || '', d.crm_account_id_external || '',
-    d.payment_terms_default || '', d.notes || '', d.current_balance || 0, 'recouply',
+    d.payment_terms_default || '', d.notes || '', d.current_balance || 0,
+    d.integration_source || d.source_system || 'recouply',
   ])];
 
   // Clear existing data then write
