@@ -128,9 +128,10 @@ export function SheetTemplatesSection() {
     },
     onSuccess: (data) => {
       const dir = data.direction === 'push' ? 'Push' : 'Pull';
+      const protectedNote = data.syncProtected ? `, ${data.syncProtected} sync-protected` : '';
       const details = data.direction === 'push'
         ? `${data.pushed || data.openPushed || 0} rows pushed`
-        : `Created: ${data.created || 0}, Updated: ${data.updated || 0}, Skipped: ${data.skipped || 0}${data.movedToPaid ? `, Moved to Paid: ${data.movedToPaid}` : ''}`;
+        : `Created: ${data.created || 0}, Updated: ${data.updated || 0}, Skipped: ${data.skipped || 0}${data.movedToPaid ? `, Moved to Paid: ${data.movedToPaid}` : ''}${protectedNote}`;
       toast.success(`${dir} complete — ${data.templateType}`, { description: details });
       queryClient.invalidateQueries({ queryKey: ["sheet-templates"] });
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
