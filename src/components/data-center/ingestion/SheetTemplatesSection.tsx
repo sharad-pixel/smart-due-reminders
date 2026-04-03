@@ -28,6 +28,7 @@ import {
   FolderOpen,
   Sparkles,
   Trash2,
+  ShieldCheck,
 } from "lucide-react";
 import { GoogleSheetsIcon } from "@/components/icons/GoogleIcons";
 
