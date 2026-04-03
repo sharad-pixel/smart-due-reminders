@@ -37,6 +37,7 @@ import { SyncActivityLog } from "@/components/data-center/SyncActivityLog";
 import { SmartIngestionSection } from "@/components/data-center/ingestion/SmartIngestionSection";
 import { ERPIntegrationSuite } from "@/components/data-center/erp/ERPIntegrationSuite";
 import { useIntegrationToggles } from "@/hooks/useIntegrationToggles";
+import { ContactSalesCard } from "@/components/data-center/ContactSalesCard";
 import * as XLSX from "xlsx";
 import { Zap, Server } from "lucide-react";
 
