@@ -31,6 +31,7 @@ import { DataCenterUploadWizard } from "@/components/data-center/DataCenterUploa
 import { CreateSourceModal } from "@/components/data-center/CreateSourceModal";
 import { QuickBooksSyncSection } from "@/components/data-center/QuickBooksSyncSection";
 import { StripeSyncSection } from "@/components/data-center/StripeSyncSection";
+import { SalesforceSyncSection } from "@/components/data-center/SalesforceSyncSection";
 import { SyncHealthDashboard } from "@/components/data-center/SyncHealthDashboard";
 import { SyncActivityLog } from "@/components/data-center/SyncActivityLog";
 import { SmartIngestionSection } from "@/components/data-center/ingestion/SmartIngestionSection";
