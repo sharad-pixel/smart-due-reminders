@@ -205,7 +205,7 @@ const Debtors = () => {
           d.company_name?.toLowerCase().includes(term) ||
           d.email?.toLowerCase().includes(term) ||
           d.external_customer_id?.toLowerCase().includes(term) ||
-          d.recouply_customer_id?.toLowerCase().includes(term)
+          (d as any).recouply_customer_id?.toLowerCase().includes(term)
       );
     }
 
