@@ -338,7 +338,7 @@ Deno.serve(async (req) => {
         .is('sent_at', null)
         .is('invoice_id', null)
         .not('recommended_send_date', 'is', null)
-        .lte('recommended_send_date', today)
+        .lte('recommended_send_date', cutoffDate)
         .order('recommended_send_date', { ascending: true })
         .limit(ACCOUNT_BATCH_SIZE);
 
