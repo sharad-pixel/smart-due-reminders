@@ -131,7 +131,7 @@ export function PendingSheetImports() {
             crm_account_id_external: item.crm_account_id_external || null,
             payment_terms_default: item.payment_terms_default || null,
             notes: item.notes || null,
-            source_system: "google_sheets",
+            source_system: "csv_import",
           };
 
           // First update status to "approved" to remove from queue immediately
