@@ -1,58 +1,92 @@
 import { Brain, Mail, Zap, CheckCircle, TrendingUp, Shield } from "lucide-react";
+import { motion } from "framer-motion";
 
 const differentiators = [
-  { icon: Brain, title: "360° Account Intelligence", description: "Payment history, communication patterns, and risk signals—synthesized into actionable context" },
-  { icon: Mail, title: "Communication Intelligence", description: "Understands sentiment and intent to guide your next action, not just respond" },
-  { icon: Zap, title: "Task & Resolution Intelligence", description: "Tracks what works, surfaces what doesn't—informing team decisions" },
-  { icon: CheckCircle, title: "Payment Behavior as Insight", description: "Learns from every payment pattern to help you act before risk compounds" },
-  { icon: TrendingUp, title: "Intelligence That Compounds", description: "Every touchpoint makes the system smarter—better signals over time" },
-  { icon: Shield, title: "Proactive Risk Signals", description: "Early visibility into at-risk accounts—designed to support predictable cash flow" },
+  { icon: Brain, title: "Autonomous Account Intelligence", description: "AI agents synthesize payment history, communication patterns, and risk signals into real-time decisions — not just dashboards" },
+  { icon: Mail, title: "Agentic Communication Layer", description: "Agents read, understand, and respond to debtor emails with context-aware drafts — escalating only when human judgment is needed" },
+  { icon: Zap, title: "Self-Optimizing Workflows", description: "Every collection outcome feeds back into the system — agents learn which strategies recover revenue fastest" },
+  { icon: CheckCircle, title: "Revenue Risk Assessment Engine", description: "Continuous ECL scoring, Paydex-style ratings, and engagement-adjusted PD modeling across your entire portfolio" },
+  { icon: TrendingUp, title: "Compounding Intelligence", description: "Each touchpoint makes every agent smarter — risk predictions sharpen, timing improves, recovery rates climb" },
+  { icon: Shield, title: "Predictive Risk Orchestration", description: "Agents flag at-risk accounts before humans notice — triggering proactive outreach before revenue is lost" },
 ];
+
+const itemVariants = {
+  hidden: { opacity: 0, x: -20 },
+  visible: (i: number) => ({
+    opacity: 1,
+    x: 0,
+    transition: { delay: i * 0.1, duration: 0.4, ease: "easeOut" },
+  }),
+};
 
 const WhyDifferent = () => {
   return (
     <section className="py-24 px-4 bg-background">
       <div className="container mx-auto max-w-6xl">
-        <div className="text-center mb-16">
+        <motion.div
+          className="text-center mb-16"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+        >
           <div className="inline-block px-4 py-1 rounded-full bg-accent/10 text-accent text-sm font-semibold mb-4">
-            Revenue Recovery Intelligence
+            Agentic Revenue Intelligence
           </div>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-            AI-Agentic Intelligence That Drives Recovery
+            AI Agents That Think, Act & Learn
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-            Agentic AI handles repeatable workflows with consistency—freeing your team to focus on decisions, not follow-ups
+            Not just automation — agentic AI that autonomously orchestrates revenue recovery with human-controlled guardrails
           </p>
           <p className="text-sm text-muted-foreground/80 max-w-xl mx-auto mt-3">
             Your single source of truth for all revenue recovery activity
           </p>
           
-          {/* Single Source of Truth Messaging */}
-          <div className="mt-8 max-w-3xl mx-auto bg-muted/30 rounded-2xl p-6 border border-border/50">
+          <motion.div
+            className="mt-8 max-w-3xl mx-auto bg-muted/30 rounded-2xl p-6 border border-border/50"
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2, duration: 0.5 }}
+          >
             <p className="text-muted-foreground">
-              Recouply.ai acts as the single source of truth for all collection activity — every action, message, and outcome is stored in one centralized system with full transparency and auditability.
+              Recouply.ai deploys autonomous AI agents as your always-on revenue recovery team — every action, message, and outcome is orchestrated, tracked, and optimized in one centralized system.
             </p>
             <p className="text-sm text-muted-foreground/80 mt-3 font-medium">
-              No handoffs. No scattered inboxes. No lost context.
+              No handoffs. No scattered inboxes. No lost context. Just agents recovering revenue.
             </p>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
         
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
           {differentiators.map((item, idx) => {
             const Icon = item.icon;
             return (
-              <div key={idx} className="flex gap-4 group">
+              <motion.div
+                key={idx}
+                custom={idx}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                variants={itemVariants}
+                whileHover={{ x: 6 }}
+                className="flex gap-4 group cursor-default"
+              >
                 <div className="flex-shrink-0">
-                  <div className="bg-primary/10 w-12 h-12 rounded-xl flex items-center justify-center group-hover:bg-primary/20 group-hover:scale-110 transition-all">
+                  <motion.div
+                    className="bg-primary/10 w-12 h-12 rounded-xl flex items-center justify-center"
+                    whileHover={{ scale: 1.15, rotate: -5 }}
+                    transition={{ type: "spring", stiffness: 300 }}
+                  >
                     <Icon className="h-6 w-6 text-primary" />
-                  </div>
+                  </motion.div>
                 </div>
                 <div>
                   <h4 className="font-semibold mb-1 group-hover:text-primary transition-colors">{item.title}</h4>
                   <p className="text-sm text-muted-foreground">{item.description}</p>
                 </div>
-              </div>
+              </motion.div>
             );
           })}
         </div>
