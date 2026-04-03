@@ -94,7 +94,7 @@ export function PendingSheetImports() {
           });
         }
 
-        // Mark as approved
+        // Mark as approved - use the effective account ID for the update
         const { error: updateErr } = await supabase
             .from("pending_sheet_imports")
             .update({ status: "approved", reviewed_at: new Date().toISOString() })
@@ -106,6 +106,10 @@ export function PendingSheetImports() {
         } else {
           results.set(id, { status: "success", message: `Created ${newDebtor.reference_id}` });
           approved++;
+          // Immediately remove from local list so UI updates instantly
+          queryClient.setQueryData(["pending-sheet-imports"], (old: any[] | undefined) =>
+            old ? old.filter((p: any) => p.id !== id) : []
+          );
         }
       }
 
