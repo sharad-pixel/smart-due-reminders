@@ -42,6 +42,7 @@ export function PendingSheetImports() {
           .from("debtors")
           .insert([{
             user_id: user.id,
+            reference_id: "",
             company_name: item.company_name || rawJson.company_name || "Unknown",
             name: item.contact_name || rawJson.name || null,
             email: item.email || rawJson.email || null,
