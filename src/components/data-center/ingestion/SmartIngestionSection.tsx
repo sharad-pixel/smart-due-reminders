@@ -912,6 +912,7 @@ function ScanHistoryLog() {
     file_rejected: XCircle,
     extraction_error: XCircle,
     file_skipped_duplicate: Shield,
+    file_archived: Clock,
   };
 
   const eventLabels: Record<string, string> = {
@@ -921,6 +922,7 @@ function ScanHistoryLog() {
     file_rejected: "File Rejected",
     extraction_error: "Extraction Error",
     file_skipped_duplicate: "Skipped (Duplicate)",
+    file_archived: "Archived to History",
   };
 
   return (
