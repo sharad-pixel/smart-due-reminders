@@ -181,7 +181,7 @@ Deno.serve(async (req) => {
     result.phase = 'generating_drafts';
     console.log('[OUTREACH-ENGINE] Phase 2: Generating drafts for next 7 days...');
 
-    // Calculate date range for next 7 days
+    // Calculate date range for next 7 days (for draft generation)
     const next7Days: string[] = [];
     for (let i = 0; i <= 7; i++) {
       const date = new Date(today);
