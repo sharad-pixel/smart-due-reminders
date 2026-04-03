@@ -191,7 +191,7 @@ const Debtors = () => {
       filtered = filtered.filter((d) => (d.total_open_balance || 0) === 0);
     }
 
-    if (isSearching) {
+    if (searchTerm.trim().length > 0) {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(
         (d) =>
