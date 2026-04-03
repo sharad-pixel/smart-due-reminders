@@ -65,7 +65,7 @@ async function batchUpdateSheet(accessToken: string, spreadsheetId: string, upda
 async function pushAccounts(supabase: any, accessToken: string, template: any, userId: string) {
   const { data: debtors } = await supabase
     .from('debtors')
-    .select('reference_id, company_name, type, name, email, phone, address_line1, address_line2, city, state, postal_code, country, industry, external_customer_id, crm_account_id_external, payment_terms_default, notes, current_balance')
+    .select('reference_id, company_name, type, name, email, phone, address_line1, address_line2, city, state, postal_code, country, industry, external_customer_id, crm_account_id_external, payment_terms_default, notes, current_balance, integration_source, source_system')
     .eq('user_id', userId)
     .eq('is_archived', false)
     .order('company_name', { ascending: true });
@@ -82,7 +82,8 @@ async function pushAccounts(supabase: any, accessToken: string, template: any, u
     d.address_line1 || '', d.address_line2 || '', d.city || '', d.state || '',
     d.postal_code || '', d.country || '', d.industry || '',
     d.external_customer_id || '', d.crm_account_id_external || '',
-    d.payment_terms_default || '', d.notes || '', d.current_balance || 0, 'recouply',
+    d.payment_terms_default || '', d.notes || '', d.current_balance || 0,
+    d.integration_source || d.source_system || 'recouply',
   ])];
 
   // Clear existing data then write
@@ -104,14 +105,14 @@ async function pushAccounts(supabase: any, accessToken: string, template: any, u
 async function pushInvoices(supabase: any, accessToken: string, template: any, userId: string) {
   const { data: openInvoices } = await supabase
     .from('invoices')
-    .select('invoice_number, amount, amount_original, amount_outstanding, currency, issue_date, due_date, paid_date, status, po_number, product_description, payment_terms, notes, reference_id, debtors(reference_id, company_name)')
+    .select('invoice_number, amount, amount_original, amount_outstanding, currency, issue_date, due_date, paid_date, status, po_number, product_description, payment_terms, notes, reference_id, integration_source, source_system, debtors(reference_id, company_name)')
     .eq('user_id', userId)
     .in('status', ['Open', 'InPaymentPlan', 'PartiallyPaid', 'Disputed'])
     .order('due_date', { ascending: false });
 
   const { data: paidInvoices } = await supabase
     .from('invoices')
-    .select('invoice_number, amount, amount_original, amount_outstanding, currency, issue_date, due_date, paid_date, status, po_number, product_description, payment_terms, notes, reference_id, debtors(reference_id, company_name)')
+    .select('invoice_number, amount, amount_original, amount_outstanding, currency, issue_date, due_date, paid_date, status, po_number, product_description, payment_terms, notes, reference_id, integration_source, source_system, debtors(reference_id, company_name)')
     .eq('user_id', userId)
     .in('status', ['Paid', 'Canceled', 'Voided', 'Settled', 'FinalInternalCollections'])
     .order('due_date', { ascending: false })
@@ -129,7 +130,8 @@ async function pushInvoices(supabase: any, accessToken: string, template: any, u
     inv.amount_outstanding || inv.amount || 0,
     inv.currency || 'USD', inv.issue_date || '', inv.due_date || '', inv.status || '',
     inv.po_number || '', inv.product_description || '', inv.payment_terms || '',
-    inv.paid_date || '', inv.notes || '', inv.reference_id || '', 'recouply',
+    inv.paid_date || '', inv.notes || '', inv.reference_id || '',
+    inv.integration_source || inv.source_system || 'recouply',
   ];
 
   const openRows = [headers, ...(openInvoices || []).map(mapInv)];
@@ -163,7 +165,7 @@ async function pushInvoices(supabase: any, accessToken: string, template: any, u
 async function pushPayments(supabase: any, accessToken: string, template: any, userId: string) {
   const { data: payments } = await supabase
     .from('payments')
-    .select('reference_id, amount, currency, payment_date, reference, reconciliation_status, invoice_number_hint, notes, debtors(reference_id, company_name)')
+    .select('reference_id, amount, currency, payment_date, reference, reconciliation_status, invoice_number_hint, notes, source_system, debtors(reference_id, company_name)')
     .eq('user_id', userId)
     .order('payment_date', { ascending: false })
     .limit(1000);
@@ -177,7 +179,8 @@ async function pushPayments(supabase: any, accessToken: string, template: any, u
     p.debtors?.reference_id || '', p.debtors?.company_name || '',
     p.invoice_number_hint || '', p.amount || 0, p.currency || 'USD',
     p.payment_date || '', p.reference || '',
-    p.reconciliation_status || 'pending', p.notes || '', p.reference_id || '', 'recouply',
+    p.reconciliation_status || 'pending', p.notes || '', p.reference_id || '',
+    p.source_system || 'recouply',
   ])];
 
   await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${template.sheet_id}/values/Payments!A:K:clear`, {
