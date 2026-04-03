@@ -38,6 +38,7 @@ import { SmartIngestionSection } from "@/components/data-center/ingestion/SmartI
 import { ERPIntegrationSuite } from "@/components/data-center/erp/ERPIntegrationSuite";
 import * as XLSX from "xlsx";
 import { Zap, Server } from "lucide-react";
+import { PendingSheetImports } from "@/components/data-center/PendingSheetImports";
 
 const DataCenter = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -290,6 +291,9 @@ const DataCenter = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Pending Sheet Imports Alert */}
+        <PendingSheetImports />
 
         {/* ═══════════════════════════════════════════════════════════════ */}
         {/* SECTION 1: CONNECTED INTEGRATIONS (Stripe & QuickBooks)       */}
