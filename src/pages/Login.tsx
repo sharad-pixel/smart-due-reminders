@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { logAuditEvent, logSecurityEvent } from "@/lib/auditLog";
 import { getAuthRedirectUrl } from "@/lib/appConfig";
 import { Eye, EyeOff } from "lucide-react";
+import { lovable } from "@/integrations/lovable/index";
 import { RecouplyLogo } from "@/components/layout/RecouplyLogo";
 import SEO from "@/components/seo/SEO";
 import MarketingLayout from "@/components/layout/MarketingLayout";
