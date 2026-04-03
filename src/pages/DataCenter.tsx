@@ -292,6 +292,9 @@ const DataCenter = () => {
           </Card>
         </div>
 
+        {/* Pending Sheet Imports Alert */}
+        <PendingSheetImports />
+
         {/* ═══════════════════════════════════════════════════════════════ */}
         {/* SECTION 1: CONNECTED INTEGRATIONS (Stripe & QuickBooks)       */}
         {/* ═══════════════════════════════════════════════════════════════ */}
