@@ -26,6 +26,7 @@ import { GoogleDriveIcon, GoogleSheetsIcon } from "@/components/icons/GoogleIcon
 import { IngestionReviewQueue } from "./IngestionReviewQueue";
 import { IngestionDashboard } from "./IngestionDashboard";
 import { SheetTemplatesSection } from "./SheetTemplatesSection";
+import { PendingSheetImports } from "../PendingSheetImports";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
@@ -515,6 +516,12 @@ export function SmartIngestionSection() {
           <TabsTrigger value="sheets" className="gap-2">
             <GoogleSheetsIcon className="h-4 w-4" /> Sheet Templates
           </TabsTrigger>
+          <TabsTrigger value="new-accounts" className="gap-2">
+            <Building2 className="h-4 w-4" /> New Accounts
+            {pendingAccountCount > 0 && (
+              <Badge variant="destructive" className="ml-1 text-xs px-1.5">{pendingAccountCount}</Badge>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="review" className="gap-2">
             <Eye className="h-4 w-4" /> Review Queue
             {scanStats && scanStats.reviewPending > 0 && (
@@ -535,6 +542,10 @@ export function SmartIngestionSection() {
 
         <TabsContent value="sheets">
           <SheetTemplatesSection />
+        </TabsContent>
+
+        <TabsContent value="new-accounts">
+          <PendingSheetImports />
         </TabsContent>
 
         <TabsContent value="review">
