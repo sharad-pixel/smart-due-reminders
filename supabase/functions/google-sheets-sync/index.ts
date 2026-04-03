@@ -276,48 +276,95 @@ async function pullAccounts(supabase: any, accessToken: string, template: any, u
 
     // PROTECTION: Update existing records via RAID match — never delete
     if (raid) {
-      const { error } = await supabase
+      const { data: existingDebtor, error } = await supabase
         .from('debtors')
         .update(fieldData)
         .eq('reference_id', raid)
-        .eq('user_id', userId);
+        .eq('user_id', userId)
+        .select('id')
+        .maybeSingle();
 
-      if (!error) updated++;
-      else skipped++;
+      if (!error && existingDebtor) {
+        updated++;
+
+        // Also update or create the primary contact record if contact fields changed
+        const contactName = fieldData.name || fieldData.company_name;
+        const contactEmail = fieldData.email;
+        const contactPhone = fieldData.phone;
+
+        if (contactName || contactEmail || contactPhone) {
+          const contactUpdate: any = { updated_at: new Date().toISOString() };
+          if (contactName) contactUpdate.name = contactName;
+          if (contactEmail) contactUpdate.email = contactEmail;
+          if (contactPhone) contactUpdate.phone = contactPhone;
+
+          // Try to update existing primary contact first
+          const { data: updatedContact } = await supabase
+            .from('debtor_contacts')
+            .update(contactUpdate)
+            .eq('debtor_id', existingDebtor.id)
+            .eq('is_primary', true)
+            .select('id')
+            .maybeSingle();
+
+          // If no primary contact exists, create one
+          if (!updatedContact && contactName) {
+            await supabase.from('debtor_contacts').insert({
+              debtor_id: existingDebtor.id,
+              user_id: userId,
+              organization_id: orgId || null,
+              name: contactName,
+              email: contactEmail || null,
+              phone: contactPhone || null,
+              is_primary: true,
+              source: 'google_sheets',
+            });
+          }
+        }
+      } else {
+        if (error) console.error(`Row ${i + 1} RAID update error:`, error.message);
+        skipped++;
+      }
     } else {
       // Stage new account for user review instead of creating directly
+      // Use raw SQL via RPC to avoid PostgREST schema cache issues with new tables
+      const stagingPayload = {
+        user_id: userId,
+        organization_id: orgId,
+        sheet_template_id: template.id,
+        raw_json: fieldData,
+        company_name: fieldData.company_name || null,
+        contact_name: fieldData.name || null,
+        email: fieldData.email || null,
+        phone: fieldData.phone || null,
+        address_line1: fieldData.address_line1 || null,
+        address_line2: fieldData.address_line2 || null,
+        city: fieldData.city || null,
+        state: fieldData.state || null,
+        postal_code: fieldData.postal_code || null,
+        country: fieldData.country || null,
+        industry: fieldData.industry || null,
+        type: fieldData.type || 'B2B',
+        external_customer_id: fieldData.external_customer_id || null,
+        crm_account_id_external: fieldData.crm_account_id_external || null,
+        payment_terms_default: fieldData.payment_terms_default || null,
+        notes: fieldData.notes || null,
+        source: source || 'google_sheets',
+        sheet_row_number: i + 1,
+        status: 'pending',
+      };
+
+      console.log(`[PULL] Staging new account row ${i + 1}: ${fieldData.company_name || 'unknown'}`);
+
       const { error } = await supabase
         .from('pending_sheet_imports')
-        .insert({
-          user_id: userId,
-          organization_id: orgId,
-          sheet_template_id: template.id,
-          raw_json: fieldData,
-          company_name: fieldData.company_name || null,
-          contact_name: fieldData.name || null,
-          email: fieldData.email || null,
-          phone: fieldData.phone || null,
-          address_line1: fieldData.address_line1 || null,
-          address_line2: fieldData.address_line2 || null,
-          city: fieldData.city || null,
-          state: fieldData.state || null,
-          postal_code: fieldData.postal_code || null,
-          country: fieldData.country || null,
-          industry: fieldData.industry || null,
-          type: fieldData.type || 'B2B',
-          external_customer_id: fieldData.external_customer_id || null,
-          crm_account_id_external: fieldData.crm_account_id_external || null,
-          payment_terms_default: fieldData.payment_terms_default || null,
-          notes: fieldData.notes || null,
-          source: source || 'google_sheets',
-          sheet_row_number: i + 1,
-          status: 'pending',
-        });
+        .insert(stagingPayload);
 
       if (!error) {
         created++;
+        console.log(`[PULL] Successfully staged row ${i + 1}`);
       } else {
-        console.error(`Row ${i + 1} staging error:`, error.message);
+        console.error(`[PULL] Row ${i + 1} staging error:`, JSON.stringify(error));
         skipped++;
       }
     }
