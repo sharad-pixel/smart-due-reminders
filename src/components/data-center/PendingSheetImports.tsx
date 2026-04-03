@@ -73,7 +73,7 @@ export function PendingSheetImports() {
 
         const { data: newDebtor, error: insertErr } = await supabase
           .from("debtors")
-          .insert([insertPayload])
+          .insert([insertPayload as any])
           .select("id, reference_id")
           .single();
 
