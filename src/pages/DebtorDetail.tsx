@@ -470,6 +470,12 @@ const DebtorDetail = () => {
         company_name: data.company_name,
         type: data.type || "B2C",
         address: data.address || "",
+        address_line1: data.address_line1 || "",
+        address_line2: data.address_line2 || "",
+        city: data.city || "",
+        state: data.state || "",
+        postal_code: data.postal_code || "",
+        country: data.country || "",
         notes: data.notes || "",
       });
     } catch (_error: any) {
