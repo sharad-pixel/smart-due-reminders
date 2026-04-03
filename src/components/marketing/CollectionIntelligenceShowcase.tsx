@@ -1,13 +1,15 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Brain, TrendingUp, TrendingDown, Clock, DollarSign, Mail, MessageSquare, AlertTriangle, CheckCircle, Activity, FileText, Zap } from "lucide-react";
+import { Brain, TrendingUp, TrendingDown, Clock, DollarSign, Mail, MessageSquare, Activity, FileText, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 
 interface ScoreCard {
   companyName: string;
   intelligenceScore: number;
   healthTier: "Healthy" | "Watch" | "At Risk" | "Critical";
+  agentAction: string;
   metrics: {
     invoiceActivity: { open: number; overdue: number; paid30Days: number };
     pastDueBalance: number;
@@ -25,6 +27,7 @@ const sampleAccounts: ScoreCard[] = [
     companyName: "TechVentures Inc.",
     intelligenceScore: 87,
     healthTier: "Healthy",
+    agentAction: "Agent: Standard cadence — next follow-up in 5 days",
     metrics: {
       invoiceActivity: { open: 2, overdue: 0, paid30Days: 5 },
       pastDueBalance: 0,
@@ -40,6 +43,7 @@ const sampleAccounts: ScoreCard[] = [
     companyName: "Global Retail Co.",
     intelligenceScore: 62,
     healthTier: "Watch",
+    agentAction: "Agent: Increased touchpoint frequency — payment plan offered",
     metrics: {
       invoiceActivity: { open: 5, overdue: 2, paid30Days: 3 },
       pastDueBalance: 15400,
@@ -55,6 +59,7 @@ const sampleAccounts: ScoreCard[] = [
     companyName: "Sterling Industries",
     intelligenceScore: 34,
     healthTier: "Critical",
+    agentAction: "Agent: Escalation triggered — senior AR notified automatically",
     metrics: {
       invoiceActivity: { open: 8, overdue: 6, paid30Days: 1 },
       pastDueBalance: 89500,
@@ -112,234 +117,255 @@ const getTrendIcon = (trend: ScoreCard["metrics"]["paymentTrend"]) => {
 
 const scoringFactors = [
   { icon: FileText, label: "Invoice Activity", description: "Open, overdue, and payment velocity" },
-  { icon: DollarSign, label: "Past Due Balance", description: "Outstanding amount and aging distribution" },
-  { icon: Clock, label: "Payment Practices", description: "Average days to pay and trends" },
-  { icon: Mail, label: "Inbound Emails", description: "Response frequency and engagement" },
+  { icon: DollarSign, label: "Revenue at Risk", description: "Outstanding amount and ECL calculation" },
+  { icon: Clock, label: "Payment Practices", description: "Paydex-style scoring and trends" },
+  { icon: Mail, label: "Engagement Signals", description: "Response frequency and debtor intent" },
   { icon: MessageSquare, label: "Sentiment Analysis", description: "AI-analyzed tone of communications" },
-  { icon: Zap, label: "Touchpoint History", description: "Collection activity effectiveness" },
+  { icon: Zap, label: "Agent Effectiveness", description: "Which strategies recover revenue fastest" },
 ];
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 30, rotateX: 5 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    rotateX: 0,
+    transition: { delay: i * 0.15, duration: 0.6, ease: "easeOut" },
+  }),
+};
+
+const factorVariants = {
+  hidden: { opacity: 0, scale: 0.9 },
+  visible: (i: number) => ({
+    opacity: 1,
+    scale: 1,
+    transition: { delay: i * 0.06, duration: 0.3 },
+  }),
+};
 
 const CollectionIntelligenceShowcase = () => {
   return (
     <section className="py-24 px-4 bg-gradient-to-b from-background via-primary/5 to-background">
       <div className="container mx-auto max-w-7xl">
         {/* Header */}
-        <div className="text-center mb-16">
+        <motion.div
+          className="text-center mb-16"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+        >
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
             <Brain className="h-4 w-4" />
-            Powered by Revenue Recovery Intelligence
+            Agentic Revenue Risk Assessment
           </div>
           <h2 className="text-3xl md:text-5xl font-bold mb-4">
-            Revenue Recovery Intelligence Scorecards
+            AI Agents Score, Prioritize & Act on Every Account
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            AI agents score every account based on payment behavior—automating prioritization 
-            and eliminating manual triage from your recovery workflows.
+            Autonomous risk assessment across your entire portfolio — agents score accounts in real-time, 
+            route high-risk debtors for escalation, and trigger recovery workflows automatically.
           </p>
-        </div>
+        </motion.div>
 
         {/* Scoring Factors */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-16">
           {scoringFactors.map((factor, idx) => (
-            <div 
+            <motion.div
               key={idx}
-              className="p-4 rounded-xl bg-card border border-border/50 hover:border-primary/30 transition-colors text-center group"
+              custom={idx}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              variants={factorVariants}
+              whileHover={{ y: -4, scale: 1.03 }}
+              className="p-4 rounded-xl bg-card border border-border/50 hover:border-primary/30 transition-colors text-center group cursor-default"
             >
-              <div className="mx-auto w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-3 group-hover:bg-primary/20 transition-colors">
+              <motion.div
+                className="mx-auto w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-3"
+                whileHover={{ rotate: 10 }}
+              >
                 <factor.icon className="h-5 w-5 text-primary" />
-              </div>
+              </motion.div>
               <h4 className="font-medium text-sm mb-1">{factor.label}</h4>
               <p className="text-xs text-muted-foreground">{factor.description}</p>
-            </div>
+            </motion.div>
           ))}
         </div>
 
         {/* Account Scorecards */}
         <div className="grid md:grid-cols-3 gap-6">
           {sampleAccounts.map((account, idx) => (
-            <Card 
-              key={idx} 
-              className={cn(
-                "overflow-hidden border-2 transition-all hover:shadow-lg",
-                getHealthBg(account.healthTier)
-              )}
+            <motion.div
+              key={idx}
+              custom={idx}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              variants={cardVariants}
             >
-              <CardContent className="p-0">
-                {/* Header */}
-                <div className="p-4 border-b border-border/50">
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <h3 className="font-semibold">{account.companyName}</h3>
-                      <Badge 
-                        variant="outline" 
-                        className={cn("mt-1", getHealthColor(account.healthTier))}
+              <Card
+                className={cn(
+                  "overflow-hidden border-2 transition-all hover:shadow-lg hover:-translate-y-1 h-full",
+                  getHealthBg(account.healthTier)
+                )}
+              >
+                <CardContent className="p-0">
+                  {/* Header */}
+                  <div className="p-4 border-b border-border/50">
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <h3 className="font-semibold">{account.companyName}</h3>
+                        <Badge 
+                          variant="outline" 
+                          className={cn("mt-1", getHealthColor(account.healthTier))}
+                        >
+                          {account.healthTier}
+                        </Badge>
+                      </div>
+                      <motion.div
+                        className={cn("text-3xl font-bold", getHealthColor(account.healthTier))}
+                        initial={{ scale: 0 }}
+                        whileInView={{ scale: 1 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: 0.3 + idx * 0.15, type: "spring", stiffness: 200 }}
                       >
-                        {account.healthTier}
-                      </Badge>
+                        {account.intelligenceScore}
+                      </motion.div>
                     </div>
-                    <div className={cn(
-                      "text-3xl font-bold",
-                      getHealthColor(account.healthTier)
-                    )}>
-                      {account.intelligenceScore}
-                    </div>
-                  </div>
-                  
-                  {/* Score Bar */}
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>Intelligence Score</span>
-                      <span>{account.intelligenceScore}/100</span>
-                    </div>
-                    <div className="h-2 bg-muted rounded-full overflow-hidden">
-                      <div 
-                        className={cn("h-full rounded-full transition-all", getScoreColor(account.intelligenceScore))}
-                        style={{ width: `${account.intelligenceScore}%` }}
-                      />
+                    
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>Collectability Score</span>
+                        <span>{account.intelligenceScore}/100</span>
+                      </div>
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
+                        <motion.div 
+                          className={cn("h-full rounded-full", getScoreColor(account.intelligenceScore))}
+                          initial={{ width: 0 }}
+                          whileInView={{ width: `${account.intelligenceScore}%` }}
+                          viewport={{ once: true }}
+                          transition={{ delay: 0.5 + idx * 0.1, duration: 0.8, ease: "easeOut" }}
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Metrics Grid */}
-                <div className="p-4 space-y-3">
-                  {/* Invoice Activity */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-sm">
-                      <FileText className="h-4 w-4 text-muted-foreground" />
-                      <span>Invoices</span>
+                  {/* Metrics Grid */}
+                  <div className="p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-sm">
+                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        <span>Invoices</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="text-green-500">{account.metrics.invoiceActivity.paid30Days} paid</span>
+                        <span className="text-muted-foreground">·</span>
+                        <span className={account.metrics.invoiceActivity.overdue > 0 ? "text-red-500" : "text-muted-foreground"}>
+                          {account.metrics.invoiceActivity.overdue} overdue
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className="text-green-500">{account.metrics.invoiceActivity.paid30Days} paid</span>
-                      <span className="text-muted-foreground">·</span>
-                      <span className={account.metrics.invoiceActivity.overdue > 0 ? "text-red-500" : "text-muted-foreground"}>
-                        {account.metrics.invoiceActivity.overdue} overdue
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-sm">
+                        <DollarSign className="h-4 w-4 text-muted-foreground" />
+                        <span>Revenue at Risk</span>
+                      </div>
+                      <span className={cn(
+                        "text-sm font-medium",
+                        account.metrics.pastDueBalance > 0 ? "text-red-500" : "text-green-500"
+                      )}>
+                        ${account.metrics.pastDueBalance.toLocaleString()}
                       </span>
                     </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-sm">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <span>Avg Days to Pay</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm font-medium">{account.metrics.avgDaysToPay}</span>
+                        {getTrendIcon(account.metrics.paymentTrend)}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-sm">
+                        <Zap className="h-4 w-4 text-muted-foreground" />
+                        <span>Agent Touchpoints</span>
+                      </div>
+                      <span className="text-sm font-medium">{account.metrics.totalTouchpoints}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-sm">
+                        <Mail className="h-4 w-4 text-muted-foreground" />
+                        <span>Debtor Replies</span>
+                      </div>
+                      <span className="text-sm font-medium">{account.metrics.inboundEmails}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-sm">
+                        <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                        <span>Sentiment</span>
+                      </div>
+                      <span className={cn("text-sm font-medium", getSentimentColor(account.metrics.sentiment))}>
+                        {account.metrics.sentiment}
+                      </span>
+                    </div>
+
+                    <div className="pt-2 border-t border-border/50">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs text-muted-foreground">Response Rate</span>
+                        <span className="text-xs font-medium">{account.metrics.responseRate}%</span>
+                      </div>
+                      <Progress value={account.metrics.responseRate} className="h-1.5" />
+                    </div>
                   </div>
 
-                  {/* Past Due Balance */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-sm">
-                      <DollarSign className="h-4 w-4 text-muted-foreground" />
-                      <span>Past Due</span>
-                    </div>
-                    <span className={cn(
-                      "text-sm font-medium",
-                      account.metrics.pastDueBalance > 0 ? "text-red-500" : "text-green-500"
+                  {/* Agent Action Footer */}
+                  <div className="px-4 pb-4">
+                    <div className={cn(
+                      "p-3 rounded-lg text-sm",
+                      account.healthTier === "Healthy" && "bg-green-500/10 text-green-700 dark:text-green-300",
+                      account.healthTier === "Watch" && "bg-yellow-500/10 text-yellow-700 dark:text-yellow-300",
+                      account.healthTier === "At Risk" && "bg-orange-500/10 text-orange-700 dark:text-orange-300",
+                      account.healthTier === "Critical" && "bg-red-500/10 text-red-700 dark:text-red-300"
                     )}>
-                      ${account.metrics.pastDueBalance.toLocaleString()}
-                    </span>
-                  </div>
-
-                  {/* Avg Days to Pay */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-sm">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span>Avg Days to Pay</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-medium">{account.metrics.avgDaysToPay}</span>
-                      {getTrendIcon(account.metrics.paymentTrend)}
-                    </div>
-                  </div>
-
-                  {/* Touchpoints */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-sm">
-                      <Zap className="h-4 w-4 text-muted-foreground" />
-                      <span>Touchpoints</span>
-                    </div>
-                    <span className="text-sm font-medium">{account.metrics.totalTouchpoints}</span>
-                  </div>
-
-                  {/* Inbound Emails */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-sm">
-                      <Mail className="h-4 w-4 text-muted-foreground" />
-                      <span>Inbound Replies</span>
-                    </div>
-                    <span className="text-sm font-medium">{account.metrics.inboundEmails}</span>
-                  </div>
-
-                  {/* Sentiment */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-sm">
-                      <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                      <span>Sentiment</span>
-                    </div>
-                    <span className={cn("text-sm font-medium", getSentimentColor(account.metrics.sentiment))}>
-                      {account.metrics.sentiment}
-                    </span>
-                  </div>
-
-                  {/* Response Rate */}
-                  <div className="pt-2 border-t border-border/50">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs text-muted-foreground">Response Rate</span>
-                      <span className="text-xs font-medium">{account.metrics.responseRate}%</span>
-                    </div>
-                    <Progress value={account.metrics.responseRate} className="h-1.5" />
-                  </div>
-                </div>
-
-                {/* Footer Insight */}
-                <div className="px-4 pb-4">
-                  <div className={cn(
-                    "p-3 rounded-lg text-sm",
-                    account.healthTier === "Healthy" && "bg-green-500/10 text-green-700 dark:text-green-300",
-                    account.healthTier === "Watch" && "bg-yellow-500/10 text-yellow-700 dark:text-yellow-300",
-                    account.healthTier === "At Risk" && "bg-orange-500/10 text-orange-700 dark:text-orange-300",
-                    account.healthTier === "Critical" && "bg-red-500/10 text-red-700 dark:text-red-300"
-                  )}>
-                    {account.healthTier === "Healthy" && (
                       <div className="flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 flex-shrink-0" />
-                        <span>Reliable payer. Standard follow-up cadence.</span>
+                        <Brain className="h-4 w-4 flex-shrink-0" />
+                        <span>{account.agentAction}</span>
                       </div>
-                    )}
-                    {account.healthTier === "Watch" && (
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 flex-shrink-0" />
-                        <span>Monitor closely. Increase touchpoint frequency.</span>
-                      </div>
-                    )}
-                    {account.healthTier === "At Risk" && (
-                      <div className="flex items-center gap-2">
-                        <AlertTriangle className="h-4 w-4 flex-shrink-0" />
-                        <span>Escalate to senior AR. Consider payment plan.</span>
-                      </div>
-                    )}
-                    {account.healthTier === "Critical" && (
-                      <div className="flex items-center gap-2">
-                        <AlertTriangle className="h-4 w-4 flex-shrink-0" />
-                        <span>Immediate action required. High write-off risk.</span>
-                      </div>
-                    )}
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </motion.div>
           ))}
         </div>
 
         {/* Bottom Stats */}
         <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-          <div>
-            <div className="text-4xl font-bold text-primary mb-2">6+</div>
-            <p className="text-sm text-muted-foreground">Data Points Analyzed</p>
-          </div>
-          <div>
-            <div className="text-4xl font-bold text-primary mb-2">Real-time</div>
-            <p className="text-sm text-muted-foreground">Score Updates</p>
-          </div>
-          <div>
-            <div className="text-4xl font-bold text-primary mb-2">AI</div>
-            <p className="text-sm text-muted-foreground">Sentiment Analysis</p>
-          </div>
-          <div>
-            <div className="text-4xl font-bold text-primary mb-2">100%</div>
-            <p className="text-sm text-muted-foreground">Automated Scoring</p>
-          </div>
+          {[
+            { value: "6+", label: "Risk Signals Per Account" },
+            { value: "Real-time", label: "Agent Score Updates" },
+            { value: "ECL", label: "Revenue Risk Modeling" },
+            { value: "100%", label: "Autonomous Scoring" },
+          ].map((stat, idx) => (
+            <motion.div
+              key={idx}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: idx * 0.1, duration: 0.4 }}
+            >
+              <div className="text-4xl font-bold text-primary mb-2">{stat.value}</div>
+              <p className="text-sm text-muted-foreground">{stat.label}</p>
+            </motion.div>
+          ))}
         </div>
       </div>
     </section>
