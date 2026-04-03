@@ -465,7 +465,7 @@ async function pullInvoices(supabase: any, accessToken: string, template: any, u
 
 async function pullPayments(supabase: any, accessToken: string, template: any, userId: string, orgId: string) {
   const rows = await readSheet(accessToken, template.sheet_id, 'Payments!A1:K5000');
-  if (rows.length <= 1) return { created: 0, skipped: 0 };
+  if (rows.length <= 1) return { created: 0, skipped: 0, syncProtected: 0 };
 
   const headers = rows[0].map((h: string) => h.toLowerCase().trim());
   const accountRaidIdx = headers.indexOf('account raid');
@@ -479,8 +479,16 @@ async function pullPayments(supabase: any, accessToken: string, template: any, u
   const payRefIdx = headers.findIndex(h => h.includes('recouply') && h.includes('ref') && h.includes('do not edit'));
   const sourceIdx = headers.indexOf('source');
 
-  let created = 0, skipped = 0;
+  let created = 0, skipped = 0, syncProtected = 0;
   const sheetUpdates: any[] = [];
+
+  // PROTECTION: Pre-load sync-protected accounts
+  const { data: syncProtectedAccounts } = await supabase
+    .from('debtors')
+    .select('reference_id')
+    .eq('user_id', userId)
+    .eq('sheet_sync_enabled', false);
+  const protectedRaids = new Set((syncProtectedAccounts || []).map((d: any) => d.reference_id));
 
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
@@ -488,12 +496,20 @@ async function pullPayments(supabase: any, accessToken: string, template: any, u
 
     const payRef = getVal(row, payRefIdx);
     const source = getVal(row, sourceIdx);
+    const accountRaid = getVal(row, accountRaidIdx);
+
+    // PROTECTION: Skip payments for sync-protected accounts
+    if (accountRaid && protectedRaids.has(accountRaid)) {
+      syncProtected++;
+      continue;
+    }
+
+    // PROTECTION: Existing payments are never deleted or overwritten — skip if already synced
     if (payRef && source.toLowerCase() === 'recouply') { skipped++; continue; }
 
     const amount = parseFloat(getVal(row, amountIdx));
     if (!amount || isNaN(amount)) continue;
 
-    const accountRaid = getVal(row, accountRaidIdx);
     const invoiceNum = getVal(row, invNumIdx);
     const paymentDate = parseDate(getVal(row, dateIdx));
 
@@ -505,7 +521,6 @@ async function pullPayments(supabase: any, accessToken: string, template: any, u
       debtorId = debtor?.id || null;
     }
     if (invoiceNum) {
-      // Try matching by invoice number (SS Invoice #)
       const { data: inv } = await supabase.from('invoices').select('id, debtor_id').eq('invoice_number', invoiceNum).eq('user_id', userId).maybeSingle();
       if (inv) {
         invoiceId = inv.id;
@@ -550,8 +565,9 @@ async function pullPayments(supabase: any, accessToken: string, template: any, u
     } else skipped++;
   }
 
+  // PROTECTION: Pull NEVER deletes payment records — missing rows are ignored
   await batchUpdateSheet(accessToken, template.sheet_id, sheetUpdates);
-  return { created, skipped };
+  return { created, skipped, syncProtected };
 }
 
 Deno.serve(async (req) => {
