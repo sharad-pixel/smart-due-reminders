@@ -183,6 +183,12 @@ const DebtorDetail = () => {
     company_name: "",
     type: "B2C" as "B2B" | "B2C",
     address: "",
+    address_line1: "",
+    address_line2: "",
+    city: "",
+    state: "",
+    postal_code: "",
+    country: "",
     notes: "",
   });
 
