@@ -314,7 +314,7 @@ const DataCenter = () => {
           <div className="grid gap-4 grid-cols-1 lg:grid-cols-3">
             <StripeSyncSection />
             <QuickBooksSyncSection />
-            <SalesforceSyncSection />
+            {isIntegrationEnabled("salesforce") && <SalesforceSyncSection />}
           </div>
 
           <SyncActivityLog />
