@@ -164,15 +164,19 @@ export function PendingSheetImports() {
           }
 
           if (contactEmail || contactName) {
-            await supabase.from("debtor_contacts").insert({
-              debtor_id: newDebtor.id,
-              user_id: accountId,
-              name: contactName,
-              email: contactEmail || null,
-              phone: item.phone || rawJson.phone || null,
-              is_primary: true,
-              source: "google_sheets",
-            }).catch(err => console.warn("Contact insert warning:", err));
+            try {
+              await supabase.from("debtor_contacts").insert({
+                debtor_id: newDebtor.id,
+                user_id: accountId,
+                name: contactName,
+                email: contactEmail || null,
+                phone: item.phone || rawJson.phone || null,
+                is_primary: true,
+                source: "google_sheets",
+              });
+            } catch (err) {
+              console.warn("Contact insert warning:", err);
+            }
           }
 
           results.set(id, { status: "success", message: `Created ${newDebtor.reference_id}` });
