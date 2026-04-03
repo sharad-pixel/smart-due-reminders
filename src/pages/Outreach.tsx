@@ -21,6 +21,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AGING_BUCKETS } from "@/lib/agingBuckets";
+import { OutreachBatchRunHistory } from "@/components/outreach/OutreachBatchRunHistory";
 
 interface RefreshResult {
   workflowsCreated: number;
