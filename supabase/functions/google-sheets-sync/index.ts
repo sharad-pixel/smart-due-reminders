@@ -73,7 +73,7 @@ async function pushAccounts(supabase: any, accessToken: string, template: any, u
   const headers = [
     'RAID', 'Company Name', 'Type (B2B/B2C)', 'Contact Name', 'Contact Email', 'Contact Phone',
     'Address Line 1', 'Address Line 2', 'City', 'State', 'Postal Code', 'Country',
-    'Industry', 'External Customer ID', 'CRM ID', 'Default Payment Terms',
+    'Industry', 'Source System ID', 'CRM ID', 'Default Payment Terms',
     'Notes', 'Current Balance', 'Source'
   ];
   const rows = [headers, ...(debtors || []).map((d: any) => [
