@@ -281,7 +281,7 @@ Deno.serve(async (req) => {
         // Payments link to invoices via payment_invoice_links
         const { data: payments } = await supabase
           .from('payments')
-          .select('reference_id, amount, currency, payment_date, reference, reconciliation_status, invoice_number_hint, notes, debtors(reference_id, company_name)')
+          .select('reference_id, amount, currency, payment_date, reference, reconciliation_status, invoice_number_hint, notes, source_system, debtors(reference_id, company_name)')
           .eq('user_id', user.id)
           .order('payment_date', { ascending: false })
           .limit(1000);
@@ -295,7 +295,8 @@ Deno.serve(async (req) => {
           p.debtors?.reference_id || '', p.debtors?.company_name || '',
           p.invoice_number_hint || '', p.amount || 0, p.currency || 'USD',
           p.payment_date || '', p.reference || '',
-          p.reconciliation_status || 'pending', p.notes || '', p.reference_id || '', 'recouply'
+          p.reconciliation_status || 'pending', p.notes || '', p.reference_id || '',
+          p.source_system || 'recouply'
         ]);
         rowCount = dataRows.length;
         sheets = [{
