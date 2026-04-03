@@ -84,6 +84,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "account_users_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_team_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       admin_user_actions: {
@@ -3358,6 +3365,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "email_accounts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_team_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       email_activity_log: {
@@ -3644,6 +3658,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_sending_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_team_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -4486,6 +4507,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_sync_settings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_team_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -5797,6 +5825,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "oauth_states_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_team_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       organizations: {
@@ -6085,6 +6120,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outreach_templates_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_team_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -6808,6 +6850,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quickbooks_sync_log_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_team_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -7927,6 +7976,36 @@ export type Database = {
           debtor_id: string | null
           email: string | null
           user_id: string | null
+        }
+        Relationships: []
+      }
+      profiles_team_safe: {
+        Row: {
+          company_name: string | null
+          created_at: string | null
+          email: string | null
+          id: string | null
+          name: string | null
+          plan_type: Database["public"]["Enums"]["plan_type"] | null
+          subscription_status: string | null
+        }
+        Insert: {
+          company_name?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string | null
+          name?: string | null
+          plan_type?: Database["public"]["Enums"]["plan_type"] | null
+          subscription_status?: string | null
+        }
+        Update: {
+          company_name?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string | null
+          name?: string | null
+          plan_type?: Database["public"]["Enums"]["plan_type"] | null
+          subscription_status?: string | null
         }
         Relationships: []
       }
