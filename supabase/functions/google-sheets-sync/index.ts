@@ -285,27 +285,39 @@ async function pullAccounts(supabase: any, accessToken: string, template: any, u
       if (!error) updated++;
       else skipped++;
     } else {
-      // Create new debtor — no RAID means new account
-      const { data: newDebtor, error } = await supabase
-        .from('debtors')
+      // Stage new account for user review instead of creating directly
+      const { error } = await supabase
+        .from('pending_sheet_imports')
         .insert({
           user_id: userId,
           organization_id: orgId,
-          ...fieldData,
-          source_system: 'google_sheets',
-        })
-        .select('reference_id')
-        .single();
+          sheet_template_id: template.id,
+          raw_json: fieldData,
+          company_name: fieldData.company_name || null,
+          contact_name: fieldData.name || null,
+          email: fieldData.email || null,
+          phone: fieldData.phone || null,
+          address_line1: fieldData.address_line1 || null,
+          address_line2: fieldData.address_line2 || null,
+          city: fieldData.city || null,
+          state: fieldData.state || null,
+          postal_code: fieldData.postal_code || null,
+          country: fieldData.country || null,
+          industry: fieldData.industry || null,
+          type: fieldData.type || 'B2B',
+          external_customer_id: fieldData.external_customer_id || null,
+          crm_account_id_external: fieldData.crm_account_id_external || null,
+          payment_terms_default: fieldData.payment_terms_default || null,
+          notes: fieldData.notes || null,
+          source: source || 'google_sheets',
+          sheet_row_number: i + 1,
+          status: 'pending',
+        });
 
-      if (!error && newDebtor) {
+      if (!error) {
         created++;
-        if (raidIdx >= 0) {
-          sheetUpdates.push({ range: `Accounts!${colLetter(raidIdx)}${i + 1}`, values: [[newDebtor.reference_id]] });
-        }
-        if (sourceIdx >= 0) {
-          sheetUpdates.push({ range: `Accounts!${colLetter(sourceIdx)}${i + 1}`, values: [['recouply']] });
-        }
       } else {
+        console.error(`Row ${i + 1} staging error:`, error.message);
         skipped++;
       }
     }
