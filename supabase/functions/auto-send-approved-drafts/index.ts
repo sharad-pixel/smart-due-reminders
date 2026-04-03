@@ -192,10 +192,12 @@ Deno.serve(async (req) => {
     );
 
     // Get all approved drafts that haven't been sent yet
-    // Include drafts where recommended_send_date is today or in the past (catch-up)
+    // Include drafts where recommended_send_date is within the send window (catch-up + 24h forward)
     // Process in batches to avoid timeouts
+    const today = new Date().toISOString().split('T')[0];
     // Use send_window_date if provided (24h forward window), otherwise use today
     const cutoffDate = sendWindowDate || today;
+    const TOTAL_BATCH_SIZE = 50;
     const INVOICE_BATCH_SIZE = requestedDraftIds && requestedDraftIds.length > 0 ? TOTAL_BATCH_SIZE : 25;
     const ACCOUNT_BATCH_SIZE = requestedDraftIds && requestedDraftIds.length > 0 ? TOTAL_BATCH_SIZE : 25;
 
