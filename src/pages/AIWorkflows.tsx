@@ -1219,11 +1219,15 @@ const AIWorkflows = () => {
 
         {/* Outreach Status + Insights */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-          <OutreachStatusCards onRefresh={() => {
-            fetchInvoiceCounts();
-            fetchDraftsByPersona();
-            refetchErrors();
-          }} />
+          <div className="space-y-4">
+            <OutreachStatusCards onRefresh={() => {
+              fetchInvoiceCounts();
+              fetchDraftsByPersona();
+              refetchErrors();
+              queryClient.invalidateQueries({ queryKey: ["outreach-batch-runs"] });
+            }} />
+            <OutreachBatchRunHistory />
+          </div>
           <OutreachInsightsPanel />
         </div>
 
