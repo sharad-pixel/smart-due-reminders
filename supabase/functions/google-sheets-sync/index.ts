@@ -73,7 +73,7 @@ async function pushAccounts(supabase: any, accessToken: string, template: any, u
   const headers = [
     'RAID', 'Company Name', 'Type (B2B/B2C)', 'Contact Name', 'Contact Email', 'Contact Phone',
     'Address Line 1', 'Address Line 2', 'City', 'State', 'Postal Code', 'Country',
-    'Industry', 'External Customer ID', 'CRM ID', 'Default Payment Terms',
+    'Industry', 'Source System ID', 'CRM ID', 'Default Payment Terms',
     'Notes', 'Current Balance', 'Source'
   ];
   const rows = [headers, ...(debtors || []).map((d: any) => [
@@ -213,7 +213,7 @@ async function pullAccounts(supabase: any, accessToken: string, template: any, u
   const postalIdx = headers.findIndex(h => h === 'postal code' || h === 'zip' || h === 'zip code');
   const countryIdx = headers.indexOf('country');
   const industryIdx = headers.indexOf('industry');
-  const extCustIdx = headers.indexOf('external customer id');
+  const extCustIdx = headers.findIndex(h => h === 'source system id' || h === 'external customer id');
   const crmIdx = headers.indexOf('crm id');
   const payTermsIdx = headers.indexOf('default payment terms');
   const notesIdx = headers.indexOf('notes');
