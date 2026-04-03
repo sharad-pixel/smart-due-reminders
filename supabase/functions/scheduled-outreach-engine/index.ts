@@ -60,9 +60,39 @@ Deno.serve(async (req) => {
       }
     );
 
-    const today = new Date();
+    const now = new Date();
+    const today = new Date(now);
     today.setHours(0, 0, 0, 0);
     const todayStr = today.toISOString().split('T')[0];
+    
+    // Calculate 24-hour forward window for sending
+    const next24h = new Date(now);
+    next24h.setHours(next24h.getHours() + 24);
+    const next24hStr = next24h.toISOString().split('T')[0];
+
+    // Determine trigger type from request body
+    let triggerType = 'cron';
+    let userId: string | null = null;
+    try {
+      const body = await req.json();
+      triggerType = body?.trigger_type || 'cron';
+      userId = body?.user_id || null;
+    } catch { /* no body */ }
+
+    // Log batch run start
+    let batchRunId: string | null = null;
+    if (userId) {
+      const { data: batchRun } = await supabaseAdmin
+        .from('outreach_batch_runs')
+        .insert({
+          user_id: userId,
+          trigger_type: triggerType,
+          status: 'running',
+        })
+        .select('id')
+        .single();
+      batchRunId = batchRun?.id || null;
+    }
 
     // ============================================================
     // PHASE 1: Cancel outreach for paid/terminal invoices
