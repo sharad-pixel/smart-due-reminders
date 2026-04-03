@@ -165,7 +165,7 @@ async function pushInvoices(supabase: any, accessToken: string, template: any, u
 async function pushPayments(supabase: any, accessToken: string, template: any, userId: string) {
   const { data: payments } = await supabase
     .from('payments')
-    .select('reference_id, amount, currency, payment_date, reference, reconciliation_status, invoice_number_hint, notes, debtors(reference_id, company_name)')
+    .select('reference_id, amount, currency, payment_date, reference, reconciliation_status, invoice_number_hint, notes, source_system, debtors(reference_id, company_name)')
     .eq('user_id', userId)
     .order('payment_date', { ascending: false })
     .limit(1000);
@@ -179,7 +179,8 @@ async function pushPayments(supabase: any, accessToken: string, template: any, u
     p.debtors?.reference_id || '', p.debtors?.company_name || '',
     p.invoice_number_hint || '', p.amount || 0, p.currency || 'USD',
     p.payment_date || '', p.reference || '',
-    p.reconciliation_status || 'pending', p.notes || '', p.reference_id || '', 'recouply',
+    p.reconciliation_status || 'pending', p.notes || '', p.reference_id || '',
+    p.source_system || 'recouply',
   ])];
 
   await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${template.sheet_id}/values/Payments!A:K:clear`, {
