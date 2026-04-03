@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { AlertTriangle, Check, Trash2, UserPlus, Building2, Loader2 } from "lucide-react";
+import { AlertTriangle, Check, Trash2, Building2, Loader2 } from "lucide-react";
 
 export function PendingSheetImports() {
   const queryClient = useQueryClient();
