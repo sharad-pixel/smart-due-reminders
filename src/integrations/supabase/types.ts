@@ -4518,6 +4518,39 @@ export type Database = {
           },
         ]
       }
+      integration_toggles: {
+        Row: {
+          account_id: string
+          created_at: string
+          enabled_at: string | null
+          enabled_by: string | null
+          id: string
+          integration_key: string
+          is_enabled: boolean
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          enabled_at?: string | null
+          enabled_by?: string | null
+          id?: string
+          integration_key: string
+          is_enabled?: boolean
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          enabled_at?: string | null
+          enabled_by?: string | null
+          id?: string
+          integration_key?: string
+          is_enabled?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       invoice_import_errors: {
         Row: {
           error_message: string

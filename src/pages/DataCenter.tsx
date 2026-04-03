@@ -36,6 +36,7 @@ import { SyncHealthDashboard } from "@/components/data-center/SyncHealthDashboar
 import { SyncActivityLog } from "@/components/data-center/SyncActivityLog";
 import { SmartIngestionSection } from "@/components/data-center/ingestion/SmartIngestionSection";
 import { ERPIntegrationSuite } from "@/components/data-center/erp/ERPIntegrationSuite";
+import { useIntegrationToggles } from "@/hooks/useIntegrationToggles";
 import * as XLSX from "xlsx";
 import { Zap, Server } from "lucide-react";
 
@@ -44,6 +45,7 @@ const DataCenter = () => {
   const [uploadWizardOpen, setUploadWizardOpen] = useState(false);
   const [createSourceOpen, setCreateSourceOpen] = useState(false);
   const [selectedFileType, setSelectedFileType] = useState<"invoice_aging" | "payments" | "accounts">("invoice_aging");
+  const { isEnabled: isIntegrationEnabled } = useIntegrationToggles();
 
   // Handle Google Drive OAuth callback
   useEffect(() => {
@@ -312,7 +314,7 @@ const DataCenter = () => {
           <div className="grid gap-4 grid-cols-1 lg:grid-cols-3">
             <StripeSyncSection />
             <QuickBooksSyncSection />
-            <SalesforceSyncSection />
+            {isIntegrationEnabled("salesforce") && <SalesforceSyncSection />}
           </div>
 
           <SyncActivityLog />
@@ -339,26 +341,27 @@ const DataCenter = () => {
           <SmartIngestionSection />
         </section>
 
-        <Separator />
 
-        {/* ═══════════════════════════════════════════════════════════════ */}
-        {/* SECTION 1.6: ERP INTEGRATION SUITE (NetSuite & Sage)          */}
-        {/* ═══════════════════════════════════════════════════════════════ */}
-        <section className="space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Server className="h-4 w-4 text-primary" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold">ERP Integration Suite</h2>
-              <p className="text-xs text-muted-foreground">
-                Connect NetSuite or Sage to sync customers, invoices, and payments for full AR orchestration
-              </p>
-            </div>
-          </div>
+        {(isIntegrationEnabled("erp_netsuite") || isIntegrationEnabled("erp_sage")) && (
+          <>
+            <Separator />
+            <section className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Server className="h-4 w-4 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold">ERP Integration Suite</h2>
+                  <p className="text-xs text-muted-foreground">
+                    Connect NetSuite or Sage to sync customers, invoices, and payments for full AR orchestration
+                  </p>
+                </div>
+              </div>
 
-          <ERPIntegrationSuite />
-        </section>
+              <ERPIntegrationSuite />
+            </section>
+          </>
+        )}
 
         <Separator />
         {/* SECTION 2: FILE UPLOADS (CSV / Excel)                         */}
