@@ -921,12 +921,26 @@ const DebtorDetail = () => {
                   </Button>
                 </div>
               )}
-              {debtor.address && (
-                <div className="flex items-center space-x-3 pt-2 border-t">
-                  <MapPin className="h-4 w-4 text-muted-foreground" />
+              {(debtor.address_line1 || debtor.city || debtor.state || debtor.address) && (
+                <div className="flex items-start space-x-3 pt-2 border-t">
+                  <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
                   <div>
                     <p className="text-sm text-muted-foreground">Address</p>
-                    <p className="font-medium">{debtor.address}</p>
+                    {debtor.address_line1 ? (
+                      <div className="text-sm font-medium">
+                        <p>{debtor.address_line1}</p>
+                        {debtor.address_line2 && <p>{debtor.address_line2}</p>}
+                        <p>
+                          {[debtor.city, debtor.state].filter(Boolean).join(", ")}
+                          {debtor.postal_code ? ` ${debtor.postal_code}` : ""}
+                        </p>
+                        {debtor.country && debtor.country !== "US" && debtor.country !== "USA" && (
+                          <p>{debtor.country}</p>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="font-medium">{debtor.address || [debtor.city, debtor.state].filter(Boolean).join(", ")}</p>
+                    )}
                   </div>
                 </div>
               )}
