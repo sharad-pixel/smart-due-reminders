@@ -39,6 +39,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Loader2, User, CreditCard, Users, Crown, Clock, AlertCircle, CheckCircle, Ban, Shield, Trash2, Save, RefreshCw, ExternalLink, FileText, Activity, UserPlus, Link2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format as formatDate } from "date-fns";
+import { AdminIntegrationToggles } from "@/components/admin/AdminIntegrationToggles";
 
 interface UserDetails {
   id: string;
@@ -1177,7 +1178,12 @@ const AdminUserDetail = () => {
           </TabsContent>
 
           {/* Admin Actions Tab */}
-          <TabsContent value="actions">
+          <TabsContent value="actions" className="space-y-6">
+            {/* Integration Toggles */}
+            <AdminIntegrationToggles
+              accountId={accountRelationships.find(r => r.is_owner)?.account_id || userId || null}
+            />
+
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
