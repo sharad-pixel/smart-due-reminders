@@ -11,6 +11,7 @@ import { z } from "zod";
 import { logSecurityEvent } from "@/lib/auditLog";
 import { getAuthRedirectUrl, isRedirectUriMismatchError, SUPABASE_CALLBACK_URL } from "@/lib/appConfig";
 import { Check, X, Zap, Users, FileText, Bot, AlertTriangle, Eye, EyeOff } from "lucide-react";
+import { lovable } from "@/integrations/lovable/index";
 import { RecouplyLogo } from "@/components/layout/RecouplyLogo";
 import { User } from "@supabase/supabase-js";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
