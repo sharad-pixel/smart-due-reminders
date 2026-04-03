@@ -49,6 +49,9 @@ const DataCenter = () => {
   useEffect(() => {
     const driveStatus = searchParams.get("drive_status");
     const driveMessage = searchParams.get("drive_message");
+    const sfStatus = searchParams.get("sf_status");
+    const sfMessage = searchParams.get("sf_message");
+
     if (driveStatus) {
       if (driveStatus === "success") {
         toast.success("Google Drive Connected", { description: driveMessage || "You can now select a folder to scan." });
@@ -57,6 +60,19 @@ const DataCenter = () => {
       }
       searchParams.delete("drive_status");
       searchParams.delete("drive_message");
+    }
+
+    if (sfStatus) {
+      if (sfStatus === "success") {
+        toast.success("Salesforce Connected", { description: sfMessage || "You can now sync cases." });
+      } else {
+        toast.error("Salesforce Connection Failed", { description: sfMessage || "Please try again." });
+      }
+      searchParams.delete("sf_status");
+      searchParams.delete("sf_message");
+    }
+
+    if (driveStatus || sfStatus) {
       setSearchParams(searchParams, { replace: true });
     }
   }, [searchParams, setSearchParams]);
