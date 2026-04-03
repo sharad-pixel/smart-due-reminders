@@ -45,6 +45,7 @@ const DataCenter = () => {
   const [uploadWizardOpen, setUploadWizardOpen] = useState(false);
   const [createSourceOpen, setCreateSourceOpen] = useState(false);
   const [selectedFileType, setSelectedFileType] = useState<"invoice_aging" | "payments" | "accounts">("invoice_aging");
+  const { isEnabled: isIntegrationEnabled } = useIntegrationToggles();
 
   // Handle Google Drive OAuth callback
   useEffect(() => {
