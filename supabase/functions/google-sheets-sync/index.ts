@@ -318,7 +318,7 @@ async function pullAccounts(supabase: any, accessToken: string, template: any, u
 
 async function pullInvoices(supabase: any, accessToken: string, template: any, userId: string, orgId: string) {
   const rows = await readSheet(accessToken, template.sheet_id, "'Open Invoices'!A1:P5000");
-  if (rows.length <= 1) return { created: 0, updated: 0, skipped: 0, movedToPaid: 0 };
+  if (rows.length <= 1) return { created: 0, updated: 0, skipped: 0, movedToPaid: 0, syncProtected: 0 };
 
   const headers = rows[0].map((h: string) => h.toLowerCase().trim());
   const accountRaidIdx = headers.indexOf('account raid');
@@ -336,9 +336,17 @@ async function pullInvoices(supabase: any, accessToken: string, template: any, u
   const refIdx = headers.findIndex(h => h.includes('recouply') && h.includes('ref') && h.includes('do not edit'));
   const sourceIdx = headers.indexOf('source');
 
-  let created = 0, updated = 0, skipped = 0, movedToPaid = 0;
+  let created = 0, updated = 0, skipped = 0, movedToPaid = 0, syncProtected = 0;
   const sheetUpdates: any[] = [];
   const rowsToMoveToPaid: number[] = [];
+
+  // PROTECTION: Pre-load sync-protected accounts
+  const { data: syncProtectedAccounts } = await supabase
+    .from('debtors')
+    .select('reference_id')
+    .eq('user_id', userId)
+    .eq('sheet_sync_enabled', false);
+  const protectedRaids = new Set((syncProtectedAccounts || []).map((d: any) => d.reference_id));
 
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
@@ -352,9 +360,16 @@ async function pullInvoices(supabase: any, accessToken: string, template: any, u
 
     if (!invoiceNumber) continue;
 
+    // PROTECTION: Skip invoices belonging to sync-protected accounts
+    if (accountRaid && protectedRaids.has(accountRaid)) {
+      syncProtected++;
+      continue;
+    }
+
     const terminalStatuses = ['paid', 'canceled', 'voided', 'writtenoff', 'settled', 'credited'];
     const isTerminal = terminalStatuses.includes(status.toLowerCase());
 
+    // PROTECTION: Updates only via RAID/reference match — never delete invoice records
     if (recouplyRef && source.toLowerCase() === 'recouply') {
       const updateData: any = {};
       const amtOut = parseFloat(getVal(row, amtOutIdx));
@@ -424,6 +439,7 @@ async function pullInvoices(supabase: any, accessToken: string, template: any, u
     }
   }
 
+  // PROTECTION: Pull NEVER deletes invoice records — missing rows are ignored
   await batchUpdateSheet(accessToken, template.sheet_id, sheetUpdates);
 
   if (rowsToMoveToPaid.length > 0) {
@@ -444,7 +460,7 @@ async function pullInvoices(supabase: any, accessToken: string, template: any, u
     await batchUpdateSheet(accessToken, template.sheet_id, clearUpdates);
   }
 
-  return { created, updated, skipped, movedToPaid };
+  return { created, updated, skipped, movedToPaid, syncProtected };
 }
 
 async function pullPayments(supabase: any, accessToken: string, template: any, userId: string, orgId: string) {
