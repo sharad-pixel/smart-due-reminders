@@ -119,6 +119,7 @@ export function PendingSheetImports() {
       setSelectedIds(new Set());
       queryClient.invalidateQueries({ queryKey: ["pending-sheet-imports"] });
       queryClient.invalidateQueries({ queryKey: ["debtors"] });
+      queryClient.invalidateQueries({ queryKey: ["pending-sheet-imports-count"] });
     },
     onError: (err: any) => {
       toast.error("Failed to approve imports", { description: err.message });
@@ -137,6 +138,7 @@ export function PendingSheetImports() {
       toast.success("Imports rejected and removed from queue");
       setSelectedIds(new Set());
       queryClient.invalidateQueries({ queryKey: ["pending-sheet-imports"] });
+      queryClient.invalidateQueries({ queryKey: ["pending-sheet-imports-count"] });
     },
     onError: (err: any) => toast.error("Failed to reject", { description: err.message }),
   });
