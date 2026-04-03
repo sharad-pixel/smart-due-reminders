@@ -274,8 +274,8 @@ async function pullAccounts(supabase: any, accessToken: string, template: any, u
     if (getVal(row, payTermsIdx)) fieldData.payment_terms_default = getVal(row, payTermsIdx);
     if (getVal(row, notesIdx)) fieldData.notes = getVal(row, notesIdx);
 
-    // PROTECTION: Only update existing records via RAID match — never delete
-    if (raid && source.toLowerCase() === 'recouply') {
+    // PROTECTION: Update existing records via RAID match — never delete
+    if (raid) {
       const { error } = await supabase
         .from('debtors')
         .update(fieldData)
@@ -284,7 +284,7 @@ async function pullAccounts(supabase: any, accessToken: string, template: any, u
 
       if (!error) updated++;
       else skipped++;
-    } else if (!raid || source.toLowerCase() !== 'recouply') {
+    } else {
       // Create new debtor — no RAID means new account
       const { data: newDebtor, error } = await supabase
         .from('debtors')
