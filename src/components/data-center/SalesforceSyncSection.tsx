@@ -33,7 +33,7 @@ export const SalesforceSyncSection = () => {
     },
   });
 
-  const isEnterprise = profile?.plan_type === "enterprise";
+  const isEnterprise = (profile?.plan_type as string) === "enterprise";
 
   const { data: connection, isLoading } = useQuery({
     queryKey: ["salesforce-connection"],
