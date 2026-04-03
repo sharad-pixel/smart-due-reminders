@@ -252,7 +252,7 @@ Deno.serve(async (req) => {
     if (requestedDraftIds && requestedDraftIds.length > 0) {
       invoiceDraftQuery = invoiceDraftQuery.in('id', requestedDraftIds);
     } else {
-      invoiceDraftQuery = invoiceDraftQuery.lte('recommended_send_date', today);
+      invoiceDraftQuery = invoiceDraftQuery.lte('recommended_send_date', cutoffDate);
     }
 
     const { data: invoiceDrafts, error: invoiceDraftsError } = await invoiceDraftQuery
