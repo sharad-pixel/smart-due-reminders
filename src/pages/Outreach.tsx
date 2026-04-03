@@ -771,6 +771,8 @@ const Outreach = () => {
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
+            {/* Batch Run History */}
+            <OutreachBatchRunHistory />
             {/* Persona Schedule */}
             <Card>
               <CardHeader>
