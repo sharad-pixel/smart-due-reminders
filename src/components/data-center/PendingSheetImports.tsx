@@ -196,7 +196,7 @@ export function PendingSheetImports() {
       }
       setSelectedIds(new Set());
       setAiSuggestions(new Map());
-      setAcceptedSuggestions(new Map());
+      setAcceptedSuggestions(new Set());
       queryClient.invalidateQueries({ queryKey: ["pending-sheet-imports"] });
       queryClient.invalidateQueries({ queryKey: ["debtors"] });
       queryClient.invalidateQueries({ queryKey: ["pending-sheet-imports-count"] });
