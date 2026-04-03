@@ -633,7 +633,9 @@ export function SmartIngestionSection() {
 // Scanned Files Table Component with pagination
 function ScannedFilesTable({ onExtract, extracting }: { onExtract: (id: string) => void; extracting: boolean }) {
   const [currentPage, setCurrentPage] = useState(1);
+  const [archiving, setArchiving] = useState(false);
   const PAGE_SIZE = 15;
+  const queryClient = useQueryClient();
 
   const { data: files, isLoading } = useQuery({
     queryKey: ["ingestion-scanned-files-list"],
@@ -644,10 +646,55 @@ function ScannedFilesTable({ onExtract, extracting }: { onExtract: (id: string) 
         .from("ingestion_scanned_files")
         .select("*")
         .eq("user_id", user.id)
+        .or("is_archived.is.null,is_archived.eq.false")
         .order("created_at", { ascending: false });
       return data || [];
     },
   });
+
+  const handleArchiveAll = async () => {
+    if (!files || files.length === 0) return;
+    if (!confirm(`Archive all ${files.length} scanned files to Scan History? They'll be removed from this view.`)) return;
+    setArchiving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const now = new Date().toISOString();
+
+      // Create audit log entries for each file being archived
+      const auditEntries = files.map((file: any) => ({
+        user_id: user.id,
+        scanned_file_id: file.id,
+        event_type: "file_archived",
+        event_details: {
+          file_name: file.file_name,
+          processing_status: file.processing_status,
+          confidence_score: file.confidence_score,
+          archived_at: now,
+        },
+      }));
+
+      await supabase.from("ingestion_audit_log").insert(auditEntries);
+
+      // Mark all files as archived
+      const fileIds = files.map((f: any) => f.id);
+      await supabase
+        .from("ingestion_scanned_files")
+        .update({ is_archived: true, archived_at: now })
+        .in("id", fileIds);
+
+      toast.success(`${files.length} files archived to Scan History`);
+      queryClient.invalidateQueries({ queryKey: ["ingestion-scanned-files-list"] });
+      queryClient.invalidateQueries({ queryKey: ["ingestion-scan-history"] });
+      queryClient.invalidateQueries({ queryKey: ["ingestion-scan-stats"] });
+      setCurrentPage(1);
+    } catch (err: any) {
+      toast.error("Failed to archive files", { description: err.message });
+    } finally {
+      setArchiving(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -664,7 +711,7 @@ function ScannedFilesTable({ onExtract, extracting }: { onExtract: (id: string) 
       <Card>
         <CardContent className="flex flex-col items-center justify-center py-12 text-center">
           <FileText className="h-10 w-10 text-muted-foreground mb-3" />
-          <p className="text-sm text-muted-foreground">No files scanned yet. Select a folder and scan to get started.</p>
+          <p className="text-sm text-muted-foreground">No active scanned files. Check Scan History for archived records.</p>
         </CardContent>
       </Card>
     );
@@ -685,8 +732,22 @@ function ScannedFilesTable({ onExtract, extracting }: { onExtract: (id: string) 
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-base">Scanned Files</CardTitle>
-        <CardDescription>All PDF files detected in your connected folder ({files.length} total)</CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-base">Scanned Files</CardTitle>
+            <CardDescription>All PDF files detected in your connected folder ({files.length} total)</CardDescription>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleArchiveAll}
+            disabled={archiving}
+            className="gap-2"
+          >
+            {archiving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Clock className="h-4 w-4" />}
+            Archive All to History
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
