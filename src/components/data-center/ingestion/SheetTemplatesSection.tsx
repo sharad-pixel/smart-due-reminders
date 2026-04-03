@@ -28,6 +28,7 @@ import {
   FolderOpen,
   Sparkles,
   Trash2,
+  ShieldCheck,
 } from "lucide-react";
 import { GoogleSheetsIcon } from "@/components/icons/GoogleIcons";
 
@@ -128,9 +129,10 @@ export function SheetTemplatesSection() {
     },
     onSuccess: (data) => {
       const dir = data.direction === 'push' ? 'Push' : 'Pull';
+      const protectedNote = data.syncProtected ? `, ${data.syncProtected} sync-protected` : '';
       const details = data.direction === 'push'
         ? `${data.pushed || data.openPushed || 0} rows pushed`
-        : `Created: ${data.created || 0}, Updated: ${data.updated || 0}, Skipped: ${data.skipped || 0}${data.movedToPaid ? `, Moved to Paid: ${data.movedToPaid}` : ''}`;
+        : `Created: ${data.created || 0}, Updated: ${data.updated || 0}, Skipped: ${data.skipped || 0}${data.movedToPaid ? `, Moved to Paid: ${data.movedToPaid}` : ''}${protectedNote}`;
       toast.success(`${dir} complete — ${data.templateType}`, { description: details });
       queryClient.invalidateQueries({ queryKey: ["sheet-templates"] });
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
@@ -286,6 +288,14 @@ export function SheetTemplatesSection() {
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
           )}
+
+          {/* Sync Protection Notice */}
+          <div className="flex items-start gap-2.5 px-3 py-2.5 rounded-md border border-primary/20 bg-primary/5 mt-2">
+            <ShieldCheck className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+            <div className="text-[11px] text-muted-foreground leading-relaxed">
+              <span className="font-medium text-foreground/80">Sync Protection Active</span> — Pull sync never deletes accounts, invoices, or payments. Updates require a valid RAID match. To protect specific accounts from sheet sync, disable sync on the account detail page.
+            </div>
+          </div>
         </CardContent>
       </Card>
 

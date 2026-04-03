@@ -2615,6 +2615,7 @@ export type Database = {
           risk_tier: string | null
           risk_tier_detailed: string | null
           score_components: Json | null
+          sheet_sync_enabled: boolean
           source_system: string | null
           state: string | null
           tags: Json | null
@@ -2726,6 +2727,7 @@ export type Database = {
           risk_tier?: string | null
           risk_tier_detailed?: string | null
           score_components?: Json | null
+          sheet_sync_enabled?: boolean
           source_system?: string | null
           state?: string | null
           tags?: Json | null
@@ -2837,6 +2839,7 @@ export type Database = {
           risk_tier?: string | null
           risk_tier_detailed?: string | null
           score_components?: Json | null
+          sheet_sync_enabled?: boolean
           source_system?: string | null
           state?: string | null
           tags?: Json | null
