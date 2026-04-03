@@ -22,6 +22,7 @@ import {
   Shield,
   Trash2,
 } from "lucide-react";
+import { Building2 } from "lucide-react";
 import { GoogleDriveIcon, GoogleSheetsIcon } from "@/components/icons/GoogleIcons";
 import { IngestionReviewQueue } from "./IngestionReviewQueue";
 import { IngestionDashboard } from "./IngestionDashboard";
@@ -42,6 +43,20 @@ export function SmartIngestionSection() {
   const [folderPath, setFolderPath] = useState<Array<{ id: string; name: string }>>([{ id: "root", name: "My Drive" }]);
   const [activeTab, setActiveTab] = useState("overview");
   const [disconnectOpen, setDisconnectOpen] = useState(false);
+
+  // Count pending sheet imports for the tab badge
+  const { data: pendingAccountCount = 0 } = useQuery({
+    queryKey: ["pending-sheet-imports-count"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return 0;
+      const { count } = await supabase
+        .from("pending_sheet_imports")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "pending");
+      return count || 0;
+    },
+  });
 
   // Check if user signed in with Google OAuth
   const { data: authProvider } = useQuery({
