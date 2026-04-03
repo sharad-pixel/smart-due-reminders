@@ -183,6 +183,12 @@ const DebtorDetail = () => {
     company_name: "",
     type: "B2C" as "B2B" | "B2C",
     address: "",
+    address_line1: "",
+    address_line2: "",
+    city: "",
+    state: "",
+    postal_code: "",
+    country: "",
     notes: "",
   });
 
@@ -464,6 +470,12 @@ const DebtorDetail = () => {
         company_name: data.company_name,
         type: data.type || "B2C",
         address: data.address || "",
+        address_line1: data.address_line1 || "",
+        address_line2: data.address_line2 || "",
+        city: data.city || "",
+        state: data.state || "",
+        postal_code: data.postal_code || "",
+        country: data.country || "",
         notes: data.notes || "",
       });
     } catch (_error: any) {
@@ -1554,12 +1566,58 @@ const DebtorDetail = () => {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-address">Address</Label>
+                <Label htmlFor="edit-address_line1">Address Line 1</Label>
                 <Input
-                  id="edit-address"
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  id="edit-address_line1"
+                  placeholder="Street address"
+                  value={formData.address_line1}
+                  onChange={(e) => setFormData({ ...formData, address_line1: e.target.value })}
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-address_line2">Address Line 2</Label>
+                <Input
+                  id="edit-address_line2"
+                  placeholder="Suite, unit, floor, etc."
+                  value={formData.address_line2}
+                  onChange={(e) => setFormData({ ...formData, address_line2: e.target.value })}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-city">City</Label>
+                  <Input
+                    id="edit-city"
+                    value={formData.city}
+                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-state">State</Label>
+                  <Input
+                    id="edit-state"
+                    value={formData.state}
+                    onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-postal_code">Postal Code</Label>
+                  <Input
+                    id="edit-postal_code"
+                    value={formData.postal_code}
+                    onChange={(e) => setFormData({ ...formData, postal_code: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-country">Country</Label>
+                  <Input
+                    id="edit-country"
+                    value={formData.country}
+                    onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                  />
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-notes">Notes</Label>
