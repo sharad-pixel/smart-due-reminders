@@ -47,6 +47,12 @@ interface Debtor {
   phone: string | null;
   type: "B2B" | "B2C" | null;
   address: string | null;
+  address_line1: string | null;
+  address_line2: string | null;
+  city: string | null;
+  state: string | null;
+  postal_code: string | null;
+  country: string | null;
   notes: string | null;
   current_balance: number | null;
   crm_account_id: string | null;
