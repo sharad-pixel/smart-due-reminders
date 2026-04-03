@@ -137,6 +137,7 @@ export function SheetTemplatesSection() {
       queryClient.invalidateQueries({ queryKey: ["sheet-templates"] });
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       queryClient.invalidateQueries({ queryKey: ["debtors"] });
+      queryClient.invalidateQueries({ queryKey: ["pending-sheet-imports"] });
     },
     onError: (err: any) => toast.error("Sync failed", { description: err.message }),
     onSettled: () => setSyncingId(null),
