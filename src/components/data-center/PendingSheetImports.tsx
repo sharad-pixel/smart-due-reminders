@@ -52,7 +52,7 @@ export function PendingSheetImports() {
             postal_code: item.postal_code || null,
             country: item.country || null,
             industry: item.industry || null,
-            type: item.type || "B2B",
+            type: (item.type === "B2C" ? "B2C" : "B2B") as "B2B" | "B2C",
             external_customer_id: item.external_customer_id || null,
             crm_account_id_external: item.crm_account_id_external || null,
             payment_terms_default: item.payment_terms_default || null,
