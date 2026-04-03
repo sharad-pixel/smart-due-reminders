@@ -341,7 +341,6 @@ const DataCenter = () => {
           <SmartIngestionSection />
         </section>
 
-        <Separator />
 
         {(isIntegrationEnabled("erp_netsuite") || isIntegrationEnabled("erp_sage")) && (
           <>
