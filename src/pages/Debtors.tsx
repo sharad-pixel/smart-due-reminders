@@ -184,15 +184,19 @@ const Debtors = () => {
   const filterDebtors = () => {
     let filtered = [...debtors];
 
-    // Balance filter - default excludes zero balance
-    if (balanceFilter === "with_balance") {
-      filtered = filtered.filter((d) => (d.total_open_balance || 0) > 0);
-    } else if (balanceFilter === "zero_balance") {
-      filtered = filtered.filter((d) => (d.total_open_balance || 0) === 0);
-    }
-    // "all" shows everything
+    // When actively searching, skip the balance filter so all matches appear
+    const isSearching = searchTerm.trim().length > 0;
 
-    if (searchTerm) {
+    if (!isSearching) {
+      // Balance filter - default excludes zero balance
+      if (balanceFilter === "with_balance") {
+        filtered = filtered.filter((d) => (d.total_open_balance || 0) > 0);
+      } else if (balanceFilter === "zero_balance") {
+        filtered = filtered.filter((d) => (d.total_open_balance || 0) === 0);
+      }
+    }
+
+    if (isSearching) {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(
         (d) =>
@@ -200,7 +204,8 @@ const Debtors = () => {
           d.name?.toLowerCase().includes(term) ||
           d.company_name?.toLowerCase().includes(term) ||
           d.email?.toLowerCase().includes(term) ||
-          d.external_customer_id?.toLowerCase().includes(term)
+          d.external_customer_id?.toLowerCase().includes(term) ||
+          (d as any).recouply_customer_id?.toLowerCase().includes(term)
       );
     }
 
