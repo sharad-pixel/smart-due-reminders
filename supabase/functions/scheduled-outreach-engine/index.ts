@@ -425,7 +425,7 @@ Deno.serve(async (req) => {
     try {
       const { data: sendResult, error: sendError } = await supabaseAdmin.functions.invoke(
         'auto-send-approved-drafts',
-        { body: {} }
+        { body: { send_window_date: next24hStr } }
       );
 
       if (sendError) {
