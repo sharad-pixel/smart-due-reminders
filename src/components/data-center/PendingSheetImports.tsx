@@ -98,75 +98,88 @@ export function PendingSheetImports() {
       const results = new Map<string, { status: "success" | "error"; message: string }>();
 
       for (const id of ids) {
-        const item = pendingImports?.find(p => p.id === id);
-        if (!item) continue;
+        try {
+          const item = pendingImports?.find(p => p.id === id);
+          if (!item) {
+            results.set(id, { status: "error", message: "Item not found in list" });
+            continue;
+          }
 
-        const rawJson = (item.raw_json || {}) as Record<string, any>;
+          const rawJson = (item.raw_json || {}) as Record<string, any>;
 
-        // Use AI-cleaned names if suggestion was accepted
-        const suggestion = acceptedSuggestions.has(id) ? aiSuggestions.get(id) : null;
-        const companyName = suggestion?.company_name || item.company_name || rawJson.company_name || "Unknown";
-        const contactName = suggestion?.contact_name || item.contact_name || rawJson.name || companyName;
-        const contactEmail = item.email || rawJson.email || "";
+          // Use AI-cleaned names if suggestion was accepted
+          const suggestion = acceptedSuggestions.has(id) ? aiSuggestions.get(id) : null;
+          const companyName = suggestion?.company_name || item.company_name || rawJson.company_name || "Unknown";
+          const contactName = suggestion?.contact_name || item.contact_name || rawJson.name || companyName;
+          const contactEmail = item.email || rawJson.email || "";
 
-        const insertPayload = {
-          user_id: accountId,
-          company_name: companyName,
-          name: contactName,
-          email: contactEmail || "noemail@placeholder.local",
-          phone: item.phone || rawJson.phone || null,
-          address_line1: item.address_line1 || null,
-          address_line2: item.address_line2 || null,
-          city: item.city || null,
-          state: item.state || null,
-          postal_code: item.postal_code || null,
-          country: item.country || null,
-          industry: item.industry || null,
-          type: (item.type === "B2C" ? "B2C" : "B2B") as "B2B" | "B2C",
-          external_customer_id: item.external_customer_id || null,
-          crm_account_id_external: item.crm_account_id_external || null,
-          payment_terms_default: item.payment_terms_default || null,
-          notes: item.notes || null,
-          source_system: "google_sheets",
-        };
-
-        const { data: newDebtor, error: insertErr } = await supabase
-          .from("debtors")
-          .insert([insertPayload as any])
-          .select("id, reference_id")
-          .single();
-
-        if (insertErr) {
-          console.error(`Failed to create account for "${companyName}":`, insertErr);
-          results.set(id, { status: "error", message: insertErr.message });
-          continue;
-        }
-
-        if (contactEmail || contactName) {
-          await supabase.from("debtor_contacts").insert({
-            debtor_id: newDebtor.id,
+          const insertPayload = {
             user_id: accountId,
+            company_name: companyName,
             name: contactName,
-            email: contactEmail || null,
+            email: contactEmail || "noemail@placeholder.local",
             phone: item.phone || rawJson.phone || null,
-            is_primary: true,
-            source: "google_sheets",
-          });
-        }
+            address_line1: item.address_line1 || null,
+            address_line2: item.address_line2 || null,
+            city: item.city || null,
+            state: item.state || null,
+            postal_code: item.postal_code || null,
+            country: item.country || null,
+            industry: item.industry || null,
+            type: (item.type === "B2C" ? "B2C" : "B2B") as "B2B" | "B2C",
+            external_customer_id: item.external_customer_id || null,
+            crm_account_id_external: item.crm_account_id_external || null,
+            payment_terms_default: item.payment_terms_default || null,
+            notes: item.notes || null,
+            source_system: "google_sheets",
+          };
 
-        const { error: updateErr } = await supabase
-          .from("pending_sheet_imports")
-          .update({ status: "approved", reviewed_at: new Date().toISOString() })
-          .eq("id", id);
+          // First update status to "approved" to remove from queue immediately
+          const { error: updateErr } = await supabase
+            .from("pending_sheet_imports")
+            .update({ status: "approved", reviewed_at: new Date().toISOString() })
+            .eq("id", id);
 
-        if (updateErr) {
-          results.set(id, { status: "error", message: "Account created but status update failed" });
-        } else {
+          if (updateErr) {
+            console.error(`Failed to update status for "${companyName}":`, updateErr);
+            results.set(id, { status: "error", message: `Status update failed: ${updateErr.message}` });
+            continue;
+          }
+
+          const { data: newDebtor, error: insertErr } = await supabase
+            .from("debtors")
+            .insert([insertPayload as any])
+            .select("id, reference_id")
+            .single();
+
+          if (insertErr) {
+            console.error(`Failed to create account for "${companyName}":`, insertErr);
+            // Revert status on failure
+            await supabase
+              .from("pending_sheet_imports")
+              .update({ status: "pending", reviewed_at: null })
+              .eq("id", id);
+            results.set(id, { status: "error", message: insertErr.message });
+            continue;
+          }
+
+          if (contactEmail || contactName) {
+            await supabase.from("debtor_contacts").insert({
+              debtor_id: newDebtor.id,
+              user_id: accountId,
+              name: contactName,
+              email: contactEmail || null,
+              phone: item.phone || rawJson.phone || null,
+              is_primary: true,
+              source: "google_sheets",
+            }).catch(err => console.warn("Contact insert warning:", err));
+          }
+
           results.set(id, { status: "success", message: `Created ${newDebtor.reference_id}` });
           approved++;
-          queryClient.setQueryData(["pending-sheet-imports"], (old: any[] | undefined) =>
-            old ? old.filter((p: any) => p.id !== id) : []
-          );
+        } catch (err: any) {
+          console.error(`Unexpected error processing ${id}:`, err);
+          results.set(id, { status: "error", message: err.message || "Unexpected error" });
         }
       }
 
@@ -174,18 +187,20 @@ export function PendingSheetImports() {
       return approved;
     },
     onSuccess: (count) => {
-      if (count > 0) {
+      if (count && count > 0) {
         toast.success(`${count} account(s) created successfully`);
       }
       setSelectedIds(new Set());
       setAiSuggestions(new Map());
-      setAcceptedSuggestions(new Set());
+      setAcceptedSuggestions(new Map());
       queryClient.invalidateQueries({ queryKey: ["pending-sheet-imports"] });
       queryClient.invalidateQueries({ queryKey: ["debtors"] });
       queryClient.invalidateQueries({ queryKey: ["pending-sheet-imports-count"] });
     },
     onError: (err: any) => {
       toast.error("Failed to approve imports", { description: err.message });
+      // Always refetch to get accurate state
+      queryClient.invalidateQueries({ queryKey: ["pending-sheet-imports"] });
     },
   });
 
