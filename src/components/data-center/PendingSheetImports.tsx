@@ -49,11 +49,8 @@ export function PendingSheetImports() {
         const contactName = item.contact_name || rawJson.name || companyName;
         const contactEmail = item.email || rawJson.email || "";
 
-        const { data: newDebtor, error: insertErr } = await supabase
-          .from("debtors")
-          .insert([{
+        const insertPayload = {
             user_id: accountId,
-            reference_id: `RCPLY-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
             company_name: companyName,
             name: contactName,
             email: contactEmail || "noemail@placeholder.local",
@@ -71,7 +68,12 @@ export function PendingSheetImports() {
             payment_terms_default: item.payment_terms_default || null,
             notes: item.notes || null,
             source_system: "google_sheets",
-          }])
+        };
+        console.log(`[PendingImports] Inserting debtor for "${companyName}":`, insertPayload);
+
+        const { data: newDebtor, error: insertErr } = await supabase
+          .from("debtors")
+          .insert([insertPayload as any])
           .select("id, reference_id")
           .single();
 
