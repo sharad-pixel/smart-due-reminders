@@ -1177,7 +1177,12 @@ const AdminUserDetail = () => {
           </TabsContent>
 
           {/* Admin Actions Tab */}
-          <TabsContent value="actions">
+          <TabsContent value="actions" className="space-y-6">
+            {/* Integration Toggles */}
+            <AdminIntegrationToggles
+              accountId={accountRelationships.find(r => r.is_owner)?.account_id || userId || null}
+            />
+
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
