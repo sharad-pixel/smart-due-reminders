@@ -397,6 +397,7 @@ Deno.serve(async (req) => {
               channel: 'email',
               status: draftStatus,
               recommended_send_date: cadenceDay <= currentDaysInBucket ? todayStr : targetDateStr,
+              // Drafts due within next 24h will be picked up for sending
               days_past_due: daysPastDue,
               auto_approved: shouldAutoApprove
             });
