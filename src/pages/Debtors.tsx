@@ -634,20 +634,21 @@ const Debtors = () => {
 
         <AIInsightsCard scope="accounts" compact className="mb-4" />
 
+        {/* Prominent search bar above filters */}
+        <div className="relative mb-4">
+          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+          <Input
+            placeholder="Search by RAID, name, company, or email..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-12 h-12 text-base rounded-lg border-2 border-border focus:border-primary"
+          />
+        </div>
 
         <Card>
           <CardHeader>
             <div className="flex flex-col gap-4">
               <div className="flex flex-col md:flex-row gap-4">
-                <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search by Recouply ID, name, company, or email..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
                 <Select value={typeFilter} onValueChange={setTypeFilter}>
                   <SelectTrigger className="w-full md:w-[140px]">
                     <SelectValue placeholder="Filter by type" />
