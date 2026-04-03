@@ -213,7 +213,7 @@ async function pullAccounts(supabase: any, accessToken: string, template: any, u
   const postalIdx = headers.findIndex(h => h === 'postal code' || h === 'zip' || h === 'zip code');
   const countryIdx = headers.indexOf('country');
   const industryIdx = headers.indexOf('industry');
-  const extCustIdx = headers.indexOf('external customer id');
+  const extCustIdx = headers.findIndex(h => h === 'source system id' || h === 'external customer id');
   const crmIdx = headers.indexOf('crm id');
   const payTermsIdx = headers.indexOf('default payment terms');
   const notesIdx = headers.indexOf('notes');
