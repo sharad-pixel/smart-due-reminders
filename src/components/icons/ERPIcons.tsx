@@ -1,10 +1,12 @@
 export function NetSuiteIcon({ className = "h-5 w-5" }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-      <rect width="48" height="48" rx="8" fill="#1A1A2E" />
-      <path d="M12 14h5l7 12V14h5v20h-5l-7-12v12h-5V14z" fill="#00A1E0" />
-      <path d="M31 18h5v12h-5V18z" fill="#00A1E0" />
-      <rect x="31" y="14" width="5" height="3" rx="1" fill="#00A1E0" />
+      {/* Oracle NetSuite brand colors */}
+      <rect width="48" height="48" rx="8" fill="#1B1B1B" />
+      {/* Stylized "N" mark */}
+      <path d="M12 34V14h4.5l9 13.5V14H30v20h-4.5l-9-13.5V34H12z" fill="#FFFFFF" />
+      {/* Oracle red accent bar */}
+      <rect x="33" y="14" width="4" height="20" rx="1" fill="#C74634" />
     </svg>
   );
 }
@@ -12,10 +14,22 @@ export function NetSuiteIcon({ className = "h-5 w-5" }: { className?: string }) 
 export function SageIcon({ className = "h-5 w-5" }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-      <rect width="48" height="48" rx="8" fill="#00DC00" />
+      {/* Sage brand green */}
+      <rect width="48" height="48" rx="8" fill="#00B140" />
+      {/* Sage leaf/circle mark */}
+      <circle cx="24" cy="24" r="12" fill="none" stroke="white" strokeWidth="2.5" />
+      {/* Leaf shape inside */}
       <path
-        d="M14 30c0-1.5 1.2-2.5 3-3.2 2-.7 4.5-1 6-2.3.8-.7 1.2-1.6 1.2-2.7 0-2-1.6-3.3-3.8-3.3-2.4 0-4 1.5-4.2 3.8h-3.4c.3-4 3.2-6.8 7.6-6.8 4.2 0 7.2 2.5 7.2 6 0 2.2-1 3.8-2.8 5-1.6 1-3.6 1.4-5.2 2-.8.3-1.4.8-1.4 1.5v.5h9.2V34H14v-4z"
+        d="M18 28c0-6 4-10 10-12-2 4-3 8-2 12-2 1-5 1-8 0z"
         fill="white"
+        opacity="0.95"
+      />
+      <path
+        d="M20 26c1-4 3-7 6-9"
+        fill="none"
+        stroke="#00B140"
+        strokeWidth="1.2"
+        strokeLinecap="round"
       />
     </svg>
   );
