@@ -41,6 +41,7 @@ export function PendingSheetImports() {
         const { data: newDebtor, error: insertErr } = await supabase
           .from("debtors")
           .insert([{
+            user_id: user.id,
             company_name: item.company_name || rawJson.company_name || "Unknown",
             name: item.contact_name || rawJson.name || null,
             email: item.email || rawJson.email || null,
