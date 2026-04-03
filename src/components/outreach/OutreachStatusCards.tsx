@@ -112,10 +112,13 @@ export function OutreachStatusCards({ onRefresh }: OutreachStatusCardsProps) {
   const handleRefreshOutreach = async () => {
     setIsRefreshing(true);
     try {
-      toast.info("Processing outreach...");
+      toast.info("Processing outreach (next 24h window)...");
       
-      const { data, error } = await supabase.functions.invoke("ensure-invoice-workflows", {
-        body: {},
+      // Get current user for batch run logging
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      const { data, error } = await supabase.functions.invoke("scheduled-outreach-engine", {
+        body: { trigger_type: "manual", user_id: user?.id },
       });
 
       if (error) {
@@ -125,11 +128,10 @@ export function OutreachStatusCards({ onRefresh }: OutreachStatusCardsProps) {
       }
 
       const messages: string[] = [];
-      if (data?.workflowsAssigned > 0) messages.push(`${data.workflowsAssigned} workflow(s) assigned`);
-      if (data?.workflowsUpgraded > 0) messages.push(`${data.workflowsUpgraded} workflow(s) upgraded`);
-      if (data?.cadenceFixed > 0) messages.push(`${data.cadenceFixed} cadence(s) fixed`);
-      if (data?.schedulerResult?.draftsCreated > 0) messages.push(`${data.schedulerResult.draftsCreated} draft(s) created`);
-      if (data?.schedulerResult?.sent > 0) messages.push(`${data.schedulerResult.sent} email(s) sent`);
+      if (data?.draftsGenerated > 0) messages.push(`${data.draftsGenerated} draft(s) generated`);
+      if (data?.draftsSent > 0) messages.push(`${data.draftsSent} email(s) sent`);
+      if (data?.draftsCancelled > 0) messages.push(`${data.draftsCancelled} draft(s) cancelled`);
+      if (data?.invoicesProcessed > 0) messages.push(`${data.invoicesProcessed} invoice(s) processed`);
 
       if (messages.length > 0) {
         toast.success(messages.join(", "));
