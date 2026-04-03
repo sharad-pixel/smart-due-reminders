@@ -38,7 +38,6 @@ import { SmartIngestionSection } from "@/components/data-center/ingestion/SmartI
 import { ERPIntegrationSuite } from "@/components/data-center/erp/ERPIntegrationSuite";
 import * as XLSX from "xlsx";
 import { Zap, Server } from "lucide-react";
-import { PendingSheetImports } from "@/components/data-center/PendingSheetImports";
 
 const DataCenter = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -292,9 +291,6 @@ const DataCenter = () => {
           </Card>
         </div>
 
-        {/* Pending Sheet Imports Alert */}
-        <PendingSheetImports />
-
         {/* ═══════════════════════════════════════════════════════════════ */}
         {/* SECTION 1: CONNECTED INTEGRATIONS (Stripe & QuickBooks)       */}
         {/* ═══════════════════════════════════════════════════════════════ */}
@@ -325,7 +321,7 @@ const DataCenter = () => {
         <Separator />
 
         {/* ═══════════════════════════════════════════════════════════════ */}
-        {/* SECTION 1.5: SMART INVOICE INGESTION (Google Drive)            */}
+        {/* SECTION 1.5: AI SMART DATA INGESTION (Google Drive)            */}
         {/* ═══════════════════════════════════════════════════════════════ */}
         <section className="space-y-4">
           <div className="flex items-center gap-3">
@@ -333,9 +329,9 @@ const DataCenter = () => {
               <Zap className="h-4 w-4 text-primary" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold">Smart Invoice Ingestion</h2>
+              <h2 className="text-lg font-semibold">AI Smart Data Ingestion</h2>
               <p className="text-xs text-muted-foreground">
-                Connect Google Drive to scan invoice PDFs, extract data with AI, and import with full review control
+                Connect Google Drive to scan invoices, import accounts from Sheets, and manage data with AI-powered review
               </p>
             </div>
           </div>
