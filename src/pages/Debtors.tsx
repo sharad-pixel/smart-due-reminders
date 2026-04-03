@@ -184,19 +184,14 @@ const Debtors = () => {
   const filterDebtors = () => {
     let filtered = [...debtors];
 
-    // When actively searching, skip the balance filter so all matches appear
-    const isSearching = searchTerm.trim().length > 0;
-
-    if (!isSearching) {
-      // Balance filter - default excludes zero balance
-      if (balanceFilter === "with_balance") {
-        filtered = filtered.filter((d) => (d.total_open_balance || 0) > 0);
-      } else if (balanceFilter === "zero_balance") {
-        filtered = filtered.filter((d) => (d.total_open_balance || 0) === 0);
-      }
+    // Balance filter - always applied
+    if (balanceFilter === "with_balance") {
+      filtered = filtered.filter((d) => (d.total_open_balance || 0) > 0);
+    } else if (balanceFilter === "zero_balance") {
+      filtered = filtered.filter((d) => (d.total_open_balance || 0) === 0);
     }
 
-    if (isSearching) {
+    if (searchTerm.trim().length > 0) {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(
         (d) =>
