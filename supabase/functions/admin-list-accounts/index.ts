@@ -94,7 +94,10 @@ Deno.serve(async (req) => {
       .range(offset, offset + limit - 1);
 
     if (search) {
-      query = query.or(`email.ilike.%${search}%,name.ilike.%${search}%,company_name.ilike.%${search}%`);
+      const sanitized = search.replace(/[,%.()]/g, '').substring(0, 100);
+      if (sanitized) {
+        query = query.or(`email.ilike.%${sanitized}%,name.ilike.%${sanitized}%,company_name.ilike.%${sanitized}%`);
+      }
     }
 
     const { data: accounts, error: accountsError, count } = await query;

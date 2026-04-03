@@ -227,14 +227,16 @@ export function AccessProvider({ children }: { children: ReactNode }) {
 
     } catch (error) {
       console.error('[AccessContext] Verification error:', error);
-      // On error, be permissive
+      // Fail closed — do not grant access on errors
       setState(prev => ({
         ...prev,
         isLoading: false,
         isVerified: true,
-        hasAccess: true,
+        hasAccess: false,
         lastVerifiedAt: Date.now(),
       }));
+      // Retry after brief delay to recover from transient failures
+      setTimeout(() => { verifyingRef.current = false; verifyAccess(); }, 3000);
     } finally {
       verifyingRef.current = false;
     }
