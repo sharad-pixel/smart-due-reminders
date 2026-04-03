@@ -294,57 +294,66 @@ const DataCenter = () => {
         </div>
 
         {/* ═══════════════════════════════════════════════════════════════ */}
+        {/* CONTACT SALES — disabled integrations                          */}
+        {/* ═══════════════════════════════════════════════════════════════ */}
+        <ContactSalesCard />
+
+        {/* ═══════════════════════════════════════════════════════════════ */}
         {/* SECTION 1: CONNECTED INTEGRATIONS (Stripe & QuickBooks)       */}
         {/* ═══════════════════════════════════════════════════════════════ */}
-        <section className="space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Link2 className="h-4 w-4 text-primary" />
+        {(isIntegrationEnabled("stripe") || isIntegrationEnabled("quickbooks") || isIntegrationEnabled("salesforce")) && (
+          <section className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Link2 className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold">Connected Integrations</h2>
+                <p className="text-xs text-muted-foreground">
+                  Sync customers, invoices, and payments automatically from your billing systems
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-lg font-semibold">Connected Integrations</h2>
-              <p className="text-xs text-muted-foreground">
-                Sync customers, invoices, and payments automatically from your billing systems
-              </p>
+
+            <SyncHealthDashboard />
+
+            <div className="grid gap-4 grid-cols-1 lg:grid-cols-3">
+              {isIntegrationEnabled("stripe") && <StripeSyncSection />}
+              {isIntegrationEnabled("quickbooks") && <QuickBooksSyncSection />}
+              {isIntegrationEnabled("salesforce") && <SalesforceSyncSection />}
             </div>
-          </div>
 
-          <SyncHealthDashboard />
+            <SyncActivityLog />
+          </section>
+        )}
 
-          <div className="grid gap-4 grid-cols-1 lg:grid-cols-3">
-            <StripeSyncSection />
-            <QuickBooksSyncSection />
-            {isIntegrationEnabled("salesforce") && <SalesforceSyncSection />}
-          </div>
-
-          <SyncActivityLog />
-        </section>
-
-        <Separator />
+        {(isIntegrationEnabled("stripe") || isIntegrationEnabled("quickbooks") || isIntegrationEnabled("salesforce")) && <Separator />}
 
         {/* ═══════════════════════════════════════════════════════════════ */}
         {/* SECTION 1.5: AI SMART DATA INGESTION (Google Drive)            */}
         {/* ═══════════════════════════════════════════════════════════════ */}
-        <section className="space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Zap className="h-4 w-4 text-primary" />
+        {isIntegrationEnabled("ai_ingestion") && (
+          <section className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Zap className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold">AI Smart Data Ingestion</h2>
+                <p className="text-xs text-muted-foreground">
+                  Connect Google Drive to scan invoices, import accounts from Sheets, and manage data with AI-powered review
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-lg font-semibold">AI Smart Data Ingestion</h2>
-              <p className="text-xs text-muted-foreground">
-                Connect Google Drive to scan invoices, import accounts from Sheets, and manage data with AI-powered review
-              </p>
-            </div>
-          </div>
 
-          <SmartIngestionSection />
-        </section>
+            <SmartIngestionSection />
+          </section>
+        )}
 
+        {isIntegrationEnabled("ai_ingestion") && <Separator />}
 
         {(isIntegrationEnabled("erp_netsuite") || isIntegrationEnabled("erp_sage")) && (
           <>
-            <Separator />
             <section className="space-y-4">
               <div className="flex items-center gap-3">
                 <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -360,6 +369,7 @@ const DataCenter = () => {
 
               <ERPIntegrationSuite />
             </section>
+            <Separator />
           </>
         )}
 
