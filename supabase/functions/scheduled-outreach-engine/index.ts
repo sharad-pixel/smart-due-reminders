@@ -448,10 +448,28 @@ Deno.serve(async (req) => {
     const summary = {
       success: true,
       ...result,
+      batchRunId,
       message: `Outreach engine complete: ${result.draftsCancelled} cancelled, ${result.draftsGenerated} generated, ${result.draftsSent} sent`
     };
 
     console.log('[OUTREACH-ENGINE] Summary:', summary);
+
+    // Update batch run record
+    if (batchRunId) {
+      await supabaseAdmin
+        .from('outreach_batch_runs')
+        .update({
+          completed_at: new Date().toISOString(),
+          status: 'completed',
+          drafts_generated: result.draftsGenerated,
+          drafts_sent: result.draftsSent,
+          drafts_cancelled: result.draftsCancelled,
+          invoices_processed: result.invoicesProcessed,
+          errors: result.errors.length > 0 ? result.errors.slice(0, 20) : [],
+          summary: summary.message,
+        })
+        .eq('id', batchRunId);
+    }
 
     return new Response(
       JSON.stringify(summary),
@@ -463,6 +481,20 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('[OUTREACH-ENGINE] Fatal error:', error);
+
+    // Update batch run as failed
+    if (typeof batchRunId !== 'undefined' && batchRunId) {
+      await supabaseAdmin
+        .from('outreach_batch_runs')
+        .update({
+          completed_at: new Date().toISOString(),
+          status: 'failed',
+          errors: [error instanceof Error ? error.message : 'Unknown error'],
+          summary: `Failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        })
+        .eq('id', batchRunId);
+    }
+
     return new Response(
       JSON.stringify({
         success: false,
