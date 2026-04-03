@@ -5870,6 +5870,63 @@ export type Database = {
         }
         Relationships: []
       }
+      outreach_batch_runs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          drafts_cancelled: number | null
+          drafts_failed: number | null
+          drafts_generated: number | null
+          drafts_sent: number | null
+          errors: Json | null
+          id: string
+          invoices_processed: number | null
+          started_at: string
+          status: string
+          summary: string | null
+          trigger_type: string
+          user_id: string
+          workflows_assigned: number | null
+          workflows_upgraded: number | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          drafts_cancelled?: number | null
+          drafts_failed?: number | null
+          drafts_generated?: number | null
+          drafts_sent?: number | null
+          errors?: Json | null
+          id?: string
+          invoices_processed?: number | null
+          started_at?: string
+          status?: string
+          summary?: string | null
+          trigger_type?: string
+          user_id: string
+          workflows_assigned?: number | null
+          workflows_upgraded?: number | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          drafts_cancelled?: number | null
+          drafts_failed?: number | null
+          drafts_generated?: number | null
+          drafts_sent?: number | null
+          errors?: Json | null
+          id?: string
+          invoices_processed?: number | null
+          started_at?: string
+          status?: string
+          summary?: string | null
+          trigger_type?: string
+          user_id?: string
+          workflows_assigned?: number | null
+          workflows_upgraded?: number | null
+        }
+        Relationships: []
+      }
       outreach_errors: {
         Row: {
           attempted_at: string
