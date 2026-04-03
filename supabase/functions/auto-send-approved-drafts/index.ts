@@ -163,11 +163,16 @@ Deno.serve(async (req) => {
   try {
     // Parse request body to check for specific draft IDs
     let requestedDraftIds: string[] | null = null;
+    let sendWindowDate: string | null = null;
     try {
       const body = await req.json();
       if (body?.draftIds && Array.isArray(body.draftIds) && body.draftIds.length > 0) {
         requestedDraftIds = body.draftIds as string[];
         console.log(`[AUTO-SEND] Requested specific draft IDs: ${(requestedDraftIds as string[]).join(', ')}`);
+      }
+      if (body?.send_window_date) {
+        sendWindowDate = body.send_window_date;
+        console.log(`[AUTO-SEND] Using send window date: ${sendWindowDate}`);
       }
     } catch {
       // No body or invalid JSON - process all eligible drafts
@@ -187,9 +192,11 @@ Deno.serve(async (req) => {
     );
 
     // Get all approved drafts that haven't been sent yet
-    // Include drafts where recommended_send_date is today or in the past (catch-up)
+    // Include drafts where recommended_send_date is within the send window (catch-up + 24h forward)
     // Process in batches to avoid timeouts
     const today = new Date().toISOString().split('T')[0];
+    // Use send_window_date if provided (24h forward window), otherwise use today
+    const cutoffDate = sendWindowDate || today;
     const TOTAL_BATCH_SIZE = 50;
     const INVOICE_BATCH_SIZE = requestedDraftIds && requestedDraftIds.length > 0 ? TOTAL_BATCH_SIZE : 25;
     const ACCOUNT_BATCH_SIZE = requestedDraftIds && requestedDraftIds.length > 0 ? TOTAL_BATCH_SIZE : 25;
@@ -245,7 +252,7 @@ Deno.serve(async (req) => {
     if (requestedDraftIds && requestedDraftIds.length > 0) {
       invoiceDraftQuery = invoiceDraftQuery.in('id', requestedDraftIds);
     } else {
-      invoiceDraftQuery = invoiceDraftQuery.lte('recommended_send_date', today);
+      invoiceDraftQuery = invoiceDraftQuery.lte('recommended_send_date', cutoffDate);
     }
 
     const { data: invoiceDrafts, error: invoiceDraftsError } = await invoiceDraftQuery
@@ -331,7 +338,7 @@ Deno.serve(async (req) => {
         .is('sent_at', null)
         .is('invoice_id', null)
         .not('recommended_send_date', 'is', null)
-        .lte('recommended_send_date', today)
+        .lte('recommended_send_date', cutoffDate)
         .order('recommended_send_date', { ascending: true })
         .limit(ACCOUNT_BATCH_SIZE);
 

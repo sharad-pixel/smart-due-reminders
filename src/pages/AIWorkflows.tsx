@@ -29,6 +29,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { personaConfig, PersonaConfig } from "@/lib/personaConfig";
 import { cn } from "@/lib/utils";
 import { OutreachStatusCards } from "@/components/outreach/OutreachStatusCards";
+import { OutreachBatchRunHistory } from "@/components/outreach/OutreachBatchRunHistory";
 import { OutreachInsightsPanel } from "@/components/ai-workflows/OutreachInsightsPanel";
 import { WorkflowHeroHeader } from "@/components/ai-workflows/WorkflowHeroHeader";
 import { AutoGenerateAlert } from "@/components/ai-workflows/AutoGenerateAlert";
@@ -1219,11 +1220,15 @@ const AIWorkflows = () => {
 
         {/* Outreach Status + Insights */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-          <OutreachStatusCards onRefresh={() => {
-            fetchInvoiceCounts();
-            fetchDraftsByPersona();
-            refetchErrors();
-          }} />
+          <div className="space-y-4">
+            <OutreachStatusCards onRefresh={() => {
+              fetchInvoiceCounts();
+              fetchDraftsByPersona();
+              refetchErrors();
+              queryClient.invalidateQueries({ queryKey: ["outreach-batch-runs"] });
+            }} />
+            <OutreachBatchRunHistory />
+          </div>
           <OutreachInsightsPanel />
         </div>
 

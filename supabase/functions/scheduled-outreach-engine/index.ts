@@ -60,9 +60,39 @@ Deno.serve(async (req) => {
       }
     );
 
-    const today = new Date();
+    const now = new Date();
+    const today = new Date(now);
     today.setHours(0, 0, 0, 0);
     const todayStr = today.toISOString().split('T')[0];
+    
+    // Calculate 24-hour forward window for sending
+    const next24h = new Date(now);
+    next24h.setHours(next24h.getHours() + 24);
+    const next24hStr = next24h.toISOString().split('T')[0];
+
+    // Determine trigger type from request body
+    let triggerType = 'cron';
+    let userId: string | null = null;
+    try {
+      const body = await req.json();
+      triggerType = body?.trigger_type || 'cron';
+      userId = body?.user_id || null;
+    } catch { /* no body */ }
+
+    // Log batch run start
+    let batchRunId: string | null = null;
+    if (userId) {
+      const { data: batchRun } = await supabaseAdmin
+        .from('outreach_batch_runs')
+        .insert({
+          user_id: userId,
+          trigger_type: triggerType,
+          status: 'running',
+        })
+        .select('id')
+        .single();
+      batchRunId = batchRun?.id || null;
+    }
 
     // ============================================================
     // PHASE 1: Cancel outreach for paid/terminal invoices
@@ -151,7 +181,7 @@ Deno.serve(async (req) => {
     result.phase = 'generating_drafts';
     console.log('[OUTREACH-ENGINE] Phase 2: Generating drafts for next 7 days...');
 
-    // Calculate date range for next 7 days
+    // Calculate date range for next 7 days (for draft generation)
     const next7Days: string[] = [];
     for (let i = 0; i <= 7; i++) {
       const date = new Date(today);
@@ -367,6 +397,7 @@ Deno.serve(async (req) => {
               channel: 'email',
               status: draftStatus,
               recommended_send_date: cadenceDay <= currentDaysInBucket ? todayStr : targetDateStr,
+              // Drafts due within next 24h will be picked up for sending
               days_past_due: daysPastDue,
               auto_approved: shouldAutoApprove
             });
@@ -394,7 +425,7 @@ Deno.serve(async (req) => {
     try {
       const { data: sendResult, error: sendError } = await supabaseAdmin.functions.invoke(
         'auto-send-approved-drafts',
-        { body: {} }
+        { body: { send_window_date: next24hStr } }
       );
 
       if (sendError) {
@@ -417,10 +448,28 @@ Deno.serve(async (req) => {
     const summary = {
       success: true,
       ...result,
+      batchRunId,
       message: `Outreach engine complete: ${result.draftsCancelled} cancelled, ${result.draftsGenerated} generated, ${result.draftsSent} sent`
     };
 
     console.log('[OUTREACH-ENGINE] Summary:', summary);
+
+    // Update batch run record
+    if (batchRunId) {
+      await supabaseAdmin
+        .from('outreach_batch_runs')
+        .update({
+          completed_at: new Date().toISOString(),
+          status: 'completed',
+          drafts_generated: result.draftsGenerated,
+          drafts_sent: result.draftsSent,
+          drafts_cancelled: result.draftsCancelled,
+          invoices_processed: result.invoicesProcessed,
+          errors: result.errors.length > 0 ? result.errors.slice(0, 20) : [],
+          summary: summary.message,
+        })
+        .eq('id', batchRunId);
+    }
 
     return new Response(
       JSON.stringify(summary),
@@ -432,6 +481,20 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('[OUTREACH-ENGINE] Fatal error:', error);
+
+    // Update batch run as failed
+    if (typeof batchRunId !== 'undefined' && batchRunId) {
+      await supabaseAdmin
+        .from('outreach_batch_runs')
+        .update({
+          completed_at: new Date().toISOString(),
+          status: 'failed',
+          errors: [error instanceof Error ? error.message : 'Unknown error'],
+          summary: `Failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        })
+        .eq('id', batchRunId);
+    }
+
     return new Response(
       JSON.stringify({
         success: false,

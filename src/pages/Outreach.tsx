@@ -21,6 +21,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AGING_BUCKETS } from "@/lib/agingBuckets";
+import { OutreachBatchRunHistory } from "@/components/outreach/OutreachBatchRunHistory";
 
 interface RefreshResult {
   workflowsCreated: number;
@@ -142,10 +143,13 @@ const Outreach = () => {
     setIsRefreshing(true);
     setRefreshResult(null);
     try {
-      toast.info("Scanning all invoices and generating outreach...");
+      toast.info("Scanning all invoices and generating outreach (next 24h window)...");
       
-      const { data, error } = await supabase.functions.invoke("ensure-invoice-workflows", {
-        body: {},
+      // Get current user for batch run logging
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      const { data, error } = await supabase.functions.invoke("scheduled-outreach-engine", {
+        body: { trigger_type: "manual", user_id: user?.id },
       });
 
       if (error) {
@@ -154,26 +158,23 @@ const Outreach = () => {
         return;
       }
 
-      const result = data as RefreshResult;
+      const result = {
+        workflowsCreated: data?.workflowsAssigned || 0,
+        workflowsFixed: data?.cadenceFixed || 0,
+        skippedCurrent: 0,
+        schedulerResult: {
+          drafted: data?.draftsGenerated || 0,
+          sent: data?.draftsSent || 0,
+          failed: data?.errors?.length || 0,
+        },
+      } as RefreshResult;
       setRefreshResult(result);
 
-      // Show detailed results
       const messages: string[] = [];
-      if (result?.workflowsCreated > 0) {
-        messages.push(`${result.workflowsCreated} workflow(s) assigned`);
-      }
-      if (result?.workflowsFixed > 0) {
-        messages.push(`${result.workflowsFixed} workflow(s) fixed`);
-      }
-      if (result?.schedulerResult?.drafted > 0) {
-        messages.push(`${result.schedulerResult.drafted} draft(s) created`);
-      }
-      if (result?.schedulerResult?.sent > 0) {
-        messages.push(`${result.schedulerResult.sent} email(s) sent`);
-      }
-      if (result?.skippedCurrent > 0) {
-        messages.push(`${result.skippedCurrent} current-bucket invoice(s) skipped`);
-      }
+      if (data?.draftsGenerated > 0) messages.push(`${data.draftsGenerated} draft(s) generated`);
+      if (data?.draftsSent > 0) messages.push(`${data.draftsSent} email(s) sent`);
+      if (data?.draftsCancelled > 0) messages.push(`${data.draftsCancelled} draft(s) cancelled`);
+      if (data?.invoicesProcessed > 0) messages.push(`${data.invoicesProcessed} invoice(s) processed`);
 
       if (messages.length > 0) {
         toast.success(messages.join(", "));
@@ -185,6 +186,7 @@ const Outreach = () => {
       queryClient.invalidateQueries({ queryKey: ["outreach-summary"] });
       queryClient.invalidateQueries({ queryKey: ["outreach-drafts"] });
       queryClient.invalidateQueries({ queryKey: ["outreach-errors"] });
+      queryClient.invalidateQueries({ queryKey: ["outreach-batch-runs"] });
     } catch (err) {
       console.error("Refresh exception:", err);
       toast.error("Failed to refresh outreach");
@@ -770,6 +772,8 @@ const Outreach = () => {
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
+            {/* Batch Run History */}
+            <OutreachBatchRunHistory />
             {/* Persona Schedule */}
             <Card>
               <CardHeader>
