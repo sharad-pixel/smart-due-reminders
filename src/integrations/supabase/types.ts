@@ -6498,6 +6498,104 @@ export type Database = {
           },
         ]
       }
+      pending_sheet_imports: {
+        Row: {
+          address_line1: string | null
+          address_line2: string | null
+          city: string | null
+          company_name: string | null
+          contact_name: string | null
+          country: string | null
+          created_at: string
+          crm_account_id_external: string | null
+          email: string | null
+          external_customer_id: string | null
+          id: string
+          industry: string | null
+          notes: string | null
+          organization_id: string | null
+          payment_terms_default: string | null
+          phone: string | null
+          postal_code: string | null
+          raw_json: Json
+          reviewed_at: string | null
+          sheet_row_number: number | null
+          sheet_template_id: string | null
+          source: string | null
+          state: string | null
+          status: string
+          type: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address_line1?: string | null
+          address_line2?: string | null
+          city?: string | null
+          company_name?: string | null
+          contact_name?: string | null
+          country?: string | null
+          created_at?: string
+          crm_account_id_external?: string | null
+          email?: string | null
+          external_customer_id?: string | null
+          id?: string
+          industry?: string | null
+          notes?: string | null
+          organization_id?: string | null
+          payment_terms_default?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          raw_json?: Json
+          reviewed_at?: string | null
+          sheet_row_number?: number | null
+          sheet_template_id?: string | null
+          source?: string | null
+          state?: string | null
+          status?: string
+          type?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address_line1?: string | null
+          address_line2?: string | null
+          city?: string | null
+          company_name?: string | null
+          contact_name?: string | null
+          country?: string | null
+          created_at?: string
+          crm_account_id_external?: string | null
+          email?: string | null
+          external_customer_id?: string | null
+          id?: string
+          industry?: string | null
+          notes?: string | null
+          organization_id?: string | null
+          payment_terms_default?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          raw_json?: Json
+          reviewed_at?: string | null
+          sheet_row_number?: number | null
+          sheet_template_id?: string | null
+          source?: string | null
+          state?: string | null
+          status?: string
+          type?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pending_sheet_imports_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plans: {
         Row: {
           created_at: string
