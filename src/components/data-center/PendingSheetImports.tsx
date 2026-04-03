@@ -37,31 +37,28 @@ export function PendingSheetImports() {
         const item = pendingImports?.find(p => p.id === id);
         if (!item) continue;
 
-        // Create the debtor
-        const rawJson = item.raw_json as Record<string, any> || {};
+        const rawJson = (item.raw_json || {}) as Record<string, any>;
         const { data: newDebtor, error: insertErr } = await supabase
           .from("debtors")
-          .insert({
-            user_id: user.id,
-            organization_id: item.organization_id,
-            company_name: item.company_name || rawJson.company_name,
-            name: item.contact_name || rawJson.name,
-            email: item.email || rawJson.email,
-            phone: item.phone || rawJson.phone,
-            address_line1: item.address_line1,
-            address_line2: item.address_line2,
-            city: item.city,
-            state: item.state,
-            postal_code: item.postal_code,
-            country: item.country,
-            industry: item.industry,
+          .insert([{
+            company_name: item.company_name || rawJson.company_name || "Unknown",
+            name: item.contact_name || rawJson.name || null,
+            email: item.email || rawJson.email || null,
+            phone: item.phone || rawJson.phone || null,
+            address_line1: item.address_line1 || null,
+            address_line2: item.address_line2 || null,
+            city: item.city || null,
+            state: item.state || null,
+            postal_code: item.postal_code || null,
+            country: item.country || null,
+            industry: item.industry || null,
             type: item.type || "B2B",
-            external_customer_id: item.external_customer_id,
-            crm_account_id_external: item.crm_account_id_external,
-            payment_terms_default: item.payment_terms_default,
-            notes: item.notes,
+            external_customer_id: item.external_customer_id || null,
+            crm_account_id_external: item.crm_account_id_external || null,
+            payment_terms_default: item.payment_terms_default || null,
+            notes: item.notes || null,
             source_system: "google_sheets",
-          })
+          }])
           .select("reference_id")
           .single();
 
