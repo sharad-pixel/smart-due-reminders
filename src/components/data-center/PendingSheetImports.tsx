@@ -147,17 +147,32 @@ export function PendingSheetImports() {
                 <Trash2 className="h-3.5 w-3.5 mr-1" />
                 Reject ({selectedIds.size})
               </Button>
+              {selectedIds.size > 0 ? (
+                <Button
+                  size="sm"
+                  disabled={approveImports.isPending}
+                  onClick={() => approveImports.mutate(Array.from(selectedIds))}
+                >
+                  {approveImports.isPending ? (
+                    <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                  ) : (
+                    <Check className="h-3.5 w-3.5 mr-1" />
+                  )}
+                  Approve ({selectedIds.size})
+                </Button>
+              ) : null}
               <Button
                 size="sm"
-                disabled={selectedIds.size === 0 || approveImports.isPending}
-                onClick={() => approveImports.mutate(Array.from(selectedIds))}
+                variant="default"
+                disabled={approveImports.isPending || count === 0}
+                onClick={() => approveImports.mutate(pendingImports?.map(p => p.id) || [])}
               >
                 {approveImports.isPending ? (
                   <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
                 ) : (
                   <Check className="h-3.5 w-3.5 mr-1" />
                 )}
-                Approve ({selectedIds.size})
+                Approve All ({count})
               </Button>
             </div>
           )}
