@@ -223,14 +223,14 @@ Deno.serve(async (req) => {
         sheetTitle = `${businessName} - Invoices Master`;
         const { data: invoices } = await supabase
           .from('invoices')
-          .select('invoice_number, amount, amount_original, amount_outstanding, currency, issue_date, due_date, paid_date, status, po_number, product_description, payment_terms, notes, reference_id, debtors(reference_id, company_name)')
+          .select('invoice_number, amount, amount_original, amount_outstanding, currency, issue_date, due_date, paid_date, status, po_number, product_description, payment_terms, notes, reference_id, integration_source, source_system, debtors(reference_id, company_name)')
           .eq('user_id', user.id)
           .in('status', ['Open', 'InPaymentPlan', 'PartiallyPaid'])
           .order('due_date', { ascending: false });
 
         const { data: paidInvoices } = await supabase
           .from('invoices')
-          .select('invoice_number, amount, amount_original, amount_outstanding, currency, issue_date, due_date, paid_date, status, po_number, product_description, payment_terms, notes, reference_id, debtors(reference_id, company_name)')
+          .select('invoice_number, amount, amount_original, amount_outstanding, currency, issue_date, due_date, paid_date, status, po_number, product_description, payment_terms, notes, reference_id, integration_source, source_system, debtors(reference_id, company_name)')
           .eq('user_id', user.id)
           .in('status', ['Paid', 'Canceled', 'Voided', 'Settled', 'FinalInternalCollections'])
           .order('due_date', { ascending: false })
@@ -247,7 +247,8 @@ Deno.serve(async (req) => {
           inv.amount_outstanding || inv.amount || 0,
           inv.currency || 'USD', inv.issue_date || '', inv.due_date || '', inv.status || 'Open',
           inv.po_number || '', inv.product_description || '', inv.payment_terms || '',
-          inv.paid_date || '', inv.notes || '', inv.reference_id || '', 'recouply'
+          inv.paid_date || '', inv.notes || '', inv.reference_id || '',
+          inv.integration_source || inv.source_system || 'recouply'
         ]);
         const paidRows = (paidInvoices || []).map((inv: any) => [
           inv.debtors?.reference_id || '', inv.debtors?.company_name || '',
@@ -255,7 +256,8 @@ Deno.serve(async (req) => {
           inv.amount_outstanding || 0,
           inv.currency || 'USD', inv.issue_date || '', inv.due_date || '', inv.status || 'Paid',
           inv.po_number || '', inv.product_description || '', inv.payment_terms || '',
-          inv.paid_date || '', inv.notes || '', inv.reference_id || '', 'recouply'
+          inv.paid_date || '', inv.notes || '', inv.reference_id || '',
+          inv.integration_source || inv.source_system || 'recouply'
         ]);
         rowCount = openRows.length;
         sheets = [
