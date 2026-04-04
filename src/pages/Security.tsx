@@ -192,7 +192,63 @@ const Security = () => {
         </div>
       </section>
 
-      {/* Compliance Alignment */}
+      {/* Automated Security Scanning */}
+      <section className="py-20 px-4 bg-muted/30">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center space-y-4 mb-12">
+            <div className="inline-flex items-center justify-center p-3 bg-primary/10 rounded-full mb-4">
+              <Scan className="h-8 w-8 text-primary" />
+            </div>
+            <h2 className="text-3xl md:text-4xl font-bold">Automated Security Scanning</h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Four automated scanners continuously monitor your data for vulnerabilities — running during development, before publishing, and on demand
+            </p>
+          </div>
+          <div className="grid md:grid-cols-2 gap-6">
+            {automatedScanners.map((scanner, index) => {
+              const icons = [Database, Shield, Code, Package];
+              const ScannerIcon = icons[index];
+              return (
+                <Card key={index} className="border-2 hover:border-primary/50 transition-all">
+                  <CardHeader>
+                    <div className="flex items-start gap-4">
+                      <div className="p-3 bg-primary/10 rounded-lg">
+                        <ScannerIcon className="h-6 w-6 text-primary" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-xl">{scanner.title}</CardTitle>
+                        <p className="text-xs text-primary font-medium mt-1">{scanner.triggerInfo}</p>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground">{scanner.description}</p>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+          <Card className="mt-8 border-primary/30 bg-gradient-to-r from-primary/5 to-primary/10">
+            <CardContent className="py-6">
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-primary/10 rounded-full flex-shrink-0">
+                  <Key className="h-6 w-6 text-primary" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-lg">API Key Protection</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Recouply.ai automatically detects API keys and secrets to prevent them from being exposed in client-side code. 
+                    Credentials are stored securely in server-side secret storage and accessed only through secure backend functions — keeping 
+                    your integrations safe from exposure.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
+
       <section className="py-20 px-4 bg-muted/30">
         <div className="max-w-6xl mx-auto">
           <div className="text-center space-y-4 mb-12">
