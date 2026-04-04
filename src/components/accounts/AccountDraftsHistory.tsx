@@ -642,6 +642,7 @@ export function AccountDraftsHistory({ debtorId }: AccountDraftsHistoryProps) {
         onApprove={handleApproveDraft}
         onEdit={handleEditDraft}
         onDiscard={handleDiscardDraft}
+        onRegenerate={handleRegenerateDraft}
       />
     </Card>
   );
