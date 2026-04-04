@@ -92,51 +92,24 @@ export default function PublicPaymentPlanPage() {
 
   const fetchPaymentPlan = async () => {
     try {
-      // Fetch payment plan by public token
-      const { data: planData, error: planError } = await supabase
-        .from("payment_plans")
-        .select(`
-          *,
-          debtors:debtor_id (
-            company_name,
-            reference_id,
-            user_id
-          )
-        `)
-        .eq("public_token", token)
-        .single();
+      // Use secure RPC function to fetch payment plan by token
+      const { data: rpcResult, error: rpcError } = await supabase
+        .rpc("get_payment_plan_by_token", { p_token: token });
 
-      if (planError || !planData) {
+      const result = rpcResult as Record<string, unknown> | null;
+
+      if (rpcError || !result || result.error) {
         setError("Payment plan not found or has expired.");
         setLoading(false);
         return;
       }
 
-      setPlan(planData);
-      setDebtor(planData.debtors);
+      setPlan(result.plan as PaymentPlan);
+      setDebtor(result.debtor as DebtorInfo);
+      setInstallments((result.installments as Installment[]) || []);
 
-      // Fetch installments
-      const { data: installmentsData, error: installmentsError } = await supabase
-        .from("payment_plan_installments")
-        .select("*")
-        .eq("payment_plan_id", planData.id)
-        .order("installment_number");
-
-      if (!installmentsError) {
-        setInstallments(installmentsData || []);
-      }
-
-      // Fetch branding from the plan owner
-      if (planData.debtors?.user_id) {
-        const { data: brandingData } = await supabase
-          .from("branding_settings")
-          .select("business_name, logo_url, primary_color, accent_color, stripe_payment_link, footer_disclaimer")
-          .eq("user_id", planData.debtors.user_id)
-          .single();
-
-        if (brandingData) {
-          setBranding(brandingData);
-        }
+      if (result.branding) {
+        setBranding(result.branding as BrandingInfo);
       }
     } catch (err: any) {
       console.error("Error fetching payment plan:", err);
