@@ -303,7 +303,7 @@ export function OutreachForecastSimulator() {
               Outreach Forecast Simulator
             </CardTitle>
             <CardDescription>
-              Project invoice aging &amp; planned outreach on a future date
+              Outreach scheduled beyond the next 24 hours. Select a future date to project invoice aging &amp; planned communications.
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
