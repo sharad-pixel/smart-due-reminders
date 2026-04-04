@@ -92,6 +92,7 @@ const Debtors = () => {
   const [outreachFilter, setOutreachFilter] = useState<string>("all");
   const [balanceFilter, setBalanceFilter] = useState<string>("with_balance");
   const [currencyFilter, setCurrencyFilter] = useState<string>("all");
+  const [archivedFilter, setArchivedFilter] = useState<string>("active");
   const [availableCurrencies, setAvailableCurrencies] = useState<string[]>([]);
   const [debtorCurrencyMap, setDebtorCurrencyMap] = useState<Record<string, Set<string>>>({});
   const [isCreateOpen, setIsCreateOpen] = useState(false);
