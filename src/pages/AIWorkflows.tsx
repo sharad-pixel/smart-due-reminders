@@ -1307,7 +1307,7 @@ const AIWorkflows = () => {
                           <div className="text-center whitespace-nowrap">
                             <p className="text-xs font-semibold">{persona.name}</p>
                             <p className="text-[10px] text-muted-foreground">
-                              {persona.bucketMin}-{persona.bucketMax || "+"} Days
+                              {key === "nicolas" ? "Support Agent" : `${persona.bucketMin}-${persona.bucketMax || "+"} Days`}
                             </p>
                           </div>
                         </button>
