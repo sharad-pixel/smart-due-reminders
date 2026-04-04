@@ -492,6 +492,26 @@ Deno.serve(async (req) => {
         const processedSubject = sanitizeSubjectLine(replaceTemplateVars(draft.subject || 'Payment Reminder', invoice, debtor, branding, daysPastDue));
         let processedBody = replaceTemplateVars(draft.message_body, invoice, debtor, branding, daysPastDue);
 
+        // GUARD: If message body is empty or has no meaningful text content, use a fallback
+        const strippedForCheck = (processedBody || '')
+          .replace(/https?:\/\/\S+/g, '')  // Remove URLs
+          .replace(/[📄💳🔒]/g, '')         // Remove emojis
+          .replace(/---/g, '')              // Remove separators
+          .replace(/View your invoice:/gi, '')
+          .replace(/Access your account portal:/gi, '')
+          .replace(/Make a payment:/gi, '')
+          .replace(/Thank you for your business\./gi, '')
+          .trim();
+
+        if (strippedForCheck.length < 15) {
+          console.warn(`[AUTO-SEND] Draft ${draft.id} has empty/minimal body (${strippedForCheck.length} chars). Using fallback message.`);
+          const customerName = debtor?.name || debtor?.company_name || 'Valued Customer';
+          const invoiceNumber = invoice?.invoice_number || invoice?.reference_id || '';
+          const invoiceCurrency = invoice?.currency || 'USD';
+          const amount = new Intl.NumberFormat('en-US', { style: 'currency', currency: invoiceCurrency, minimumFractionDigits: 2 }).format(invoice?.amount || 0);
+          processedBody = `Dear ${customerName},\n\nThis is a friendly reminder regarding invoice ${invoiceNumber} for ${amount} which is now past due.\n\nPlease arrange payment at your earliest convenience. If you have already made this payment, please disregard this notice.\n\nThank you for your prompt attention to this matter.`;
+        }
+
         // Ensure message has contact info, signature, and links
         processedBody = ensureMessageHasContactInfo(processedBody, branding);
 
