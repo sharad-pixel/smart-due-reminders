@@ -34,6 +34,7 @@ import { OutreachInsightsPanel } from "@/components/ai-workflows/OutreachInsight
 import { WorkflowHeroHeader } from "@/components/ai-workflows/WorkflowHeroHeader";
 import { AutoGenerateAlert } from "@/components/ai-workflows/AutoGenerateAlert";
 import { OutreachForecastSimulator } from "@/components/ai-workflows/OutreachForecastSimulator";
+import { IncompleteWorkflowAlert } from "@/components/ai-workflows/IncompleteWorkflowAlert";
 
 interface WorkflowStep {
   id: string;
@@ -1021,13 +1022,30 @@ const AIWorkflows = () => {
         
         await fetchDraftsByPersona();
         await fetchStepDraftCounts();
+      } else if (result.error) {
+        const errorMsg = result.error;
+        if (errorMsg.includes('429') || errorMsg.includes('rate limit')) {
+          toast.error('AI rate limit reached. Please wait a moment and try again.', { duration: 6000 });
+        } else if (errorMsg.includes('402') || errorMsg.includes('payment')) {
+          toast.error('AI credits exhausted. Please add funds in Settings → Workspace → Usage.', { duration: 8000 });
+        } else {
+          toast.error(`Regeneration failed: ${errorMsg}`, { duration: 6000 });
+        }
+        return;
       }
       
       setRegenerateDialogOpen(false);
       setRegenerateTarget(null);
     } catch (error: any) {
       console.error('Error regenerating template:', error);
-      toast.error('Failed to regenerate template');
+      const msg = error?.message || '';
+      if (msg.includes('Not authenticated') || msg.includes('401')) {
+        toast.error('Session expired. Please log in again to regenerate templates.');
+      } else if (msg.includes('network') || msg.includes('fetch')) {
+        toast.error('Network error. Please check your connection and try again.');
+      } else {
+        toast.error(`Failed to regenerate template: ${msg || 'Unknown error'}`, { duration: 5000 });
+      }
     } finally {
       setIsRegenerating(false);
     }
@@ -1732,6 +1750,13 @@ const AIWorkflows = () => {
           <TabsContent value="config" className="space-y-4 mt-0">
         {/* Workflow Configuration */}
         <div className="space-y-6">
+            {selectedWorkflow && (
+              <IncompleteWorkflowAlert
+                steps={selectedWorkflow.steps || []}
+                stepDraftCounts={stepDraftCounts[selectedBucket]?.[selectedWorkflow.id] || {}}
+                workflowName={selectedWorkflow.name}
+              />
+            )}
             {selectedWorkflow ? (
               <Card>
                 <CardHeader>

@@ -55,8 +55,15 @@ export const DraftPreviewModal = ({
     try {
       await onRegenerate(draft.id, toneIntensity);
       toast.success("Draft regenerated with new tone");
-    } catch (_error) {
-      toast.error("Failed to regenerate draft");
+    } catch (error: any) {
+      const msg = error?.message || '';
+      if (msg.includes('429') || msg.includes('rate limit')) {
+        toast.error('AI rate limit reached. Please wait a moment and try again.', { duration: 6000 });
+      } else if (msg.includes('402') || msg.includes('payment')) {
+        toast.error('AI credits exhausted. Please add funds in Settings → Workspace → Usage.', { duration: 8000 });
+      } else {
+        toast.error(`Failed to regenerate draft: ${msg || 'Unknown error'}`, { duration: 5000 });
+      }
     } finally {
       setIsRegenerating(false);
     }
