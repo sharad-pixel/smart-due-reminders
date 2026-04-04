@@ -1235,7 +1235,7 @@ const AIWorkflows = () => {
         </div>
 
         {/* Tabbed Interface */}
-        <Tabs defaultValue="agents" className="space-y-4">
+        <Tabs defaultValue={initialTab} className="space-y-4">
           <TabsList className="grid w-full grid-cols-4 sm:w-auto sm:inline-grid">
             <TabsTrigger value="agents" className="gap-1.5">
               <Sparkles className="h-3.5 w-3.5" />
