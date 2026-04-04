@@ -105,6 +105,10 @@ export const usePaymentsActivity = (options: UsePaymentsActivityOptions = {}) =>
         query = query.lte('transaction_date', filters.dateTo);
       }
 
+      if (filters.searchQuery && filters.searchQuery.trim()) {
+        query = query.or(`reference_number.ilike.%${filters.searchQuery.trim()}%,notes.ilike.%${filters.searchQuery.trim()}%,reason.ilike.%${filters.searchQuery.trim()}%`);
+      }
+
       // Apply pagination
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
