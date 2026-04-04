@@ -143,7 +143,7 @@ const Debtors = () => {
             crm_account_id_external, open_invoices_count, max_days_past_due,
             payment_score, avg_days_to_pay, city, state,
             credit_limit, payment_terms_default, created_at,
-            account_outreach_enabled, outreach_frequency,
+            account_outreach_enabled, outreach_frequency, is_archived,
             debtor_contacts (id, name, title, email, phone, is_primary, outreach_enabled)
           `)
           .order("created_at", { ascending: false }),
