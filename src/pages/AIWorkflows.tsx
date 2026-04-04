@@ -989,28 +989,17 @@ const AIWorkflows = () => {
       if (deleteError) throw deleteError;
 
       // Then regenerate with tone and approach options
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Not authenticated");
+      const { data: result, error: invokeError } = await supabase.functions.invoke('generate-template-drafts', {
+        body: { 
+          aging_bucket: regenerateTarget.bucket,
+          tone_modifier: regenerateTone,
+          approach_style: regenerateApproach
+        },
+      });
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-template-drafts`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ 
-            aging_bucket: regenerateTarget.bucket,
-            tone_modifier: regenerateTone,
-            approach_style: regenerateApproach
-          }),
-        }
-      );
+      if (invokeError) throw invokeError;
 
-      const result = await response.json();
-
-      if (!response.ok) {
+      if (!result?.success && result?.error) {
         throw new Error(result.error || 'Failed to regenerate template');
       }
       
