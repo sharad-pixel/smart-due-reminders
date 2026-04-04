@@ -79,7 +79,7 @@ interface DraftsByPersona {
 
 const AIWorkflows = () => {
   const _navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const initialTab = searchParams.get('tab') || 'agents';
   const [loading, setLoading] = useState(true);
