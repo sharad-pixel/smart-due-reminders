@@ -5,7 +5,7 @@ import SEOHead from "@/components/seo/SEOHead";
 import { PAGE_SEO } from "@/lib/seoConfig";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Shield, Lock, Eye, Server, CheckCircle2, FileText, Key, Globe, Brain, Download } from "lucide-react";
+import { Shield, Lock, Eye, Server, CheckCircle2, FileText, Key, Globe, Brain, Download, Scan, Database, Code, Package } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
