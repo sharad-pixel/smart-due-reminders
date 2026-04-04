@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
@@ -79,7 +79,9 @@ interface DraftsByPersona {
 
 const AIWorkflows = () => {
   const _navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
+  const initialTab = searchParams.get('tab') || 'agents';
   const [loading, setLoading] = useState(true);
   const [selectedBucket, setSelectedBucket] = useState("dpd_1_30");
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
@@ -1233,7 +1235,7 @@ const AIWorkflows = () => {
         </div>
 
         {/* Tabbed Interface */}
-        <Tabs defaultValue="agents" className="space-y-4">
+        <Tabs defaultValue={initialTab} className="space-y-4">
           <TabsList className="grid w-full grid-cols-4 sm:w-auto sm:inline-grid">
             <TabsTrigger value="agents" className="gap-1.5">
               <Sparkles className="h-3.5 w-3.5" />

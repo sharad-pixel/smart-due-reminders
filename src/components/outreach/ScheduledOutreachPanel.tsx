@@ -344,9 +344,16 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
     fetchScheduledOutreach();
   }, [effectiveAccountId, accountLoading]);
 
-  // Apply filters
+  // Apply filters - only show items within next 24 hours (or overdue/today)
   const filteredItems = useMemo(() => {
-    let result = [...items];
+    const now = new Date();
+    const next24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+    // First filter to only items scheduled within the next 24 hours (or overdue)
+    let result = items.filter(item => {
+      const scheduled = new Date(item.scheduled_date);
+      return scheduled <= next24h;
+    });
 
     // Search filter
     if (searchFilter) {
@@ -380,7 +387,12 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
     return result;
   }, [items, searchFilter, sourceFilter, statusFilter, selectedPersona]);
   
-  // Clear selection when filters change
+  // Count items beyond 24h for the forecast link
+  const beyondNext24hCount = useMemo(() => {
+    const next24h = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    return items.filter(item => new Date(item.scheduled_date) > next24h).length;
+  }, [items]);
+
   useEffect(() => {
     setSelectedIds(new Set());
   }, [searchFilter, sourceFilter, statusFilter, selectedPersona]);
@@ -688,11 +700,17 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
               <div>
                 <CardTitle className="flex items-center gap-2">
                   <Calendar className="h-5 w-5" />
-                  Scheduled Outreach
+                  Outreach — Next 24 Hours
                 </CardTitle>
                 <CardDescription>
-                  Approved drafts are sent automatically. "Needs Approval" requires your review before sending.
-                  Closed invoices (Paid, Canceled, Voided) are excluded from outreach.
+                  Drafts scheduled within the next 24 hours. Approved drafts are sent automatically. "Needs Approval" requires your review.
+                  {beyondNext24hCount > 0 && (
+                    <span className="ml-1">
+                      <Button variant="link" size="sm" className="h-auto p-0 text-xs text-primary" onClick={() => navigate('/ai-workflows?tab=forecast')}>
+                        {beyondNext24hCount} more scheduled beyond 24h → View Forecast
+                      </Button>
+                    </span>
+                  )}
                 </CardDescription>
               </div>
               <div className="flex items-center gap-2">

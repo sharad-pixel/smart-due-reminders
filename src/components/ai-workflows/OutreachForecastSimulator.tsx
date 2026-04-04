@@ -105,7 +105,7 @@ function getBucketForDPD(dpd: number): string {
 export function OutreachForecastSimulator() {
   const { effectiveAccountId } = useEffectiveAccount();
   const navigate = useNavigate();
-  const [forecastDate, setForecastDate] = useState<Date>(addDays(new Date(), 30));
+  const [forecastDate, setForecastDate] = useState<Date>(addDays(new Date(), 7));
   const [expandedBuckets, setExpandedBuckets] = useState<Set<string>>(new Set());
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [bucketPages, setBucketPages] = useState<Record<string, number>>({});
@@ -303,7 +303,7 @@ export function OutreachForecastSimulator() {
               Outreach Forecast Simulator
             </CardTitle>
             <CardDescription>
-              Project invoice aging &amp; planned outreach on a future date
+              Outreach scheduled beyond the next 24 hours. Select a future date to project invoice aging &amp; planned communications.
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
