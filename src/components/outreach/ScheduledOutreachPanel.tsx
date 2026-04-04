@@ -344,9 +344,16 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
     fetchScheduledOutreach();
   }, [effectiveAccountId, accountLoading]);
 
-  // Apply filters
+  // Apply filters - only show items within next 24 hours (or overdue/today)
   const filteredItems = useMemo(() => {
-    let result = [...items];
+    const now = new Date();
+    const next24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+    // First filter to only items scheduled within the next 24 hours (or overdue)
+    let result = items.filter(item => {
+      const scheduled = new Date(item.scheduled_date);
+      return scheduled <= next24h;
+    });
 
     // Search filter
     if (searchFilter) {
