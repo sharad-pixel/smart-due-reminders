@@ -1750,8 +1750,14 @@ const AIWorkflows = () => {
           <TabsContent value="config" className="space-y-4 mt-0">
         {/* Workflow Configuration */}
         <div className="space-y-6">
+            {selectedWorkflow && (
+              <IncompleteWorkflowAlert
+                steps={selectedWorkflow.steps || []}
+                stepDraftCounts={stepDraftCounts[selectedBucket]?.[selectedWorkflow.id] || {}}
+                workflowName={selectedWorkflow.name}
+              />
+            )}
             {selectedWorkflow ? (
-              <Card>
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
                     <BarChart3 className="h-5 w-5" />
