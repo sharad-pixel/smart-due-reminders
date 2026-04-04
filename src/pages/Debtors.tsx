@@ -145,7 +145,6 @@ const Debtors = () => {
             account_outreach_enabled, outreach_frequency,
             debtor_contacts (id, name, title, email, phone, is_primary, outreach_enabled)
           `)
-          .eq("is_archived", false)
           .order("created_at", { ascending: false }),
         supabase
           .from("invoices")
