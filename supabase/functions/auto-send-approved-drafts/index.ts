@@ -726,6 +726,24 @@ Deno.serve(async (req) => {
         // CRITICAL: Sanitize subject to remove any URLs - they should only appear in email body
         const processedSubject = sanitizeSubjectLine(replaceTemplateVars(draft.subject || 'Account Summary', {}, debtor, branding, 0));
         let processedBody = replaceTemplateVars(draft.message_body || '', {}, debtor, branding, 0);
+
+        // GUARD: If message body is empty or has no meaningful text content, use a fallback
+        const strippedForCheck = (processedBody || '')
+          .replace(/https?:\/\/\S+/g, '')
+          .replace(/[📄💳🔒]/g, '')
+          .replace(/---/g, '')
+          .replace(/View your invoice:/gi, '')
+          .replace(/Access your account portal:/gi, '')
+          .replace(/Make a payment:/gi, '')
+          .replace(/Thank you for your business\./gi, '')
+          .trim();
+
+        if (strippedForCheck.length < 15) {
+          console.warn(`[AUTO-SEND] Account draft ${draft.id} has empty/minimal body (${strippedForCheck.length} chars). Using fallback message.`);
+          const customerName = debtor?.name || debtor?.company_name || 'Valued Customer';
+          processedBody = `Dear ${customerName},\n\nWe are reaching out regarding your account. You have outstanding invoices that require your attention.\n\nPlease review your account and arrange payment at your earliest convenience. If you have any questions, please don't hesitate to contact us.\n\nThank you for your prompt attention to this matter.`;
+        }
+
         processedBody = ensureMessageHasContactInfo(processedBody, branding);
 
         const emailHtml = renderEmail({
