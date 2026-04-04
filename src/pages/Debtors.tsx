@@ -67,6 +67,7 @@ interface Debtor {
   created_at: string | null;
   account_outreach_enabled: boolean | null;
   outreach_frequency: string | null;
+  is_archived: boolean | null;
   contacts?: DebtorContact[];
   // Email status fields
   email_status: string | null;
