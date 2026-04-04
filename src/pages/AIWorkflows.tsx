@@ -1758,7 +1758,7 @@ const AIWorkflows = () => {
               />
             )}
             {selectedWorkflow ? (
-                <CardHeader>
+              <Card>
                   <CardTitle className="text-lg flex items-center gap-2">
                     <BarChart3 className="h-5 w-5" />
                     Workflow Timeline — {agingBuckets.find(b => b.value === selectedBucket)?.label}
