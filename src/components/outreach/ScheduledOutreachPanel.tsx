@@ -387,7 +387,12 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
     return result;
   }, [items, searchFilter, sourceFilter, statusFilter, selectedPersona]);
   
-  // Clear selection when filters change
+  // Count items beyond 24h for the forecast link
+  const beyondNext24hCount = useMemo(() => {
+    const next24h = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    return items.filter(item => new Date(item.scheduled_date) > next24h).length;
+  }, [items]);
+
   useEffect(() => {
     setSelectedIds(new Set());
   }, [searchFilter, sourceFilter, statusFilter, selectedPersona]);
