@@ -472,6 +472,32 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
     }
   };
 
+  const handleRegenerateDraft = async (draftId: string, toneIntensity?: number) => {
+    const toneMap: Record<number, "friendly" | "neutral" | "firm"> = {
+      1: "friendly", 2: "friendly", 3: "neutral", 4: "firm", 5: "firm"
+    };
+    const tone = toneMap[toneIntensity || 3] || "neutral";
+    
+    const { data, error } = await supabase.functions.invoke("generate-outreach-draft", {
+      body: {
+        invoice_id: id,
+        tone,
+        step_number: previewDraft?.step_number || 1,
+      },
+    });
+
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+
+    if (data?.email_draft) {
+      setPreviewDraft({
+        ...data.email_draft,
+        invoice_number: invoice?.invoice_number,
+      });
+    }
+    fetchData();
+  };
+
   const handleGenerateDraft = async () => {
     setGeneratingDraft(true);
     try {
@@ -2090,6 +2116,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
           onApprove={handleApproveAndSend}
           onEdit={handleEditDraftFromPreview}
           onDiscard={handleDiscardDraft}
+          onRegenerate={handleRegenerateDraft}
         />
 
         <Dialog open={editInvoiceDialogOpen} onOpenChange={setEditInvoiceDialogOpen}>
