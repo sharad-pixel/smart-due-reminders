@@ -2116,6 +2116,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
           onApprove={handleApproveAndSend}
           onEdit={handleEditDraftFromPreview}
           onDiscard={handleDiscardDraft}
+          onRegenerate={handleRegenerateDraft}
         />
 
         <Dialog open={editInvoiceDialogOpen} onOpenChange={setEditInvoiceDialogOpen}>
