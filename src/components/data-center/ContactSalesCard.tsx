@@ -98,7 +98,7 @@ export const ContactSalesCard = () => {
 
           <div className="flex items-center justify-center pt-2">
             <Button variant="outline" size="sm" asChild>
-              <a href="mailto:sales@recouply.ai" className="gap-2">
+              <a href="mailto:Support@recouply.ai" className="gap-2">
                 <Mail className="h-4 w-4" />
                 Contact Sales to Enable
               </a>
