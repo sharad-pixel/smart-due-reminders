@@ -296,6 +296,30 @@ export function AccountDraftsHistory({ debtorId }: AccountDraftsHistoryProps) {
     }
   };
 
+  const handleRegenerateDraft = async (draftId: string, toneIntensity?: number) => {
+    if (!selectedDraft) return;
+    const toneMap: Record<number, "friendly" | "neutral" | "firm"> = {
+      1: "friendly", 2: "friendly", 3: "neutral", 4: "firm", 5: "firm"
+    };
+    const tone = toneMap[toneIntensity || 3] || "neutral";
+
+    const { data, error } = await supabase.functions.invoke("generate-outreach-draft", {
+      body: {
+        invoice_id: selectedDraft.invoice_id,
+        tone,
+        step_number: selectedDraft.step_number || 1,
+      },
+    });
+
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+
+    if (data?.email_draft) {
+      setSelectedDraft({ ...selectedDraft, ...data.email_draft });
+    }
+    fetchDrafts();
+  };
+
   const handleDeleteDraft = async (draftId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!confirm("Are you sure you want to permanently delete this draft?")) return;
