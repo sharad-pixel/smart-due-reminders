@@ -999,7 +999,7 @@ const AIWorkflows = () => {
 
       if (invokeError) throw invokeError;
 
-      if (!response.ok) {
+      if (!result?.success && result?.error) {
         throw new Error(result.error || 'Failed to regenerate template');
       }
       
