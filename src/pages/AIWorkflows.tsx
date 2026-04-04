@@ -1325,7 +1325,7 @@ const AIWorkflows = () => {
                         <div className="pt-2 border-t border-border">
                           <p className="text-xs font-medium mb-1">Coverage:</p>
                           <Badge variant="outline" className="text-xs">
-                            {persona.bucketMin}-{persona.bucketMax || "+"} Days Past Due
+                            {key === "nicolas" ? "Support Agent" : `${persona.bucketMin}-${persona.bucketMax || "+"} Days Past Due`}
                           </Badge>
                         </div>
                         <p className="text-xs text-muted-foreground mt-1">
