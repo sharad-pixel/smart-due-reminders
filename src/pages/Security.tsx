@@ -5,7 +5,7 @@ import SEOHead from "@/components/seo/SEOHead";
 import { PAGE_SEO } from "@/lib/seoConfig";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Shield, Lock, Eye, Server, CheckCircle2, FileText, Key, Globe, Brain, Download } from "lucide-react";
+import { Shield, Lock, Eye, Server, CheckCircle2, FileText, Key, Globe, Brain, Download, Scan, Database, Code, Package } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -64,6 +64,29 @@ const Security = () => {
       icon: Server,
       title: "Secure Infrastructure",
       description: "Industry-standard cloud infrastructure with hardened environments. Regular vulnerability reviews, automated backups, and encrypted storage."
+    }
+  ];
+
+  const automatedScanners = [
+    {
+      title: "RLS Analysis",
+      description: "Reviews database access policies and row-level security rules to ensure users only see and modify data they're authorized to access. Runs automatically when database configurations change.",
+      triggerInfo: "Runs on migration/config changes & before publishing"
+    },
+    {
+      title: "Database Security Check",
+      description: "Reviews database schema and RLS configuration together to identify unsafe combinations that could lead to unauthorized access — catching issues not obvious when reviewing rules in isolation.",
+      triggerInfo: "Runs automatically after RLS analysis completes"
+    },
+    {
+      title: "Code Security Review",
+      description: "Analyzes application code for common vulnerability patterns including improper input handling, insecure authentication flows, and unsafe use of external services.",
+      triggerInfo: "Runs on-demand via Security view"
+    },
+    {
+      title: "Dependency Audit",
+      description: "Checks all third-party libraries for known security vulnerabilities, identifying affected packages with recommended remediation steps like version updates.",
+      triggerInfo: "Runs when dependencies change & before publishing"
     }
   ];
 
@@ -169,7 +192,63 @@ const Security = () => {
         </div>
       </section>
 
-      {/* Compliance Alignment */}
+      {/* Automated Security Scanning */}
+      <section className="py-20 px-4 bg-muted/30">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center space-y-4 mb-12">
+            <div className="inline-flex items-center justify-center p-3 bg-primary/10 rounded-full mb-4">
+              <Scan className="h-8 w-8 text-primary" />
+            </div>
+            <h2 className="text-3xl md:text-4xl font-bold">Automated Security Scanning</h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Four automated scanners continuously monitor your data for vulnerabilities — running during development, before publishing, and on demand
+            </p>
+          </div>
+          <div className="grid md:grid-cols-2 gap-6">
+            {automatedScanners.map((scanner, index) => {
+              const icons = [Database, Shield, Code, Package];
+              const ScannerIcon = icons[index];
+              return (
+                <Card key={index} className="border-2 hover:border-primary/50 transition-all">
+                  <CardHeader>
+                    <div className="flex items-start gap-4">
+                      <div className="p-3 bg-primary/10 rounded-lg">
+                        <ScannerIcon className="h-6 w-6 text-primary" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-xl">{scanner.title}</CardTitle>
+                        <p className="text-xs text-primary font-medium mt-1">{scanner.triggerInfo}</p>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground">{scanner.description}</p>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+          <Card className="mt-8 border-primary/30 bg-gradient-to-r from-primary/5 to-primary/10">
+            <CardContent className="py-6">
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-primary/10 rounded-full flex-shrink-0">
+                  <Key className="h-6 w-6 text-primary" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-lg">API Key Protection</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Recouply.ai automatically detects API keys and secrets to prevent them from being exposed in client-side code. 
+                    Credentials are stored securely in server-side secret storage and accessed only through secure backend functions — keeping 
+                    your integrations safe from exposure.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
+
       <section className="py-20 px-4 bg-muted/30">
         <div className="max-w-6xl mx-auto">
           <div className="text-center space-y-4 mb-12">
