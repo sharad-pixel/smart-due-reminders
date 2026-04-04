@@ -8,11 +8,12 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
   DollarSign, ArrowLeft, TrendingUp, Calendar, CreditCard, 
-  Building2, Zap, LinkIcon, FileSpreadsheet
+  Building2, Zap, LinkIcon, FileSpreadsheet, Activity
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { usePaymentsSummary } from '@/hooks/usePaymentsActivity';
 import { PaymentReconciliationTable } from '@/components/payments/PaymentReconciliationTable';
+import { TransactionActivityTable } from '@/components/payments/TransactionActivityTable';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
@@ -120,15 +121,35 @@ const PaymentsActivity = () => {
         )}
 
         {/* Tabs: All Payments / By Upload */}
-        <Tabs defaultValue="all" className="space-y-4">
+        <Tabs defaultValue="activity" className="space-y-4">
           <TabsList>
+            <TabsTrigger value="activity" className="gap-2">
+              <Activity className="h-4 w-4" /> All Activity
+            </TabsTrigger>
             <TabsTrigger value="all" className="gap-2">
-              <DollarSign className="h-4 w-4" /> All Payments
+              <LinkIcon className="h-4 w-4" /> Reconciliation
             </TabsTrigger>
             <TabsTrigger value="uploads" className="gap-2">
               <FileSpreadsheet className="h-4 w-4" /> By Upload
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="activity">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <DollarSign className="h-5 w-5 text-primary" />
+                  Transaction Activity
+                </CardTitle>
+                <CardDescription>
+                  All payments and transactions from every source — Stripe, QuickBooks, manual entries, CSV uploads, and AI ingestion
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <TransactionActivityTable />
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="all">
             <Card>
