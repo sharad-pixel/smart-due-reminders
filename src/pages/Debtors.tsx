@@ -681,6 +681,16 @@ const Debtors = () => {
                     </SelectItem>
                   </SelectContent>
                 </Select>
+                <Select value={archivedFilter} onValueChange={setArchivedFilter}>
+                  <SelectTrigger className="w-full md:w-[160px]">
+                    <SelectValue placeholder="Account status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active Accounts</SelectItem>
+                    <SelectItem value="archived">Archived Accounts</SelectItem>
+                    <SelectItem value="all">All Accounts</SelectItem>
+                  </SelectContent>
+                </Select>
                 <Select value={balanceFilter} onValueChange={setBalanceFilter}>
                   <SelectTrigger className="w-full md:w-[180px]">
                     <SelectValue placeholder="Balance filter" />
