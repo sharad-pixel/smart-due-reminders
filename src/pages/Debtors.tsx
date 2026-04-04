@@ -184,6 +184,13 @@ const Debtors = () => {
   const filterDebtors = () => {
     let filtered = [...debtors];
 
+    // Archived filter
+    if (archivedFilter === "active") {
+      filtered = filtered.filter((d) => !d.is_archived);
+    } else if (archivedFilter === "archived") {
+      filtered = filtered.filter((d) => d.is_archived === true);
+    }
+
     // Balance filter - always applied
     if (balanceFilter === "with_balance") {
       filtered = filtered.filter((d) => (d.total_open_balance || 0) > 0);
