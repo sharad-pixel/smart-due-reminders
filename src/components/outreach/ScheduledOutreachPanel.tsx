@@ -700,11 +700,17 @@ export function ScheduledOutreachPanel({ selectedPersona, onPersonaFilterClear }
               <div>
                 <CardTitle className="flex items-center gap-2">
                   <Calendar className="h-5 w-5" />
-                  Scheduled Outreach
+                  Outreach — Next 24 Hours
                 </CardTitle>
                 <CardDescription>
-                  Approved drafts are sent automatically. "Needs Approval" requires your review before sending.
-                  Closed invoices (Paid, Canceled, Voided) are excluded from outreach.
+                  Drafts scheduled within the next 24 hours. Approved drafts are sent automatically. "Needs Approval" requires your review.
+                  {beyondNext24hCount > 0 && (
+                    <span className="ml-1">
+                      <Button variant="link" size="sm" className="h-auto p-0 text-xs text-primary" onClick={() => navigate('/ai-workflows?tab=forecast')}>
+                        {beyondNext24hCount} more scheduled beyond 24h → View Forecast
+                      </Button>
+                    </span>
+                  )}
                 </CardDescription>
               </div>
               <div className="flex items-center gap-2">
