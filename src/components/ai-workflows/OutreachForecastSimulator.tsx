@@ -105,7 +105,7 @@ function getBucketForDPD(dpd: number): string {
 export function OutreachForecastSimulator() {
   const { effectiveAccountId } = useEffectiveAccount();
   const navigate = useNavigate();
-  const [forecastDate, setForecastDate] = useState<Date>(addDays(new Date(), 30));
+  const [forecastDate, setForecastDate] = useState<Date>(addDays(new Date(), 7));
   const [expandedBuckets, setExpandedBuckets] = useState<Set<string>>(new Set());
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [bucketPages, setBucketPages] = useState<Record<string, number>>({});
