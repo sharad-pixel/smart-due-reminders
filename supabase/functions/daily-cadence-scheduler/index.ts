@@ -310,12 +310,19 @@ Deno.serve(async (req) => {
         }
         
         if (!useTemplate && workflowStepTemplate?.body_template && workflowStepTemplate?.subject_template) {
-        } else if (workflowStepTemplate?.body_template && workflowStepTemplate?.subject_template) {
+        if (!useTemplate && workflowStepTemplate?.body_template && workflowStepTemplate?.subject_template) {
           // Priority 2: Use pre-approved workflow step templates from /ai-workflows
-          console.log(`[CADENCE] Using workflow step template "${workflowStepTemplate.label}" for invoice ${invoiceNumber}, step ${stepNumber}`);
-          subject = replaceTemplateVars(workflowStepTemplate.subject_template);
-          body = replaceTemplateVars(workflowStepTemplate.body_template);
-          useTemplate = true;
+          const stepBody = replaceTemplateVars(workflowStepTemplate.body_template);
+          const stepSubject = replaceTemplateVars(workflowStepTemplate.subject_template);
+          const strippedStepBody = stepBody.replace(/https?:\/\/\S+/g, '').replace(/\{\{[^}]+\}\}/g, '').trim();
+          if (strippedStepBody.length > 10 && stepSubject.trim().length > 0) {
+            console.log(`[CADENCE] Using workflow step template "${workflowStepTemplate.label}" for invoice ${invoiceNumber}, step ${stepNumber}`);
+            subject = stepSubject;
+            body = stepBody;
+            useTemplate = true;
+          } else {
+            console.log(`[CADENCE] Workflow step template body too short/empty for invoice ${invoiceNumber}, step ${stepNumber} - falling through`);
+          }
         } else {
           // Fallback: generic messages
           const stepMessages = [
