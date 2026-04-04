@@ -341,10 +341,7 @@ Deno.serve(async (req) => {
           let body: string;
 
           if (workflowStepTemplate?.body_template && workflowStepTemplate?.subject_template) {
-            // USE the pre-approved workflow step template
-            console.log(`[OUTREACH-ENGINE] Using workflow step template "${workflowStepTemplate.label}" for invoice ${invoiceNumber}, step ${stepNumber}`);
-            
-            // Replace template variables in the approved template
+            // USE the pre-approved workflow step template (only if body has meaningful content)
             const replaceVars = (text: string) => text
               .replace(/\{\{customer_name\}\}/gi, customerName)
               .replace(/\{\{debtor_name\}\}/gi, customerName)
@@ -361,8 +358,25 @@ Deno.serve(async (req) => {
               // Clean up any remaining unresolved placeholders
               .replace(/\{\{[^}]+\}\}/g, '');
 
-            subject = replaceVars(workflowStepTemplate.subject_template);
-            body = replaceVars(workflowStepTemplate.body_template);
+            const candidateBody = replaceVars(workflowStepTemplate.body_template);
+            const candidateSubject = replaceVars(workflowStepTemplate.subject_template);
+            // Only use if body has real text content (not just whitespace/links)
+            const strippedBody = candidateBody.replace(/https?:\/\/\S+/g, '').trim();
+            if (strippedBody.length > 10 && candidateSubject.trim().length > 0) {
+              console.log(`[OUTREACH-ENGINE] Using workflow step template "${workflowStepTemplate.label}" for invoice ${invoiceNumber}, step ${stepNumber}`);
+              subject = candidateSubject;
+              body = candidateBody;
+            } else {
+              console.log(`[OUTREACH-ENGINE] Workflow step template body too short/empty for invoice ${invoiceNumber}, step ${stepNumber} - using fallback`);
+              const stepMessages = [
+                { subject: `Friendly Reminder: Invoice ${invoiceNumber}`, body: `Dear ${customerName},\n\nThis is a friendly reminder regarding invoice ${invoiceNumber} for ${formattedAmount} which is now past due.\n\nPlease arrange payment at your earliest convenience.` },
+                { subject: `Payment Reminder: Invoice ${invoiceNumber}`, body: `Dear ${customerName},\n\nThis is a follow-up reminder regarding invoice ${invoiceNumber} for ${formattedAmount}. Your account is now ${daysPastDue} days past due.\n\nPlease contact us if you have any questions.` },
+                { subject: `Important: Invoice ${invoiceNumber} - Payment Required`, body: `Dear ${customerName},\n\nWe are reaching out regarding invoice ${invoiceNumber} for ${formattedAmount}. This invoice is now significantly past due.\n\nPlease arrange payment promptly.` },
+              ];
+              const messageIndex = Math.min(stepNumber - 1, stepMessages.length - 1);
+              subject = stepMessages[messageIndex].subject;
+              body = stepMessages[messageIndex].body;
+            }
           } else {
             // Fallback: generic messages if no workflow step template exists
             console.log(`[OUTREACH-ENGINE] No workflow step template found for invoice ${invoiceNumber}, step ${stepNumber} - using fallback`);

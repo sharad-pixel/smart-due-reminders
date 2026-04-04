@@ -294,18 +294,37 @@ Deno.serve(async (req) => {
         };
 
         if (templates && templates.length > 0) {
-          // Priority 1: Use approved draft_templates
+          // Priority 1: Use approved draft_templates (only if body has meaningful content)
           const template = templates[0];
-          subject = replaceTemplateVars(template.subject || '');
-          body = replaceTemplateVars(template.body || '');
-          useTemplate = true;
-        } else if (workflowStepTemplate?.body_template && workflowStepTemplate?.subject_template) {
+          const templateBody = replaceTemplateVars(template.body || '');
+          const templateSubject = replaceTemplateVars(template.subject || '');
+          // Only use template if body has real text content (not just whitespace/links)
+          const strippedBody = templateBody.replace(/https?:\/\/\S+/g, '').replace(/\{\{[^}]+\}\}/g, '').trim();
+          if (strippedBody.length > 10 && templateSubject.trim().length > 0) {
+            subject = templateSubject;
+            body = templateBody;
+            useTemplate = true;
+          } else {
+            console.log(`[CADENCE-SCHEDULER] Template body too short/empty for invoice ${invoiceNumber}, step ${stepNumber} - falling through`);
+          }
+        }
+        
+        if (!useTemplate && workflowStepTemplate?.body_template && workflowStepTemplate?.subject_template) {
           // Priority 2: Use pre-approved workflow step templates from /ai-workflows
-          console.log(`[CADENCE] Using workflow step template "${workflowStepTemplate.label}" for invoice ${invoiceNumber}, step ${stepNumber}`);
-          subject = replaceTemplateVars(workflowStepTemplate.subject_template);
-          body = replaceTemplateVars(workflowStepTemplate.body_template);
-          useTemplate = true;
-        } else {
+          const stepBody = replaceTemplateVars(workflowStepTemplate.body_template);
+          const stepSubject = replaceTemplateVars(workflowStepTemplate.subject_template);
+          const strippedStepBody = stepBody.replace(/https?:\/\/\S+/g, '').replace(/\{\{[^}]+\}\}/g, '').trim();
+          if (strippedStepBody.length > 10 && stepSubject.trim().length > 0) {
+            console.log(`[CADENCE] Using workflow step template "${workflowStepTemplate.label}" for invoice ${invoiceNumber}, step ${stepNumber}`);
+            subject = stepSubject;
+            body = stepBody;
+            useTemplate = true;
+          } else {
+            console.log(`[CADENCE] Workflow step template body too short/empty for invoice ${invoiceNumber}, step ${stepNumber} - falling through to fallback`);
+          }
+        }
+        
+        if (!useTemplate) {
           // Fallback: generic messages
           const stepMessages = [
             { subject: `Friendly Reminder: Invoice ${invoiceNumber}`, body: `Dear ${customerName},\n\nWe hope this message finds you well. This is a friendly reminder regarding invoice ${invoiceNumber} for ${formattedAmount} which is now past due.\n\nPlease arrange payment at your earliest convenience.` },
