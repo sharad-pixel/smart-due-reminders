@@ -310,7 +310,6 @@ Deno.serve(async (req) => {
         }
         
         if (!useTemplate && workflowStepTemplate?.body_template && workflowStepTemplate?.subject_template) {
-        if (!useTemplate && workflowStepTemplate?.body_template && workflowStepTemplate?.subject_template) {
           // Priority 2: Use pre-approved workflow step templates from /ai-workflows
           const stepBody = replaceTemplateVars(workflowStepTemplate.body_template);
           const stepSubject = replaceTemplateVars(workflowStepTemplate.subject_template);
