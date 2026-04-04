@@ -8255,6 +8255,7 @@ export type Database = {
         Returns: number
       }
       get_effective_account_id: { Args: { p_user_id: string }; Returns: string }
+      get_payment_plan_by_token: { Args: { p_token: string }; Returns: Json }
       get_public_ar_page: { Args: { p_token: string }; Returns: Json }
       get_user_organization_id: { Args: { p_user_id: string }; Returns: string }
       has_role: {
