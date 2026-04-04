@@ -67,6 +67,29 @@ const Security = () => {
     }
   ];
 
+  const automatedScanners = [
+    {
+      title: "RLS Analysis",
+      description: "Reviews database access policies and row-level security rules to ensure users only see and modify data they're authorized to access. Runs automatically when database configurations change.",
+      triggerInfo: "Runs on migration/config changes & before publishing"
+    },
+    {
+      title: "Database Security Check",
+      description: "Reviews database schema and RLS configuration together to identify unsafe combinations that could lead to unauthorized access — catching issues not obvious when reviewing rules in isolation.",
+      triggerInfo: "Runs automatically after RLS analysis completes"
+    },
+    {
+      title: "Code Security Review",
+      description: "Analyzes application code for common vulnerability patterns including improper input handling, insecure authentication flows, and unsafe use of external services.",
+      triggerInfo: "Runs on-demand via Security view"
+    },
+    {
+      title: "Dependency Audit",
+      description: "Checks all third-party libraries for known security vulnerabilities, identifying affected packages with recommended remediation steps like version updates.",
+      triggerInfo: "Runs when dependencies change & before publishing"
+    }
+  ];
+
   const complianceFrameworks = [
     { name: "SOC 2 Type II", status: "Compliant Infrastructure", highlight: true },
     { name: "ISO 27001", status: "Aligned Practices" },
