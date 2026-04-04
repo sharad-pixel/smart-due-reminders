@@ -46,6 +46,26 @@ serve(async (req) => {
 
     console.log(`[RESEND-WEBHOOK] Event: ${eventType}, Email ID: ${emailId}, Recipient: ${recipientEmail}`);
 
+    // Route inbound email events to the inbound processing function
+    if (eventType === 'email.received') {
+      console.log(`[RESEND-WEBHOOK] Forwarding email.received to resend-inbound-tasks`);
+      try {
+        const inboundResponse = await supabase.functions.invoke('resend-inbound-tasks', {
+          body: payload,
+        });
+        if (inboundResponse.error) {
+          console.error('[RESEND-WEBHOOK] Error forwarding to resend-inbound-tasks:', inboundResponse.error);
+        } else {
+          console.log('[RESEND-WEBHOOK] Successfully forwarded to resend-inbound-tasks');
+        }
+      } catch (fwdErr) {
+        console.error('[RESEND-WEBHOOK] Failed to forward to resend-inbound-tasks:', fwdErr);
+      }
+      return new Response(JSON.stringify({ received: true, forwarded: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     if (!emailId) {
       console.log('[RESEND-WEBHOOK] No email_id in payload');
       return new Response(JSON.stringify({ received: true }), {
