@@ -296,7 +296,7 @@ const Layout = ({ children }: LayoutProps) => {
       {/* Trial countdown banner - shown at top of page for trial users */}
       <TrialBanner />
       
-      <nav className={`fixed left-0 right-0 z-[100] border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 shadow-sm safe-top ${showTrialBanner ? 'top-[40px]' : 'top-0'}`}>
+      <nav className={`fixed left-0 right-0 z-[100] border-b bg-card shadow-sm safe-top ${showTrialBanner ? 'top-[40px]' : 'top-0'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16 sm:h-20">
             <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
