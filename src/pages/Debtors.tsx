@@ -67,6 +67,7 @@ interface Debtor {
   created_at: string | null;
   account_outreach_enabled: boolean | null;
   outreach_frequency: string | null;
+  is_archived: boolean | null;
   contacts?: DebtorContact[];
   // Email status fields
   email_status: string | null;
@@ -92,6 +93,7 @@ const Debtors = () => {
   const [outreachFilter, setOutreachFilter] = useState<string>("all");
   const [balanceFilter, setBalanceFilter] = useState<string>("with_balance");
   const [currencyFilter, setCurrencyFilter] = useState<string>("all");
+  const [archivedFilter, setArchivedFilter] = useState<string>("active");
   const [availableCurrencies, setAvailableCurrencies] = useState<string[]>([]);
   const [debtorCurrencyMap, setDebtorCurrencyMap] = useState<Record<string, Set<string>>>({});
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -128,7 +130,7 @@ const Debtors = () => {
   useEffect(() => {
     filterDebtors();
     setCurrentPage(1); // Reset to first page when filters change
-  }, [debtors, searchTerm, typeFilter, outreachFilter, balanceFilter, currencyFilter]);
+  }, [debtors, searchTerm, typeFilter, outreachFilter, balanceFilter, currencyFilter, archivedFilter]);
 
   const fetchDebtors = async () => {
     try {
@@ -141,10 +143,9 @@ const Debtors = () => {
             crm_account_id_external, open_invoices_count, max_days_past_due,
             payment_score, avg_days_to_pay, city, state,
             credit_limit, payment_terms_default, created_at,
-            account_outreach_enabled, outreach_frequency,
+            account_outreach_enabled, outreach_frequency, is_archived,
             debtor_contacts (id, name, title, email, phone, is_primary, outreach_enabled)
           `)
-          .eq("is_archived", false)
           .order("created_at", { ascending: false }),
         supabase
           .from("invoices")
@@ -183,6 +184,13 @@ const Debtors = () => {
 
   const filterDebtors = () => {
     let filtered = [...debtors];
+
+    // Archived filter
+    if (archivedFilter === "active") {
+      filtered = filtered.filter((d) => !d.is_archived);
+    } else if (archivedFilter === "archived") {
+      filtered = filtered.filter((d) => d.is_archived === true);
+    }
 
     // Balance filter - always applied
     if (balanceFilter === "with_balance") {
@@ -672,6 +680,16 @@ const Debtors = () => {
                         Account Outreach OFF
                       </div>
                     </SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={archivedFilter} onValueChange={setArchivedFilter}>
+                  <SelectTrigger className="w-full md:w-[160px]">
+                    <SelectValue placeholder="Account status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active Accounts</SelectItem>
+                    <SelectItem value="archived">Archived Accounts</SelectItem>
+                    <SelectItem value="all">All Accounts</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select value={balanceFilter} onValueChange={setBalanceFilter}>
