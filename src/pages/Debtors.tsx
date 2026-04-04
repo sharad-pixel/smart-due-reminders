@@ -129,7 +129,7 @@ const Debtors = () => {
   useEffect(() => {
     filterDebtors();
     setCurrentPage(1); // Reset to first page when filters change
-  }, [debtors, searchTerm, typeFilter, outreachFilter, balanceFilter, currencyFilter]);
+  }, [debtors, searchTerm, typeFilter, outreachFilter, balanceFilter, currencyFilter, archivedFilter]);
 
   const fetchDebtors = async () => {
     try {
