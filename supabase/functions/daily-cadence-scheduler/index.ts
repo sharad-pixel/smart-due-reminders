@@ -320,9 +320,11 @@ Deno.serve(async (req) => {
             body = stepBody;
             useTemplate = true;
           } else {
-            console.log(`[CADENCE] Workflow step template body too short/empty for invoice ${invoiceNumber}, step ${stepNumber} - falling through`);
+            console.log(`[CADENCE] Workflow step template body too short/empty for invoice ${invoiceNumber}, step ${stepNumber} - falling through to fallback`);
           }
-        } else {
+        }
+        
+        if (!useTemplate) {
           // Fallback: generic messages
           const stepMessages = [
             { subject: `Friendly Reminder: Invoice ${invoiceNumber}`, body: `Dear ${customerName},\n\nWe hope this message finds you well. This is a friendly reminder regarding invoice ${invoiceNumber} for ${formattedAmount} which is now past due.\n\nPlease arrange payment at your earliest convenience.` },
