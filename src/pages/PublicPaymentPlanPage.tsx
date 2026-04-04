@@ -93,8 +93,10 @@ export default function PublicPaymentPlanPage() {
   const fetchPaymentPlan = async () => {
     try {
       // Use secure RPC function to fetch payment plan by token
-      const { data: result, error: rpcError } = await supabase
+      const { data: rpcResult, error: rpcError } = await supabase
         .rpc("get_payment_plan_by_token", { p_token: token });
+
+      const result = rpcResult as Record<string, unknown> | null;
 
       if (rpcError || !result || result.error) {
         setError("Payment plan not found or has expired.");
@@ -102,12 +104,12 @@ export default function PublicPaymentPlanPage() {
         return;
       }
 
-      setPlan(result.plan);
-      setDebtor(result.debtor);
-      setInstallments(result.installments || []);
+      setPlan(result.plan as PaymentPlan);
+      setDebtor(result.debtor as DebtorInfo);
+      setInstallments((result.installments as Installment[]) || []);
 
       if (result.branding) {
-        setBranding(result.branding);
+        setBranding(result.branding as BrandingInfo);
       }
     } catch (err: any) {
       console.error("Error fetching payment plan:", err);
