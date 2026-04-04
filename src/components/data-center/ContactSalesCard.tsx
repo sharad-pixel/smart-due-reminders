@@ -2,7 +2,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Mail } from "lucide-react";
-import { useIntegrationToggles, ALL_INTEGRATION_KEYS, INTEGRATION_LABELS } from "@/hooks/useIntegrationToggles";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useIntegrationToggles, ALL_INTEGRATION_KEYS, INTEGRATION_LABELS, INTEGRATION_DESCRIPTIONS } from "@/hooks/useIntegrationToggles";
 import type { IntegrationKey } from "@/hooks/useIntegrationToggles";
 import { NetSuiteIcon, SageIcon } from "@/components/icons/ERPIcons";
 
@@ -59,45 +60,52 @@ export const ContactSalesCard = () => {
   if (disabledIntegrations.length === 0) return null;
 
   return (
-    <Card className="border-dashed border-muted-foreground/30">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base flex items-center gap-2">
-          Available Integrations
-        </CardTitle>
-        <CardDescription className="text-xs">
-          These integrations are available for your account. Contact sales to get them enabled.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-          {disabledIntegrations.map((key) => {
-            const Icon = INTEGRATION_ICONS[key];
-            return (
-              <div
-                key={key}
-                className="flex flex-col items-center gap-2 p-3 rounded-lg border border-dashed border-muted-foreground/20 bg-muted/30"
-              >
-                <Icon className="h-10 w-10 opacity-60" />
-                <span className="text-[11px] text-muted-foreground text-center font-medium leading-tight">
-                  {INTEGRATION_LABELS[key]}
-                </span>
-                <Badge variant="outline" className="text-[9px] px-1.5 py-0">
-                  Locked
-                </Badge>
-              </div>
-            );
-          })}
-        </div>
+    <TooltipProvider delayDuration={200}>
+      <Card className="border-dashed border-muted-foreground/30">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            Available Integrations
+          </CardTitle>
+          <CardDescription className="text-xs">
+            These integrations are available for your account. Hover for details. Contact sales to get them enabled.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+            {disabledIntegrations.map((key) => {
+              const Icon = INTEGRATION_ICONS[key];
+              return (
+                <Tooltip key={key}>
+                  <TooltipTrigger asChild>
+                    <div className="flex flex-col items-center gap-2 p-3 rounded-lg border border-dashed border-muted-foreground/20 bg-muted/30 cursor-help transition-colors hover:bg-muted/50">
+                      <Icon className="h-10 w-10 opacity-60" />
+                      <span className="text-[11px] text-muted-foreground text-center font-medium leading-tight">
+                        {INTEGRATION_LABELS[key]}
+                      </span>
+                      <Badge variant="outline" className="text-[9px] px-1.5 py-0">
+                        Locked
+                      </Badge>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-[280px] text-xs leading-relaxed">
+                    <p className="font-semibold mb-1">{INTEGRATION_LABELS[key]}</p>
+                    <p>{INTEGRATION_DESCRIPTIONS[key]}</p>
+                  </TooltipContent>
+                </Tooltip>
+              );
+            })}
+          </div>
 
-        <div className="flex items-center justify-center pt-2">
-          <Button variant="outline" size="sm" asChild>
-            <a href="mailto:sales@recouply.ai" className="gap-2">
-              <Mail className="h-4 w-4" />
-              Contact Sales to Enable
-            </a>
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+          <div className="flex items-center justify-center pt-2">
+            <Button variant="outline" size="sm" asChild>
+              <a href="mailto:sales@recouply.ai" className="gap-2">
+                <Mail className="h-4 w-4" />
+                Contact Sales to Enable
+              </a>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </TooltipProvider>
   );
 };
