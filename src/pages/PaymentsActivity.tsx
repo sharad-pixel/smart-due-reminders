@@ -8,11 +8,12 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
   DollarSign, ArrowLeft, TrendingUp, Calendar, CreditCard, 
-  Building2, Zap, LinkIcon, FileSpreadsheet
+  Building2, Zap, LinkIcon, FileSpreadsheet, Activity
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { usePaymentsSummary } from '@/hooks/usePaymentsActivity';
 import { PaymentReconciliationTable } from '@/components/payments/PaymentReconciliationTable';
+import { TransactionActivityTable } from '@/components/payments/TransactionActivityTable';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
