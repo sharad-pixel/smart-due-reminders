@@ -59,10 +59,10 @@ const RollingAgentIntro = () => {
               Meet {active.name}
             </motion.h3>
             <p className="text-sm md:text-base text-muted-foreground mt-1 max-w-md">
-              {active.description}
+              "{active.punchline}"
             </p>
-            <p className="text-xs text-muted-foreground/60 mt-1 italic">
-              Tone: {active.tone}
+            <p className="text-xs text-muted-foreground/60 mt-1">
+              {active.description} · {active.tone}
             </p>
           </motion.div>
         </AnimatePresence>

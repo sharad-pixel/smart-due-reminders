@@ -69,6 +69,7 @@ export function AIAgentCarousel() {
                   <span className="text-xs bg-muted px-2 py-0.5 rounded-full text-muted-foreground">{agent.range}</span>
                 </div>
                 <p className="text-muted-foreground text-sm font-medium mb-2">{agent.description} · {agent.tone}</p>
+                <p className="text-sm italic text-foreground/70">"{agent.punchline}"</p>
               </div>
             </div>
           </motion.div>
