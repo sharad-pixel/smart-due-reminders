@@ -64,11 +64,9 @@ export const useAccountHierarchy = (): UseAccountHierarchyReturn => {
         accountUsersResult,
         currentMemberResult
       ] = await Promise.all([
-        // Get owner's profile (parent account data)
+        // Use safe RPC to avoid exposing credential columns to team members
         supabase
-          .from('profiles')
-          .select('id, name, email, company_name, avatar_url, plan_type, subscription_status, billing_interval, stripe_customer_id, stripe_subscription_id')
-          .eq('id', accountId)
+          .rpc('get_safe_team_profile', { p_account_id: accountId })
           .single(),
         
         // Get all account users
