@@ -8237,6 +8237,12 @@ export type Database = {
           locked_until: string
         }[]
       }
+      claim_inbound_emails_for_processing: {
+        Args: { batch_limit?: number }
+        Returns: {
+          id: string
+        }[]
+      }
       clean_old_login_attempts: { Args: never; Returns: undefined }
       cleanup_dismissed_user_alerts: { Args: never; Returns: undefined }
       cleanup_expired_oauth_states: { Args: never; Returns: undefined }
