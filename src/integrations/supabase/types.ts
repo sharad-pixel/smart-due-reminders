@@ -3830,6 +3830,7 @@ export type Database = {
           last_pull_at: string | null
           last_push_at: string | null
           last_synced_at: string | null
+          last_synced_row: number | null
           organization_id: string | null
           rows_synced: number | null
           sheet_id: string
@@ -3851,6 +3852,7 @@ export type Database = {
           last_pull_at?: string | null
           last_push_at?: string | null
           last_synced_at?: string | null
+          last_synced_row?: number | null
           organization_id?: string | null
           rows_synced?: number | null
           sheet_id: string
@@ -3872,6 +3874,7 @@ export type Database = {
           last_pull_at?: string | null
           last_push_at?: string | null
           last_synced_at?: string | null
+          last_synced_row?: number | null
           organization_id?: string | null
           rows_synced?: number | null
           sheet_id?: string

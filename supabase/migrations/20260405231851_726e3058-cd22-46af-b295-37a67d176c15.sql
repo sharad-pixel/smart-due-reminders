@@ -1,0 +1,1 @@
+ALTER TABLE public.google_sheet_templates ADD COLUMN IF NOT EXISTS last_synced_row integer DEFAULT 0;
