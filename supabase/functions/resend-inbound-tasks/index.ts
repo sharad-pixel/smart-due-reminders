@@ -151,7 +151,16 @@ serve(async (req) => {
     console.log("No svix headers present - accepting as direct inbound email routing");
   }
 
-  console.log("Received webhook payload type:", rawPayload.type || "direct");
+  const eventType = rawPayload.type || "direct";
+  console.log("Received webhook payload type:", eventType);
+
+  if (rawPayload.type && rawPayload.type !== "email.received") {
+    console.log(`Ignoring non-inbound event type: ${rawPayload.type}`);
+    return new Response(JSON.stringify({ status: "ignored", event_type: rawPayload.type }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   // Handle both wrapped webhook format and direct format
   const emailData: ResendEmailData = rawPayload.data || rawPayload;
@@ -238,6 +247,69 @@ serve(async (req) => {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+  }
+
+  let existingInboundEmail: {
+    id: string;
+    status: string;
+    ai_summary: string | null;
+    ai_processed_at: string | null;
+  } | null = null;
+
+  if (emailData.email_id) {
+    const { data } = await supabase
+      .from("inbound_emails")
+      .select("id, status, ai_summary, ai_processed_at")
+      .eq("email_id", emailData.email_id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    existingInboundEmail = data;
+  }
+
+  if (!existingInboundEmail && emailData.message_id) {
+    const { data } = await supabase
+      .from("inbound_emails")
+      .select("id, status, ai_summary, ai_processed_at")
+      .eq("message_id", emailData.message_id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    existingInboundEmail = data;
+  }
+
+  if (existingInboundEmail) {
+    console.log("Duplicate inbound email detected, reusing existing row:", existingInboundEmail.id);
+
+    if (!existingInboundEmail.ai_summary && ["received", "linked"].includes(existingInboundEmail.status)) {
+      try {
+        const { error: aiError } = await supabase.functions.invoke("process-inbound-ai", {
+          body: { email_id: existingInboundEmail.id },
+        });
+
+        if (aiError) {
+          console.warn("AI processing retry for duplicate inbound email failed:", aiError);
+        }
+      } catch (err) {
+        console.warn("Failed to retry AI processing for duplicate inbound email:", err);
+      }
+    }
+
+    return new Response(
+      JSON.stringify({
+        status: "ok",
+        email_id: existingInboundEmail.id,
+        routed_to: routedTo,
+        user_id: userId,
+        duplicate: true,
+      }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   }
 
   // Fetch full email content from Resend API if body is not in webhook

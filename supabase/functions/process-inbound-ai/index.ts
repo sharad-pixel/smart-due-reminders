@@ -304,46 +304,108 @@ serve(async (req) => {
   }
 
   try {
+    let requestBody: { email_id?: string } | null = null;
+    const requestText = await req.text();
+
+    if (requestText) {
+      try {
+        requestBody = JSON.parse(requestText);
+      } catch (parseError) {
+        console.warn("[AI-PROCESS] Could not parse request body, continuing with batch mode");
+      }
+    }
+
+    const requestedEmailId = typeof requestBody?.email_id === "string" ? requestBody.email_id : null;
+
     console.log("[AI-PROCESS] Starting batch processing");
 
     // Fetch unprocessed emails with full invoice details for status checking
-    // Step 1: Atomically claim unprocessed emails by setting status to 'processing'
-    // This prevents duplicate processing when cron triggers overlap
-    const { data: claimedIds, error: claimError } = await supabase
-      .rpc("claim_inbound_emails_for_processing", { batch_limit: 50 });
+    let emailIds: string[] = [];
 
-    if (claimError) {
-      console.error("[AI-PROCESS] Failed to claim emails:", claimError.message);
-      // Fallback: use the old select method but with tighter status filter
-    }
+    if (requestedEmailId) {
+      console.log(`[AI-PROCESS] Targeted processing requested for email ${requestedEmailId}`);
 
-    const emailIds = claimedIds?.map((r: any) => r.id) || [];
-
-    if (emailIds.length === 0) {
-      // Fallback: try direct select (in case RPC doesn't exist yet)
-      const { data: fallbackEmails, error: fbError } = await supabase
+      const { data: claimedEmail, error: targetedClaimError } = await supabase
         .from("inbound_emails")
-        .select("id")
+        .update({ status: "processing" })
+        .eq("id", requestedEmailId)
         .is("ai_summary", null)
         .in("status", ["received", "linked"])
-        .limit(50);
+        .select("id")
+        .maybeSingle();
 
-      if (fbError || !fallbackEmails?.length) {
-        return new Response(JSON.stringify({ success: true, processed: 0, message: "No emails to process" }), {
+      if (targetedClaimError) {
+        throw new Error(`Failed to claim targeted email: ${targetedClaimError.message}`);
+      }
+
+      if (claimedEmail?.id) {
+        emailIds = [claimedEmail.id];
+      } else {
+        const { data: existingEmail, error: existingEmailError } = await supabase
+          .from("inbound_emails")
+          .select("id, status, ai_summary")
+          .eq("id", requestedEmailId)
+          .maybeSingle();
+
+        if (existingEmailError) {
+          throw new Error(`Failed to inspect targeted email: ${existingEmailError.message}`);
+        }
+
+        if (!existingEmail) {
+          return new Response(JSON.stringify({ success: true, processed: 0, message: "Email not found" }), {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const message = existingEmail.ai_summary || existingEmail.status === "processed"
+          ? "Email already processed"
+          : "Email already being processed";
+
+        return new Response(JSON.stringify({ success: true, processed: 0, message }), {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+    } else {
+      // Step 1: Atomically claim unprocessed emails by setting status to 'processing'
+      // This prevents duplicate processing when cron triggers overlap
+      const { data: claimedIds, error: claimError } = await supabase
+        .rpc("claim_inbound_emails_for_processing", { batch_limit: 50 });
 
-      // Mark as processing to prevent concurrent runs
-      const fbIds = fallbackEmails.map((e: any) => e.id);
-      await supabase
-        .from("inbound_emails")
-        .update({ status: "processing" })
-        .in("id", fbIds)
-        .in("status", ["received", "linked"]); // Double-check status to avoid race
+      if (claimError) {
+        console.error("[AI-PROCESS] Failed to claim emails:", claimError.message);
+        // Fallback: use the old select method but with tighter status filter
+      }
 
-      emailIds.push(...fbIds);
+      emailIds = claimedIds?.map((r: any) => r.id) || [];
+
+      if (emailIds.length === 0) {
+        // Fallback: try direct select (in case RPC doesn't exist yet)
+        const { data: fallbackEmails, error: fbError } = await supabase
+          .from("inbound_emails")
+          .select("id")
+          .is("ai_summary", null)
+          .in("status", ["received", "linked"])
+          .limit(50);
+
+        if (fbError || !fallbackEmails?.length) {
+          return new Response(JSON.stringify({ success: true, processed: 0, message: "No emails to process" }), {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Mark as processing to prevent concurrent runs
+        const fbIds = fallbackEmails.map((e: any) => e.id);
+        await supabase
+          .from("inbound_emails")
+          .update({ status: "processing" })
+          .in("id", fbIds)
+          .in("status", ["received", "linked"]); // Double-check status to avoid race
+
+        emailIds.push(...fbIds);
+      }
     }
 
     // Step 2: Fetch full email data for claimed emails
@@ -585,6 +647,18 @@ Extract summary and actions.`;
 
         // Create tasks from actions with full context for follow-up
         if (actions.length > 0 && email.user_id && email.debtor_id) {
+          const { count: existingTaskCount, error: existingTaskCountError } = await supabase
+            .from("collection_tasks")
+            .select("id", { count: "exact", head: true })
+            .eq("inbound_email_id", email.id);
+
+          if (existingTaskCountError) {
+            console.error(`[AI-PROCESS] Failed checking existing tasks for email ${email.id}:`, existingTaskCountError.message);
+          }
+
+          if ((existingTaskCount ?? 0) > 0) {
+            console.log(`[AI-PROCESS] Skipping task creation for email ${email.id}; ${existingTaskCount} task(s) already exist`);
+          } else {
           // --- PAID INVOICE: Auto-draft closure response instead of normal tasks ---
           if (invoiceIsSettled && !isInternalCommunication && email.invoice_id) {
             console.log(`[AI-PROCESS] Invoice ${invoiceInfo?.invoice_number} is ${invoiceInfo?.status} — creating closure task + auto-draft`);
@@ -819,6 +893,7 @@ Return JSON only:
                 }
               }
             }
+          }
           }
         }
 
