@@ -23,6 +23,7 @@ import {
 import stripeLogo from "@/assets/stripe-logo.png";
 import quickbooksLogo from "@/assets/quickbooks-logo.png";
 import googleDriveLogo from "@/assets/google-drive-logo.png";
+import googleSheetsLogo from "@/assets/google-sheets-logo.png";
 
 const IntegrationCard = ({ 
   logo, 
