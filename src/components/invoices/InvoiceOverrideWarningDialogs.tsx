@@ -305,7 +305,7 @@ export const IntegrationStatusActionWarning = ({
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="border-amber-200 dark:border-amber-800 max-w-lg">
+      <AlertDialogContent className="border-amber-200 dark:border-amber-800 max-w-lg max-h-[90vh] overflow-y-auto">
         <AlertDialogHeader>
           <div className="flex items-center gap-2 mb-2">
             <div className="p-2 bg-amber-100 dark:bg-amber-900 rounded-full">
