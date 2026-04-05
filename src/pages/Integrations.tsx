@@ -23,6 +23,7 @@ import {
 import stripeLogo from "@/assets/stripe-logo.png";
 import quickbooksLogo from "@/assets/quickbooks-logo.png";
 import googleDriveLogo from "@/assets/google-drive-logo.png";
+import googleSheetsLogo from "@/assets/google-sheets-logo.png";
 
 const IntegrationCard = ({ 
   logo, 
@@ -92,8 +93,8 @@ const Integrations = () => {
   return (
     <MarketingLayout>
       <SEO
-        title="Integrations | Stripe, QuickBooks & AI Smart Ingestion | Recouply.ai"
-        description="Connect Stripe, QuickBooks, or use AI Smart Ingestion to extract invoices from Google Drive PDFs. Real-time accounts receivable sync, collections health visibility, and AI automation."
+        title="Integrations | Stripe, QuickBooks, Google Sheets & AI Smart Ingestion | Recouply.ai"
+        description="Connect Stripe, QuickBooks, Google Sheets, or use AI Smart Ingestion to extract invoices from Google Drive PDFs. Real-time accounts receivable sync, collections health visibility, and AI automation."
         canonical="https://recouply.ai/integrations"
         keywords="cash collections, accounts receivable, payments, AI automation for receivables, collections health, Stripe integration, QuickBooks integration, smart ingestion, Google Drive PDF, AR automation"
       />
@@ -107,7 +108,7 @@ const Integrations = () => {
             <span className="text-primary">Centralize collections.</span>
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
-            Recouply.ai integrates directly with Stripe, QuickBooks, and Google Drive — syncing customers, invoices, and payments or extracting them from PDFs with AI-powered Smart Ingestion.
+            Recouply.ai integrates directly with Stripe, QuickBooks, Google Sheets, and Google Drive — syncing customers, invoices, and payments or extracting them from PDFs with AI-powered Smart Ingestion.
           </p>
           <div className="flex flex-wrap gap-4 justify-center">
             <Button size="lg" className="gap-2" asChild>
@@ -275,6 +276,76 @@ const Integrations = () => {
                 <Button className="gap-2" asChild>
                   <Link to="/signup">
                     Start Extracting Invoices
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Google Sheets Source of Truth Section */}
+      <section className="py-16 md:py-24 bg-muted/20">
+        <div className="container mx-auto px-4">
+          <div className="max-w-5xl mx-auto">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="h-10 w-10 rounded-lg bg-background border border-border flex items-center justify-center overflow-hidden">
+                <img src={googleSheetsLogo} alt="Google Sheets" className="h-7 w-7 object-contain" loading="lazy" width={28} height={28} />
+              </div>
+              <h2 className="text-2xl md:text-3xl font-bold">Google Sheets</h2>
+            </div>
+            <p className="text-muted-foreground mb-8 max-w-2xl">
+              Use Google Sheets as your source of truth for accounts, invoices, and payments — with bidirectional sync powered by AI.
+            </p>
+            <Card className="border-border/50 bg-card/50 backdrop-blur-sm hover:border-primary/30 transition-all duration-300">
+              <CardHeader>
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-emerald-500/20 to-green-500/20 border border-emerald-500/20 flex items-center justify-center overflow-hidden">
+                    <img src={googleSheetsLogo} alt="Google Sheets" className="h-9 w-9 object-contain" loading="lazy" width={36} height={36} />
+                  </div>
+                  <div>
+                    <CardTitle className="text-2xl">Google Sheets Source of Truth</CardTitle>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">Bidirectional Sync</span>
+                      <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary">AI-Powered</span>
+                    </div>
+                  </div>
+                </div>
+                <CardDescription className="text-base leading-relaxed">
+                  Recouply.ai creates and maintains three master spreadsheets — Accounts, Invoices, and Payments — with manual Push and Pull synchronization. Import new accounts from sheets with AI-powered name cleaning, or export your portfolio for offline review and reconciliation.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-3 mb-6">
+                  {[
+                    "Three master spreadsheets: Accounts, Invoices, and Payments",
+                    "Bidirectional Push & Pull sync via RAID/Ref ID matching",
+                    "AI-powered company name cleaning and standardization (Gemini)",
+                    "New account staging with bulk approve/reject controls",
+                    "Sync protection prevents accidental mass data deletion",
+                    "Works alongside Stripe, QuickBooks, and other source systems",
+                  ].map((highlight, index) => (
+                    <li key={index} className="flex items-start gap-3">
+                      <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                      <span className="text-muted-foreground">{highlight}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-lg p-4 mb-6">
+                  <div className="flex items-start gap-3">
+                    <RefreshCw className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium mb-1">Always in sync, always in control</p>
+                      <p className="text-sm text-muted-foreground">
+                        Push your latest Recouply data to Sheets for reporting, or Pull updates back in. Records are matched by RAID regardless of their original integration source — giving you one unified view across all systems.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <Button className="gap-2" asChild>
+                  <Link to="/signup">
+                    Connect Google Sheets
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                 </Button>
