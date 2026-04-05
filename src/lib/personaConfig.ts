@@ -61,6 +61,7 @@ export const personaConfig: Record<string, PersonaConfig> = {
     bucketMax: 90,
     description: "Assertive 61-90 Day Agent",
     tone: "Serious and focused",
+    punchline: "Time's ticking. Let's talk numbers.",
   },
   troy: {
     name: "Troy",
