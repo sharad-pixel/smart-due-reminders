@@ -15,6 +15,7 @@ export interface PersonaConfig {
   bucketMax: number | null;
   description: string;
   tone: string;
+  punchline: string;
 }
 
 export const personaConfig: Record<string, PersonaConfig> = {
