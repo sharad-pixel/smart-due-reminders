@@ -148,22 +148,9 @@ export function AccessProvider({ children }: { children: ReactNode }) {
       // For team members, fetch owner profile
       if (isTeamMember && effectiveAccountId) {
         // Use safe RPC function to avoid exposing credential columns
-        const { data: safeData, error: ownerError } = await supabase
+        const { data: ownerData, error: ownerError } = await supabase
           .rpc('get_safe_team_profile', { p_account_id: effectiveAccountId })
           .single();
-        
-        // Also fetch subscription fields needed for lockout checks
-        const { data: subData } = await supabase
-          .from('profiles')
-          .select('subscription_status, trial_ends_at')
-          .eq('id', effectiveAccountId)
-          .single();
-        
-        const ownerData = safeData ? {
-          ...safeData,
-          subscription_status: subData?.subscription_status || null,
-          trial_ends_at: subData?.trial_ends_at || null,
-        } : null;
 
         if (ownerError) {
           teamMemberLockout = {
