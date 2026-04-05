@@ -307,6 +307,46 @@ serve(async (req) => {
     console.log("[AI-PROCESS] Starting batch processing");
 
     // Fetch unprocessed emails with full invoice details for status checking
+    // Step 1: Atomically claim unprocessed emails by setting status to 'processing'
+    // This prevents duplicate processing when cron triggers overlap
+    const { data: claimedIds, error: claimError } = await supabase
+      .rpc("claim_inbound_emails_for_processing", { batch_limit: 50 });
+
+    if (claimError) {
+      console.error("[AI-PROCESS] Failed to claim emails:", claimError.message);
+      // Fallback: use the old select method but with tighter status filter
+    }
+
+    const emailIds = claimedIds?.map((r: any) => r.id) || [];
+
+    if (emailIds.length === 0) {
+      // Fallback: try direct select (in case RPC doesn't exist yet)
+      const { data: fallbackEmails, error: fbError } = await supabase
+        .from("inbound_emails")
+        .select("id")
+        .is("ai_summary", null)
+        .in("status", ["received", "linked"])
+        .limit(50);
+
+      if (fbError || !fallbackEmails?.length) {
+        return new Response(JSON.stringify({ success: true, processed: 0, message: "No emails to process" }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Mark as processing to prevent concurrent runs
+      const fbIds = fallbackEmails.map((e: any) => e.id);
+      await supabase
+        .from("inbound_emails")
+        .update({ status: "processing" })
+        .in("id", fbIds)
+        .in("status", ["received", "linked"]); // Double-check status to avoid race
+
+      emailIds.push(...fbIds);
+    }
+
+    // Step 2: Fetch full email data for claimed emails
     const { data: emails, error: fetchError } = await supabase
       .from("inbound_emails")
       .select(`
@@ -321,9 +361,7 @@ serve(async (req) => {
         debtors (name, company_name, email),
         invoices (id, invoice_number, amount, amount_outstanding, status, due_date, paid_date, aging_bucket)
       `)
-      .is("ai_summary", null)
-      .in("status", ["received", "linked"])
-      .limit(50);
+      .in("id", emailIds);
 
     if (fetchError) {
       throw new Error(`Failed to fetch emails: ${fetchError.message}`);
