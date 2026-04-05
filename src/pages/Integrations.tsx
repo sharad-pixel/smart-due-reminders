@@ -108,7 +108,7 @@ const Integrations = () => {
             <span className="text-primary">Centralize collections.</span>
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
-            Recouply.ai integrates directly with Stripe, QuickBooks, and Google Drive — syncing customers, invoices, and payments or extracting them from PDFs with AI-powered Smart Ingestion.
+            Recouply.ai integrates directly with Stripe, QuickBooks, Google Sheets, and Google Drive — syncing customers, invoices, and payments or extracting them from PDFs with AI-powered Smart Ingestion.
           </p>
           <div className="flex flex-wrap gap-4 justify-center">
             <Button size="lg" className="gap-2" asChild>
