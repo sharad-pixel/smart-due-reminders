@@ -93,8 +93,8 @@ const Integrations = () => {
   return (
     <MarketingLayout>
       <SEO
-        title="Integrations | Stripe, QuickBooks & AI Smart Ingestion | Recouply.ai"
-        description="Connect Stripe, QuickBooks, or use AI Smart Ingestion to extract invoices from Google Drive PDFs. Real-time accounts receivable sync, collections health visibility, and AI automation."
+        title="Integrations | Stripe, QuickBooks, Google Sheets & AI Smart Ingestion | Recouply.ai"
+        description="Connect Stripe, QuickBooks, Google Sheets, or use AI Smart Ingestion to extract invoices from Google Drive PDFs. Real-time accounts receivable sync, collections health visibility, and AI automation."
         canonical="https://recouply.ai/integrations"
         keywords="cash collections, accounts receivable, payments, AI automation for receivables, collections health, Stripe integration, QuickBooks integration, smart ingestion, Google Drive PDF, AR automation"
       />
