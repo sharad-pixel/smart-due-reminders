@@ -224,8 +224,29 @@ serve(async (req) => {
     // Create ONE in-app notification per user (consolidated)
     const inAppRecipients = usersToNotify.filter((u) => !!u.userId) as Array<{ userId: string; name: string; email?: string }>;
     const taskSummaries = tasks.map((t: any) => formatTaskType(t.task_type)).join(", ");
+    const existingNotificationUserIds = new Set<string>();
 
-    const notifications = inAppRecipients.map((user) => ({
+    if (inAppRecipients.length > 0) {
+      const { data: existingNotifications, error: existingNotificationsError } = await supabase
+        .from("user_notifications")
+        .select("user_id")
+        .eq("type", "task_created")
+        .eq("source_type", "inbound_email")
+        .eq("source_id", inboundEmailId)
+        .in("user_id", inAppRecipients.map((user) => user.userId));
+
+      if (existingNotificationsError) {
+        console.error("[NOTIFY-INBOUND-TASKS] Error checking existing notifications:", existingNotificationsError);
+      } else {
+        for (const notification of existingNotifications || []) {
+          existingNotificationUserIds.add((notification as any).user_id);
+        }
+      }
+    }
+
+    const usersNeedingInAppNotification = inAppRecipients.filter((user) => !existingNotificationUserIds.has(user.userId));
+
+    const notifications = usersNeedingInAppNotification.map((user) => ({
       user_id: user.userId,
       type: "task_created",
       title: `${tasks.length} Task${tasks.length > 1 ? "s" : ""} from Inbound Email`,
@@ -244,7 +265,9 @@ serve(async (req) => {
 
     // Send ONE consolidated email per user
     let emailsSent = 0;
-    for (const user of usersToNotify) {
+    const emailRecipients = usersToNotify.filter((user) => !user.userId || !existingNotificationUserIds.has(user.userId));
+
+    for (const user of emailRecipients) {
       if (!user.email) continue;
       try {
         const emailHtml = generateConsolidatedEmailHtml({
@@ -266,7 +289,7 @@ serve(async (req) => {
       }
     }
 
-    console.log(`[NOTIFY-INBOUND-TASKS] ✅ Sent ${emailsSent} consolidated emails, ${notifications.length} in-app notifications`);
+    console.log(`[NOTIFY-INBOUND-TASKS] ✅ Sent ${emailsSent} consolidated emails, ${notifications.length} in-app notifications (${existingNotificationUserIds.size} duplicate recipients skipped)`);
 
     return new Response(
       JSON.stringify({ success: true, notified: notifications.length, emailsSent, tasksCount: tasks.length }),
