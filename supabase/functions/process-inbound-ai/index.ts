@@ -750,34 +750,34 @@ Return JSON only:
             } else {
               console.log(`[AI-PROCESS] Created ${tasks.length} tasks for email ${email.id}`);
               
-              // Notify all account users about each created task
+              // Send ONE consolidated notification for all tasks from this inbound email
               if (createdTasks && createdTasks.length > 0) {
-                for (const task of createdTasks) {
-                  try {
-                    const { data: notifyData, error: notifyError } = await supabase.functions.invoke(
-                      "notify-task-created",
-                      {
-                        body: {
-                          taskId: task.id,
-                          creatorUserId: email.user_id,
-                        },
-                      }
-                    );
-
-                    if (notifyError) {
-                      console.error(
-                        `[AI-PROCESS] Failed to notify for task ${task.id}:`,
-                        notifyError.message || notifyError
-                      );
-                    } else {
-                      console.log(`[AI-PROCESS] Notification invoked for task ${task.id}`, notifyData);
+                try {
+                  const taskIds = createdTasks.map((t: any) => t.id);
+                  const { data: notifyData, error: notifyError } = await supabase.functions.invoke(
+                    "notify-inbound-tasks",
+                    {
+                      body: {
+                        taskIds,
+                        inboundEmailId: email.id,
+                        creatorUserId: email.user_id,
+                      },
                     }
-                  } catch (notifyError: any) {
+                  );
+
+                  if (notifyError) {
                     console.error(
-                      `[AI-PROCESS] Error invoking notification for task ${task.id}:`,
-                      notifyError?.message || notifyError
+                      `[AI-PROCESS] Failed to send consolidated notification:`,
+                      notifyError.message || notifyError
                     );
+                  } else {
+                    console.log(`[AI-PROCESS] Consolidated notification sent for ${taskIds.length} tasks`, notifyData);
                   }
+                } catch (notifyError: any) {
+                  console.error(
+                    `[AI-PROCESS] Error invoking consolidated notification:`,
+                    notifyError?.message || notifyError
+                  );
                 }
               }
             }
