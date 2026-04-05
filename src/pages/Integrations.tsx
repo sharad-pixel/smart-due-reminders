@@ -355,50 +355,70 @@ const Integrations = () => {
         </div>
       </section>
 
+      {/* CSV / Excel Upload Section */}
       <section className="py-16 md:py-24">
         <div className="container mx-auto px-4">
           <div className="max-w-5xl mx-auto">
             <div className="flex items-center gap-3 mb-2">
               <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                <Database className="h-6 w-6" />
+                <FileCheck className="h-6 w-6" />
               </div>
-              <h2 className="text-2xl md:text-3xl font-bold">Other ERP & Custom Integrations</h2>
+              <h2 className="text-2xl md:text-3xl font-bold">CSV & Excel Upload</h2>
             </div>
             <p className="text-muted-foreground mb-8 max-w-2xl">
-              Running NetSuite, Sage, or another ERP? We're actively building schemas to capture daily activity across additional source systems.
+              No billing integration? No problem. Upload your AR data directly and let Recouply.ai handle the rest.
             </p>
-            <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
-              <CardContent className="pt-6">
-                <div className="grid sm:grid-cols-2 gap-6">
-                  <FeatureBlock
-                    icon={Database}
-                    title="NetSuite (Coming Soon)"
-                    description="Dedicated schemas to ingest AR data from NetSuite environments"
-                  />
-                  <FeatureBlock
-                    icon={Database}
-                    title="Sage & Other ERPs"
-                    description="Expanding support for additional accounting and ERP platforms"
-                  />
-                  <FeatureBlock
-                    icon={FileCheck}
-                    title="CSV / Flat File Import"
-                    description="Upload AR aging data directly when a native integration isn't available yet"
-                  />
-                  <FeatureBlock
-                    icon={MessageSquare}
-                    title="Custom Integration Support"
-                    description="Talk to our team about connecting your specific billing or ERP system"
-                  />
+            <Card className="border-border/50 bg-card/50 backdrop-blur-sm hover:border-primary/30 transition-all duration-300">
+              <CardHeader>
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-blue-500/20 to-indigo-500/20 border border-blue-500/20 flex items-center justify-center">
+                    <FileText className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-2xl">Bulk Data Import</CardTitle>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400">Drag & Drop</span>
+                      <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary">Auto-Mapping</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="mt-6">
-                  <Button variant="outline" className="gap-2" asChild>
-                    <Link to="/contact?intent=integration">
-                      Request a Custom Integration
-                      <ArrowRight className="h-4 w-4" />
-                    </Link>
-                  </Button>
+                <CardDescription className="text-base leading-relaxed">
+                  Upload CSV or Excel files containing your accounts, invoices, and payments. Recouply.ai automatically maps columns, validates data, and imports records — ready for AI-powered collections workflows in minutes.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-3 mb-6">
+                  {[
+                    "Drag-and-drop CSV and Excel file uploads",
+                    "Automatic column mapping with smart field detection",
+                    "Built-in data validation and error highlighting",
+                    "Bulk import accounts, invoices, and payments in one upload",
+                    "Duplicate detection to prevent double-counting",
+                    "Ideal for teams migrating from spreadsheets or legacy systems",
+                  ].map((highlight, index) => (
+                    <li key={index} className="flex items-start gap-3">
+                      <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                      <span className="text-muted-foreground">{highlight}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="bg-blue-500/5 border border-blue-500/10 rounded-lg p-4 mb-6">
+                  <div className="flex items-start gap-3">
+                    <Zap className="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium mb-1">From spreadsheet to collections in minutes</p>
+                      <p className="text-sm text-muted-foreground">
+                        Upload your AR aging report, map the columns, and Recouply.ai instantly creates customer accounts and invoices — complete with risk scoring and automated follow-up workflows.
+                      </p>
+                    </div>
+                  </div>
                 </div>
+                <Button className="gap-2" asChild>
+                  <Link to="/signup">
+                    Upload Your Data
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
               </CardContent>
             </Card>
           </div>
@@ -417,10 +437,7 @@ const Integrations = () => {
               Your invoices. Intelligent follow-up.
             </h2>
             <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Recouply.ai is an AI-powered orchestration layer for accounts receivable and collections. With native Stripe and QuickBooks integrations, unpaid invoices automatically receive the right attention — without manual follow-ups or client-side effort. Recouply.ai continuously assesses payment risk, orchestrates outreach, and improves over time to help businesses get paid faster without adding finance headcount.
-            </p>
-            <p className="text-base text-muted-foreground mb-8 max-w-2xl mx-auto">
-              We're also actively building schemas around NetSuite and other ERP platforms to capture daily activity — so your collections intelligence grows with your revenue stack.
+              Recouply.ai is an AI-powered orchestration layer for accounts receivable and revenue recovery. With native Stripe, QuickBooks, Google Sheets, and AI Smart Ingestion integrations, unpaid invoices automatically receive the right attention — without manual follow-ups or client-side effort. Recouply.ai continuously assesses payment risk, orchestrates outreach, and improves over time to help businesses get paid faster without adding finance headcount.
             </p>
             <div className="flex flex-wrap gap-6 justify-center text-sm text-muted-foreground">
               <span className="flex items-center gap-2">
