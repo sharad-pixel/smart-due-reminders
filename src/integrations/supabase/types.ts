@@ -8261,12 +8261,17 @@ export type Database = {
         Args: { p_account_id: string }
         Returns: {
           avatar_url: string
+          billing_interval: string
           business_name: string
           company_name: string
           email: string
           id: string
           name: string
           plan_type: string
+          stripe_customer_id: string
+          stripe_subscription_id: string
+          subscription_status: string
+          trial_ends_at: string
         }[]
       }
       get_user_organization_id: { Args: { p_user_id: string }; Returns: string }
