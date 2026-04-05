@@ -83,6 +83,7 @@ export const personaConfig: Record<string, PersonaConfig> = {
     bucketMax: 150,
     description: "Very Firm 121-150 Day Agent",
     tone: "Serious",
+    punchline: "No more extensions. Resolution starts now.",
   },
   rocco: {
     name: "Rocco",
