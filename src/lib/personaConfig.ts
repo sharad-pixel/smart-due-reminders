@@ -94,6 +94,7 @@ export const personaConfig: Record<string, PersonaConfig> = {
     bucketMax: null,
     description: "Final Internal Collections Agent",
     tone: "Firm and authoritative, high urgency, compliance-focused",
+    punchline: "Last call. The next voice you hear won't be mine.",
   },
 };
 
