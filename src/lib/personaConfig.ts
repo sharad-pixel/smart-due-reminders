@@ -39,6 +39,7 @@ export const personaConfig: Record<string, PersonaConfig> = {
     bucketMax: 30,
     description: "Friendly 0-30 Day Reminder Agent",
     tone: "Warm and gentle reminder",
+    punchline: "Just a friendly nudge — your future self will thank you.",
   },
   james: {
     name: "James",
