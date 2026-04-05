@@ -36,19 +36,234 @@ async function getValidAccessToken(supabase: any, connection: any) {
 
 function parseDate(val: string): string | null {
   if (!val || val.trim() === '') return null;
-  // Try YYYY-MM-DD
   if (/^\d{4}-\d{2}-\d{2}$/.test(val.trim())) return val.trim();
-  // Try MM/DD/YYYY
   const mdyMatch = val.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (mdyMatch) {
     return `${mdyMatch[3]}-${mdyMatch[1].padStart(2, '0')}-${mdyMatch[2].padStart(2, '0')}`;
   }
-  // Try Date.parse as fallback
   const d = new Date(val);
-  if (!isNaN(d.getTime())) {
-    return d.toISOString().split('T')[0];
-  }
+  if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
   return null;
+}
+
+const BATCH_SIZE = 50;
+
+async function processTemplate(
+  supabase: any,
+  template: any,
+  connection: any,
+  user: any,
+  orgId: string | null
+) {
+  const accessToken = await getValidAccessToken(supabase, connection);
+
+  // Incremental sync: only read rows after last_synced_row
+  const startRow = (template.last_synced_row || 0) + 1;
+  const headerRange = `Invoices!A1:M1`;
+  const dataRange = `Invoices!A${startRow + 1}:M5000`;
+
+  // Fetch header and data rows in parallel
+  const [headerRes, dataRes] = await Promise.all([
+    fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${template.sheet_id}/values/${headerRange}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    ),
+    fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${template.sheet_id}/values/${dataRange}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    ),
+  ]);
+
+  const [headerData, sheetData] = await Promise.all([headerRes.json(), dataRes.json()]);
+
+  if (!headerRes.ok) throw new Error(`Sheets API error: ${JSON.stringify(headerData)}`);
+  if (!dataRes.ok) throw new Error(`Sheets API error: ${JSON.stringify(sheetData)}`);
+
+  const headerRows = headerData.values || [];
+  if (headerRows.length === 0) return { sheetName: template.sheet_name, newInvoices: 0, skipped: 0, errors: 0 };
+
+  const headers = headerRows[0].map((h: string) => h.toLowerCase().trim());
+  const colIdx = {
+    invoiceNumber: headers.indexOf('invoice number'),
+    amount: headers.indexOf('amount'),
+    amountOutstanding: headers.indexOf('amount outstanding'),
+    currency: headers.indexOf('currency'),
+    issueDate: headers.indexOf('issue date'),
+    dueDate: headers.indexOf('due date'),
+    status: headers.indexOf('status'),
+    poNumber: headers.indexOf('po number'),
+    productDescription: headers.indexOf('product/description'),
+    paymentTerms: headers.indexOf('payment terms'),
+    notes: headers.indexOf('notes'),
+    recouplyRef: headers.indexOf('recouply ref (do not edit)'),
+    source: headers.indexOf('source'),
+  };
+
+  const dataRows = sheetData.values || [];
+  if (dataRows.length === 0) return { sheetName: template.sheet_name, newInvoices: 0, skipped: 0, errors: 0 };
+
+  // Get existing invoice numbers for dedup
+  const { data: existingInvoices } = await supabase
+    .from('invoices')
+    .select('invoice_number, reference_id')
+    .eq('debtor_id', template.debtor_id)
+    .eq('user_id', user.id);
+
+  const existingNumbers = new Set(
+    (existingInvoices || []).map((i: any) => (i.invoice_number || '').toLowerCase().trim())
+  );
+  const existingRefs = new Set(
+    (existingInvoices || []).map((i: any) => (i.reference_id || '').toLowerCase().trim())
+  );
+
+  let sheetNewCount = 0;
+  let sheetSkipped = 0;
+  let sheetErrors = 0;
+  const invoiceBatch: any[] = [];
+  const batchRowIndices: number[] = []; // track original row indices for write-back
+
+  const getVal = (row: any[], idx: number) => idx >= 0 && idx < row.length ? (row[idx] || '').trim() : '';
+
+  for (let i = 0; i < dataRows.length; i++) {
+    const row = dataRows[i];
+    if (!row || row.length === 0) continue;
+
+    const source = getVal(row, colIdx.source);
+    const recouplyRef = getVal(row, colIdx.recouplyRef);
+    const invoiceNumber = getVal(row, colIdx.invoiceNumber);
+
+    if (source.toLowerCase() === 'recouply') { sheetSkipped++; continue; }
+    if (recouplyRef && existingRefs.has(recouplyRef.toLowerCase())) { sheetSkipped++; continue; }
+    if (!invoiceNumber) continue;
+    if (existingNumbers.has(invoiceNumber.toLowerCase())) { sheetSkipped++; continue; }
+
+    const amount = parseFloat(getVal(row, colIdx.amount)) || 0;
+    const amountOutstanding = parseFloat(getVal(row, colIdx.amountOutstanding)) || amount;
+    const currency = getVal(row, colIdx.currency) || 'USD';
+    const issueDate = parseDate(getVal(row, colIdx.issueDate));
+    const dueDate = parseDate(getVal(row, colIdx.dueDate));
+    const status = getVal(row, colIdx.status) || 'Open';
+    const poNumber = getVal(row, colIdx.poNumber);
+    const productDescription = getVal(row, colIdx.productDescription);
+    const paymentTerms = getVal(row, colIdx.paymentTerms);
+    const notes = getVal(row, colIdx.notes);
+
+    if (!dueDate) {
+      console.warn(`Row ${startRow + i + 1}: skipping — no valid due date`);
+      sheetErrors++;
+      continue;
+    }
+
+    invoiceBatch.push({
+      user_id: user.id,
+      organization_id: orgId,
+      debtor_id: template.debtor_id,
+      invoice_number: invoiceNumber,
+      amount,
+      amount_original: amount,
+      amount_outstanding: amountOutstanding,
+      currency: currency.toUpperCase(),
+      issue_date: issueDate,
+      due_date: dueDate,
+      status,
+      po_number: poNumber || null,
+      product_description: productDescription || null,
+      payment_terms: paymentTerms || null,
+      notes: notes ? `[Sheet Import] ${notes}` : '[Sheet Import]',
+      source_system: 'google_sheets',
+    });
+    batchRowIndices.push(i);
+    existingNumbers.add(invoiceNumber.toLowerCase());
+  }
+
+  // Batch insert in chunks of BATCH_SIZE with .select() to get reference_ids back
+  const insertedInvoices: any[] = [];
+  for (let c = 0; c < invoiceBatch.length; c += BATCH_SIZE) {
+    const chunk = invoiceBatch.slice(c, c + BATCH_SIZE);
+    const { data: inserted, error: insertErr } = await supabase
+      .from('invoices')
+      .insert(chunk)
+      .select('invoice_number, reference_id');
+
+    if (insertErr) {
+      console.error(`Batch insert error:`, insertErr.message);
+      sheetErrors += chunk.length;
+    } else {
+      sheetNewCount += (inserted || []).length;
+      insertedInvoices.push(...(inserted || []));
+    }
+  }
+
+  // Update template with new sync position
+  const newLastRow = startRow + dataRows.length;
+  await supabase.from('google_sheet_templates').update({
+    last_synced_at: new Date().toISOString(),
+    rows_synced: (template.rows_synced || 0) + sheetNewCount,
+    last_synced_row: newLastRow,
+    updated_at: new Date().toISOString(),
+  }).eq('id', template.id);
+
+  // Write-back source + ref columns (fire-and-forget style)
+  if (insertedInvoices.length > 0 && (colIdx.source >= 0 || colIdx.recouplyRef >= 0)) {
+    const refMap = new Map(
+      insertedInvoices.map((inv: any) => [
+        (inv.invoice_number || '').toLowerCase().trim(),
+        inv.reference_id,
+      ])
+    );
+
+    const updateRequests: any[] = [];
+    for (let i = 0; i < dataRows.length; i++) {
+      const row = dataRows[i];
+      if (!row || row.length === 0) continue;
+      const invoiceNum = getVal(row, colIdx.invoiceNumber);
+      const source = getVal(row, colIdx.source);
+      if (source.toLowerCase() === 'recouply' || !invoiceNum) continue;
+
+      const ref = refMap.get(invoiceNum.toLowerCase().trim());
+      if (!ref) continue;
+
+      const sheetRowNum = startRow + i + 1; // actual sheet row number
+      if (colIdx.source >= 0) {
+        updateRequests.push({
+          range: `Invoices!${String.fromCharCode(65 + colIdx.source)}${sheetRowNum}`,
+          values: [['recouply']],
+        });
+      }
+      if (colIdx.recouplyRef >= 0) {
+        updateRequests.push({
+          range: `Invoices!${String.fromCharCode(65 + colIdx.recouplyRef)}${sheetRowNum}`,
+          values: [[ref]],
+        });
+      }
+    }
+
+    if (updateRequests.length > 0) {
+      // Fire and don't await — write-back is not critical path
+      fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${template.sheet_id}/values:batchUpdate`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            valueInputOption: 'RAW',
+            data: updateRequests,
+          }),
+        }
+      ).catch(err => console.error('Write-back error:', err));
+    }
+  }
+
+  return {
+    sheetName: template.sheet_name,
+    debtorName: template.sheet_name,
+    newInvoices: sheetNewCount,
+    skipped: sheetSkipped,
+    errors: sheetErrors,
+  };
 }
 
 Deno.serve(async (req) => {
@@ -83,10 +298,8 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    // Get org ID
     const { data: orgId } = await supabase.rpc('get_user_organization_id', { p_user_id: user.id });
 
-    // Always use the current user's drive connection
     const { data: userConnection } = await supabase
       .from('drive_connections')
       .select('*')
@@ -100,7 +313,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // If specific template, scan that one; otherwise scan all active templates for this user
     let templates: any[] = [];
     if (sheetTemplateId) {
       const { data } = await supabase
@@ -125,240 +337,32 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Process all templates in parallel
+    const templateResults = await Promise.allSettled(
+      templates.map(t => processTemplate(supabase, t, userConnection, user, orgId))
+    );
+
     let totalNewInvoices = 0;
     let totalSkipped = 0;
     let totalErrors = 0;
     const results: any[] = [];
 
-    for (const template of templates) {
-      // Use the current user's connection, not the template's stored connection
-      const connection = userConnection;
-
-      try {
-        const accessToken = await getValidAccessToken(supabase, connection);
-
-        // Read the "Invoices" sheet
-        const sheetRes = await fetch(
-          `https://sheets.googleapis.com/v4/spreadsheets/${template.sheet_id}/values/Invoices!A1:M1000`,
-          { headers: { Authorization: `Bearer ${accessToken}` } }
-        );
-        const sheetData = await sheetRes.json();
-        if (!sheetRes.ok) {
-          throw new Error(`Sheets API error: ${JSON.stringify(sheetData)}`);
-        }
-
-        const rows = sheetData.values || [];
-        if (rows.length <= 1) {
-          results.push({ sheetName: template.sheet_name, newInvoices: 0, skipped: 0 });
-          continue;
-        }
-
-        // Header row mapping (case-insensitive)
-        const headers = rows[0].map((h: string) => h.toLowerCase().trim());
-        const colIdx = {
-          invoiceNumber: headers.indexOf('invoice number'),
-          amount: headers.indexOf('amount'),
-          amountOutstanding: headers.indexOf('amount outstanding'),
-          currency: headers.indexOf('currency'),
-          issueDate: headers.indexOf('issue date'),
-          dueDate: headers.indexOf('due date'),
-          status: headers.indexOf('status'),
-          poNumber: headers.indexOf('po number'),
-          productDescription: headers.indexOf('product/description'),
-          paymentTerms: headers.indexOf('payment terms'),
-          notes: headers.indexOf('notes'),
-          recouplyRef: headers.indexOf('recouply ref (do not edit)'),
-          source: headers.indexOf('source'),
-        };
-
-        // Get existing invoice numbers for this debtor to prevent duplicates
-        const { data: existingInvoices } = await supabase
-          .from('invoices')
-          .select('invoice_number, reference_id')
-          .eq('debtor_id', template.debtor_id)
-          .eq('user_id', user.id);
-
-        const existingNumbers = new Set(
-          (existingInvoices || []).map(i => (i.invoice_number || '').toLowerCase().trim())
-        );
-        const existingRefs = new Set(
-          (existingInvoices || []).map(i => (i.reference_id || '').toLowerCase().trim())
-        );
-
-        let sheetNewCount = 0;
-        let sheetSkipped = 0;
-
-        for (let i = 1; i < rows.length; i++) {
-          const row = rows[i];
-          if (!row || row.length === 0) continue;
-
-          const getVal = (idx: number) => idx >= 0 && idx < row.length ? (row[idx] || '').trim() : '';
-
-          const source = getVal(colIdx.source);
-          const recouplyRef = getVal(colIdx.recouplyRef);
-          const invoiceNumber = getVal(colIdx.invoiceNumber);
-
-          // Skip rows that came from Recouply (have source='recouply' or have an existing ref)
-          if (source.toLowerCase() === 'recouply') {
-            sheetSkipped++;
-            continue;
-          }
-
-          // Skip if this ref already exists
-          if (recouplyRef && existingRefs.has(recouplyRef.toLowerCase())) {
-            sheetSkipped++;
-            continue;
-          }
-
-          // Skip empty rows (no invoice number)
-          if (!invoiceNumber) continue;
-
-          // Skip if invoice number already exists for this debtor
-          if (existingNumbers.has(invoiceNumber.toLowerCase())) {
-            sheetSkipped++;
-            continue;
-          }
-
-          // Parse the new invoice row
-          const amount = parseFloat(getVal(colIdx.amount)) || 0;
-          const amountOutstanding = parseFloat(getVal(colIdx.amountOutstanding)) || amount;
-          const currency = getVal(colIdx.currency) || 'USD';
-          const issueDate = parseDate(getVal(colIdx.issueDate));
-          const dueDate = parseDate(getVal(colIdx.dueDate));
-          const status = getVal(colIdx.status) || 'Open';
-          const poNumber = getVal(colIdx.poNumber);
-          const productDescription = getVal(colIdx.productDescription);
-          const paymentTerms = getVal(colIdx.paymentTerms);
-          const notes = getVal(colIdx.notes);
-
-          if (!dueDate) {
-            console.warn(`Row ${i + 1}: skipping — no valid due date`);
-            totalErrors++;
-            continue;
-          }
-
-          // Insert new invoice
-          const { error: insertErr } = await supabase.from('invoices').insert({
-            user_id: user.id,
-            organization_id: orgId,
-            debtor_id: template.debtor_id,
-            invoice_number: invoiceNumber,
-            amount,
-            amount_original: amount,
-            amount_outstanding: amountOutstanding,
-            currency: currency.toUpperCase(),
-            issue_date: issueDate,
-            due_date: dueDate,
-            status,
-            po_number: poNumber || null,
-            product_description: productDescription || null,
-            payment_terms: paymentTerms || null,
-            notes: notes ? `[Sheet Import] ${notes}` : '[Sheet Import]',
-            source_system: 'google_sheets',
-          });
-
-          if (insertErr) {
-            console.error(`Row ${i + 1} insert error:`, insertErr.message);
-            totalErrors++;
-          } else {
-            sheetNewCount++;
-            // Add to set so we don't dupe within same scan
-            existingNumbers.add(invoiceNumber.toLowerCase());
-          }
-        }
-
-        // Update template record
-        await supabase.from('google_sheet_templates').update({
-          last_synced_at: new Date().toISOString(),
-          rows_synced: (template.rows_synced || 0) + sheetNewCount,
-          updated_at: new Date().toISOString(),
-        }).eq('id', template.id);
-
-        // Write back Recouply refs and source markers for newly imported rows
-        // (This stamps newly imported rows so they won't be re-imported)
-        if (sheetNewCount > 0) {
-          // Re-read to get the updated refs
-          const { data: updatedInvoices } = await supabase
-            .from('invoices')
-            .select('invoice_number, reference_id')
-            .eq('debtor_id', template.debtor_id)
-            .eq('user_id', user.id)
-            .eq('source_system', 'google_sheets')
-            .order('created_at', { ascending: false })
-            .limit(sheetNewCount);
-
-          if (updatedInvoices && updatedInvoices.length > 0) {
-            const refMap = new Map(updatedInvoices.map(inv => [
-              (inv.invoice_number || '').toLowerCase().trim(),
-              inv.reference_id,
-            ]));
-
-            // Build batch update for the sheet
-            const updateRequests: any[] = [];
-            for (let i = 1; i < rows.length; i++) {
-              const row = rows[i];
-              if (!row || row.length === 0) continue;
-              const getVal = (idx: number) => idx >= 0 && idx < row.length ? (row[idx] || '').trim() : '';
-              const source = getVal(colIdx.source);
-              const invoiceNum = getVal(colIdx.invoiceNumber);
-
-              if (source.toLowerCase() !== 'recouply' && invoiceNum) {
-                const ref = refMap.get(invoiceNum.toLowerCase().trim());
-                if (ref) {
-                  // Update source column
-                  if (colIdx.source >= 0) {
-                    updateRequests.push({
-                      range: `Invoices!${String.fromCharCode(65 + colIdx.source)}${i + 1}`,
-                      values: [['recouply']],
-                    });
-                  }
-                  // Update ref column
-                  if (colIdx.recouplyRef >= 0) {
-                    updateRequests.push({
-                      range: `Invoices!${String.fromCharCode(65 + colIdx.recouplyRef)}${i + 1}`,
-                      values: [[ref]],
-                    });
-                  }
-                }
-              }
-            }
-
-            if (updateRequests.length > 0) {
-              await fetch(
-                `https://sheets.googleapis.com/v4/spreadsheets/${template.sheet_id}/values:batchUpdate`,
-                {
-                  method: 'POST',
-                  headers: {
-                    Authorization: `Bearer ${accessToken}`,
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({
-                    valueInputOption: 'RAW',
-                    data: updateRequests,
-                  }),
-                }
-              );
-            }
-          }
-        }
-
-        totalNewInvoices += sheetNewCount;
-        totalSkipped += sheetSkipped;
-        results.push({
-          sheetName: template.sheet_name,
-          debtorName: template.sheet_name,
-          newInvoices: sheetNewCount,
-          skipped: sheetSkipped,
-        });
-      } catch (err) {
-        console.error(`Error processing sheet ${template.sheet_name}:`, err);
+    for (let i = 0; i < templateResults.length; i++) {
+      const result = templateResults[i];
+      if (result.status === 'fulfilled') {
+        totalNewInvoices += result.value.newInvoices;
+        totalSkipped += result.value.skipped;
+        totalErrors += result.value.errors || 0;
+        results.push(result.value);
+      } else {
+        console.error(`Error processing template ${templates[i].sheet_name}:`, result.reason);
         totalErrors++;
-        results.push({ sheetName: template.sheet_name, error: String(err) });
+        results.push({ sheetName: templates[i].sheet_name, error: String(result.reason) });
       }
     }
 
-    // Audit log
-    await supabase.from('ingestion_audit_log').insert({
+    // Audit log (fire-and-forget)
+    supabase.from('ingestion_audit_log').insert({
       user_id: user.id,
       organization_id: orgId,
       event_type: 'sheets_ingested',
@@ -368,7 +372,7 @@ Deno.serve(async (req) => {
         skipped: totalSkipped,
         errors: totalErrors,
       },
-    });
+    }).then(() => {});
 
     return new Response(JSON.stringify({
       success: true,
