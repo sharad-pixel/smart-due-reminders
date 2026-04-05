@@ -8257,6 +8257,18 @@ export type Database = {
       get_effective_account_id: { Args: { p_user_id: string }; Returns: string }
       get_payment_plan_by_token: { Args: { p_token: string }; Returns: Json }
       get_public_ar_page: { Args: { p_token: string }; Returns: Json }
+      get_safe_team_profile: {
+        Args: { p_account_id: string }
+        Returns: {
+          avatar_url: string
+          business_name: string
+          company_name: string
+          email: string
+          id: string
+          name: string
+          plan_type: string
+        }[]
+      }
       get_user_organization_id: { Args: { p_user_id: string }; Returns: string }
       has_role: {
         Args: {
