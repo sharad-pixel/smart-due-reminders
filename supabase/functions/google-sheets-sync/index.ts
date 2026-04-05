@@ -65,7 +65,7 @@ async function batchUpdateSheet(accessToken: string, spreadsheetId: string, upda
 async function pushAccounts(supabase: any, accessToken: string, template: any, userId: string) {
   const { data: debtors } = await supabase
     .from('debtors')
-    .select('reference_id, company_name, type, name, email, phone, address_line1, address_line2, city, state, postal_code, country, industry, external_customer_id, crm_account_id_external, payment_terms_default, notes, current_balance, integration_source, source_system')
+    .select('reference_id, company_name, type, name, email, phone, address_line1, address_line2, city, state, postal_code, country, industry, external_customer_id, crm_account_id_external, payment_terms_default, notes, current_balance, integration_source, source_system, payment_score, payment_risk_tier')
     .eq('user_id', userId)
     .eq('is_archived', false)
     .order('company_name', { ascending: true });
@@ -74,7 +74,7 @@ async function pushAccounts(supabase: any, accessToken: string, template: any, u
     'RAID', 'Company Name', 'Type (B2B/B2C)', 'Contact Name', 'Contact Email', 'Contact Phone',
     'Address Line 1', 'Address Line 2', 'City', 'State', 'Postal Code', 'Country',
     'Industry', 'Source System ID', 'CRM ID', 'Default Payment Terms',
-    'Notes', 'Current Balance', 'Source'
+    'Notes', 'Current Balance', 'Source', 'Risk Score', 'Risk Tier'
   ];
   const rows = [headers, ...(debtors || []).map((d: any) => [
     d.reference_id || '', d.company_name || '', d.type || 'B2B',
@@ -84,10 +84,11 @@ async function pushAccounts(supabase: any, accessToken: string, template: any, u
     d.external_customer_id || '', d.crm_account_id_external || '',
     d.payment_terms_default || '', d.notes || '', d.current_balance || 0,
     d.integration_source || d.source_system || 'recouply',
+    d.payment_score ?? '', d.payment_risk_tier || '',
   ])];
 
   // Clear existing data then write
-  await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${template.sheet_id}/values/Accounts!A:S:clear`, {
+  await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${template.sheet_id}/values/Accounts!A:U:clear`, {
     method: 'POST', headers: { Authorization: `Bearer ${accessToken}` },
   });
   await fetch(

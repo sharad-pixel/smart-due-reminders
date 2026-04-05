@@ -191,7 +191,7 @@ Deno.serve(async (req) => {
         sheetTitle = `${businessName} - Accounts Master`;
         const { data: debtors } = await supabase
           .from('debtors')
-          .select('reference_id, company_name, type, name, email, phone, address_line1, address_line2, city, state, postal_code, country, industry, external_customer_id, crm_account_id_external, payment_terms_default, notes, current_balance, integration_source, source_system')
+          .select('reference_id, company_name, type, name, email, phone, address_line1, address_line2, city, state, postal_code, country, industry, external_customer_id, crm_account_id_external, payment_terms_default, notes, current_balance, integration_source, source_system, payment_score, payment_risk_tier')
           .eq('user_id', user.id)
           .eq('is_archived', false)
           .order('company_name', { ascending: true });
@@ -200,7 +200,7 @@ Deno.serve(async (req) => {
           'RAID', 'Company Name', 'Type (B2B/B2C)', 'Contact Name', 'Contact Email', 'Contact Phone',
           'Address Line 1', 'Address Line 2', 'City', 'State', 'Postal Code', 'Country',
           'Industry', 'External Customer ID', 'CRM ID', 'Default Payment Terms',
-          'Notes', 'Current Balance', 'Source'
+          'Notes', 'Current Balance', 'Source', 'Risk Score', 'Risk Tier'
         ];
         const dataRows = (debtors || []).map((d: any) => [
           d.reference_id || '', d.company_name || '', d.type || 'B2B',
@@ -209,14 +209,15 @@ Deno.serve(async (req) => {
           d.postal_code || '', d.country || '', d.industry || '',
           d.external_customer_id || '', d.crm_account_id_external || '',
           d.payment_terms_default || '', d.notes || '', d.current_balance || 0,
-          d.integration_source || d.source_system || 'recouply'
+          d.integration_source || d.source_system || 'recouply',
+          d.payment_score ?? '', d.payment_risk_tier || ''
         ]);
         rowCount = dataRows.length;
         sheets = [{
           properties: { title: 'Accounts', gridProperties: { frozenRowCount: 1 } },
           data: [{ startRow: 0, startColumn: 0, rowData: [
             buildHeaderRow(headers),
-            ...dataRows.map(r => buildDataRow(r, [17])),
+            ...dataRows.map(r => buildDataRow(r, [17, 19])),
           ]}],
         }];
       } else if (currentType === 'invoices') {
