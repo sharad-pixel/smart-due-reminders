@@ -202,9 +202,18 @@ function PersonaSection({
               {persona.name}
             </motion.h2>
 
+            <motion.p
+              className="text-sm md:text-base italic text-foreground/60 mt-2 max-w-[280px] text-center"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={isInView ? { opacity: 1, scale: 1 } : {}}
+              transition={{ delay: 0.5, type: "spring", stiffness: 200 }}
+            >
+              "{persona.punchline}"
+            </motion.p>
+
             <Badge
               variant="outline"
-              className="mt-2 text-xs font-medium"
+              className="mt-3 text-xs font-medium"
               style={{ borderColor: persona.color, color: persona.color }}
             >
               {personaKey === "nicolas"
