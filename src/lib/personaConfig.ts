@@ -15,6 +15,7 @@ export interface PersonaConfig {
   bucketMax: number | null;
   description: string;
   tone: string;
+  punchline: string;
 }
 
 export const personaConfig: Record<string, PersonaConfig> = {
@@ -27,6 +28,7 @@ export const personaConfig: Record<string, PersonaConfig> = {
     bucketMax: -999,
     description: "(Special Agent) Support and Account Level Outreach",
     tone: "Professional account-level communications",
+    punchline: "I handle the accounts that matter most.",
   },
   sam: {
     name: "Sam",
@@ -37,6 +39,7 @@ export const personaConfig: Record<string, PersonaConfig> = {
     bucketMax: 30,
     description: "Friendly 0-30 Day Reminder Agent",
     tone: "Warm and gentle reminder",
+    punchline: "Just a friendly nudge — your future self will thank you.",
   },
   james: {
     name: "James",
@@ -47,6 +50,7 @@ export const personaConfig: Record<string, PersonaConfig> = {
     bucketMax: 60,
     description: "Confident 31-60 Day Agent",
     tone: "Direct but professional",
+    punchline: "Let's settle this before it gets serious.",
   },
   katy: {
     name: "Katy",
@@ -57,6 +61,7 @@ export const personaConfig: Record<string, PersonaConfig> = {
     bucketMax: 90,
     description: "Assertive 61-90 Day Agent",
     tone: "Serious and focused",
+    punchline: "Time's ticking. Let's talk numbers.",
   },
   troy: {
     name: "Troy",
@@ -67,6 +72,7 @@ export const personaConfig: Record<string, PersonaConfig> = {
     bucketMax: 120,
     description: "Firm 91-120 Day Agent",
     tone: "Final Warning",
+    punchline: "This is your final pit stop before escalation.",
   },
   jimmy: {
     name: "Jimmy",
@@ -77,6 +83,7 @@ export const personaConfig: Record<string, PersonaConfig> = {
     bucketMax: 150,
     description: "Very Firm 121-150 Day Agent",
     tone: "Serious",
+    punchline: "No more extensions. Resolution starts now.",
   },
   rocco: {
     name: "Rocco",
@@ -87,6 +94,7 @@ export const personaConfig: Record<string, PersonaConfig> = {
     bucketMax: null,
     description: "Final Internal Collections Agent",
     tone: "Firm and authoritative, high urgency, compliance-focused",
+    punchline: "Last call. The next voice you hear won't be mine.",
   },
 };
 
