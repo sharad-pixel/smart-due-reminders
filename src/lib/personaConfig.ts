@@ -50,6 +50,7 @@ export const personaConfig: Record<string, PersonaConfig> = {
     bucketMax: 60,
     description: "Confident 31-60 Day Agent",
     tone: "Direct but professional",
+    punchline: "Let's settle this before it gets serious.",
   },
   katy: {
     name: "Katy",
