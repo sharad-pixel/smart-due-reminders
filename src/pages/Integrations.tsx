@@ -356,6 +356,11 @@ const Integrations = () => {
       </section>
 
       <section className="py-16 md:py-24">
+        <div className="container mx-auto px-4">
+          <div className="max-w-5xl mx-auto">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                <Database className="h-6 w-6" />
               </div>
               <h2 className="text-2xl md:text-3xl font-bold">Other ERP & Custom Integrations</h2>
             </div>
