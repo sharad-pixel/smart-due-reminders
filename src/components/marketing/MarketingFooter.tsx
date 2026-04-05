@@ -211,7 +211,7 @@
                </Link>
              </nav>
  
-             <Link to="/security#responsible-ai" className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 hover:bg-primary/20 transition-colors">
+             <Link to="/security-public#responsible-ai" className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 hover:bg-primary/20 transition-colors">
                <ShieldCheck className="h-3.5 w-3.5 text-primary" />
                <span className="text-xs font-medium text-primary">Responsible AI</span>
              </Link>
