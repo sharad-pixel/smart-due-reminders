@@ -28,6 +28,7 @@ export const personaConfig: Record<string, PersonaConfig> = {
     bucketMax: -999,
     description: "(Special Agent) Support and Account Level Outreach",
     tone: "Professional account-level communications",
+    punchline: "I handle the accounts that matter most.",
   },
   sam: {
     name: "Sam",
