@@ -120,6 +120,15 @@ export function SheetTemplatesSection() {
   const syncMutation = useMutation({
     mutationFn: async ({ sheetTemplateId, direction }: { sheetTemplateId: string; direction: 'push' | 'pull' }) => {
       setSyncingId(`${sheetTemplateId}-${direction}`);
+      
+      // Show immediate feedback for pull operations
+      if (direction === 'pull') {
+        toast.info("Pull sync started", {
+          description: "Reading from Google Sheets — this may take a moment for large datasets. You can continue working.",
+          duration: 5000,
+        });
+      }
+      
       const { data, error } = await supabase.functions.invoke("google-sheets-sync", {
         body: { sheetTemplateId, direction },
       });
