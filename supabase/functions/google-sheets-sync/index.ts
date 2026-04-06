@@ -400,13 +400,23 @@ async function pullInvoices(supabase: any, accessToken: string, template: any, u
   const sheetUpdates: any[] = [];
   const rowsToMoveToPaid: number[] = [];
 
-  // PROTECTION: Pre-load sync-protected accounts
-  const { data: syncProtectedAccounts } = await supabase
+  // BATCH: Pre-load all debtors for this user (RAID → id map)
+  const { data: allDebtors } = await supabase
     .from('debtors')
-    .select('reference_id')
+    .select('id, reference_id, sheet_sync_enabled')
     .eq('user_id', userId)
-    .eq('sheet_sync_enabled', false);
-  const protectedRaids = new Set((syncProtectedAccounts || []).map((d: any) => d.reference_id));
+    .eq('is_archived', false);
+
+  const raidToDebtorId = new Map<string, string>();
+  const protectedRaids = new Set<string>();
+  for (const d of (allDebtors || [])) {
+    if (d.reference_id) raidToDebtorId.set(d.reference_id, d.id);
+    if (d.sheet_sync_enabled === false && d.reference_id) protectedRaids.add(d.reference_id);
+  }
+
+  // Classify rows into updates vs new inserts
+  const updateBatch: { ref: string; data: any; rowIdx: number }[] = [];
+  const insertBatch: { record: any; rowIdx: number }[] = [];
 
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
@@ -420,56 +430,28 @@ async function pullInvoices(supabase: any, accessToken: string, template: any, u
 
     if (!invoiceNumber) continue;
 
-    // PROTECTION: Skip invoices belonging to sync-protected accounts
-    if (accountRaid && protectedRaids.has(accountRaid)) {
-      syncProtected++;
-      continue;
-    }
+    if (accountRaid && protectedRaids.has(accountRaid)) { syncProtected++; continue; }
 
     const terminalStatuses = ['paid', 'canceled', 'voided', 'writtenoff', 'settled', 'credited'];
     const isTerminal = terminalStatuses.includes(status.toLowerCase());
 
-    // PROTECTION: Updates only via RAID/reference match — never delete invoice records
     if (recouplyRef && source.toLowerCase() === 'recouply') {
       const updateData: any = {};
       const amtOut = parseFloat(getVal(row, amtOutIdx));
       if (!isNaN(amtOut)) updateData.amount_outstanding = amtOut;
       if (status) updateData.status = status;
-
-      const { error } = await supabase
-        .from('invoices')
-        .update(updateData)
-        .eq('reference_id', recouplyRef)
-        .eq('user_id', userId);
-
-      if (!error) {
-        updated++;
-        if (isTerminal) rowsToMoveToPaid.push(i);
-      } else skipped++;
-    } else if (!recouplyRef || source.toLowerCase() !== 'recouply') {
-      let debtorId: string | null = null;
-      if (accountRaid) {
-        const { data: debtor } = await supabase
-          .from('debtors')
-          .select('id')
-          .eq('reference_id', accountRaid)
-          .eq('user_id', userId)
-          .maybeSingle();
-        debtorId = debtor?.id || null;
-      }
-
-      if (!debtorId) {
-        skipped++;
-        continue;
-      }
+      updateBatch.push({ ref: recouplyRef, data: updateData, rowIdx: i });
+      if (isTerminal) rowsToMoveToPaid.push(i);
+    } else {
+      const debtorId = accountRaid ? raidToDebtorId.get(accountRaid) || null : null;
+      if (!debtorId) { skipped++; continue; }
 
       const amount = parseFloat(getVal(row, amountIdx)) || 0;
       const dueDate = parseDate(getVal(row, dueDateIdx));
       if (!dueDate) { skipped++; continue; }
 
-      const { data: newInv, error } = await supabase
-        .from('invoices')
-        .insert({
+      insertBatch.push({
+        record: {
           user_id: userId,
           organization_id: orgId,
           debtor_id: debtorId,
@@ -486,16 +468,50 @@ async function pullInvoices(supabase: any, accessToken: string, template: any, u
           payment_terms: getVal(row, termsIdx) || null,
           notes: getVal(row, notesIdx) ? `[Sheet] ${getVal(row, notesIdx)}` : '[Sheet Import]',
           source_system: 'google_sheets',
-        })
-        .select('reference_id')
-        .single();
+        },
+        rowIdx: i,
+      });
+      if (isTerminal) rowsToMoveToPaid.push(i);
+    }
+  }
 
-      if (!error && newInv) {
-        created++;
-        if (refIdx >= 0) sheetUpdates.push({ range: `'Open Invoices'!${String.fromCharCode(65 + refIdx)}${i + 1}`, values: [[newInv.reference_id]] });
-        if (sourceIdx >= 0) sheetUpdates.push({ range: `'Open Invoices'!${String.fromCharCode(65 + sourceIdx)}${i + 1}`, values: [['recouply']] });
-        if (isTerminal) rowsToMoveToPaid.push(i);
-      } else skipped++;
+  // BATCH: Process updates in chunks of 50
+  const UPDATE_CHUNK = 50;
+  for (let c = 0; c < updateBatch.length; c += UPDATE_CHUNK) {
+    const chunk = updateBatch.slice(c, c + UPDATE_CHUNK);
+    await Promise.all(chunk.map(async (item) => {
+      const { error } = await supabase
+        .from('invoices')
+        .update(item.data)
+        .eq('reference_id', item.ref)
+        .eq('user_id', userId);
+      if (!error) updated++;
+      else skipped++;
+    }));
+  }
+
+  // BATCH: Process inserts in chunks of 50
+  const INSERT_CHUNK = 50;
+  for (let c = 0; c < insertBatch.length; c += INSERT_CHUNK) {
+    const chunk = insertBatch.slice(c, c + INSERT_CHUNK);
+    const records = chunk.map(item => item.record);
+    const { data: inserted, error } = await supabase
+      .from('invoices')
+      .insert(records)
+      .select('reference_id, invoice_number');
+
+    if (!error && inserted) {
+      created += inserted.length;
+      // Build write-back updates for ref and source columns
+      for (let j = 0; j < inserted.length; j++) {
+        const inv = inserted[j];
+        const rowIdx = chunk[j].rowIdx;
+        if (refIdx >= 0) sheetUpdates.push({ range: `'Open Invoices'!${String.fromCharCode(65 + refIdx)}${rowIdx + 1}`, values: [[inv.reference_id]] });
+        if (sourceIdx >= 0) sheetUpdates.push({ range: `'Open Invoices'!${String.fromCharCode(65 + sourceIdx)}${rowIdx + 1}`, values: [['recouply']] });
+      }
+    } else {
+      skipped += chunk.length;
+      if (error) console.error('Batch invoice insert error:', error.message);
     }
   }
 
