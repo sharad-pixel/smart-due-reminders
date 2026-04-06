@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -38,10 +38,20 @@ const TEMPLATE_TYPES = [
   { key: 'payments', label: 'Payments', icon: CreditCard, description: 'Payment records with partial payment support' },
 ] as const;
 
+interface SyncProgress {
+  templateId: string;
+  direction: 'push' | 'pull';
+  percent: number;
+  phase: string;
+  status: 'syncing' | 'completed' | 'failed';
+}
+
 export function SheetTemplatesSection() {
   const queryClient = useQueryClient();
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; label: string } | null>(null);
+  const [activeSyncs, setActiveSyncs] = useState<Map<string, SyncProgress>>(new Map());
+  const pollIntervals = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map());
 
   const { data: templates, isLoading } = useQuery({
     queryKey: ["sheet-templates"],
@@ -57,6 +67,129 @@ export function SheetTemplatesSection() {
       return data || [];
     },
   });
+
+  // On mount, check if any templates are mid-sync (page was navigated away)
+  useEffect(() => {
+    if (!templates) return;
+    for (const tmpl of templates) {
+      const t = tmpl as any;
+      if (t.sync_status === 'syncing') {
+        startPolling(t.id, t.sync_progress?.direction || 'pull');
+      }
+    }
+  }, [templates]);
+
+  // Cleanup poll intervals on unmount
+  useEffect(() => {
+    return () => {
+      pollIntervals.current.forEach(interval => clearInterval(interval));
+    };
+  }, []);
+
+  const startPolling = useCallback((templateId: string, direction: 'push' | 'pull') => {
+    // Don't start duplicate polls
+    if (pollIntervals.current.has(templateId)) return;
+
+    setActiveSyncs(prev => {
+      const next = new Map(prev);
+      next.set(templateId, { templateId, direction, percent: 5, phase: 'Starting...', status: 'syncing' });
+      return next;
+    });
+
+    const interval = setInterval(async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data } = await supabase
+          .from("google_sheet_templates")
+          .select("sync_status, sync_progress")
+          .eq("id", templateId)
+          .single();
+
+        if (!data) return;
+        const t = data as any;
+        const progress = t.sync_progress || {};
+
+        if (t.sync_status === 'completed') {
+          setActiveSyncs(prev => {
+            const next = new Map(prev);
+            next.set(templateId, { templateId, direction, percent: 100, phase: 'Complete!', status: 'completed' });
+            return next;
+          });
+
+          clearInterval(interval);
+          pollIntervals.current.delete(templateId);
+          setSyncingId(null);
+
+          const dir = direction === 'push' ? 'Push' : 'Pull';
+          const protectedNote = progress.syncProtected ? `, ${progress.syncProtected} sync-protected` : '';
+          const details = direction === 'push'
+            ? `${progress.pushed || progress.openPushed || 0} rows pushed`
+            : `Created: ${progress.created || 0}, Updated: ${progress.updated || 0}, Skipped: ${progress.skipped || 0}${progress.movedToPaid ? `, Moved to Paid: ${progress.movedToPaid}` : ''}${protectedNote}`;
+          toast.success(`${dir} complete — ${TEMPLATE_TYPES.find(t => templates?.some((tmpl: any) => tmpl.id === templateId && tmpl.template_type === t.key))?.label || 'template'}`, { description: details });
+
+          queryClient.invalidateQueries({ queryKey: ["sheet-templates"] });
+          queryClient.invalidateQueries({ queryKey: ["invoices"] });
+          queryClient.invalidateQueries({ queryKey: ["debtors"] });
+          queryClient.invalidateQueries({ queryKey: ["pending-sheet-imports"] });
+
+          // Remove from active syncs after a short delay to show 100%
+          setTimeout(() => {
+            setActiveSyncs(prev => {
+              const next = new Map(prev);
+              next.delete(templateId);
+              return next;
+            });
+          }, 2000);
+
+        } else if (t.sync_status === 'failed') {
+          setActiveSyncs(prev => {
+            const next = new Map(prev);
+            next.set(templateId, { templateId, direction, percent: 0, phase: 'Failed', status: 'failed' });
+            return next;
+          });
+          clearInterval(interval);
+          pollIntervals.current.delete(templateId);
+          setSyncingId(null);
+          toast.error("Sync failed", { description: progress.error || 'Unknown error' });
+
+          setTimeout(() => {
+            setActiveSyncs(prev => {
+              const next = new Map(prev);
+              next.delete(templateId);
+              return next;
+            });
+          }, 3000);
+
+        } else {
+          // Still syncing — update progress
+          const percent = progress.percent || 10;
+          const phaseLabels: Record<string, string> = {
+            starting: 'Starting...',
+            reading_sheet: 'Reading sheet data...',
+            pushing: 'Pushing data...',
+            processing: 'Processing rows...',
+          };
+          setActiveSyncs(prev => {
+            const next = new Map(prev);
+            next.set(templateId, {
+              templateId,
+              direction,
+              percent: Math.min(percent, 95),
+              phase: phaseLabels[progress.phase] || progress.phase || 'Syncing...',
+              status: 'syncing',
+            });
+            return next;
+          });
+        }
+      } catch (err) {
+        console.error('Poll error:', err);
+      }
+    }, 2000);
+
+    pollIntervals.current.set(templateId, interval);
+  }, [templates, queryClient]);
 
   const { data: hasDrive } = useQuery({
     queryKey: ["drive-connection-check"],
@@ -116,41 +249,18 @@ export function SheetTemplatesSection() {
     onError: (err: any) => toast.error("Delete failed", { description: err.message }),
   });
 
-  // Sync mutation
-  const syncMutation = useMutation({
-    mutationFn: async ({ sheetTemplateId, direction }: { sheetTemplateId: string; direction: 'push' | 'pull' }) => {
-      setSyncingId(`${sheetTemplateId}-${direction}`);
-      
-      // Show immediate feedback for pull operations
-      if (direction === 'pull') {
-        toast.info("Pull sync started", {
-          description: "Reading from Google Sheets — this may take a moment for large datasets. You can continue working.",
-          duration: 5000,
-        });
-      }
-      
-      const { data, error } = await supabase.functions.invoke("google-sheets-sync", {
-        body: { sheetTemplateId, direction },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      return data;
-    },
-    onSuccess: (data) => {
-      const dir = data.direction === 'push' ? 'Push' : 'Pull';
-      const protectedNote = data.syncProtected ? `, ${data.syncProtected} sync-protected` : '';
-      const details = data.direction === 'push'
-        ? `${data.pushed || data.openPushed || 0} rows pushed`
-        : `Created: ${data.created || 0}, Updated: ${data.updated || 0}, Skipped: ${data.skipped || 0}${data.movedToPaid ? `, Moved to Paid: ${data.movedToPaid}` : ''}${protectedNote}`;
-      toast.success(`${dir} complete — ${data.templateType}`, { description: details });
-      queryClient.invalidateQueries({ queryKey: ["sheet-templates"] });
-      queryClient.invalidateQueries({ queryKey: ["invoices"] });
-      queryClient.invalidateQueries({ queryKey: ["debtors"] });
-      queryClient.invalidateQueries({ queryKey: ["pending-sheet-imports"] });
-    },
-    onError: (err: any) => toast.error("Sync failed", { description: err.message }),
-    onSettled: () => setSyncingId(null),
-  });
+  // Fire-and-forget sync with polling
+  const handleSync = useCallback(async (sheetTemplateId: string, direction: 'push' | 'pull') => {
+    setSyncingId(`${sheetTemplateId}-${direction}`);
+    startPolling(sheetTemplateId, direction);
+
+    // Fire the edge function — don't await, let polling track progress
+    supabase.functions.invoke("google-sheets-sync", {
+      body: { sheetTemplateId, direction },
+    }).catch((err) => {
+      console.error('Sync invoke error:', err);
+    });
+  }, [startPolling]);
 
   if (!hasDrive) {
     return (
@@ -218,6 +328,8 @@ export function SheetTemplatesSection() {
           {TEMPLATE_TYPES.map(({ key, label, icon: Icon }) => {
             const tmpl = (templates || []).find((t: any) => t.template_type === key);
             const isActive = existingTypes.has(key);
+            const syncProgress = tmpl ? activeSyncs.get(tmpl.id) : undefined;
+            const isSyncing = !!syncProgress && syncProgress.status === 'syncing';
 
             if (!isActive) {
               return (
@@ -230,65 +342,81 @@ export function SheetTemplatesSection() {
             }
 
             return (
-              <div key={key} className="flex items-center gap-3 px-3 py-2.5 rounded-md border bg-card hover:bg-muted/30 transition-colors">
-                <Icon className="h-4 w-4 text-primary" />
-                <div className="flex-1 min-w-0">
-                  <span className="text-sm font-medium">{label}</span>
-                  {tmpl?.last_synced_at && (
-                    <p className="text-[11px] text-muted-foreground truncate">
-                      Synced {new Date(tmpl.last_synced_at).toLocaleDateString()} {new Date(tmpl.last_synced_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </p>
-                  )}
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-7 w-7"
-                    title="Push to Sheet"
-                    onClick={() => syncMutation.mutate({ sheetTemplateId: tmpl.id, direction: 'push' })}
-                    disabled={syncMutation.isPending}
-                  >
-                    {syncingId === `${tmpl.id}-push` ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Upload className="h-3.5 w-3.5" />
+              <div key={key} className="space-y-0">
+                <div className="flex items-center gap-3 px-3 py-2.5 rounded-md border bg-card hover:bg-muted/30 transition-colors">
+                  <Icon className="h-4 w-4 text-primary" />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-medium">{label}</span>
+                    {!isSyncing && tmpl?.last_synced_at && (
+                      <p className="text-[11px] text-muted-foreground truncate">
+                        Synced {new Date(tmpl.last_synced_at).toLocaleDateString()} {new Date(tmpl.last_synced_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </p>
                     )}
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-7 w-7"
-                    title="Pull from Sheet"
-                    onClick={() => syncMutation.mutate({ sheetTemplateId: tmpl.id, direction: 'pull' })}
-                    disabled={syncMutation.isPending}
-                  >
-                    {syncingId === `${tmpl.id}-pull` ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Download className="h-3.5 w-3.5" />
+                    {isSyncing && (
+                      <p className="text-[11px] text-primary font-medium truncate">
+                        {syncProgress.phase} ({syncProgress.percent}%)
+                      </p>
                     )}
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-7 w-7"
-                    title="Open in Google Sheets"
-                    onClick={() => window.open(tmpl.sheet_url, '_blank')}
-                  >
-                    <ExternalLink className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                    title="Remove template"
-                    onClick={() => setDeleteTarget({ id: tmpl.id, label })}
-                    disabled={deleteMutation.isPending}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7"
+                      title="Push to Sheet"
+                      onClick={() => tmpl && handleSync(tmpl.id, 'push')}
+                      disabled={isSyncing || !!syncingId}
+                    >
+                      {syncingId === `${tmpl?.id}-push` && isSyncing ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Upload className="h-3.5 w-3.5" />
+                      )}
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7"
+                      title="Pull from Sheet"
+                      onClick={() => tmpl && handleSync(tmpl.id, 'pull')}
+                      disabled={isSyncing || !!syncingId}
+                    >
+                      {syncingId === `${tmpl?.id}-pull` && isSyncing ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Download className="h-3.5 w-3.5" />
+                      )}
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7"
+                      title="Open in Google Sheets"
+                      onClick={() => tmpl && window.open(tmpl.sheet_url, '_blank')}
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                      title="Remove template"
+                      onClick={() => tmpl && setDeleteTarget({ id: tmpl.id, label })}
+                      disabled={deleteMutation.isPending || isSyncing}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </div>
+                {/* Progress bar for active sync */}
+                {syncProgress && syncProgress.status !== 'failed' && (
+                  <div className="px-3 pb-1">
+                    <Progress
+                      value={syncProgress.percent}
+                      className={`h-1.5 transition-all duration-500 ${syncProgress.status === 'completed' ? 'bg-green-100' : ''}`}
+                    />
+                  </div>
+                )}
               </div>
             );
           })}
