@@ -746,26 +746,47 @@ Deno.serve(async (req) => {
     const accessToken = await getValidAccessToken(supabase, connection);
     let result: any = {};
 
-    if (direction === 'push') {
-      if (template.template_type === 'accounts') result = await pushAccounts(supabase, accessToken, template, user.id);
-      else if (template.template_type === 'invoices') result = await pushInvoices(supabase, accessToken, template, user.id);
-      else if (template.template_type === 'payments') result = await pushPayments(supabase, accessToken, template, user.id);
-
+    // Helper to update sync progress in the template row
+    const updateProgress = async (status: string, progress: Record<string, any>) => {
       await supabase.from('google_sheet_templates').update({
-        last_push_at: new Date().toISOString(),
-        last_synced_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        sync_status: status,
+        sync_progress: { ...progress, updated_at: new Date().toISOString() },
       }).eq('id', template.id);
-    } else {
-      if (template.template_type === 'accounts') result = await pullAccounts(supabase, accessToken, template, user.id, orgId);
-      else if (template.template_type === 'invoices') result = await pullInvoices(supabase, accessToken, template, user.id, orgId);
-      else if (template.template_type === 'payments') result = await pullPayments(supabase, accessToken, template, user.id, orgId);
+    };
 
-      await supabase.from('google_sheet_templates').update({
-        last_pull_at: new Date().toISOString(),
-        last_synced_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }).eq('id', template.id);
+    try {
+      await updateProgress('syncing', { phase: 'starting', percent: 0, direction, templateType: template.template_type });
+
+      if (direction === 'push') {
+        await updateProgress('syncing', { phase: 'pushing', percent: 20, direction });
+        if (template.template_type === 'accounts') result = await pushAccounts(supabase, accessToken, template, user.id);
+        else if (template.template_type === 'invoices') result = await pushInvoices(supabase, accessToken, template, user.id);
+        else if (template.template_type === 'payments') result = await pushPayments(supabase, accessToken, template, user.id);
+
+        await supabase.from('google_sheet_templates').update({
+          sync_status: 'completed',
+          sync_progress: { phase: 'done', percent: 100, direction, ...result, completed_at: new Date().toISOString() },
+          last_push_at: new Date().toISOString(),
+          last_synced_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }).eq('id', template.id);
+      } else {
+        await updateProgress('syncing', { phase: 'reading_sheet', percent: 10, direction });
+        if (template.template_type === 'accounts') result = await pullAccounts(supabase, accessToken, template, user.id, orgId);
+        else if (template.template_type === 'invoices') result = await pullInvoices(supabase, accessToken, template, user.id, orgId);
+        else if (template.template_type === 'payments') result = await pullPayments(supabase, accessToken, template, user.id, orgId);
+
+        await supabase.from('google_sheet_templates').update({
+          sync_status: 'completed',
+          sync_progress: { phase: 'done', percent: 100, direction, ...result, completed_at: new Date().toISOString() },
+          last_pull_at: new Date().toISOString(),
+          last_synced_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }).eq('id', template.id);
+      }
+    } catch (syncError) {
+      await updateProgress('failed', { phase: 'error', percent: 0, direction, error: String(syncError) });
+      throw syncError;
     }
 
     await supabase.from('ingestion_audit_log').insert({
