@@ -342,7 +342,7 @@ serve(async (req) => {
     }
   }
 
-  // Insert into inbound_emails table
+  // Insert into inbound_emails table (unique constraint on email_id prevents duplicates)
   const { data, error } = await supabase
     .from("inbound_emails")
     .insert([
@@ -369,6 +369,14 @@ serve(async (req) => {
     .single();
 
   if (error) {
+    // Handle unique constraint violation (duplicate email_id) gracefully
+    if (error.code === '23505' && error.message?.includes('email_id')) {
+      console.log("Duplicate email_id detected via unique constraint, skipping:", emailData.email_id);
+      return new Response(
+        JSON.stringify({ status: "ok", duplicate: true, email_id: emailData.email_id }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
     console.error("Error inserting inbound email:", error);
     return new Response(JSON.stringify({ error: "Failed to store email", details: error.message }), {
       status: 500,
