@@ -558,13 +558,26 @@ async function pullPayments(supabase: any, accessToken: string, template: any, u
   let created = 0, skipped = 0, syncProtected = 0;
   const sheetUpdates: any[] = [];
 
-  // PROTECTION: Pre-load sync-protected accounts
-  const { data: syncProtectedAccounts } = await supabase
-    .from('debtors')
-    .select('reference_id')
-    .eq('user_id', userId)
-    .eq('sheet_sync_enabled', false);
-  const protectedRaids = new Set((syncProtectedAccounts || []).map((d: any) => d.reference_id));
+  // BATCH: Pre-load all debtors and invoices for lookups
+  const [{ data: allDebtors }, { data: allInvoices }] = await Promise.all([
+    supabase.from('debtors').select('id, reference_id, sheet_sync_enabled').eq('user_id', userId).eq('is_archived', false),
+    supabase.from('invoices').select('id, invoice_number, debtor_id, amount_outstanding, amount').eq('user_id', userId),
+  ]);
+
+  const raidToDebtorId = new Map<string, string>();
+  const protectedRaids = new Set<string>();
+  for (const d of (allDebtors || [])) {
+    if (d.reference_id) raidToDebtorId.set(d.reference_id, d.id);
+    if (d.sheet_sync_enabled === false && d.reference_id) protectedRaids.add(d.reference_id);
+  }
+
+  const invNumToInvoice = new Map<string, any>();
+  for (const inv of (allInvoices || [])) {
+    if (inv.invoice_number) invNumToInvoice.set(inv.invoice_number, inv);
+  }
+
+  // Collect insertable rows
+  const insertBatch: { record: any; rowIdx: number; invoiceId: string | null }[] = [];
 
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
@@ -574,13 +587,7 @@ async function pullPayments(supabase: any, accessToken: string, template: any, u
     const source = getVal(row, sourceIdx);
     const accountRaid = getVal(row, accountRaidIdx);
 
-    // PROTECTION: Skip payments for sync-protected accounts
-    if (accountRaid && protectedRaids.has(accountRaid)) {
-      syncProtected++;
-      continue;
-    }
-
-    // PROTECTION: Existing payments are never deleted or overwritten — skip if already synced
+    if (accountRaid && protectedRaids.has(accountRaid)) { syncProtected++; continue; }
     if (payRef && source.toLowerCase() === 'recouply') { skipped++; continue; }
 
     const amount = parseFloat(getVal(row, amountIdx));
@@ -589,15 +596,11 @@ async function pullPayments(supabase: any, accessToken: string, template: any, u
     const invoiceNum = getVal(row, invNumIdx);
     const paymentDate = parseDate(getVal(row, dateIdx));
 
-    let debtorId: string | null = null;
+    let debtorId: string | null = accountRaid ? raidToDebtorId.get(accountRaid) || null : null;
     let invoiceId: string | null = null;
 
-    if (accountRaid) {
-      const { data: debtor } = await supabase.from('debtors').select('id').eq('reference_id', accountRaid).eq('user_id', userId).maybeSingle();
-      debtorId = debtor?.id || null;
-    }
     if (invoiceNum) {
-      const { data: inv } = await supabase.from('invoices').select('id, debtor_id').eq('invoice_number', invoiceNum).eq('user_id', userId).maybeSingle();
+      const inv = invNumToInvoice.get(invoiceNum);
       if (inv) {
         invoiceId = inv.id;
         if (!debtorId) debtorId = inv.debtor_id;
@@ -606,9 +609,8 @@ async function pullPayments(supabase: any, accessToken: string, template: any, u
 
     if (!debtorId) { skipped++; continue; }
 
-    const { data: newPay, error } = await supabase
-      .from('payments')
-      .insert({
+    insertBatch.push({
+      record: {
         user_id: userId,
         organization_id: orgId,
         debtor_id: debtorId,
@@ -621,24 +623,49 @@ async function pullPayments(supabase: any, accessToken: string, template: any, u
         reconciliation_status: getVal(row, reconIdx) || 'pending',
         notes: getVal(row, notesIdx) ? `[Sheet] ${getVal(row, notesIdx)}` : '[Sheet Import]',
         source_system: 'google_sheets',
-      })
-      .select('reference_id')
-      .single();
+      },
+      rowIdx: i,
+      invoiceId,
+    });
+  }
 
-    if (!error && newPay) {
-      created++;
-      if (payRefIdx >= 0) sheetUpdates.push({ range: `Payments!${String.fromCharCode(65 + payRefIdx)}${i + 1}`, values: [[newPay.reference_id]] });
-      if (sourceIdx >= 0) sheetUpdates.push({ range: `Payments!${String.fromCharCode(65 + sourceIdx)}${i + 1}`, values: [['recouply']] });
+  // BATCH: Insert payments in chunks of 50
+  const CHUNK = 50;
+  const invoiceUpdates: { id: string; amount: number }[] = [];
 
-      if (invoiceId) {
-        const { data: inv } = await supabase.from('invoices').select('amount_outstanding, amount').eq('id', invoiceId).single();
-        if (inv) {
-          const newOutstanding = Math.max(0, (inv.amount_outstanding || inv.amount) - amount);
-          const newStatus = newOutstanding === 0 ? 'Paid' : 'PartiallyPaid';
-          await supabase.from('invoices').update({ amount_outstanding: newOutstanding, status: newStatus }).eq('id', invoiceId);
+  for (let c = 0; c < insertBatch.length; c += CHUNK) {
+    const chunk = insertBatch.slice(c, c + CHUNK);
+    const records = chunk.map(item => item.record);
+    const { data: inserted, error } = await supabase
+      .from('payments')
+      .insert(records)
+      .select('reference_id');
+
+    if (!error && inserted) {
+      created += inserted.length;
+      for (let j = 0; j < inserted.length; j++) {
+        const rowIdx = chunk[j].rowIdx;
+        if (payRefIdx >= 0) sheetUpdates.push({ range: `Payments!${String.fromCharCode(65 + payRefIdx)}${rowIdx + 1}`, values: [[inserted[j].reference_id]] });
+        if (sourceIdx >= 0) sheetUpdates.push({ range: `Payments!${String.fromCharCode(65 + sourceIdx)}${rowIdx + 1}`, values: [['recouply']] });
+        if (chunk[j].invoiceId) {
+          invoiceUpdates.push({ id: chunk[j].invoiceId!, amount: chunk[j].record.amount });
         }
       }
-    } else skipped++;
+    } else {
+      skipped += chunk.length;
+      if (error) console.error('Batch payment insert error:', error.message);
+    }
+  }
+
+  // Update invoice outstanding amounts
+  for (const upd of invoiceUpdates) {
+    const inv = (allInvoices || []).find((i: any) => i.id === upd.id);
+    if (inv) {
+      const newOutstanding = Math.max(0, (inv.amount_outstanding || inv.amount) - upd.amount);
+      const newStatus = newOutstanding === 0 ? 'Paid' : 'PartiallyPaid';
+      await supabase.from('invoices').update({ amount_outstanding: newOutstanding, status: newStatus }).eq('id', upd.id);
+    }
+  }
   }
 
   // PROTECTION: Pull NEVER deletes payment records — missing rows are ignored
