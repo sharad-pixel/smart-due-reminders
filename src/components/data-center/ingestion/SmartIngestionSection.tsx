@@ -28,6 +28,7 @@ import { IngestionReviewQueue } from "./IngestionReviewQueue";
 import { IngestionDashboard } from "./IngestionDashboard";
 import { SheetTemplatesSection } from "./SheetTemplatesSection";
 import { PendingSheetImports } from "../PendingSheetImports";
+import { SheetBestPractices } from "./SheetBestPractices";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
@@ -575,6 +576,9 @@ export function SmartIngestionSection() {
           <ScanHistoryLog />
         </TabsContent>
       </Tabs>
+
+      {/* Best Practices & Schema Guide — always visible */}
+      <SheetBestPractices />
 
       {/* Folder Browser Dialog */}
       <Dialog open={folderBrowserOpen} onOpenChange={setFolderBrowserOpen}>
