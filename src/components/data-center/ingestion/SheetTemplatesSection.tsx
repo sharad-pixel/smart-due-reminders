@@ -31,6 +31,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { GoogleSheetsIcon } from "@/components/icons/GoogleIcons";
+import { SheetBestPractices } from "./SheetBestPractices";
 
 const TEMPLATE_TYPES = [
   { key: 'accounts', label: 'Accounts', icon: Users, description: 'Customer accounts with RAID, contacts & balances' },
@@ -427,13 +428,8 @@ export function SheetTemplatesSection() {
             </div>
           )}
 
-          {/* Sync Protection Notice */}
-          <div className="flex items-start gap-2.5 px-3 py-2.5 rounded-md border border-primary/20 bg-primary/5 mt-2">
-            <ShieldCheck className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-            <div className="text-[11px] text-muted-foreground leading-relaxed">
-              <span className="font-medium text-foreground/80">Sync Protection Active</span> — Pull sync never deletes accounts, invoices, or payments. Updates require a valid RAID match. To protect specific accounts from sheet sync, disable sync on the account detail page.
-            </div>
-          </div>
+          {/* Best Practices & Schema Guide */}
+          <SheetBestPractices />
         </CardContent>
       </Card>
 
