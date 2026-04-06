@@ -127,7 +127,7 @@ const CollectionsAssessment = () => {
                   transition={{ delay: 0.4, duration: 0.5 }}
                   className="text-lg text-muted-foreground max-w-xl mx-auto mb-6"
                 >
-                  5 questions. 60 seconds. Get your risk tier, ROI estimate, and a prioritized action plan — powered by AI.
+                  6 questions. 60 seconds. Get your risk tier, ROI estimate, cost modeling, and a prioritized action plan — powered by AI.
                 </motion.p>
 
                 {/* Trust badges */}
