@@ -62,6 +62,8 @@ async function batchUpdateSheet(accessToken: string, spreadsheetId: string, upda
   );
 }
 
+const CHUNK_SIZE = 50;
+
 async function pushAccounts(supabase: any, accessToken: string, template: any, userId: string) {
   const { data: debtors } = await supabase
     .from('debtors')
@@ -87,7 +89,6 @@ async function pushAccounts(supabase: any, accessToken: string, template: any, u
     d.payment_score ?? '', d.payment_risk_tier || '',
   ])];
 
-  // Clear existing data then write
   await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${template.sheet_id}/values/Accounts!A:U:clear`, {
     method: 'POST', headers: { Authorization: `Bearer ${accessToken}` },
   });
@@ -196,7 +197,11 @@ async function pushPayments(supabase: any, accessToken: string, template: any, u
   return { pushed: (payments || []).length };
 }
 
-async function pullAccounts(supabase: any, accessToken: string, template: any, userId: string, orgId: string) {
+async function pullAccounts(
+  supabase: any, accessToken: string, template: any, userId: string, orgId: string,
+  updateProgress: (status: string, progress: Record<string, any>) => Promise<void>
+) {
+  await updateProgress('syncing', { phase: 'reading_sheet', percent: 15, direction: 'pull' });
   const rows = await readSheet(accessToken, template.sheet_id, 'Accounts!A1:S5000');
   if (rows.length <= 1) return { created: 0, updated: 0, skipped: 0, syncProtected: 0 };
 
@@ -204,39 +209,40 @@ async function pullAccounts(supabase: any, accessToken: string, template: any, u
   const raidIdx = headers.indexOf('raid');
   const companyIdx = headers.indexOf('company name');
   const typeIdx = headers.indexOf('type (b2b/b2c)');
-  const nameIdx = headers.findIndex(h => h === 'contact name' || h === 'name');
-  const emailIdx = headers.findIndex(h => h === 'contact email' || h === 'email');
-  const phoneIdx = headers.findIndex(h => h === 'contact phone' || h === 'phone');
+  const nameIdx = headers.findIndex((h: string) => h === 'contact name' || h === 'name');
+  const emailIdx = headers.findIndex((h: string) => h === 'contact email' || h === 'email');
+  const phoneIdx = headers.findIndex((h: string) => h === 'contact phone' || h === 'phone');
   const addr1Idx = headers.indexOf('address line 1');
   const addr2Idx = headers.indexOf('address line 2');
   const cityIdx = headers.indexOf('city');
   const stateIdx = headers.indexOf('state');
-  const postalIdx = headers.findIndex(h => h === 'postal code' || h === 'zip' || h === 'zip code');
+  const postalIdx = headers.findIndex((h: string) => h === 'postal code' || h === 'zip' || h === 'zip code');
   const countryIdx = headers.indexOf('country');
   const industryIdx = headers.indexOf('industry');
-  const extCustIdx = headers.findIndex(h => h === 'source system id' || h === 'external customer id');
+  const extCustIdx = headers.findIndex((h: string) => h === 'source system id' || h === 'external customer id');
   const crmIdx = headers.indexOf('crm id');
   const payTermsIdx = headers.indexOf('default payment terms');
   const notesIdx = headers.indexOf('notes');
   const sourceIdx = headers.indexOf('source');
 
   let created = 0, updated = 0, skipped = 0, syncProtected = 0;
-  const sheetUpdates: any[] = [];
 
-  const colLetter = (idx: number) => {
-    let letter = '';
-    let n = idx;
-    while (n >= 0) { letter = String.fromCharCode(65 + (n % 26)) + letter; n = Math.floor(n / 26) - 1; }
-    return letter;
-  };
+  // BATCH: Pre-load all existing debtors and their primary contacts
+  await updateProgress('syncing', { phase: 'processing', percent: 25, direction: 'pull' });
+  const [{ data: existingDebtors }, { data: syncProtectedAccounts }] = await Promise.all([
+    supabase.from('debtors').select('id, reference_id').eq('user_id', userId).eq('is_archived', false),
+    supabase.from('debtors').select('reference_id').eq('user_id', userId).eq('sheet_sync_enabled', false),
+  ]);
 
-  // PROTECTION: Pre-load sync-enabled status for all accounts to enforce per-account control
-  const { data: syncProtectedAccounts } = await supabase
-    .from('debtors')
-    .select('reference_id')
-    .eq('user_id', userId)
-    .eq('sheet_sync_enabled', false);
+  const raidToDebtorId = new Map<string, string>();
+  for (const d of (existingDebtors || [])) {
+    if (d.reference_id) raidToDebtorId.set(d.reference_id, d.id);
+  }
   const protectedRaids = new Set((syncProtectedAccounts || []).map((d: any) => d.reference_id));
+
+  // Classify rows into updates vs new staging imports
+  const updateItems: { raid: string; debtorId: string; fieldData: any }[] = [];
+  const stagingItems: any[] = [];
 
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
@@ -249,14 +255,8 @@ async function pullAccounts(supabase: any, accessToken: string, template: any, u
     const source = getVal(row, sourceIdx);
 
     if (!companyName && !contactName) continue;
+    if (raid && protectedRaids.has(raid)) { syncProtected++; continue; }
 
-    // PROTECTION: Skip sync-protected accounts
-    if (raid && protectedRaids.has(raid)) {
-      syncProtected++;
-      continue;
-    }
-
-    // Build field data from row
     const fieldData: any = {};
     if (companyName) fieldData.company_name = companyName;
     if (contactName) fieldData.name = contactName;
@@ -275,61 +275,10 @@ async function pullAccounts(supabase: any, accessToken: string, template: any, u
     if (getVal(row, payTermsIdx)) fieldData.payment_terms_default = getVal(row, payTermsIdx);
     if (getVal(row, notesIdx)) fieldData.notes = getVal(row, notesIdx);
 
-    // PROTECTION: Update existing records via RAID match — never delete
-    if (raid) {
-      const { data: existingDebtor, error } = await supabase
-        .from('debtors')
-        .update(fieldData)
-        .eq('reference_id', raid)
-        .eq('user_id', userId)
-        .select('id')
-        .maybeSingle();
-
-      if (!error && existingDebtor) {
-        updated++;
-
-        // Also update or create the primary contact record if contact fields changed
-        const contactName = fieldData.name || fieldData.company_name;
-        const contactEmail = fieldData.email;
-        const contactPhone = fieldData.phone;
-
-        if (contactName || contactEmail || contactPhone) {
-          const contactUpdate: any = { updated_at: new Date().toISOString() };
-          if (contactName) contactUpdate.name = contactName;
-          if (contactEmail) contactUpdate.email = contactEmail;
-          if (contactPhone) contactUpdate.phone = contactPhone;
-
-          // Try to update existing primary contact first
-          const { data: updatedContact } = await supabase
-            .from('debtor_contacts')
-            .update(contactUpdate)
-            .eq('debtor_id', existingDebtor.id)
-            .eq('is_primary', true)
-            .select('id')
-            .maybeSingle();
-
-          // If no primary contact exists, create one
-          if (!updatedContact && contactName) {
-            await supabase.from('debtor_contacts').insert({
-              debtor_id: existingDebtor.id,
-              user_id: userId,
-              organization_id: orgId || null,
-              name: contactName,
-              email: contactEmail || null,
-              phone: contactPhone || null,
-              is_primary: true,
-              source: 'google_sheets',
-            });
-          }
-        }
-      } else {
-        if (error) console.error(`Row ${i + 1} RAID update error:`, error.message);
-        skipped++;
-      }
-    } else {
-      // Stage new account for user review instead of creating directly
-      // Use raw SQL via RPC to avoid PostgREST schema cache issues with new tables
-      const stagingPayload = {
+    if (raid && raidToDebtorId.has(raid)) {
+      updateItems.push({ raid, debtorId: raidToDebtorId.get(raid)!, fieldData });
+    } else if (!raid) {
+      stagingItems.push({
         user_id: userId,
         organization_id: orgId,
         sheet_template_id: template.id,
@@ -353,37 +302,108 @@ async function pullAccounts(supabase: any, accessToken: string, template: any, u
         source: source || 'google_sheets',
         sheet_row_number: i + 1,
         status: 'pending',
-      };
-
-      console.log(`[PULL] Staging new account row ${i + 1}: ${fieldData.company_name || 'unknown'}`);
-
-      const { error } = await supabase
-        .from('pending_sheet_imports')
-        .insert(stagingPayload);
-
-      if (!error) {
-        created++;
-        console.log(`[PULL] Successfully staged row ${i + 1}`);
-      } else {
-        console.error(`[PULL] Row ${i + 1} staging error:`, JSON.stringify(error));
-        skipped++;
-      }
+      });
+    } else {
+      skipped++;
     }
   }
 
-  // PROTECTION: Pull NEVER deletes records — missing rows in the sheet are simply ignored
-  await batchUpdateSheet(accessToken, template.sheet_id, sheetUpdates);
+  // BATCH: Process debtor updates in parallel chunks
+  const totalWork = updateItems.length + stagingItems.length;
+  let processed = 0;
+
+  for (let c = 0; c < updateItems.length; c += CHUNK_SIZE) {
+    const chunk = updateItems.slice(c, c + CHUNK_SIZE);
+    const results = await Promise.all(chunk.map(async (item) => {
+      const { error } = await supabase
+        .from('debtors')
+        .update(item.fieldData)
+        .eq('reference_id', item.raid)
+        .eq('user_id', userId);
+      return !error;
+    }));
+
+    for (const success of results) {
+      if (success) updated++;
+      else skipped++;
+    }
+    processed += chunk.length;
+
+    // Report progress: 30-70% range for updates
+    const pct = Math.round(30 + (processed / Math.max(totalWork, 1)) * 40);
+    await updateProgress('syncing', { phase: 'processing', percent: Math.min(pct, 70), direction: 'pull', updated, created, skipped });
+  }
+
+  // BATCH: Update primary contacts in parallel for updated debtors
+  if (updateItems.length > 0) {
+    const contactUpdates = updateItems.filter(item => item.fieldData.name || item.fieldData.email || item.fieldData.phone);
+    for (let c = 0; c < contactUpdates.length; c += CHUNK_SIZE) {
+      const chunk = contactUpdates.slice(c, c + CHUNK_SIZE);
+      await Promise.all(chunk.map(async (item) => {
+        const contactUpdate: any = { updated_at: new Date().toISOString() };
+        if (item.fieldData.name) contactUpdate.name = item.fieldData.name;
+        if (item.fieldData.email) contactUpdate.email = item.fieldData.email;
+        if (item.fieldData.phone) contactUpdate.phone = item.fieldData.phone;
+
+        const { data: existingContact } = await supabase
+          .from('debtor_contacts')
+          .update(contactUpdate)
+          .eq('debtor_id', item.debtorId)
+          .eq('is_primary', true)
+          .select('id')
+          .maybeSingle();
+
+        if (!existingContact && item.fieldData.name) {
+          await supabase.from('debtor_contacts').insert({
+            debtor_id: item.debtorId,
+            user_id: userId,
+            organization_id: orgId || null,
+            name: item.fieldData.name,
+            email: item.fieldData.email || null,
+            phone: item.fieldData.phone || null,
+            is_primary: true,
+            source: 'google_sheets',
+          });
+        }
+      }));
+    }
+  }
+
+  // BATCH: Insert staging items in chunks
+  await updateProgress('syncing', { phase: 'processing', percent: 75, direction: 'pull', updated, created, skipped });
+  for (let c = 0; c < stagingItems.length; c += CHUNK_SIZE) {
+    const chunk = stagingItems.slice(c, c + CHUNK_SIZE);
+    const { data: inserted, error } = await supabase
+      .from('pending_sheet_imports')
+      .insert(chunk)
+      .select('id');
+
+    if (!error && inserted) {
+      created += inserted.length;
+    } else {
+      skipped += chunk.length;
+      if (error) console.error('[PULL] Batch staging error:', error.message);
+    }
+    processed += chunk.length;
+    const pct = Math.round(70 + (processed / Math.max(totalWork, 1)) * 20);
+    await updateProgress('syncing', { phase: 'processing', percent: Math.min(pct, 90), direction: 'pull', updated, created, skipped });
+  }
+
   return { created, updated, skipped, syncProtected };
 }
 
-async function pullInvoices(supabase: any, accessToken: string, template: any, userId: string, orgId: string) {
+async function pullInvoices(
+  supabase: any, accessToken: string, template: any, userId: string, orgId: string,
+  updateProgress: (status: string, progress: Record<string, any>) => Promise<void>
+) {
+  await updateProgress('syncing', { phase: 'reading_sheet', percent: 15, direction: 'pull' });
   const rows = await readSheet(accessToken, template.sheet_id, "'Open Invoices'!A1:P5000");
   if (rows.length <= 1) return { created: 0, updated: 0, skipped: 0, movedToPaid: 0, syncProtected: 0 };
 
   const headers = rows[0].map((h: string) => h.toLowerCase().trim());
   const accountRaidIdx = headers.indexOf('account raid');
-  const invNumIdx = headers.findIndex(h => h === 'ss invoice #' || h === 'invoice number');
-  const amountIdx = headers.findIndex(h => h === 'original amount' || h === 'amount');
+  const invNumIdx = headers.findIndex((h: string) => h === 'ss invoice #' || h === 'invoice number');
+  const amountIdx = headers.findIndex((h: string) => h === 'original amount' || h === 'amount');
   const amtOutIdx = headers.indexOf('amount outstanding');
   const currIdx = headers.indexOf('currency');
   const issueDateIdx = headers.indexOf('issue date');
@@ -393,14 +413,15 @@ async function pullInvoices(supabase: any, accessToken: string, template: any, u
   const descIdx = headers.indexOf('product/description');
   const termsIdx = headers.indexOf('payment terms');
   const notesIdx = headers.indexOf('notes');
-  const refIdx = headers.findIndex(h => h.includes('recouply') && h.includes('ref') && h.includes('do not edit'));
+  const refIdx = headers.findIndex((h: string) => h.includes('recouply') && h.includes('ref') && h.includes('do not edit'));
   const sourceIdx = headers.indexOf('source');
 
   let created = 0, updated = 0, skipped = 0, movedToPaid = 0, syncProtected = 0;
   const sheetUpdates: any[] = [];
   const rowsToMoveToPaid: number[] = [];
 
-  // BATCH: Pre-load all debtors for this user (RAID → id map)
+  // BATCH: Pre-load all debtors
+  await updateProgress('syncing', { phase: 'processing', percent: 25, direction: 'pull' });
   const { data: allDebtors } = await supabase
     .from('debtors')
     .select('id, reference_id, sheet_sync_enabled')
@@ -414,7 +435,7 @@ async function pullInvoices(supabase: any, accessToken: string, template: any, u
     if (d.sheet_sync_enabled === false && d.reference_id) protectedRaids.add(d.reference_id);
   }
 
-  // Classify rows into updates vs new inserts
+  // Classify rows
   const updateBatch: { ref: string; data: any; rowIdx: number }[] = [];
   const insertBatch: { record: any; rowIdx: number }[] = [];
 
@@ -429,7 +450,6 @@ async function pullInvoices(supabase: any, accessToken: string, template: any, u
     const status = getVal(row, statusIdx);
 
     if (!invoiceNumber) continue;
-
     if (accountRaid && protectedRaids.has(accountRaid)) { syncProtected++; continue; }
 
     const terminalStatuses = ['paid', 'canceled', 'voided', 'writtenoff', 'settled', 'credited'];
@@ -475,25 +495,32 @@ async function pullInvoices(supabase: any, accessToken: string, template: any, u
     }
   }
 
-  // BATCH: Process updates in chunks of 50
-  const UPDATE_CHUNK = 50;
-  for (let c = 0; c < updateBatch.length; c += UPDATE_CHUNK) {
-    const chunk = updateBatch.slice(c, c + UPDATE_CHUNK);
-    await Promise.all(chunk.map(async (item) => {
+  const totalWork = updateBatch.length + insertBatch.length;
+  let processed = 0;
+
+  // BATCH: Process updates in parallel chunks
+  for (let c = 0; c < updateBatch.length; c += CHUNK_SIZE) {
+    const chunk = updateBatch.slice(c, c + CHUNK_SIZE);
+    const results = await Promise.all(chunk.map(async (item) => {
       const { error } = await supabase
         .from('invoices')
         .update(item.data)
         .eq('reference_id', item.ref)
         .eq('user_id', userId);
-      if (!error) updated++;
-      else skipped++;
+      return !error;
     }));
+    for (const success of results) {
+      if (success) updated++;
+      else skipped++;
+    }
+    processed += chunk.length;
+    const pct = Math.round(30 + (processed / Math.max(totalWork, 1)) * 40);
+    await updateProgress('syncing', { phase: 'processing', percent: Math.min(pct, 70), direction: 'pull', created, updated, skipped });
   }
 
-  // BATCH: Process inserts in chunks of 50
-  const INSERT_CHUNK = 50;
-  for (let c = 0; c < insertBatch.length; c += INSERT_CHUNK) {
-    const chunk = insertBatch.slice(c, c + INSERT_CHUNK);
+  // BATCH: Process inserts in chunks
+  for (let c = 0; c < insertBatch.length; c += CHUNK_SIZE) {
+    const chunk = insertBatch.slice(c, c + CHUNK_SIZE);
     const records = chunk.map(item => item.record);
     const { data: inserted, error } = await supabase
       .from('invoices')
@@ -502,7 +529,6 @@ async function pullInvoices(supabase: any, accessToken: string, template: any, u
 
     if (!error && inserted) {
       created += inserted.length;
-      // Build write-back updates for ref and source columns
       for (let j = 0; j < inserted.length; j++) {
         const inv = inserted[j];
         const rowIdx = chunk[j].rowIdx;
@@ -513,9 +539,13 @@ async function pullInvoices(supabase: any, accessToken: string, template: any, u
       skipped += chunk.length;
       if (error) console.error('Batch invoice insert error:', error.message);
     }
+    processed += chunk.length;
+    const pct = Math.round(30 + (processed / Math.max(totalWork, 1)) * 40);
+    await updateProgress('syncing', { phase: 'processing', percent: Math.min(pct, 80), direction: 'pull', created, updated, skipped });
   }
 
-  // PROTECTION: Pull NEVER deletes invoice records — missing rows are ignored
+  // Write-back and move-to-paid
+  await updateProgress('syncing', { phase: 'processing', percent: 85, direction: 'pull', created, updated, skipped });
   await batchUpdateSheet(accessToken, template.sheet_id, sheetUpdates);
 
   if (rowsToMoveToPaid.length > 0) {
@@ -539,26 +569,31 @@ async function pullInvoices(supabase: any, accessToken: string, template: any, u
   return { created, updated, skipped, movedToPaid, syncProtected };
 }
 
-async function pullPayments(supabase: any, accessToken: string, template: any, userId: string, orgId: string) {
+async function pullPayments(
+  supabase: any, accessToken: string, template: any, userId: string, orgId: string,
+  updateProgress: (status: string, progress: Record<string, any>) => Promise<void>
+) {
+  await updateProgress('syncing', { phase: 'reading_sheet', percent: 15, direction: 'pull' });
   const rows = await readSheet(accessToken, template.sheet_id, 'Payments!A1:K5000');
   if (rows.length <= 1) return { created: 0, skipped: 0, syncProtected: 0 };
 
   const headers = rows[0].map((h: string) => h.toLowerCase().trim());
   const accountRaidIdx = headers.indexOf('account raid');
-  const invNumIdx = headers.findIndex(h => h === 'ss invoice #' || h === 'invoice number' || h === 'invoice ref');
+  const invNumIdx = headers.findIndex((h: string) => h === 'ss invoice #' || h === 'invoice number' || h === 'invoice ref');
   const amountIdx = headers.indexOf('payment amount');
   const currIdx = headers.indexOf('currency');
   const dateIdx = headers.indexOf('payment date');
   const refIdx = headers.indexOf('payment reference');
-  const reconIdx = headers.findIndex(h => h === 'reconciliation status' || h === 'status');
+  const reconIdx = headers.findIndex((h: string) => h === 'reconciliation status' || h === 'status');
   const notesIdx = headers.indexOf('notes');
-  const payRefIdx = headers.findIndex(h => h.includes('recouply') && h.includes('ref') && h.includes('do not edit'));
+  const payRefIdx = headers.findIndex((h: string) => h.includes('recouply') && h.includes('ref') && h.includes('do not edit'));
   const sourceIdx = headers.indexOf('source');
 
   let created = 0, skipped = 0, syncProtected = 0;
   const sheetUpdates: any[] = [];
 
-  // BATCH: Pre-load all debtors and invoices for lookups
+  // BATCH: Pre-load all debtors and invoices
+  await updateProgress('syncing', { phase: 'processing', percent: 25, direction: 'pull' });
   const [{ data: allDebtors }, { data: allInvoices }] = await Promise.all([
     supabase.from('debtors').select('id, reference_id, sheet_sync_enabled').eq('user_id', userId).eq('is_archived', false),
     supabase.from('invoices').select('id, invoice_number, debtor_id, amount_outstanding, amount').eq('user_id', userId),
@@ -629,12 +664,11 @@ async function pullPayments(supabase: any, accessToken: string, template: any, u
     });
   }
 
-  // BATCH: Insert payments in chunks of 50
-  const CHUNK = 50;
+  // BATCH: Insert payments in chunks
   const invoiceUpdates: { id: string; amount: number }[] = [];
 
-  for (let c = 0; c < insertBatch.length; c += CHUNK) {
-    const chunk = insertBatch.slice(c, c + CHUNK);
+  for (let c = 0; c < insertBatch.length; c += CHUNK_SIZE) {
+    const chunk = insertBatch.slice(c, c + CHUNK_SIZE);
     const records = chunk.map(item => item.record);
     const { data: inserted, error } = await supabase
       .from('payments')
@@ -655,19 +689,25 @@ async function pullPayments(supabase: any, accessToken: string, template: any, u
       skipped += chunk.length;
       if (error) console.error('Batch payment insert error:', error.message);
     }
+
+    const pct = Math.round(30 + ((c + chunk.length) / Math.max(insertBatch.length, 1)) * 40);
+    await updateProgress('syncing', { phase: 'processing', percent: Math.min(pct, 75), direction: 'pull', created, skipped });
   }
 
-  // Update invoice outstanding amounts
-  for (const upd of invoiceUpdates) {
-    const inv = (allInvoices || []).find((i: any) => i.id === upd.id);
-    if (inv) {
-      const newOutstanding = Math.max(0, (inv.amount_outstanding || inv.amount) - upd.amount);
-      const newStatus = newOutstanding === 0 ? 'Paid' : 'PartiallyPaid';
-      await supabase.from('invoices').update({ amount_outstanding: newOutstanding, status: newStatus }).eq('id', upd.id);
-    }
+  // BATCH: Update invoice outstanding amounts in parallel chunks
+  await updateProgress('syncing', { phase: 'processing', percent: 80, direction: 'pull', created, skipped });
+  for (let c = 0; c < invoiceUpdates.length; c += CHUNK_SIZE) {
+    const chunk = invoiceUpdates.slice(c, c + CHUNK_SIZE);
+    await Promise.all(chunk.map(async (upd) => {
+      const inv = (allInvoices || []).find((i: any) => i.id === upd.id);
+      if (inv) {
+        const newOutstanding = Math.max(0, (inv.amount_outstanding || inv.amount) - upd.amount);
+        const newStatus = newOutstanding === 0 ? 'Paid' : 'PartiallyPaid';
+        await supabase.from('invoices').update({ amount_outstanding: newOutstanding, status: newStatus }).eq('id', upd.id);
+      }
+    }));
   }
 
-  // PROTECTION: Pull NEVER deletes payment records — missing rows are ignored
   await batchUpdateSheet(accessToken, template.sheet_id, sheetUpdates);
   return { created, skipped, syncProtected };
 }
@@ -716,7 +756,6 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, serviceKey);
     const { data: orgId } = await supabase.rpc('get_user_organization_id', { p_user_id: user.id });
 
-    // Always use the CURRENT user's drive connection, not the template creator's
     const { data: connection } = await supabase
       .from('drive_connections')
       .select('*')
@@ -746,8 +785,12 @@ Deno.serve(async (req) => {
     const accessToken = await getValidAccessToken(supabase, connection);
     let result: any = {};
 
-    // Helper to update sync progress in the template row
+    // Throttled progress updater — max once per 2 seconds to reduce DB writes
+    let lastProgressUpdate = 0;
     const updateProgress = async (status: string, progress: Record<string, any>) => {
+      const now = Date.now();
+      if (now - lastProgressUpdate < 2000 && status === 'syncing') return;
+      lastProgressUpdate = now;
       await supabase.from('google_sheet_templates').update({
         sync_status: status,
         sync_progress: { ...progress, updated_at: new Date().toISOString() },
@@ -772,9 +815,9 @@ Deno.serve(async (req) => {
         }).eq('id', template.id);
       } else {
         await updateProgress('syncing', { phase: 'reading_sheet', percent: 10, direction });
-        if (template.template_type === 'accounts') result = await pullAccounts(supabase, accessToken, template, user.id, orgId);
-        else if (template.template_type === 'invoices') result = await pullInvoices(supabase, accessToken, template, user.id, orgId);
-        else if (template.template_type === 'payments') result = await pullPayments(supabase, accessToken, template, user.id, orgId);
+        if (template.template_type === 'accounts') result = await pullAccounts(supabase, accessToken, template, user.id, orgId, updateProgress);
+        else if (template.template_type === 'invoices') result = await pullInvoices(supabase, accessToken, template, user.id, orgId, updateProgress);
+        else if (template.template_type === 'payments') result = await pullPayments(supabase, accessToken, template, user.id, orgId, updateProgress);
 
         await supabase.from('google_sheet_templates').update({
           sync_status: 'completed',
@@ -785,7 +828,10 @@ Deno.serve(async (req) => {
         }).eq('id', template.id);
       }
     } catch (syncError) {
-      await updateProgress('failed', { phase: 'error', percent: 0, direction, error: String(syncError) });
+      await supabase.from('google_sheet_templates').update({
+        sync_status: 'failed',
+        sync_progress: { phase: 'error', percent: 0, direction, error: String(syncError) },
+      }).eq('id', template.id);
       throw syncError;
     }
 
