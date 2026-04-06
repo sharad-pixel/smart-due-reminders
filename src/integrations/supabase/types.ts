@@ -3838,6 +3838,8 @@ export type Database = {
           sheet_url: string
           status: string
           sync_direction: string | null
+          sync_progress: Json | null
+          sync_status: string | null
           template_type: string
           updated_at: string
           user_id: string
@@ -3860,6 +3862,8 @@ export type Database = {
           sheet_url: string
           status?: string
           sync_direction?: string | null
+          sync_progress?: Json | null
+          sync_status?: string | null
           template_type?: string
           updated_at?: string
           user_id: string
@@ -3882,6 +3886,8 @@ export type Database = {
           sheet_url?: string
           status?: string
           sync_direction?: string | null
+          sync_progress?: Json | null
+          sync_status?: string | null
           template_type?: string
           updated_at?: string
           user_id?: string
