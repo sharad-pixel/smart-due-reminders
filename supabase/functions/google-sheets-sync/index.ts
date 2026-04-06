@@ -64,6 +64,126 @@ async function batchUpdateSheet(accessToken: string, spreadsheetId: string, upda
 
 const CHUNK_SIZE = 50;
 
+// --- Incremental push helpers ---
+
+function rowToKey(row: any[], keyCol: number): string {
+  return (row[keyCol] || '').toString().trim();
+}
+
+function rowsEqual(a: any[], b: any[]): boolean {
+  const maxLen = Math.max(a.length, b.length);
+  for (let i = 0; i < maxLen; i++) {
+    if (String(a[i] ?? '') !== String(b[i] ?? '')) return false;
+  }
+  return true;
+}
+
+async function incrementalPush(
+  accessToken: string,
+  spreadsheetId: string,
+  sheetName: string,
+  colRange: string,
+  headers: string[],
+  newDataRows: any[][],
+  keyCol: number,
+) {
+  // Read existing sheet rows
+  const range = `'${sheetName}'!${colRange}`;
+  let existingRows: any[][] = [];
+  try {
+    existingRows = await readSheet(accessToken, spreadsheetId, range);
+  } catch { /* sheet might be empty */ }
+
+  // If sheet is empty or has no data, do a full write
+  if (existingRows.length <= 1) {
+    const allRows = [headers, ...newDataRows];
+    await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}:clear`, {
+      method: 'POST', headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(`'${sheetName}'!A1`)}?valueInputOption=RAW`,
+      { method: 'PUT', headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ values: allRows }) }
+    );
+    return { updated: 0, added: newDataRows.length, removed: 0, unchanged: 0, mode: 'full' };
+  }
+
+  // Build index of existing rows by key (skip header row 0)
+  const existingByKey = new Map<string, { idx: number; row: any[] }>();
+  for (let i = 1; i < existingRows.length; i++) {
+    const key = rowToKey(existingRows[i], keyCol);
+    if (key) existingByKey.set(key, { idx: i, row: existingRows[i] });
+  }
+
+  // Build index of new rows by key
+  const newByKey = new Map<string, any[]>();
+  for (const row of newDataRows) {
+    const key = rowToKey(row, keyCol);
+    if (key) newByKey.set(key, row);
+  }
+
+  const batchUpdates: { range: string; values: any[][] }[] = [];
+  let updated = 0, unchanged = 0;
+
+  // Check existing rows: update changed, mark removed
+  const removedKeys: string[] = [];
+  for (const [key, { idx, row }] of existingByKey) {
+    const newRow = newByKey.get(key);
+    if (!newRow) {
+      removedKeys.push(key);
+    } else if (!rowsEqual(row, newRow)) {
+      batchUpdates.push({ range: `'${sheetName}'!A${idx + 1}`, values: [newRow] });
+      updated++;
+    } else {
+      unchanged++;
+    }
+  }
+
+  // Find new rows to append
+  const toAppend: any[][] = [];
+  for (const [key, row] of newByKey) {
+    if (!existingByKey.has(key)) toAppend.push(row);
+  }
+
+  // If there are removed rows, we need to rewrite (can't delete individual rows via values API easily)
+  if (removedKeys.length > 0) {
+    // Rebuild: header + all new data
+    const allRows = [headers, ...newDataRows];
+    await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}:clear`, {
+      method: 'POST', headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(`'${sheetName}'!A1`)}?valueInputOption=RAW`,
+      { method: 'PUT', headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ values: allRows }) }
+    );
+    return { updated, added: toAppend.length, removed: removedKeys.length, unchanged, mode: 'rewrite' };
+  }
+
+  // Apply in-place updates in batch
+  if (batchUpdates.length > 0) {
+    // Batch in chunks of 100 to stay within API limits
+    for (let i = 0; i < batchUpdates.length; i += 100) {
+      const chunk = batchUpdates.slice(i, i + 100);
+      await batchUpdateSheet(accessToken, spreadsheetId, chunk);
+    }
+  }
+
+  // Append new rows
+  if (toAppend.length > 0) {
+    await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(`'${sheetName}'!A1`)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
+      {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ values: toAppend }),
+      }
+    );
+  }
+
+  return { updated, added: toAppend.length, removed: 0, unchanged, mode: 'incremental' };
+}
+
+// --- Push functions (now incremental) ---
+
 async function pushAccounts(supabase: any, accessToken: string, template: any, userId: string) {
   const { data: debtors } = await supabase
     .from('debtors')
@@ -78,7 +198,7 @@ async function pushAccounts(supabase: any, accessToken: string, template: any, u
     'Industry', 'Source System ID', 'CRM ID', 'Default Payment Terms',
     'Notes', 'Current Balance', 'Source', 'Risk Score', 'Risk Tier'
   ];
-  const rows = [headers, ...(debtors || []).map((d: any) => [
+  const dataRows = (debtors || []).map((d: any) => [
     d.reference_id || '', d.company_name || '', d.type || 'B2B',
     d.name || '', d.email || '', d.phone || '',
     d.address_line1 || '', d.address_line2 || '', d.city || '', d.state || '',
@@ -87,21 +207,9 @@ async function pushAccounts(supabase: any, accessToken: string, template: any, u
     d.payment_terms_default || '', d.notes || '', d.current_balance || 0,
     d.integration_source || d.source_system || 'recouply',
     d.payment_score ?? '', d.payment_risk_tier || '',
-  ])];
+  ]);
 
-  await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${template.sheet_id}/values/Accounts!A:U:clear`, {
-    method: 'POST', headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${template.sheet_id}/values/Accounts!A1?valueInputOption=RAW`,
-    {
-      method: 'PUT',
-      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ values: rows }),
-    }
-  );
-
-  return { pushed: (debtors || []).length };
+  return await incrementalPush(accessToken, template.sheet_id, 'Accounts', 'A:U', headers, dataRows, 0);
 }
 
 async function pushInvoices(supabase: any, accessToken: string, template: any, userId: string) {
@@ -136,32 +244,13 @@ async function pushInvoices(supabase: any, accessToken: string, template: any, u
     inv.integration_source || inv.source_system || 'recouply',
   ];
 
-  const openRows = [headers, ...(openInvoices || []).map(mapInv)];
-  const paidRows = [headers, ...(paidInvoices || []).map(mapInv)];
-
-  await Promise.all([
-    fetch(`https://sheets.googleapis.com/v4/spreadsheets/${template.sheet_id}/values/'Open Invoices'!A:P:clear`, {
-      method: 'POST', headers: { Authorization: `Bearer ${accessToken}` },
-    }),
-    fetch(`https://sheets.googleapis.com/v4/spreadsheets/${template.sheet_id}/values/'Paid Invoices'!A:P:clear`, {
-      method: 'POST', headers: { Authorization: `Bearer ${accessToken}` },
-    }),
+  // Key col 14 = Recouply Invoice Ref
+  const [openResult, paidResult] = await Promise.all([
+    incrementalPush(accessToken, template.sheet_id, 'Open Invoices', 'A:P', headers, (openInvoices || []).map(mapInv), 14),
+    incrementalPush(accessToken, template.sheet_id, 'Paid Invoices', 'A:P', headers, (paidInvoices || []).map(mapInv), 14),
   ]);
 
-  await Promise.all([
-    fetch(`https://sheets.googleapis.com/v4/spreadsheets/${template.sheet_id}/values/'Open Invoices'!A1?valueInputOption=RAW`, {
-      method: 'PUT',
-      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ values: openRows }),
-    }),
-    fetch(`https://sheets.googleapis.com/v4/spreadsheets/${template.sheet_id}/values/'Paid Invoices'!A1?valueInputOption=RAW`, {
-      method: 'PUT',
-      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ values: paidRows }),
-    }),
-  ]);
-
-  return { openPushed: (openInvoices || []).length, paidPushed: (paidInvoices || []).length };
+  return { openPushed: (openInvoices || []).length, paidPushed: (paidInvoices || []).length, openResult, paidResult };
 }
 
 async function pushPayments(supabase: any, accessToken: string, template: any, userId: string) {
@@ -177,24 +266,16 @@ async function pushPayments(supabase: any, accessToken: string, template: any, u
     'Payment Date', 'Payment Reference', 'Reconciliation Status',
     'Notes', 'Recouply Payment Ref (DO NOT EDIT)', 'Source'
   ];
-  const rows = [headers, ...(payments || []).map((p: any) => [
+  const dataRows = (payments || []).map((p: any) => [
     p.debtors?.reference_id || '', p.debtors?.company_name || '',
     p.invoice_number_hint || '', p.amount || 0, p.currency || 'USD',
     p.payment_date || '', p.reference || '',
     p.reconciliation_status || 'pending', p.notes || '', p.reference_id || '',
     p.source_system || 'recouply',
-  ])];
+  ]);
 
-  await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${template.sheet_id}/values/Payments!A:K:clear`, {
-    method: 'POST', headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${template.sheet_id}/values/Payments!A1?valueInputOption=RAW`, {
-    method: 'PUT',
-    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ values: rows }),
-  });
-
-  return { pushed: (payments || []).length };
+  // Key col 9 = Recouply Payment Ref
+  return await incrementalPush(accessToken, template.sheet_id, 'Payments', 'A:K', headers, dataRows, 9);
 }
 
 async function pullAccounts(
