@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { PLAN_CONFIGS, formatPrice } from "@/lib/subscriptionConfig";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -21,6 +22,8 @@ import {
   Lock,
   Calendar,
   Sparkles,
+  Zap,
+  TrendingDown,
 } from "lucide-react";
 import {
   formatCurrency,
@@ -408,6 +411,72 @@ const CollectionsAssessmentResults = ({
               Total estimated impact: {formatCurrency(results.total_impact)} vs cost of {formatCurrency(results.recouply_cost)}
             </p>
           </motion.div>
+
+          {/* Model Your Collections Cost vs. Automation */}
+          {inputs.collector_count > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
+              className="rounded-2xl border-2 border-primary/20 bg-gradient-to-br from-primary/5 via-background to-accent/5 p-6 md:p-8 space-y-6"
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <TrendingDown className="h-5 w-5 text-primary" />
+                <h3 className="text-lg font-bold">Model Your Collections Cost vs. Automation</h3>
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-4">
+                {/* Current Employee Cost */}
+                <div className="rounded-xl bg-destructive/5 border border-destructive/20 p-5 text-center">
+                  <div className="flex items-center justify-center gap-2 mb-3">
+                    <Users className="h-5 w-5 text-muted-foreground" />
+                    <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Current Staff Cost</span>
+                  </div>
+                  <p className="text-3xl md:text-4xl font-bold text-destructive">
+                    {formatCurrency(results.annual_employee_cost)}
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    {inputs.collector_count} collector{inputs.collector_count !== 1 ? "s" : ""} × ~$85K fully loaded/yr
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Salary + benefits + payroll taxes + tools
+                  </p>
+                </div>
+
+                {/* Recouply AI Cost */}
+                <div className="rounded-xl bg-primary/5 border border-primary/20 p-5 text-center">
+                  <div className="flex items-center justify-center gap-2 mb-3">
+                    <Zap className="h-5 w-5 text-primary" />
+                    <span className="text-sm font-semibold text-primary uppercase tracking-wide">Recouply AI</span>
+                  </div>
+                  <p className="text-3xl md:text-4xl font-bold text-primary">
+                    {formatPrice(PLAN_CONFIGS.starter.monthlyPrice)}<span className="text-lg font-normal">/mo</span>
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    6 AI Agents · 24/7 / 365 coverage
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Annual: {formatCurrency(PLAN_CONFIGS.starter.monthlyPrice * 12)}
+                  </p>
+                </div>
+              </div>
+
+              {/* Savings highlight */}
+              {results.annual_savings > 0 && (
+                <div className="rounded-xl bg-accent/10 border border-accent/20 p-5 text-center">
+                  <p className="text-sm font-semibold text-accent uppercase tracking-wide mb-1">Estimated Annual Savings</p>
+                  <p className="text-4xl font-bold text-accent">{formatCurrency(results.annual_savings)}</p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    That's a <span className="font-semibold text-accent">{formatPercent(results.savings_pct)}</span> reduction in collections overhead
+                  </p>
+                </div>
+              )}
+
+              <p className="text-xs text-muted-foreground text-center">
+                Based on U.S. compensation benchmarks from BLS, Robert Half, and Glassdoor. Fully loaded cost includes salary, benefits, payroll taxes, and tools.
+              </p>
+            </motion.div>
+          )}
 
           {/* Risk Summary */}
           <motion.div

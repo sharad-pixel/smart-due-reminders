@@ -6,11 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, ArrowRight, FileText, DollarSign, Clock, AlertTriangle, Percent, Loader2, Brain, Info, BarChart3 } from "lucide-react";
+import { ArrowLeft, ArrowRight, FileText, DollarSign, Clock, AlertTriangle, Percent, Loader2, Brain, Info, BarChart3, Users } from "lucide-react";
 import {
   AGE_BAND_OPTIONS,
   LOSS_PCT_OPTIONS,
   RATE_OPTIONS,
+  COLLECTOR_COUNT_OPTIONS,
   type AgeBand,
   type LossPctBand,
   type AssessmentInputs,
@@ -75,6 +76,14 @@ const STEP_META: StepMeta[] = [
     riskFactor: "Financing & Delay Cost",
     nicolasTip: "Your cost of capital turns unpaid invoices into a measurable daily expense. I'll calculate exactly how much each day of delay is costing you — it's usually more than people expect.",
   },
+  {
+    icon: Users,
+    title: "Resources",
+    question: "How many people currently work on collections?",
+    whyItMatters: "Each collections employee costs $75K–$95K+ annually when you include salary, benefits, payroll taxes, and tools. Understanding your current headcount lets us model the true cost of your collections operation vs. automation.",
+    riskFactor: "Staffing & Overhead Cost",
+    nicolasTip: "I'll use this to model your current employee overhead against Recouply's AI automation cost — so you can see exactly how much you could save annually while getting 24/7 coverage.",
+  },
 ];
 
 interface WizardProps {
@@ -92,6 +101,7 @@ const CollectionsAssessmentWizard = ({ onComplete, sessionId }: WizardProps) => 
   const [annualRate, setAnnualRate] = useState<number | null>(null);
   const [customRate, setCustomRate] = useState("");
   const [isCustomRate, setIsCustomRate] = useState(false);
+  const [collectorCount, setCollectorCount] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -103,7 +113,7 @@ const CollectionsAssessmentWizard = ({ onComplete, sessionId }: WizardProps) => 
     }).then(() => {});
   }, [sessionId]);
 
-  const totalSteps = 5;
+  const totalSteps = 6;
   const progress = ((step + 1) / totalSteps) * 100;
   const meta = STEP_META[step];
 
@@ -114,6 +124,7 @@ const CollectionsAssessmentWizard = ({ onComplete, sessionId }: WizardProps) => 
       case 2: return ageBand !== null;
       case 3: return lossPctBand !== null;
       case 4: return annualRate !== null && annualRate > 0;
+      case 5: return collectorCount !== null;
       default: return false;
     }
   };
@@ -144,6 +155,7 @@ const CollectionsAssessmentWizard = ({ onComplete, sessionId }: WizardProps) => 
       age_band: ageBand!,
       loss_pct_band: lossPctBand!,
       annual_rate: annualRate!,
+      collector_count: collectorCount!,
     };
 
     trackEvent("assessment_completed", inputs);
@@ -302,6 +314,42 @@ const CollectionsAssessmentWizard = ({ onComplete, sessionId }: WizardProps) => 
                   max={100}
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">%</span>
+              </motion.div>
+            )}
+          </div>
+        );
+
+      case 5:
+        return (
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Include anyone who spends significant time on AR follow-ups, even if it's not their only role.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {COLLECTOR_COUNT_OPTIONS.map((opt) => (
+                <motion.button
+                  key={opt.value}
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.98 }}
+                  className={selectChipClass(collectorCount === opt.value)}
+                  onClick={() => setCollectorCount(opt.value)}
+                >
+                  {opt.label}
+                </motion.button>
+              ))}
+            </div>
+            {collectorCount !== null && collectorCount > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-lg bg-destructive/5 border border-destructive/20 p-3"
+              >
+                <p className="text-sm font-medium text-destructive">
+                  Estimated annual cost: ${Math.round(collectorCount * 85000).toLocaleString()}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Based on $75K–$95K fully loaded cost per collector (salary + benefits + payroll taxes + tools)
+                </p>
               </motion.div>
             )}
           </div>
