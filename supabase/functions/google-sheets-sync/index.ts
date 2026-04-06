@@ -666,7 +666,6 @@ async function pullPayments(supabase: any, accessToken: string, template: any, u
       await supabase.from('invoices').update({ amount_outstanding: newOutstanding, status: newStatus }).eq('id', upd.id);
     }
   }
-  }
 
   // PROTECTION: Pull NEVER deletes payment records — missing rows are ignored
   await batchUpdateSheet(accessToken, template.sheet_id, sheetUpdates);
