@@ -31,7 +31,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { GoogleSheetsIcon } from "@/components/icons/GoogleIcons";
-import { SheetBestPractices } from "./SheetBestPractices";
+
 
 const TEMPLATE_TYPES = [
   { key: 'accounts', label: 'Accounts', icon: Users, description: 'Customer accounts with RAID, contacts & balances' },
@@ -428,8 +428,6 @@ export function SheetTemplatesSection() {
             </div>
           )}
 
-          {/* Best Practices & Schema Guide */}
-          <SheetBestPractices />
         </CardContent>
       </Card>
 
