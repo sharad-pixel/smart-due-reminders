@@ -13,7 +13,7 @@ import { Shield, AlertTriangle, Activity, Download, RefreshCw, Settings } from "
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useUserRole } from "@/hooks/useUserRole";
-import { MFASettings } from "@/components/security/MFASettings";
+
 import { SessionManager } from "@/components/security/SessionManager";
 import { DataEncryptionSettings } from "@/components/security/DataEncryptionSettings";
 
@@ -279,7 +279,34 @@ export default function SecurityDashboard() {
           </TabsList>
 
           <TabsContent value="settings" className="space-y-6">
-            <MFASettings />
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="h-5 w-5" />
+                  Multi-Factor Authentication
+                </CardTitle>
+                <CardDescription>
+                  Two-factor authentication is managed by your Google account
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Alert>
+                  <AlertDescription className="flex items-center gap-2">
+                    <Shield className="h-5 w-5 text-green-500 shrink-0" />
+                    <div>
+                      <p className="font-semibold">Protected by Google 2FA</p>
+                      <p className="text-sm text-muted-foreground">
+                        Your account uses Google OAuth for authentication. Enable 2-Step Verification in your{" "}
+                        <a href="https://myaccount.google.com/security" target="_blank" rel="noopener noreferrer" className="underline text-primary">
+                          Google Account Security Settings
+                        </a>{" "}
+                        for maximum protection.
+                      </p>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              </CardContent>
+            </Card>
             <SessionManager />
             <DataEncryptionSettings />
           </TabsContent>
