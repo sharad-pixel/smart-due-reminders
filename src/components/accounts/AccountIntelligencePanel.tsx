@@ -27,10 +27,12 @@ import {
   Mail,
   ChevronDown,
   ChevronUp,
-  Info
+  Info,
+  ShieldAlert
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useDebtorIntelligence, useCollectionIntelligence } from "@/hooks/useCollectionIntelligence";
+import { useRevenueRisk } from "@/hooks/useRevenueRisk";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/formatters";
 
@@ -59,6 +61,11 @@ export function AccountIntelligencePanel({
   // Scorecard data
   const { data: scorecardData, isLoading: scorecardLoading, refetch: refetchScorecard } = useDebtorIntelligence(debtorId);
   const { calculateIntelligence } = useCollectionIntelligence(debtorId);
+  const { data: revenueRiskData } = useRevenueRisk();
+
+  // Find this account's risk data from the revenue risk engine
+  const accountRisk = revenueRiskData?.top_risk_accounts?.find(a => a.debtor_id === debtorId);
+  const accountInvoiceScores = revenueRiskData?.invoice_scores?.filter(s => s.debtor_id === debtorId) || [];
   
   // Report data
   const [reportLoading, setReportLoading] = useState(true);
@@ -421,7 +428,113 @@ export function AccountIntelligencePanel({
           <Progress value={scorecardData?.response_rate || 0} className="h-1.5" />
         </div>
 
-        {/* AI Report Section - Collapsible */}
+        {/* ECL & Revenue Risk Section */}
+        {(accountRisk || accountInvoiceScores.length > 0) && (
+          <Collapsible defaultOpen>
+            <CollapsibleTrigger asChild>
+              <button className="w-full flex items-center justify-between p-4 border-t border-border/50 bg-muted/20 hover:bg-muted/30 transition-colors">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <ShieldAlert className="h-4 w-4 text-primary" />
+                  Expected Credit Loss (ECL)
+                </div>
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="p-5 border-t border-border/30 space-y-4">
+                {accountRisk ? (
+                  <>
+                    {/* ECL Metrics Grid */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="p-3 bg-muted/30 rounded-lg">
+                        <p className="text-xs text-muted-foreground mb-0.5">Collectability</p>
+                        <p className={cn("text-lg font-bold", 
+                          accountRisk.collectability_score >= 80 ? "text-green-600" :
+                          accountRisk.collectability_score >= 60 ? "text-yellow-600" :
+                          accountRisk.collectability_score >= 40 ? "text-orange-600" : "text-red-600"
+                        )}>
+                          {accountRisk.collectability_score}%
+                        </p>
+                        <Progress value={accountRisk.collectability_score} className="h-1 mt-1" />
+                      </div>
+                      <div className="p-3 bg-muted/30 rounded-lg">
+                        <p className="text-xs text-muted-foreground mb-0.5">Open Balance</p>
+                        <p className="text-lg font-bold">{formatCurrency(accountRisk.balance)}</p>
+                      </div>
+                      <div className="p-3 bg-muted/30 rounded-lg">
+                        <p className="text-xs text-muted-foreground mb-0.5">Base ECL</p>
+                        <p className="text-lg font-bold text-red-600">{formatCurrency(accountRisk.ecl)}</p>
+                        <p className="text-[10px] text-muted-foreground">PD × Outstanding</p>
+                      </div>
+                      <div className="p-3 bg-muted/30 rounded-lg">
+                        <p className="text-xs text-muted-foreground mb-0.5">Engagement-Adj ECL</p>
+                        <p className="text-lg font-bold text-amber-600">{formatCurrency(accountRisk.engagement_adjusted_ecl)}</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {accountRisk.ecl > 0
+                            ? `${Math.round((1 - accountRisk.engagement_adjusted_ecl / accountRisk.ecl) * 100)}% adjusted`
+                            : "—"}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Engagement & Action */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge variant="outline" className={cn(
+                        accountRisk.engagement_level === "active" ? "bg-green-100 text-green-700 border-green-200" :
+                        accountRisk.engagement_level === "moderate" ? "bg-yellow-100 text-yellow-700 border-yellow-200" :
+                        "bg-red-100 text-red-700 border-red-200"
+                      )}>
+                        Engagement: {accountRisk.engagement_level}
+                      </Badge>
+                      <Badge variant="outline" className={cn(
+                        accountRisk.conversation_state === "active" ? "bg-green-100 text-green-700 border-green-200" :
+                        "bg-muted text-muted-foreground"
+                      )}>
+                        {accountRisk.conversation_state}
+                      </Badge>
+                    </div>
+
+                    {/* Recommended Action */}
+                    {accountRisk.recommended_action && (
+                      <div className="p-3 border-2 border-primary/30 rounded-lg bg-primary/5">
+                        <h5 className="text-xs font-semibold text-primary mb-1 uppercase tracking-wide">
+                          ECL Recommended Action
+                        </h5>
+                        <p className="text-sm">{accountRisk.recommended_action}</p>
+                      </div>
+                    )}
+                  </>
+                ) : accountInvoiceScores.length > 0 ? (
+                  <>
+                    {/* Show invoice-level ECL when no account-level risk exists */}
+                    <div className="space-y-2">
+                      {accountInvoiceScores.slice(0, 5).map(inv => (
+                        <div key={inv.invoice_id} className="flex items-center justify-between p-2 bg-muted/30 rounded-lg text-sm">
+                          <div>
+                            <span className="font-medium">{inv.invoice_id.slice(0, 8)}…</span>
+                            <span className="text-muted-foreground ml-2">{formatCurrency(inv.amount)}</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className={cn("text-xs",
+                              inv.collectability_score >= 80 ? "text-green-600" :
+                              inv.collectability_score >= 60 ? "text-yellow-600" :
+                              inv.collectability_score >= 40 ? "text-orange-600" : "text-red-600"
+                            )}>
+                              Score: {inv.collectability_score}
+                            </span>
+                            <span className="text-xs text-red-600">ECL: {formatCurrency(inv.expected_credit_loss)}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : null}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        )}
+
+
         <Collapsible open={isReportExpanded} onOpenChange={setIsReportExpanded}>
           <CollapsibleTrigger asChild>
             <button className="w-full flex items-center justify-between p-4 border-t border-border/50 bg-muted/20 hover:bg-muted/30 transition-colors">
