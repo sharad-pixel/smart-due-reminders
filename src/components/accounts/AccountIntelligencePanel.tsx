@@ -132,6 +132,29 @@ export function AccountIntelligencePanel({
         }
       }
       
+      // Auto-generate report for accounts with an open balance
+      const hasOpenBalance = (debtor as any).current_balance > 0 || (debtor as any).open_invoices_count > 0;
+      if (hasOpenBalance) {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            const { data, error } = await supabase.functions.invoke("account-intelligence", {
+              body: { debtor_id: debtorId, force_regenerate: true },
+            });
+            if (!error && data?.intelligence) {
+              setIntelligence(data.intelligence);
+              setGeneratedAt(data.generatedAt);
+              setFromCache(false);
+              setReportLoading(false);
+              setInitialLoadDone(true);
+              return;
+            }
+          }
+        } catch (_autoGenError) {
+          // Fall through to show placeholder if auto-gen fails
+        }
+      }
+
       setReportLoading(false);
       setInitialLoadDone(true);
     } catch (_error) {
