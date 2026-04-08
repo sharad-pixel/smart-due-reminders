@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchDebtorIntelligenceReport } from "@/lib/supabase/debtors";
 import { Card, CardContent } from "@/components/ui/card";
@@ -27,10 +27,12 @@ import {
   Mail,
   ChevronDown,
   ChevronUp,
-  Info
+  Info,
+  ShieldAlert
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useDebtorIntelligence, useCollectionIntelligence } from "@/hooks/useCollectionIntelligence";
+import { useRevenueRisk } from "@/hooks/useRevenueRisk";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/formatters";
 
