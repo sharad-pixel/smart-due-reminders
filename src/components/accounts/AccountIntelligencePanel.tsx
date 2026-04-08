@@ -61,6 +61,11 @@ export function AccountIntelligencePanel({
   // Scorecard data
   const { data: scorecardData, isLoading: scorecardLoading, refetch: refetchScorecard } = useDebtorIntelligence(debtorId);
   const { calculateIntelligence } = useCollectionIntelligence(debtorId);
+  const { data: revenueRiskData } = useRevenueRisk();
+
+  // Find this account's risk data from the revenue risk engine
+  const accountRisk = revenueRiskData?.top_risk_accounts?.find(a => a.debtor_id === debtorId);
+  const accountInvoiceScores = revenueRiskData?.invoice_scores?.filter(s => s.debtor_id === debtorId) || [];
   
   // Report data
   const [reportLoading, setReportLoading] = useState(true);
