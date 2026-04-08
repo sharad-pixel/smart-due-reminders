@@ -16,7 +16,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { ArrowLeft, CheckCircle, AlertCircle, XCircle, Info, Copy, Check, Sparkles, Edit, DollarSign, Mail, FileText, X, PauseCircle, PlayCircle, Search, MessageSquare, CreditCard, FileX } from "lucide-react";
+import { ArrowLeft, CheckCircle, AlertCircle, XCircle, Info, Copy, Check, Sparkles, Edit, DollarSign, Mail, FileText, X, PauseCircle, PlayCircle, Search, MessageSquare, CreditCard, FileX, Undo2 } from "lucide-react";
 import { InvoiceTransactionLog } from "@/components/invoices/InvoiceTransactionLog";
 import { PersonaAvatar } from "@/components/ai/PersonaAvatar";
 import { getPersonaByDaysPastDue } from "@/lib/personaConfig";
@@ -1382,6 +1382,14 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                     />
                   </div>
                 )}
+                {invoice.status === "Disputed" && (
+                  <div className="flex items-start gap-2 p-2.5 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-md mb-1">
+                    <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                    <p className="text-xs text-amber-800 dark:text-amber-200">
+                      This invoice is currently <strong>Disputed</strong>. You can still apply credits, write-offs, or other actions. To remove the dispute status first, click <strong>"Retract Dispute"</strong> below.
+                    </p>
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-2">
                 <Button
                   variant="default"
@@ -1451,22 +1459,34 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                   <FileX className="h-3.5 w-3.5 mr-1.5" />
                   Write Off
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="justify-start"
-                  onClick={() => handleStatusChange("Disputed")}
-                  disabled={invoice.status === "Disputed"}
-                >
-                  <AlertCircle className="h-3.5 w-3.5 mr-1.5" />
-                  Disputed
-                </Button>
+                {invoice.status === "Disputed" ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="justify-start border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-400 dark:hover:bg-amber-950"
+                    onClick={() => handleStatusChange("Open")}
+                  >
+                    <Undo2 className="h-3.5 w-3.5 mr-1.5" />
+                    Retract Dispute
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="justify-start"
+                    onClick={() => handleStatusChange("Disputed")}
+                    disabled={invoice.status === "Paid" || invoice.status === "Canceled" || invoice.status === "Voided"}
+                  >
+                    <AlertCircle className="h-3.5 w-3.5 mr-1.5" />
+                    Disputed
+                  </Button>
+                )}
                 <Button
                   variant="outline"
                   size="sm"
                   className="justify-start"
                   onClick={() => handleStatusChange("Settled")}
-                  disabled={invoice.status === "Settled"}
+                  disabled={invoice.status === "Settled" || invoice.status === "Paid"}
                 >
                   <CheckCircle className="h-3.5 w-3.5 mr-1.5" />
                   Settled
@@ -1476,7 +1496,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                   size="sm"
                   className="justify-start col-span-2"
                   onClick={() => handleStatusChange("Canceled")}
-                  disabled={invoice.status === "Canceled"}
+                  disabled={invoice.status === "Canceled" || invoice.status === "Paid"}
                 >
                   <XCircle className="h-3.5 w-3.5 mr-1.5" />
                   Cancel Invoice
