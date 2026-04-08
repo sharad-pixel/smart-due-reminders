@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchDebtorIntelligenceReport } from "@/lib/supabase/debtors";
 import { Card, CardContent } from "@/components/ui/card";
