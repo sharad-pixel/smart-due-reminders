@@ -16,7 +16,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { ArrowLeft, CheckCircle, AlertCircle, XCircle, Info, Copy, Check, Sparkles, Edit, DollarSign, Mail, FileText, X, PauseCircle, PlayCircle, Search, MessageSquare, CreditCard, FileX } from "lucide-react";
+import { ArrowLeft, CheckCircle, AlertCircle, XCircle, Info, Copy, Check, Sparkles, Edit, DollarSign, Mail, FileText, X, PauseCircle, PlayCircle, Search, MessageSquare, CreditCard, FileX, Undo2 } from "lucide-react";
 import { InvoiceTransactionLog } from "@/components/invoices/InvoiceTransactionLog";
 import { PersonaAvatar } from "@/components/ai/PersonaAvatar";
 import { getPersonaByDaysPastDue } from "@/lib/personaConfig";
