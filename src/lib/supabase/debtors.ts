@@ -56,7 +56,7 @@ export async function updateDebtor(
 export async function fetchDebtorIntelligenceReport(debtorId: string) {
   const { data, error } = await supabase
     .from("debtors")
-    .select("intelligence_report, intelligence_report_generated_at")
+    .select("intelligence_report, intelligence_report_generated_at, current_balance, open_invoices_count")
     .eq("id", debtorId)
     .single();
 
