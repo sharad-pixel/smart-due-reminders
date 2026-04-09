@@ -161,7 +161,7 @@ export function CustomerAIContext({ debtorId }: CustomerAIContextProps) {
         toast.info("All fields already populated — no CRM data to pull");
       } else {
         setData(prev => ({ ...prev, ...updates }));
-        toast.success(`Pulled ${Object.keys(updates).length} field(s) from ${crm.crm_type === "salesforce" ? "Salesforce" : crm.crm_type}`);
+        toast.success(`Pulled ${Object.keys(updates).length} field(s) from ${crm.crm_type === "salesforce" ? "Salesforce" : crm.crm_type === "hubspot" ? "HubSpot" : crm.crm_type}`);
       }
     } catch (err) {
       console.error(err);
