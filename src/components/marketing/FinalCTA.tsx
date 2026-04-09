@@ -47,7 +47,7 @@ const FinalCTA = () => {
               transition={{ duration: 2, repeat: Infinity }}
             >
               <Sparkles className="h-4 w-4" />
-              AI-Powered Collections & Risk CRM
+              Collections & Risk Intelligence CRM for Finance Teams
             </motion.div>
 
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
