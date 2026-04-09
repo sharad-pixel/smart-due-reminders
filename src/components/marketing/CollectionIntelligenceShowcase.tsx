@@ -351,10 +351,10 @@ const CollectionIntelligenceShowcase = () => {
         {/* Bottom Stats */}
         <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
           {[
-            { value: "6+", label: "Risk Signals Per Account" },
-            { value: "Real-time", label: "Agent Score Updates" },
+            { value: "7+", label: "Risk Signals Per Account" },
+            { value: "Real-time", label: "Expansion Risk Scoring" },
             { value: "ECL", label: "Revenue Risk Modeling" },
-            { value: "100%", label: "Autonomous Scoring" },
+            { value: "100%", label: "Autonomous Assessment" },
           ].map((stat, idx) => (
             <motion.div
               key={idx}
