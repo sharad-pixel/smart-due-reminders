@@ -5072,6 +5072,69 @@ export type Database = {
           },
         ]
       }
+      invoice_templates: {
+        Row: {
+          company_address: string | null
+          company_phone: string | null
+          company_website: string | null
+          created_at: string
+          font_style: string | null
+          footer_note: string | null
+          header_color: string | null
+          id: string
+          payment_instructions_check: string | null
+          payment_instructions_wire: string | null
+          show_logo: boolean | null
+          show_payment_instructions: boolean | null
+          show_po_number: boolean | null
+          show_sales_rep: boolean | null
+          show_ship_to: boolean | null
+          show_tax: boolean | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_address?: string | null
+          company_phone?: string | null
+          company_website?: string | null
+          created_at?: string
+          font_style?: string | null
+          footer_note?: string | null
+          header_color?: string | null
+          id?: string
+          payment_instructions_check?: string | null
+          payment_instructions_wire?: string | null
+          show_logo?: boolean | null
+          show_payment_instructions?: boolean | null
+          show_po_number?: boolean | null
+          show_sales_rep?: boolean | null
+          show_ship_to?: boolean | null
+          show_tax?: boolean | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_address?: string | null
+          company_phone?: string | null
+          company_website?: string | null
+          created_at?: string
+          font_style?: string | null
+          footer_note?: string | null
+          header_color?: string | null
+          id?: string
+          payment_instructions_check?: string | null
+          payment_instructions_wire?: string | null
+          show_logo?: boolean | null
+          show_payment_instructions?: boolean | null
+          show_po_number?: boolean | null
+          show_sales_rep?: boolean | null
+          show_ship_to?: boolean | null
+          show_tax?: boolean | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       invoice_transactions: {
         Row: {
           amount: number
