@@ -300,58 +300,16 @@ export function ExpansionRiskAdvisor({ debtorId, debtorName, currentBalance, pay
 
             {/* Editable Draft */}
             {showDraft && (
-              <div className="space-y-3 border border-border/60 rounded-lg p-4 bg-card">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-semibold flex items-center gap-1.5">
-                    <Pencil className="h-3.5 w-3.5" /> Expansion Outreach Draft
-                  </h4>
-                  <Badge variant="outline" className="text-[10px]">Editable</Badge>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Send To (email address)</Label>
-                  <Input
-                    type="email"
-                    value={recipientEmail}
-                    onChange={(e) => setRecipientEmail(e.target.value)}
-                    placeholder="recipient@company.com"
-                    className="text-sm"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Subject</Label>
-                  <Input
-                    value={draftSubject}
-                    onChange={(e) => setDraftSubject(e.target.value)}
-                    placeholder="Email subject..."
-                    className="text-sm"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Message Body</Label>
-                  <Textarea
-                    value={draftBody}
-                    onChange={(e) => setDraftBody(e.target.value)}
-                    placeholder="Email body..."
-                    className="min-h-[200px] text-sm leading-relaxed"
-                  />
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Button onClick={handleSendDraft} className="flex-1">
-                    <Send className="h-4 w-4 mr-2" />
-                    Send Outreach
-                  </Button>
-                  <Button variant="outline" onClick={handleCopyDraft}>
-                    {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={handleGenerateOutreach} disabled={draftLoading}>
-                    {draftLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Regenerate"}
-                  </Button>
-                </div>
-              </div>
+              <ExpansionOutreachDraft
+                debtorId={debtorId}
+                subject={draftSubject}
+                body={draftBody}
+                onSubjectChange={setDraftSubject}
+                onBodyChange={setDraftBody}
+                onRegenerate={handleGenerateOutreach}
+                regenerateLoading={draftLoading}
+                onClose={() => setShowDraft(false)}
+              />
             )}
           </div>
         )}
