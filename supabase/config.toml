@@ -324,5 +324,8 @@ verify_jwt = false
 [functions.collections-assessment]
 verify_jwt = false
 
+[functions.generate-expansion-outreach]
+verify_jwt = true
+
 [functions.share-assessment]
 verify_jwt = false
