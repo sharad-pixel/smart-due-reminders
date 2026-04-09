@@ -106,8 +106,10 @@ serve(async (req) => {
 Your reports should be:
 - Concise and actionable
 - Risk-focused with clear recommendations
-- Based on the data provided
+- Based on the data provided, including any user-provided customer context (industry, financial health, known issues, etc.)
 - Written in a professional tone
+
+When user-provided context is available, incorporate it into your analysis — it represents firsthand knowledge from the collections team about this customer.
 
 Structure your response as JSON with these fields:
 - riskLevel: "low" | "medium" | "high" | "critical"
