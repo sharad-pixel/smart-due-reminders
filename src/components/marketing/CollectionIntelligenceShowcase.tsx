@@ -122,6 +122,7 @@ const scoringFactors = [
   { icon: Mail, label: "Engagement Signals", description: "Response frequency and debtor intent" },
   { icon: MessageSquare, label: "Sentiment Analysis", description: "AI-analyzed tone of communications" },
   { icon: Zap, label: "Agent Effectiveness", description: "Which strategies recover revenue fastest" },
+  { icon: TrendingUp, label: "Expansion Risk", description: "Credit risk assessment before account growth" },
 ];
 
 const cardVariants = {

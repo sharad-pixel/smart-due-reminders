@@ -25,6 +25,9 @@ const headlines = [
   "Turn Receivables Into Revenue — Systematically",
   "One Payment Portal. Every Outstanding Invoice.",
   "Give Customers a Self-Service Path to Pay",
+  "Expansion Risk Assessment — Before You Extend Credit",
+  "Know the Risk Before You Grow the Account",
+  "AI-Driven Credit Risk Intelligence for Every Customer",
 ];
 
 const subheadlines = [
