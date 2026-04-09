@@ -14,6 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { LogoUpload } from "@/components/ui/LogoUpload";
 import { SenderIdentitySection } from "@/components/branding/SenderIdentitySection";
 import { EmailPreviewPanel } from "@/components/branding/EmailPreviewPanel";
+import { InvoiceTemplateBuilder } from "@/components/branding/InvoiceTemplateBuilder";
 import { 
   Copy, 
   ExternalLink, 
