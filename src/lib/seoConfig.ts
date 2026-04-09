@@ -7,7 +7,7 @@ export const SITE_CONFIG = {
   siteName: 'Recouply.ai',
   siteUrl: 'https://recouply.ai',
   companyName: 'RecouplyAI Inc.',
-  description: 'AI-powered accounts receivable automation and risk management platform. Automate invoice collections, predict payment behavior with artificial intelligence, integrate with Stripe and QuickBooks, and accelerate cash flow — without collection agencies.',
+  description: 'AI-powered collections & risk CRM. Centralize receivables management, prioritize by risk, maintain a full audit trail of outreach, and accelerate cash flow with AI-powered collections workflows — without collection agencies.',
   logo: 'https://recouply.ai/favicon.png',
   ogImage: 'https://recouply.ai/og-image.png',
   twitterHandle: '@recouplyai',
@@ -137,14 +137,14 @@ export const TARGET_KEYWORDS = {
 // Page-specific SEO configurations
 export const PAGE_SEO: Record<string, { title: string; description: string; keywords: string }> = {
   home: {
-    title: 'Recouply.ai | AI Accounts Receivable Automation & Risk Management',
-    description: 'AI-powered accounts receivable software that automates invoice collections, predicts payment risk, and integrates with Stripe. Reduce DSO and accelerate cash flow.',
-    keywords: 'accounts receivable AI, AI accounts receivable software, accounts receivable automation, AI invoice collection, Stripe AR integration, accounts receivable risk management, credit risk scoring, DSO reduction, cash flow management, dunning automation, payment prediction AI, collection intelligence platform, B2B invoice collection',
+    title: 'Recouply.ai | AI-Powered Collections & Risk CRM',
+    description: 'The AI-powered collections CRM that centralizes receivables, prioritizes by risk, and maintains a full audit trail. Reduce DSO and recover cash with AI-powered collections workflows.',
+    keywords: 'collections CRM, AI collections software, accounts receivable CRM, AI-powered collections workflows, risk-based prioritization, collections audit trail, centralized receivables, DSO reduction, cash flow management, collection intelligence platform',
   },
   features: {
-    title: 'AI Accounts Receivable Features | Invoice Automation & Risk Scoring',
-    description: 'AI-powered accounts receivable features: automated invoice follow-ups, predictive payment scoring, credit risk assessment, Stripe integration, and intelligent collection workflows.',
-    keywords: 'AI accounts receivable features, automated invoice follow-up, payment risk scoring, credit risk assessment, AI dunning, Stripe payment recovery, accounts receivable dashboard, collection automation, AR workflow automation, payment behavior prediction',
+    title: 'AI Collections CRM Features | Risk Scoring & Workflow Engine',
+    description: 'AI-powered collections CRM features: risk-based prioritization, centralized receivables, full audit trail, AI-powered collections workflows, and intelligent outreach.',
+    keywords: 'AI collections CRM features, risk-based prioritization, collections audit trail, AI-powered collections workflows, centralized receivables management, payment behavior prediction',
   },
   pricing: {
     title: 'Pricing | AI Accounts Receivable Software Starting Free',
@@ -182,9 +182,9 @@ export const PAGE_SEO: Record<string, { title: string; description: string; keyw
     keywords: 'accounts receivable blog, AI collections insights, AR automation best practices, credit risk management articles, Stripe AR tips, cash flow management blog, DSO reduction strategies',
   },
   collectionIntelligence: {
-    title: 'Collection Intelligence | AI Risk Scoring & Payment Prediction',
-    description: 'Collection Intelligence uses AI to predict payment behavior, score invoice risk, optimize collection timing, and integrate with Stripe for maximum accounts receivable recovery.',
-    keywords: 'collection intelligence, AI payment prediction, accounts receivable risk scoring, invoice collectability, predictive collections, AI credit risk, Stripe collection analytics, AR intelligence platform',
+    title: 'Collections & Risk CRM | AI-Powered Workflows & Risk Scoring',
+    description: 'AI-powered collections CRM with risk-based prioritization, centralized receivables management, full audit trail, and intelligent collections workflows for maximum recovery.',
+    keywords: 'collections CRM, AI collections workflows, risk-based prioritization, collections audit trail, centralized receivables, predictive collections, AI credit risk, AR intelligence platform',
   },
   personas: {
     title: 'AI Agent Personas | Personalized Collection Outreach',

@@ -83,17 +83,17 @@ const Solutions = () => {
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-16">
             <div className="inline-block px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-6">
-              Revenue Recovery Automation Engine
+              Collections & Risk CRM
             </div>
             <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              Six AI Agents That Automate Revenue Recovery
+              AI-Powered Collections CRM for Every Industry
             </h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-4">
-              Recouply.ai deploys six AI agents that handle the repetitive, mundane follow-up workflows—
-              so your team can focus on decisions, not chasing invoices.
+              Recouply.ai centralizes your receivables, prioritizes by risk, and maintains a complete audit trail —
+              so your team drives cash outcomes, not manual follow-ups.
             </p>
             <p className="text-lg text-primary font-medium">
-              "AI-agentic automation for consistent revenue recovery, human-approved outcomes."
+              "AI-powered collections workflows for consistent recovery, human-approved outcomes."
             </p>
           </div>
 
@@ -136,14 +136,14 @@ const Solutions = () => {
 
           <div className="text-center bg-gradient-to-br from-primary/5 to-secondary/5 border rounded-lg p-12">
             <h2 className="text-3xl font-bold mb-4">
-              Ready to Automate Revenue Recovery?
+              Ready to Centralize Your Collections?
             </h2>
             <p className="text-lg text-muted-foreground mb-4 max-w-2xl mx-auto">
-              Let AI agents handle the repetitive follow-ups—freeing your team from mundane workflows
-              while strengthening cash flow consistently.
+              Let AI-powered collections workflows handle the repeatable work — while your CRM tracks every interaction,
+              prioritizes by risk, and strengthens cash flow consistently.
             </p>
             <p className="text-md text-primary font-medium mb-8">
-              "AI-agentic automation that replaces manual effort with consistent recovery."
+              "The collections CRM that replaces manual effort with consistent, auditable recovery."
             </p>
             <div className="flex gap-4 justify-center flex-wrap">
               <Button 

@@ -47,22 +47,22 @@ const FinalCTA = () => {
               transition={{ duration: 2, repeat: Infinity }}
             >
               <Sparkles className="h-4 w-4" />
-              Agentic Revenue Recovery Platform
+              AI-Powered Collections & Risk CRM
             </motion.div>
 
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-              Deploy AI Agents. Recover Revenue.
+              Centralize Collections. Prioritize by Risk. Recover Cash.
             </h2>
             
             <p className="text-xl md:text-2xl text-primary font-semibold mb-4">
-              Autonomous Recovery, Human-Controlled Outcomes
+              The System of Record for Collections Activity
             </p>
             
             <p className="text-lg text-muted-foreground mb-6 max-w-2xl mx-auto">
-              Six AI agents autonomously manage follow-ups, assess risk, negotiate payments, and escalate — while you maintain full control over every decision.
+              Six AI agents manage AI-powered collections workflows, assess risk, negotiate payments, and maintain a complete audit trail — while you maintain full control over every decision.
             </p>
             <p className="text-sm text-muted-foreground/80 mb-10 max-w-xl mx-auto">
-              Agentic workflows • Revenue risk scoring • Autonomous execution
+              Centralized receivables • Risk-based prioritization • Full audit trail
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -74,7 +74,7 @@ const FinalCTA = () => {
                 >
                   <span className="absolute inset-0 bg-gradient-to-r from-transparent via-primary-foreground/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></span>
                   <span className="relative flex items-center gap-2">
-                    Deploy Your AI Agents
+                    Start Your Collections CRM
                     <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
                   </span>
                 </Button>

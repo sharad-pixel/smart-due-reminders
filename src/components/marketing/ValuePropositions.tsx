@@ -20,12 +20,12 @@ const ValuePropositions = () => {
     {
       icon: Rocket,
       title: "For Startups",
-      subtitle: "AI Agents That Recover Revenue From Day One",
+      subtitle: "AI-Powered Collections CRM From Day One",
       items: [
-        "Deploy agents to automate 100% of invoice follow-up",
-        "Eliminate missed payments and cash flow gaps",
-        "AI handles all outreach — zero headcount needed",
-        "Purpose-built for teams with <10 employees",
+        "Centralize every receivable in one system of record",
+        "AI-powered collections workflows eliminate missed payments",
+        "Risk-based prioritization — work the right accounts first",
+        "Full audit trail of every outreach and outcome",
       ],
       route: "/startups",
       popular: false,
@@ -33,12 +33,12 @@ const ValuePropositions = () => {
     {
       icon: Building2,
       title: "For SMBs",
-      subtitle: "Agentic Revenue Recovery, Human-Approved",
+      subtitle: "Collections CRM With Risk-Based Prioritization",
       items: [
-        "24/7 autonomous follow-up, reminders, and escalations",
-        "AI agents read and respond to debtor emails",
-        "Revenue risk scoring reduces DSO by 35–50%",
-        "No more overdue balances slipping through the cracks",
+        "24/7 AI-powered collections workflows and follow-ups",
+        "AI agents read and respond to customer emails",
+        "Risk scoring reduces DSO by 35–50%",
+        "Complete audit trail — no more gaps in collections history",
       ],
       route: "/smb",
       popular: true,
@@ -46,12 +46,12 @@ const ValuePropositions = () => {
     {
       icon: Building,
       title: "For Enterprise",
-      subtitle: "Agentic AI That Scales Across Finance, Sales & RevOps",
+      subtitle: "Enterprise Collections CRM Across Finance, Sales & RevOps",
       items: [
         "Agents trained on Salesforce RCA, CS Cases, NetSuite data",
-        "Full invoice-volume automation with risk-aware routing",
+        "AI-powered collections workflows with risk-aware routing",
         "Predictive early-warning revenue risk intelligence",
-        "Enterprise governance, audit trails, and compliance",
+        "Enterprise governance, full audit trails, and compliance",
       ],
       route: "/enterprise",
       popular: false,
@@ -69,16 +69,16 @@ const ValuePropositions = () => {
           transition={{ duration: 0.5 }}
         >
           <div className="inline-block px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
-            Agentic Revenue Recovery
+            Collections & Risk CRM
           </div>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-            AI Agents Built for Your Revenue Scale
+            AI-Powered Collections CRM Built for Your Scale
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-            Autonomous AI agents that handle the repetitive work of revenue recovery — so your team focuses on strategy, not follow-ups
+            Centralized receivables management with AI-powered collections workflows — so your team focuses on cash outcomes, not manual follow-ups
           </p>
           <p className="text-sm text-muted-foreground/80 max-w-xl mx-auto mt-3">
-            Consistent execution, strengthened cash flow, and zero manual effort on repeatable tasks
+            Risk-based prioritization, full audit trail, and consistent execution at every scale
           </p>
         </motion.div>
         

@@ -1,4 +1,4 @@
- import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
  import { ArrowRight, Play, Sparkles } from "lucide-react";
@@ -7,39 +7,37 @@ import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from
 import RollingAgentIntro from "./RollingAgentIntro";
 
 const headlines = [
-  "Recover Revenue. Strengthen Cash Flow.",
-  "AI Agents That Handle the Follow-Ups For You",
-  "Revenue Recovery, Automated and Intelligent",
-  "Stop Chasing Invoices. Start Recovering Revenue.",
-  "Six AI Agents. Zero Manual Follow-Ups.",
-  "Cash Flow Strengthened by Agentic AI",
-  "Automate the Mundane. Recover What's Yours.",
-  "Revenue Recovery Intelligence That Compounds",
-  "AI-Agentic Workflows Replace Repetitive Tasks",
-  "Consistent Recovery Without the Human Bottleneck",
-  "From Overdue to Recovered—Automatically",
-  "Predictable Cash Flow Through Intelligent Automation",
-  "Let AI Agents Do the Work. You Make the Decisions.",
-  "Revenue Recovery on Autopilot, Human-Approved",
-  "Strengthen Cash Position With Every Interaction",
-  "Agentic AI for Repeatable Revenue Recovery",
-  "Better Signals. Faster Recovery. Less Manual Effort.",
-  "Your Revenue Recovery Engine, Always On",
+  "Your Collections & Risk CRM — Powered by AI",
+  "Centralized Receivables. Prioritized by Risk.",
+  "Every Outreach. Every Outcome. One System of Record.",
+  "AI-Powered Collections Workflows That Recover Cash",
+  "Six AI Agents. Full Audit Trail. Zero Gaps.",
+  "Risk-Based Prioritization. Predictable Cash Flow.",
+  "From Overdue to Recovered — With Full Visibility",
+  "The CRM Built for Collections Teams",
+  "Manage Risk. Recover Revenue. One Platform.",
+  "AI Collections CRM That Compounds Results",
+  "Centralized AR Intelligence. Faster Recovery.",
+  "Stop Chasing. Start Managing. Recover More.",
+  "Complete Collections History at Your Fingertips",
+  "Risk-Aware Workflows That Drive Cash Outcomes",
+  "AI Agents That Execute. A CRM That Tracks Everything.",
+  "Turn Receivables Into Revenue — Systematically",
   "One Payment Portal. Every Outstanding Invoice.",
   "Give Customers a Self-Service Path to Pay",
 ];
 
 const subheadlines = [
-  "Six AI agents automate the repetitive follow-ups your team shouldn't be doing manually.",
-  "Revenue recovery automation that learns, adapts, and acts—with human approval at every step.",
-  "From friendly reminders to firm escalations—agentic AI handles the mundane so your team doesn't.",
-  "Eliminate manual follow-ups. Strengthen cash flow. Let AI agents do the heavy lifting.",
-  "AI-agentic workflows replace uncomfortable payment conversations with consistent, professional outreach.",
-  "Revenue recovery that preserves relationships—automated by AI, controlled by you.",
-  "Every interaction makes the system smarter. Consistent workflows, compounding results.",
-  "Free your team from repetitive invoice chasing. AI agents handle it 24/7.",
-  "Enterprise-grade revenue recovery at a fraction of the cost of manual AR teams.",
-  "Agentic AI that knows when to nudge and when to escalate—always human-approved.",
+  "Recouply.ai is the AI-powered collections CRM that centralizes every receivable, prioritizes by risk, and maintains a complete audit trail of every interaction.",
+  "AI-powered collections workflows replace manual follow-ups with consistent, risk-aware outreach — all tracked in one system of record.",
+  "From first reminder to final resolution — every action, decision, and outcome lives in one centralized collections CRM.",
+  "Risk-based prioritization ensures your team works the right accounts at the right time. AI handles the rest.",
+  "A complete system of record for collections activity — full audit trail, risk scoring, and AI-driven workflows.",
+  "Centralized receivables management with AI agents that execute outreach, assess risk, and recover cash — all human-approved.",
+  "Every interaction makes the system smarter. Consistent workflows, compounding results, complete visibility.",
+  "Purpose-built collections CRM with AI workflows that reduce DSO, mitigate risk, and strengthen cash position.",
+  "Enterprise-grade collections management at a fraction of the cost of manual AR teams.",
+  "The collections CRM that knows when to nudge and when to escalate — always with a full audit trail.",
 ];
 
 const AnimatedHero = () => {
@@ -191,7 +189,7 @@ const AnimatedHero = () => {
              transition={{ duration: 0.6, ease: "easeOut" }}
            >
             <Sparkles className="w-4 h-4 animate-pulse" />
-            Revenue Recovery Automation Platform
+            AI-Powered Collections & Risk CRM
            </motion.div>
           
           {/* Supporting tagline */}
@@ -201,7 +199,7 @@ const AnimatedHero = () => {
              animate={{ opacity: 1 }}
              transition={{ delay: 0.3, duration: 0.6 }}
            >
-            AI-agentic revenue recovery — automate repetitive workflows, strengthen cash flow, preserve relationships
+            Centralized receivables management • Risk-based prioritization • Full audit trail • AI-powered collections workflows
            </motion.p>
 
           {/* Typewriter Headline */}
@@ -276,7 +274,7 @@ const AnimatedHero = () => {
                  animate={{ scale: [1, 1.3, 1], opacity: [1, 0.7, 1] }}
                  transition={{ duration: 1.5, repeat: Infinity }}
                />
-              AI agents automate the mundane — your team focuses on what matters
+              Your system of record for collections — AI workflows, risk scoring, and full audit trail
             </span>
            </motion.p>
 

@@ -23,9 +23,9 @@ const CollectionIntelligence = () => {
         <div className="container mx-auto text-center max-w-5xl">
           <div className="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-8 border border-primary/20">
             <Brain className="h-5 w-5" />
-            <span>AR & Collection Intelligence Platform</span>
+            <span>Collections & Risk CRM</span>
             <Zap className="h-4 w-4" />
-            <span>Automation</span>
+            <span>AI-Powered Workflows</span>
           </div>
           
           <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight">
@@ -85,8 +85,8 @@ const CollectionIntelligence = () => {
                 <div className="bg-primary/10 w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-4">
                   <Zap className="h-7 w-7 text-primary" />
                 </div>
-                <h3 className="font-semibold mb-2">Automation</h3>
-                <p className="text-sm text-muted-foreground">Workflows that run 24/7 automatically</p>
+                <h3 className="font-semibold mb-2">AI-Powered Workflows</h3>
+                <p className="text-sm text-muted-foreground">Collections workflows that run 24/7</p>
               </CardContent>
             </Card>
           </div>
@@ -296,14 +296,14 @@ const CollectionIntelligence = () => {
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold mb-4">
               <Brain className="h-3 w-3" />
               <Zap className="h-3 w-3" />
-              Intelligent Automation
+              AI-Powered Collections Workflows
             </div>
             <h2 className="text-4xl font-bold mb-4">
-              Automation That Runs 24/7
+              Collections Workflows That Run 24/7
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Set up workflows once, and let Collection Intelligence handle the rest. 
-              From initial reminder to final escalation—automated, personalized, and always on brand.
+              Set up workflows once, and let your collections CRM handle the rest. 
+              From initial reminder to final escalation — AI-powered, risk-aware, and fully auditable.
             </p>
           </div>
           

@@ -10,15 +10,15 @@ const FEATURE_STEPS = [
   { icon: FileText, label: "Invoice Portfolio", desc: "75 invoices across aging buckets", step: "setup_invoices" as const },
   { icon: Link, label: "Integrations", desc: "Stripe & QuickBooks sync", step: "integrations" as const },
   { icon: Database, label: "Data Import", desc: "CSV, Excel, API import", step: "data_import" as const },
-  { icon: BarChart3, label: "Revenue Risk Intelligence", desc: "ECL scoring & cash flow forecasting", step: "revenue_risk" as const },
-  { icon: Brain, label: "AI Agent Orchestration", desc: "Six agents adapt to invoice aging", step: "collection_intelligence" as const },
-  { icon: BrainCircuit, label: "Inbound AI Agent", desc: "Autonomous debtor response handling", step: "inbound_ai" as const },
-  { icon: Sparkles, label: "Agentic Outreach", desc: "AI-generated, tone-matched drafts", step: "activate" as const },
+  { icon: BarChart3, label: "Revenue Risk Intelligence", desc: "ECL scoring & risk-based prioritization", step: "revenue_risk" as const },
+  { icon: Brain, label: "AI Collections Workflows", desc: "Six agents adapt to invoice aging", step: "collection_intelligence" as const },
+  { icon: BrainCircuit, label: "Inbound AI Agent", desc: "Autonomous customer response handling", step: "inbound_ai" as const },
+  { icon: Sparkles, label: "AI-Powered Outreach", desc: "AI-generated, tone-matched drafts", step: "activate" as const },
   { icon: Send, label: "Human-in-the-Loop Review", desc: "Approve or refine before sending", step: "drafts" as const },
-  { icon: CalendarRange, label: "Outreach Cadence", desc: "Automated 7-day recovery plan", step: "outreach_forecast" as const },
+  { icon: CalendarRange, label: "Outreach Cadence", desc: "Risk-aware 7-day recovery plan", step: "outreach_forecast" as const },
   { icon: Send, label: "Autonomous Sending", desc: "Consistent, always-on outreach", step: "sending" as const },
-  { icon: History, label: "Engagement Intelligence", desc: "Track opens, clicks & replies", step: "outreach_history" as const },
-  { icon: DollarSign, label: "Revenue Recovery", desc: "Cash flow impact in real time", step: "payments" as const },
+  { icon: History, label: "Full Audit Trail", desc: "Track opens, clicks, replies & outcomes", step: "outreach_history" as const },
+  { icon: DollarSign, label: "Cash Recovery", desc: "Revenue impact in real time", step: "payments" as const },
   { icon: Download, label: "Data Export", desc: "Reports & reconciliation", step: "data_export" as const },
 ];
 
@@ -33,7 +33,7 @@ export const DemoWelcome = () => {
           animate={{ opacity: 1, y: 0 }}
           className="text-3xl md:text-4xl font-bold text-foreground"
         >
-          Your AI-Agentic Revenue Recovery Platform
+          Your AI-Powered Collections & Risk CRM
         </motion.h1>
         <motion.p
           initial={{ opacity: 0 }}
@@ -41,18 +41,18 @@ export const DemoWelcome = () => {
           transition={{ delay: 0.2 }}
           className="text-muted-foreground text-lg"
         >
-          {demoEmail ? `Great to have you! ` : ""}See how intelligent AI agents replace manual follow-ups with consistent, always-on revenue procurement — strengthening cash flow without adding headcount.
+          {demoEmail ? `Great to have you! ` : ""}See how AI-powered collections workflows replace manual follow-ups — centralizing every receivable, every interaction, and every outcome in one system of record.
         </motion.p>
       </div>
 
       <DemoTutorialCallout
-        title="How AI-Agentic Recovery Works"
-        description="Each step showcases how Recouply.ai's six AI agents orchestrate revenue recovery — from risk intelligence to autonomous outreach to cash flow results."
+        title="How AI-Powered Collections Workflows Work"
+        description="Each step showcases how Recouply.ai's six AI agents orchestrate collections — from risk-based prioritization to autonomous outreach, with a full audit trail of every action."
         variant="info"
         steps={[
-          { title: "AI agents handle the repetitive work", description: "Each agent adapts tone and cadence to invoice aging — no human bottlenecks, consistent outreach every time." },
-          { title: "Interact with realistic data", description: "25 customer accounts and 75 invoices are pre-loaded. Activate agents, trigger outreach, and watch revenue recover." },
-          { title: "See the cash flow impact", description: "Track how agentic automation translates directly into healthier cash flow and predictable revenue procurement." },
+          { title: "AI agents handle repeatable workflows", description: "Each agent adapts tone and cadence to invoice aging — consistent outreach, risk-aware prioritization, full audit trail." },
+          { title: "Interact with realistic data", description: "25 customer accounts and 75 invoices are pre-loaded. Activate agents, trigger outreach, and watch cash recover." },
+          { title: "See the cash impact", description: "Track how AI-powered collections workflows translate directly into reduced DSO, mitigated risk, and stronger cash position." },
         ]}
       />
 
