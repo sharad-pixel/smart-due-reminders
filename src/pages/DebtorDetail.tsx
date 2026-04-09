@@ -28,6 +28,7 @@ import { useCollectionActivities } from "@/hooks/useCollectionActivities";
 import { CreateInvoiceModal } from "@/components/invoices/CreateInvoiceModal";
 import { CustomerCaseFeed } from "@/components/contacts/CustomerCaseFeed";
 import { AccountIntelligencePanel } from "@/components/accounts/AccountIntelligencePanel";
+import { CustomerAIContext } from "@/components/accounts/CustomerAIContext";
 import { AccountOutreachSettings } from "@/components/outreach/AccountOutreachSettings";
 import { OutreachDetailModal, OutreachRecord } from "@/components/outreach/OutreachDetailModal";
 import { OutreachSummaryRow } from "@/components/outreach/OutreachSummaryRow";
@@ -1054,6 +1055,9 @@ const DebtorDetail = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Customer Intelligence Data for AI */}
+        <CustomerAIContext debtorId={debtor.id} />
 
         {/* Collection Intelligence Panel (Consolidated Scorecard + Report) */}
         <AccountIntelligencePanel 
