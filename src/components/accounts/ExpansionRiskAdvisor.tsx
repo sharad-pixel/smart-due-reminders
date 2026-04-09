@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { TrendingUp, ShieldCheck, AlertTriangle, DollarSign, Loader2, Lightbulb, FileText, ArrowUpRight } from "lucide-react";
+import { TrendingUp, ShieldCheck, AlertTriangle, DollarSign, Loader2, Lightbulb, FileText, ArrowUpRight, Mail, Send, Pencil, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 
 interface ExpansionRiskAdvisorProps {
@@ -58,6 +58,67 @@ export function ExpansionRiskAdvisor({ debtorId, debtorName, currentBalance, pay
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AdvisoryResult | null>(null);
+  const [draftLoading, setDraftLoading] = useState(false);
+  const [draftSubject, setDraftSubject] = useState("");
+  const [draftBody, setDraftBody] = useState("");
+  const [showDraft, setShowDraft] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const handleGenerateOutreach = async () => {
+    if (!result) return;
+    setDraftLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-expansion-outreach", {
+        body: {
+          debtor_id: debtorId,
+          debtor_name: debtorName,
+          current_balance: currentBalance,
+          expansion_amount: parseFloat(amount),
+          expansion_type: type,
+          risk_assessment: result,
+        },
+      });
+      if (error) throw error;
+      setDraftSubject(data.subject || "");
+      setDraftBody(data.body || "");
+      setShowDraft(true);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to generate outreach draft");
+    } finally {
+      setDraftLoading(false);
+    }
+  };
+
+  const handleCopyDraft = () => {
+    const fullText = `Subject: ${draftSubject}\n\n${draftBody}`;
+    navigator.clipboard.writeText(fullText);
+    setCopied(true);
+    toast.success("Draft copied to clipboard");
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleSendDraft = async () => {
+    if (!draftSubject.trim() || !draftBody.trim()) {
+      toast.error("Subject and body are required");
+      return;
+    }
+    try {
+      const { error } = await supabase.functions.invoke("send-ai-draft", {
+        body: {
+          debtor_id: debtorId,
+          subject: draftSubject,
+          message_body: draftBody,
+          channel: "email",
+          context: "expansion_outreach",
+        },
+      });
+      if (error) throw error;
+      toast.success("Expansion outreach sent successfully");
+      setShowDraft(false);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to send outreach");
+    }
+  };
 
   const handleAssess = async () => {
     const numAmount = parseFloat(amount);
@@ -246,6 +307,71 @@ export function ExpansionRiskAdvisor({ debtorId, debtorName, currentBalance, pay
             <p className="text-[10px] text-muted-foreground/60 italic">
               This assessment is AI-generated guidance — not financial or legal advice. Always apply your own credit policies.
             </p>
+
+            {/* Generate Outreach Button */}
+            <Button
+              onClick={handleGenerateOutreach}
+              disabled={draftLoading}
+              variant="outline"
+              className="w-full border-primary/30 hover:bg-primary/5"
+            >
+              {draftLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Generating Outreach Draft...
+                </>
+              ) : (
+                <>
+                  <Mail className="h-4 w-4 mr-2" />
+                  Generate AI Outreach Message
+                </>
+              )}
+            </Button>
+
+            {/* Editable Draft */}
+            {showDraft && (
+              <div className="space-y-3 border border-border/60 rounded-lg p-4 bg-card">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-semibold flex items-center gap-1.5">
+                    <Pencil className="h-3.5 w-3.5" /> Expansion Outreach Draft
+                  </h4>
+                  <Badge variant="outline" className="text-[10px]">Editable</Badge>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Subject</Label>
+                  <Input
+                    value={draftSubject}
+                    onChange={(e) => setDraftSubject(e.target.value)}
+                    placeholder="Email subject..."
+                    className="text-sm"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Message Body</Label>
+                  <Textarea
+                    value={draftBody}
+                    onChange={(e) => setDraftBody(e.target.value)}
+                    placeholder="Email body..."
+                    className="min-h-[200px] text-sm leading-relaxed"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button onClick={handleSendDraft} className="flex-1">
+                    <Send className="h-4 w-4 mr-2" />
+                    Send Outreach
+                  </Button>
+                  <Button variant="outline" onClick={handleCopyDraft}>
+                    {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={handleGenerateOutreach} disabled={draftLoading}>
+                    {draftLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Regenerate"}
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </CardContent>
