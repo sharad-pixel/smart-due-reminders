@@ -14,7 +14,7 @@ const headlines = [
   "Six AI Agents. Full Audit Trail. Zero Gaps.",
   "Risk-Based Prioritization. Predictable Cash Flow.",
   "From Overdue to Recovered — With Full Visibility",
-  "The CRM Built for Collections Teams",
+  "The CRM Built for Finance Teams",
   "Manage Risk. Recover Revenue. One Platform.",
   "AI Collections CRM That Compounds Results",
   "Centralized AR Intelligence. Faster Recovery.",
