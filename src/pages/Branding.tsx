@@ -485,6 +485,13 @@ export default function Branding() {
               </CardContent>
             </Card>
 
+            {/* Invoice Template Builder */}
+            <InvoiceTemplateBuilder
+              businessName={formData.business_name || "Your Company"}
+              logoUrl={formData.logo_url || null}
+              effectiveAccountId={effectiveAccountId}
+            />
+
             {/* Document Visibility Info */}
             <Card>
               <CardHeader>
