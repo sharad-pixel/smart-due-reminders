@@ -56,20 +56,27 @@ export const useIntegrationToggles = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
 
-      // Find the user's account_id (either as owner or team member)
-      const { data: membership } = await supabase
+      // Get ALL accounts this user belongs to
+      const { data: memberships } = await supabase
         .from("account_users")
-        .select("account_id")
+        .select("account_id, is_owner")
         .eq("user_id", user.id)
-        .limit(1)
-        .maybeSingle();
+        .eq("status", "active");
 
-      if (!membership?.account_id) return [];
+      if (!memberships?.length) return [];
+
+      // Use effective account: prefer the parent account (where user is NOT owner / is team member),
+      // falling back to their own account. This mirrors useEffectiveAccount logic.
+      const teamMembership = memberships.find(m => !m.is_owner);
+      const effectiveAccountId = teamMembership?.account_id 
+        ?? memberships.find(m => m.is_owner)?.account_id;
+
+      if (!effectiveAccountId) return [];
 
       const { data: toggles } = await supabase
         .from("integration_toggles")
         .select("integration_key, is_enabled")
-        .eq("account_id", membership.account_id);
+        .eq("account_id", effectiveAccountId);
 
       return (toggles || []) as IntegrationToggle[];
     },
