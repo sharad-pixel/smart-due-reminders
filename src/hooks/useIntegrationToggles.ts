@@ -5,6 +5,7 @@ export type IntegrationKey =
   | "stripe"
   | "quickbooks"
   | "salesforce"
+  | "hubspot"
   | "erp_netsuite"
   | "erp_sage"
   | "ai_ingestion";
