@@ -89,41 +89,6 @@ export function ExpansionRiskAdvisor({ debtorId, debtorName, currentBalance, pay
     }
   };
 
-  const handleCopyDraft = () => {
-    const fullText = `Subject: ${draftSubject}\n\n${draftBody}`;
-    navigator.clipboard.writeText(fullText);
-    setCopied(true);
-    toast.success("Draft copied to clipboard");
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleSendDraft = async () => {
-    if (!draftSubject.trim() || !draftBody.trim()) {
-      toast.error("Subject and body are required");
-      return;
-    }
-    if (recipientEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail.trim())) {
-      toast.error("Please enter a valid email address");
-      return;
-    }
-    try {
-      const { error } = await supabase.functions.invoke("send-ai-draft", {
-        body: {
-          debtor_id: debtorId,
-          subject: draftSubject,
-          message_body: draftBody,
-          channel: "email",
-          context: "expansion_outreach",
-          recipient_email: recipientEmail.trim() || undefined,
-        },
-      });
-      if (error) throw error;
-      toast.success("Expansion outreach sent successfully");
-      setShowDraft(false);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to send outreach");
-    }
-  };
 
   const handleAssess = async () => {
     const numAmount = parseFloat(amount);
