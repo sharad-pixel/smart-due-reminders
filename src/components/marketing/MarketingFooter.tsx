@@ -6,7 +6,7 @@
  const COMPANY_INFO = {
    legalName: "RecouplyAI Inc.",
    displayName: "Recouply.ai",
-   tagline: "Collection Intelligence Platform",
+   tagline: "Collections and Risk Intelligence CRM for Finance Teams",
    social: {
      linkedin: "https://www.linkedin.com/company/recouplyai-inc",
    },
