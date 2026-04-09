@@ -229,9 +229,14 @@ export function CustomerAIContext({ debtorId }: CustomerAIContextProps) {
           ) : (
             <>
               <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">
-                  Add known customer information to improve AI-powered risk assessments, collection strategies, and intelligence reports.
-                </p>
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">
+                    Add known customer information to improve AI-powered risk assessments, collection strategies, and intelligence reports.
+                  </p>
+                  <p className="text-xs text-muted-foreground/70">
+                    💡 This data can be auto-populated from your Salesforce or HubSpot integration. Connect your CRM in the Data Center to pull account details directly.
+                  </p>
+                </div>
                 {crmLinked && (
                   <TooltipProvider>
                     <Tooltip>
