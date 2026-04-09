@@ -72,6 +72,10 @@ Deno.serve(async (req) => {
           syncUrl = `${supabaseUrl}/functions/v1/sync-stripe-invoices`;
         } else if (setting.integration_type === 'quickbooks') {
           syncUrl = `${supabaseUrl}/functions/v1/sync-quickbooks-data`;
+        } else if (setting.integration_type === 'salesforce') {
+          syncUrl = `${supabaseUrl}/functions/v1/sync-salesforce-accounts`;
+        } else if (setting.integration_type === 'hubspot') {
+          syncUrl = `${supabaseUrl}/functions/v1/sync-hubspot-data`;
         } else {
           logStep('Unknown integration type, skipping', { type: setting.integration_type });
           continue;
