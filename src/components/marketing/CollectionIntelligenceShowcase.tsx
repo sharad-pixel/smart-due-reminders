@@ -27,7 +27,7 @@ const sampleAccounts: ScoreCard[] = [
     companyName: "TechVentures Inc.",
     intelligenceScore: 87,
     healthTier: "Healthy",
-    agentAction: "Agent: Standard cadence — next follow-up in 5 days",
+    agentAction: "Agent: Expansion risk low — safe to extend $25K credit increase",
     metrics: {
       invoiceActivity: { open: 2, overdue: 0, paid30Days: 5 },
       pastDueBalance: 0,
@@ -43,7 +43,7 @@ const sampleAccounts: ScoreCard[] = [
     companyName: "Global Retail Co.",
     intelligenceScore: 62,
     healthTier: "Watch",
-    agentAction: "Agent: Increased touchpoint frequency — payment plan offered",
+    agentAction: "Agent: Expansion hold — resolve $15.4K overdue before credit increase",
     metrics: {
       invoiceActivity: { open: 5, overdue: 2, paid30Days: 3 },
       pastDueBalance: 15400,
@@ -59,7 +59,7 @@ const sampleAccounts: ScoreCard[] = [
     companyName: "Sterling Industries",
     intelligenceScore: 34,
     healthTier: "Critical",
-    agentAction: "Agent: Escalation triggered — senior AR notified automatically",
+    agentAction: "Agent: Expansion blocked — high default risk, escalation triggered",
     metrics: {
       invoiceActivity: { open: 8, overdue: 6, paid30Days: 1 },
       pastDueBalance: 89500,
@@ -122,6 +122,7 @@ const scoringFactors = [
   { icon: Mail, label: "Engagement Signals", description: "Response frequency and debtor intent" },
   { icon: MessageSquare, label: "Sentiment Analysis", description: "AI-analyzed tone of communications" },
   { icon: Zap, label: "Agent Effectiveness", description: "Which strategies recover revenue fastest" },
+  { icon: TrendingUp, label: "Expansion Risk", description: "Credit risk assessment before account growth" },
 ];
 
 const cardVariants = {
@@ -169,7 +170,7 @@ const CollectionIntelligenceShowcase = () => {
         </motion.div>
 
         {/* Scoring Factors */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-16">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-16">
           {scoringFactors.map((factor, idx) => (
             <motion.div
               key={idx}
@@ -350,10 +351,10 @@ const CollectionIntelligenceShowcase = () => {
         {/* Bottom Stats */}
         <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
           {[
-            { value: "6+", label: "Risk Signals Per Account" },
-            { value: "Real-time", label: "Agent Score Updates" },
+            { value: "7+", label: "Risk Signals Per Account" },
+            { value: "Real-time", label: "Expansion Risk Scoring" },
             { value: "ECL", label: "Revenue Risk Modeling" },
-            { value: "100%", label: "Autonomous Scoring" },
+            { value: "100%", label: "Autonomous Assessment" },
           ].map((stat, idx) => (
             <motion.div
               key={idx}
