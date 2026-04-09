@@ -12,6 +12,7 @@ const INTEGRATION_DESCRIPTIONS: Record<IntegrationKey, string> = {
   quickbooks: "Import AR data & reconcile payments from QuickBooks",
   ai_ingestion: "Google Drive scanning, Google Sheets sync, AI-powered data review",
   salesforce: "Sync CRM accounts & support cases from Salesforce",
+  hubspot: "Sync contacts, companies, deals & tickets from HubSpot",
   erp_netsuite: "Connect Oracle NetSuite for full ERP synchronization",
   erp_sage: "Connect Sage Intacct for full ERP synchronization",
 };
