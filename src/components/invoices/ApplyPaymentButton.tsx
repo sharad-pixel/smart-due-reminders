@@ -218,12 +218,10 @@ export function ApplyPaymentButton({
                 <Label htmlFor={`partial-amt-${invoiceId}`} className="text-xs">Amount *</Label>
                 <Input
                   id={`partial-amt-${invoiceId}`}
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  max={outstanding}
+                  type="text"
+                  inputMode="decimal"
                   value={partialAmount}
-                  onChange={(e) => setPartialAmount(e.target.value)}
+                  onChange={(e) => setPartialAmount(e.target.value.replace(/[^0-9.]/g, ''))}
                   placeholder="0.00"
                   className="h-8 text-sm"
                 />
@@ -303,12 +301,10 @@ export function ApplyPaymentButton({
             <div className="space-y-1.5">
               <Label className="text-xs">Payment Amount *</Label>
               <Input
-                type="number"
-                step="0.01"
-                min="0.01"
-                max={outstanding}
+                type="text"
+                inputMode="decimal"
                 value={partialAmount}
-                onChange={(e) => setPartialAmount(e.target.value)}
+                onChange={(e) => setPartialAmount(e.target.value.replace(/[^0-9.]/g, ''))}
                 placeholder="0.00"
               />
             </div>
