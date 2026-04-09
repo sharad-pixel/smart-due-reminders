@@ -29,6 +29,7 @@ import { CreateInvoiceModal } from "@/components/invoices/CreateInvoiceModal";
 import { CustomerCaseFeed } from "@/components/contacts/CustomerCaseFeed";
 import { AccountIntelligencePanel } from "@/components/accounts/AccountIntelligencePanel";
 import { CustomerAIContext } from "@/components/accounts/CustomerAIContext";
+import { ExpansionRiskAdvisor } from "@/components/accounts/ExpansionRiskAdvisor";
 import { AccountOutreachSettings } from "@/components/outreach/AccountOutreachSettings";
 import { OutreachDetailModal, OutreachRecord } from "@/components/outreach/OutreachDetailModal";
 import { OutreachSummaryRow } from "@/components/outreach/OutreachSummaryRow";
@@ -1103,6 +1104,15 @@ const DebtorDetail = () => {
 
         {/* Customer Case Feed */}
         <CustomerCaseFeed debtorId={id} />
+
+        {/* Expansion Risk Advisor */}
+        <ExpansionRiskAdvisor
+          debtorId={debtor.id}
+          debtorName={debtor.company_name || debtor.name}
+          currentBalance={debtor.current_balance || 0}
+          paymentScore={debtor.payment_score}
+          riskTier={debtor.payment_risk_tier}
+        />
 
         <Tabs defaultValue="invoices" className="space-y-4">
           <TabsList className="flex-wrap">
