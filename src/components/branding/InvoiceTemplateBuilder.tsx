@@ -196,7 +196,7 @@ export const InvoiceTemplateBuilder = ({
                   id="company_address"
                   value={formData.company_address}
                   onChange={(e) => handleChange("company_address", e.target.value)}
-                  placeholder={"101 S Ellsworth Ave\nSuite 600\nSan Mateo CA 94401\nUnited States"}
+                  placeholder={"123 Business Ave\nSuite 100\nCity, State ZIP\nCountry"}
                   rows={3}
                   className="mt-1"
                 />
