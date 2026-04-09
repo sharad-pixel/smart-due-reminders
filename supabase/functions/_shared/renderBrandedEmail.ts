@@ -233,10 +233,18 @@ function generateMinimalFooter(brand: BrandingConfig): string {
     
     <!-- Powered By Footer -->
     <tr>
-      <td style="padding: 12px 32px 16px; text-align: center; border-top: 1px solid #e2e8f0;">
+      <td style="padding: 12px 32px 8px; text-align: center; border-top: 1px solid #e2e8f0;">
         <a href="https://recouply.ai/debtor-portal" style="display: inline-block; font-size: 11px; color: #64748b; text-decoration: none; font-weight: 500; margin-bottom: 4px; font-family: ${FONT_STACK};">🔒 Access Payment Portal</a>
         <br/>
         <span style="font-size: 10px; color: #94a3b8; font-family: ${FONT_STACK};">Powered by <a href="https://recouply.ai" style="color: #94a3b8; text-decoration: none; font-weight: 500;">recouply.ai</a></span>
+      </td>
+    </tr>
+    <!-- Reply-To Tracking Notice -->
+    <tr>
+      <td style="padding: 4px 32px 16px; text-align: center;">
+        <p style="margin: 0; font-size: 9px; color: #b0b8c4; font-family: ${FONT_STACK}; line-height: 1.4;">
+          ⚠️ Please reply directly to this email without changing the "To" or "Reply-To" address. Modifying the reply address may prevent your response from being received and processed.
+        </p>
       </td>
     </tr>
   `.trim();
@@ -367,6 +375,9 @@ export function renderSimpleEmail(input: EmailRenderInput, personaName?: string)
       <a href="https://recouply.ai/debtor-portal" style="display: inline-block; font-size: 11px; color: #64748b; text-decoration: none; font-weight: 500; margin-bottom: 4px; font-family: ${FONT_STACK};">🔒 Access Payment Portal</a>
       <br/>
       <span style="font-size: 10px; color: #94a3b8; font-family: ${FONT_STACK};">Powered by <a href="https://recouply.ai" style="color: #94a3b8; text-decoration: none; font-weight: 500;">recouply.ai</a></span>
+      <p style="margin: 6px 0 0; font-size: 9px; color: #b0b8c4; font-family: ${FONT_STACK}; line-height: 1.4;">
+        ⚠️ Please reply directly to this email without changing the "To" or "Reply-To" address. Modifying the reply address may prevent your response from being received and processed.
+      </p>
     </div>
   </div>
 </body>
@@ -429,6 +440,7 @@ export function renderPlainTextEmail(input: EmailRenderInput, personaName?: stri
   result += `Powered by Recouply.ai · Collections and Risk Intelligence CRM for Finance Teams\n`;
   result += `https://recouply.ai\n\n`;
   result += `© ${currentYear} RecouplyAI Inc. · Delaware, USA\n`;
+  result += `\n⚠️ Please reply directly to this email without changing the "To" or "Reply-To" address. Modifying the reply address may prevent your response from being received and processed.\n`;
 
   if (brand.email_footer) {
     result += `\n${brand.email_footer}\n`;
