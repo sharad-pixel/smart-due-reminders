@@ -143,8 +143,12 @@ function generateRecouplyFooter(branding: BrandingSettings): string {
               </table>
               
               <!-- Legal -->
-              <p style="margin: 0; font-size: 11px; color: #475569; font-family: ${FONT_STACK};">
+              <p style="margin: 0 0 8px; font-size: 11px; color: #475569; font-family: ${FONT_STACK};">
                 © ${currentYear} ${COMPANY_INFO.legalName} · ${COMPANY_INFO.address}
+              </p>
+              <!-- Reply-To Tracking Notice -->
+              <p style="margin: 0; font-size: 9px; color: #64748b; font-family: ${FONT_STACK}; line-height: 1.4;">
+                ⚠️ Please reply directly to this email without changing the "To" or "Reply-To" address. Modifying the reply address may prevent your response from being received and processed.
               </p>
             </td>
           </tr>
@@ -364,6 +368,7 @@ export function generatePlainTextSignature(
   signature += `---\n`;
   signature += `© ${currentYear} ${COMPANY_INFO.legalName} · ${COMPANY_INFO.address}\n`;
   signature += `Support: ${COMPANY_INFO.emails.support}\n`;
+  signature += `\n⚠️ Please reply directly to this email without changing the "To" or "Reply-To" address. Modifying the reply address may prevent your response from being received and processed.\n`;
   
   if (branding.email_footer) {
     signature += "\n" + branding.email_footer;
