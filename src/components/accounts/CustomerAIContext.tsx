@@ -54,7 +54,17 @@ export function CustomerAIContext({ debtorId }: CustomerAIContextProps) {
 
   useEffect(() => {
     loadContext();
+    checkCrmLink();
   }, [debtorId]);
+
+  async function checkCrmLink() {
+    const { data } = await supabase
+      .from("debtors")
+      .select("crm_account_id")
+      .eq("id", debtorId)
+      .maybeSingle();
+    setCrmLinked(!!data?.crm_account_id);
+  }
 
   async function loadContext() {
     setLoading(true);
@@ -81,6 +91,83 @@ export function CustomerAIContext({ debtorId }: CustomerAIContextProps) {
       setHasData(true);
     }
     setLoading(false);
+  }
+
+  async function handlePullFromCRM() {
+    setPulling(true);
+    try {
+      // Get the debtor's linked CRM account
+      const { data: debtor } = await supabase
+        .from("debtors")
+        .select("crm_account_id")
+        .eq("id", debtorId)
+        .maybeSingle();
+
+      if (!debtor?.crm_account_id) {
+        toast.error("No CRM account linked to this customer");
+        setPulling(false);
+        return;
+      }
+
+      const { data: crm } = await supabase
+        .from("crm_accounts")
+        .select("*")
+        .eq("id", debtor.crm_account_id)
+        .maybeSingle();
+
+      if (!crm) {
+        toast.error("CRM account data not found");
+        setPulling(false);
+        return;
+      }
+
+      // Map CRM fields to AI context — only fill empty fields
+      const updates: Partial<AIContextData> = {};
+      if (!data.industry && crm.industry) updates.industry = crm.industry;
+      if (!data.decision_maker && crm.owner_name) updates.decision_maker = crm.owner_name;
+
+      // Map MRR/lifetime value to revenue estimate
+      if (!data.annual_revenue && crm.mrr) {
+        const annual = crm.mrr * 12;
+        if (annual < 100000) updates.annual_revenue = "<100K";
+        else if (annual < 500000) updates.annual_revenue = "100K-500K";
+        else if (annual < 1000000) updates.annual_revenue = "500K-1M";
+        else if (annual < 10000000) updates.annual_revenue = "1M-10M";
+        else if (annual < 50000000) updates.annual_revenue = "10M-50M";
+        else updates.annual_revenue = "50M+";
+      }
+
+      // Build relationship notes from CRM data
+      const relationshipParts: string[] = [];
+      if (crm.segment) relationshipParts.push(`Segment: ${crm.segment}`);
+      if (crm.health_score) relationshipParts.push(`CRM Health Score: ${crm.health_score}`);
+      if (crm.customer_since) relationshipParts.push(`Customer since: ${crm.customer_since}`);
+      if (crm.status) relationshipParts.push(`CRM Status: ${crm.status}`);
+      if (crm.lifetime_value) relationshipParts.push(`Lifetime Value: $${crm.lifetime_value.toLocaleString()}`);
+
+      if (!data.business_relationship && relationshipParts.length > 0) {
+        updates.business_relationship = relationshipParts.join(". ");
+      }
+
+      // Build financial notes from CRM
+      const financialParts: string[] = [];
+      if (crm.mrr) financialParts.push(`MRR: $${crm.mrr.toLocaleString()}`);
+      if (crm.health_score) financialParts.push(`Health: ${crm.health_score}`);
+      if (!data.financial_health_notes && financialParts.length > 0) {
+        updates.financial_health_notes = `[From ${crm.crm_type}] ${financialParts.join(". ")}`;
+      }
+
+      if (Object.keys(updates).length === 0) {
+        toast.info("All fields already populated — no CRM data to pull");
+      } else {
+        setData(prev => ({ ...prev, ...updates }));
+        toast.success(`Pulled ${Object.keys(updates).length} field(s) from ${crm.crm_type === "salesforce" ? "Salesforce" : crm.crm_type}`);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to pull CRM data");
+    }
+    setPulling(false);
   }
 
   async function handleSave() {
