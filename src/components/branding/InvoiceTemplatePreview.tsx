@@ -115,11 +115,13 @@ export const InvoiceTemplatePreview = ({
                     Ship To
                   </div>
                   <div className="text-[11px] text-gray-700">
-                    Acme Corporation
+                    Customer Company
                     <br />
-                    123 Main Street
+                    456 Commerce Blvd
                     <br />
-                    New York, NY 10001
+                    Suite 200
+                    <br />
+                    Los Angeles, CA 90001
                   </div>
                 </div>
               )}
