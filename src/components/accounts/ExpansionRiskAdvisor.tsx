@@ -111,11 +111,14 @@ export function ExpansionRiskAdvisor({ debtorId, debtorName, currentBalance, pay
           <div className="space-y-1.5">
             <Label className="text-xs">Expansion Amount ($)</Label>
             <Input
-              type="number"
+              type="text"
+              inputMode="decimal"
               placeholder="25,000"
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              min={0}
+              onChange={(e) => {
+                const val = e.target.value.replace(/[^0-9.]/g, '');
+                setAmount(val);
+              }}
             />
           </div>
           <div className="space-y-1.5">
