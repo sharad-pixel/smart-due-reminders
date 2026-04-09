@@ -22,7 +22,7 @@ const FONT_STACK = `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 const COMPANY_INFO = {
   legalName: "RecouplyAI Inc.",
   displayName: "Recouply.ai",
-  tagline: "Collection Intelligence Platform",
+  tagline: "Collections and Risk Intelligence CRM for Finance Teams",
   website: "https://recouply.ai",
   emails: {
     collections: `collections@${INBOUND_EMAIL_DOMAIN}`,

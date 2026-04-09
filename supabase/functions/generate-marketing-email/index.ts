@@ -97,7 +97,7 @@ serve(async (req) => {
       custom: "a custom marketing email",
     };
 
-    const systemPrompt = `You are an expert email marketing copywriter for Recouply.ai, a Collection Intelligence Platform that helps businesses collect money more effectively using AI.
+    const systemPrompt = `You are an expert email marketing copywriter for Recouply.ai, a Collections and Risk Intelligence CRM for Finance Teams that helps businesses collect money more effectively using AI.
 
 Your task is to write ${emailTypeDescriptions[email_type]}.
 

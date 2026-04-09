@@ -102,7 +102,7 @@ function generateConsolidatedEmailHtml(params: {
   return wrapEnterpriseEmail(bodyContent, {
     headerStyle: "gradient",
     title: `📋 ${tasks.length} Task${tasks.length > 1 ? "s" : ""} from Inbound Email`,
-    subtitle: "AI-Powered Collections Platform",
+    subtitle: "Collections & Risk Intelligence CRM",
   });
 }
 
