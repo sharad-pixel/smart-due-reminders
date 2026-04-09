@@ -335,6 +335,19 @@ async function fetchMetrics(supabase: any, debtor_id: string, debtor: any) {
       date: p.payment_date,
       amount: p.amount,
       method: p.payment_method
-    }))
+    })),
+    userProvidedContext: aiContext ? {
+      industry: aiContext.industry,
+      employeeCount: aiContext.employee_count,
+      annualRevenue: aiContext.annual_revenue,
+      paymentPreferences: aiContext.payment_preferences,
+      knownIssues: aiContext.known_issues,
+      businessRelationship: aiContext.business_relationship,
+      financialHealthNotes: aiContext.financial_health_notes,
+      communicationPreference: aiContext.communication_preference,
+      decisionMaker: aiContext.decision_maker,
+      seasonalPatterns: aiContext.seasonal_patterns,
+      additionalContext: aiContext.additional_context,
+    } : null
   };
 }
