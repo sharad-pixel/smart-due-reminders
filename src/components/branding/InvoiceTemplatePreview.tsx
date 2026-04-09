@@ -66,7 +66,7 @@ export const InvoiceTemplatePreview = ({
                   Invoice
                 </div>
                 <div className="text-sm font-semibold mt-1 text-gray-800">
-                  #INV-00001
+                  #INV00665
                 </div>
                 <div className="mt-2 text-[11px] text-gray-600 space-y-0.5">
                   <div>
