@@ -262,6 +262,13 @@ async function fetchMetrics(supabase: any, debtor_id: string, debtor: any) {
     .select("*")
     .eq("debtor_id", debtor_id);
 
+  // Fetch user-provided AI context
+  const { data: aiContext } = await supabase
+    .from("debtor_ai_context")
+    .select("*")
+    .eq("debtor_id", debtor_id)
+    .maybeSingle();
+
   // Calculate metrics
   const openInvoices = invoices?.filter((i: any) => ["Open", "PartiallyPaid", "InPaymentPlan"].includes(i.status)) || [];
   const totalOpenBalance = openInvoices.reduce((sum: number, inv: any) => sum + (inv.outstanding_amount || inv.amount || 0), 0);
