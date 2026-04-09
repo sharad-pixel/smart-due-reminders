@@ -228,9 +228,31 @@ export function CustomerAIContext({ debtorId }: CustomerAIContextProps) {
             </div>
           ) : (
             <>
-              <p className="text-sm text-muted-foreground">
-                Add known customer information to improve AI-powered risk assessments, collection strategies, and intelligence reports.
-              </p>
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">
+                  Add known customer information to improve AI-powered risk assessments, collection strategies, and intelligence reports.
+                </p>
+                {crmLinked && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handlePullFromCRM}
+                          disabled={pulling}
+                        >
+                          {pulling ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+                          Pull from CRM
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        Auto-fill empty fields from linked Salesforce / HubSpot account data
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+              </div>
 
               {/* Structured fields - 2 column grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
