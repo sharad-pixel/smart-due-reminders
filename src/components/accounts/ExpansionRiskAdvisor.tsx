@@ -63,6 +63,7 @@ export function ExpansionRiskAdvisor({ debtorId, debtorName, currentBalance, pay
   const [draftBody, setDraftBody] = useState("");
   const [showDraft, setShowDraft] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [recipientEmail, setRecipientEmail] = useState("");
 
   const handleGenerateOutreach = async () => {
     if (!result) return;
@@ -102,6 +103,10 @@ export function ExpansionRiskAdvisor({ debtorId, debtorName, currentBalance, pay
       toast.error("Subject and body are required");
       return;
     }
+    if (recipientEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail.trim())) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
     try {
       const { error } = await supabase.functions.invoke("send-ai-draft", {
         body: {
@@ -110,6 +115,7 @@ export function ExpansionRiskAdvisor({ debtorId, debtorName, currentBalance, pay
           message_body: draftBody,
           channel: "email",
           context: "expansion_outreach",
+          recipient_email: recipientEmail.trim() || undefined,
         },
       });
       if (error) throw error;
@@ -336,6 +342,17 @@ export function ExpansionRiskAdvisor({ debtorId, debtorName, currentBalance, pay
                     <Pencil className="h-3.5 w-3.5" /> Expansion Outreach Draft
                   </h4>
                   <Badge variant="outline" className="text-[10px]">Editable</Badge>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Send To (email address)</Label>
+                  <Input
+                    type="email"
+                    value={recipientEmail}
+                    onChange={(e) => setRecipientEmail(e.target.value)}
+                    placeholder="recipient@company.com"
+                    className="text-sm"
+                  />
                 </div>
 
                 <div className="space-y-1.5">
