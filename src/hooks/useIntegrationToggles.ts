@@ -56,9 +56,20 @@ export const useIntegrationToggles = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
 
+      // Find the user's account_id (either as owner or team member)
+      const { data: membership } = await supabase
+        .from("account_users")
+        .select("account_id")
+        .eq("user_id", user.id)
+        .limit(1)
+        .maybeSingle();
+
+      if (!membership?.account_id) return [];
+
       const { data: toggles } = await supabase
         .from("integration_toggles")
-        .select("integration_key, is_enabled");
+        .select("integration_key, is_enabled")
+        .eq("account_id", membership.account_id);
 
       return (toggles || []) as IntegrationToggle[];
     },
