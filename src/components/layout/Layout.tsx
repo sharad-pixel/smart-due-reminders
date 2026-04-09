@@ -71,6 +71,7 @@ const Layout = ({ children }: LayoutProps) => {
   const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
   const [planType, setPlanType] = useState<string>("free");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [trialBannerVisible, setTrialBannerVisible] = useState(false);
   const [isFounder, setIsFounder] = useState(false);
   const { unreadCount: alertUnreadCount } = useUserAlerts();
   const { 
@@ -262,8 +263,6 @@ const Layout = ({ children }: LayoutProps) => {
 
   const isAnyAIToolActive = aiToolsItems.some(item => isActive(item.path));
 
-  // Track whether the TrialBanner is actually rendering (not just eligible)
-  const [trialBannerVisible, setTrialBannerVisible] = useState(false);
 
   // Check if lockout banner should be shown (for degraded subscription states)
   // This runs after accountLoading is complete to ensure proper status checking
