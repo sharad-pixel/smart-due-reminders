@@ -63,8 +63,6 @@ export function ExpansionRiskAdvisor({ debtorId, debtorName, currentBalance, pay
   const [draftSubject, setDraftSubject] = useState("");
   const [draftBody, setDraftBody] = useState("");
   const [showDraft, setShowDraft] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [recipientEmail, setRecipientEmail] = useState("");
 
   const handleGenerateOutreach = async () => {
     if (!result) return;
