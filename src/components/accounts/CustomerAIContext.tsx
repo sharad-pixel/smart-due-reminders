@@ -49,6 +49,8 @@ export function CustomerAIContext({ debtorId }: CustomerAIContextProps) {
   const [saving, setSaving] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [hasData, setHasData] = useState(false);
+  const [pulling, setPulling] = useState(false);
+  const [crmLinked, setCrmLinked] = useState(false);
 
   useEffect(() => {
     loadContext();
