@@ -2264,6 +2264,88 @@ export type Database = {
           },
         ]
       }
+      debtor_ai_context: {
+        Row: {
+          additional_context: string | null
+          annual_revenue: string | null
+          business_relationship: string | null
+          communication_preference: string | null
+          created_at: string
+          debtor_id: string
+          decision_maker: string | null
+          employee_count: string | null
+          financial_health_notes: string | null
+          id: string
+          industry: string | null
+          known_issues: string | null
+          organization_id: string | null
+          payment_preferences: string | null
+          seasonal_patterns: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          additional_context?: string | null
+          annual_revenue?: string | null
+          business_relationship?: string | null
+          communication_preference?: string | null
+          created_at?: string
+          debtor_id: string
+          decision_maker?: string | null
+          employee_count?: string | null
+          financial_health_notes?: string | null
+          id?: string
+          industry?: string | null
+          known_issues?: string | null
+          organization_id?: string | null
+          payment_preferences?: string | null
+          seasonal_patterns?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          additional_context?: string | null
+          annual_revenue?: string | null
+          business_relationship?: string | null
+          communication_preference?: string | null
+          created_at?: string
+          debtor_id?: string
+          decision_maker?: string | null
+          employee_count?: string | null
+          financial_health_notes?: string | null
+          id?: string
+          industry?: string | null
+          known_issues?: string | null
+          organization_id?: string | null
+          payment_preferences?: string | null
+          seasonal_patterns?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "debtor_ai_context_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: true
+            referencedRelation: "debtor_contact_emails"
+            referencedColumns: ["debtor_id"]
+          },
+          {
+            foreignKeyName: "debtor_ai_context_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: true
+            referencedRelation: "debtors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "debtor_ai_context_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       debtor_contacts: {
         Row: {
           created_at: string
