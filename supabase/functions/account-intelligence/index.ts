@@ -106,8 +106,10 @@ serve(async (req) => {
 Your reports should be:
 - Concise and actionable
 - Risk-focused with clear recommendations
-- Based on the data provided
+- Based on the data provided, including any user-provided customer context (industry, financial health, known issues, etc.)
 - Written in a professional tone
+
+When user-provided context is available, incorporate it into your analysis — it represents firsthand knowledge from the collections team about this customer.
 
 Structure your response as JSON with these fields:
 - riskLevel: "low" | "medium" | "high" | "critical"
@@ -262,6 +264,13 @@ async function fetchMetrics(supabase: any, debtor_id: string, debtor: any) {
     .select("*")
     .eq("debtor_id", debtor_id);
 
+  // Fetch user-provided AI context
+  const { data: aiContext } = await supabase
+    .from("debtor_ai_context")
+    .select("*")
+    .eq("debtor_id", debtor_id)
+    .maybeSingle();
+
   // Calculate metrics
   const openInvoices = invoices?.filter((i: any) => ["Open", "PartiallyPaid", "InPaymentPlan"].includes(i.status)) || [];
   const totalOpenBalance = openInvoices.reduce((sum: number, inv: any) => sum + (inv.outstanding_amount || inv.amount || 0), 0);
@@ -328,6 +337,19 @@ async function fetchMetrics(supabase: any, debtor_id: string, debtor: any) {
       date: p.payment_date,
       amount: p.amount,
       method: p.payment_method
-    }))
+    })),
+    userProvidedContext: aiContext ? {
+      industry: aiContext.industry,
+      employeeCount: aiContext.employee_count,
+      annualRevenue: aiContext.annual_revenue,
+      paymentPreferences: aiContext.payment_preferences,
+      knownIssues: aiContext.known_issues,
+      businessRelationship: aiContext.business_relationship,
+      financialHealthNotes: aiContext.financial_health_notes,
+      communicationPreference: aiContext.communication_preference,
+      decisionMaker: aiContext.decision_maker,
+      seasonalPatterns: aiContext.seasonal_patterns,
+      additionalContext: aiContext.additional_context,
+    } : null
   };
 }
