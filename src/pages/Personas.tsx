@@ -477,9 +477,9 @@ const Personas = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1, duration: 0.5 }}
             >
-              Meet Your AI{" "}
+              Meet Your{" "}
               <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                Finance Team
+                Collections & Risk Assessment Finance Team
               </span>
             </motion.h1>
             <motion.p
