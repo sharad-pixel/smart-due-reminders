@@ -17,7 +17,7 @@ interface TrialUsage {
  * Forces users to upgrade when trial expires or invoice limit is reached.
  * Respects admin overrides - hides banner when admin_override is enabled.
  */
-export function TrialBanner() {
+export function TrialBanner({ onVisibilityChange }: { onVisibilityChange?: (visible: boolean) => void } = {}) {
   const navigate = useNavigate();
   const location = useLocation();
   const { isTrial, trialEndsAt, subscriptionStatus, plan, isLoading } = useSubscription();
