@@ -5,6 +5,7 @@ export type IntegrationKey =
   | "stripe"
   | "quickbooks"
   | "salesforce"
+  | "hubspot"
   | "erp_netsuite"
   | "erp_sage"
   | "ai_ingestion";
@@ -13,6 +14,7 @@ export const INTEGRATION_LABELS: Record<IntegrationKey, string> = {
   stripe: "Stripe",
   quickbooks: "QuickBooks Online",
   salesforce: "Salesforce CRM",
+  hubspot: "HubSpot CRM",
   erp_netsuite: "Oracle NetSuite",
   erp_sage: "Sage Intacct",
   ai_ingestion: "AI Smart Data Ingestion",
@@ -22,6 +24,7 @@ export const INTEGRATION_DESCRIPTIONS: Record<IntegrationKey, string> = {
   stripe: "Automatically sync invoices, payments, and customer data from your Stripe account. Track payment statuses, reconcile transactions, and get real-time visibility into your Stripe billing pipeline.",
   quickbooks: "Connect to QuickBooks Online to import invoices, customers, and payment records. Keep your AR data in sync with your accounting system for accurate aging reports and collection workflows.",
   salesforce: "Pull customer account data, open cases, and support history from Salesforce CRM. Enrich debtor profiles with CRM intelligence to prioritize collections and understand customer relationships.",
+  hubspot: "Connect HubSpot CRM to sync contacts, companies, deals, and ticket data. Leverage CRM intelligence for smarter collections with full visibility into customer lifecycle and engagement history.",
   erp_netsuite: "Enterprise-grade integration with Oracle NetSuite. Sync customers, invoices, line items, payments, and credits. Supports sandbox and production environments with scheduled or webhook-based synchronization.",
   erp_sage: "Connect to Sage Intacct for full AR data synchronization. Import customers, invoices, and payment records with granular object mapping. Ideal for mid-market and enterprise finance teams.",
   ai_ingestion: "Use AI-powered document scanning to extract invoice data from PDFs, images, and spreadsheets. Includes smart duplicate detection, automated field mapping, and AI-assisted name cleaning for new accounts.",
@@ -32,6 +35,7 @@ export const ALL_INTEGRATION_KEYS: IntegrationKey[] = [
   "quickbooks",
   "ai_ingestion",
   "salesforce",
+  "hubspot",
   "erp_netsuite",
   "erp_sage",
 ];

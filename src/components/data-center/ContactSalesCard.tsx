@@ -41,10 +41,18 @@ const AIIngestionLogo = ({ className = "h-8 w-8" }: { className?: string }) => (
   </svg>
 );
 
+const HubSpotLogo: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="20" cy="20" r="18" fill="#FF7A59" />
+    <text x="20" y="26" textAnchor="middle" fill="white" fontSize="16" fontWeight="bold" fontFamily="Arial">H</text>
+  </svg>
+);
+
 const INTEGRATION_ICONS: Record<IntegrationKey, React.FC<{ className?: string }>> = {
   stripe: StripeLogo,
   quickbooks: QuickBooksLogo,
   salesforce: SalesforceLogo,
+  hubspot: HubSpotLogo,
   erp_netsuite: NetSuiteIcon,
   erp_sage: SageIcon,
   ai_ingestion: AIIngestionLogo,
