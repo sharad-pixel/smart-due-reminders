@@ -6,9 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Brain, Save, Loader2, ChevronDown, ChevronUp } from "lucide-react";
+import { Brain, Save, Loader2, ChevronDown, ChevronUp, Download } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface CustomerAIContextProps {
   debtorId: string;
@@ -48,10 +49,22 @@ export function CustomerAIContext({ debtorId }: CustomerAIContextProps) {
   const [saving, setSaving] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [hasData, setHasData] = useState(false);
+  const [pulling, setPulling] = useState(false);
+  const [crmLinked, setCrmLinked] = useState(false);
 
   useEffect(() => {
     loadContext();
+    checkCrmLink();
   }, [debtorId]);
+
+  async function checkCrmLink() {
+    const { data } = await supabase
+      .from("debtors")
+      .select("crm_account_id")
+      .eq("id", debtorId)
+      .maybeSingle();
+    setCrmLinked(!!data?.crm_account_id);
+  }
 
   async function loadContext() {
     setLoading(true);
@@ -78,6 +91,83 @@ export function CustomerAIContext({ debtorId }: CustomerAIContextProps) {
       setHasData(true);
     }
     setLoading(false);
+  }
+
+  async function handlePullFromCRM() {
+    setPulling(true);
+    try {
+      // Get the debtor's linked CRM account
+      const { data: debtor } = await supabase
+        .from("debtors")
+        .select("crm_account_id")
+        .eq("id", debtorId)
+        .maybeSingle();
+
+      if (!debtor?.crm_account_id) {
+        toast.error("No CRM account linked to this customer");
+        setPulling(false);
+        return;
+      }
+
+      const { data: crm } = await supabase
+        .from("crm_accounts")
+        .select("*")
+        .eq("id", debtor.crm_account_id)
+        .maybeSingle();
+
+      if (!crm) {
+        toast.error("CRM account data not found");
+        setPulling(false);
+        return;
+      }
+
+      // Map CRM fields to AI context — only fill empty fields
+      const updates: Partial<AIContextData> = {};
+      if (!data.industry && crm.industry) updates.industry = crm.industry;
+      if (!data.decision_maker && crm.owner_name) updates.decision_maker = crm.owner_name;
+
+      // Map MRR/lifetime value to revenue estimate
+      if (!data.annual_revenue && crm.mrr) {
+        const annual = crm.mrr * 12;
+        if (annual < 100000) updates.annual_revenue = "<100K";
+        else if (annual < 500000) updates.annual_revenue = "100K-500K";
+        else if (annual < 1000000) updates.annual_revenue = "500K-1M";
+        else if (annual < 10000000) updates.annual_revenue = "1M-10M";
+        else if (annual < 50000000) updates.annual_revenue = "10M-50M";
+        else updates.annual_revenue = "50M+";
+      }
+
+      // Build relationship notes from CRM data
+      const relationshipParts: string[] = [];
+      if (crm.segment) relationshipParts.push(`Segment: ${crm.segment}`);
+      if (crm.health_score) relationshipParts.push(`CRM Health Score: ${crm.health_score}`);
+      if (crm.customer_since) relationshipParts.push(`Customer since: ${crm.customer_since}`);
+      if (crm.status) relationshipParts.push(`CRM Status: ${crm.status}`);
+      if (crm.lifetime_value) relationshipParts.push(`Lifetime Value: $${crm.lifetime_value.toLocaleString()}`);
+
+      if (!data.business_relationship && relationshipParts.length > 0) {
+        updates.business_relationship = relationshipParts.join(". ");
+      }
+
+      // Build financial notes from CRM
+      const financialParts: string[] = [];
+      if (crm.mrr) financialParts.push(`MRR: $${crm.mrr.toLocaleString()}`);
+      if (crm.health_score) financialParts.push(`Health: ${crm.health_score}`);
+      if (!data.financial_health_notes && financialParts.length > 0) {
+        updates.financial_health_notes = `[From ${crm.crm_type}] ${financialParts.join(". ")}`;
+      }
+
+      if (Object.keys(updates).length === 0) {
+        toast.info("All fields already populated — no CRM data to pull");
+      } else {
+        setData(prev => ({ ...prev, ...updates }));
+        toast.success(`Pulled ${Object.keys(updates).length} field(s) from ${crm.crm_type === "salesforce" ? "Salesforce" : crm.crm_type}`);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to pull CRM data");
+    }
+    setPulling(false);
   }
 
   async function handleSave() {
@@ -138,9 +228,31 @@ export function CustomerAIContext({ debtorId }: CustomerAIContextProps) {
             </div>
           ) : (
             <>
-              <p className="text-sm text-muted-foreground">
-                Add known customer information to improve AI-powered risk assessments, collection strategies, and intelligence reports.
-              </p>
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">
+                  Add known customer information to improve AI-powered risk assessments, collection strategies, and intelligence reports.
+                </p>
+                {crmLinked && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handlePullFromCRM}
+                          disabled={pulling}
+                        >
+                          {pulling ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+                          Pull from CRM
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        Auto-fill empty fields from linked Salesforce / HubSpot account data
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+              </div>
 
               {/* Structured fields - 2 column grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
