@@ -3,14 +3,14 @@ import { Users, Mail, Target, AlertTriangle, DollarSign, Clock, BarChart3, Brain
 import { motion } from "framer-motion";
 
 const features = [
-  { icon: Brain, title: "Agentic AI Orchestration", description: "6 specialized AI agents autonomously manage follow-ups, escalations, and negotiations", micro: "Revenue recovery on autopilot — no manual intervention required" },
+  { icon: Brain, title: "AI-Powered Collections Workflows", description: "6 specialized AI agents orchestrate follow-ups, escalations, and negotiations — all tracked in your CRM", micro: "Consistent execution, zero manual effort on repeatable tasks" },
   { icon: Mail, title: "Intelligent Email Triage", description: "AI reads inbound replies, detects intent, and drafts context-aware responses", micro: "Dispute? Payment promise? Your agents already know" },
-  { icon: Target, title: "Revenue Risk Scoring", description: "Real-time collectability scores powered by payment behavior and engagement signals", micro: "ASC 326 / IFRS 9 aligned ECL calculations" },
+  { icon: Target, title: "Risk-Based Prioritization", description: "Real-time collectability scores powered by payment behavior and engagement signals", micro: "ASC 326 / IFRS 9 aligned ECL calculations" },
   { icon: AlertTriangle, title: "Predictive Early Warnings", description: "AI surfaces at-risk accounts before payments age — proactive, not reactive", micro: "Engagement-adjusted probability of default modeling" },
   { icon: DollarSign, title: "AI Payment Negotiation", description: "Agent-led payment plan proposals with human approval gates at every step", micro: "Automated settlement offers calibrated to risk tier" },
-  { icon: Clock, title: "Autonomous Escalation Engine", description: "Risk-aware cadence automation that adapts timing to debtor behavior", micro: "From friendly reminder to final notice — hands-free" },
-  { icon: BarChart3, title: "Live AR Intelligence Dashboard", description: "Real-time portfolio health, DSO trends, and AI-generated action items", micro: "One view of your entire revenue recovery pipeline" },
-  { icon: Users, title: "Multi-Agent Audit Trail", description: "Complete history of every agent action, decision, and communication", micro: "Full governance and compliance transparency" },
+  { icon: Clock, title: "Risk-Aware Escalation Engine", description: "AI-powered collections workflows that adapt timing to customer behavior and risk tier", micro: "From friendly reminder to final notice — systematically" },
+  { icon: BarChart3, title: "Centralized AR Dashboard", description: "Real-time portfolio health, DSO trends, and AI-generated action items — your single source of truth", micro: "One view of your entire collections pipeline" },
+  { icon: Users, title: "Complete Audit Trail", description: "Full history of every agent action, decision, outreach, and outcome — your system of record", micro: "Full governance, compliance, and accountability" },
 ];
 
 const cardVariants = {
@@ -35,16 +35,16 @@ const FeatureGrid = () => {
           transition={{ duration: 0.5 }}
         >
           <div className="inline-block px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
-            Agentic Revenue Recovery
+            Collections & Risk CRM
           </div>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-            AI Agents That Recover Revenue Autonomously
+            AI-Powered Collections Workflows That Drive Cash Outcomes
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-            Six specialized AI agents orchestrate every stage of revenue recovery — from first reminder to final resolution
+            Six specialized AI agents orchestrate every stage of collections — from first reminder to final resolution, with a complete audit trail
           </p>
           <p className="text-sm text-muted-foreground/80 max-w-xl mx-auto mt-3">
-            Human oversight at every decision point. Autonomous execution on every repeatable task.
+            Human oversight at every decision point. AI-powered execution on every repeatable workflow.
           </p>
         </motion.div>
         

@@ -2,11 +2,11 @@ import { Brain, Mail, Zap, CheckCircle, TrendingUp, Shield } from "lucide-react"
 import { motion } from "framer-motion";
 
 const differentiators = [
-  { icon: Brain, title: "Autonomous Account Intelligence", description: "AI agents synthesize payment history, communication patterns, and risk signals into real-time decisions — not just dashboards" },
-  { icon: Mail, title: "Agentic Communication Layer", description: "Agents read, understand, and respond to debtor emails with context-aware drafts — escalating only when human judgment is needed" },
-  { icon: Zap, title: "Self-Optimizing Workflows", description: "Every collection outcome feeds back into the system — agents learn which strategies recover revenue fastest" },
+  { icon: Brain, title: "Centralized Account Intelligence", description: "Every receivable, every interaction, and every risk signal — consolidated into one collections CRM with real-time decision support" },
+  { icon: Mail, title: "AI-Powered Outreach Engine", description: "Agents read, understand, and respond to customer emails with context-aware drafts — escalating only when human judgment is needed" },
+  { icon: Zap, title: "Risk-Based Prioritization", description: "AI continuously scores and ranks accounts by collectability risk — ensuring your team works the highest-impact accounts first" },
   { icon: CheckCircle, title: "Revenue Risk Assessment Engine", description: "Continuous ECL scoring, Paydex-style ratings, and engagement-adjusted PD modeling across your entire portfolio" },
-  { icon: TrendingUp, title: "Compounding Intelligence", description: "Each touchpoint makes every agent smarter — risk predictions sharpen, timing improves, recovery rates climb" },
+  { icon: TrendingUp, title: "Complete Audit Trail", description: "Every outreach, every response, every status change — fully tracked and auditable. Your system of record for all collections activity" },
   { icon: Shield, title: "Predictive Risk Orchestration", description: "Agents flag at-risk accounts before humans notice — triggering proactive outreach before revenue is lost" },
 ];
 
@@ -31,16 +31,16 @@ const WhyDifferent = () => {
           transition={{ duration: 0.5 }}
         >
           <div className="inline-block px-4 py-1 rounded-full bg-accent/10 text-accent text-sm font-semibold mb-4">
-            Agentic Revenue Intelligence
+            Collections & Risk CRM
           </div>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
             AI Agents That Think, Act & Learn
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-            Not just automation — agentic AI that autonomously orchestrates revenue recovery with human-controlled guardrails
+            Not just workflows — a complete collections CRM with AI-powered risk prioritization, centralized receivables management, and a full audit trail
           </p>
           <p className="text-sm text-muted-foreground/80 max-w-xl mx-auto mt-3">
-            Your single source of truth for all revenue recovery activity
+            Your single system of record for all collections activity and risk intelligence
           </p>
           
           <motion.div
@@ -51,10 +51,10 @@ const WhyDifferent = () => {
             transition={{ delay: 0.2, duration: 0.5 }}
           >
             <p className="text-muted-foreground">
-              Recouply.ai deploys autonomous AI agents as your always-on revenue recovery team — every action, message, and outcome is orchestrated, tracked, and optimized in one centralized system.
+              Recouply.ai is the AI-powered collections CRM that centralizes every receivable, prioritizes by risk, and maintains a complete audit trail — so your team drives cash outcomes with confidence, not guesswork.
             </p>
             <p className="text-sm text-muted-foreground/80 mt-3 font-medium">
-              No handoffs. No scattered inboxes. No lost context. Just agents recovering revenue.
+              No handoffs. No scattered inboxes. No lost context. One CRM for collections.
             </p>
           </motion.div>
         </motion.div>
