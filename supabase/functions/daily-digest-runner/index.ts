@@ -1652,7 +1652,7 @@ function generateEmailHtml(data: {
         </tr>
       </table>
       <p style="color: #93c5fd; margin: 0 0 12px; font-size: 11px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-        Accounts Receivable & Collection Intelligence Platform
+        Collections and Risk Intelligence CRM for Finance Teams
       </p>
       <!-- Links -->
       <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto 14px;">

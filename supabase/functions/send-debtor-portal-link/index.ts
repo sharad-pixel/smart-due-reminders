@@ -254,7 +254,7 @@ serve(async (req) => {
           </div>
           <div style="background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
             <p style="color: #94a3b8; font-size: 11px; margin: 0;">
-              Powered by <a href="https://recouply.ai" style="color: #64748b; text-decoration: none; font-weight: 500;">Recouply.ai</a> — Accounts Receivable & Collection Intelligence
+              Powered by <a href="https://recouply.ai" style="color: #64748b; text-decoration: none; font-weight: 500;">Recouply.ai</a> — Collections & Risk Intelligence CRM
             </p>
           </div>
         </div>
