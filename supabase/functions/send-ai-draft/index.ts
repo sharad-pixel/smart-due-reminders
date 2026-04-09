@@ -131,7 +131,7 @@ serve(async (req) => {
 
       const senderIdentity = getSenderIdentity(brandingConfig);
       const fromEmail = senderIdentity.fromEmail;
-      const replyToAddress = `collections@${INBOUND_EMAIL_DOMAIN}`;
+      const replyToAddress = `debtor+${debtor_id}@${INBOUND_EMAIL_DOMAIN}`;
       const formattedBody = message_body.replace(/\n/g, "<br>");
 
       const emailHtml = renderEmail({
