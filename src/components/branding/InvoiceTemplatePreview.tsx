@@ -144,7 +144,7 @@ export const InvoiceTemplatePreview = ({
                     className="text-xl font-bold mt-1"
                     style={{ color: hc }}
                   >
-                    $12,500.00
+                    $730,260.92
                   </div>
                 </div>
               </div>
@@ -182,7 +182,7 @@ export const InvoiceTemplatePreview = ({
               <span>Net 30</span>
               <span>05/09/2026</span>
               {template.show_po_number && (
-                <span className="text-gray-400">PO-2024-001</span>
+                <span className="text-gray-400">—</span>
               )}
               {template.show_sales_rep && (
                 <span className="text-gray-400">—</span>
@@ -196,15 +196,17 @@ export const InvoiceTemplatePreview = ({
               className="grid grid-cols-4 text-[10px] font-bold uppercase tracking-wider text-white px-3 py-1.5 rounded-t"
               style={{ backgroundColor: hc }}
             >
-              <span className="col-span-2">Description</span>
-              <span className="text-right">Qty</span>
+              <span>Description</span>
+              <span className="text-center">Start Date</span>
+              <span className="text-center">End Date</span>
               <span className="text-right">Amount</span>
             </div>
             <div className="border-x border-b rounded-b divide-y">
               <div className="grid grid-cols-4 text-[11px] px-3 py-2 text-gray-700">
-                <span className="col-span-2">Annual Service Fee</span>
-                <span className="text-right">1</span>
-                <span className="text-right">$12,500.00</span>
+                <span>Annual Service Fee</span>
+                <span className="text-center">04/06/2026</span>
+                <span className="text-center">10/05/2026</span>
+                <span className="text-right">$730,260.92</span>
               </div>
             </div>
           </div>
@@ -215,11 +217,11 @@ export const InvoiceTemplatePreview = ({
               <div className="w-48 text-[11px] space-y-1">
                 <div className="flex justify-between">
                   <span className="font-semibold text-gray-600">Subtotal</span>
-                  <span>$12,500.00</span>
+                  <span>$730,260.92</span>
                 </div>
                 {template.show_tax && (
                   <div className="flex justify-between">
-                    <span className="font-semibold text-gray-600">Tax</span>
+                    <span className="font-semibold text-gray-600">Tax (%)</span>
                     <span>$0.00</span>
                   </div>
                 )}
@@ -228,7 +230,11 @@ export const InvoiceTemplatePreview = ({
                   style={{ color: hc }}
                 >
                   <span>Total</span>
-                  <span>$12,500.00</span>
+                  <span>$730,260.92</span>
+                </div>
+                <div className="flex justify-between font-semibold text-gray-600">
+                  <span>Amount Due</span>
+                  <span>$730,260.92</span>
                 </div>
               </div>
             </div>
