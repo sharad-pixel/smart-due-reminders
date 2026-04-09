@@ -54,7 +54,8 @@ serve(async (req) => {
   }
 
   try {
-    const { draft_id, outreach_category } = await req.json();
+    const body = await req.json();
+    const { draft_id, outreach_category, debtor_id, subject, message_body, channel, context, recipient_email, cc_emails } = body;
     
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -77,6 +78,135 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
     if (userError || !user) throw new Error("Not authenticated");
 
+    // ── DIRECT SEND MODE (expansion outreach, etc.) ──
+    // When no draft_id is provided but debtor_id + subject + message_body are given
+    if (!draft_id && debtor_id && subject && message_body) {
+      console.log(`[send-ai-draft] Direct send mode for debtor ${debtor_id}, context: ${context || 'direct'}`);
+
+      // Fetch debtor
+      const { data: debtor, error: debtorErr } = await supabaseClient
+        .from("debtors")
+        .select("id, name, company_name, email, phone")
+        .eq("id", debtor_id)
+        .single();
+      if (debtorErr || !debtor) throw new Error("Account not found");
+
+      // Resolve recipients
+      const outreachContacts = await getOutreachContacts(supabaseClient, debtor_id, debtor);
+      let allEmails = [...outreachContacts.emails];
+
+      // Add explicit recipient if provided and not already in list
+      if (recipient_email && !allEmails.includes(recipient_email)) {
+        allEmails.unshift(recipient_email);
+      }
+      // Add CC emails
+      if (cc_emails && Array.isArray(cc_emails)) {
+        for (const cc of cc_emails) {
+          if (cc && !allEmails.includes(cc)) allEmails.push(cc);
+        }
+      }
+
+      if (allEmails.length === 0) {
+        throw new Error("No email recipients found. Please add a contact or enter an email address.");
+      }
+
+      // Fetch branding
+      const { data: effectiveAccountId } = await supabaseClient.rpc('get_effective_account_id', { p_user_id: user.id });
+      const brandingOwnerId = effectiveAccountId || user.id;
+      const { data: branding } = await supabaseClient
+        .from("branding_settings")
+        .select("logo_url, business_name, from_name, email_signature, email_footer, primary_color, email_format, stripe_payment_link")
+        .eq("user_id", brandingOwnerId)
+        .single();
+
+      const brandingConfig: BrandingConfig = {
+        business_name: branding?.business_name,
+        from_name: branding?.from_name,
+        logo_url: branding?.logo_url,
+        primary_color: branding?.primary_color,
+        email_signature: branding?.email_signature,
+        email_footer: branding?.email_footer,
+        email_format: (branding?.email_format as 'simple' | 'enhanced') || 'simple',
+      };
+
+      const senderIdentity = getSenderIdentity(brandingConfig);
+      const fromEmail = senderIdentity.fromEmail;
+      const replyToAddress = `collections@${INBOUND_EMAIL_DOMAIN}`;
+      const formattedBody = message_body.replace(/\n/g, "<br>");
+
+      const emailHtml = renderEmail({
+        brand: brandingConfig,
+        subject,
+        bodyHtml: formattedBody,
+        meta: { debtorId: debtor_id },
+      });
+
+      const sendEmailResponse = await fetch(
+        `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-email`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+          },
+          body: JSON.stringify({
+            to: allEmails,
+            from: fromEmail,
+            reply_to: replyToAddress,
+            subject,
+            html: emailHtml,
+          }),
+        }
+      );
+
+      const emailResult = await sendEmailResponse.json();
+      if (!sendEmailResponse.ok) {
+        console.error("Direct send email error:", emailResult);
+        throw new Error(`Failed to send email: ${emailResult.error || "Unknown error"}`);
+      }
+
+      // Log outreach
+      await supabaseClient.from("outreach_logs").insert({
+        user_id: user.id,
+        debtor_id: debtor_id,
+        channel: channel || "email",
+        subject,
+        message_body,
+        sent_to: allEmails.join(', '),
+        sent_from: fromEmail,
+        status: "sent",
+        sent_at: new Date().toISOString(),
+        delivery_metadata: {
+          context: context || "direct",
+          reply_to: replyToAddress,
+          recipients_count: allEmails.length,
+        },
+      });
+
+      // Log activity
+      await supabaseAdmin.from("collection_activities").insert({
+        user_id: user.id,
+        debtor_id: debtor_id,
+        activity_type: context === "expansion_outreach" ? "expansion_outreach" : "outreach",
+        direction: "outbound",
+        channel: channel || "email",
+        subject,
+        message_body,
+        sent_at: new Date().toISOString(),
+        metadata: {
+          from_email: fromEmail,
+          context: context || "direct",
+          recipients: allEmails,
+        },
+      });
+
+      return new Response(
+        JSON.stringify({ success: true, message: `Email sent to ${allEmails.length} recipient(s)` }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ── STANDARD DRAFT MODE ──
     // Fetch the draft with related data
     const { data: draft, error: draftError } = await supabaseClient
       .from("ai_drafts")
