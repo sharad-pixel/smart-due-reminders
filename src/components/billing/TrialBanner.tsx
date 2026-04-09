@@ -107,17 +107,17 @@ export function TrialBanner({ onVisibilityChange }: { onVisibilityChange?: (visi
     }
   }, [isLoading, daysRemaining, isTrial, subscriptionStatus, plan, location.pathname, navigate, hasAdminOverride]);
 
-  // Don't show if loading, dismissed, has admin override, or user has active subscription
-  if (isLoading || checkingOverride || dismissed) return null;
-  
-  // Hide banner completely if admin_override is enabled
-  if (hasAdminOverride) return null;
-  
-  // Only show for trial users or free plan users
+  // Determine if banner should be visible
   const isTrialUser = isTrial || subscriptionStatus === 'trialing';
   const isFreePlan = plan === 'free' && (!subscriptionStatus || subscriptionStatus === 'inactive');
-  
-  if (!isTrialUser && !isFreePlan) return null;
+  const shouldHide = isLoading || checkingOverride || dismissed || hasAdminOverride || (!isTrialUser && !isFreePlan);
+
+  // Report visibility to parent
+  useEffect(() => {
+    onVisibilityChange?.(!shouldHide);
+  }, [shouldHide, onVisibilityChange]);
+
+  if (shouldHide) return null;
 
   const invoicesUsed = usage ? usage.includedInvoicesUsed + usage.overageInvoices : 0;
   const invoiceLimit = usage?.includedAllowance || 5; // Use allowance from backend
