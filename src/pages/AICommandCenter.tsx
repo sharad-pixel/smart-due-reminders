@@ -163,7 +163,7 @@ const AICommandCenter = () => {
       <section className="py-20 px-4 bg-gradient-to-r from-primary/5 to-primary/10">
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-5xl font-bold mb-4">Meet Your AI Collections Team</h2>
+            <h2 className="text-3xl md:text-5xl font-bold mb-4">Meet Your AI Finance Team</h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
               Five specialized AI agents that automatically adapt messaging tone and urgency based on how overdue each invoice is.
             </p>

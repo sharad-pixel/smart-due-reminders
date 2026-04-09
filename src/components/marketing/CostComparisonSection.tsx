@@ -204,7 +204,7 @@ export const CostComparisonSection = ({ onCTAClick }: CostComparisonSectionProps
                 <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
                   <span className="text-xl">👤</span>
                 </div>
-                <h3 className="text-xl font-bold">Traditional Collections Team</h3>
+                <h3 className="text-xl font-bold">Traditional Finance Team</h3>
               </div>
               
               <div className="space-y-4 mb-6">
