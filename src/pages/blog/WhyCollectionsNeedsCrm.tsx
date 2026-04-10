@@ -3,7 +3,7 @@ import BlogPostLayout from "@/components/blog/BlogPostLayout";
 import { getBlogPostBySlug } from "@/lib/blogConfig";
 
 const WhyCollectionsNeedsCrm = () => {
-  const post = getBlogPostBySlug("why-collections-needs-a-crm-like-salesforce-for-sales");
+  const post = getBlogPostBySlug("why-collections-needs-a-crm");
 
   if (!post) {
     return <Navigate to="/blog" replace />;
