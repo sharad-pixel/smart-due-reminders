@@ -10,8 +10,9 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { FileText, Save, Loader2, Eye, Upload, X } from "lucide-react";
+import { FileText, Save, Loader2, Eye } from "lucide-react";
 import { InvoiceTemplatePreview } from "./InvoiceTemplatePreview";
+import { QrCodeUploadField } from "./QrCodeUploadField";
 
 export interface InvoiceTemplateData {
   id?: string;

@@ -226,6 +226,45 @@ export const InvoiceTemplatePreview = ({
             </div>
           )}
 
+          {/* Payment QR Codes */}
+          {template.show_payment_qr_codes && (
+            (() => {
+              const qrCodes = [
+                { url: template.qr_code_venmo_url, label: "Venmo" },
+                { url: template.qr_code_stripe_url, label: "Stripe" },
+                { url: template.qr_code_paypal_url, label: "PayPal" },
+                { url: template.qr_code_cashapp_url, label: "Cash App" },
+              ].filter((q) => q.url);
+              if (qrCodes.length === 0) return null;
+              return (
+                <div className="px-6 mt-3">
+                  <div className="border-t pt-3">
+                    <div
+                      className="text-[10px] font-bold uppercase tracking-wider mb-2"
+                      style={{ color: hc }}
+                    >
+                      Scan to Pay
+                    </div>
+                    <div className="flex gap-4 flex-wrap">
+                      {qrCodes.map((q) => (
+                        <div key={q.label} className="text-center">
+                          <img
+                            src={q.url}
+                            alt={`${q.label} QR Code`}
+                            className="h-16 w-16 object-contain border rounded"
+                          />
+                          <div className="text-[9px] text-gray-500 mt-1">
+                            {q.label}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()
+          )}
+
           {/* Payment Instructions */}
           {template.show_payment_instructions &&
             (template.payment_instructions_wire ||
