@@ -121,8 +121,25 @@ export function CollectionIntelligenceCard() {
     }
   }, []);
 
+  // Check manual refresh status on mount
   useEffect(() => {
     void fetchAccountsWithIntelligence();
+    // Check cached_reports for collection_intelligence manual refresh status
+    (async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const { data: cached } = await supabase
+          .from("cached_reports")
+          .select("last_manual_refresh_at")
+          .eq("user_id", user.id)
+          .eq("report_type", "collection_intelligence")
+          .maybeSingle();
+        if (cached?.last_manual_refresh_at) {
+          setHasRefreshedToday(!canManualRefreshToday(cached.last_manual_refresh_at));
+        }
+      } catch {}
+    })();
   }, [fetchAccountsWithIntelligence]);
 
   const handleRefresh = async () => {
