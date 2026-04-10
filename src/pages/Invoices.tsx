@@ -71,16 +71,16 @@ const Invoices = () => {
   const queryClient = useQueryClient();
 
   const { data: queryData, isLoading: loading } = useQuery({
-    queryKey: ["invoices-page-data"],
+    queryKey: ["invoices-page-data", hideInactive],
     queryFn: async () => {
       const [allInvoices, debtorsList] = await Promise.all([
-        fetchAllInvoicesPaginated(),
+        fetchAllInvoicesPaginated({ includeClosed: !hideInactive }),
         fetchDebtorsList(),
       ]);
       return { invoices: allInvoices as any as Invoice[], debtors: debtorsList };
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes — avoid refetch on every navigation
-    gcTime: 30 * 60 * 1000,   // keep in cache 30 min
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   });
 
   const invoices = useMemo(() => queryData?.invoices ?? [], [queryData]);
