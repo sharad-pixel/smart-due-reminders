@@ -1,6 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Eye } from "lucide-react";
 import type { InvoiceTemplateData } from "./InvoiceTemplateBuilder";
+import venmoLogo from "@/assets/venmo-logo.png";
+import paypalLogo from "@/assets/paypal-logo.png";
+import cashappLogo from "@/assets/cashapp-logo.png";
 
 interface InvoiceTemplatePreviewProps {
   template: InvoiceTemplateData;
@@ -229,9 +232,13 @@ export const InvoiceTemplatePreview = ({
           {/* Payment QR Codes */}
           {template.show_payment_qr_codes && (
             (() => {
+              const LOGOS: Record<string, string> = {
+                Venmo: venmoLogo,
+                PayPal: paypalLogo,
+                "Cash App": cashappLogo,
+              };
               const qrCodes = [
                 { url: template.qr_code_venmo_url, label: "Venmo" },
-                { url: template.qr_code_stripe_url, label: "Stripe" },
                 { url: template.qr_code_paypal_url, label: "PayPal" },
                 { url: template.qr_code_cashapp_url, label: "Cash App" },
               ].filter((q) => q.url);
@@ -253,8 +260,17 @@ export const InvoiceTemplatePreview = ({
                             alt={`${q.label} QR Code`}
                             className="h-16 w-16 object-contain border rounded"
                           />
-                          <div className="text-[9px] text-gray-500 mt-1">
-                            {q.label}
+                          <div className="flex items-center justify-center gap-1 mt-1">
+                            {LOGOS[q.label] && (
+                              <img
+                                src={LOGOS[q.label]}
+                                alt=""
+                                className="h-3 w-3 object-contain"
+                              />
+                            )}
+                            <span className="text-[9px] text-gray-500">
+                              {q.label}
+                            </span>
                           </div>
                         </div>
                       ))}

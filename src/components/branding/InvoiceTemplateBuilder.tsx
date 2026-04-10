@@ -359,7 +359,6 @@ export const InvoiceTemplateBuilder = ({
               <div className="grid gap-4 sm:grid-cols-2">
                 {([
                   { key: "qr_code_venmo_url" as const, label: "Venmo" },
-                  { key: "qr_code_stripe_url" as const, label: "Stripe" },
                   { key: "qr_code_paypal_url" as const, label: "PayPal" },
                   { key: "qr_code_cashapp_url" as const, label: "Cash App" },
                 ] as const).map(({ key, label }) => (
