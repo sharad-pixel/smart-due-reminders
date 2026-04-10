@@ -8559,7 +8559,13 @@ export type Database = {
         | "Credited"
       outreach_log_status: "sent" | "failed" | "queued"
       outreach_status: "draft" | "scheduled" | "sent" | "failed"
-      plan_type: "free" | "starter" | "growth" | "pro" | "professional"
+      plan_type:
+        | "free"
+        | "starter"
+        | "growth"
+        | "pro"
+        | "professional"
+        | "solo_pro"
       tone_type: "friendly" | "firm" | "neutral"
     }
     CompositeTypes: {
@@ -8744,7 +8750,14 @@ export const Constants = {
       ],
       outreach_log_status: ["sent", "failed", "queued"],
       outreach_status: ["draft", "scheduled", "sent", "failed"],
-      plan_type: ["free", "starter", "growth", "pro", "professional"],
+      plan_type: [
+        "free",
+        "starter",
+        "growth",
+        "pro",
+        "professional",
+        "solo_pro",
+      ],
       tone_type: ["friendly", "firm", "neutral"],
     },
   },
