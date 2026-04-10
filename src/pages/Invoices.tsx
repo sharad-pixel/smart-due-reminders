@@ -697,18 +697,6 @@ const Invoices = () => {
                     </Select>
                   </div>
                 </div>
-                
-                {/* Hide inactive toggle */}
-                <div className="flex items-center gap-3">
-                  <Switch
-                    id="hide-inactive"
-                    checked={hideInactive}
-                    onCheckedChange={setHideInactive}
-                  />
-                  <Label htmlFor="hide-inactive" className="text-sm font-normal cursor-pointer">
-                    Hide inactive (Paid, Settled, Canceled)
-                  </Label>
-                </div>
               </div>
               
               {/* Bulk Actions */}
