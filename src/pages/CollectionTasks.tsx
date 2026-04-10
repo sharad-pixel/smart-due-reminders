@@ -367,7 +367,12 @@ export default function CollectionTasks() {
   // Bulk action handlers
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedTaskIds(new Set(paginatedTasksRef.current.map(t => t.id)));
+      // Will use paginatedTasks after it's computed; for now select from filtered
+      setSelectedTaskIds(prev => {
+        const newSet = new Set(prev);
+        filteredTasks.slice((currentPage - 1) * pageSize, currentPage * pageSize).forEach(t => newSet.add(t.id));
+        return newSet;
+      });
     } else {
       setSelectedTaskIds(new Set());
     }
