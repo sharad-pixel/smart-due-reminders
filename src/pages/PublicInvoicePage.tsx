@@ -201,8 +201,7 @@ const PublicInvoicePage = () => {
 
           {/* Invoice card */}
           <div
-            className="bg-white rounded-lg shadow-lg overflow-hidden"
-            style={{ fontFamily, fontSize: "14px", lineHeight: 1.6 }}
+            className="bg-white rounded-lg shadow-lg overflow-hidden print-invoice"
           >
             {/* Header */}
             <div className="p-8 pb-6">
