@@ -35,6 +35,22 @@ export const InvoiceTemplatePreview = ({
 
   const hc = template.header_color || "#1a56db";
 
+  const formatDate = (d: string | null | undefined) => {
+    if (!d) return "—";
+    return new Date(d).toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" });
+  };
+
+  const formatCurrency = (val: number | null | undefined) => {
+    if (val == null) return "$730,260.92";
+    return `$${val.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
+  const desc = sampleInvoice?.description || "Annual Service Fee";
+  const invNum = sampleInvoice?.invoice_number || "#INV00665";
+  const amount = formatCurrency(sampleInvoice?.amount);
+  const issueDate = sampleInvoice?.issue_date ? formatDate(sampleInvoice.issue_date) : "04/06/2026";
+  const dueDate = sampleInvoice?.due_date ? formatDate(sampleInvoice.due_date) : "05/09/2026";
+
   return (
     <Card>
       <CardHeader className="pb-2">
