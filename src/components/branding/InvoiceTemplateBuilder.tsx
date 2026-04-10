@@ -102,11 +102,16 @@ export const InvoiceTemplateBuilder = ({
         show_sales_rep: template.show_sales_rep ?? false,
         show_tax: template.show_tax ?? true,
         show_payment_instructions: template.show_payment_instructions ?? true,
+        show_payment_qr_codes: (template as any).show_payment_qr_codes ?? false,
         header_color: template.header_color || "#1a56db",
         payment_instructions_wire: template.payment_instructions_wire || "",
         payment_instructions_check: template.payment_instructions_check || "",
         footer_note: template.footer_note || "",
         font_style: template.font_style || "modern",
+        qr_code_venmo_url: (template as any).qr_code_venmo_url || "",
+        qr_code_stripe_url: (template as any).qr_code_stripe_url || "",
+        qr_code_paypal_url: (template as any).qr_code_paypal_url || "",
+        qr_code_cashapp_url: (template as any).qr_code_cashapp_url || "",
       });
     }
   }, [template]);
