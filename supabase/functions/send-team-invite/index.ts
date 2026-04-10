@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
       </h2>
       
       <p style="margin: 0 0 20px; color: #475569; font-size: 14px; line-height: 1.7;">
-        <strong>${inviterName || 'A team admin'}</strong> has invited you to join <strong>${accountOwnerName || 'their organization'}</strong> on Recouply.ai, the Collections and Risk Intelligence CRM for Finance Teams.
+        <strong>${inviterName || 'A team admin'}</strong> has invited you to join <strong>${accountOwnerName || 'their organization'}</strong> on Recouply.ai, the Collections & Risk Intelligence Platform.
       </p>
 
       <div style="background-color: #f8fafc; border: 1px solid ${BRAND.border}; border-radius: 8px; padding: 24px; margin: 24px 0; text-align: center;">
