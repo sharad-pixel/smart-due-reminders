@@ -240,7 +240,7 @@ export const InvoiceTemplatePreview = ({
                 </div>
                 <div className="flex justify-between font-semibold text-gray-600">
                   <span>Amount Due</span>
-                  <span>$730,260.92</span>
+                  <span>{amount}</span>
                 </div>
               </div>
             </div>
