@@ -306,7 +306,7 @@ serve(async (req) => {
     // Fetch branding settings for signature and From name (using effective account)
     const { data: branding } = await supabaseClient
       .from("branding_settings")
-      .select("logo_url, business_name, from_name, email_signature, email_footer, primary_color, ar_page_public_token, ar_page_enabled, stripe_payment_link, escalation_contact_name, escalation_contact_email, escalation_contact_phone, email_format")
+      .select("logo_url, business_name, from_name, email_signature, email_footer, primary_color, ar_page_public_token, ar_page_enabled, public_invoice_links_enabled, stripe_payment_link, escalation_contact_name, escalation_contact_email, escalation_contact_phone, email_format")
       .eq("user_id", brandingOwnerId)
       .single();
     
@@ -338,6 +338,7 @@ serve(async (req) => {
       external_link: invoice.external_link,
       stripe_hosted_url: invoice.stripe_hosted_url,
       integration_url: invoice.integration_url,
+      public_token: invoice.public_token,
     };
 
     // Build debtor data
@@ -356,6 +357,7 @@ serve(async (req) => {
       stripe_payment_link: branding?.stripe_payment_link,
       ar_page_public_token: branding?.ar_page_public_token,
       ar_page_enabled: branding?.ar_page_enabled,
+      public_invoice_links_enabled: branding?.public_invoice_links_enabled,
       escalation_contact_name: branding?.escalation_contact_name,
       escalation_contact_email: branding?.escalation_contact_email,
       escalation_contact_phone: branding?.escalation_contact_phone,
