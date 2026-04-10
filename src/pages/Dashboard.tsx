@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import Layout from "@/components/layout/Layout";
 import { UsageIndicator } from "@/components/billing/UsageIndicator";
 import { User } from "@supabase/supabase-js";
-import { DollarSign, FileText, TrendingUp, Clock, Eye, RefreshCw, Play, HeartPulse, ShieldAlert } from "lucide-react";
+import { DollarSign, FileText, TrendingUp, Clock, Eye, RefreshCw, Play, HeartPulse, ShieldAlert, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -66,6 +66,104 @@ interface DashboardTask {
 const getCurrencySymbol = (currency: string) => {
   const symbols: Record<string, string> = { USD: "$", EUR: "€", GBP: "£", CAD: "CA$", AUD: "A$" };
   return symbols[currency] || `${currency} `;
+};
+
+const DASHBOARD_TASK_PAGE_SIZE = 10;
+
+const DashboardTasksList = ({ 
+  tasks, tasksAssignedToMeOnly, setTasksAssignedToMeOnly, userId, onTaskClick, onNavigate 
+}: { 
+  tasks: DashboardTask[]; tasksAssignedToMeOnly: boolean; setTasksAssignedToMeOnly: (v: boolean) => void; 
+  userId?: string; onTaskClick: (t: DashboardTask) => void; onNavigate: () => void; 
+}) => {
+  const [page, setPage] = useState(1);
+
+  const displayTasks = useMemo(() => 
+    tasksAssignedToMeOnly ? tasks.filter(t => t.assigned_to === userId) : tasks,
+    [tasks, tasksAssignedToMeOnly, userId]
+  );
+
+  const totalPages = Math.ceil(displayTasks.length / DASHBOARD_TASK_PAGE_SIZE);
+  const start = (page - 1) * DASHBOARD_TASK_PAGE_SIZE;
+  const paginated = displayTasks.slice(start, start + DASHBOARD_TASK_PAGE_SIZE);
+
+  // Reset page when filter changes
+  useEffect(() => { setPage(1); }, [tasksAssignedToMeOnly]);
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base sm:text-lg">Open Tasks</CardTitle>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant={tasksAssignedToMeOnly ? "default" : "outline"} 
+              size="sm" 
+              onClick={() => setTasksAssignedToMeOnly(!tasksAssignedToMeOnly)}
+            >
+              Assigned to Me
+            </Button>
+            <Button variant="outline" size="sm" onClick={onNavigate}>
+              View All
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="p-0">
+        {displayTasks.length === 0 ? (
+          <div className="text-center py-8 px-6">
+            <p className="text-muted-foreground">
+              {tasksAssignedToMeOnly ? "No tasks assigned to you" : "No open tasks"}
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="divide-y">
+              {paginated.map((task) => (
+                <div
+                  key={task.id}
+                  className="flex items-center gap-3 px-4 sm:px-6 py-2.5 hover:bg-accent/50 cursor-pointer transition-colors"
+                  onClick={() => onTaskClick(task)}
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium line-clamp-1">{task.summary}</p>
+                    <p className="text-xs text-muted-foreground line-clamp-1">
+                      {task.debtors?.company_name || task.debtors?.name}
+                      {task.invoices?.invoice_number && ` • #${task.invoices.invoice_number}`}
+                    </p>
+                  </div>
+                  <Badge 
+                    variant={task.priority === "urgent" ? "destructive" : task.priority === "high" ? "destructive" : task.priority === "medium" ? "default" : "secondary"}
+                    className="shrink-0 text-xs"
+                  >
+                    {task.priority}
+                  </Badge>
+                  <Eye className="h-4 w-4 text-muted-foreground shrink-0" />
+                </div>
+              ))}
+            </div>
+
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-t">
+                <p className="text-sm text-muted-foreground">
+                  {start + 1}–{Math.min(start + DASHBOARD_TASK_PAGE_SIZE, displayTasks.length)} of {displayTasks.length}
+                </p>
+                <div className="flex items-center gap-1">
+                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <span className="text-sm px-2">{page} / {totalPages}</span>
+                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}>
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
 };
 
 const Dashboard = () => {
