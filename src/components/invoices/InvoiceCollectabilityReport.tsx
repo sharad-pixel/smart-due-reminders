@@ -128,11 +128,17 @@ export function InvoiceCollectabilityReport() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
 
-      const { data: _result, error } = await supabase.functions.invoke("invoice-collectability-report", {
+      const { data: result, error } = await supabase.functions.invoke("invoice-collectability-report", {
         body: { generate_ai_summary: true },
       });
 
       if (error) throw error;
+
+      // Update cache with AI-enriched results
+      if (result) {
+        await setCachedReport(REPORT_TYPE, result);
+      }
+
       refetch();
       toast.success("AI summaries generated");
     } catch (err: any) {
