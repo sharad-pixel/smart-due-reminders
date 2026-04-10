@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Copy, ExternalLink, Link2, Check, FileText } from "lucide-react";
+import { Copy, ExternalLink, Link2, Check } from "lucide-react";
 import { toast } from "sonner";
 
 interface InvoiceLinkCardProps {
