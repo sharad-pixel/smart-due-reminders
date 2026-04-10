@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { canManualRefreshToday, markManualRefresh } from "@/lib/supabase/cachedReports";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -55,6 +56,7 @@ export function CollectionIntelligenceCard() {
   const [accounts, setAccounts] = useState<AccountWithIntelligence[]>([]);
   const [_loadError, setLoadError] = useState<string | null>(null);
   const [regenerating, setRegenerating] = useState(false);
+  const [hasRefreshedToday, setHasRefreshedToday] = useState(false);
 
   // AI Analytics hook
   const { 
@@ -119,11 +121,35 @@ export function CollectionIntelligenceCard() {
     }
   }, []);
 
+  // Check manual refresh status on mount
   useEffect(() => {
     void fetchAccountsWithIntelligence();
+    // Check cached_reports for collection_intelligence manual refresh status
+    (async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const { data: cached } = await supabase
+          .from("cached_reports")
+          .select("last_manual_refresh_at")
+          .eq("user_id", user.id)
+          .eq("report_type", "collection_intelligence")
+          .maybeSingle();
+        if (cached?.last_manual_refresh_at) {
+          setHasRefreshedToday(!canManualRefreshToday(cached.last_manual_refresh_at));
+        }
+      } catch {}
+    })();
   }, [fetchAccountsWithIntelligence]);
 
+  const canRefresh = !hasRefreshedToday;
+
   const handleRefresh = async () => {
+    if (!canRefresh) {
+      toast.error("Daily manual refresh already used. Reports update automatically at 1:00 PM UTC when there is sufficient data.");
+      return;
+    }
+
     setRegenerating(true);
 
     const prevLatestMs = latestReportTime
@@ -139,6 +165,10 @@ export function CollectionIntelligenceCard() {
 
       if (aiResult.error) throw aiResult.error;
       if (intelligenceResult.error) throw intelligenceResult.error;
+
+      // Mark manual refresh as used
+      await markManualRefresh("collection_intelligence");
+      setHasRefreshedToday(true);
 
       const processed = (intelligenceResult.data as any)?.processed;
       const failed = (intelligenceResult.data as any)?.failed;
@@ -307,7 +337,8 @@ export function CollectionIntelligenceCard() {
               variant="outline"
               size="sm"
               onClick={handleRefresh}
-              disabled={isRefreshing}
+              disabled={isRefreshing || !canRefresh}
+              title={!canRefresh ? "Daily manual refresh already used" : "Refresh intelligence"}
             >
               <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
             </Button>
@@ -629,7 +660,7 @@ export function CollectionIntelligenceCard() {
         {/* Footer */}
         <div className="text-center pt-2 border-t">
           <p className="text-xs text-muted-foreground/70">
-            Intelligence auto-refreshes daily • All insights logged for compliance
+            Updates daily at 1:00 PM UTC when sufficient data is available • {canRefresh ? "1 manual refresh per day" : "Daily refresh used"} • All insights logged for compliance
           </p>
         </div>
       </CardContent>
