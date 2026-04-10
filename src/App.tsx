@@ -84,6 +84,10 @@ const DataTrustInArAutomation = lazy(() => import("./pages/blog/DataTrustInArAut
 const SpreadsheetsToSystems = lazy(() => import("./pages/blog/SpreadsheetsToSystems"));
 const PredictiveCollections = lazy(() => import("./pages/blog/PredictiveCollections"));
 const NextGenerationArTeams = lazy(() => import("./pages/blog/NextGenerationArTeams"));
+const DeathOfTraditionalCollections = lazy(() => import("./pages/blog/DeathOfTraditionalCollections"));
+const SetItAndForgetItAutomation = lazy(() => import("./pages/blog/SetItAndForgetItAutomation"));
+const RiskAsRealtimeSystem = lazy(() => import("./pages/blog/RiskAsRealtimeSystem"));
+const WhyCollectionsNeedsCrm = lazy(() => import("./pages/blog/WhyCollectionsNeedsCrm"));
 
 // Legal Pages
 const Terms = lazy(() => import("./pages/legal/Terms"));
@@ -235,6 +239,10 @@ const App = () => (
             <Route path="/blog/spreadsheets-to-systems-of-record" element={<SpreadsheetsToSystems />} />
             <Route path="/blog/predictive-collections-revenue-risk" element={<PredictiveCollections />} />
             <Route path="/blog/next-generation-ar-teams" element={<NextGenerationArTeams />} />
+            <Route path="/blog/death-of-traditional-collections" element={<DeathOfTraditionalCollections />} />
+            <Route path="/blog/set-it-and-forget-it-automation" element={<SetItAndForgetItAutomation />} />
+            <Route path="/blog/risk-as-a-real-time-operational-system" element={<RiskAsRealtimeSystem />} />
+            <Route path="/blog/why-collections-needs-a-crm" element={<WhyCollectionsNeedsCrm />} />
 
             {/* Legal Pages */}
             <Route path="/legal/terms" element={<Terms />} />
