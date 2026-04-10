@@ -67,7 +67,7 @@ const Enterprise = () => {
                 Enterprise AR Intelligence
               </div>
               <h1 className="text-4xl md:text-5xl font-bold mb-6">
-                Enterprise AR & Collection Intelligence for High Volume
+                Enterprise Collections and Risk Intelligence CRM for High Volume
               </h1>
               <p className="text-xl text-muted-foreground mb-8">
                 Built for enterprise companies processing thousands of invoices monthly. AI agents trained on your CRM data, CS cases, and AR history—automating high-volume accounts receivable with enterprise-grade security and governance.
