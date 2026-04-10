@@ -26,7 +26,7 @@ import { toast } from "sonner";
 
 export default function RevenueRisk() {
   const navigate = useNavigate();
-  const { data, isLoading, isFetching, refetch, generatingAI, regenerateWithAI } = useRevenueRisk();
+  const { data, isLoading, isFetching, refetch, generatingAI, regenerateWithAI, canRefresh, lastGeneratedAt } = useRevenueRisk();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
