@@ -14,7 +14,6 @@ interface InvoiceLinkCardProps {
 }
 
 export const InvoiceLinkCard = ({
-  invoiceId,
   publicToken,
   stripeHostedUrl,
 }: InvoiceLinkCardProps) => {
