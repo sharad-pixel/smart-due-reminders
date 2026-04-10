@@ -6,6 +6,7 @@ export interface CachedReport<T = any> {
   data: T;
   generated_at: string;
   is_stale: boolean;
+  last_manual_refresh_at: string | null;
 }
 
 /**
@@ -20,7 +21,7 @@ export async function getCachedReport<T = any>(
 
   const { data, error } = await supabase
     .from("cached_reports")
-    .select("report_data, generated_at")
+    .select("report_data, generated_at, last_manual_refresh_at")
     .eq("user_id", user.id)
     .eq("report_type", reportType)
     .maybeSingle();
@@ -34,6 +35,7 @@ export async function getCachedReport<T = any>(
     data: data.report_data as T,
     generated_at: data.generated_at,
     is_stale: isStale,
+    last_manual_refresh_at: data.last_manual_refresh_at,
   };
 }
 
@@ -58,4 +60,30 @@ export async function setCachedReport(
       },
       { onConflict: "user_id,report_type" }
     );
+}
+
+/**
+ * Check if the user can manually refresh a report today.
+ * Returns true if no manual refresh has been done today (UTC).
+ */
+export function canManualRefreshToday(lastManualRefreshAt: string | null): boolean {
+  if (!lastManualRefreshAt) return true;
+  const lastRefresh = new Date(lastManualRefreshAt);
+  const now = new Date();
+  // Compare UTC dates
+  return lastRefresh.toISOString().slice(0, 10) !== now.toISOString().slice(0, 10);
+}
+
+/**
+ * Mark a manual refresh as used for today.
+ */
+export async function markManualRefresh(reportType: string): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+
+  await supabase
+    .from("cached_reports")
+    .update({ last_manual_refresh_at: new Date().toISOString() })
+    .eq("user_id", user.id)
+    .eq("report_type", reportType);
 }
