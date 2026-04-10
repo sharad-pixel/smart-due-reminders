@@ -295,6 +295,7 @@ export const InvoiceTemplateBuilder = ({
                 { key: "show_sales_rep" as const, label: "Sales Rep Column" },
                 { key: "show_tax" as const, label: "Tax Line" },
                 { key: "show_payment_instructions" as const, label: "Payment Instructions" },
+                { key: "show_payment_qr_codes" as const, label: "Payment QR Codes" },
               ].map(({ key, label }) => (
                 <div
                   key={key}
