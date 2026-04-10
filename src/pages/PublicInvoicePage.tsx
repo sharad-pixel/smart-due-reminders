@@ -83,15 +83,16 @@ const PublicInvoicePage = () => {
     if (!token) return;
     (async () => {
       try {
-        const { data: result, error: rpcError } = await supabase.rpc(
+        const { data: rpcData, error: rpcError } = await supabase.rpc(
           "get_public_invoice",
           { p_token: token }
         );
-        const result = result as unknown as Record<string, unknown>;
-        if (result?.error) {
-          setError(result.error as string);
+        if (rpcError) throw rpcError;
+        const parsed = rpcData as unknown as Record<string, unknown>;
+        if (parsed?.error) {
+          setError(parsed.error as string);
         } else {
-          setData(result as unknown as PublicInvoiceData);
+          setData(parsed as unknown as PublicInvoiceData);
         }
       } catch (err: any) {
         setError(err.message || "Failed to load invoice");
