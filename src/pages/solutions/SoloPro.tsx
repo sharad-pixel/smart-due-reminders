@@ -192,11 +192,11 @@ const SoloPro = () => {
                   { logo: cashappLogo, name: "Cash App" },
                 ].map((provider) => (
                   <div key={provider.name} className="flex flex-col items-center gap-3">
-                    <div className="h-20 w-20 rounded-2xl bg-muted/50 border flex items-center justify-center p-3">
+                    <div className="h-20 w-20 rounded-2xl bg-muted/50 border overflow-hidden flex items-center justify-center">
                       <img
                         src={provider.logo}
                         alt={`${provider.name} logo`}
-                        className="h-full w-full object-contain"
+                        className="h-full w-full object-cover"
                         loading="lazy"
                       />
                     </div>
