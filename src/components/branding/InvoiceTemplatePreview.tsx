@@ -1,6 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Eye } from "lucide-react";
 import type { InvoiceTemplateData } from "./InvoiceTemplateBuilder";
+import venmoLogo from "@/assets/venmo-logo.png";
+import paypalLogo from "@/assets/paypal-logo.png";
+import cashappLogo from "@/assets/cashapp-logo.png";
 
 interface InvoiceTemplatePreviewProps {
   template: InvoiceTemplateData;
