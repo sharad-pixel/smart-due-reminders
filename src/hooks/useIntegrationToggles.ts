@@ -119,8 +119,13 @@ export const useAdminIntegrationToggles = (accountId: string | null) => {
     },
   });
 
+  // Integrations that are enabled by default for all accounts
+  const DEFAULT_ENABLED: IntegrationKey[] = ["ai_ingestion"];
+
   const isEnabled = (key: IntegrationKey): boolean => {
-    return data?.some(t => t.integration_key === key && t.is_enabled) ?? false;
+    const toggle = data?.find(t => t.integration_key === key);
+    if (toggle) return toggle.is_enabled;
+    return DEFAULT_ENABLED.includes(key);
   };
 
   const toggleMutation = useMutation({
