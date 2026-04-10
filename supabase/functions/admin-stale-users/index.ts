@@ -75,13 +75,7 @@ Deno.serve(async (req) => {
 
     const userIds = profiles.map((p: any) => p.id);
 
-    // Get invoice counts per user
-    const { data: invoiceCounts } = await supabaseClient
-      .rpc('', {}) // Can't use rpc easily, use raw queries via select
-      .from('invoices')
-      .select('user_id')
-      .in('user_id', userIds);
-    
+    // Get users who have invoices
     // Actually, let's do it differently - get users who have invoices
     const { data: usersWithInvoices } = await supabaseClient
       .from('invoices')
