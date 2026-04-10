@@ -353,7 +353,7 @@ const PublicInvoicePage = () => {
 
             {/* Pay Now button */}
             {!isPaid && branding.stripe_payment_link && (
-              <div className="px-8 mt-6 text-center">
+              <div className="px-8 mt-6 text-center no-print">
                 <a
                   href={branding.stripe_payment_link}
                   target="_blank"
@@ -442,7 +442,7 @@ const PublicInvoicePage = () => {
           </div>
 
           {/* Powered by */}
-          <div className="text-center mt-4 text-xs text-gray-400">
+          <div className="text-center mt-4 text-xs text-gray-400 no-print">
             Powered by Recouply.ai
           </div>
         </div>
