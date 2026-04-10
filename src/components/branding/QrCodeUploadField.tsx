@@ -38,13 +38,13 @@ export const QrCodeUploadField = ({
       const path = `${effectiveAccountId}/qr-${label.toLowerCase().replace(/\s+/g, "-")}-${Date.now()}.${ext}`;
 
       const { error: uploadError } = await supabase.storage
-        .from("branding-assets")
+        .from("org-logos")
         .upload(path, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
       const { data: urlData } = supabase.storage
-        .from("branding-assets")
+        .from("org-logos")
         .getPublicUrl(path);
 
       onChange(urlData.publicUrl);
