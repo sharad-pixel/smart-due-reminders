@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import SEOHead from "@/components/seo/SEOHead";
 import { useNavigate } from "react-router-dom";
-import { BarChart3, ArrowRight, TrendingUp, ShieldAlert, Target, DollarSign, Activity, CreditCard, AlertTriangle, PieChart, Brain, Layers, FileText, CheckCircle, Users, Clock, Eye, Zap } from "lucide-react";
+import { BarChart3, ArrowRight, TrendingUp, ShieldAlert, Target, DollarSign, Activity, CreditCard, AlertTriangle, PieChart, Brain, Layers, FileText, CheckCircle, Clock, Eye, Zap } from "lucide-react";
 import MarketingLayout from "@/components/layout/MarketingLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion } from "framer-motion";
