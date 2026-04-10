@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { getCachedReport, setCachedReport } from "@/lib/supabase/cachedReports";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -49,9 +50,18 @@ export function InvoiceCollectabilityReport() {
   const [sortKey, setSortKey] = useState<string | null>("collectability_score");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
+  const REPORT_TYPE = "invoice_collectability";
+
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["invoice-collectability-report"],
     queryFn: async () => {
+      // 1. Check for a valid cached report first
+      const cached = await getCachedReport<{ reports: InvoiceReport[]; aggregate: AggregateStats }>(REPORT_TYPE);
+      if (cached && !cached.is_stale) {
+        return cached.data;
+      }
+
+      // 2. Cache is stale or missing — regenerate
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
 
@@ -60,9 +70,15 @@ export function InvoiceCollectabilityReport() {
       });
 
       if (error) throw error;
-      return data as { reports: InvoiceReport[]; aggregate: AggregateStats };
+      const result = data as { reports: InvoiceReport[]; aggregate: AggregateStats };
+
+      // 3. Store in cache
+      await setCachedReport(REPORT_TYPE, result);
+
+      return result;
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 30 * 60 * 1000, // 30 minutes — trust the DB cache
+    gcTime: 60 * 60 * 1000,
   });
 
   const _handleSort = (key: string) => {
@@ -112,11 +128,17 @@ export function InvoiceCollectabilityReport() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
 
-      const { data: _result, error } = await supabase.functions.invoke("invoice-collectability-report", {
+      const { data: result, error } = await supabase.functions.invoke("invoice-collectability-report", {
         body: { generate_ai_summary: true },
       });
 
       if (error) throw error;
+
+      // Update cache with AI-enriched results
+      if (result) {
+        await setCachedReport(REPORT_TYPE, result);
+      }
+
       refetch();
       toast.success("AI summaries generated");
     } catch (err: any) {
