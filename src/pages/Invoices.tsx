@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { getInvoiceStatusColor as getStatusColor } from "@/lib/invoiceStatuses";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchAllInvoicesPaginated } from "@/lib/supabase/invoices";
 import { fetchDebtorsList } from "@/lib/supabase/debtors";
 import Layout from "@/components/layout/Layout";
