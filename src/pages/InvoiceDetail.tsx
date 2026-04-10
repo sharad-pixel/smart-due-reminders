@@ -1508,89 +1508,88 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
             </Card>
           </div>
 
-          {/* Middle Column - Account Info & Payment Info */}
+          {/* Middle Column - Account & Payment Info */}
           <div className="space-y-6">
             <Card className="h-auto">
               <CardHeader className="pb-3">
-                <CardTitle>Account Info</CardTitle>
+                <CardTitle>Account &amp; Payment Info</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div>
-                  <p className="text-xs text-muted-foreground">Company</p>
-                  <p className="font-medium">{invoice.debtors?.company_name}</p>
+              <CardContent className="space-y-4">
+                {/* Account Info Section */}
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Company</p>
+                    <p className="font-medium">{invoice.debtors?.company_name}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Contact Email</p>
+                    <p className="text-sm font-medium">{primaryContactEmail || invoice.debtors?.email || "—"}</p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => navigate(`/debtors/${invoice.debtor_id}`)}
+                  >
+                    View Account Details
+                  </Button>
                 </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Contact Email</p>
-                  <p className="text-sm font-medium">{primaryContactEmail || invoice.debtors?.email || "—"}</p>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  onClick={() => navigate(`/debtors/${invoice.debtor_id}`)}
-                >
-                  View Account Details
-                </Button>
-              </CardContent>
-            </Card>
 
-            {/* Payment Information - moved here to fill space */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle>Payment Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {invoice.paid_date && (
-                  <div>
-                    <p className="text-xs text-muted-foreground">Paid Date</p>
-                    <p className="font-medium">{new Date(invoice.paid_date).toLocaleDateString()}</p>
-                  </div>
-                )}
-                {invoice.payment_date && (
-                  <div>
-                    <p className="text-xs text-muted-foreground">Payment Date</p>
-                    <p className="font-medium">{new Date(invoice.payment_date).toLocaleDateString()}</p>
-                  </div>
-                )}
-                {invoice.payment_method && (
-                  <div>
-                    <p className="text-xs text-muted-foreground">Payment Method</p>
-                    <p className="font-medium">{invoice.payment_method}</p>
-                  </div>
-                )}
-                {invoice.promise_to_pay_date && (
-                  <div>
-                    <p className="text-xs text-muted-foreground">Promise to Pay Date</p>
-                    <p className="font-medium">{new Date(invoice.promise_to_pay_date).toLocaleDateString()}</p>
-                  </div>
-                )}
-                {invoice.promise_to_pay_amount !== null && (
-                  <div>
-                    <p className="text-xs text-muted-foreground">Promise to Pay Amount</p>
-                    <p className="font-medium">${invoice.promise_to_pay_amount.toLocaleString()}</p>
-                  </div>
-                )}
-                {!invoice.paid_date && !invoice.payment_date && !invoice.payment_method && 
-                 !invoice.promise_to_pay_date && invoice.promise_to_pay_amount === null && (
-                  <p className="text-sm text-muted-foreground">No payment information available</p>
-                )}
-                {(invoice.payment_date || invoice.paid_date || invoice.status === "Paid" || invoice.status === "PartiallyPaid") && (
-                  <div className="pt-3 border-t">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full"
-                      onClick={handleSendPaymentAcknowledgment}
-                      disabled={generatingPaymentMessage}
-                    >
-                      <Mail className="h-3.5 w-3.5 mr-1.5" />
-                      {generatingPaymentMessage ? "Generating..." : "Send Payment Acknowledgment"}
-                    </Button>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      AI will compose a contextual thank-you message
-                    </p>
-                  </div>
-                )}
+                {/* Payment Info Section */}
+                <div className="space-y-3 pt-4 border-t">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Payment Details</p>
+                  {invoice.paid_date && (
+                    <div>
+                      <p className="text-xs text-muted-foreground">Paid Date</p>
+                      <p className="font-medium">{new Date(invoice.paid_date).toLocaleDateString()}</p>
+                    </div>
+                  )}
+                  {invoice.payment_date && (
+                    <div>
+                      <p className="text-xs text-muted-foreground">Payment Date</p>
+                      <p className="font-medium">{new Date(invoice.payment_date).toLocaleDateString()}</p>
+                    </div>
+                  )}
+                  {invoice.payment_method && (
+                    <div>
+                      <p className="text-xs text-muted-foreground">Payment Method</p>
+                      <p className="font-medium">{invoice.payment_method}</p>
+                    </div>
+                  )}
+                  {invoice.promise_to_pay_date && (
+                    <div>
+                      <p className="text-xs text-muted-foreground">Promise to Pay Date</p>
+                      <p className="font-medium">{new Date(invoice.promise_to_pay_date).toLocaleDateString()}</p>
+                    </div>
+                  )}
+                  {invoice.promise_to_pay_amount !== null && (
+                    <div>
+                      <p className="text-xs text-muted-foreground">Promise to Pay Amount</p>
+                      <p className="font-medium">${invoice.promise_to_pay_amount.toLocaleString()}</p>
+                    </div>
+                  )}
+                  {!invoice.paid_date && !invoice.payment_date && !invoice.payment_method && 
+                   !invoice.promise_to_pay_date && invoice.promise_to_pay_amount === null && (
+                    <p className="text-sm text-muted-foreground">No payment information available</p>
+                  )}
+                  {(invoice.payment_date || invoice.paid_date || invoice.status === "Paid" || invoice.status === "PartiallyPaid") && (
+                    <div className="pt-3 border-t">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={handleSendPaymentAcknowledgment}
+                        disabled={generatingPaymentMessage}
+                      >
+                        <Mail className="h-3.5 w-3.5 mr-1.5" />
+                        {generatingPaymentMessage ? "Generating..." : "Send Payment Acknowledgment"}
+                      </Button>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        AI will compose a contextual thank-you message
+                      </p>
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
 
