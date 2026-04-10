@@ -1,0 +1,1 @@
+UPDATE inbound_emails SET status = 'linked' WHERE id = '7b953bc2-61ee-45b4-a4ab-8f06d6773ec3';
