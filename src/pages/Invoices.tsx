@@ -125,9 +125,6 @@ const Invoices = () => {
     po_number: "",
   });
 
-  useEffect(() => {
-    localStorage.setItem("hideInactiveInvoices", hideInactive.toString());
-  }, [hideInactive]);
 
   useEffect(() => {
     localStorage.setItem("invoiceStatusFilter", statusFilter);
