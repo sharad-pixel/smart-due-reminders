@@ -717,70 +717,14 @@ const Dashboard = () => {
           <InvoiceCollectabilityReport />
         </div>
 
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Open Tasks</CardTitle>
-              <div className="flex items-center gap-2">
-                <Button 
-                  variant={tasksAssignedToMeOnly ? "default" : "outline"} 
-                  size="sm" 
-                  onClick={() => setTasksAssignedToMeOnly(!tasksAssignedToMeOnly)}
-                >
-                  Assigned to Me
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => navigate("/tasks")}>
-                  View All
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {(() => {
-              const displayTasks = tasksAssignedToMeOnly 
-                ? pendingTasks.filter(t => t.assigned_to === user?.id)
-                : pendingTasks;
-              
-              if (displayTasks.length === 0) {
-                return (
-                  <div className="text-center py-8">
-                    <p className="text-muted-foreground">
-                      {tasksAssignedToMeOnly ? "No tasks assigned to you" : "No open tasks"}
-                    </p>
-                  </div>
-                );
-              }
-              
-              return (
-                <div className="space-y-3">
-                  {displayTasks.map((task) => (
-                    <div
-                      key={task.id}
-                      className="flex items-center justify-between p-3 border rounded-md hover:bg-accent cursor-pointer"
-                      onClick={() => handleTaskClick(task)}
-                    >
-                      <div className="flex-1">
-                        <p className="font-medium line-clamp-1">
-                          {task.summary}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {task.debtors?.company_name || task.debtors?.name}
-                          {task.invoices?.invoice_number && ` • ${task.invoices.invoice_number}`}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={task.priority === "high" ? "destructive" : task.priority === "medium" ? "default" : "secondary"}>
-                          {task.priority}
-                        </Badge>
-                        <Eye className="h-4 w-4 text-muted-foreground" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              );
-            })()}
-          </CardContent>
-        </Card>
+        <DashboardTasksList
+          tasks={pendingTasks}
+          tasksAssignedToMeOnly={tasksAssignedToMeOnly}
+          setTasksAssignedToMeOnly={setTasksAssignedToMeOnly}
+          userId={user?.id}
+          onTaskClick={handleTaskClick}
+          onNavigate={() => navigate("/tasks")}
+        />
 
         {/* Task Detail Modal */}
         <TaskDetailModal
