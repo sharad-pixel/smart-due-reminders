@@ -11,6 +11,10 @@ import dataTrustHero from "@/assets/blog/data-trust-ar-automation-hero.jpg";
 import spreadsheetsToSystemsHero from "@/assets/blog/spreadsheets-to-systems-hero.jpg";
 import predictiveCollectionsHero from "@/assets/blog/predictive-collections-hero.jpg";
 import nextGenArHero from "@/assets/blog/next-gen-ar-teams-hero.jpg";
+import deathTraditionalCollectionsHero from "@/assets/blog/death-traditional-collections-hero.jpg";
+import setItForgetItHero from "@/assets/blog/set-it-forget-it-automation-hero.jpg";
+import realtimeRiskHero from "@/assets/blog/realtime-risk-operational-hero.jpg";
+import collectionsNeedsCrmHero from "@/assets/blog/collections-needs-crm-hero.jpg";
 import founderImage from "@/assets/founder-sharad.jpg";
 
 export interface BlogAuthor {
@@ -256,6 +260,70 @@ export const blogPosts: BlogPost[] = [
     heroAlt: "Modern AR team working with AI agents and digital dashboards collaboratively",
     keywords: "next generation AR teams, AI augmented collections, human AI receivables, AR team structure, future of accounts receivable",
     featured: false,
+  },
+  {
+    slug: "death-of-traditional-collections",
+    title: "Death of Traditional Collections",
+    metaTitle: "Death of Traditional Collections | Recouply.ai",
+    metaDescription: "Traditional collections is dead. Meet the AI-powered Collections & Risk Assessment CRM built for real-time cash flow.",
+    excerpt: "Traditional collections is broken—here's the new operating model built on AI, real-time risk, and a true system of record.",
+    category: "Collections CRM",
+    author: authors.sharad,
+    publishDate: "January 28, 2026",
+    publishDateISO: "2026-01-28",
+    readingTime: "7 min read",
+    heroImage: deathTraditionalCollectionsHero,
+    heroAlt: "Traditional paper invoices and filing cabinets dissolving into digital particles representing the death of old-school collections",
+    keywords: "collections, accounts receivable, AR automation, risk assessment, CRM, AI collections, Stripe, QuickBooks, B2B SaaS",
+    featured: true,
+  },
+  {
+    slug: "set-it-and-forget-it-automation",
+    title: "Set It and Forget It: The New Standard for Collections Automation",
+    metaTitle: "Set It and Forget It Automation | Recouply.ai",
+    metaDescription: "Automate collections with AI agents and risk-based playbooks. Sync Stripe and QuickBooks, then let Recouply.ai drive cash flow.",
+    excerpt: "Turn collections into a self-driving workflow with AI agents, real-time syncing, and risk-based playbooks you set once and scale infinitely.",
+    category: "AI & Automation",
+    author: authors.sharad,
+    publishDate: "February 18, 2026",
+    publishDateISO: "2026-02-18",
+    readingTime: "6 min read",
+    heroImage: setItForgetItHero,
+    heroAlt: "Autonomous workflow system with interconnected gears and flowing automation nodes",
+    keywords: "collections automation, AI agents, AR, risk segmentation, Stripe, QuickBooks, receivables, workflows, SaaS finance",
+    featured: true,
+  },
+  {
+    slug: "risk-as-a-real-time-operational-system",
+    title: "Risk as a Real-Time Operational System",
+    metaTitle: "Risk as a Real-Time System | Recouply.ai",
+    metaDescription: "Turn risk from a report into a live operating signal that drives collections, outreach, and cash outcomes.",
+    excerpt: "Risk can't live in a weekly slide. It must drive actions in real time across collections, outreach, and escalation paths.",
+    category: "Risk Intelligence",
+    author: authors.sharad,
+    publishDate: "March 12, 2026",
+    publishDateISO: "2026-03-12",
+    readingTime: "7 min read",
+    heroImage: realtimeRiskHero,
+    heroAlt: "Real-time risk monitoring dashboard with dynamic heat maps and live risk scores",
+    keywords: "risk assessment, real-time risk, collections CRM, AR, behavioral signals, DSO, AI, receivables, finance operations",
+    featured: false,
+  },
+  {
+    slug: "why-collections-needs-a-crm",
+    title: "Why Collections Needs a CRM (Like Salesforce for Sales)",
+    metaTitle: "Why Collections Needs a CRM | Recouply.ai",
+    metaDescription: "Collections needs a CRM: a system of record for invoices, risk, and AI workflows. See how Recouply.ai brings CRM discipline to cash.",
+    excerpt: "Sales scaled with CRM. Collections will too—with a system of record built for invoices, risk, and AI-driven workflows.",
+    category: "Collections CRM",
+    author: authors.sharad,
+    publishDate: "April 5, 2026",
+    publishDateISO: "2026-04-05",
+    readingTime: "7 min read",
+    heroImage: collectionsNeedsCrmHero,
+    heroAlt: "CRM system interface for collections showing organized customer records and AI intelligence layers",
+    keywords: "collections CRM, AR, receivables, Salesforce analogy, system of record, audit logs, AI automation, finance ops, B2B SaaS",
+    featured: true,
   },
 ];
 
