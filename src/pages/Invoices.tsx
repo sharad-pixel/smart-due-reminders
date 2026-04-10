@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { getInvoiceStatusColor as getStatusColor } from "@/lib/invoiceStatuses";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchAllInvoicesPaginated } from "@/lib/supabase/invoices";
 import { fetchDebtorsList } from "@/lib/supabase/debtors";
 import Layout from "@/components/layout/Layout";
@@ -67,10 +68,28 @@ const Invoices = () => {
   const debtorIdFromUrl = searchParams.get('debtor');
   const agingFromUrl = searchParams.get('aging');
   
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  
-  const [debtors, setDebtors] = useState<Debtor[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+
+  const { data: queryData, isLoading: loading } = useQuery({
+    queryKey: ["invoices-page-data"],
+    queryFn: async () => {
+      const [allInvoices, debtorsList] = await Promise.all([
+        fetchAllInvoicesPaginated(),
+        fetchDebtorsList(),
+      ]);
+      return { invoices: allInvoices as any as Invoice[], debtors: debtorsList };
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes — avoid refetch on every navigation
+    gcTime: 30 * 60 * 1000,   // keep in cache 30 min
+  });
+
+  const invoices = useMemo(() => queryData?.invoices ?? [], [queryData]);
+  const debtors = useMemo(() => queryData?.debtors ?? [], [queryData]);
+
+  const refetchData = () => {
+    queryClient.invalidateQueries({ queryKey: ["invoices-page-data"] });
+  };
+
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>(() => {
     const saved = localStorage.getItem("invoiceStatusFilter");
@@ -108,10 +127,6 @@ const Invoices = () => {
   });
 
   useEffect(() => {
-    fetchData();
-  }, []);
-
-  useEffect(() => {
     localStorage.setItem("hideInactiveInvoices", hideInactive.toString());
   }, [hideInactive]);
 
@@ -119,26 +134,9 @@ const Invoices = () => {
     localStorage.setItem("invoiceStatusFilter", statusFilter);
   }, [statusFilter]);
 
-  // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, statusFilter, ageBucketFilter, debtorFilter, sourceFilter, currencyFilter, hideInactive]);
-
-  const fetchData = async () => {
-    try {
-      const [allInvoices, debtorsList] = await Promise.all([
-        fetchAllInvoicesPaginated(),
-        fetchDebtorsList(),
-      ]);
-
-      setInvoices(allInvoices as any);
-      setDebtors(debtorsList);
-    } catch (_error: any) {
-      toast.error("Failed to load data");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const getDaysPastDue = (dueDate: string): number => {
     const today = new Date();
@@ -167,7 +165,7 @@ const Invoices = () => {
       if (error) throw error;
 
       toast.success("Invoice removed from workflow");
-      fetchData();
+      refetchData();
     } catch (_error: any) {
       toast.error("Failed to remove from workflow");
     }
@@ -208,7 +206,7 @@ const Invoices = () => {
       setSelectedInvoices([]);
       setShowBulkAssignDialog(false);
       setSelectedAgingBucket("");
-      fetchData();
+      refetchData();
     } catch (error: any) {
       console.error('Bulk assign error:', error);
       toast.error(error.message || "Failed to assign invoices to workflow");
@@ -228,7 +226,7 @@ const Invoices = () => {
 
       toast.success(data.message || "Invoices removed from workflows");
       setSelectedInvoices([]);
-      fetchData();
+      refetchData();
     } catch (error: any) {
       toast.error("Failed to remove invoices from workflows");
       console.error(error);
@@ -253,7 +251,7 @@ const Invoices = () => {
       setSelectedInvoices([]);
       setShowBulkStatusDialog(false);
       setSelectedBulkStatus("");
-      fetchData();
+      refetchData();
     } catch (error: any) {
       toast.error("Failed to update invoice statuses");
       console.error(error);
@@ -367,7 +365,7 @@ const Invoices = () => {
         external_invoice_id: "",
         po_number: "",
       });
-      fetchData();
+      refetchData();
     } catch (error: any) {
       toast.error(error.message || "Failed to create invoice");
     }
@@ -973,7 +971,7 @@ const Invoices = () => {
                             currency={invoice.currency || "USD"}
                             status={invoice.status}
                             integrationSource={invoice.integration_source}
-                            onSuccess={fetchData}
+                            onSuccess={refetchData}
                             compact
                           />
                         </TableCell>
