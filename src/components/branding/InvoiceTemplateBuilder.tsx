@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -10,7 +10,8 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { FileText, Save, Loader2, Eye } from "lucide-react";
+import { FileText, Save, Loader2, Eye, Upload, X } from "lucide-react";
+import { useDropzone } from "react-dropzone";
 import { InvoiceTemplatePreview } from "./InvoiceTemplatePreview";
 
 export interface InvoiceTemplateData {
@@ -24,11 +25,16 @@ export interface InvoiceTemplateData {
   show_sales_rep: boolean;
   show_tax: boolean;
   show_payment_instructions: boolean;
+  show_payment_qr_codes: boolean;
   header_color: string;
   payment_instructions_wire: string;
   payment_instructions_check: string;
   footer_note: string;
   font_style: string;
+  qr_code_venmo_url: string;
+  qr_code_stripe_url: string;
+  qr_code_paypal_url: string;
+  qr_code_cashapp_url: string;
 }
 
 const defaultTemplate: InvoiceTemplateData = {
@@ -41,11 +47,16 @@ const defaultTemplate: InvoiceTemplateData = {
   show_sales_rep: false,
   show_tax: true,
   show_payment_instructions: true,
+  show_payment_qr_codes: false,
   header_color: "#1a56db",
   payment_instructions_wire: "",
   payment_instructions_check: "",
   footer_note: "Thank you for your business.",
   font_style: "modern",
+  qr_code_venmo_url: "",
+  qr_code_stripe_url: "",
+  qr_code_paypal_url: "",
+  qr_code_cashapp_url: "",
 };
 
 interface InvoiceTemplateBuilderProps {
