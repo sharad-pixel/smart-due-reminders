@@ -337,7 +337,8 @@ export function CollectionIntelligenceCard() {
               variant="outline"
               size="sm"
               onClick={handleRefresh}
-              disabled={isRefreshing}
+              disabled={isRefreshing || !canRefresh}
+              title={!canRefresh ? "Daily manual refresh already used" : "Refresh intelligence"}
             >
               <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
             </Button>
@@ -659,7 +660,7 @@ export function CollectionIntelligenceCard() {
         {/* Footer */}
         <div className="text-center pt-2 border-t">
           <p className="text-xs text-muted-foreground/70">
-            Intelligence auto-refreshes daily • All insights logged for compliance
+            Updates daily at 1:00 PM UTC when sufficient data is available • {canRefresh ? "1 manual refresh per day" : "Daily refresh used"} • All insights logged for compliance
           </p>
         </div>
       </CardContent>
