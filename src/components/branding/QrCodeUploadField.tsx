@@ -6,11 +6,13 @@ import { toast } from "sonner";
 import venmoLogo from "@/assets/venmo-logo.png";
 import paypalLogo from "@/assets/paypal-logo.png";
 import cashappLogo from "@/assets/cashapp-logo.png";
+import stripeLogo from "@/assets/stripe-logo.png";
 
 const LOGOS: Record<string, string> = {
   Venmo: venmoLogo,
   PayPal: paypalLogo,
   "Cash App": cashappLogo,
+  Stripe: stripeLogo,
 };
 
 interface QrCodeUploadFieldProps {

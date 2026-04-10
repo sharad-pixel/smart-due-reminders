@@ -361,6 +361,7 @@ export const InvoiceTemplateBuilder = ({
                   { key: "qr_code_venmo_url" as const, label: "Venmo" },
                   { key: "qr_code_paypal_url" as const, label: "PayPal" },
                   { key: "qr_code_cashapp_url" as const, label: "Cash App" },
+                  { key: "qr_code_stripe_url" as const, label: "Stripe" },
                 ] as const).map(({ key, label }) => (
                   <QrCodeUploadField
                     key={key}
