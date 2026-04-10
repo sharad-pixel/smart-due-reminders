@@ -38,7 +38,7 @@ const LIST_SELECT =
  * Fetch all invoices with pagination to handle > 1000 rows.
  * Optionally includes related debtor, workflow, and extra fields.
  */
-const ACTIVE_STATUSES = ['Open', 'PartiallyPaid', 'InPaymentPlan', 'Disputed', 'FinalInternalCollections'];
+const ACTIVE_STATUSES = ['Open', 'PartiallyPaid', 'InPaymentPlan', 'Disputed', 'FinalInternalCollections'] as const;
 
 export async function fetchAllInvoicesPaginated(options?: {
   select?: string;
