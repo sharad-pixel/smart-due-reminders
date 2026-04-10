@@ -148,14 +148,14 @@ export function OutreachTimeline({ invoiceId, invoiceDueDate, agingBucket }: Out
   }
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="flex flex-col max-h-[500px]">
+      <CardHeader className="flex-shrink-0">
         <CardTitle className="flex items-center gap-2 text-base">
           <Mail className="h-4 w-4" />
           Outreach History
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-3 overflow-y-auto flex-1 min-h-0">
         {/* Current Status - Compact Table */}
         <Table>
           <TableBody>
