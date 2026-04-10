@@ -667,6 +667,7 @@ export type Database = {
           logo_url: string | null
           organization_id: string | null
           primary_color: string | null
+          public_invoice_links_enabled: boolean | null
           reply_to_email: string | null
           sending_mode: string | null
           stripe_payment_link: string | null
@@ -702,6 +703,7 @@ export type Database = {
           logo_url?: string | null
           organization_id?: string | null
           primary_color?: string | null
+          public_invoice_links_enabled?: boolean | null
           reply_to_email?: string | null
           sending_mode?: string | null
           stripe_payment_link?: string | null
@@ -737,6 +739,7 @@ export type Database = {
           logo_url?: string | null
           organization_id?: string | null
           primary_color?: string | null
+          public_invoice_links_enabled?: boolean | null
           reply_to_email?: string | null
           sending_mode?: string | null
           stripe_payment_link?: string | null
@@ -5320,6 +5323,7 @@ export type Database = {
           product_description: string | null
           promise_to_pay_amount: number | null
           promise_to_pay_date: string | null
+          public_token: string
           quickbooks_doc_number: string | null
           quickbooks_invoice_id: string | null
           reference_id: string
@@ -5388,6 +5392,7 @@ export type Database = {
           product_description?: string | null
           promise_to_pay_amount?: number | null
           promise_to_pay_date?: string | null
+          public_token?: string
           quickbooks_doc_number?: string | null
           quickbooks_invoice_id?: string | null
           reference_id: string
@@ -5456,6 +5461,7 @@ export type Database = {
           product_description?: string | null
           promise_to_pay_amount?: number | null
           promise_to_pay_date?: string | null
+          public_token?: string
           quickbooks_doc_number?: string | null
           quickbooks_invoice_id?: string | null
           reference_id?: string
@@ -8432,6 +8438,7 @@ export type Database = {
       get_effective_account_id: { Args: { p_user_id: string }; Returns: string }
       get_payment_plan_by_token: { Args: { p_token: string }; Returns: Json }
       get_public_ar_page: { Args: { p_token: string }; Returns: Json }
+      get_public_invoice: { Args: { p_token: string }; Returns: Json }
       get_safe_team_profile: {
         Args: { p_account_id: string }
         Returns: {
