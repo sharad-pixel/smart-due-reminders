@@ -2,41 +2,79 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Copy, ExternalLink, Link2, Check } from "lucide-react";
+import { Copy, ExternalLink, Link2, Check, FileText } from "lucide-react";
 import { toast } from "sonner";
 
 interface InvoiceLinkCardProps {
   invoiceId: string;
   publicToken: string | null;
   stripeHostedUrl: string | null;
+  invoice?: {
+    invoice_number: string;
+    amount: number;
+    due_date: string;
+    issue_date: string;
+    status: string;
+    currency?: string | null;
+    product_description?: string | null;
+  };
+  debtorName?: string;
 }
 
 export const InvoiceLinkCard = ({
   publicToken,
   stripeHostedUrl,
+  invoice,
+  debtorName,
 }: InvoiceLinkCardProps) => {
   const [enabled, setEnabled] = useState<boolean | null>(null);
   const [copied, setCopied] = useState(false);
+  const [branding, setBranding] = useState<{
+    business_name: string;
+    primary_color: string | null;
+    logo_url: string | null;
+  } | null>(null);
+  const [template, setTemplate] = useState<{
+    header_color: string | null;
+    font_style: string | null;
+  } | null>(null);
 
   useEffect(() => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Check effective account
       const { data: effectiveId } = await supabase.rpc("get_effective_account_id", {
         p_user_id: user.id,
       });
 
-      const { data } = await supabase
-        .from("branding_settings")
-        .select("public_invoice_links_enabled")
-        .eq("user_id", effectiveId || user.id)
-        .maybeSingle();
+      const accountId = effectiveId || user.id;
 
-      setEnabled(data?.public_invoice_links_enabled ?? false);
+      const [brandingRes, templateRes] = await Promise.all([
+        supabase
+          .from("branding_settings")
+          .select("public_invoice_links_enabled, business_name, primary_color, logo_url")
+          .eq("user_id", accountId)
+          .maybeSingle(),
+        supabase
+          .from("invoice_templates")
+          .select("header_color, font_style")
+          .eq("user_id", accountId)
+          .maybeSingle(),
+      ]);
+
+      setEnabled(brandingRes.data?.public_invoice_links_enabled ?? false);
+      if (brandingRes.data) {
+        setBranding({
+          business_name: brandingRes.data.business_name,
+          primary_color: brandingRes.data.primary_color,
+          logo_url: brandingRes.data.logo_url,
+        });
+      }
+      if (templateRes.data) {
+        setTemplate(templateRes.data);
+      }
     })();
   }, []);
 
@@ -57,6 +95,14 @@ export const InvoiceLinkCard = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const hc = template?.header_color || branding?.primary_color || "#1a56db";
+
+  const formatDate = (d: string) =>
+    new Date(d).toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" });
+
+  const formatCurrency = (val: number) =>
+    `$${val.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -70,19 +116,74 @@ export const InvoiceLinkCard = ({
           )}
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-3">
         {activeLink ? (
-          <div className="space-y-2">
+          <>
+            {/* Mini template preview */}
+            {invoice && branding && !stripeHostedUrl && (
+              <div
+                className="rounded-md border overflow-hidden text-[10px] leading-tight"
+                style={{ fontFamily: template?.font_style === "classic" ? "Georgia, serif" : "system-ui, sans-serif" }}
+              >
+                {/* Header bar */}
+                <div className="px-3 py-2 flex justify-between items-start" style={{ borderBottom: `2px solid ${hc}` }}>
+                  <div>
+                    {branding.logo_url && (
+                      <img src={branding.logo_url} alt="" className="h-5 object-contain mb-0.5" style={{ maxWidth: 80 }} />
+                    )}
+                    <div className="font-semibold" style={{ color: hc, fontSize: "11px" }}>
+                      {branding.business_name}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-light tracking-wide" style={{ color: hc, fontSize: "14px" }}>Invoice</div>
+                    <div className="font-semibold text-gray-700">#{invoice.invoice_number}</div>
+                  </div>
+                </div>
+                {/* Bill To & Amount */}
+                <div className="px-3 py-2 flex justify-between">
+                  <div>
+                    <div className="uppercase tracking-wider font-bold" style={{ color: hc, fontSize: "8px" }}>Bill To</div>
+                    <div className="text-gray-600">{debtorName || "Customer"}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="rounded px-2 py-1" style={{ backgroundColor: `${hc}10` }}>
+                      <div className="uppercase tracking-wider font-bold" style={{ color: hc, fontSize: "8px" }}>
+                        {invoice.status?.toLowerCase() === "paid" ? "Paid" : "Amount Due"}
+                      </div>
+                      <div className="font-bold" style={{ color: hc, fontSize: "13px" }}>
+                        {formatCurrency(invoice.amount)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                {/* Line item header */}
+                <div className="mx-3">
+                  <div className="grid grid-cols-3 text-white px-2 py-1 rounded-t uppercase tracking-wider font-bold" style={{ backgroundColor: hc, fontSize: "7px" }}>
+                    <span>Description</span>
+                    <span className="text-center">Date</span>
+                    <span className="text-right">Amount</span>
+                  </div>
+                  <div className="grid grid-cols-3 px-2 py-1.5 border-x border-b rounded-b text-gray-600">
+                    <span className="truncate">{invoice.product_description || `Invoice ${invoice.invoice_number}`}</span>
+                    <span className="text-center">{formatDate(invoice.issue_date)}</span>
+                    <span className="text-right">{formatCurrency(invoice.amount)}</span>
+                  </div>
+                </div>
+                {/* Bottom bar */}
+                <div className="h-1 mt-2" style={{ backgroundColor: hc }} />
+              </div>
+            )}
+
+            {/* Link + actions */}
             <div className="flex gap-2">
-              <Input
-                value={activeLink}
-                readOnly
-                className="flex-1 bg-muted text-xs"
-              />
-              <Button variant="outline" size="icon" onClick={handleCopy}>
+              <div className="flex-1 bg-muted rounded-md px-3 py-2 text-xs text-muted-foreground truncate font-mono">
+                {activeLink}
+              </div>
+              <Button variant="outline" size="icon" className="shrink-0" onClick={handleCopy}>
                 {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
               </Button>
-              <Button variant="outline" size="icon" asChild>
+              <Button variant="outline" size="icon" className="shrink-0" asChild>
                 <a href={activeLink} target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="h-4 w-4" />
                 </a>
@@ -93,7 +194,7 @@ export const InvoiceLinkCard = ({
                 ? "This invoice uses a Stripe hosted payment link."
                 : "Share this branded invoice link with your customer."}
             </p>
-          </div>
+          </>
         ) : (
           <div className="text-sm text-muted-foreground">
             <p>

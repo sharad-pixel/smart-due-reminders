@@ -1285,12 +1285,6 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
           onDiscardOverrides={() => fetchData()}
         />
 
-        {/* Invoice Link Card */}
-        <InvoiceLinkCard
-          invoiceId={invoice.id}
-          publicToken={(invoice as any).public_token}
-          stripeHostedUrl={invoice.stripe_hosted_url}
-        />
 
         {/* Main Content Grid - 3 columns on large screens */}
         <div className="grid lg:grid-cols-3 gap-6">
