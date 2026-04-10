@@ -165,7 +165,7 @@ const Invoices = () => {
       if (error) throw error;
 
       toast.success("Invoice removed from workflow");
-      fetchData();
+      refetchData();
     } catch (_error: any) {
       toast.error("Failed to remove from workflow");
     }
@@ -206,7 +206,7 @@ const Invoices = () => {
       setSelectedInvoices([]);
       setShowBulkAssignDialog(false);
       setSelectedAgingBucket("");
-      fetchData();
+      refetchData();
     } catch (error: any) {
       console.error('Bulk assign error:', error);
       toast.error(error.message || "Failed to assign invoices to workflow");
@@ -226,7 +226,7 @@ const Invoices = () => {
 
       toast.success(data.message || "Invoices removed from workflows");
       setSelectedInvoices([]);
-      fetchData();
+      refetchData();
     } catch (error: any) {
       toast.error("Failed to remove invoices from workflows");
       console.error(error);
@@ -251,7 +251,7 @@ const Invoices = () => {
       setSelectedInvoices([]);
       setShowBulkStatusDialog(false);
       setSelectedBulkStatus("");
-      fetchData();
+      refetchData();
     } catch (error: any) {
       toast.error("Failed to update invoice statuses");
       console.error(error);
@@ -365,7 +365,7 @@ const Invoices = () => {
         external_invoice_id: "",
         po_number: "",
       });
-      fetchData();
+      refetchData();
     } catch (error: any) {
       toast.error(error.message || "Failed to create invoice");
     }
@@ -971,7 +971,7 @@ const Invoices = () => {
                             currency={invoice.currency || "USD"}
                             status={invoice.status}
                             integrationSource={invoice.integration_source}
-                            onSuccess={fetchData}
+                            onSuccess={refetchData}
                             compact
                           />
                         </TableCell>
