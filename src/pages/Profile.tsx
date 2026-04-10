@@ -46,7 +46,7 @@ import nicolasAvatar from "@/assets/personas/nicolas.png";
 import { TrialCountdown } from "@/components/billing/TrialCountdown";
 
 type AppRole = "owner" | "admin" | "member" | "viewer";
-type PlanType = "free" | "starter" | "growth" | "pro" | "professional" | "enterprise";
+type PlanType = "free" | "solo_pro" | "starter" | "growth" | "pro" | "professional" | "enterprise";
 
 interface UserProfile {
   id: string;
