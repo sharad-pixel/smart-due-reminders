@@ -19,7 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Search, AlertCircle, X, ListChecks } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Switch } from "@/components/ui/switch";
+
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { PersonaAvatar } from "@/components/ai/PersonaAvatar";
 import { getPersonaByDaysPastDue } from "@/lib/personaConfig";
@@ -68,10 +68,8 @@ const Invoices = () => {
   const debtorIdFromUrl = searchParams.get('debtor');
   const agingFromUrl = searchParams.get('aging');
   
-  const [hideInactive, setHideInactive] = useState<boolean>(() => {
-    const saved = localStorage.getItem("hideInactiveInvoices");
-    return saved === null ? true : saved === "true"; // Default to hiding closed invoices
-  });
+  // Always hide closed invoices — only fetch active statuses from the server
+  const hideInactive = true;
 
   const queryClient = useQueryClient();
 
@@ -127,9 +125,6 @@ const Invoices = () => {
     po_number: "",
   });
 
-  useEffect(() => {
-    localStorage.setItem("hideInactiveInvoices", hideInactive.toString());
-  }, [hideInactive]);
 
   useEffect(() => {
     localStorage.setItem("invoiceStatusFilter", statusFilter);
@@ -698,18 +693,6 @@ const Invoices = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
-                
-                {/* Hide inactive toggle */}
-                <div className="flex items-center gap-3">
-                  <Switch
-                    id="hide-inactive"
-                    checked={hideInactive}
-                    onCheckedChange={setHideInactive}
-                  />
-                  <Label htmlFor="hide-inactive" className="text-sm font-normal cursor-pointer">
-                    Hide inactive (Paid, Settled, Canceled)
-                  </Label>
                 </div>
               </div>
               
