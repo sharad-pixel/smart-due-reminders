@@ -35,6 +35,8 @@ export function OutreachTimeline({ invoiceId, invoiceDueDate, agingBucket }: Out
   const navigate = useNavigate();
   const [failedOpen, setFailedOpen] = useState(false);
   const [sentOpen, setSentOpen] = useState(true);
+  const [sentPage, setSentPage] = useState(1);
+  const SENT_PAGE_SIZE = 10;
   
   const { data, isLoading } = useQuery({
     queryKey: ["outreach-timeline-v2", invoiceId],
