@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Mail, Clock, CheckCircle2, AlertCircle, Calendar, ExternalLink, AlertTriangle, ChevronDown, ChevronRight } from "lucide-react";
+import { Mail, Clock, CheckCircle2, AlertCircle, Calendar, ExternalLink, AlertTriangle, ChevronDown, ChevronRight, ChevronLeft } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PersonaAvatar } from "@/components/ai/PersonaAvatar";
