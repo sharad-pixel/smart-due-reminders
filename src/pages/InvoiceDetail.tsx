@@ -1285,12 +1285,6 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
           onDiscardOverrides={() => fetchData()}
         />
 
-        {/* Invoice Link Card */}
-        <InvoiceLinkCard
-          invoiceId={invoice.id}
-          publicToken={(invoice as any).public_token}
-          stripeHostedUrl={invoice.stripe_hosted_url}
-        />
 
         {/* Main Content Grid - 3 columns on large screens */}
         <div className="grid lg:grid-cols-3 gap-6">
@@ -1599,6 +1593,23 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                 )}
               </CardContent>
             </Card>
+
+            {/* Invoice Link Card */}
+            <InvoiceLinkCard
+              invoiceId={invoice.id}
+              publicToken={(invoice as any).public_token}
+              stripeHostedUrl={invoice.stripe_hosted_url}
+              invoice={{
+                invoice_number: invoice.invoice_number,
+                amount: invoice.amount,
+                due_date: invoice.due_date,
+                issue_date: invoice.issue_date,
+                status: invoice.status,
+                currency: invoice.currency,
+                product_description: invoice.product_description,
+              }}
+              debtorName={invoice.debtors?.company_name}
+            />
           </div>
 
           {/* Right Column - Collection Intelligence */}
