@@ -173,7 +173,7 @@ export function EmailPreviewFrame({
     </div>
     <div class="email-footer">
       <p class="footer-wordmark">Recouply<span class="accent">.ai</span></p>
-      <p class="footer-text">Collection Intelligence Platform</p>
+      <p class="footer-text">Collections & Risk Intelligence Platform</p>
       <p class="footer-legal">© ${new Date().getFullYear()} RecouplyAI Inc. · Delaware, USA</p>
     </div>
   </div>

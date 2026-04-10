@@ -102,7 +102,7 @@ const Careers = () => {
                     About Recouply.ai
                   </h3>
                   <p className="text-muted-foreground leading-relaxed mb-3">
-                    Recouply.ai is a Collection Intelligence Platform helping businesses automate, 
+                    Recouply.ai is a Collections & Risk Intelligence Platform helping businesses automate, 
                     centralize, and optimize accounts receivable and collections.
                   </p>
                   <p className="text-muted-foreground leading-relaxed mb-3">

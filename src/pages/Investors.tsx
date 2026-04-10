@@ -54,7 +54,7 @@ const Investors = () => {
             </div>
             
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground leading-tight">
-              Building the <span className="text-primary">Collection Intelligence Platform</span> for a $70T Receivables Market
+              Building the <span className="text-primary">Collections & Risk Intelligence Platform</span> for a $70T Receivables Market
             </h1>
             
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
@@ -153,7 +153,7 @@ const Investors = () => {
                 Recouply.ai Introduces Collection Intelligence
               </h2>
               <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-                Recouply.ai is a Collection Intelligence Platform that continuously assesses receivables risk, prioritizes action, and automates engagement—turning static AR data into real-time, actionable intelligence.
+                Recouply.ai is a Collections & Risk Intelligence Platform that continuously assesses receivables risk, prioritizes action, and automates engagement—turning static AR data into real-time, actionable intelligence.
               </p>
             </div>
 
