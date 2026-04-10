@@ -1848,7 +1848,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="history" className="mt-4 space-y-3">
+              <TabsContent value="history" className="mt-4 space-y-3 max-h-[400px] overflow-y-auto">
                 {outreach.length > 0 && (
                   <div className="relative">
                     <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
