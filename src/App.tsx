@@ -126,6 +126,7 @@ const Documents = lazy(() => import("./pages/Documents"));
 const SecurityDashboard = lazy(() => import("./pages/SecurityDashboard"));
 const Branding = lazy(() => import("./pages/Branding"));
 const PublicARPage = lazy(() => import("./pages/PublicARPage"));
+const PublicInvoicePage = lazy(() => import("./pages/PublicInvoicePage"));
 const Alerts = lazy(() => import("./pages/Alerts"));
 const EmailDeliveryReport = lazy(() => import("./pages/EmailDeliveryReport"));
 const RevenueRisk = lazy(() => import("./pages/RevenueRisk"));
@@ -276,6 +277,7 @@ const App = () => (
             <Route path="/documents" element={<Documents />} />
             <Route path="/branding" element={<Branding />} />
             <Route path="/ar/:token" element={<PublicARPage />} />
+            <Route path="/invoice/:token" element={<PublicInvoicePage />} />
             <Route path="/payment-plan/:token" element={<PublicPaymentPlanPage />} />
             <Route path="/debtor-portal" element={<DebtorPortalPage />} />
             <Route path="/ar-upload" element={<ARDataUpload />} />
