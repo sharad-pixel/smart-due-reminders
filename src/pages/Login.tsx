@@ -232,7 +232,7 @@ const Login = () => {
         {/* Header */}
         <div className="text-center mb-6">
           <RecouplyLogo size="xl" className="justify-center mb-2" />
-          <p className="text-muted-foreground">Collection Intelligence Platform</p>
+          <p className="text-muted-foreground">Collections & Risk Intelligence Platform</p>
         </div>
 
         <Card className="border-2">

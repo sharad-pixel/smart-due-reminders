@@ -102,7 +102,7 @@ const SEOHead = ({
     updateMeta('og:image', ogImage, true);
     updateMeta('og:image:width', '1200', true);
     updateMeta('og:image:height', '630', true);
-    updateMeta('og:image:alt', `${SITE_CONFIG.siteName} - Collection Intelligence Platform`, true);
+    updateMeta('og:image:alt', `${SITE_CONFIG.siteName} - Collections & Risk Intelligence Platform`, true);
     updateMeta('og:url', fullCanonical, true);
     updateMeta('og:site_name', SITE_CONFIG.siteName, true);
     updateMeta('og:locale', 'en_US', true);
@@ -114,7 +114,7 @@ const SEOHead = ({
     updateMeta('twitter:title', fullTitle);
     updateMeta('twitter:description', description);
     updateMeta('twitter:image', ogImage);
-    updateMeta('twitter:image:alt', `${SITE_CONFIG.siteName} - Collection Intelligence Platform`);
+    updateMeta('twitter:image:alt', `${SITE_CONFIG.siteName} - Collections & Risk Intelligence Platform`);
 
     // Additional SEO meta tags
     updateMeta('application-name', SITE_CONFIG.siteName);
