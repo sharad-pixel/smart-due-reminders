@@ -5,16 +5,26 @@ import venmoLogo from "@/assets/venmo-logo.png";
 import paypalLogo from "@/assets/paypal-logo.png";
 import cashappLogo from "@/assets/cashapp-logo.png";
 
+interface SampleInvoice {
+  description: string | null;
+  invoice_number: string | null;
+  amount: number | null;
+  due_date: string | null;
+  issue_date: string | null;
+}
+
 interface InvoiceTemplatePreviewProps {
   template: InvoiceTemplateData;
   businessName: string;
   logoUrl: string | null;
+  sampleInvoice?: SampleInvoice;
 }
 
 export const InvoiceTemplatePreview = ({
   template,
   businessName,
   logoUrl,
+  sampleInvoice,
 }: InvoiceTemplatePreviewProps) => {
   const fontFamily =
     template.font_style === "classic"
