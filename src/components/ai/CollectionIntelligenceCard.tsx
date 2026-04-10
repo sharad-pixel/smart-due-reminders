@@ -142,7 +142,14 @@ export function CollectionIntelligenceCard() {
     })();
   }, [fetchAccountsWithIntelligence]);
 
+  const canRefresh = !hasRefreshedToday;
+
   const handleRefresh = async () => {
+    if (!canRefresh) {
+      toast.error("Daily manual refresh already used. Reports update automatically at 1:00 PM UTC when there is sufficient data.");
+      return;
+    }
+
     setRegenerating(true);
 
     const prevLatestMs = latestReportTime
@@ -158,6 +165,10 @@ export function CollectionIntelligenceCard() {
 
       if (aiResult.error) throw aiResult.error;
       if (intelligenceResult.error) throw intelligenceResult.error;
+
+      // Mark manual refresh as used
+      await markManualRefresh("collection_intelligence");
+      setHasRefreshedToday(true);
 
       const processed = (intelligenceResult.data as any)?.processed;
       const failed = (intelligenceResult.data as any)?.failed;
