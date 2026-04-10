@@ -395,7 +395,318 @@ const AnalyticsPage = () => {
         </div>
       </section>
 
-      {/* Invoice Template Integration */}
+      {/* Revenue Risk & ECL Intelligence */}
+      <section className="py-20 px-4">
+        <div className="container mx-auto max-w-6xl">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} className="text-center mb-16">
+            <motion.div variants={fadeUp} custom={0} className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-destructive/10 text-destructive text-xs font-semibold mb-4">
+              <ShieldAlert className="h-3.5 w-3.5" />
+              REVENUE RISK INTELLIGENCE
+            </motion.div>
+            <motion.h2 variants={fadeUp} custom={0} className="text-3xl md:text-4xl font-bold mb-4">
+              Revenue Risk & ECL Analytics
+            </motion.h2>
+            <motion.p variants={fadeUp} custom={1} className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              ASC 326 / IFRS 9 simplified. Predict credit losses, quantify revenue at risk, and generate audit-ready reserves reports — all powered by AI.
+            </motion.p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-2 gap-8 items-start">
+            {/* ECL Dashboard Mock */}
+            <motion.div
+              initial={{ opacity: 0, x: -40 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7 }}
+            >
+              <Card className="shadow-xl border-0 overflow-hidden">
+                <CardContent className="p-0">
+                  <div className="bg-gradient-to-r from-red-600 to-orange-500 text-white p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-sm opacity-80">Portfolio Revenue Risk</div>
+                        <div className="text-xl font-bold">Expected Credit Loss Summary</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-3xl font-bold">$186K</div>
+                        <div className="text-xs opacity-80">Total ECL Exposure</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-6 space-y-4">
+                    {/* Risk Tier Distribution */}
+                    <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Risk Tier Distribution</div>
+                    <div className="space-y-2.5">
+                      {[
+                        { tier: "Low Risk (80-100)", count: 42, pct: 55, ecl: "$12,400", color: "bg-green-500" },
+                        { tier: "Moderate (60-79)", count: 18, pct: 25, ecl: "$38,200", color: "bg-yellow-500" },
+                        { tier: "At Risk (40-59)", count: 10, pct: 13, ecl: "$62,800", color: "bg-orange-500" },
+                        { tier: "High Risk (<40)", count: 6, pct: 7, ecl: "$72,600", color: "bg-red-500" },
+                      ].map((t) => (
+                        <div key={t.tier}>
+                          <div className="flex justify-between text-xs mb-1">
+                            <span className="text-muted-foreground">{t.tier} <span className="font-semibold text-foreground">({t.count})</span></span>
+                            <span className="font-semibold">{t.ecl}</span>
+                          </div>
+                          <div className="h-2 bg-muted rounded-full overflow-hidden">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              whileInView={{ width: `${t.pct}%` }}
+                              viewport={{ once: true }}
+                              transition={{ duration: 1, delay: 0.3 }}
+                              className={`h-full rounded-full ${t.color}`}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-3 pt-2">
+                      {[
+                        { label: "Avg Collectability", value: "74", suffix: "/100" },
+                        { label: "Weighted PD", value: "18.4", suffix: "%" },
+                        { label: "Reserve Ratio", value: "7.8", suffix: "%" },
+                      ].map((m) => (
+                        <div key={m.label} className="bg-muted/50 rounded-lg p-3 text-center">
+                          <div className="text-[10px] uppercase text-muted-foreground font-semibold">{m.label}</div>
+                          <div className="text-lg font-bold">{m.value}<span className="text-xs text-muted-foreground">{m.suffix}</span></div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="bg-red-50 dark:bg-red-950/30 rounded-lg p-3 border border-red-200 dark:border-red-900">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Brain className="h-3.5 w-3.5 text-red-600" />
+                        <span className="text-xs font-semibold text-red-700 dark:text-red-400">AI Risk Advisory</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        6 high-risk accounts contribute 39% of total ECL. Immediate escalation on Acme Corp ($28K) and TechFlow Inc ($18K) could reduce ECL by $32K within 30 days.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* ECL Features */}
+            <motion.div
+              initial={{ opacity: 0, x: 40 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7, delay: 0.2 }}
+              className="space-y-6"
+            >
+              <h3 className="text-xl font-bold">Enterprise-Grade Revenue Protection</h3>
+              {[
+                { icon: ShieldAlert, title: "Collectability Scoring (0-100)", desc: "Each debtor receives a dynamic collectability score combining payment history, engagement signals, and aging patterns. Scores update in real time as new data flows in." },
+                { icon: DollarSign, title: "Expected Credit Loss (ECL)", desc: "ECL = Outstanding × (1 − Score/100). Probability of Default adjusts by +50% for unresponsive accounts and -40% for actively engaged debtors." },
+                { icon: TrendingUp, title: "Portfolio-Wide Risk Dashboard", desc: "4-tier risk distribution across your entire AR portfolio with total ECL exposure, weighted PD, and reserve ratio calculations." },
+                { icon: FileText, title: "Audit-Ready Exports", desc: "Generate professional PDF and CSV reports of debtor risk metrics and invoice risk scores for accounting reserves and ASC 326 compliance." },
+                { icon: AlertTriangle, title: "Top Risk Account Alerts", desc: "Daily digest highlights accounts with the highest ECL impact, enabling proactive escalation before losses materialize." },
+              ].map((item, i) => (
+                <motion.div
+                  key={item.title}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: 0.3 + i * 0.1, duration: 0.5 }}
+                  className="flex gap-4"
+                >
+                  <div className="bg-destructive/10 p-2.5 rounded-lg h-fit shrink-0">
+                    <item.icon className="h-5 w-5 text-destructive" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold mb-0.5">{item.title}</h4>
+                    <p className="text-sm text-muted-foreground">{item.desc}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* Collection Analytics */}
+      <section className="py-20 px-4 bg-muted/30">
+        <div className="container mx-auto max-w-6xl">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} className="text-center mb-16">
+            <motion.div variants={fadeUp} custom={0} className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold mb-4">
+              <Activity className="h-3.5 w-3.5" />
+              COLLECTION PERFORMANCE
+            </motion.div>
+            <motion.h2 variants={fadeUp} custom={0} className="text-3xl md:text-4xl font-bold mb-4">
+              Collection Analytics That Drive Action
+            </motion.h2>
+            <motion.p variants={fadeUp} custom={1} className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Track every touchpoint, measure agent effectiveness, and optimize your collection strategy with data — not guesswork.
+            </motion.p>
+          </motion.div>
+
+          {/* Collection Metrics Grid */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7 }}
+            className="mb-12"
+          >
+            <Card className="border-primary/20 shadow-xl">
+              <CardContent className="p-8">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
+                  {[
+                    { label: "Outreach Sent", value: "1,847", change: "+23%", icon: Activity, positive: true },
+                    { label: "Response Rate", value: "34.2%", change: "+6.1%", icon: TrendingUp, positive: true },
+                    { label: "Collected (30d)", value: "$412K", change: "+18%", icon: DollarSign, positive: true },
+                    { label: "Avg Resolution", value: "12 days", change: "-3d", icon: Clock, positive: true },
+                    { label: "Promise-to-Pay", value: "67%", change: "+8%", icon: Target, positive: true },
+                  ].map((stat, i) => (
+                    <motion.div
+                      key={stat.label}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      whileInView={{ opacity: 1, scale: 1 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: 0.2 + i * 0.08, duration: 0.4 }}
+                      className="text-center"
+                    >
+                      <div className="bg-primary/10 w-10 h-10 rounded-lg flex items-center justify-center mx-auto mb-2">
+                        <stat.icon className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="text-2xl font-bold">{stat.value}</div>
+                      <div className="text-xs text-muted-foreground mb-1">{stat.label}</div>
+                      <div className="text-xs font-semibold text-green-600">{stat.change}</div>
+                    </motion.div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <div className="grid md:grid-cols-2 gap-8 items-start">
+            {/* Agent Performance Mock */}
+            <motion.div
+              initial={{ opacity: 0, x: -40 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7 }}
+            >
+              <Card className="shadow-xl border-0">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between mb-5">
+                    <div>
+                      <div className="text-sm text-muted-foreground">AI Agent Performance</div>
+                      <div className="text-lg font-bold">30-Day Collection Breakdown</div>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    {[
+                      { name: "Sam", bucket: "1-30 DPD", sent: 245, responses: 112, collected: "$68K", rate: "45.7%", color: "bg-blue-500" },
+                      { name: "James", bucket: "31-60 DPD", sent: 189, responses: 64, collected: "$124K", rate: "33.9%", color: "bg-emerald-500" },
+                      { name: "Katy", bucket: "61-90 DPD", sent: 134, responses: 38, collected: "$89K", rate: "28.4%", color: "bg-orange-500" },
+                      { name: "Jimmy", bucket: "91-120 DPD", sent: 87, responses: 18, collected: "$52K", rate: "20.7%", color: "bg-red-500" },
+                      { name: "Troy", bucket: "121-150 DPD", sent: 56, responses: 8, collected: "$41K", rate: "14.3%", color: "bg-purple-500" },
+                      { name: "Rocco", bucket: "150+ DPD", sent: 42, responses: 4, collected: "$38K", rate: "9.5%", color: "bg-gray-500" },
+                    ].map((agent) => (
+                      <div key={agent.name} className="flex items-center gap-3 text-xs">
+                        <div className={`w-2 h-2 rounded-full ${agent.color} shrink-0`} />
+                        <div className="w-14 font-semibold">{agent.name}</div>
+                        <div className="w-20 text-muted-foreground">{agent.bucket}</div>
+                        <div className="flex-1">
+                          <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              whileInView={{ width: agent.rate }}
+                              viewport={{ once: true }}
+                              transition={{ duration: 1, delay: 0.5 }}
+                              className={`h-full rounded-full ${agent.color}`}
+                            />
+                          </div>
+                        </div>
+                        <div className="w-12 text-right font-semibold">{agent.rate}</div>
+                        <div className="w-14 text-right font-bold text-primary">{agent.collected}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-4 pt-3 border-t flex justify-between text-xs text-muted-foreground">
+                    <span>Total: 753 outreach messages</span>
+                    <span className="font-semibold text-primary">$412K collected</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* Collection Funnel & Features */}
+            <motion.div
+              initial={{ opacity: 0, x: 40 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7, delay: 0.2 }}
+              className="space-y-6"
+            >
+              <h3 className="text-xl font-bold">Outreach Intelligence Pipeline</h3>
+
+              {/* Mini Funnel */}
+              <Card className="border-primary/20">
+                <CardContent className="p-5">
+                  <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Collection Funnel (30 days)</div>
+                  <div className="space-y-2">
+                    {[
+                      { stage: "Generated", value: 1847, pct: 100 },
+                      { stage: "Approved", value: 1690, pct: 91 },
+                      { stage: "Sent", value: 1652, pct: 89 },
+                      { stage: "Delivered", value: 1598, pct: 86 },
+                      { stage: "Opened", value: 892, pct: 48 },
+                      { stage: "Responded", value: 632, pct: 34 },
+                      { stage: "Collected", value: 287, pct: 15 },
+                    ].map((s, i) => (
+                      <motion.div
+                        key={s.stage}
+                        initial={{ opacity: 0, x: -20 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: 0.3 + i * 0.06, duration: 0.4 }}
+                        className="flex items-center gap-3"
+                      >
+                        <div className="w-20 text-xs text-muted-foreground">{s.stage}</div>
+                        <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                          <div className="h-full rounded-full bg-primary" style={{ width: `${s.pct}%` }} />
+                        </div>
+                        <div className="w-12 text-xs font-semibold text-right">{s.value.toLocaleString()}</div>
+                        <div className="w-10 text-xs text-muted-foreground text-right">{s.pct}%</div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="space-y-4">
+                {[
+                  { icon: Activity, title: "Full Activity Timeline", desc: "Every email, SMS, and call logged with delivery status, open tracking, and response timestamps." },
+                  { icon: Brain, title: "AI Tone Optimization", desc: "Recommendations adjust agent tone and escalation timing based on what's actually working in your portfolio." },
+                  { icon: Target, title: "Campaign-Level ROI", desc: "Track collection campaigns with accounts contacted vs. collected, amount recovered, and AI confidence scores." },
+                ].map((item, i) => (
+                  <motion.div
+                    key={item.title}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.5 + i * 0.1, duration: 0.5 }}
+                    className="flex gap-3"
+                  >
+                    <div className="bg-primary/10 p-2 rounded-lg h-fit shrink-0">
+                      <item.icon className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold mb-0.5">{item.title}</h4>
+                      <p className="text-sm text-muted-foreground">{item.desc}</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
       <section className="py-20 px-4">
         <div className="container mx-auto max-w-6xl">
           <div className="grid md:grid-cols-2 gap-12 items-center">
