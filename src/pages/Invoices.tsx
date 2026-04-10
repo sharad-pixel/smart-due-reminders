@@ -68,10 +68,8 @@ const Invoices = () => {
   const debtorIdFromUrl = searchParams.get('debtor');
   const agingFromUrl = searchParams.get('aging');
   
-  const [hideInactive, setHideInactive] = useState<boolean>(() => {
-    const saved = localStorage.getItem("hideInactiveInvoices");
-    return saved === null ? true : saved === "true"; // Default to hiding closed invoices
-  });
+  // Always hide closed invoices — only fetch active statuses from the server
+  const hideInactive = true;
 
   const queryClient = useQueryClient();
 
