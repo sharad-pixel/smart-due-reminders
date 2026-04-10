@@ -834,6 +834,13 @@ const CollectionIntelligence = () => {
                 <p className="text-sm text-muted-foreground">Review and approve all AI-generated messages before sending</p>
               </CardContent>
             </Card>
+            <Card className="bg-card border-primary/30">
+              <CardContent className="p-6">
+                <TrendingUp className="h-8 w-8 text-primary mb-4" />
+                <h3 className="font-bold mb-2">Expansion Risk Assessment</h3>
+                <p className="text-sm text-muted-foreground">AI-driven credit risk analysis before extending more credit or upselling customers</p>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>
