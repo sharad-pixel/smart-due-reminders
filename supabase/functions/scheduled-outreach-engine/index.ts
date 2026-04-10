@@ -213,6 +213,7 @@ Deno.serve(async (req) => {
             integration_url,
             external_link,
             stripe_hosted_url,
+            public_token,
             product_description,
           debtors!inner (
             id,
