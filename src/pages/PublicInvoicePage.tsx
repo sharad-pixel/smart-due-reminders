@@ -87,11 +87,11 @@ const PublicInvoicePage = () => {
           "get_public_invoice",
           { p_token: token }
         );
-        if (rpcError) throw rpcError;
+        const result = result as unknown as Record<string, unknown>;
         if (result?.error) {
-          setError(result.error);
+          setError(result.error as string);
         } else {
-          setData(result as PublicInvoiceData);
+          setData(result as unknown as PublicInvoiceData);
         }
       } catch (err: any) {
         setError(err.message || "Failed to load invoice");
