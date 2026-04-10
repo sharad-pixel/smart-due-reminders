@@ -5084,8 +5084,13 @@ export type Database = {
           id: string
           payment_instructions_check: string | null
           payment_instructions_wire: string | null
+          qr_code_cashapp_url: string | null
+          qr_code_paypal_url: string | null
+          qr_code_stripe_url: string | null
+          qr_code_venmo_url: string | null
           show_logo: boolean | null
           show_payment_instructions: boolean | null
+          show_payment_qr_codes: boolean | null
           show_po_number: boolean | null
           show_sales_rep: boolean | null
           show_ship_to: boolean | null
@@ -5104,8 +5109,13 @@ export type Database = {
           id?: string
           payment_instructions_check?: string | null
           payment_instructions_wire?: string | null
+          qr_code_cashapp_url?: string | null
+          qr_code_paypal_url?: string | null
+          qr_code_stripe_url?: string | null
+          qr_code_venmo_url?: string | null
           show_logo?: boolean | null
           show_payment_instructions?: boolean | null
+          show_payment_qr_codes?: boolean | null
           show_po_number?: boolean | null
           show_sales_rep?: boolean | null
           show_ship_to?: boolean | null
@@ -5124,8 +5134,13 @@ export type Database = {
           id?: string
           payment_instructions_check?: string | null
           payment_instructions_wire?: string | null
+          qr_code_cashapp_url?: string | null
+          qr_code_paypal_url?: string | null
+          qr_code_stripe_url?: string | null
+          qr_code_venmo_url?: string | null
           show_logo?: boolean | null
           show_payment_instructions?: boolean | null
+          show_payment_qr_codes?: boolean | null
           show_po_number?: boolean | null
           show_sales_rep?: boolean | null
           show_ship_to?: boolean | null
