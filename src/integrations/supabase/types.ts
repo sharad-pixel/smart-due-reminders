@@ -5092,6 +5092,7 @@ export type Database = {
           qr_code_stripe_url: string | null
           qr_code_venmo_url: string | null
           show_logo: boolean | null
+          show_notes: boolean | null
           show_payment_instructions: boolean | null
           show_payment_qr_codes: boolean | null
           show_po_number: boolean | null
@@ -5117,6 +5118,7 @@ export type Database = {
           qr_code_stripe_url?: string | null
           qr_code_venmo_url?: string | null
           show_logo?: boolean | null
+          show_notes?: boolean | null
           show_payment_instructions?: boolean | null
           show_payment_qr_codes?: boolean | null
           show_po_number?: boolean | null
@@ -5142,6 +5144,7 @@ export type Database = {
           qr_code_stripe_url?: string | null
           qr_code_venmo_url?: string | null
           show_logo?: boolean | null
+          show_notes?: boolean | null
           show_payment_instructions?: boolean | null
           show_payment_qr_codes?: boolean | null
           show_po_number?: boolean | null
