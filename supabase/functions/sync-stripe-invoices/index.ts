@@ -1010,6 +1010,50 @@ Deno.serve(async (req) => {
           logStep("Error syncing transactions", { invoiceId: stripeInvoice.id, error: String(txError) });
         }
 
+        // ============================================================
+        // SYNC LINE ITEMS: Stripe invoice.lines → invoice_line_items
+        // ============================================================
+        try {
+          const stripeLines = stripeInvoice.lines?.data || [];
+          if (stripeLines.length > 0) {
+            // Delete existing synced line items for this invoice to avoid duplicates
+            await supabaseClient
+              .from('invoice_line_items')
+              .delete()
+              .eq('invoice_id', invoiceRecordId)
+              .eq('user_id', effectiveAccountId);
+
+            const lineItemsToInsert = stripeLines.map((line: any, index: number) => ({
+              invoice_id: invoiceRecordId,
+              user_id: effectiveAccountId,
+              description: line.description || line.plan?.nickname || 'Stripe line item',
+              quantity: line.quantity || 1,
+              unit_price: (line.unit_amount || line.price?.unit_amount || 0) / 100,
+              line_total: (line.amount || 0) / 100,
+              sort_order: index,
+            }));
+
+            const { error: lineItemsError } = await supabaseClient
+              .from('invoice_line_items')
+              .insert(lineItemsToInsert);
+
+            if (lineItemsError) {
+              logStep("Error syncing line items", { invoiceId: stripeInvoice.id, error: lineItemsError.message });
+            } else {
+              logStep("Line items synced", { invoiceId: stripeInvoice.id, count: lineItemsToInsert.length });
+            }
+
+            // Update invoice subtotal from line items
+            const subtotal = lineItemsToInsert.reduce((sum: number, item: any) => sum + item.line_total, 0);
+            await supabaseClient
+              .from('invoices')
+              .update({ subtotal })
+              .eq('id', invoiceRecordId);
+          }
+        } catch (lineItemError) {
+          logStep("Error syncing line items", { invoiceId: stripeInvoice.id, error: String(lineItemError) });
+        }
+
         syncedCount++;
       } catch (invoiceError) {
         const errorMsg = invoiceError instanceof Error ? invoiceError.message : String(invoiceError);
