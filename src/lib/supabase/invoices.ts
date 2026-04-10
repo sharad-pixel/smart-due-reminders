@@ -30,6 +30,10 @@ export interface InvoiceListItem {
 
 const PAGE_SIZE = 1000;
 
+// Lean select for list views — only columns the Invoices page actually renders
+const LIST_SELECT =
+  "id, reference_id, invoice_number, amount, amount_outstanding, issue_date, due_date, payment_terms, status, last_contact_date, debtor_id, integration_source, has_local_overrides, currency, is_on_payment_plan, is_overage, debtors(company_name), ai_workflows(id, is_active)";
+
 /**
  * Fetch all invoices with pagination to handle > 1000 rows.
  * Optionally includes related debtor, workflow, and extra fields.
@@ -39,9 +43,7 @@ export async function fetchAllInvoicesPaginated(options?: {
   includeArchived?: boolean;
   orderBy?: { column: string; ascending: boolean };
 }): Promise<InvoiceListItem[]> {
-  const select =
-    options?.select ??
-    "*, debtors(company_name), ai_workflows(id, is_active), integration_source, has_local_overrides, currency";
+  const select = options?.select ?? LIST_SELECT;
   const orderColumn = options?.orderBy?.column ?? "due_date";
   const ascending = options?.orderBy?.ascending ?? false;
 
