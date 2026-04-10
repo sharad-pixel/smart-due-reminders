@@ -276,7 +276,6 @@ export const InvoiceTemplateBuilder = ({
             <div className="grid gap-3 sm:grid-cols-2">
               {[
                 { key: "show_logo" as const, label: "Company Logo" },
-                { key: "show_ship_to" as const, label: "Ship To Address" },
                 { key: "show_po_number" as const, label: "PO Number Column" },
                 { key: "show_sales_rep" as const, label: "Sales Rep Column" },
                 { key: "show_tax" as const, label: "Tax Line" },

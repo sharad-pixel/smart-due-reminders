@@ -86,9 +86,9 @@ export const InvoiceTemplatePreview = ({
             </div>
           </div>
 
-          {/* Bill To / Ship To / Amount Due */}
+          {/* Bill To / Amount Due */}
           <div className="px-6 pb-4">
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <div
                   className="text-[10px] font-bold uppercase tracking-wider mb-1"
@@ -106,30 +106,6 @@ export const InvoiceTemplatePreview = ({
                   Los Angeles, CA 90001
                 </div>
               </div>
-              {template.show_ship_to && (
-                <div>
-                  <div
-                    className="text-[10px] font-bold uppercase tracking-wider mb-1"
-                    style={{ color: hc }}
-                  >
-                    Ship To
-                  </div>
-                  <div className="text-[11px] text-gray-700">
-                    Customer Company
-                    <br />
-                    456 Commerce Blvd
-                    <br />
-                    Suite 200
-                    <br />
-                    Los Angeles, CA 90001
-                  </div>
-                </div>
-              )}
-              <div
-                className={
-                  template.show_ship_to ? "" : "col-start-3"
-                }
-              >
                 <div
                   className="rounded-md p-3 text-center"
                   style={{ backgroundColor: `${hc}10` }}
