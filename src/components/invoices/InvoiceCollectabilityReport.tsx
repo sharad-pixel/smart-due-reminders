@@ -133,7 +133,7 @@ export function InvoiceCollectabilityReport() {
 
   const handleGenerateAISummaries = async () => {
     if (!canRefresh) {
-      toast.error("Manual refresh already used today. Reports refresh automatically daily at 1:00 PM UTC.");
+      toast.error("Daily manual refresh already used. Reports update automatically at 1:00 PM UTC when there is sufficient data.");
       return;
     }
 
@@ -247,13 +247,13 @@ export function InvoiceCollectabilityReport() {
                 {canRefresh ? "Refresh & Generate AI" : "Refreshed Today"}
               </Button>
             </div>
-            <p className="text-[10px] text-muted-foreground leading-tight">
-              Auto-refreshes daily at 1:00 PM UTC.{" "}
-              {canRefresh ? "1 manual refresh available." : "Manual refresh used."}
-              {lastGeneratedAt && (
-                <> Last: {new Date(lastGeneratedAt).toLocaleString()}</>
-              )}
-            </p>
+             <p className="text-[10px] text-muted-foreground leading-tight">
+               Reports update daily at <strong>1:00 PM UTC</strong> when sufficient data is available for meaningful analysis.{" "}
+               {canRefresh ? "1 manual refresh per day." : "Daily manual refresh used."}
+               {lastGeneratedAt && (
+                 <> Last generated: {new Date(lastGeneratedAt).toLocaleString()}</>
+               )}
+             </p>
           </div>
         </div>
       </CardHeader>

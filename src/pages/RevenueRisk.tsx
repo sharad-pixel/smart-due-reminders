@@ -137,10 +137,10 @@ export default function RevenueRisk() {
         <div className="flex items-start gap-2 bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 text-sm text-blue-700 dark:text-blue-400">
           <RefreshCw className="h-4 w-4 mt-0.5 shrink-0" />
           <span>
-            Reports refresh automatically daily at <strong>1:00 PM UTC</strong>. 
+            Reports update daily at <strong>1:00 PM UTC</strong> when sufficient data is available for meaningful analysis.{" "}
             {canRefresh
-              ? " You have 1 manual refresh available today."
-              : " Manual refresh has been used today — next auto-refresh at 1:00 PM UTC."}
+              ? "You have 1 manual refresh available today."
+              : "Daily manual refresh used — next automatic update at 1:00 PM UTC."}
             {lastGeneratedAt && (
               <> Last generated: {new Date(lastGeneratedAt).toLocaleString()}.</>
             )}
