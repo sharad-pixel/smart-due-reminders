@@ -8,6 +8,7 @@ import { PLAN_CONFIGS, INVOICE_PRICING } from "@/lib/subscriptionConfig";
 import venmoLogo from "@/assets/venmo-logo.png";
 import paypalLogo from "@/assets/paypal-logo.png";
 import cashappLogo from "@/assets/cashapp-logo.png";
+import stripeLogo from "@/assets/stripe-logo.png";
 
 const SoloPro = () => {
   const navigate = useNavigate();
@@ -190,6 +191,7 @@ const SoloPro = () => {
                   { logo: venmoLogo, name: "Venmo" },
                   { logo: paypalLogo, name: "PayPal" },
                   { logo: cashappLogo, name: "Cash App" },
+                  { logo: stripeLogo, name: "Stripe" },
                 ].map((provider) => (
                   <div key={provider.name} className="flex flex-col items-center gap-3">
                     <div className="h-20 w-20 rounded-2xl bg-muted/50 border overflow-hidden flex items-center justify-center">
