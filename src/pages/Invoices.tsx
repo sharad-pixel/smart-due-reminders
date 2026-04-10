@@ -119,10 +119,10 @@ const Invoices = () => {
     localStorage.setItem("invoiceStatusFilter", statusFilter);
   }, [statusFilter]);
 
+  // Reset to first page when filters change
   useEffect(() => {
-    filterInvoices();
-    setCurrentPage(1); // Reset to first page when filters change
-  }, [invoices, searchTerm, statusFilter, ageBucketFilter, debtorFilter, sourceFilter, currencyFilter, hideInactive]);
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, ageBucketFilter, debtorFilter, sourceFilter, currencyFilter, hideInactive]);
 
   const fetchData = async () => {
     try {
@@ -130,13 +130,6 @@ const Invoices = () => {
         fetchAllInvoicesPaginated(),
         fetchDebtorsList(),
       ]);
-
-      // Also fetch agent personas
-      const agentPersonasRes = await supabase
-        .from("ai_agent_personas")
-        .select("name, bucket_min, bucket_max")
-        .order("bucket_min");
-      if (agentPersonasRes.error) throw agentPersonasRes.error;
 
       setInvoices(allInvoices as any);
       setDebtors(debtorsList);
@@ -267,16 +260,17 @@ const Invoices = () => {
     }
   };
 
-  const filterInvoices = () => {
-    let filtered = [...invoices];
+  // Memoized filtering — no extra state, no double render
+  const filteredInvoices = useMemo(() => {
+    let filtered = invoices;
 
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(
         (inv) =>
-          inv.reference_id.toLowerCase().includes(term) ||
-          inv.invoice_number.toLowerCase().includes(term) ||
-          inv.debtors?.company_name.toLowerCase().includes(term)
+          inv.reference_id?.toLowerCase().includes(term) ||
+          inv.invoice_number?.toLowerCase().includes(term) ||
+          inv.debtors?.company_name?.toLowerCase().includes(term)
       );
     }
 
@@ -315,8 +309,8 @@ const Invoices = () => {
       filtered = filtered.filter((inv) => (inv.currency || "USD") === currencyFilter);
     }
 
-    setFilteredInvoices(filtered);
-  };
+    return filtered;
+  }, [invoices, searchTerm, statusFilter, ageBucketFilter, debtorFilter, sourceFilter, currencyFilter, hideInactive]);
 
   // Add computed fields for sorting
   const invoicesWithComputedFields = useMemo(() => {
