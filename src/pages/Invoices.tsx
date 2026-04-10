@@ -19,7 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Search, AlertCircle, X, ListChecks } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Switch } from "@/components/ui/switch";
+
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { PersonaAvatar } from "@/components/ai/PersonaAvatar";
 import { getPersonaByDaysPastDue } from "@/lib/personaConfig";
