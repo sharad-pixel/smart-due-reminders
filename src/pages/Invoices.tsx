@@ -299,10 +299,7 @@ const Invoices = () => {
       });
     }
 
-    if (hideInactive) {
-      const inactiveStatuses = ["Paid", "Settled", "Canceled", "Voided"];
-      filtered = filtered.filter((inv) => !inactiveStatuses.includes(inv.status));
-    }
+    // hideInactive is handled server-side via includeClosed param
 
     if (currencyFilter !== "all") {
       filtered = filtered.filter((inv) => (inv.currency || "USD") === currencyFilter);
