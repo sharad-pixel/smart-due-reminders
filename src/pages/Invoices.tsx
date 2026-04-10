@@ -83,8 +83,8 @@ const Invoices = () => {
     gcTime: 30 * 60 * 1000,   // keep in cache 30 min
   });
 
-  const invoices = queryData?.invoices ?? [];
-  const debtors = queryData?.debtors ?? [];
+  const invoices = useMemo(() => queryData?.invoices ?? [], [queryData]);
+  const debtors = useMemo(() => queryData?.debtors ?? [], [queryData]);
 
   const refetchData = () => {
     queryClient.invalidateQueries({ queryKey: ["invoices-page-data"] });
