@@ -34,6 +34,7 @@ import { IntegrationSourceBanner } from "@/components/integrations/IntegrationSo
 import { useOverrideWarning, useStatusActionWarning, logOverrideAndUpdateInvoice } from "@/components/invoices/InvoiceOverrideWarningDialogs";
 import { ApplyPaymentButton } from "@/components/invoices/ApplyPaymentButton";
 import { OutreachTimeline } from "@/components/outreach/OutreachTimeline";
+import { InvoiceLinkCard } from "@/components/invoices/InvoiceLinkCard";
 
 interface Invoice {
   id: string;
@@ -1282,6 +1283,13 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
           invoiceId={invoice.id}
           onSync={() => fetchData()}
           onDiscardOverrides={() => fetchData()}
+        />
+
+        {/* Invoice Link Card */}
+        <InvoiceLinkCard
+          invoiceId={invoice.id}
+          publicToken={(invoice as any).public_token}
+          stripeHostedUrl={invoice.stripe_hosted_url}
         />
 
         {/* Main Content Grid - 3 columns on large screens */}
