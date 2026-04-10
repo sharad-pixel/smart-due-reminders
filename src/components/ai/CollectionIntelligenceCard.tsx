@@ -56,6 +56,7 @@ export function CollectionIntelligenceCard() {
   const [accounts, setAccounts] = useState<AccountWithIntelligence[]>([]);
   const [_loadError, setLoadError] = useState<string | null>(null);
   const [regenerating, setRegenerating] = useState(false);
+  const [hasRefreshedToday, setHasRefreshedToday] = useState(false);
 
   // AI Analytics hook
   const { 
