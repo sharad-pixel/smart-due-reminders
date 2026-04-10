@@ -106,6 +106,7 @@ export const InvoiceTemplatePreview = ({
                   Los Angeles, CA 90001
                 </div>
               </div>
+              <div className="flex items-start justify-end">
                 <div
                   className="rounded-md p-3 text-center"
                   style={{ backgroundColor: `${hc}10` }}
