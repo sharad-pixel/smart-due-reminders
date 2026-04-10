@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { FileText, Save, Loader2, Eye } from "lucide-react";
 import { InvoiceTemplatePreview } from "./InvoiceTemplatePreview";
+import { QrCodeUploadField } from "./QrCodeUploadField";
 
 export interface InvoiceTemplateData {
   id?: string;
@@ -24,11 +25,16 @@ export interface InvoiceTemplateData {
   show_sales_rep: boolean;
   show_tax: boolean;
   show_payment_instructions: boolean;
+  show_payment_qr_codes: boolean;
   header_color: string;
   payment_instructions_wire: string;
   payment_instructions_check: string;
   footer_note: string;
   font_style: string;
+  qr_code_venmo_url: string;
+  qr_code_stripe_url: string;
+  qr_code_paypal_url: string;
+  qr_code_cashapp_url: string;
 }
 
 const defaultTemplate: InvoiceTemplateData = {
@@ -41,11 +47,16 @@ const defaultTemplate: InvoiceTemplateData = {
   show_sales_rep: false,
   show_tax: true,
   show_payment_instructions: true,
+  show_payment_qr_codes: false,
   header_color: "#1a56db",
   payment_instructions_wire: "",
   payment_instructions_check: "",
   footer_note: "Thank you for your business.",
   font_style: "modern",
+  qr_code_venmo_url: "",
+  qr_code_stripe_url: "",
+  qr_code_paypal_url: "",
+  qr_code_cashapp_url: "",
 };
 
 interface InvoiceTemplateBuilderProps {
@@ -92,11 +103,16 @@ export const InvoiceTemplateBuilder = ({
         show_sales_rep: template.show_sales_rep ?? false,
         show_tax: template.show_tax ?? true,
         show_payment_instructions: template.show_payment_instructions ?? true,
+        show_payment_qr_codes: (template as any).show_payment_qr_codes ?? false,
         header_color: template.header_color || "#1a56db",
         payment_instructions_wire: template.payment_instructions_wire || "",
         payment_instructions_check: template.payment_instructions_check || "",
         footer_note: template.footer_note || "",
         font_style: template.font_style || "modern",
+        qr_code_venmo_url: (template as any).qr_code_venmo_url || "",
+        qr_code_stripe_url: (template as any).qr_code_stripe_url || "",
+        qr_code_paypal_url: (template as any).qr_code_paypal_url || "",
+        qr_code_cashapp_url: (template as any).qr_code_cashapp_url || "",
       });
     }
   }, [template]);
@@ -280,6 +296,7 @@ export const InvoiceTemplateBuilder = ({
                 { key: "show_sales_rep" as const, label: "Sales Rep Column" },
                 { key: "show_tax" as const, label: "Tax Line" },
                 { key: "show_payment_instructions" as const, label: "Payment Instructions" },
+                { key: "show_payment_qr_codes" as const, label: "Payment QR Codes" },
               ].map(({ key, label }) => (
                 <div
                   key={key}
@@ -331,6 +348,34 @@ export const InvoiceTemplateBuilder = ({
               </div>
             </div>
           )}
+
+          {/* Payment QR Codes */}
+          {formData.show_payment_qr_codes && (
+            <div>
+              <h3 className="text-sm font-semibold mb-1">Payment QR Codes</h3>
+              <p className="text-xs text-muted-foreground mb-3">
+                Upload QR code images from your payment apps. These will display on your invoice.
+              </p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {([
+                  { key: "qr_code_venmo_url" as const, label: "Venmo" },
+                  { key: "qr_code_stripe_url" as const, label: "Stripe" },
+                  { key: "qr_code_paypal_url" as const, label: "PayPal" },
+                  { key: "qr_code_cashapp_url" as const, label: "Cash App" },
+                ] as const).map(({ key, label }) => (
+                  <QrCodeUploadField
+                    key={key}
+                    label={label}
+                    value={formData[key]}
+                    effectiveAccountId={effectiveAccountId}
+                    onChange={(url) => handleChange(key, url)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          <Separator />
 
           {/* Footer Note */}
           <div>
