@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { getCachedReport, setCachedReport } from "@/lib/supabase/cachedReports";
+import { getCachedReport, setCachedReport, canManualRefreshToday, markManualRefresh } from "@/lib/supabase/cachedReports";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -47,6 +47,8 @@ interface AggregateStats {
 export function InvoiceCollectabilityReport() {
   const [_expanded, _setExpanded] = useState(false);
   const [generatingAI, setGeneratingAI] = useState(false);
+  const [hasRefreshedToday, setHasRefreshedToday] = useState(false);
+  const [lastGeneratedAt, setLastGeneratedAt] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<string | null>("collectability_score");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
@@ -57,6 +59,10 @@ export function InvoiceCollectabilityReport() {
     queryFn: async () => {
       // 1. Check for a valid cached report first
       const cached = await getCachedReport<{ reports: InvoiceReport[]; aggregate: AggregateStats }>(REPORT_TYPE);
+      if (cached) {
+        setLastGeneratedAt(cached.generated_at);
+        setHasRefreshedToday(!canManualRefreshToday(cached.last_manual_refresh_at));
+      }
       if (cached && !cached.is_stale) {
         return cached.data;
       }
@@ -74,10 +80,11 @@ export function InvoiceCollectabilityReport() {
 
       // 3. Store in cache
       await setCachedReport(REPORT_TYPE, result);
+      setLastGeneratedAt(new Date().toISOString());
 
       return result;
     },
-    staleTime: 30 * 60 * 1000, // 30 minutes — trust the DB cache
+    staleTime: 30 * 60 * 1000,
     gcTime: 60 * 60 * 1000,
   });
 
@@ -122,7 +129,14 @@ export function InvoiceCollectabilityReport() {
     });
   }, [data?.reports, sortKey, sortDirection]);
 
+  const canRefresh = !hasRefreshedToday;
+
   const handleGenerateAISummaries = async () => {
+    if (!canRefresh) {
+      toast.error("Manual refresh already used today. Reports refresh automatically daily at 1:00 PM UTC.");
+      return;
+    }
+
     setGeneratingAI(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -137,10 +151,13 @@ export function InvoiceCollectabilityReport() {
       // Update cache with AI-enriched results
       if (result) {
         await setCachedReport(REPORT_TYPE, result);
+        await markManualRefresh(REPORT_TYPE);
+        setHasRefreshedToday(true);
+        setLastGeneratedAt(new Date().toISOString());
       }
 
       refetch();
-      toast.success("AI summaries generated");
+      toast.success("AI summaries generated. Next automatic refresh at 1:00 PM UTC.");
     } catch (err: any) {
       toast.error(err.message || "Failed to generate AI summaries");
     } finally {
@@ -213,28 +230,30 @@ export function InvoiceCollectabilityReport() {
             <Brain className="h-5 w-5 text-primary" />
             Invoice Collectability Report
           </CardTitle>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleGenerateAISummaries}
-              disabled={generatingAI || isFetching}
-            >
-              {generatingAI ? (
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Brain className="h-4 w-4 mr-2" />
+          <div className="flex flex-col gap-2">
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleGenerateAISummaries}
+                disabled={generatingAI || isFetching || !canRefresh}
+                title={!canRefresh ? "Manual refresh already used today" : "Refresh report with AI insights"}
+              >
+                {generatingAI ? (
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Brain className="h-4 w-4 mr-2" />
+                )}
+                {canRefresh ? "Refresh & Generate AI" : "Refreshed Today"}
+              </Button>
+            </div>
+            <p className="text-[10px] text-muted-foreground leading-tight">
+              Auto-refreshes daily at 1:00 PM UTC.{" "}
+              {canRefresh ? "1 manual refresh available." : "Manual refresh used."}
+              {lastGeneratedAt && (
+                <> Last: {new Date(lastGeneratedAt).toLocaleString()}</>
               )}
-              Generate AI Insights
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => refetch()}
-              disabled={isFetching}
-            >
-              <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
-            </Button>
+            </p>
           </div>
         </div>
       </CardHeader>

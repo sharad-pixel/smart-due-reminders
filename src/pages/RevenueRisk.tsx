@@ -26,7 +26,7 @@ import { toast } from "sonner";
 
 export default function RevenueRisk() {
   const navigate = useNavigate();
-  const { data, isLoading, isFetching, refetch, generatingAI, regenerateWithAI } = useRevenueRisk();
+  const { data, isLoading, isFetching, refetch, generatingAI, regenerateWithAI, canRefresh, lastGeneratedAt } = useRevenueRisk();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -120,24 +120,31 @@ export default function RevenueRisk() {
               variant="outline"
               size="sm"
               onClick={regenerateWithAI}
-              disabled={generatingAI || isFetching}
+              disabled={generatingAI || isFetching || !canRefresh}
+              title={!canRefresh ? "Manual refresh already used today" : "Refresh report with AI insights"}
             >
               {generatingAI ? (
                 <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
               ) : (
                 <Brain className="h-4 w-4 mr-2" />
               )}
-              Generate AI Insights
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => refetch()}
-              disabled={isFetching}
-            >
-              <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+              {canRefresh ? "Refresh & Generate AI Insights" : "Refreshed Today"}
             </Button>
           </div>
+        </div>
+
+        {/* Schedule Info */}
+        <div className="flex items-start gap-2 bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 text-sm text-blue-700 dark:text-blue-400">
+          <RefreshCw className="h-4 w-4 mt-0.5 shrink-0" />
+          <span>
+            Reports refresh automatically daily at <strong>1:00 PM UTC</strong>. 
+            {canRefresh
+              ? " You have 1 manual refresh available today."
+              : " Manual refresh has been used today — next auto-refresh at 1:00 PM UTC."}
+            {lastGeneratedAt && (
+              <> Last generated: {new Date(lastGeneratedAt).toLocaleString()}.</>
+            )}
+          </span>
         </div>
 
         {/* Disclaimer */}

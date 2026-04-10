@@ -764,6 +764,7 @@ export type Database = {
           created_at: string
           generated_at: string
           id: string
+          last_manual_refresh_at: string | null
           report_data: Json
           report_type: string
           updated_at: string
@@ -773,6 +774,7 @@ export type Database = {
           created_at?: string
           generated_at?: string
           id?: string
+          last_manual_refresh_at?: string | null
           report_data?: Json
           report_type: string
           updated_at?: string
@@ -782,6 +784,7 @@ export type Database = {
           created_at?: string
           generated_at?: string
           id?: string
+          last_manual_refresh_at?: string | null
           report_data?: Json
           report_type?: string
           updated_at?: string
