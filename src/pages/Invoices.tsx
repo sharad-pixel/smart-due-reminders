@@ -68,77 +68,26 @@ const Invoices = () => {
   const debtorIdFromUrl = searchParams.get('debtor');
   const agingFromUrl = searchParams.get('aging');
   
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  
-  const [debtors, setDebtors] = useState<Debtor[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>(() => {
-    const saved = localStorage.getItem("invoiceStatusFilter");
-    return saved || "all";
-  });
-  const [ageBucketFilter, setAgeBucketFilter] = useState<string>(agingFromUrl === '60plus' ? '60plus' : 'all');
-  const [debtorFilter, setDebtorFilter] = useState<string>(debtorIdFromUrl || "all");
-  const [sourceFilter, setSourceFilter] = useState<string>("all");
-  const [currencyFilter, setCurrencyFilter] = useState<string>("all");
-  const [hideInactive, setHideInactive] = useState<boolean>(() => {
-    const saved = localStorage.getItem("hideInactiveInvoices");
-    return saved === "true";
-  });
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 15;
-  const [showBulkAssignDialog, setShowBulkAssignDialog] = useState(false);
-  const [showBulkStatusDialog, setShowBulkStatusDialog] = useState(false);
-  const [selectedAgingBucket, setSelectedAgingBucket] = useState<string>("");
-  const [selectedBulkStatus, setSelectedBulkStatus] = useState<"Open" | "Paid" | "Disputed" | "Settled" | "InPaymentPlan" | "Canceled" | "FinalInternalCollections" | "">("");
-  const [formData, setFormData] = useState({
-    debtor_id: "",
-    invoice_number: "",
-    amount: "",
-    currency: "USD",
-    issue_date: new Date().toISOString().split("T")[0],
-    status: "Open",
-    payment_terms: "Net 30",
-    external_link: "",
-    notes: "",
-    product_description: "",
-    external_invoice_id: "",
-    po_number: "",
-  });
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem("hideInactiveInvoices", hideInactive.toString());
-  }, [hideInactive]);
-
-  useEffect(() => {
-    localStorage.setItem("invoiceStatusFilter", statusFilter);
-  }, [statusFilter]);
-
-  // Reset to first page when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, statusFilter, ageBucketFilter, debtorFilter, sourceFilter, currencyFilter, hideInactive]);
-
-  const fetchData = async () => {
-    try {
+  const { data: queryData, isLoading: loading } = useQuery({
+    queryKey: ["invoices-page-data"],
+    queryFn: async () => {
       const [allInvoices, debtorsList] = await Promise.all([
         fetchAllInvoicesPaginated(),
         fetchDebtorsList(),
       ]);
+      return { invoices: allInvoices as any as Invoice[], debtors: debtorsList };
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes — avoid refetch on every navigation
+    gcTime: 30 * 60 * 1000,   // keep in cache 30 min
+  });
 
-      setInvoices(allInvoices as any);
-      setDebtors(debtorsList);
-    } catch (_error: any) {
-      toast.error("Failed to load data");
-    } finally {
-      setLoading(false);
-    }
+  const invoices = queryData?.invoices ?? [];
+  const debtors = queryData?.debtors ?? [];
+
+  const refetchData = () => {
+    queryClient.invalidateQueries({ queryKey: ["invoices-page-data"] });
   };
 
   const getDaysPastDue = (dueDate: string): number => {
