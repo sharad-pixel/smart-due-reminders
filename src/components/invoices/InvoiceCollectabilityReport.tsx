@@ -47,6 +47,8 @@ interface AggregateStats {
 export function InvoiceCollectabilityReport() {
   const [_expanded, _setExpanded] = useState(false);
   const [generatingAI, setGeneratingAI] = useState(false);
+  const [hasRefreshedToday, setHasRefreshedToday] = useState(false);
+  const [lastGeneratedAt, setLastGeneratedAt] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<string | null>("collectability_score");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
@@ -57,6 +59,10 @@ export function InvoiceCollectabilityReport() {
     queryFn: async () => {
       // 1. Check for a valid cached report first
       const cached = await getCachedReport<{ reports: InvoiceReport[]; aggregate: AggregateStats }>(REPORT_TYPE);
+      if (cached) {
+        setLastGeneratedAt(cached.generated_at);
+        setHasRefreshedToday(!canManualRefreshToday(cached.last_manual_refresh_at));
+      }
       if (cached && !cached.is_stale) {
         return cached.data;
       }
@@ -74,10 +80,11 @@ export function InvoiceCollectabilityReport() {
 
       // 3. Store in cache
       await setCachedReport(REPORT_TYPE, result);
+      setLastGeneratedAt(new Date().toISOString());
 
       return result;
     },
-    staleTime: 30 * 60 * 1000, // 30 minutes — trust the DB cache
+    staleTime: 30 * 60 * 1000,
     gcTime: 60 * 60 * 1000,
   });
 
