@@ -1,0 +1,1 @@
+ALTER TABLE public.invoice_templates ADD COLUMN show_notes boolean DEFAULT true;

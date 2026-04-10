@@ -24,6 +24,7 @@ export interface InvoiceTemplateData {
   show_po_number: boolean;
   show_sales_rep: boolean;
   show_tax: boolean;
+  show_notes: boolean;
   show_payment_instructions: boolean;
   show_payment_qr_codes: boolean;
   header_color: string;
@@ -46,6 +47,7 @@ const defaultTemplate: InvoiceTemplateData = {
   show_po_number: true,
   show_sales_rep: false,
   show_tax: true,
+  show_notes: true,
   show_payment_instructions: true,
   show_payment_qr_codes: false,
   header_color: "#1a56db",
@@ -97,7 +99,7 @@ export const InvoiceTemplateBuilder = ({
       if (!effectiveAccountId) return null;
       const { data, error } = await supabase
         .from("invoices")
-        .select("product_description, invoice_number, amount, due_date, issue_date")
+        .select("product_description, invoice_number, amount, due_date, issue_date, notes")
         .eq("user_id", effectiveAccountId)
         .order("created_at", { ascending: false })
         .limit(1)
@@ -120,6 +122,7 @@ export const InvoiceTemplateBuilder = ({
         show_po_number: template.show_po_number ?? true,
         show_sales_rep: template.show_sales_rep ?? false,
         show_tax: template.show_tax ?? true,
+        show_notes: (template as any).show_notes ?? true,
         show_payment_instructions: template.show_payment_instructions ?? true,
         show_payment_qr_codes: (template as any).show_payment_qr_codes ?? false,
         header_color: template.header_color || "#1a56db",
@@ -313,6 +316,7 @@ export const InvoiceTemplateBuilder = ({
                 { key: "show_po_number" as const, label: "PO Number Column" },
                 { key: "show_sales_rep" as const, label: "Sales Rep Column" },
                 { key: "show_tax" as const, label: "Tax Line" },
+                { key: "show_notes" as const, label: "Invoice Notes" },
                 { key: "show_payment_instructions" as const, label: "Payment Instructions" },
                 { key: "show_payment_qr_codes" as const, label: "Payment QR Codes" },
               ].map(({ key, label }) => (
@@ -422,6 +426,7 @@ export const InvoiceTemplateBuilder = ({
             amount: sampleInvoice.amount || null,
             due_date: sampleInvoice.due_date || null,
             issue_date: sampleInvoice.issue_date || null,
+            notes: sampleInvoice.notes || null,
           } : undefined}
         />
       )}

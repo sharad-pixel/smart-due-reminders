@@ -11,6 +11,7 @@ interface SampleInvoice {
   amount: number | null;
   due_date: string | null;
   issue_date: string | null;
+  notes: string | null;
 }
 
 interface InvoiceTemplatePreviewProps {
@@ -245,6 +246,21 @@ export const InvoiceTemplatePreview = ({
               </div>
             </div>
           </div>
+
+          {/* Notes */}
+          {template.show_notes && sampleInvoice?.notes && (
+            <div className="px-6 mt-3">
+              <div
+                className="text-[10px] font-bold uppercase tracking-wider mb-1"
+                style={{ color: hc }}
+              >
+                Notes
+              </div>
+              <p className="text-[11px] text-gray-600 whitespace-pre-line">
+                {sampleInvoice.notes}
+              </p>
+            </div>
+          )}
 
           {/* Footer note */}
           {template.footer_note && (
