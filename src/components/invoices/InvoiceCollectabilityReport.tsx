@@ -230,28 +230,30 @@ export function InvoiceCollectabilityReport() {
             <Brain className="h-5 w-5 text-primary" />
             Invoice Collectability Report
           </CardTitle>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleGenerateAISummaries}
-              disabled={generatingAI || isFetching}
-            >
-              {generatingAI ? (
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Brain className="h-4 w-4 mr-2" />
+          <div className="flex flex-col gap-2">
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleGenerateAISummaries}
+                disabled={generatingAI || isFetching || !canRefresh}
+                title={!canRefresh ? "Manual refresh already used today" : "Refresh report with AI insights"}
+              >
+                {generatingAI ? (
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Brain className="h-4 w-4 mr-2" />
+                )}
+                {canRefresh ? "Refresh & Generate AI" : "Refreshed Today"}
+              </Button>
+            </div>
+            <p className="text-[10px] text-muted-foreground leading-tight">
+              Auto-refreshes daily at 1:00 PM UTC.{" "}
+              {canRefresh ? "1 manual refresh available." : "Manual refresh used."}
+              {lastGeneratedAt && (
+                <> Last: {new Date(lastGeneratedAt).toLocaleString()}</>
               )}
-              Generate AI Insights
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => refetch()}
-              disabled={isFetching}
-            >
-              <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
-            </Button>
+            </p>
           </div>
         </div>
       </CardHeader>
