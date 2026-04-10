@@ -759,6 +759,36 @@ export type Database = {
           },
         ]
       }
+      cached_reports: {
+        Row: {
+          created_at: string
+          generated_at: string
+          id: string
+          report_data: Json
+          report_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          generated_at?: string
+          id?: string
+          report_data?: Json
+          report_type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          generated_at?: string
+          id?: string
+          report_data?: Json
+          report_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       campaign_accounts: {
         Row: {
           amount_collected: number | null
