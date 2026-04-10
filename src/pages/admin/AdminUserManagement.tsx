@@ -713,7 +713,7 @@ Delaware, USA`;
               `"${u.email}"`,
               `"${u.name || ""}"`,
               `"${u.company_name || ""}"`,
-              u.plans?.name || "Free",
+              u.plans?.name || (u.plan_type && u.plan_type !== 'free' ? u.plan_type.replace('_', ' ') : "Free"),
               u.is_blocked ? "Blocked" : u.is_suspended ? "Suspended" : (u.subscription_status || "Inactive"),
               u.is_admin ? "Yes" : "No",
               new Date(u.created_at).toISOString(),
@@ -1394,7 +1394,7 @@ Delaware, USA`;
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground">Plan</Label>
-                    <p className="text-sm font-medium">{selectedUser.plans?.name || "Free"}</p>
+                    <p className="text-sm font-medium">{selectedUser.plans?.name || (selectedUser.plan_type && selectedUser.plan_type !== 'free' ? selectedUser.plan_type.replace('_', ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()) : "Free")}</p>
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground">Monthly Price</Label>
