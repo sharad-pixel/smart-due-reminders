@@ -1920,7 +1920,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                 )}
               </TabsContent>
 
-              <TabsContent value="drafts" className="mt-4">
+              <TabsContent value="drafts" className="mt-4 max-h-[400px] overflow-y-auto">
                 {drafts.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
