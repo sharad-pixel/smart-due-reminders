@@ -29,6 +29,7 @@ export interface InvoiceData {
   external_link?: string;
   stripe_hosted_url?: string;
   integration_url?: string;
+  public_token?: string;
 }
 
 export interface DebtorData {
@@ -45,6 +46,7 @@ export interface BrandingData {
   stripe_payment_link?: string;
   ar_page_public_token?: string;
   ar_page_enabled?: boolean;
+  public_invoice_links_enabled?: boolean;
   escalation_contact_name?: string;
   escalation_contact_email?: string;
   escalation_contact_phone?: string;
@@ -121,9 +123,19 @@ export function calculateDaysPastDue(dueDate: string): number {
 
 /**
  * Get the best available invoice link
+ * Falls back to the branded public invoice template link when no source system link exists
  */
-export function getInvoiceLink(invoice: InvoiceData): string {
-  return invoice.external_link || invoice.stripe_hosted_url || invoice.integration_url || '';
+export function getInvoiceLink(invoice: InvoiceData, branding?: BrandingData): string {
+  // Prefer source system links (Stripe, QuickBooks, etc.)
+  const sourceLink = invoice.external_link || invoice.stripe_hosted_url || invoice.integration_url;
+  if (sourceLink) return sourceLink;
+
+  // Fallback: use branding invoice template public link if enabled
+  if (branding?.public_invoice_links_enabled && invoice.public_token) {
+    return `https://recouply.ai/invoice/${invoice.public_token}`;
+  }
+
+  return '';
 }
 
 /**
@@ -244,7 +256,7 @@ export function replaceTemplateVariables(
   const formattedDueDate = formatDate(invoice.due_date);
   
   // Get links
-  const invoiceLink = getInvoiceLink(invoice);
+  const invoiceLink = getInvoiceLink(invoice, branding);
   const paymentLink = branding.stripe_payment_link || '';
   const arPortalUrl = getArPortalUrl(branding);
   const productDescription = invoice.product_description || '';
@@ -411,7 +423,7 @@ export function processDraftContent(input: DraftContentInput): DraftContentOutpu
     : `Invoice ${invoice.invoice_number} - Payment Reminder`;
 
   // Step 2: Auto-append useful links if not already present
-  const invoiceLink = getInvoiceLink(invoice);
+  const invoiceLink = getInvoiceLink(invoice, branding);
   const paymentLink = branding.stripe_payment_link || '';
   const arPortalUrl = getArPortalUrl(branding);
 

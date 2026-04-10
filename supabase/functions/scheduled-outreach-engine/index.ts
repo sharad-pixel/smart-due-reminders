@@ -213,6 +213,7 @@ Deno.serve(async (req) => {
             integration_url,
             external_link,
             stripe_hosted_url,
+            public_token,
             product_description,
           debtors!inner (
             id,
@@ -297,7 +298,7 @@ Deno.serve(async (req) => {
 
           const { data: branding } = await supabaseAdmin
             .from('branding_settings')
-            .select('business_name, from_name, stripe_payment_link, ar_page_public_token, ar_page_enabled, email_signature, auto_approve_drafts')
+            .select('business_name, from_name, stripe_payment_link, ar_page_public_token, ar_page_enabled, public_invoice_links_enabled, email_signature, auto_approve_drafts')
             .eq('user_id', brandingOwnerId)
             .maybeSingle();
 
@@ -329,7 +330,10 @@ Deno.serve(async (req) => {
           const customerName = debtor?.company_name || debtor?.name || 'Valued Customer';
           const invoiceNumber = invoice.invoice_number || invoice.reference_id || '';
           const formattedAmount = new Intl.NumberFormat('en-US', { style: 'currency', currency: invoice.currency || 'USD', minimumFractionDigits: 2 }).format(invoice.amount || 0);
-          const invoiceLink = invoice.external_link || invoice.stripe_hosted_url || invoice.integration_url || '';
+          let invoiceLink = invoice.external_link || invoice.stripe_hosted_url || invoice.integration_url || '';
+          if (!invoiceLink && branding?.public_invoice_links_enabled && invoice.public_token) {
+            invoiceLink = `https://recouply.ai/invoice/${invoice.public_token}`;
+          }
           // CRITICAL: Use proper fallback chain for business name
           const businessName = branding?.business_name?.trim() || branding?.from_name?.trim() || 'Your Company';
           const paymentLink = branding?.stripe_payment_link || '';
