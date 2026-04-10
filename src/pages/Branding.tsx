@@ -487,7 +487,7 @@ export default function Branding() {
 
             {/* Invoice Template Builder */}
             <InvoiceTemplateBuilder
-              businessName={formData.business_name || "Your Company"}
+              businessName={formData.from_name || formData.business_name || "Your Company"}
               logoUrl={formData.logo_url || null}
               effectiveAccountId={effectiveAccountId}
             />
