@@ -68,6 +68,8 @@ interface BrandingSettings {
   use_persona_signatures: boolean | null;
   // Auto-approve drafts
   auto_approve_drafts: boolean | null;
+  // Public invoice links
+  public_invoice_links_enabled: boolean | null;
 }
 
 export default function Branding() {
@@ -491,6 +493,49 @@ export default function Branding() {
               logoUrl={formData.logo_url || null}
               effectiveAccountId={effectiveAccountId}
             />
+
+            {/* Public Invoice Links */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Link2 className="h-5 w-5" />
+                  Public Invoice Links
+                </CardTitle>
+                <CardDescription>
+                  Generate shareable branded invoice links for customers without Stripe
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
+                  <div className="flex items-center gap-3">
+                    {formData.public_invoice_links_enabled ? (
+                      <Eye className="h-5 w-5 text-green-600" />
+                    ) : (
+                      <EyeOff className="h-5 w-5 text-muted-foreground" />
+                    )}
+                    <div>
+                      <p className="font-medium">Invoice Link Generation</p>
+                      <p className="text-sm text-muted-foreground">
+                        {formData.public_invoice_links_enabled
+                          ? "Branded invoice links are active for all invoices"
+                          : "Enable to create shareable links using your invoice template"
+                        }
+                      </p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={formData.public_invoice_links_enabled || false}
+                    onCheckedChange={(checked) => handleChange("public_invoice_links_enabled", checked)}
+                  />
+                </div>
+                {formData.public_invoice_links_enabled && (
+                  <p className="text-xs text-muted-foreground mt-3">
+                    Each invoice will have a unique link that displays your branded template design.
+                    Links for invoices without a Stripe payment link will use this template automatically.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
 
             {/* Document Visibility Info */}
             <Card>
