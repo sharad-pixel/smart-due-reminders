@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getCachedReport, setCachedReport } from "@/lib/supabase/cachedReports";
 
 export interface RevenueRiskAggregate {
   total_ar: number;
@@ -79,12 +80,21 @@ export interface RevenueRiskData {
   disclaimer: string;
 }
 
+const REPORT_TYPE = "revenue_risk";
+
 export function useRevenueRisk() {
   const [generatingAI, setGeneratingAI] = useState(false);
 
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["revenue-risk"],
     queryFn: async () => {
+      // 1. Check for a valid cached report first
+      const cached = await getCachedReport<RevenueRiskData>(REPORT_TYPE);
+      if (cached && !cached.is_stale) {
+        return cached.data;
+      }
+
+      // 2. Cache is stale or missing — regenerate from edge function
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
 
@@ -93,9 +103,15 @@ export function useRevenueRisk() {
       });
 
       if (error) throw error;
-      return data as RevenueRiskData;
+      const result = data as RevenueRiskData;
+
+      // 3. Store in cache for next visit
+      await setCachedReport(REPORT_TYPE, result);
+
+      return result;
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 30 * 60 * 1000, // 30 minutes — trust the DB cache
+    gcTime: 60 * 60 * 1000, // 1 hour
   });
 
   const regenerateWithAI = async () => {
@@ -104,11 +120,17 @@ export function useRevenueRisk() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
 
-      const { data: _result, error } = await supabase.functions.invoke("revenue-risk-engine", {
+      const { data: result, error } = await supabase.functions.invoke("revenue-risk-engine", {
         body: { user_id: session.user.id, generate_ai_summary: true },
       });
 
       if (error) throw error;
+
+      // Update cache with AI-enriched results
+      if (result) {
+        await setCachedReport(REPORT_TYPE, result);
+      }
+
       refetch();
       toast.success("AI insights generated");
     } catch (err: any) {
