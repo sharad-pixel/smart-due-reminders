@@ -76,7 +76,7 @@ const CelebrateCash = () => {
       <p>This belief is why we built Recouply.ai.</p>
 
       <p>
-        Recouply.ai is a <strong>Collection Intelligence Platform</strong> designed to give cash the same level of focus, automation, and visibility that businesses apply to bookings. Traditional collections are often manual, reactive, and dependent on individuals and inboxes, with little real-time insight or accountability.
+        Recouply.ai is a <strong>Collections & Risk Intelligence Platform</strong> designed to give cash the same level of focus, automation, and visibility that businesses apply to bookings. Traditional collections are often manual, reactive, and dependent on individuals and inboxes, with little real-time insight or accountability.
       </p>
 
       <p>

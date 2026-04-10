@@ -568,7 +568,7 @@ const Layout = ({ children }: LayoutProps) => {
             <div className="flex items-center gap-3">
               <RecouplyLogo size="sm" />
               <span className="text-muted-foreground text-sm">
-                Collection Intelligence Platform
+                Collections & Risk Intelligence Platform
               </span>
             </div>
             <div className="flex items-center gap-4 text-sm text-muted-foreground">

@@ -21,7 +21,7 @@ const Features = () => {
         <div className="container mx-auto text-center max-w-4xl">
           <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-6">
             <Brain className="h-4 w-4" />
-            Collections and Risk Intelligence CRM Platform
+            Collections & Risk Intelligence Platform
           </div>
           <h1 className="text-5xl font-bold mb-6">
             Six AI Agents Powering Your <span className="text-primary">AR Intelligence</span>
@@ -290,7 +290,7 @@ const Features = () => {
                 <div className="text-center">
                   <div className="inline-block p-6 bg-card rounded-2xl border">
                     <Brain className="w-16 h-16 text-primary mx-auto mb-4" />
-                    <p className="text-xl font-bold mb-2">Collections and Risk Intelligence CRM</p>
+                    <p className="text-xl font-bold mb-2">Collections & Risk Intelligence Platform</p>
                     <p className="text-sm text-muted-foreground">Every touchpoint analyzed to maximize AR recovery</p>
                   </div>
                 </div>

@@ -83,7 +83,7 @@ const Solutions = () => {
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-16">
             <div className="inline-block px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-6">
-              Collections & Risk CRM
+              Collections & Risk Intelligence Platform
             </div>
             <h1 className="text-4xl md:text-5xl font-bold mb-4">
               AI-Powered Collections CRM for Every Industry

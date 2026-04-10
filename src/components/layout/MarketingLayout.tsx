@@ -15,7 +15,7 @@ interface MarketingLayoutProps {
 const _COMPANY_INFO = {
   legalName: "RecouplyAI Inc.",
   displayName: "Recouply.ai",
-  tagline: "Collection Intelligence Platform",
+  tagline: "Collections & Risk Intelligence Platform",
   emails: {
     collections: "collections@recouply.ai",
     support: "support@recouply.ai",

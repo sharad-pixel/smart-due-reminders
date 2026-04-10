@@ -238,7 +238,7 @@ export function EditableEmailPreviewFrame({
       ${layoutData.showFooterBranding ? `
         <p class="footer-text">
           This email was sent by ${layoutData.businessName} via Recouply.ai<br>
-          Collection Intelligence Platform
+          Collections & Risk Intelligence Platform
         </p>
         <p class="footer-text" style="color: #999;">
           © ${new Date().getFullYear()} RecouplyAI Inc. All rights reserved.

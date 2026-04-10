@@ -82,7 +82,7 @@ const PowerOfOutreach = () => {
       <p>This is exactly why we built Recouply.ai.</p>
 
       <p>
-        Recouply.ai is a <strong>Collection Intelligence Platform</strong> designed to automate outreach while giving teams full visibility into customer engagement and payment behavior.
+        Recouply.ai is a <strong>Collections & Risk Intelligence Platform</strong> designed to automate outreach while giving teams full visibility into customer engagement and payment behavior.
       </p>
 
       <p><strong>With Recouply.ai, businesses can:</strong></p>

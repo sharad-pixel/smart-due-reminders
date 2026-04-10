@@ -7,7 +7,7 @@ export const SITE_CONFIG = {
   siteName: 'Recouply.ai',
   siteUrl: 'https://recouply.ai',
   companyName: 'RecouplyAI Inc.',
-  description: 'Collections and Risk Intelligence CRM for Finance Teams. Centralize receivables management, prioritize by risk, maintain a full audit trail of outreach, and accelerate cash flow with AI-powered collections workflows — without collection agencies.',
+  description: 'Collections & Risk Intelligence Platform for Finance Teams. Centralize receivables management, prioritize by risk, maintain a full audit trail of outreach, and accelerate cash flow with AI-powered collections workflows — without collection agencies.',
   logo: 'https://recouply.ai/favicon.png',
   ogImage: 'https://recouply.ai/og-image.png',
   twitterHandle: '@recouplyai',
@@ -137,8 +137,8 @@ export const TARGET_KEYWORDS = {
 // Page-specific SEO configurations
 export const PAGE_SEO: Record<string, { title: string; description: string; keywords: string }> = {
   home: {
-    title: 'Recouply.ai | Collections & Risk Intelligence CRM for Finance Teams',
-    description: 'Collections and Risk Intelligence CRM for Finance Teams. Centralize receivables, prioritize by risk, and maintain a full audit trail. Reduce DSO and recover cash with AI-powered collections workflows.',
+    title: 'Recouply.ai | Collections & Risk Intelligence Platform for Finance Teams',
+    description: 'Collections & Risk Intelligence Platform for Finance Teams. Centralize receivables, prioritize by risk, and maintain a full audit trail. Reduce DSO and recover cash with AI-powered collections workflows.',
     keywords: 'collections CRM, AI collections software, accounts receivable CRM, AI-powered collections workflows, risk-based prioritization, collections audit trail, centralized receivables, DSO reduction, cash flow management, collection intelligence platform',
   },
   features: {
