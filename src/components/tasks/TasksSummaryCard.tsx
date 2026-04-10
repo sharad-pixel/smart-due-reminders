@@ -28,7 +28,7 @@ export const TasksSummaryCard = ({ tasks, title = "Action Items", onTaskUpdate, 
   const [assignedToMeOnly, setAssignedToMeOnly] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 5;
+  const pageSize = 10;
 
   useEffect(() => {
     const fetchUser = async () => {

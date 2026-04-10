@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TaskDetailModal } from "@/components/tasks/TaskDetailModal";
-import { CheckSquare, Filter, Loader2, Search, DollarSign, AlertCircle, Phone, HelpCircle, Mail, Archive, ArchiveRestore, UserPlus, CalendarClock } from "lucide-react";
+import { CheckSquare, Filter, Loader2, Search, DollarSign, AlertCircle, Phone, HelpCircle, Mail, Archive, ArchiveRestore, UserPlus, CalendarClock, ChevronLeft, ChevronRight } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useSearchParams, Link } from "react-router-dom";
@@ -94,6 +94,8 @@ export default function CollectionTasks() {
   // Bulk selection
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
   const [isBulkProcessing, setIsBulkProcessing] = useState(false);
 
   // Filters - load from preferences
@@ -147,10 +149,11 @@ export default function CollectionTasks() {
     }
   }, [taskIdFromUrl, tasks, isLoading]);
 
-  // Clear selection when filters change
+  // Clear selection and reset page when filters change
   useEffect(() => {
     setSelectedTaskIds(new Set());
-  }, [statusFilter, priorityFilter, taskTypeFilter, assignedFilter, searchQuery]);
+    setCurrentPage(1);
+  }, [statusFilter, priorityFilter, taskTypeFilter, assignedFilter, searchQuery, hideClosed]);
 
   const fetchAccountUsers = async () => {
     try {
@@ -364,7 +367,12 @@ export default function CollectionTasks() {
   // Bulk action handlers
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedTaskIds(new Set(filteredTasks.map(t => t.id)));
+      // Will use paginatedTasks after it's computed; for now select from filtered
+      setSelectedTaskIds(prev => {
+        const newSet = new Set(prev);
+        filteredTasks.slice((currentPage - 1) * pageSize, currentPage * pageSize).forEach(t => newSet.add(t.id));
+        return newSet;
+      });
     } else {
       setSelectedTaskIds(new Set());
     }
@@ -505,8 +513,13 @@ export default function CollectionTasks() {
       task.invoices?.invoice_number?.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
-  const isAllSelected = filteredTasks.length > 0 && filteredTasks.every(t => selectedTaskIds.has(t.id));
-  const isSomeSelected = filteredTasks.some(t => selectedTaskIds.has(t.id));
+  // Pagination
+  const totalPages = Math.ceil(filteredTasks.length / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const paginatedTasks = filteredTasks.slice(startIndex, startIndex + pageSize);
+
+  const isAllSelected = paginatedTasks.length > 0 && paginatedTasks.every(t => selectedTaskIds.has(t.id));
+  const isSomeSelected = paginatedTasks.some(t => selectedTaskIds.has(t.id));
 
   // Task type options
   const taskTypes = [
@@ -830,7 +843,7 @@ export default function CollectionTasks() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredTasks.map((task) => {
+                      {paginatedTasks.map((task) => {
                         const daysOpen = task.created_at ? differenceInDays(new Date(), new Date(task.created_at)) : 0;
                         return (
                           <TableRow
@@ -904,7 +917,7 @@ export default function CollectionTasks() {
 
                 {/* Mobile Card View */}
                 <div className="lg:hidden divide-y">
-                  {filteredTasks.map((task) => {
+                  {paginatedTasks.map((task) => {
                     const daysOpen = task.created_at ? differenceInDays(new Date(), new Date(task.created_at)) : 0;
                     return (
                       <div
@@ -982,6 +995,36 @@ export default function CollectionTasks() {
                     );
                   })}
                 </div>
+
+                {/* Pagination Controls */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between px-4 py-3 border-t">
+                    <p className="text-sm text-muted-foreground">
+                      {startIndex + 1}–{Math.min(startIndex + pageSize, filteredTasks.length)} of {filteredTasks.length}
+                    </p>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <span className="text-sm px-2">{currentPage} / {totalPages}</span>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages}
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </>
             )}
           </CardContent>
