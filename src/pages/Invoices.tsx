@@ -90,6 +90,54 @@ const Invoices = () => {
     queryClient.invalidateQueries({ queryKey: ["invoices-page-data"] });
   };
 
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>(() => {
+    const saved = localStorage.getItem("invoiceStatusFilter");
+    return saved || "all";
+  });
+  const [ageBucketFilter, setAgeBucketFilter] = useState<string>(agingFromUrl === '60plus' ? '60plus' : 'all');
+  const [debtorFilter, setDebtorFilter] = useState<string>(debtorIdFromUrl || "all");
+  const [sourceFilter, setSourceFilter] = useState<string>("all");
+  const [currencyFilter, setCurrencyFilter] = useState<string>("all");
+  const [hideInactive, setHideInactive] = useState<boolean>(() => {
+    const saved = localStorage.getItem("hideInactiveInvoices");
+    return saved === "true";
+  });
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 15;
+  const [showBulkAssignDialog, setShowBulkAssignDialog] = useState(false);
+  const [showBulkStatusDialog, setShowBulkStatusDialog] = useState(false);
+  const [selectedAgingBucket, setSelectedAgingBucket] = useState<string>("");
+  const [selectedBulkStatus, setSelectedBulkStatus] = useState<"Open" | "Paid" | "Disputed" | "Settled" | "InPaymentPlan" | "Canceled" | "FinalInternalCollections" | "">("");
+  const [formData, setFormData] = useState({
+    debtor_id: "",
+    invoice_number: "",
+    amount: "",
+    currency: "USD",
+    issue_date: new Date().toISOString().split("T")[0],
+    status: "Open",
+    payment_terms: "Net 30",
+    external_link: "",
+    notes: "",
+    product_description: "",
+    external_invoice_id: "",
+    po_number: "",
+  });
+
+  useEffect(() => {
+    localStorage.setItem("hideInactiveInvoices", hideInactive.toString());
+  }, [hideInactive]);
+
+  useEffect(() => {
+    localStorage.setItem("invoiceStatusFilter", statusFilter);
+  }, [statusFilter]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, ageBucketFilter, debtorFilter, sourceFilter, currencyFilter, hideInactive]);
+
   const getDaysPastDue = (dueDate: string): number => {
     const today = new Date();
     const due = new Date(dueDate);
