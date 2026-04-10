@@ -129,7 +129,14 @@ export function InvoiceCollectabilityReport() {
     });
   }, [data?.reports, sortKey, sortDirection]);
 
+  const canRefresh = !hasRefreshedToday;
+
   const handleGenerateAISummaries = async () => {
+    if (!canRefresh) {
+      toast.error("Manual refresh already used today. Reports refresh automatically daily at 1:00 PM UTC.");
+      return;
+    }
+
     setGeneratingAI(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -144,10 +151,13 @@ export function InvoiceCollectabilityReport() {
       // Update cache with AI-enriched results
       if (result) {
         await setCachedReport(REPORT_TYPE, result);
+        await markManualRefresh(REPORT_TYPE);
+        setHasRefreshedToday(true);
+        setLastGeneratedAt(new Date().toISOString());
       }
 
       refetch();
-      toast.success("AI summaries generated");
+      toast.success("AI summaries generated. Next automatic refresh at 1:00 PM UTC.");
     } catch (err: any) {
       toast.error(err.message || "Failed to generate AI summaries");
     } finally {
