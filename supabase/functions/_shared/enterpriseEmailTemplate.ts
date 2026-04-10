@@ -84,7 +84,7 @@ export function enterpriseHeader(options: {
         </tr>
       </table>
       <p style="color: ${BRAND.muted}; margin: 6px 0 0; font-size: 12px; font-family: ${FONT_STACK};">
-        Collections and Risk Intelligence CRM for Finance Teams
+        Collections & Risk Intelligence Platform
       </p>
       ${title ? `<h1 style="color: ${BRAND.foreground}; margin: 16px 0 4px; font-size: 18px; font-weight: 700; letter-spacing: -0.3px; font-family: ${FONT_STACK};">${title}</h1>` : ''}
       ${subtitle ? `<p style="color: ${BRAND.muted}; margin: 0; font-size: 12px; font-family: ${FONT_STACK};">${subtitle}</p>` : ''}
@@ -129,7 +129,7 @@ export function enterpriseFooter(): string {
         </tr>
       </table>
       <p style="color: #94a3b8; margin: 0 0 12px; font-size: 11px; font-family: ${FONT_STACK};">
-        Collections and Risk Intelligence CRM for Finance Teams
+        Collections & Risk Intelligence Platform
       </p>
       <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto 12px;">
         <tr>
