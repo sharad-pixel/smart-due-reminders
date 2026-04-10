@@ -256,7 +256,7 @@ export function replaceTemplateVariables(
   const formattedDueDate = formatDate(invoice.due_date);
   
   // Get links
-  const invoiceLink = getInvoiceLink(invoice);
+  const invoiceLink = getInvoiceLink(invoice, branding);
   const paymentLink = branding.stripe_payment_link || '';
   const arPortalUrl = getArPortalUrl(branding);
   const productDescription = invoice.product_description || '';
@@ -423,7 +423,7 @@ export function processDraftContent(input: DraftContentInput): DraftContentOutpu
     : `Invoice ${invoice.invoice_number} - Payment Reminder`;
 
   // Step 2: Auto-append useful links if not already present
-  const invoiceLink = getInvoiceLink(invoice);
+  const invoiceLink = getInvoiceLink(invoice, branding);
   const paymentLink = branding.stripe_payment_link || '';
   const arPortalUrl = getArPortalUrl(branding);
 
