@@ -4116,6 +4116,7 @@ export type Database = {
           is_archived: boolean | null
           message_id: string
           raw_payload: Json
+          retry_count: number
           sentiment_analyzed_at: string | null
           status: string
           subject: string
@@ -4156,6 +4157,7 @@ export type Database = {
           is_archived?: boolean | null
           message_id: string
           raw_payload: Json
+          retry_count?: number
           sentiment_analyzed_at?: string | null
           status?: string
           subject: string
@@ -4196,6 +4198,7 @@ export type Database = {
           is_archived?: boolean | null
           message_id?: string
           raw_payload?: Json
+          retry_count?: number
           sentiment_analyzed_at?: string | null
           status?: string
           subject?: string
