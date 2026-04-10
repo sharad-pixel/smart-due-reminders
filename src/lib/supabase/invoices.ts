@@ -38,9 +38,12 @@ const LIST_SELECT =
  * Fetch all invoices with pagination to handle > 1000 rows.
  * Optionally includes related debtor, workflow, and extra fields.
  */
+const ACTIVE_STATUSES = ['Open', 'PartiallyPaid', 'InPaymentPlan', 'Disputed', 'FinalInternalCollections'] as const;
+
 export async function fetchAllInvoicesPaginated(options?: {
   select?: string;
   includeArchived?: boolean;
+  includeClosed?: boolean;
   orderBy?: { column: string; ascending: boolean };
 }): Promise<InvoiceListItem[]> {
   const select = options?.select ?? LIST_SELECT;
@@ -59,6 +62,11 @@ export async function fetchAllInvoicesPaginated(options?: {
 
     if (!options?.includeArchived) {
       query = query.eq("is_archived", false);
+    }
+
+    // By default only fetch active/open invoices — skip Paid, Settled, Canceled, etc.
+    if (!options?.includeClosed) {
+      query = query.in("status", ACTIVE_STATUSES);
     }
 
     const { data, error } = await query;

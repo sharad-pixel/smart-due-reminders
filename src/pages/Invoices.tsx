@@ -68,19 +68,24 @@ const Invoices = () => {
   const debtorIdFromUrl = searchParams.get('debtor');
   const agingFromUrl = searchParams.get('aging');
   
+  const [hideInactive, setHideInactive] = useState<boolean>(() => {
+    const saved = localStorage.getItem("hideInactiveInvoices");
+    return saved === null ? true : saved === "true"; // Default to hiding closed invoices
+  });
+
   const queryClient = useQueryClient();
 
   const { data: queryData, isLoading: loading } = useQuery({
-    queryKey: ["invoices-page-data"],
+    queryKey: ["invoices-page-data", hideInactive],
     queryFn: async () => {
       const [allInvoices, debtorsList] = await Promise.all([
-        fetchAllInvoicesPaginated(),
+        fetchAllInvoicesPaginated({ includeClosed: !hideInactive }),
         fetchDebtorsList(),
       ]);
       return { invoices: allInvoices as any as Invoice[], debtors: debtorsList };
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes — avoid refetch on every navigation
-    gcTime: 30 * 60 * 1000,   // keep in cache 30 min
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   });
 
   const invoices = useMemo(() => queryData?.invoices ?? [], [queryData]);
@@ -99,10 +104,6 @@ const Invoices = () => {
   const [debtorFilter, setDebtorFilter] = useState<string>(debtorIdFromUrl || "all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [currencyFilter, setCurrencyFilter] = useState<string>("all");
-  const [hideInactive, setHideInactive] = useState<boolean>(() => {
-    const saved = localStorage.getItem("hideInactiveInvoices");
-    return saved === "true";
-  });
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -298,10 +299,7 @@ const Invoices = () => {
       });
     }
 
-    if (hideInactive) {
-      const inactiveStatuses = ["Paid", "Settled", "Canceled", "Voided"];
-      filtered = filtered.filter((inv) => !inactiveStatuses.includes(inv.status));
-    }
+    // hideInactive is handled server-side via includeClosed param
 
     if (currencyFilter !== "all") {
       filtered = filtered.filter((inv) => (inv.currency || "USD") === currencyFilter);

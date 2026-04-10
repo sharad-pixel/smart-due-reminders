@@ -62,6 +62,7 @@ const InvoicesList = ({ onUpdate }: InvoicesListProps) => {
       const allInvoices = await fetchAllInvoicesPaginated({
         select: "*, debtors(company_name), is_on_payment_plan",
         includeArchived: true,
+        includeClosed: true,
         orderBy: { column: "created_at", ascending: false },
       });
       setInvoices(allInvoices as unknown as Invoice[]);
