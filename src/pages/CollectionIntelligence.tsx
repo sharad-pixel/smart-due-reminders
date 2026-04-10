@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import SEOHead from "@/components/seo/SEOHead";
 import { PAGE_SEO } from "@/lib/seoConfig";
 import { useNavigate } from "react-router-dom";
-import { Brain, Mail, CheckCircle, Zap, BarChart3, Clock, Target, Inbox, ListTodo, Bot, ArrowRight, Sparkles, TrendingUp, Shield, Users, AlertTriangle, Lightbulb, FileText, Activity } from "lucide-react";
+import { Brain, Mail, CheckCircle, Zap, BarChart3, Clock, Target, Inbox, ListTodo, Bot, ArrowRight, Sparkles, TrendingUp, Shield, Users, AlertTriangle, Lightbulb, FileText, Activity, DollarSign, ShieldAlert, CreditCard } from "lucide-react";
 import MarketingLayout from "@/components/layout/MarketingLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import CollectionIntelligenceShowcase from "@/components/marketing/CollectionIntelligenceShowcase";
@@ -498,6 +498,187 @@ const CollectionIntelligence = () => {
         </div>
       </section>
 
+      {/* Expansion Risk Assessment Section */}
+      <section className="py-20 px-4">
+        <div className="container mx-auto max-w-6xl">
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            {/* Interactive Demo Card */}
+            <div className="order-2 md:order-1 bg-card p-6 rounded-2xl border shadow-lg">
+              <div className="flex items-center gap-3 mb-4 pb-3 border-b">
+                <div className="bg-gradient-to-br from-primary/20 to-accent/20 p-2 rounded-lg">
+                  <TrendingUp className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium">Expansion Risk Advisor</p>
+                  <p className="text-xs text-muted-foreground">Acme Corp — Credit Assessment</p>
+                </div>
+                <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-yellow-500/10">
+                  <ShieldAlert className="h-3 w-3 text-yellow-600" />
+                  <span className="text-xs font-medium text-yellow-600">Moderate Risk</span>
+                </div>
+              </div>
+
+              {/* Risk Assessment Summary */}
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="bg-muted/50 p-3 rounded-lg">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Current Exposure</p>
+                  <p className="text-lg font-bold text-foreground">$124,500</p>
+                </div>
+                <div className="bg-muted/50 p-3 rounded-lg">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Proposed Expansion</p>
+                  <p className="text-lg font-bold text-primary">+$45,000</p>
+                </div>
+                <div className="bg-muted/50 p-3 rounded-lg">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Cash at Risk</p>
+                  <p className="text-lg font-bold text-yellow-600">$28,200</p>
+                </div>
+                <div className="bg-muted/50 p-3 rounded-lg">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Payment Score</p>
+                  <p className="text-lg font-bold text-foreground">72 <span className="text-xs font-normal text-muted-foreground">/ 100</span></p>
+                </div>
+              </div>
+
+              {/* AI Recommendation */}
+              <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg mb-4">
+                <p className="text-xs font-medium text-primary mb-1 flex items-center gap-1">
+                  <Sparkles className="h-3 w-3" /> AI Recommendation
+                </p>
+                <p className="text-sm text-foreground">
+                  Approve expansion with conditions: require 50% upfront payment on new contract and reduce net terms from NET60 to NET30. 
+                  Customer has $18,500 overdue — suggest bundling settlement with expansion agreement.
+                </p>
+              </div>
+
+              {/* Risk Signals */}
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Risk Signals</p>
+                <div className="flex items-center gap-2 text-sm">
+                  <div className="h-2 w-2 rounded-full bg-green-500" />
+                  <span>Payment history: 85% on-time (last 12 months)</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <div className="h-2 w-2 rounded-full bg-yellow-500" />
+                  <span>Recent slowdown: avg DPD increased from 12 → 28 days</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <div className="h-2 w-2 rounded-full bg-red-500" />
+                  <span>2 invoices past 60 days — potential cash flow strain</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <div className="h-2 w-2 rounded-full bg-green-500" />
+                  <span>High engagement: responds to outreach within 24 hours</span>
+                </div>
+              </div>
+
+              {/* Outreach CTA preview */}
+              <div className="mt-4 pt-3 border-t flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Integrated outreach for expansion + settlement</span>
+                <div className="flex items-center gap-1 text-xs text-primary font-medium">
+                  <Mail className="h-3 w-3" /> Send Proposal
+                </div>
+              </div>
+            </div>
+
+            {/* Description */}
+            <div className="order-1 md:order-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold mb-4">
+                <TrendingUp className="h-3 w-3" />
+                Expansion Risk Assessment
+              </div>
+              <h2 className="text-4xl font-bold mb-6">
+                Know Before You Grow — Credit Risk Intelligence for Every Expansion
+              </h2>
+              <p className="text-lg text-muted-foreground mb-6">
+                Before extending more credit or upselling a customer, your finance team needs to know: can they pay? 
+                Our Expansion Risk Advisor analyzes payment history, outstanding balances, and engagement signals to 
+                deliver a clear risk assessment — so you grow revenue without growing bad debt.
+              </p>
+              <ul className="space-y-4">
+                <li className="flex items-start gap-3">
+                  <div className="bg-primary/10 p-1 rounded-full mt-1">
+                    <CheckCircle className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <span className="font-medium">AI-Powered Credit Recommendations</span>
+                    <p className="text-sm text-muted-foreground">Get specific credit term suggestions (NET30 vs NET60, upfront %, limits) based on actual payment behavior</p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <div className="bg-primary/10 p-1 rounded-full mt-1">
+                    <CheckCircle className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <span className="font-medium">Exposure & Cash-at-Risk Modeling</span>
+                    <p className="text-sm text-muted-foreground">See total projected exposure and expected credit loss before approving new contracts</p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <div className="bg-primary/10 p-1 rounded-full mt-1">
+                    <CheckCircle className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <span className="font-medium">Bundle Settlement with Expansion</span>
+                    <p className="text-sm text-muted-foreground">AI generates outreach that combines the expansion offer with a request to settle overdue balances</p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <div className="bg-primary/10 p-1 rounded-full mt-1">
+                    <CheckCircle className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <span className="font-medium">Multi-Signal Risk Scoring</span>
+                    <p className="text-sm text-muted-foreground">Payment velocity, aging mix, response patterns, and engagement history combined into one score</p>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Value Proposition Cards */}
+          <div className="grid md:grid-cols-3 gap-6 mt-16">
+            <Card className="bg-gradient-to-br from-green-500/5 to-green-500/10 border-green-500/20">
+              <CardContent className="p-6 text-center">
+                <DollarSign className="h-10 w-10 text-green-600 mx-auto mb-3" />
+                <h3 className="font-bold text-lg mb-2">Reduce Bad Debt</h3>
+                <p className="text-sm text-muted-foreground">
+                  Stop extending credit to customers who can't pay. AI flags high-risk expansions before they become write-offs.
+                </p>
+                <div className="mt-4 pt-3 border-t border-green-500/20">
+                  <p className="text-2xl font-bold text-green-600">35%</p>
+                  <p className="text-xs text-muted-foreground">avg reduction in credit losses</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
+              <CardContent className="p-6 text-center">
+                <CreditCard className="h-10 w-10 text-primary mx-auto mb-3" />
+                <h3 className="font-bold text-lg mb-2">Smarter Credit Decisions</h3>
+                <p className="text-sm text-muted-foreground">
+                  Replace gut-feel credit approvals with data-driven risk assessments that consider real payment behavior.
+                </p>
+                <div className="mt-4 pt-3 border-t border-primary/20">
+                  <p className="text-2xl font-bold text-primary">7 Signals</p>
+                  <p className="text-xs text-muted-foreground">analyzed per credit decision</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-gradient-to-br from-accent/5 to-accent/10 border-accent/20">
+              <CardContent className="p-6 text-center">
+                <ShieldAlert className="h-10 w-10 text-accent mx-auto mb-3" />
+                <h3 className="font-bold text-lg mb-2">Recover While You Expand</h3>
+                <p className="text-sm text-muted-foreground">
+                  Use expansion conversations as leverage to settle outstanding invoices — turning growth into recovery.
+                </p>
+                <div className="mt-4 pt-3 border-t border-accent/20">
+                  <p className="text-2xl font-bold text-accent">2.4x</p>
+                  <p className="text-xs text-muted-foreground">higher recovery on bundled outreach</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
       {/* How It Works */}
       <section className="py-20 px-4">
         <div className="container mx-auto max-w-6xl">
@@ -651,6 +832,13 @@ const CollectionIntelligence = () => {
                 <Shield className="h-8 w-8 text-primary mb-4" />
                 <h3 className="font-bold mb-2">Human-in-the-Loop</h3>
                 <p className="text-sm text-muted-foreground">Review and approve all AI-generated messages before sending</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-card border-primary/30">
+              <CardContent className="p-6">
+                <TrendingUp className="h-8 w-8 text-primary mb-4" />
+                <h3 className="font-bold mb-2">Expansion Risk Assessment</h3>
+                <p className="text-sm text-muted-foreground">AI-driven credit risk analysis before extending more credit or upselling customers</p>
               </CardContent>
             </Card>
           </div>
