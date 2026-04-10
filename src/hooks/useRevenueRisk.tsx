@@ -125,7 +125,7 @@ export function useRevenueRisk() {
 
   const regenerateWithAI = async () => {
     if (!canRefresh) {
-      toast.error("Manual refresh already used today. Reports refresh automatically daily at 1:00 PM UTC.");
+      toast.error("Daily manual refresh already used. Reports update automatically at 1:00 PM UTC when there is sufficient data.");
       return;
     }
 
