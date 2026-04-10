@@ -71,8 +71,8 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
   const platformItems = [
     { icon: Brain, title: "Collection Intelligence", description: "AI-powered insights & predictions", path: "/collection-intelligence" },
     { icon: Bot, title: "AI Agents", description: "Autonomous collection personas", path: "/personas" },
-    { icon: Zap, title: "Automation", description: "Workflow & outreach automation", path: "/features" },
-    { icon: BarChart3, title: "Analytics", description: "Real-time AR dashboards", path: "/features#analytics" },
+    { icon: Zap, title: "Automation", description: "Workflow & outreach automation", path: "/automation" },
+    { icon: BarChart3, title: "Analytics", description: "Real-time AR dashboards", path: "/analytics" },
   ];
 
   const solutionsItems = [

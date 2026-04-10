@@ -67,6 +67,8 @@ const DesignPartners = lazy(() => import("./pages/DesignPartners"));
 const Careers = lazy(() => import("./pages/Careers"));
 const KnowledgeBase = lazy(() => import("./pages/KnowledgeBase"));
 const RevenueRiskFeature = lazy(() => import("./pages/features/RevenueRiskFeature"));
+const AutomationPage = lazy(() => import("./pages/AutomationPage"));
+const AnalyticsPage = lazy(() => import("./pages/AnalyticsPage"));
 // Blog Pages
 const BlogIndex = lazy(() => import("./pages/blog/BlogIndex"));
 const CelebrateCash = lazy(() => import("./pages/blog/CelebrateCash"));
@@ -215,6 +217,8 @@ const App = () => (
             <Route path="/faq" element={<KnowledgeBase />} />
             <Route path="/help" element={<KnowledgeBase />} />
             <Route path="/features/revenue-risk" element={<RevenueRiskFeature />} />
+            <Route path="/automation" element={<AutomationPage />} />
+            <Route path="/analytics" element={<AnalyticsPage />} />
 
             {/* Blog Pages */}
             <Route path="/blog" element={<BlogIndex />} />
