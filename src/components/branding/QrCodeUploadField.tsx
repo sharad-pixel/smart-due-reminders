@@ -1,9 +1,17 @@
 import { useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { Upload, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import venmoLogo from "@/assets/venmo-logo.png";
+import paypalLogo from "@/assets/paypal-logo.png";
+import cashappLogo from "@/assets/cashapp-logo.png";
+
+const LOGOS: Record<string, string> = {
+  Venmo: venmoLogo,
+  PayPal: paypalLogo,
+  "Cash App": cashappLogo,
+};
 
 interface QrCodeUploadFieldProps {
   label: string;
@@ -56,9 +64,22 @@ export const QrCodeUploadField = ({
     }
   };
 
+  const logo = LOGOS[label];
+
   return (
-    <div className="space-y-2">
-      <Label className="text-xs font-medium">{label}</Label>
+    <div className="space-y-2 p-3 rounded-lg border bg-muted/30">
+      <div className="flex items-center gap-2 mb-1">
+        {logo && (
+          <img
+            src={logo}
+            alt={`${label} logo`}
+            className="h-6 w-6 object-contain"
+            loading="lazy"
+          />
+        )}
+        <span className="text-sm font-medium">{label}</span>
+      </div>
+
       {value ? (
         <div className="relative inline-block">
           <img
@@ -95,14 +116,14 @@ export const QrCodeUploadField = ({
             size="sm"
             disabled={uploading}
             onClick={() => inputRef.current?.click()}
-            className="w-full h-24 border-dashed"
+            className="w-full h-20 border-dashed"
           >
             {uploading ? (
               <Loader2 className="h-4 w-4 animate-spin mr-1" />
             ) : (
               <Upload className="h-4 w-4 mr-1" />
             )}
-            {uploading ? "Uploading…" : `Upload ${label} QR`}
+            {uploading ? "Uploading…" : "Upload QR Code"}
           </Button>
         </div>
       )}
