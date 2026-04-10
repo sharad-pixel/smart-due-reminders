@@ -843,7 +843,7 @@ export default function CollectionTasks() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredTasks.map((task) => {
+                      {paginatedTasks.map((task) => {
                         const daysOpen = task.created_at ? differenceInDays(new Date(), new Date(task.created_at)) : 0;
                         return (
                           <TableRow
@@ -917,7 +917,7 @@ export default function CollectionTasks() {
 
                 {/* Mobile Card View */}
                 <div className="lg:hidden divide-y">
-                  {filteredTasks.map((task) => {
+                  {paginatedTasks.map((task) => {
                     const daysOpen = task.created_at ? differenceInDays(new Date(), new Date(task.created_at)) : 0;
                     return (
                       <div
@@ -995,6 +995,36 @@ export default function CollectionTasks() {
                     );
                   })}
                 </div>
+
+                {/* Pagination Controls */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between px-4 py-3 border-t">
+                    <p className="text-sm text-muted-foreground">
+                      {startIndex + 1}–{Math.min(startIndex + pageSize, filteredTasks.length)} of {filteredTasks.length}
+                    </p>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <span className="text-sm px-2">{currentPage} / {totalPages}</span>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages}
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </>
             )}
           </CardContent>
