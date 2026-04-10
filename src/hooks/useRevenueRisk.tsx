@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { getCachedReport, setCachedReport } from "@/lib/supabase/cachedReports";
+import { getCachedReport, setCachedReport, canManualRefreshToday, markManualRefresh } from "@/lib/supabase/cachedReports";
 
 export interface RevenueRiskAggregate {
   total_ar: number;
@@ -84,12 +84,18 @@ const REPORT_TYPE = "revenue_risk";
 
 export function useRevenueRisk() {
   const [generatingAI, setGeneratingAI] = useState(false);
+  const [hasRefreshedToday, setHasRefreshedToday] = useState(false);
+  const [lastGeneratedAt, setLastGeneratedAt] = useState<string | null>(null);
 
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["revenue-risk"],
     queryFn: async () => {
       // 1. Check for a valid cached report first
       const cached = await getCachedReport<RevenueRiskData>(REPORT_TYPE);
+      if (cached) {
+        setLastGeneratedAt(cached.generated_at);
+        setHasRefreshedToday(!canManualRefreshToday(cached.last_manual_refresh_at));
+      }
       if (cached && !cached.is_stale) {
         return cached.data;
       }
@@ -107,14 +113,22 @@ export function useRevenueRisk() {
 
       // 3. Store in cache for next visit
       await setCachedReport(REPORT_TYPE, result);
+      setLastGeneratedAt(new Date().toISOString());
 
       return result;
     },
-    staleTime: 30 * 60 * 1000, // 30 minutes — trust the DB cache
-    gcTime: 60 * 60 * 1000, // 1 hour
+    staleTime: 30 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
   });
 
+  const canRefresh = !hasRefreshedToday;
+
   const regenerateWithAI = async () => {
+    if (!canRefresh) {
+      toast.error("Manual refresh already used today. Reports refresh automatically daily at 1:00 PM UTC.");
+      return;
+    }
+
     setGeneratingAI(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -129,10 +143,13 @@ export function useRevenueRisk() {
       // Update cache with AI-enriched results
       if (result) {
         await setCachedReport(REPORT_TYPE, result);
+        await markManualRefresh(REPORT_TYPE);
+        setHasRefreshedToday(true);
+        setLastGeneratedAt(new Date().toISOString());
       }
 
       refetch();
-      toast.success("AI insights generated");
+      toast.success("AI insights generated. Next automatic refresh at 1:00 PM UTC.");
     } catch (err: any) {
       toast.error(err.message || "Failed to generate AI insights");
     } finally {
@@ -147,5 +164,7 @@ export function useRevenueRisk() {
     refetch,
     generatingAI,
     regenerateWithAI,
+    canRefresh,
+    lastGeneratedAt,
   };
 }
