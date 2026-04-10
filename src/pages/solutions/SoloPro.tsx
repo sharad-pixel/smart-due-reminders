@@ -2,9 +2,12 @@ import MarketingLayout from "@/components/layout/MarketingLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
-import { CheckCircle2, User, Brain, Zap, DollarSign, Clock } from "lucide-react";
+import { CheckCircle2, User, Brain, Zap, DollarSign, Clock, QrCode } from "lucide-react";
 import SEOHead from "@/components/seo/SEOHead";
 import { PLAN_CONFIGS, INVOICE_PRICING } from "@/lib/subscriptionConfig";
+import venmoLogo from "@/assets/venmo-logo.png";
+import paypalLogo from "@/assets/paypal-logo.png";
+import cashappLogo from "@/assets/cashapp-logo.png";
 
 const SoloPro = () => {
   const navigate = useNavigate();
@@ -159,6 +162,57 @@ const SoloPro = () => {
                     Over time, your collection intelligence becomes more accurate and your recovery rates improve—automatically. 
                     Start solo, scale when you're ready.
                   </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
+      {/* Payment QR Codes Section */}
+      <section className="py-16 px-4">
+        <div className="container mx-auto max-w-4xl">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-full mb-4">
+              <QrCode className="w-4 h-4 text-primary" />
+              <span className="text-sm font-medium">Solo Pro Feature</span>
+            </div>
+            <h2 className="text-3xl font-bold mb-3">Accept Payments via QR Code</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Upload your personal payment QR codes and display them directly on branded invoices.
+              Let customers pay instantly through the apps they already use.
+            </p>
+          </div>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex flex-col md:flex-row items-center justify-center gap-10">
+                {[
+                  { logo: venmoLogo, name: "Venmo" },
+                  { logo: paypalLogo, name: "PayPal" },
+                  { logo: cashappLogo, name: "Cash App" },
+                ].map((provider) => (
+                  <div key={provider.name} className="flex flex-col items-center gap-3">
+                    <div className="h-20 w-20 rounded-2xl bg-muted/50 border flex items-center justify-center p-3">
+                      <img
+                        src={provider.logo}
+                        alt={`${provider.name} logo`}
+                        className="h-full w-full object-contain"
+                        loading="lazy"
+                      />
+                    </div>
+                    <span className="text-sm font-medium">{provider.name}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-8 text-center space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Add your QR codes in <span className="font-medium text-foreground">Branding → Invoice Template → Payment QR Codes</span> and 
+                  they'll appear on every customer-facing invoice automatically.
+                </p>
+                <div className="flex flex-wrap justify-center gap-3 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-primary" /> Branded invoices</span>
+                  <span className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-primary" /> Scan-to-pay convenience</span>
+                  <span className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-primary" /> Faster collections</span>
                 </div>
               </div>
             </CardContent>
