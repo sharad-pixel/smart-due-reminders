@@ -348,6 +348,34 @@ export const InvoiceTemplateBuilder = ({
             </div>
           )}
 
+          {/* Payment QR Codes */}
+          {formData.show_payment_qr_codes && (
+            <div>
+              <h3 className="text-sm font-semibold mb-1">Payment QR Codes</h3>
+              <p className="text-xs text-muted-foreground mb-3">
+                Upload QR code images from your payment apps. These will display on your invoice.
+              </p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {([
+                  { key: "qr_code_venmo_url" as const, label: "Venmo" },
+                  { key: "qr_code_stripe_url" as const, label: "Stripe" },
+                  { key: "qr_code_paypal_url" as const, label: "PayPal" },
+                  { key: "qr_code_cashapp_url" as const, label: "Cash App" },
+                ] as const).map(({ key, label }) => (
+                  <QrCodeUploadField
+                    key={key}
+                    label={label}
+                    value={formData[key]}
+                    effectiveAccountId={effectiveAccountId}
+                    onChange={(url) => handleChange(key, url)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          <Separator />
+
           {/* Footer Note */}
           <div>
             <Label htmlFor="footer_note">Footer Note</Label>
