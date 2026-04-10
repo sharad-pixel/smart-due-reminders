@@ -68,6 +68,9 @@ const Careers = lazy(() => import("./pages/Careers"));
 const KnowledgeBase = lazy(() => import("./pages/KnowledgeBase"));
 const RevenueRiskFeature = lazy(() => import("./pages/features/RevenueRiskFeature"));
 const AutomationPage = lazy(() => import("./pages/AutomationPage"));
+const CollectionsCRM = lazy(() => import("./pages/pillar/CollectionsCRM"));
+const AICollectionsPlatform = lazy(() => import("./pages/pillar/AICollectionsPlatform"));
+const RevenueRiskIntelligence = lazy(() => import("./pages/pillar/RevenueRiskIntelligence"));
 const AnalyticsPage = lazy(() => import("./pages/AnalyticsPage"));
 // Blog Pages
 const BlogIndex = lazy(() => import("./pages/blog/BlogIndex"));
@@ -223,6 +226,11 @@ const App = () => (
             <Route path="/features/revenue-risk" element={<RevenueRiskFeature />} />
             <Route path="/automation" element={<AutomationPage />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
+
+            {/* Pillar Pages */}
+            <Route path="/collections-crm" element={<CollectionsCRM />} />
+            <Route path="/ai-collections-platform" element={<AICollectionsPlatform />} />
+            <Route path="/revenue-risk-intelligence" element={<RevenueRiskIntelligence />} />
 
             {/* Blog Pages */}
             <Route path="/blog" element={<BlogIndex />} />
