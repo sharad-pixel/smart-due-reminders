@@ -607,12 +607,6 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
     }
   };
 
-        {/* Invoice Link Card */}
-        <InvoiceLinkCard
-          invoiceId={invoice.id}
-          publicToken={(invoice as any).public_token}
-          stripeHostedUrl={invoice.stripe_hosted_url}
-        />
 
   const handleCopyReferenceId = () => {
     if (invoice?.reference_id) {
