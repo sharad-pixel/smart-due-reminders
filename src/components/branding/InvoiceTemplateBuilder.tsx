@@ -90,6 +90,24 @@ export const InvoiceTemplateBuilder = ({
     enabled: !!effectiveAccountId,
   });
 
+  // Fetch a sample invoice to show real description in preview
+  const { data: sampleInvoice } = useQuery({
+    queryKey: ["sample-invoice-preview", effectiveAccountId],
+    queryFn: async () => {
+      if (!effectiveAccountId) return null;
+      const { data, error } = await supabase
+        .from("invoices")
+        .select("product_description, invoice_number, amount, due_date, issue_date")
+        .eq("user_id", effectiveAccountId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) return null;
+      return data;
+    },
+    enabled: !!effectiveAccountId,
+  });
+
   useEffect(() => {
     if (template) {
       setFormData({
@@ -398,6 +416,13 @@ export const InvoiceTemplateBuilder = ({
           template={formData}
           businessName={businessName}
           logoUrl={logoUrl}
+          sampleInvoice={sampleInvoice ? {
+            description: sampleInvoice.product_description || null,
+            invoice_number: sampleInvoice.invoice_number || null,
+            amount: sampleInvoice.amount || null,
+            due_date: sampleInvoice.due_date || null,
+            issue_date: sampleInvoice.issue_date || null,
+          } : undefined}
         />
       )}
     </div>
