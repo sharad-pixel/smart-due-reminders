@@ -70,12 +70,14 @@ export const QrCodeUploadField = ({
     <div className="space-y-2 p-3 rounded-lg border bg-muted/30">
       <div className="flex items-center gap-2 mb-1">
         {logo && (
-          <img
-            src={logo}
-            alt={`${label} logo`}
-            className="h-6 w-6 object-contain"
-            loading="lazy"
-          />
+          <div className="h-6 w-6 overflow-hidden rounded">
+            <img
+              src={logo}
+              alt={`${label} logo`}
+              className="h-full w-full object-cover"
+              loading="lazy"
+            />
+          </div>
         )}
         <span className="text-sm font-medium">{label}</span>
       </div>
