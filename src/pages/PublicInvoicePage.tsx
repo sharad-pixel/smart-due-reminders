@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2 } from "lucide-react";
+import { Loader2, Download } from "lucide-react";
 import SEOHead from "@/components/seo/SEOHead";
 import venmoLogo from "@/assets/venmo-logo.png";
 import paypalLogo from "@/assets/paypal-logo.png";
@@ -161,15 +161,38 @@ const PublicInvoicePage = () => {
       ].filter((q) => q.url)
     : [];
 
+  const handleDownloadPDF = () => {
+    window.print();
+  };
+
   return (
     <>
       <SEOHead
         title={`Invoice ${invoice.invoice_number} | ${branding.business_name}`}
         description={`Invoice ${invoice.invoice_number} from ${branding.business_name}`}
       />
-      <div className="min-h-screen bg-gray-100 py-8 px-4">
+      {/* Print-specific styles */}
+      <style>{`
+        @media print {
+          body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .no-print { display: none !important; }
+          .print-invoice { box-shadow: none !important; margin: 0 !important; max-width: 100% !important; }
+          .print-container { padding: 0 !important; min-height: auto !important; background: white !important; }
+        }
+      `}</style>
+      <div className="min-h-screen bg-gray-100 py-8 px-4 print-container">
         <div className="max-w-3xl mx-auto">
-          {/* Status banner */}
+          {/* Download PDF button */}
+          <div className="flex justify-end mb-4 no-print">
+            <button
+              onClick={handleDownloadPDF}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-white font-medium text-sm transition-opacity hover:opacity-90 shadow-md"
+              style={{ backgroundColor: hc }}
+            >
+              <Download className="h-4 w-4" />
+              Download PDF
+            </button>
+          </div>
           {isPaid && (
             <div className="bg-green-50 border border-green-200 text-green-800 rounded-lg px-4 py-3 mb-4 text-center font-medium">
               ✓ This invoice has been paid
@@ -178,7 +201,7 @@ const PublicInvoicePage = () => {
 
           {/* Invoice card */}
           <div
-            className="bg-white rounded-lg shadow-lg overflow-hidden"
+            className="bg-white rounded-lg shadow-lg overflow-hidden print-invoice"
             style={{ fontFamily, fontSize: "14px", lineHeight: 1.6 }}
           >
             {/* Header */}
@@ -330,7 +353,7 @@ const PublicInvoicePage = () => {
 
             {/* Pay Now button */}
             {!isPaid && branding.stripe_payment_link && (
-              <div className="px-8 mt-6 text-center">
+              <div className="px-8 mt-6 text-center no-print">
                 <a
                   href={branding.stripe_payment_link}
                   target="_blank"
@@ -419,7 +442,7 @@ const PublicInvoicePage = () => {
           </div>
 
           {/* Powered by */}
-          <div className="text-center mt-4 text-xs text-gray-400">
+          <div className="text-center mt-4 text-xs text-gray-400 no-print">
             Powered by Recouply.ai
           </div>
         </div>
