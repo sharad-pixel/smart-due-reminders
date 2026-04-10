@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Eye } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { InvoiceTemplateData } from "./InvoiceTemplateBuilder";
 import venmoLogo from "@/assets/venmo-logo.png";
 import paypalLogo from "@/assets/paypal-logo.png";
@@ -8,6 +9,7 @@ import cashappLogo from "@/assets/cashapp-logo.png";
 interface SampleInvoice {
   description: string | null;
   invoice_number: string | null;
+  reference_id: string | null;
   amount: number | null;
   due_date: string | null;
   issue_date: string | null;
@@ -95,9 +97,19 @@ export const InvoiceTemplatePreview = ({
                 >
                   Invoice
                 </div>
-                <div className="text-sm font-semibold mt-1 text-gray-800">
-                  {invNum.startsWith("#") ? invNum : `#${invNum}`}
-                </div>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="text-sm font-semibold mt-1 text-gray-800 cursor-help border-b border-dashed border-gray-300 inline-block">
+                        {invNum.startsWith("#") ? invNum : `#${invNum}`}
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="left" className="text-xs space-y-1 max-w-[220px]">
+                      <div><span className="font-semibold">SS Invoice #:</span> {sampleInvoice?.invoice_number || "INV00665"}</div>
+                      <div><span className="font-semibold">Recouply ID:</span> {sampleInvoice?.reference_id || "RCY-0000-0000"}</div>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
                 <div className="mt-2 text-[11px] text-gray-600 space-y-0.5">
                   <div>
                     <span className="font-semibold" style={{ color: hc }}>

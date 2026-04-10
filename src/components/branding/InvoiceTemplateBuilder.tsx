@@ -99,7 +99,7 @@ export const InvoiceTemplateBuilder = ({
       if (!effectiveAccountId) return null;
       const { data, error } = await supabase
         .from("invoices")
-        .select("product_description, invoice_number, amount, due_date, issue_date, notes")
+        .select("product_description, invoice_number, reference_id, amount, due_date, issue_date, notes")
         .eq("user_id", effectiveAccountId)
         .order("created_at", { ascending: false })
         .limit(1)
@@ -423,6 +423,7 @@ export const InvoiceTemplateBuilder = ({
           sampleInvoice={sampleInvoice ? {
             description: sampleInvoice.product_description || null,
             invoice_number: sampleInvoice.invoice_number || null,
+            reference_id: sampleInvoice.reference_id || null,
             amount: sampleInvoice.amount || null,
             due_date: sampleInvoice.due_date || null,
             issue_date: sampleInvoice.issue_date || null,
