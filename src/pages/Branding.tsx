@@ -28,7 +28,8 @@ import {
   AlertCircle,
   Bot,
   Zap,
-  AlertTriangle
+  AlertTriangle,
+  Link2
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
