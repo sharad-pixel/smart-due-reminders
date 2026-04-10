@@ -309,7 +309,7 @@ export function OutreachTimeline({ invoiceId, invoiceDueDate, agingBucket }: Out
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {successLogs.map((log: any) => {
+                    {successLogs.slice((sentPage - 1) * SENT_PAGE_SIZE, sentPage * SENT_PAGE_SIZE).map((log: any) => {
                       const agent = AGENT_MAP[log.aging_bucket];
                       return (
                         <TableRow key={log.id}>
@@ -336,6 +336,36 @@ export function OutreachTimeline({ invoiceId, invoiceDueDate, agingBucket }: Out
                     })}
                   </TableBody>
                 </Table>
+                {successLogs.length > SENT_PAGE_SIZE && (
+                  <div className="flex items-center justify-between px-3 py-2 border-t bg-muted/30">
+                    <p className="text-xs text-muted-foreground">
+                      Showing {(sentPage - 1) * SENT_PAGE_SIZE + 1}–{Math.min(sentPage * SENT_PAGE_SIZE, successLogs.length)} of {successLogs.length}
+                    </p>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0"
+                        disabled={sentPage === 1}
+                        onClick={() => setSentPage(p => p - 1)}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <span className="text-xs text-muted-foreground px-1">
+                        {sentPage} / {Math.ceil(successLogs.length / SENT_PAGE_SIZE)}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0"
+                        disabled={sentPage >= Math.ceil(successLogs.length / SENT_PAGE_SIZE)}
+                        onClick={() => setSentPage(p => p + 1)}
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             </CollapsibleContent>
           </Collapsible>
