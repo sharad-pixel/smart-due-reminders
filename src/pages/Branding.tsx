@@ -338,6 +338,41 @@ export default function Branding() {
                   />
                 </div>
 
+                {/* Payment Portal Link in Outreach Toggle */}
+                <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
+                  <div className="flex items-center gap-3">
+                    <Link2 className="h-5 w-5 text-primary" />
+                    <div>
+                      <p className="font-medium">Include Payment Portal Link in Outreach</p>
+                      <p className="text-sm text-muted-foreground">
+                        Automatically append a payment portal link to all outreach emails
+                      </p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={formData.include_portal_link_in_outreach !== false}
+                    onCheckedChange={(checked) => handleChange("include_portal_link_in_outreach", checked)}
+                  />
+                </div>
+
+                {formData.include_portal_link_in_outreach !== false && formData.ar_page_enabled && (
+                  <div className="ml-4 p-3 rounded-md bg-blue-50 border border-blue-200 text-sm text-blue-800">
+                    <p className="font-medium mb-1">Preview of appended language:</p>
+                    <p className="font-mono text-xs bg-white/60 rounded p-2 border">
+                      📄 Access your {formData.business_name || "Your Company"} payment portal: https://recouply.ai/ar/...
+                    </p>
+                  </div>
+                )}
+
+                {formData.include_portal_link_in_outreach !== false && !formData.ar_page_enabled && (
+                  <Alert className="bg-amber-50 border-amber-200">
+                    <AlertTriangle className="h-4 w-4 text-amber-600" />
+                    <AlertDescription className="text-amber-800 text-sm">
+                      Your Public AR Page is currently disabled. Enable it below to include the portal link in outreach.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
                 <div>
                   <Label htmlFor="email_signature">Email Signature</Label>
                   <p className="text-xs text-muted-foreground mb-1">
