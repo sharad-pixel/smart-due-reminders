@@ -44,6 +44,9 @@ import { ProfileAvatarEditor } from "@/components/ui/ProfileAvatarEditor";
 import { useNicolasPreferences } from "@/hooks/useNicolasPreferences";
 import nicolasAvatar from "@/assets/personas/nicolas.png";
 import { TrialCountdown } from "@/components/billing/TrialCountdown";
+import { useOnboardingCompletion } from "@/hooks/useOnboardingCompletion";
+import { OnboardingProgressRing } from "@/components/layout/OnboardingProgressRing";
+import { Progress } from "@/components/ui/progress";
 
 type AppRole = "owner" | "admin" | "member" | "viewer";
 type PlanType = "free" | "solo_pro" | "starter" | "growth" | "pro" | "professional" | "enterprise";
@@ -91,28 +94,78 @@ interface PlanInfo {
   feature_flags: any;
 }
 
-// Nicolas Assistant Card Component
-const NicolasAssistantCard = () => {
+// Onboarding & Assistant Card Component
+const OnboardingAssistantCard = () => {
   const { preferences, toggleAssistant, resetOnboarding } = useNicolasPreferences();
+  const { percentage, completedSteps, totalSteps, isComplete } = useOnboardingCompletion();
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  const steps = [
+    { label: "Business Profile", key: "business_profile_completed" },
+    { label: "Documents Uploaded", key: "documents_uploaded" },
+    { label: "Branding Setup", key: "branding_completed" },
+    { label: "Product Training", key: "training_viewed" },
+  ];
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <img src={nicolasAvatar} alt="Nicolas" className="h-5 w-5 rounded-full" />
-          Nicolas Assistant
+          <CheckCircle2 className="h-5 w-5 text-primary" />
+          Account Setup
         </CardTitle>
         <CardDescription>
-          Configure your AI assistant and onboarding preferences
+          Complete your setup to get the most out of Recouply
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-5">
+        {/* Progress gauge */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">{completedSteps} of {totalSteps} steps completed</span>
+            <span className="font-semibold text-primary">{Math.round(percentage)}%</span>
+          </div>
+          <Progress value={percentage} className="h-2.5" />
+        </div>
+
+        {/* Step checklist */}
+        <div className="space-y-2">
+          {steps.map((step) => {
+            const done = isComplete || false;
+            return (
+              <div key={step.key} className="flex items-center gap-2 text-sm">
+                {done ? (
+                  <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+                ) : (
+                  <XCircle className="h-4 w-4 text-muted-foreground/50 shrink-0" />
+                )}
+                <span className={done ? "text-muted-foreground line-through" : ""}>{step.label}</span>
+              </div>
+            );
+          })}
+        </div>
+
+        {!isComplete && (
+          <Button
+            className="w-full"
+            onClick={() => navigate("/onboarding")}
+          >
+            Continue Setup
+          </Button>
+        )}
+
+        <Separator />
+
+        {/* Nicolas toggle */}
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
-            <Label className="text-base font-medium">Assistant Enabled</Label>
+            <Label className="text-base font-medium flex items-center gap-2">
+              <img src={nicolasAvatar} alt="Nicolas" className="h-4 w-4 rounded-full" />
+              Nicolas Assistant
+            </Label>
             <p className="text-sm text-muted-foreground">
-              Show Nicolas chat helper on all pages
+              Show AI chat helper on all pages
             </p>
           </div>
           <Switch
@@ -127,28 +180,6 @@ const NicolasAssistantCard = () => {
               });
             }}
           />
-        </div>
-        <Separator />
-        <div className="flex items-center justify-between">
-          <div className="space-y-0.5">
-            <Label className="text-base font-medium">Restart Onboarding</Label>
-            <p className="text-sm text-muted-foreground">
-              See the welcome tour and page tips again
-            </p>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              resetOnboarding();
-              toast({
-                title: "Onboarding Reset",
-                description: "Refresh the page to see the welcome tour.",
-              });
-            }}
-          >
-            Restart Tour
-          </Button>
         </div>
       </CardContent>
     </Card>
@@ -1176,8 +1207,8 @@ const Profile = () => {
           </CardContent>
         </Card>
 
-        {/* Nicolas Assistant Section */}
-        <NicolasAssistantCard />
+        {/* Account Setup & Assistant Section */}
+        <OnboardingAssistantCard />
 
         {/* Account Deletion Request */}
         <Card className="border-destructive/20">
