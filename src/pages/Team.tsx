@@ -742,7 +742,6 @@ const Team = () => {
             </div>
             <ReferralInviteCard />
           </CardHeader>
-          </CardHeader>
           <CardContent>
             <div className="space-y-4">
               {/* Table Header - Desktop */}
