@@ -436,7 +436,7 @@ export function processDraftContent(input: DraftContentInput): DraftContentOutpu
     body += `\n\n💳 Make a payment: ${paymentLink}`;
   }
 
-  if (includeArPortal && arPortalUrl && !body.includes(arPortalUrl)) {
+  if (includeArPortal && arPortalUrl && branding.include_portal_link_in_outreach !== false && !body.includes(arPortalUrl)) {
     const portalBusinessName = branding.business_name || branding.from_name || 'your';
     body += `\n\n📄 Access your ${portalBusinessName} payment portal: ${arPortalUrl}`;
   }
