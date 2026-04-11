@@ -304,6 +304,50 @@ export default function Onboarding() {
                     {currentStep.description}
                   </p>
 
+                  {/* Required Documents Checklist (Step 2) */}
+                  {currentStep.key === "documents_uploaded" && (
+                    <div className="space-y-3">
+                      <p className="text-xs font-semibold text-foreground uppercase tracking-wider">Required Documents & Payment Info</p>
+                      {[
+                        { icon: Image, label: "Company Logo", desc: "PNG or JPG, recommended 400×400px", required: true, route: "/branding" },
+                        { icon: FileText, label: "W-9 Form", desc: "Tax identification — upload if available", required: false, route: "/branding" },
+                        { icon: Landmark, label: "Bank Information (ACH / Wire)", desc: "Routing & account numbers for payment receipt", required: true, route: "/branding" },
+                        { icon: CreditCard, label: "Stripe Payment Link", desc: "Link to your Stripe checkout or payment page", required: false, route: "/branding" },
+                        { icon: Smartphone, label: "Venmo Link", desc: "Your Venmo payment link or username", required: false, route: "/branding" },
+                        { icon: CreditCard, label: "PayPal Link", desc: "Your PayPal.me link or email", required: false, route: "/branding" },
+                        { icon: QrCode, label: "CashApp Link / QR Code", desc: "Your $Cashtag or payment QR code", required: false, route: "/branding" },
+                      ].map((doc, i) => (
+                        <div
+                          key={i}
+                          className="flex items-center gap-3 rounded-lg border border-border/50 bg-card p-3 hover:bg-muted/30 transition-colors"
+                        >
+                          <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                            <doc.icon className="h-4.5 w-4.5 text-primary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-medium text-foreground">{doc.label}</p>
+                              {doc.required ? (
+                                <span className="text-[10px] font-semibold text-destructive bg-destructive/10 px-1.5 py-0.5 rounded">Required</span>
+                              ) : (
+                                <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded">Optional</span>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-0.5">{doc.desc}</p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => navigate(doc.route)}
+                            className="flex-shrink-0 gap-1 text-xs"
+                          >
+                            <Upload className="h-3.5 w-3.5" /> Upload
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   {/* Training Videos (Step 4) */}
                   {currentStep.key === "training_viewed" && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
