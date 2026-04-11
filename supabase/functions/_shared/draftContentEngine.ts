@@ -123,13 +123,33 @@ export function calculateDaysPastDue(dueDate: string): number {
 }
 
 /**
- * Get the best available invoice link
- * Falls back to the branded public invoice template link when no source system link exists
+ * Check if a URL is an internal dashboard link (not suitable for customer-facing outreach)
+ */
+export function isDashboardUrl(url: string): boolean {
+  if (!url) return false;
+  return url.includes('dashboard.stripe.com') || url.includes('app.qbo.intuit.com');
+}
+
+/**
+ * Get the best available invoice link for CUSTOMER-FACING outreach
+ * CRITICAL: Never return internal dashboard URLs (e.g., dashboard.stripe.com)
+ * Falls back to the branded public invoice template link when no customer-facing link exists
  */
 export function getInvoiceLink(invoice: InvoiceData, branding?: BrandingData): string {
-  // Prefer source system links (Stripe, QuickBooks, etc.)
-  const sourceLink = invoice.external_link || invoice.stripe_hosted_url || invoice.integration_url;
-  if (sourceLink) return sourceLink;
+  // Prefer customer-facing links: stripe_hosted_url is the Stripe hosted invoice page for debtors
+  // external_link is also typically customer-facing (set from hosted_invoice_url during sync)
+  // CRITICAL: Filter out any dashboard/admin URLs - these are for the creditor, not the debtor
+  const candidates = [
+    invoice.stripe_hosted_url,
+    invoice.external_link,
+    invoice.integration_url,
+  ];
+  
+  for (const link of candidates) {
+    if (link && !isDashboardUrl(link)) {
+      return link;
+    }
+  }
 
   // Fallback: use branding invoice template public link if enabled
   if (branding?.public_invoice_links_enabled && invoice.public_token) {
