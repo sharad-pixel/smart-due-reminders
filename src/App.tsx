@@ -118,6 +118,7 @@ const Team = lazy(() => import("./pages/Team"));
 const AcceptInvite = lazy(() => import("./pages/AcceptInvite"));
 const PublicPaymentPlanPage = lazy(() => import("./pages/PublicPaymentPlanPage"));
 const DebtorPortalPage = lazy(() => import("./pages/DebtorPortalPage"));
+const Onboarding = lazy(() => import("./pages/Onboarding"));
 
 // Feature Pages
 const AIWorkflows = lazy(() => import("./pages/AIWorkflows"));
