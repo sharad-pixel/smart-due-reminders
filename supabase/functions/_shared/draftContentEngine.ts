@@ -436,7 +436,8 @@ export function processDraftContent(input: DraftContentInput): DraftContentOutpu
   }
 
   if (includeArPortal && arPortalUrl && !body.includes(arPortalUrl)) {
-    body += `\n\n📄 Access your account portal: ${arPortalUrl}`;
+    const portalBusinessName = branding.business_name || branding.from_name || 'your';
+    body += `\n\n📄 Access your ${portalBusinessName} payment portal: ${arPortalUrl}`;
   }
 
   // Step 3: Add signature if available and requested

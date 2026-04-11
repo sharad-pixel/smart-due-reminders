@@ -396,7 +396,7 @@ Deno.serve(async (req) => {
           }
 
           // Append links if not already in template body
-          if (arPageUrl && !body.includes(arPageUrl)) body += `\n\n📄 Access your account portal: ${arPageUrl}`;
+          if (arPageUrl && !body.includes(arPageUrl)) body += `\n\n📄 Access your ${businessName} payment portal: ${arPageUrl}`;
           if (invoiceLink && !body.includes(invoiceLink)) body += `\n\nView your invoice: ${invoiceLink}`;
           if (paymentLink && !body.includes(paymentLink)) body += `\n\n💳 Make a payment: ${paymentLink}`;
           if (!body.includes(businessName)) body += `\n\nThank you for your business.\n\n---\n${businessName}`;

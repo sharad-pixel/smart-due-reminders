@@ -346,7 +346,7 @@ Deno.serve(async (req) => {
 
         // Append AR portal link if available and enabled
         if (arPageUrl && !body.includes(arPageUrl)) {
-          body += `\n\n📄 Access your account portal: ${arPageUrl}`;
+          body += `\n\n📄 Access your ${businessName} payment portal: ${arPageUrl}`;
         }
 
         // Append payment link if available
