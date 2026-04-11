@@ -88,6 +88,13 @@ export type Database = {
             foreignKeyName: "account_users_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "profiles_admin_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_users_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "profiles_team_safe"
             referencedColumns: ["id"]
           },
@@ -3490,6 +3497,13 @@ export type Database = {
             foreignKeyName: "email_accounts_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "profiles_admin_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_accounts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "profiles_team_safe"
             referencedColumns: ["id"]
           },
@@ -3779,6 +3793,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_sending_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_admin_safe"
             referencedColumns: ["id"]
           },
           {
@@ -4640,6 +4661,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_sync_settings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_admin_safe"
             referencedColumns: ["id"]
           },
           {
@@ -6079,6 +6107,13 @@ export type Database = {
             foreignKeyName: "oauth_states_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "profiles_admin_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oauth_states_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "profiles_team_safe"
             referencedColumns: ["id"]
           },
@@ -6427,6 +6462,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outreach_templates_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_admin_safe"
             referencedColumns: ["id"]
           },
           {
@@ -7255,6 +7297,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quickbooks_sync_log_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_admin_safe"
             referencedColumns: ["id"]
           },
           {
@@ -8383,6 +8432,188 @@ export type Database = {
           user_id: string | null
         }
         Relationships: []
+      }
+      profiles_admin_safe: {
+        Row: {
+          account_locked_at: string | null
+          admin_override: boolean | null
+          admin_override_at: string | null
+          admin_override_by: string | null
+          admin_override_notes: string | null
+          avatar_url: string | null
+          billing_interval: string | null
+          business_address: string | null
+          business_address_line1: string | null
+          business_address_line2: string | null
+          business_city: string | null
+          business_country: string | null
+          business_name: string | null
+          business_phone: string | null
+          business_postal_code: string | null
+          business_state: string | null
+          cancel_at_period_end: boolean | null
+          company_name: string | null
+          created_at: string | null
+          current_period_end: string | null
+          daily_digest_email_enabled: boolean | null
+          email: string | null
+          email_verified: boolean | null
+          id: string | null
+          invoice_limit: number | null
+          is_account_locked: boolean | null
+          is_admin: boolean | null
+          is_suspended: boolean | null
+          name: string | null
+          overage_rate: number | null
+          payment_failure_count: number | null
+          payment_failure_notice_sent_at: string | null
+          phone: string | null
+          plan_id: string | null
+          plan_type: Database["public"]["Enums"]["plan_type"] | null
+          quickbooks_company_name: string | null
+          quickbooks_connected_at: string | null
+          quickbooks_last_sync_at: string | null
+          quickbooks_realm_id: string | null
+          quickbooks_sync_enabled: boolean | null
+          quickbooks_token_expires_at: string | null
+          receive_collection_alerts: boolean | null
+          receive_daily_digest: boolean | null
+          receive_product_updates: boolean | null
+          stripe_customer_id: string | null
+          stripe_payment_link_url: string | null
+          stripe_subscription_id: string | null
+          subscription_status: string | null
+          suspended_at: string | null
+          suspended_by: string | null
+          suspended_reason: string | null
+          trial_ends_at: string | null
+          trial_used_at: string | null
+          updated_at: string | null
+          welcome_email_sent_at: string | null
+        }
+        Insert: {
+          account_locked_at?: string | null
+          admin_override?: boolean | null
+          admin_override_at?: string | null
+          admin_override_by?: string | null
+          admin_override_notes?: string | null
+          avatar_url?: string | null
+          billing_interval?: string | null
+          business_address?: string | null
+          business_address_line1?: string | null
+          business_address_line2?: string | null
+          business_city?: string | null
+          business_country?: string | null
+          business_name?: string | null
+          business_phone?: string | null
+          business_postal_code?: string | null
+          business_state?: string | null
+          cancel_at_period_end?: boolean | null
+          company_name?: string | null
+          created_at?: string | null
+          current_period_end?: string | null
+          daily_digest_email_enabled?: boolean | null
+          email?: string | null
+          email_verified?: boolean | null
+          id?: string | null
+          invoice_limit?: number | null
+          is_account_locked?: boolean | null
+          is_admin?: boolean | null
+          is_suspended?: boolean | null
+          name?: string | null
+          overage_rate?: number | null
+          payment_failure_count?: number | null
+          payment_failure_notice_sent_at?: string | null
+          phone?: string | null
+          plan_id?: string | null
+          plan_type?: Database["public"]["Enums"]["plan_type"] | null
+          quickbooks_company_name?: string | null
+          quickbooks_connected_at?: string | null
+          quickbooks_last_sync_at?: string | null
+          quickbooks_realm_id?: string | null
+          quickbooks_sync_enabled?: boolean | null
+          quickbooks_token_expires_at?: string | null
+          receive_collection_alerts?: boolean | null
+          receive_daily_digest?: boolean | null
+          receive_product_updates?: boolean | null
+          stripe_customer_id?: string | null
+          stripe_payment_link_url?: string | null
+          stripe_subscription_id?: string | null
+          subscription_status?: string | null
+          suspended_at?: string | null
+          suspended_by?: string | null
+          suspended_reason?: string | null
+          trial_ends_at?: string | null
+          trial_used_at?: string | null
+          updated_at?: string | null
+          welcome_email_sent_at?: string | null
+        }
+        Update: {
+          account_locked_at?: string | null
+          admin_override?: boolean | null
+          admin_override_at?: string | null
+          admin_override_by?: string | null
+          admin_override_notes?: string | null
+          avatar_url?: string | null
+          billing_interval?: string | null
+          business_address?: string | null
+          business_address_line1?: string | null
+          business_address_line2?: string | null
+          business_city?: string | null
+          business_country?: string | null
+          business_name?: string | null
+          business_phone?: string | null
+          business_postal_code?: string | null
+          business_state?: string | null
+          cancel_at_period_end?: boolean | null
+          company_name?: string | null
+          created_at?: string | null
+          current_period_end?: string | null
+          daily_digest_email_enabled?: boolean | null
+          email?: string | null
+          email_verified?: boolean | null
+          id?: string | null
+          invoice_limit?: number | null
+          is_account_locked?: boolean | null
+          is_admin?: boolean | null
+          is_suspended?: boolean | null
+          name?: string | null
+          overage_rate?: number | null
+          payment_failure_count?: number | null
+          payment_failure_notice_sent_at?: string | null
+          phone?: string | null
+          plan_id?: string | null
+          plan_type?: Database["public"]["Enums"]["plan_type"] | null
+          quickbooks_company_name?: string | null
+          quickbooks_connected_at?: string | null
+          quickbooks_last_sync_at?: string | null
+          quickbooks_realm_id?: string | null
+          quickbooks_sync_enabled?: boolean | null
+          quickbooks_token_expires_at?: string | null
+          receive_collection_alerts?: boolean | null
+          receive_daily_digest?: boolean | null
+          receive_product_updates?: boolean | null
+          stripe_customer_id?: string | null
+          stripe_payment_link_url?: string | null
+          stripe_subscription_id?: string | null
+          subscription_status?: string | null
+          suspended_at?: string | null
+          suspended_by?: string | null
+          suspended_reason?: string | null
+          trial_ends_at?: string | null
+          trial_used_at?: string | null
+          updated_at?: string | null
+          welcome_email_sent_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles_team_safe: {
         Row: {
