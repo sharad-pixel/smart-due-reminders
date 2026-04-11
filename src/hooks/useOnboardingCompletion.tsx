@@ -1,34 +1,45 @@
 import { useMemo } from "react";
-import { useOnboarding } from "@/hooks/useOnboarding";
+import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
+
+export interface SetupItem {
+  label: string;
+  completed: boolean;
+  route: string;
+}
 
 export function useOnboardingCompletion() {
-  const onboarding = useOnboarding();
+  const status = useOnboardingStatus();
 
-  const { percentage, completedSteps, totalSteps } = useMemo(() => {
-    if (!onboarding.progress) {
-      return { percentage: 0, completedSteps: 0, totalSteps: 4 };
-    }
-
-    const steps = [
-      onboarding.progress.business_profile_completed,
-      onboarding.progress.documents_uploaded,
-      onboarding.progress.branding_completed,
-      onboarding.progress.training_viewed,
+  const { percentage, completedSteps, totalSteps, items } = useMemo(() => {
+    const allItems: SetupItem[] = [
+      { label: "Business Profile", completed: status.brandingConfigured, route: "/branding" },
+      { label: "Company Logo", completed: !!status.brandingConfigured, route: "/branding" },
+      { label: "Customer Accounts", completed: status.hasAccounts, route: "/accounts" },
+      { label: "Invoices Uploaded", completed: status.hasInvoices, route: "/invoices" },
+      { label: "Payment Integration", completed: status.stripeConnected, route: "/branding" },
+      { label: "Collection Workflows", completed: status.workflowsConfigured, route: "/workflows" },
     ];
 
-    const completed = steps.filter(Boolean).length;
+    const completed = allItems.filter(i => i.completed).length;
     return {
-      percentage: (completed / steps.length) * 100,
+      percentage: (completed / allItems.length) * 100,
       completedSteps: completed,
-      totalSteps: steps.length,
+      totalSteps: allItems.length,
+      items: allItems,
     };
-  }, [onboarding.progress]);
+  }, [status]);
+
+  const missingItems = items.filter(i => !i.completed);
+  const isComplete = missingItems.length === 0;
 
   return {
-    ...onboarding,
     percentage,
     completedSteps,
     totalSteps,
-    showRing: !onboarding.loading && !!onboarding.progress && !onboarding.isComplete,
+    items,
+    missingItems,
+    isComplete,
+    loading: status.isLoading,
+    showRing: !status.isLoading && !isComplete,
   };
 }

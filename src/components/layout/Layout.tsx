@@ -52,6 +52,7 @@ import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
 import { NavProfileAvatar } from "@/components/layout/NavProfileAvatar";
 import { OnboardingProgressRing } from "@/components/layout/OnboardingProgressRing";
 import { useOnboardingCompletion } from "@/hooks/useOnboardingCompletion";
+import { AlertTriangle } from "lucide-react";
 import { AlertNotifications } from "@/components/alerts/AlertNotifications";
 import { useUserAlerts } from "@/hooks/useUserAlerts";
 import { RequireSubscription } from "@/components/billing/RequireSubscription";
