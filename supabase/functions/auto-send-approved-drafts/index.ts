@@ -121,7 +121,7 @@ function ensureMessageHasContactInfo(
 ): string {
   let result = body;
   
-  const arPageUrl = branding?.ar_page_public_token && branding?.ar_page_enabled 
+  const _arPageUrl = branding?.ar_page_public_token && branding?.ar_page_enabled 
     ? `https://recouply.ai/ar/${branding.ar_page_public_token}` 
     : '';
   const paymentLink = branding?.stripe_payment_link || '';
