@@ -96,16 +96,9 @@ interface PlanInfo {
 // Onboarding & Assistant Card Component
 const OnboardingAssistantCard = () => {
   const { preferences, toggleAssistant } = useNicolasPreferences();
-  const { percentage, completedSteps, totalSteps, isComplete, progress } = useOnboardingCompletion();
+  const { percentage, completedSteps, totalSteps, isComplete, items } = useOnboardingCompletion();
   const { toast } = useToast();
   const navigate = useNavigate();
-
-  const steps = [
-    { label: "Business Profile", key: "business_profile_completed" },
-    { label: "Documents Uploaded", key: "documents_uploaded" },
-    { label: "Branding Setup", key: "branding_completed" },
-    { label: "Product Training", key: "training_viewed" },
-  ];
 
   return (
     <Card>
