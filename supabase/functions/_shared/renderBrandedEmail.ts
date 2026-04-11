@@ -434,7 +434,7 @@ export function renderEmail(input: EmailRenderInput, personaName?: string): stri
  * Generate a plain text version of the email
  */
 export function renderPlainTextEmail(input: EmailRenderInput, personaName?: string): string {
-  const { brand, bodyHtml, cta } = input;
+  const { brand, bodyHtml, cta, secureInvoiceUrl } = input;
   const businessName = brand.business_name || brand.from_name || personaName || "Recouply.ai";
   const currentYear = new Date().getFullYear();
 
@@ -455,6 +455,10 @@ export function renderPlainTextEmail(input: EmailRenderInput, personaName?: stri
   plainBody = plainBody.replace(/\{\{[^}]+\}\}/g, '');
 
   let result = plainBody + '\n\n';
+
+  if (secureInvoiceUrl) {
+    result += `🔒 View Invoice Securely: ${secureInvoiceUrl}\n\n`;
+  }
 
   if (cta) {
     result += `${cta.label}: ${cta.url}\n\n`;
