@@ -453,6 +453,27 @@ const Layout = ({ children }: LayoutProps) => {
                       </Button>
                     )}
                   </div>
+
+                  {missingItems.length > 0 && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <div className="px-2 py-2">
+                        <p className="text-xs font-semibold text-muted-foreground mb-2">Missing Setup Items</p>
+                        <div className="space-y-1.5">
+                          {missingItems.map((item) => (
+                            <div
+                              key={item.label}
+                              className="flex items-center justify-between text-xs cursor-pointer hover:bg-accent/50 rounded px-2 py-1.5"
+                              onClick={() => navigate(item.route)}
+                            >
+                              <span className="text-foreground">{item.label}</span>
+                              <span className="text-destructive font-medium">Required</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
                   
                   <DropdownMenuSeparator />
                   
