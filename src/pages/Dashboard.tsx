@@ -27,9 +27,11 @@ import { CollectionIntelligenceCard } from "@/components/ai/CollectionIntelligen
 import { CollectionIntelligenceDashboard } from "@/components/ai/CollectionIntelligenceDashboard";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
 import { useOrgAvgDPD } from "@/hooks/useAvgDPD";
-import { KnowledgeBaseAgent } from "@/components/ai/KnowledgeBaseAgent";
+import { useOnboardingCompletion } from "@/hooks/useOnboardingCompletion";
+import { Progress } from "@/components/ui/progress";
+import { AlertTriangle, ArrowRight, CheckCircle2, XCircle } from "lucide-react";
 import { IntegrationSetupModal } from "@/components/integrations/IntegrationSetupModal";
-import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
+
 
 
 interface Invoice {
@@ -172,7 +174,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const accountInfo = useEffectiveAccount();
   const { data: orgAvgDPD } = useOrgAvgDPD();
-  const onboardingStatus = useOnboardingStatus();
+  const onboardingCompletion = useOnboardingCompletion();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [_invoices, setInvoices] = useState<Invoice[]>([]);
@@ -566,29 +568,69 @@ const Dashboard = () => {
         <UsageIndicator />
 
         {/* Knowledge Base Agent - Onboarding & Setup (hideable) */}
-        {!onboardingStatus.isLoading && !hideKbAgent && (
-          <div className="relative">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="absolute top-2 right-2 z-10 h-7 text-xs text-muted-foreground hover:text-foreground"
-              onClick={() => {
-                localStorage.setItem('recouply_hide_kb_agent', 'true');
-                setHideKbAgent(true);
-              }}
-            >
-              Hide
-            </Button>
-            <KnowledgeBaseAgent
-              stripeConnected={onboardingStatus.stripeConnected}
-              quickbooksConnected={onboardingStatus.quickbooksConnected}
-              hasAccounts={onboardingStatus.hasAccounts}
-              hasInvoices={onboardingStatus.hasInvoices}
-              workflowsConfigured={onboardingStatus.workflowsConfigured}
-              onSetupStripe={() => setIntegrationModal({ open: true, type: "stripe" })}
-              onSetupQuickBooks={() => setIntegrationModal({ open: true, type: "quickbooks" })}
-            />
-          </div>
+        {!onboardingCompletion.loading && !onboardingCompletion.isComplete && !hideKbAgent && (
+          <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5">
+            <CardContent className="pt-6 pb-5">
+              <div className="flex items-start justify-between gap-4 mb-4">
+                <div className="flex items-start gap-3">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <AlertTriangle className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-base mb-1">Complete Your Account Setup</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      We want you to get the most out of Recouply.ai — improving your cash flow and assessing risks starts here. We just need a few things from you to unlock the full platform. Let's finish setting up so you can start recovering revenue.
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs text-muted-foreground hover:text-foreground shrink-0"
+                  onClick={() => {
+                    localStorage.setItem('recouply_hide_kb_agent', 'true');
+                    setHideKbAgent(true);
+                  }}
+                >
+                  Dismiss
+                </Button>
+              </div>
+
+              <div className="mb-4">
+                <div className="flex items-center justify-between text-sm mb-1.5">
+                  <span className="text-muted-foreground">Setup Progress</span>
+                  <span className="font-medium">{onboardingCompletion.completedSteps} of {onboardingCompletion.totalSteps} complete</span>
+                </div>
+                <Progress value={onboardingCompletion.percentage} className="h-2" />
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4">
+                {onboardingCompletion.items.map((item) => (
+                  <div
+                    key={item.label}
+                    className={`flex items-center gap-2 text-sm px-3 py-2 rounded-md border cursor-pointer transition-colors ${
+                      item.completed
+                        ? "bg-green-50 border-green-200 text-green-700 dark:bg-green-950/30 dark:border-green-800 dark:text-green-400"
+                        : "bg-muted/50 border-border hover:bg-muted"
+                    }`}
+                    onClick={() => !item.completed && navigate(item.route)}
+                  >
+                    {item.completed ? (
+                      <CheckCircle2 className="h-4 w-4 shrink-0" />
+                    ) : (
+                      <XCircle className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    )}
+                    <span className={item.completed ? "" : "text-muted-foreground"}>{item.label}</span>
+                  </div>
+                ))}
+              </div>
+
+              <Button onClick={() => navigate("/onboarding")} className="w-full">
+                Continue Setup
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </CardContent>
+          </Card>
         )}
 
         {/* Quick Actions */}
