@@ -270,8 +270,9 @@ serve(async (req) => {
         // 6. Prepare email content with variable replacement
         const amountDue = invoice.amount_outstanding || invoice.amount || 0;
         const productDescription = (invoice as any).product_description || '';
-        // Prefer Stripe hosted invoice URL / public link over internal dashboard URL
-        const invoiceLink = (invoice as any).external_link || (invoice as any).stripe_hosted_url || invoice.integration_url || '';
+        // Prefer customer-facing invoice URLs; NEVER use internal dashboard links in outreach
+        const _isDashboard = (u: string) => u?.includes('dashboard.stripe.com') || u?.includes('app.qbo.intuit.com');
+        const invoiceLink = [(invoice as any).stripe_hosted_url, (invoice as any).external_link, invoice.integration_url].find(u => u && !_isDashboard(u)) || '';
         const templateVars: Record<string, string> = {
           debtor_name: debtor.name || debtor.company_name || 'Valued Customer',
           company_name: debtor.company_name || debtor.name || '',

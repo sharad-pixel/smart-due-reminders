@@ -31,8 +31,9 @@ function replaceTemplateVars(
     : '';
   const dueDate = invoice?.due_date ? new Date(invoice.due_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
   const paymentLink = branding?.stripe_payment_link || '';
-  // Prefer Stripe hosted invoice URL / public link over internal dashboard URL
-  const invoiceLink = invoice?.external_link || invoice?.stripe_hosted_url || invoice?.integration_url || '';
+  // Prefer customer-facing invoice URLs; NEVER use internal dashboard links in outreach
+  const _isDashboard = (u: string) => u?.includes('dashboard.stripe.com') || u?.includes('app.qbo.intuit.com');
+  const invoiceLink = [invoice?.stripe_hosted_url, invoice?.external_link, invoice?.integration_url].find(u => u && !_isDashboard(u)) || '';
   const productDescription = invoice?.product_description || '';
   // CRITICAL: Get business name with proper fallback chain
   // Priority: business_name > from_name > 'Your Company' (never use empty string)

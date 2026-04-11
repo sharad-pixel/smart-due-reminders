@@ -37,8 +37,9 @@ function replaceTemplateVars(
   const amount = new Intl.NumberFormat('en-US', { style: 'currency', currency: invoiceCurrency, minimumFractionDigits: 2 }).format(invoice?.amount || 0);
   const dueDate = invoice?.due_date ? new Date(invoice.due_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
   const paymentLink = branding?.stripe_payment_link || '';
-  // Prefer Stripe hosted invoice URL / public link, fallback to branding template link
-  let invoiceLink = invoice?.external_link || invoice?.stripe_hosted_url || invoice?.integration_url || '';
+  // Prefer customer-facing invoice URLs; NEVER use internal dashboard links in outreach
+  const _isDashboard = (u: string) => u?.includes('dashboard.stripe.com') || u?.includes('app.qbo.intuit.com');
+  let invoiceLink = [invoice?.stripe_hosted_url, invoice?.external_link, invoice?.integration_url].find(u => u && !_isDashboard(u)) || '';
   if (!invoiceLink && branding?.public_invoice_links_enabled && invoice?.public_token) {
     invoiceLink = `https://recouply.ai/invoice/${invoice.public_token}`;
   }

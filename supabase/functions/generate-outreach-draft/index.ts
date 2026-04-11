@@ -69,9 +69,9 @@ serve(async (req) => {
       .eq("id", invoice_id)
       .single();
     
-    // Extract invoice link for external system
-    // Prefer Stripe hosted invoice URL / public link over internal dashboard URL
-    const invoiceLink = invoice?.external_link || invoice?.stripe_hosted_url || invoice?.integration_url || '';
+    // Extract customer-facing invoice link; NEVER use internal dashboard links in outreach
+    const _isDashboard = (u: string) => u?.includes('dashboard.stripe.com') || u?.includes('app.qbo.intuit.com');
+    const invoiceLink = [invoice?.stripe_hosted_url, invoice?.external_link, invoice?.integration_url].find(u => u && !_isDashboard(u)) || '';
     if (invoiceError || !invoice) {
       console.error("Invoice fetch error:", invoiceError);
       throw new Error("Invoice not found");
