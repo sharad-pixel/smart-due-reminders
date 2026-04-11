@@ -15,8 +15,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Cache branding settings per user to avoid repeated queries
-const brandingCache = new Map<string, any>();
+// No caching – always fetch fresh branding to avoid stale company names
 
 // Process a batch of invoices for a template
 async function processInvoiceBatch(
