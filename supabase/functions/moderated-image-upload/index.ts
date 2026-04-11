@@ -218,7 +218,7 @@ serve(async (req) => {
     // Validate file size
     if (file.size > MAX_FILE_SIZE) {
       return new Response(JSON.stringify({ 
-        error: "File size must be less than 2MB" 
+        error: "File size must be less than 5MB" 
       }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
