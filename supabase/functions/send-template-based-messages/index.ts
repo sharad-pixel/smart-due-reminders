@@ -15,8 +15,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Cache branding settings per user to avoid repeated queries
-const brandingCache = new Map<string, any>();
+// No caching – always fetch fresh branding to avoid stale company names
 
 // Process a batch of invoices for a template
 async function processInvoiceBatch(
@@ -77,25 +76,21 @@ async function processInvoiceBatch(
       continue;
     }
 
-    // Fetch branding settings for this user (cached)
-    let branding = brandingCache.get(template.user_id);
-    if (!branding) {
-      const { data: brandingData } = await supabase
-        .from('branding_settings')
-        .select('logo_url, business_name, from_name, email_signature, email_footer, primary_color, ar_page_public_token, ar_page_enabled, stripe_payment_link')
-        .eq('user_id', template.user_id)
-        .maybeSingle();
-      branding = brandingData || {};
-      brandingCache.set(template.user_id, branding);
-    }
+    // Always fetch fresh branding (no cache) to ensure correct company name
+    const { data: branding } = await supabase
+      .from('branding_settings')
+      .select('logo_url, business_name, from_name, email_signature, email_footer, primary_color, ar_page_public_token, ar_page_enabled, stripe_payment_link')
+      .eq('user_id', template.user_id)
+      .maybeSingle();
+    const brandingData = branding || {};
 
     const dueDate = new Date(invoice.due_date);
     dueDate.setHours(0, 0, 0, 0);
     const daysPastDue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
 
     // Resolve sender/recipient names with safe fallbacks
-    const businessName = (branding?.business_name || branding?.from_name || '').trim() || 'Your Company';
-    const fromName = (branding?.from_name || businessName).trim() || businessName;
+    const businessName = (brandingData?.business_name || brandingData?.from_name || '').trim() || 'Your Company';
+    const fromName = (brandingData?.from_name || businessName).trim() || businessName;
     const recipientName = (contactName || debtor?.name || debtor?.company_name || '').trim() || 'Valued Customer';
 
     // Apply a consistent set of placeholders across both subject + body
@@ -153,7 +148,7 @@ async function processInvoiceBatch(
     const replyToEmail = `invoice+${invoice.id}@${INBOUND_EMAIL_DOMAIN}`;
 
     // Generate From address with user's branding (falls back to Recouply.ai if no branding)
-    const fromEmail = getEmailFromAddress(branding);
+    const fromEmail = getEmailFromAddress(brandingData);
 
     // Format body with line breaks
     const formattedBody = personalizedBody.replace(/\n/g, "<br>");
@@ -161,7 +156,7 @@ async function processInvoiceBatch(
     // Generate fully branded email HTML (uses Recouply.ai branding as fallback)
     const emailHtml = generateBrandedEmail(
       formattedBody,
-      branding,
+      brandingData,
       {
         invoiceId: invoice.id,
         amount: invoice.amount,
@@ -215,7 +210,7 @@ async function processInvoiceBatch(
           sent_at: new Date().toISOString(),
           metadata: {
             from_email: fromEmail,
-            from_name: branding?.business_name || 'Recouply.ai',
+            from_name: brandingData?.business_name || 'Recouply.ai',
             reply_to_email: replyToEmail,
             template_id: template.id,
             platform_send: true,
