@@ -503,7 +503,7 @@ Deno.serve(async (req) => {
           .replace(/[📄💳🔒]/g, '')         // Remove emojis
           .replace(/---/g, '')              // Remove separators
           .replace(/View your invoice:/gi, '')
-          .replace(/Access your account portal:/gi, '')
+          .replace(/Access your .+? payment portal:/gi, '')
           .replace(/Make a payment:/gi, '')
           .replace(/Thank you for your business\./gi, '')
           .trim();
@@ -738,7 +738,7 @@ Deno.serve(async (req) => {
           .replace(/[📄💳🔒]/g, '')
           .replace(/---/g, '')
           .replace(/View your invoice:/gi, '')
-          .replace(/Access your account portal:/gi, '')
+          .replace(/Access your .+? payment portal:/gi, '')
           .replace(/Make a payment:/gi, '')
           .replace(/Thank you for your business\./gi, '')
           .trim();
