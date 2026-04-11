@@ -7,13 +7,13 @@ import { toast } from "sonner";
 import { Upload, Trash2, Loader2, ImageIcon, ShieldCheck } from "lucide-react";
 import { uploadModeratedImage } from "@/lib/moderatedUpload";
 import { ImageCropDialog } from "@/components/ui/ImageCropDialog";
+import { MAX_UPLOAD_SIZE, compressImage } from "@/lib/uploadUtils";
 
 interface LogoUploadProps {
   currentLogoUrl: string | null;
   onLogoChange: (url: string | null) => void;
 }
 
-const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
 const ACCEPTED_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/svg+xml"];
 
 export function LogoUpload({ currentLogoUrl, onLogoChange }: LogoUploadProps) {
@@ -32,8 +32,8 @@ export function LogoUpload({ currentLogoUrl, onLogoChange }: LogoUploadProps) {
       toast.error("Please upload a PNG, JPG, or SVG file");
       return;
     }
-    if (file.size > MAX_FILE_SIZE) {
-      toast.error("File size must be less than 2MB");
+    if (file.size > MAX_UPLOAD_SIZE) {
+      toast.error("File size must be less than 5MB");
       return;
     }
 
@@ -60,9 +60,11 @@ export function LogoUpload({ currentLogoUrl, onLogoChange }: LogoUploadProps) {
     uploadFile(croppedFile);
   };
 
-  const uploadFile = async (file: File) => {
+  const uploadFile = async (fileToUpload: File) => {
     setUploading(true);
     try {
+      // Compress image before uploading
+      const file = await compressImage(fileToUpload);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
