@@ -252,39 +252,37 @@ export const InvoiceTemplateBuilder = ({
           {/* Company Details */}
           <div>
             <h3 className="text-sm font-semibold mb-3">Company Details</h3>
-            <div className="space-y-3">
+            {profileAddressStr ? (
+              <div className="p-3 rounded-md bg-muted/50 text-sm text-muted-foreground mb-3">
+                <p className="font-medium text-foreground text-xs mb-1">Address (from Business Profile)</p>
+                <p className="whitespace-pre-line">{profileAddressStr}</p>
+                <p className="text-xs mt-2">Edit this in <a href="/settings" className="text-primary underline">Settings → Business Profile</a></p>
+              </div>
+            ) : (
+              <div className="p-3 rounded-md bg-amber-50 border border-amber-200 text-sm text-amber-800 mb-3">
+                No business address configured. <a href="/settings" className="text-primary underline">Add it in Settings → Business Profile</a>
+              </div>
+            )}
+            <div className="grid gap-3 sm:grid-cols-2">
               <div>
-                <Label htmlFor="company_address">Company Address</Label>
-                <Textarea
-                  id="company_address"
-                  value={formData.company_address}
-                  onChange={(e) => handleChange("company_address", e.target.value)}
-                  placeholder={"123 Business Ave\nSuite 100\nCity, State ZIP\nCountry"}
-                  rows={3}
+                <Label htmlFor="company_phone">Phone</Label>
+                <Input
+                  id="company_phone"
+                  value={formData.company_phone}
+                  onChange={(e) => handleChange("company_phone", e.target.value)}
+                  placeholder="+1 (555) 123-4567"
                   className="mt-1"
                 />
               </div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <Label htmlFor="company_phone">Phone</Label>
-                  <Input
-                    id="company_phone"
-                    value={formData.company_phone}
-                    onChange={(e) => handleChange("company_phone", e.target.value)}
-                    placeholder="+1 (555) 123-4567"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="company_website">Website</Label>
-                  <Input
-                    id="company_website"
-                    value={formData.company_website}
-                    onChange={(e) => handleChange("company_website", e.target.value)}
-                    placeholder="https://yourcompany.com"
-                    className="mt-1"
-                  />
-                </div>
+              <div>
+                <Label htmlFor="company_website">Website</Label>
+                <Input
+                  id="company_website"
+                  value={formData.company_website}
+                  onChange={(e) => handleChange("company_website", e.target.value)}
+                  placeholder="https://yourcompany.com"
+                  className="mt-1"
+                />
               </div>
             </div>
           </div>
@@ -445,7 +443,7 @@ export const InvoiceTemplateBuilder = ({
         <InvoiceTemplatePreview
           template={{
             ...formData,
-            company_address: formData.company_address || profileAddressStr,
+            company_address: profileAddressStr,
           }}
           businessName={businessName}
           logoUrl={logoUrl}
