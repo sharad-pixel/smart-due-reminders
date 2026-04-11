@@ -263,27 +263,26 @@ export const InvoiceTemplateBuilder = ({
                 No business address configured. <a href="/settings" className="text-primary underline">Add it in Settings → Business Profile</a>
               </div>
             )}
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <Label htmlFor="company_phone">Phone</Label>
-                  <Input
-                    id="company_phone"
-                    value={formData.company_phone}
-                    onChange={(e) => handleChange("company_phone", e.target.value)}
-                    placeholder="+1 (555) 123-4567"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="company_website">Website</Label>
-                  <Input
-                    id="company_website"
-                    value={formData.company_website}
-                    onChange={(e) => handleChange("company_website", e.target.value)}
-                    placeholder="https://yourcompany.com"
-                    className="mt-1"
-                  />
-                </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <Label htmlFor="company_phone">Phone</Label>
+                <Input
+                  id="company_phone"
+                  value={formData.company_phone}
+                  onChange={(e) => handleChange("company_phone", e.target.value)}
+                  placeholder="+1 (555) 123-4567"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="company_website">Website</Label>
+                <Input
+                  id="company_website"
+                  value={formData.company_website}
+                  onChange={(e) => handleChange("company_website", e.target.value)}
+                  placeholder="https://yourcompany.com"
+                  className="mt-1"
+                />
               </div>
             </div>
           </div>
