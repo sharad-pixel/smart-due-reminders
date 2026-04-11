@@ -160,7 +160,14 @@ export function getInvoiceLink(invoice: InvoiceData, branding?: BrandingData): s
 }
 
 /**
- * Build AR portal URL from branding settings
+ * Build Payment Portal URL (debtor-portal)
+ */
+export function getPaymentPortalUrl(): string {
+  return 'https://recouply.ai/debtor-portal';
+}
+
+/**
+ * Build AR portal URL from branding settings (separate from payment portal)
  */
 export function getArPortalUrl(branding: BrandingData): string {
   if (branding.ar_page_public_token && branding.ar_page_enabled) {
@@ -456,9 +463,12 @@ export function processDraftContent(input: DraftContentInput): DraftContentOutpu
     body += `\n\n💳 Make a payment: ${paymentLink}`;
   }
 
-  if (includeArPortal && arPortalUrl && branding.include_portal_link_in_outreach !== false && !body.includes(arPortalUrl)) {
+  if (branding.include_portal_link_in_outreach !== false) {
+    const portalUrl = getPaymentPortalUrl();
     const portalBusinessName = branding.business_name || branding.from_name || 'your';
-    body += `\n\n📄 Access your ${portalBusinessName} payment portal: ${arPortalUrl}`;
+    if (!body.includes(portalUrl)) {
+      body += `\n\n📄 View all outstanding balances on your ${portalBusinessName} payment portal: ${portalUrl}\nUse the email address this message was sent to for secure, encrypted access.`;
+    }
   }
 
   // Step 3: Add signature if available and requested

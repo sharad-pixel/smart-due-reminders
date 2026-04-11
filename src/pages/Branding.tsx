@@ -355,22 +355,14 @@ export default function Branding() {
                   />
                 </div>
 
-                {formData.include_portal_link_in_outreach !== false && formData.ar_page_enabled && (
+                {formData.include_portal_link_in_outreach !== false && (
                   <div className="ml-4 p-3 rounded-md bg-blue-50 border border-blue-200 text-sm text-blue-800">
                     <p className="font-medium mb-1">Preview of appended language:</p>
                     <p className="font-mono text-xs bg-white/60 rounded p-2 border">
-                      📄 Access your {formData.business_name || "Your Company"} payment portal: https://recouply.ai/ar/...
+                      📄 View all outstanding balances on your {formData.business_name || "Your Company"} payment portal: https://recouply.ai/debtor-portal<br/>
+                      Use the email address this message was sent to for secure, encrypted access.
                     </p>
                   </div>
-                )}
-
-                {formData.include_portal_link_in_outreach !== false && !formData.ar_page_enabled && (
-                  <Alert className="bg-amber-50 border-amber-200">
-                    <AlertTriangle className="h-4 w-4 text-amber-600" />
-                    <AlertDescription className="text-amber-800 text-sm">
-                      Your Public AR Page is currently disabled. Enable it below to include the portal link in outreach.
-                    </AlertDescription>
-                  </Alert>
                 )}
 
                 <div>

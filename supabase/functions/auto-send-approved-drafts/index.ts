@@ -132,10 +132,13 @@ function ensureMessageHasContactInfo(
   // CRITICAL: Use proper fallback chain for business name
   const businessName = branding?.business_name?.trim() || branding?.from_name?.trim() || 'Your Company';
   
-  // Append AR portal link if available and not already in body
-  if (arPageUrl && branding?.include_portal_link_in_outreach !== false && !result.includes(arPageUrl)) {
+  // Append Payment Portal link if enabled
+  if (branding?.include_portal_link_in_outreach !== false) {
+    const portalUrl = 'https://recouply.ai/debtor-portal';
     const portalBusinessName = branding?.business_name?.trim() || branding?.from_name?.trim() || 'your';
-    result += `\n\n📄 Access your ${portalBusinessName} payment portal: ${arPageUrl}`;
+    if (!result.includes(portalUrl)) {
+      result += `\n\n📄 View all outstanding balances on your ${portalBusinessName} payment portal: ${portalUrl}\nUse the email address this message was sent to for secure, encrypted access.`;
+    }
   }
   
   // Append payment link if available and not already in body
