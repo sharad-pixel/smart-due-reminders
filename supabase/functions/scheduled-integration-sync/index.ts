@@ -18,7 +18,6 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     logStep('Starting scheduled integration sync check');
@@ -33,7 +32,7 @@ Deno.serve(async (req) => {
       .eq('auto_sync_enabled', true)
       .lte('next_sync_due_at', now.toISOString())
       .order('next_sync_due_at', { ascending: true })
-      .limit(50); // Process up to 50 at a time
+      .limit(50);
 
     if (fetchError) {
       logStep('Error fetching due settings', { error: fetchError.message });
@@ -66,7 +65,7 @@ Deno.serve(async (req) => {
 
         logStep('Processing sync', { userId: setting.user_id, type: setting.integration_type });
 
-        // Call the appropriate sync function using service-to-service call
+        // Determine which sync function to call
         let syncUrl: string;
         if (setting.integration_type === 'stripe') {
           syncUrl = `${supabaseUrl}/functions/v1/sync-stripe-invoices`;
@@ -81,28 +80,9 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Generate a short-lived user token for the sync
-        // We use admin API to create a session for this user
-        const { data: userSession, error: sessionError } = await supabase.auth.admin.getUserById(setting.user_id);
-        
-        if (sessionError || !userSession?.user) {
-          logStep('Cannot get user for sync', { userId: setting.user_id, error: sessionError?.message });
-          results.push({ userId: setting.user_id, type: setting.integration_type, success: false, error: 'User not found' });
-          
-          // Still update next_sync_due_at so we don't retry every cycle
-          await updateNextSyncDue(supabase, setting.id, setting.sync_time, setting.sync_timezone);
-          continue;
-        }
+        logStep('Calling sync function', { url: syncUrl, userId: setting.user_id });
 
-        // For Stripe: use service role key directly since the function validates auth via token
-        // We need to generate a token for the user
-        // Use admin.generateLink to create a magic link, then extract session
-        // Actually, simpler approach: call with service_role key which bypasses JWT verification
-        // But the sync functions validate user auth... 
-        
-        // Alternative: Call via HTTP with service_role key in Authorization header
-        // The sync function uses getUser(token) - service_role key works for admin operations
-        
+        // Call the sync function with service role key and scheduled user ID
         const syncRes = await fetch(syncUrl, {
           method: 'POST',
           headers: {
@@ -116,31 +96,40 @@ Deno.serve(async (req) => {
           }),
         });
 
-        const syncResult = await syncRes.text();
+        const syncResultText = await syncRes.text();
         const success = syncRes.ok;
 
-        logStep('Sync result', { 
+        logStep('Sync response received', { 
           userId: setting.user_id, 
           type: setting.integration_type, 
           status: syncRes.status,
-          success 
+          success,
+          responsePreview: syncResultText.substring(0, 500),
         });
 
-        // Update last_auto_sync_at and calculate next_sync_due_at
-        await supabase
-          .from('integration_sync_settings')
-          .update({ 
-            last_auto_sync_at: now.toISOString(),
-          })
-          .eq('id', setting.id);
+        // ONLY update last_auto_sync_at if the sync actually succeeded
+        if (success) {
+          await supabase
+            .from('integration_sync_settings')
+            .update({ last_auto_sync_at: now.toISOString() })
+            .eq('id', setting.id);
+          logStep('Updated last_auto_sync_at', { userId: setting.user_id });
+        } else {
+          logStep('Sync failed - NOT updating last_auto_sync_at', { 
+            userId: setting.user_id, 
+            status: syncRes.status,
+            error: syncResultText.substring(0, 300),
+          });
+        }
 
+        // Always advance next_sync_due_at to prevent retry storms
         await updateNextSyncDue(supabase, setting.id, setting.sync_time, setting.sync_timezone);
 
         results.push({ 
           userId: setting.user_id, 
           type: setting.integration_type, 
           success,
-          error: success ? undefined : syncResult.substring(0, 200),
+          error: success ? undefined : syncResultText.substring(0, 200),
         });
 
       } catch (syncError) {
@@ -223,19 +212,8 @@ function calculateNextSyncTime(syncTime: string, syncTimezone: string): Date {
   
   // Use Intl to convert timezone to UTC offset
   try {
-    // Create a formatter for the target timezone
-    const formatter = new Intl.DateTimeFormat('en-US', {
-      timeZone: syncTimezone,
-      year: 'numeric', month: '2-digit', day: '2-digit',
-      hour: '2-digit', minute: '2-digit', second: '2-digit',
-      hour12: false,
-    });
-    
-    // Estimate: set UTC time and adjust
-    // Simple approach: create Date in UTC, then adjust by timezone offset
     const baseDate = new Date(`${year}-${month}-${day}T${timeStr}Z`);
     
-    // Get the offset by comparing UTC and local representation
     const utcParts = new Intl.DateTimeFormat('en-US', {
       timeZone: 'UTC',
       year: 'numeric', month: '2-digit', day: '2-digit',
@@ -258,18 +236,15 @@ function calculateNextSyncTime(syncTime: string, syncTimezone: string): Date {
     const utcDay = getVal(utcParts, 'day');
     const tzDay = getVal(tzParts, 'day');
     
-    // Calculate offset in hours (approximate - handles DST edge cases reasonably)
     let offsetHours = tzHour - utcHour;
     if (tzDay > utcDay) offsetHours += 24;
     if (tzDay < utcDay) offsetHours -= 24;
     
-    // We want the local time to be `syncTime`, so subtract the offset to get UTC
     const targetUtc = new Date(`${year}-${month}-${day}T${timeStr}Z`);
     targetUtc.setUTCHours(targetUtc.getUTCHours() - offsetHours);
     
     return targetUtc;
   } catch {
-    // Fallback: assume UTC
     return new Date(`${year}-${month}-${day}T${timeStr}Z`);
   }
 }
