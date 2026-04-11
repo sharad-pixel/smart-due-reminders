@@ -47,6 +47,7 @@ export interface BrandingData {
   ar_page_public_token?: string;
   ar_page_enabled?: boolean;
   public_invoice_links_enabled?: boolean;
+  include_portal_link_in_outreach?: boolean;
   escalation_contact_name?: string;
   escalation_contact_email?: string;
   escalation_contact_phone?: string;
