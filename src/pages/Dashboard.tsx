@@ -174,7 +174,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const accountInfo = useEffectiveAccount();
   const { data: orgAvgDPD } = useOrgAvgDPD();
-  const onboardingStatus = useOnboardingStatus();
+  const onboardingCompletion = useOnboardingCompletion();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [_invoices, setInvoices] = useState<Invoice[]>([]);
