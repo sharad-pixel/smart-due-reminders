@@ -50,6 +50,8 @@ import { NicolasPageTip } from "@/components/nicolas/NicolasPageTip";
 import { OnboardingWelcome } from "@/components/layout/OnboardingWelcome";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
 import { NavProfileAvatar } from "@/components/layout/NavProfileAvatar";
+import { OnboardingProgressRing } from "@/components/layout/OnboardingProgressRing";
+import { useOnboardingCompletion } from "@/hooks/useOnboardingCompletion";
 import { AlertNotifications } from "@/components/alerts/AlertNotifications";
 import { useUserAlerts } from "@/hooks/useUserAlerts";
 import { RequireSubscription } from "@/components/billing/RequireSubscription";
@@ -74,6 +76,7 @@ const Layout = ({ children }: LayoutProps) => {
   const [trialBannerVisible, setTrialBannerVisible] = useState(false);
   const [isFounder, setIsFounder] = useState(false);
   const { unreadCount: alertUnreadCount } = useUserAlerts();
+  const { percentage: onboardingPct, showRing } = useOnboardingCompletion();
   const { 
     isTeamMember, 
     ownerName, 
@@ -384,11 +387,21 @@ const Layout = ({ children }: LayoutProps) => {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="flex items-center space-x-2 p-1.5 rounded-full hover:bg-accent/50">
-                    <NavProfileAvatar 
-                      avatarUrl={avatarUrl} 
-                      userName={userName}
-                      size="md"
-                    />
+                    {showRing ? (
+                      <OnboardingProgressRing percentage={onboardingPct}>
+                        <NavProfileAvatar 
+                          avatarUrl={avatarUrl} 
+                          userName={userName}
+                          size="sm"
+                        />
+                      </OnboardingProgressRing>
+                    ) : (
+                      <NavProfileAvatar 
+                        avatarUrl={avatarUrl} 
+                        userName={userName}
+                        size="md"
+                      />
+                    )}
                     <span className="hidden md:inline-block text-sm pr-1">{userName}</span>
                   </Button>
                 </DropdownMenuTrigger>
