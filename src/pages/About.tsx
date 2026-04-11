@@ -141,6 +141,7 @@ const About = () => {
                         <p className="text-xs text-muted-foreground text-center font-medium">REV OPS — Driven by Revenue Operations</p>
                       </div>
                     </div>
+                  </div>
                 </div>
               </div>
               
