@@ -148,7 +148,7 @@ async function processInvoiceBatch(
     const replyToEmail = `invoice+${invoice.id}@${INBOUND_EMAIL_DOMAIN}`;
 
     // Generate From address with user's branding (falls back to Recouply.ai if no branding)
-    const fromEmail = getEmailFromAddress(branding);
+    const fromEmail = getEmailFromAddress(brandingData);
 
     // Format body with line breaks
     const formattedBody = personalizedBody.replace(/\n/g, "<br>");
@@ -156,7 +156,7 @@ async function processInvoiceBatch(
     // Generate fully branded email HTML (uses Recouply.ai branding as fallback)
     const emailHtml = generateBrandedEmail(
       formattedBody,
-      branding,
+      brandingData,
       {
         invoiceId: invoice.id,
         amount: invoice.amount,
@@ -210,7 +210,7 @@ async function processInvoiceBatch(
           sent_at: new Date().toISOString(),
           metadata: {
             from_email: fromEmail,
-            from_name: branding?.business_name || 'Recouply.ai',
+            from_name: brandingData?.business_name || 'Recouply.ai',
             reply_to_email: replyToEmail,
             template_id: template.id,
             platform_send: true,
