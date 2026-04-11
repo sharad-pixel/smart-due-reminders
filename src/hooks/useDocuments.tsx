@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { MAX_UPLOAD_SIZE, compressImage } from "@/lib/uploadUtils";
 
 export interface Document {
   id: string;
@@ -80,7 +81,15 @@ export function useUploadDocument() {
       debtorId?: string;
       notes?: string;
     }) => {
-      const filePath = `${Date.now()}-${file.name}`;
+      // Validate file size
+      if (file.size > MAX_UPLOAD_SIZE) {
+        throw new Error("File size must be less than 5MB");
+      }
+
+      // Compress images before upload
+      const processedFile = IMAGE_TYPES.includes(file.type) ? await compressImage(file) : file;
+
+      const filePath = `${Date.now()}-${processedFile.name}`;
       let uploadPath = filePath;
 
       // Check if file is an image type - use moderated upload
