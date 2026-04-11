@@ -158,6 +158,11 @@ export const InvoiceLinkCard = ({
                     <div className="font-semibold" style={{ color: hc, fontSize: "11px" }}>
                       {branding.business_name}
                     </div>
+                    {companyAddress && (
+                      <div className="text-gray-600 whitespace-pre-line" style={{ fontSize: "8px", lineHeight: 1.3 }}>
+                        {companyAddress}
+                      </div>
+                    )}
                   </div>
                   <div className="text-right">
                     <div className="font-light tracking-wide" style={{ color: hc, fontSize: "14px" }}>Invoice</div>
