@@ -423,11 +423,17 @@ serve(async (req) => {
       // Format message body with line breaks
       const formattedBody = processedBody.replace(/\n/g, "<br>");
 
+      // Build secure invoice URL from public_token (always available for security)
+      const secureInvoiceUrl = invoice.public_token 
+        ? `https://recouply.ai/invoice/${invoice.public_token}` 
+        : undefined;
+
       // Build email using the new renderEmail function that respects email_format setting
       const emailHtml = renderEmail({
         brand: brandingConfig,
         subject: processedSubject,
         bodyHtml: formattedBody,
+        secureInvoiceUrl,
         cta: branding?.stripe_payment_link ? {
           label: `Pay Invoice - $${invoice.amount?.toLocaleString() || '0'}`,
           url: branding.stripe_payment_link,

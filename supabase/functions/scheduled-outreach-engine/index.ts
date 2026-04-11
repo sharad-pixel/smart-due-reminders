@@ -332,8 +332,10 @@ Deno.serve(async (req) => {
           const formattedAmount = new Intl.NumberFormat('en-US', { style: 'currency', currency: invoice.currency || 'USD', minimumFractionDigits: 2 }).format(invoice.amount || 0);
           const _isDashboard = (u: string) => u?.includes('dashboard.stripe.com') || u?.includes('app.qbo.intuit.com');
           let invoiceLink = [invoice.stripe_hosted_url, invoice.external_link, invoice.integration_url].find(u => u && !_isDashboard(u)) || '';
-          if (!invoiceLink && branding?.public_invoice_links_enabled && invoice.public_token) {
-            invoiceLink = `https://recouply.ai/invoice/${invoice.public_token}`;
+          // Always build secure invoice URL from public_token for encrypted view
+          const secureInvoiceUrl = invoice.public_token ? `https://recouply.ai/invoice/${invoice.public_token}` : '';
+          if (!invoiceLink && invoice.public_token) {
+            invoiceLink = secureInvoiceUrl;
           }
           // CRITICAL: Use proper fallback chain for business name
           const businessName = branding?.business_name?.trim() || branding?.from_name?.trim() || 'Your Company';
@@ -398,7 +400,7 @@ Deno.serve(async (req) => {
 
           // Append links if not already in template body
           if (arPageUrl && branding?.include_portal_link_in_outreach !== false && !body.includes(arPageUrl)) body += `\n\n📄 Access your ${businessName} payment portal: ${arPageUrl}`;
-          if (invoiceLink && !body.includes(invoiceLink)) body += `\n\nView your invoice: ${invoiceLink}`;
+          if (secureInvoiceUrl && !body.includes(secureInvoiceUrl)) body += `\n\n🔒 View this invoice securely: ${secureInvoiceUrl}`;
           if (paymentLink && !body.includes(paymentLink)) body += `\n\n💳 Make a payment: ${paymentLink}`;
           if (!body.includes(businessName)) body += `\n\nThank you for your business.\n\n---\n${businessName}`;
 

@@ -48,6 +48,7 @@ export interface PaymentLinkOptions {
   invoiceId?: string;
   amount?: number;
   paymentUrl?: string;
+  secureInvoiceUrl?: string;
 }
 
 function escapeHtml(text: string): string {
@@ -247,13 +248,36 @@ function lightenColor(hex: string, percent: number): string {
  * Clean payment button
  */
 export function generatePaymentButton(options: PaymentLinkOptions): string {
-  if (!options.paymentUrl) return "";
+  let html = "";
   
-  const amountText = options.amount 
-    ? ` $${options.amount.toLocaleString()}`
-    : "";
+  // Always show secure invoice view button if available
+  if (options.secureInvoiceUrl) {
+    html += `
+    <div style="text-align: center; margin: 24px 0; padding: 20px; background-color: #f0fdf4; border-radius: 8px; border: 1px solid #bbf7d0;">
+      <p style="margin: 0 0 6px; font-size: 14px; color: #1e293b; font-weight: 600; font-family: ${FONT_STACK};">
+        🔒 Secure Invoice View
+      </p>
+      <p style="margin: 0 0 14px; font-size: 13px; color: #64748b; font-family: ${FONT_STACK};">
+        View this invoice on a secure, encrypted page with payment options
+      </p>
+      <a href="${escapeHtml(options.secureInvoiceUrl)}" 
+         style="display: inline-block; background-color: #16a34a; color: #ffffff; text-decoration: none; padding: 10px 24px; border-radius: 6px; font-size: 13px; font-weight: 600; font-family: ${FONT_STACK};">
+        View Invoice &amp; Pay Securely →
+      </a>
+      <p style="margin: 10px 0 0; font-size: 11px; color: #64748b; font-family: ${FONT_STACK};">
+        256-bit encrypted · Powered by Recouply.ai
+      </p>
+    </div>
+    `.trim();
+  }
   
-  return `
+  // Also show pay now button if a separate payment URL exists
+  if (options.paymentUrl) {
+    const amountText = options.amount 
+      ? ` $${options.amount.toLocaleString()}`
+      : "";
+    
+    html += `
     <div style="text-align: center; margin: 24px 0;">
       <a href="${escapeHtml(options.paymentUrl)}" 
          style="display: inline-block; background-color: #22c55e; color: #ffffff; text-decoration: none; padding: 12px 32px; border-radius: 6px; font-size: 14px; font-weight: 600; font-family: ${FONT_STACK};">
@@ -263,7 +287,10 @@ export function generatePaymentButton(options: PaymentLinkOptions): string {
     <p style="text-align: center; margin: 8px 0 0; color: #64748b; font-size: 12px; font-family: ${FONT_STACK};">
       🔒 Secure payment powered by Stripe
     </p>
-  `.trim();
+    `.trim();
+  }
+  
+  return html;
 }
 
 /**
