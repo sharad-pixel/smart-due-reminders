@@ -7432,6 +7432,89 @@ export type Database = {
           },
         ]
       }
+      referral_credits: {
+        Row: {
+          created_at: string
+          credits_amount: number
+          credits_used: number
+          expires_at: string
+          id: string
+          plan_at_referral: string | null
+          referral_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          credits_amount: number
+          credits_used?: number
+          expires_at: string
+          id?: string
+          plan_at_referral?: string | null
+          referral_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          credits_amount?: number
+          credits_used?: number
+          expires_at?: string
+          id?: string
+          plan_at_referral?: string | null
+          referral_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_credits_referral_id_fkey"
+            columns: ["referral_id"]
+            isOneToOne: false
+            referencedRelation: "referrals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referrals: {
+        Row: {
+          channel: string | null
+          completed_at: string | null
+          created_at: string
+          id: string
+          referral_code: string
+          referred_email: string | null
+          referred_user_id: string | null
+          referrer_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          channel?: string | null
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          referral_code: string
+          referred_email?: string | null
+          referred_user_id?: string | null
+          referrer_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          channel?: string | null
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          referral_code?: string
+          referred_email?: string | null
+          referred_user_id?: string | null
+          referrer_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       saved_views: {
         Row: {
           created_at: string
@@ -8704,6 +8787,11 @@ export type Database = {
         Args: { prefix: string; target_table: string }
         Returns: string
       }
+      generate_referral_code: { Args: { p_user_id: string }; Returns: string }
+      get_available_referral_credits: {
+        Args: { p_user_id: string }
+        Returns: number
+      }
       get_billable_seat_count: {
         Args: { p_account_id: string }
         Returns: number
@@ -8712,6 +8800,10 @@ export type Database = {
       get_payment_plan_by_token: { Args: { p_token: string }; Returns: Json }
       get_public_ar_page: { Args: { p_token: string }; Returns: Json }
       get_public_invoice: { Args: { p_token: string }; Returns: Json }
+      get_referral_credits_for_plan: {
+        Args: { p_plan_type: string }
+        Returns: number
+      }
       get_safe_team_profile: {
         Args: { p_account_id: string }
         Returns: {

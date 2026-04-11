@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { UserPlus, Shield, Eye, User, Lock, Check, X, DollarSign, AlertCircle, Loader2, UserX, UserCheck, RefreshCw, ArrowRightLeft, Send, Building2, Link2, Crown } from "lucide-react";
+import { ReferralInviteCard } from "@/components/team/ReferralInviteCard";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -732,11 +733,14 @@ const Team = () => {
         )}
 
         <Card>
-          <CardHeader>
-            <CardTitle>Team Members</CardTitle>
-            <CardDescription>
-              {teamMembers.length} member{teamMembers.length !== 1 ? "s" : ""} in your team
-            </CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <div className="space-y-1.5">
+              <CardTitle>Team Members</CardTitle>
+              <CardDescription>
+                {teamMembers.length} member{teamMembers.length !== 1 ? "s" : ""} in your team
+              </CardDescription>
+            </div>
+            <ReferralInviteCard />
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
