@@ -96,16 +96,9 @@ interface PlanInfo {
 // Onboarding & Assistant Card Component
 const OnboardingAssistantCard = () => {
   const { preferences, toggleAssistant } = useNicolasPreferences();
-  const { percentage, completedSteps, totalSteps, isComplete, progress } = useOnboardingCompletion();
+  const { percentage, completedSteps, totalSteps, isComplete, items } = useOnboardingCompletion();
   const { toast } = useToast();
   const navigate = useNavigate();
-
-  const steps = [
-    { label: "Business Profile", key: "business_profile_completed" },
-    { label: "Documents Uploaded", key: "documents_uploaded" },
-    { label: "Branding Setup", key: "branding_completed" },
-    { label: "Product Training", key: "training_viewed" },
-  ];
 
   return (
     <Card>
@@ -130,19 +123,16 @@ const OnboardingAssistantCard = () => {
 
         {/* Step checklist */}
         <div className="space-y-2">
-          {steps.map((step) => {
-            const done = isComplete || (progress as any)?.[step.key] || false;
-            return (
-              <div key={step.key} className="flex items-center gap-2 text-sm">
-                {done ? (
-                  <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
-                ) : (
-                  <XCircle className="h-4 w-4 text-muted-foreground/50 shrink-0" />
-                )}
-                <span className={done ? "text-muted-foreground line-through" : ""}>{step.label}</span>
-              </div>
-            );
-          })}
+          {items.map((item) => (
+            <div key={item.label} className="flex items-center gap-2 text-sm">
+              {item.completed ? (
+                <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+              ) : (
+                <XCircle className="h-4 w-4 text-muted-foreground/50 shrink-0" />
+              )}
+              <span className={item.completed ? "text-muted-foreground line-through" : ""}>{item.label}</span>
+            </div>
+          ))}
         </div>
 
         {!isComplete && (
