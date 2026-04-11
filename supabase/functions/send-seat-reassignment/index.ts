@@ -93,7 +93,7 @@ Deno.serve(async (req) => {
             🎉 ${isExistingUser ? "You've Been Invited to Join a Team!" : "You're Invited to Join a Team!"}
           </h2>
           <p style="margin: 0 0 20px; color: #475569; font-size: 14px; line-height: 1.7;">
-            <strong>${reassignedByName}</strong> has invited you to join <strong>${accountOwnerName}'s</strong> team on Recouply.ai${isExistingUser ? '.' : ', the Collections and Risk Intelligence CRM for Finance Teams.'}
+            <strong>${reassignedByName}</strong> has invited you to join <strong>${accountOwnerName}'s</strong> team on Recouply.ai${isExistingUser ? '.' : ', the Collections and Risk Intelligence Platform.'}
           </p>
 
           <div style="background-color: ${BRAND.primary}; border-radius: 8px; padding: 24px; margin: 24px 0; text-align: center;">

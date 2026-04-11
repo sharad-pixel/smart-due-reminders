@@ -67,7 +67,7 @@ serve(async (req) => {
       </p>
 
       <p style="margin: 0 0 20px; color: #475569; font-size: 14px; line-height: 1.7;">
-        I'm <strong>Sharad Chanana</strong>, founder of Recouply.ai, and I'm personally thrilled to welcome you to our Collections and Risk Intelligence CRM for Finance Teams. <strong>You're about to transform how you manage receivables.</strong>
+        I'm <strong>Sharad Chanana</strong>, founder of Recouply.ai, and I'm personally thrilled to welcome you to our Collections and Risk Intelligence Platform. <strong>You're about to transform how you manage receivables.</strong>
       </p>
 
       <div style="background-color: ${BRAND.primary}; border-radius: 8px; padding: 24px; margin: 24px 0; text-align: center;">
