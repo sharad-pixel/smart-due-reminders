@@ -76,17 +76,13 @@ async function processInvoiceBatch(
       continue;
     }
 
-    // Fetch branding settings for this user (cached)
-    let branding = brandingCache.get(template.user_id);
-    if (!branding) {
-      const { data: brandingData } = await supabase
-        .from('branding_settings')
-        .select('logo_url, business_name, from_name, email_signature, email_footer, primary_color, ar_page_public_token, ar_page_enabled, stripe_payment_link')
-        .eq('user_id', template.user_id)
-        .maybeSingle();
-      branding = brandingData || {};
-      brandingCache.set(template.user_id, branding);
-    }
+    // Always fetch fresh branding (no cache) to ensure correct company name
+    const { data: branding } = await supabase
+      .from('branding_settings')
+      .select('logo_url, business_name, from_name, email_signature, email_footer, primary_color, ar_page_public_token, ar_page_enabled, stripe_payment_link')
+      .eq('user_id', template.user_id)
+      .maybeSingle();
+    const brandingData = branding || {};
 
     const dueDate = new Date(invoice.due_date);
     dueDate.setHours(0, 0, 0, 0);
