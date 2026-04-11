@@ -16,9 +16,17 @@ interface ImageCropDialogProps {
   imageSrc: string;
   onClose: () => void;
   onCropComplete: (croppedBlob: Blob) => void;
+  aspect?: number;
+  cropShape?: "rect" | "round";
+  title?: string;
+  outputType?: "image/jpeg" | "image/png";
 }
 
-async function getCroppedImg(imageSrc: string, pixelCrop: Area): Promise<Blob> {
+async function getCroppedImg(
+  imageSrc: string,
+  pixelCrop: Area,
+  outputType: string = "image/jpeg"
+): Promise<Blob> {
   const image = new Image();
   image.crossOrigin = "anonymous";
   await new Promise<void>((resolve, reject) => {
@@ -47,7 +55,7 @@ async function getCroppedImg(imageSrc: string, pixelCrop: Area): Promise<Blob> {
   return new Promise((resolve, reject) => {
     canvas.toBlob(
       (blob) => (blob ? resolve(blob) : reject(new Error("Canvas toBlob failed"))),
-      "image/jpeg",
+      outputType,
       0.92
     );
   });
@@ -58,6 +66,10 @@ export const ImageCropDialog = ({
   imageSrc,
   onClose,
   onCropComplete,
+  aspect = 1,
+  cropShape = "round",
+  title = "Adjust your image",
+  outputType = "image/jpeg",
 }: ImageCropDialogProps) => {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -75,7 +87,7 @@ export const ImageCropDialog = ({
     if (!croppedAreaPixels) return;
     setSaving(true);
     try {
-      const croppedBlob = await getCroppedImg(imageSrc, croppedAreaPixels);
+      const croppedBlob = await getCroppedImg(imageSrc, croppedAreaPixels, outputType);
       onCropComplete(croppedBlob);
     } catch (e) {
       console.error("Crop failed:", e);
@@ -88,16 +100,16 @@ export const ImageCropDialog = ({
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Adjust your photo</DialogTitle>
+          <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
         <div className="relative w-full h-72 bg-muted rounded-lg overflow-hidden">
           <Cropper
             image={imageSrc}
             crop={crop}
             zoom={zoom}
-            aspect={1}
-            cropShape="round"
-            showGrid={false}
+            aspect={aspect}
+            cropShape={cropShape}
+            showGrid={cropShape === "rect"}
             onCropChange={onCropChange}
             onZoomChange={onZoomChange}
             onCropComplete={handleCropComplete}
@@ -120,7 +132,7 @@ export const ImageCropDialog = ({
             Cancel
           </Button>
           <Button onClick={handleSave} disabled={saving}>
-            {saving ? "Saving…" : "Save"}
+            {saving ? "Saving…" : "Crop & Save"}
           </Button>
         </DialogFooter>
       </DialogContent>

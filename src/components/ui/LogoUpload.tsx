@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Upload, Trash2, Loader2, ImageIcon, ShieldCheck } from "lucide-react";
 import { uploadModeratedImage } from "@/lib/moderatedUpload";
+import { ImageCropDialog } from "@/components/ui/ImageCropDialog";
 
 interface LogoUploadProps {
   currentLogoUrl: string | null;
@@ -18,35 +19,56 @@ const ACCEPTED_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/svg+xml"]
 export function LogoUpload({ currentLogoUrl, onLogoChange }: LogoUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [removing, setRemoving] = useState(false);
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
     if (!ACCEPTED_TYPES.includes(file.type)) {
       toast.error("Please upload a PNG, JPG, or SVG file");
       return;
     }
-
-    // Validate file size
     if (file.size > MAX_FILE_SIZE) {
       toast.error("File size must be less than 2MB");
       return;
     }
 
+    // SVGs can't be cropped
+    if (file.type === "image/svg+xml") {
+      uploadFile(file);
+      return;
+    }
+
+    // Show crop dialog
+    setPendingFile(file);
+    const reader = new FileReader();
+    reader.onload = () => setCropSrc(reader.result as string);
+    reader.readAsDataURL(file);
+
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleCropComplete = (blob: Blob) => {
+    setCropSrc(null);
+    const ext = pendingFile?.name.split(".").pop()?.toLowerCase() || "png";
+    const croppedFile = new File([blob], `logo-cropped.${ext}`, { type: blob.type });
+    setPendingFile(null);
+    uploadFile(croppedFile);
+  };
+
+  const uploadFile = async (file: File) => {
     setUploading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
       const fileExt = file.name.split(".").pop()?.toLowerCase() || "png";
-      // Use a unique filename to avoid CDN/browser caching old logos.
       const storagePath = `${user.id}/logo-${Date.now()}.${fileExt}`;
 
-      // Delete existing logo if any
       if (currentLogoUrl) {
         const oldPath = currentLogoUrl.split("/org-logos/")[1]?.split("?")[0];
         if (oldPath) {
@@ -54,7 +76,6 @@ export function LogoUpload({ currentLogoUrl, onLogoChange }: LogoUploadProps) {
         }
       }
 
-      // Upload through moderated pipeline
       const result = await uploadModeratedImage({
         file,
         purpose: "org_logo",
@@ -71,19 +92,17 @@ export function LogoUpload({ currentLogoUrl, onLogoChange }: LogoUploadProps) {
         return;
       }
 
-      // Update branding settings
       const { error: updateError } = await supabase
         .from("branding_settings")
         .upsert({
           user_id: user.id,
           logo_url: result.publicUrl,
-          business_name: "", // Required field, will be merged
+          business_name: "",
         }, { onConflict: "user_id" });
 
       if (updateError) throw updateError;
 
       onLogoChange(result.publicUrl!);
-      // Invalidate branding query to refresh data
       queryClient.invalidateQueries({ queryKey: ["branding-settings"] });
       toast.success("Logo updated. It will appear on all outgoing message signatures.");
     } catch (error: any) {
@@ -91,9 +110,6 @@ export function LogoUpload({ currentLogoUrl, onLogoChange }: LogoUploadProps) {
       toast.error(error.message || "Failed to upload logo");
     } finally {
       setUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
     }
   };
 
@@ -105,13 +121,11 @@ export function LogoUpload({ currentLogoUrl, onLogoChange }: LogoUploadProps) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // Delete from storage
       const path = currentLogoUrl.split("/org-logos/")[1]?.split("?")[0];
       if (path) {
         await supabase.storage.from("org-logos").remove([path]);
       }
 
-      // Clear from branding settings
       const { error } = await supabase
         .from("branding_settings")
         .update({ logo_url: null })
@@ -120,7 +134,6 @@ export function LogoUpload({ currentLogoUrl, onLogoChange }: LogoUploadProps) {
       if (error) throw error;
 
       onLogoChange(null);
-      // Invalidate branding query to refresh data
       queryClient.invalidateQueries({ queryKey: ["branding-settings"] });
       toast.success("Logo removed. Messages will use text-only signatures.");
     } catch (error: any) {
@@ -210,6 +223,19 @@ export function LogoUpload({ currentLogoUrl, onLogoChange }: LogoUploadProps) {
           Recommended: Transparent PNG or SVG with landscape orientation. Max 2MB.
         </p>
       </div>
+
+      {cropSrc && (
+        <ImageCropDialog
+          open={!!cropSrc}
+          imageSrc={cropSrc}
+          onClose={() => { setCropSrc(null); setPendingFile(null); }}
+          onCropComplete={handleCropComplete}
+          aspect={16 / 5}
+          cropShape="rect"
+          title="Crop your logo"
+          outputType="image/png"
+        />
+      )}
     </div>
   );
 }
