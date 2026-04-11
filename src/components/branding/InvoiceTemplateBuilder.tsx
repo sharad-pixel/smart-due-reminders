@@ -92,6 +92,32 @@ export const InvoiceTemplateBuilder = ({
     enabled: !!effectiveAccountId,
   });
 
+  // Fetch profile address as fallback for company_address
+  const { data: profileAddress } = useQuery({
+    queryKey: ["profile-address", effectiveAccountId],
+    queryFn: async () => {
+      if (!effectiveAccountId) return null;
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("business_name, business_address_line1, business_address_line2, business_city, business_state, business_postal_code, business_country, business_phone")
+        .eq("id", effectiveAccountId)
+        .maybeSingle();
+      if (error) return null;
+      return data;
+    },
+    enabled: !!effectiveAccountId,
+  });
+
+  // Build fallback address from profile fields
+  const profileAddressStr = profileAddress
+    ? [
+        profileAddress.business_address_line1,
+        profileAddress.business_address_line2,
+        [profileAddress.business_city, profileAddress.business_state].filter(Boolean).join(", "),
+        profileAddress.business_postal_code,
+      ].filter(Boolean).join("\n")
+    : "";
+
   // Fetch a sample invoice to show real description in preview
   const { data: sampleInvoice } = useQuery({
     queryKey: ["sample-invoice-preview", effectiveAccountId],
@@ -417,7 +443,10 @@ export const InvoiceTemplateBuilder = ({
       {/* Live Preview */}
       {showPreview && (
         <InvoiceTemplatePreview
-          template={formData}
+          template={{
+            ...formData,
+            company_address: formData.company_address || profileAddressStr,
+          }}
           businessName={businessName}
           logoUrl={logoUrl}
           sampleInvoice={sampleInvoice ? {
