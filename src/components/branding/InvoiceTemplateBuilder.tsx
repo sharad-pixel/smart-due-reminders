@@ -445,7 +445,7 @@ export const InvoiceTemplateBuilder = ({
             ...formData,
             company_address: profileAddressStr,
           }}
-          businessName={businessName}
+          businessName={profileAddress?.business_name || businessName}
           logoUrl={logoUrl}
           sampleInvoice={sampleInvoice ? {
             description: sampleInvoice.product_description || null,
