@@ -663,6 +663,7 @@ export type Database = {
           from_email_verified: boolean | null
           from_name: string | null
           id: string
+          include_portal_link_in_outreach: boolean
           last_test_email_sent_at: string | null
           logo_url: string | null
           organization_id: string | null
@@ -699,6 +700,7 @@ export type Database = {
           from_email_verified?: boolean | null
           from_name?: string | null
           id?: string
+          include_portal_link_in_outreach?: boolean
           last_test_email_sent_at?: string | null
           logo_url?: string | null
           organization_id?: string | null
@@ -735,6 +737,7 @@ export type Database = {
           from_email_verified?: boolean | null
           from_name?: string | null
           id?: string
+          include_portal_link_in_outreach?: boolean
           last_test_email_sent_at?: string | null
           logo_url?: string | null
           organization_id?: string | null
