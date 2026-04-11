@@ -310,8 +310,8 @@ serve(async (req) => {
       .eq("user_id", brandingOwnerId)
       .single();
     
-    // Build AR portal URL
-    const arPageUrl = branding?.ar_page_public_token && branding?.ar_page_enabled 
+    // Build Payment Portal URL (debtor-portal, always available)
+    const _arPageUrl = branding?.ar_page_public_token && branding?.ar_page_enabled 
       ? `https://recouply.ai/ar/${branding.ar_page_public_token}` 
       : '';
 
