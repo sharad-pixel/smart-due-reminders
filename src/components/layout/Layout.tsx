@@ -387,11 +387,21 @@ const Layout = ({ children }: LayoutProps) => {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="flex items-center space-x-2 p-1.5 rounded-full hover:bg-accent/50">
-                    <NavProfileAvatar 
-                      avatarUrl={avatarUrl} 
-                      userName={userName}
-                      size="md"
-                    />
+                    {showRing ? (
+                      <OnboardingProgressRing percentage={onboardingPct}>
+                        <NavProfileAvatar 
+                          avatarUrl={avatarUrl} 
+                          userName={userName}
+                          size="sm"
+                        />
+                      </OnboardingProgressRing>
+                    ) : (
+                      <NavProfileAvatar 
+                        avatarUrl={avatarUrl} 
+                        userName={userName}
+                        size="md"
+                      />
+                    )}
                     <span className="hidden md:inline-block text-sm pr-1">{userName}</span>
                   </Button>
                 </DropdownMenuTrigger>
