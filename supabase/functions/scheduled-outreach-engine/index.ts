@@ -298,7 +298,7 @@ Deno.serve(async (req) => {
 
           const { data: branding } = await supabaseAdmin
             .from('branding_settings')
-            .select('business_name, from_name, stripe_payment_link, ar_page_public_token, ar_page_enabled, public_invoice_links_enabled, email_signature, auto_approve_drafts')
+            .select('business_name, from_name, stripe_payment_link, ar_page_public_token, ar_page_enabled, include_portal_link_in_outreach, public_invoice_links_enabled, email_signature, auto_approve_drafts')
             .eq('user_id', brandingOwnerId)
             .maybeSingle();
 
@@ -396,7 +396,7 @@ Deno.serve(async (req) => {
           }
 
           // Append links if not already in template body
-          if (arPageUrl && !body.includes(arPageUrl)) body += `\n\n📄 Access your ${businessName} payment portal: ${arPageUrl}`;
+          if (arPageUrl && branding?.include_portal_link_in_outreach !== false && !body.includes(arPageUrl)) body += `\n\n📄 Access your ${businessName} payment portal: ${arPageUrl}`;
           if (invoiceLink && !body.includes(invoiceLink)) body += `\n\nView your invoice: ${invoiceLink}`;
           if (paymentLink && !body.includes(paymentLink)) body += `\n\n💳 Make a payment: ${paymentLink}`;
           if (!body.includes(businessName)) body += `\n\nThank you for your business.\n\n---\n${businessName}`;

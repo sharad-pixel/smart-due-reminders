@@ -132,7 +132,7 @@ function ensureMessageHasContactInfo(
   const businessName = branding?.business_name?.trim() || branding?.from_name?.trim() || 'Your Company';
   
   // Append AR portal link if available and not already in body
-  if (arPageUrl && !result.includes(arPageUrl)) {
+  if (arPageUrl && branding?.include_portal_link_in_outreach !== false && !result.includes(arPageUrl)) {
     const portalBusinessName = branding?.business_name?.trim() || branding?.from_name?.trim() || 'your';
     result += `\n\n📄 Access your ${portalBusinessName} payment portal: ${arPageUrl}`;
   }
