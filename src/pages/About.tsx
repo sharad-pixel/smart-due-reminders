@@ -105,7 +105,7 @@ const About = () => {
           style={{ backgroundImage: `url(${founderCarPhoto})` }}
         />
         <div className="absolute inset-0 bg-gradient-to-b from-card/80 via-card/60 to-card/80" />
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-5xl mx-auto">
             <div className="grid lg:grid-cols-5 gap-12 items-start">
               <div className="lg:col-span-2">
