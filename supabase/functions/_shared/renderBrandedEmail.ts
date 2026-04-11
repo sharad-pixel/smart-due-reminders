@@ -362,7 +362,7 @@ export function renderBrandedEmail(input: EmailRenderInput, personaName?: string
  * SIMPLE EMAIL FORMAT: Minimal HTML without branding template
  */
 export function renderSimpleEmail(input: EmailRenderInput, personaName?: string): string {
-  const { brand, cta } = input;
+  const { brand, cta, secureInvoiceUrl } = input;
   const bodyHtml = cleanupPlaceholders(input.bodyHtml);
   
   const businessName = brand.business_name || brand.from_name || personaName || "Recouply.ai";
@@ -378,6 +378,8 @@ export function renderSimpleEmail(input: EmailRenderInput, personaName?: string)
         <a href="${escapeHtml(cta.url)}" style="display: inline-block; background-color: #3b82f6; color: #ffffff; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-size: 14px; font-weight: 600; font-family: ${FONT_STACK};">${escapeHtml(cta.label)}</a>
        </div>`
     : "";
+
+  const secureInvoiceHtml = secureInvoiceUrl ? generateSecureInvoiceCTA(secureInvoiceUrl) : "";
   
   const footerHtml = brand.email_footer 
     ? `<p style="font-size: 12px; color: #64748b; margin: 14px 0 0; font-family: ${FONT_STACK};">${escapeHtml(brand.email_footer)}</p>`
@@ -394,6 +396,7 @@ export function renderSimpleEmail(input: EmailRenderInput, personaName?: string)
 <body style="margin: 0; padding: 20px; font-family: ${FONT_STACK}; font-size: 14px; line-height: 1.6; color: #1e293b; background-color: #ffffff;">
   <div style="max-width: 600px; margin: 0 auto;">
     ${bodyHtml}
+    ${secureInvoiceHtml}
     ${ctaHtml}
     ${signatureHtml}
     ${footerHtml}
