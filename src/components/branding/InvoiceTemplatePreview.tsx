@@ -62,29 +62,37 @@ export const InvoiceTemplatePreview = ({
           Invoice Preview
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex justify-center">
+        {/* US Letter aspect ratio container: 8.5 x 11 = 0.7727 ratio */}
         <div
-          className="border rounded-lg bg-white text-black overflow-hidden shadow-sm"
-          style={{ fontFamily, fontSize: "12px", lineHeight: 1.5 }}
+          className="border rounded-lg bg-white text-black overflow-hidden shadow-sm flex flex-col"
+          style={{
+            fontFamily,
+            fontSize: "11px",
+            lineHeight: 1.5,
+            width: "100%",
+            maxWidth: "550px",
+            aspectRatio: "8.5 / 11",
+          }}
         >
           {/* Header */}
-          <div className="p-6 pb-4">
+          <div className="p-5 pb-3">
             <div className="flex justify-between items-start">
               {/* Left: logo + company info */}
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {template.show_logo && logoUrl && (
                   <img
                     src={logoUrl}
                     alt="Logo"
-                    className="h-10 object-contain mb-2"
-                    style={{ maxWidth: 160 }}
+                    className="h-9 object-contain mb-1.5"
+                    style={{ maxWidth: 140 }}
                   />
                 )}
-                <div className="font-semibold text-sm" style={{ color: hc }}>
+                <div className="font-semibold text-xs" style={{ color: hc }}>
                   {businessName || "Your Company"}
                 </div>
                 {template.company_address && (
-                  <div className="text-[11px] text-gray-600 whitespace-pre-line">
+                  <div className="text-[10px] text-gray-600 whitespace-pre-line leading-tight">
                     {template.company_address}
                   </div>
                 )}
@@ -92,7 +100,7 @@ export const InvoiceTemplatePreview = ({
               {/* Right: Invoice title */}
               <div className="text-right">
                 <div
-                  className="text-2xl font-light tracking-wide"
+                  className="text-xl font-light tracking-wide"
                   style={{ color: hc }}
                 >
                   Invoice
@@ -100,7 +108,7 @@ export const InvoiceTemplatePreview = ({
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div className="text-sm font-semibold mt-1 text-gray-800 cursor-help border-b border-dashed border-gray-300 inline-block">
+                      <div className="text-xs font-semibold mt-1 text-gray-800 cursor-help border-b border-dashed border-gray-300 inline-block">
                         {invNum.startsWith("#") ? invNum : `#${invNum}`}
                       </div>
                     </TooltipTrigger>
@@ -110,7 +118,7 @@ export const InvoiceTemplatePreview = ({
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
-                <div className="mt-2 text-[11px] text-gray-600 space-y-0.5">
+                <div className="mt-1.5 text-[10px] text-gray-600 space-y-0.5">
                   <div>
                     <span className="font-semibold" style={{ color: hc }}>
                       Invoice Date:
@@ -129,16 +137,16 @@ export const InvoiceTemplatePreview = ({
           </div>
 
           {/* Bill To / Amount Due */}
-          <div className="px-6 pb-4">
-            <div className="grid grid-cols-2 gap-4">
+          <div className="px-5 pb-3">
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <div
-                  className="text-[10px] font-bold uppercase tracking-wider mb-1"
+                  className="text-[9px] font-bold uppercase tracking-wider mb-1"
                   style={{ color: hc }}
                 >
                   Bill To
                 </div>
-                <div className="text-[11px] text-gray-700">
+                <div className="text-[10px] text-gray-700 leading-tight">
                   Customer Company
                   <br />
                   456 Commerce Blvd
@@ -150,17 +158,17 @@ export const InvoiceTemplatePreview = ({
               </div>
               <div className="flex items-start justify-end">
                 <div
-                  className="rounded-md p-3 text-center"
+                  className="rounded-md p-2.5 text-center"
                   style={{ backgroundColor: `${hc}10` }}
                 >
                   <div
-                    className="text-[10px] font-bold uppercase tracking-wider"
+                    className="text-[9px] font-bold uppercase tracking-wider"
                     style={{ color: hc }}
                   >
                     Amount Due
                   </div>
                   <div
-                    className="text-xl font-bold mt-1"
+                    className="text-lg font-bold mt-0.5"
                     style={{ color: hc }}
                   >
                     $730,260.92
@@ -171,9 +179,9 @@ export const InvoiceTemplatePreview = ({
           </div>
 
           {/* Terms row */}
-          <div className="mx-6">
+          <div className="mx-5">
             <div
-              className="grid text-[10px] font-bold uppercase tracking-wider text-white px-3 py-1.5 rounded-t"
+              className="grid text-[9px] font-bold uppercase tracking-wider text-white px-2.5 py-1 rounded-t"
               style={{
                 backgroundColor: hc,
                 gridTemplateColumns: template.show_po_number && template.show_sales_rep
@@ -189,7 +197,7 @@ export const InvoiceTemplatePreview = ({
               {template.show_sales_rep && <span>Sales Rep</span>}
             </div>
             <div
-              className="grid text-[11px] px-3 py-2 border-x border-b rounded-b text-gray-700"
+              className="grid text-[10px] px-2.5 py-1.5 border-x border-b rounded-b text-gray-700"
               style={{
                 gridTemplateColumns: template.show_po_number && template.show_sales_rep
                   ? "1fr 1fr 1fr 1fr"
@@ -210,9 +218,9 @@ export const InvoiceTemplatePreview = ({
           </div>
 
           {/* Line Items */}
-          <div className="mx-6 mt-3">
+          <div className="mx-5 mt-2.5">
             <div
-              className="grid grid-cols-4 text-[10px] font-bold uppercase tracking-wider text-white px-3 py-1.5 rounded-t"
+              className="grid grid-cols-4 text-[9px] font-bold uppercase tracking-wider text-white px-2.5 py-1 rounded-t"
               style={{ backgroundColor: hc }}
             >
               <span>Description</span>
@@ -221,7 +229,7 @@ export const InvoiceTemplatePreview = ({
               <span className="text-right">Amount</span>
             </div>
             <div className="border-x border-b rounded-b divide-y">
-              <div className="grid grid-cols-4 text-[11px] px-3 py-2 text-gray-700">
+              <div className="grid grid-cols-4 text-[10px] px-2.5 py-1.5 text-gray-700">
                 <span>{desc}</span>
                 <span className="text-center">{issueDate}</span>
                 <span className="text-center">{dueDate}</span>
@@ -231,9 +239,9 @@ export const InvoiceTemplatePreview = ({
           </div>
 
           {/* Totals */}
-          <div className="px-6 mt-3">
+          <div className="px-5 mt-2.5">
             <div className="flex justify-end">
-              <div className="w-48 text-[11px] space-y-1">
+              <div className="w-44 text-[10px] space-y-0.5">
                 <div className="flex justify-between">
                   <span className="font-semibold text-gray-600">Subtotal</span>
                   <span>{amount}</span>
@@ -261,14 +269,14 @@ export const InvoiceTemplatePreview = ({
 
           {/* Notes */}
           {template.show_notes && sampleInvoice?.notes && (
-            <div className="px-6 mt-3">
+            <div className="px-5 mt-2.5">
               <div
-                className="text-[10px] font-bold uppercase tracking-wider mb-1"
+                className="text-[9px] font-bold uppercase tracking-wider mb-0.5"
                 style={{ color: hc }}
               >
                 Notes
               </div>
-              <p className="text-[11px] text-gray-600 whitespace-pre-line">
+              <p className="text-[10px] text-gray-600 whitespace-pre-line">
                 {sampleInvoice.notes}
               </p>
             </div>
@@ -276,8 +284,8 @@ export const InvoiceTemplatePreview = ({
 
           {/* Footer note */}
           {template.footer_note && (
-            <div className="px-6 mt-4">
-              <p className="text-[11px] text-gray-500 italic">
+            <div className="px-5 mt-3">
+              <p className="text-[10px] text-gray-500 italic">
                 {template.footer_note}
               </p>
             </div>
@@ -298,31 +306,31 @@ export const InvoiceTemplatePreview = ({
               ].filter((q) => q.url);
               if (qrCodes.length === 0) return null;
               return (
-                <div className="px-6 mt-3">
-                  <div className="border-t pt-3">
+                <div className="px-5 mt-2.5">
+                  <div className="border-t pt-2.5">
                     <div
-                      className="text-[10px] font-bold uppercase tracking-wider mb-2"
+                      className="text-[9px] font-bold uppercase tracking-wider mb-1.5"
                       style={{ color: hc }}
                     >
                       Scan to Pay
                     </div>
-                    <div className="flex gap-4 flex-wrap">
+                    <div className="flex gap-3 flex-wrap">
                       {qrCodes.map((q) => (
                         <div key={q.label} className="text-center">
                           <img
                             src={q.url}
                             alt={`${q.label} QR Code`}
-                            className="h-16 w-16 object-contain border rounded"
+                            className="h-14 w-14 object-contain border rounded"
                           />
-                          <div className="flex items-center justify-center gap-1 mt-1">
+                          <div className="flex items-center justify-center gap-1 mt-0.5">
                             {LOGOS[q.label] && (
                               <img
                                 src={LOGOS[q.label]}
                                 alt=""
-                                className="h-3 w-3 object-contain"
+                                className="h-2.5 w-2.5 object-contain"
                               />
                             )}
-                            <span className="text-[9px] text-gray-500">
+                            <span className="text-[8px] text-gray-500">
                               {q.label}
                             </span>
                           </div>
@@ -339,17 +347,17 @@ export const InvoiceTemplatePreview = ({
           {template.show_payment_instructions &&
             (template.payment_instructions_wire ||
               template.payment_instructions_check) && (
-              <div className="px-6 mt-3 pb-6">
-                <div className="border-t pt-3">
+              <div className="px-5 mt-2.5">
+                <div className="border-t pt-2.5">
                   {template.payment_instructions_wire && (
-                    <div className="mb-2">
+                    <div className="mb-1.5">
                       <div
-                        className="text-[10px] font-bold uppercase tracking-wider mb-1"
+                        className="text-[9px] font-bold uppercase tracking-wider mb-0.5"
                         style={{ color: hc }}
                       >
                         Wire / ACH Payment
                       </div>
-                      <div className="text-[11px] text-gray-600 whitespace-pre-line">
+                      <div className="text-[10px] text-gray-600 whitespace-pre-line">
                         {template.payment_instructions_wire}
                       </div>
                     </div>
@@ -357,12 +365,12 @@ export const InvoiceTemplatePreview = ({
                   {template.payment_instructions_check && (
                     <div>
                       <div
-                        className="text-[10px] font-bold uppercase tracking-wider mb-1"
+                        className="text-[9px] font-bold uppercase tracking-wider mb-0.5"
                         style={{ color: hc }}
                       >
                         Check Payment
                       </div>
-                      <div className="text-[11px] text-gray-600 whitespace-pre-line">
+                      <div className="text-[10px] text-gray-600 whitespace-pre-line">
                         {template.payment_instructions_check}
                       </div>
                     </div>
@@ -371,9 +379,36 @@ export const InvoiceTemplatePreview = ({
               </div>
             )}
 
+          {/* Spacer to push portal + footer to bottom */}
+          <div className="flex-1" />
+
+          {/* Payment Portal Link - Always shown */}
+          <div className="px-5 pb-3">
+            <div className="border-t pt-3">
+              <div
+                className="rounded-md p-3 text-center"
+                style={{ backgroundColor: `${hc}08`, border: `1px solid ${hc}25` }}
+              >
+                <div className="text-[10px] font-semibold text-gray-700 mb-1">
+                  View & Pay Your Invoice Online
+                </div>
+                <a
+                  href="https://recouply.ai/debtor-portal"
+                  className="text-[10px] font-bold underline"
+                  style={{ color: hc }}
+                >
+                  https://recouply.ai/debtor-portal
+                </a>
+                <div className="text-[8px] text-gray-500 mt-1">
+                  Use the email address associated with this invoice to access your payment portal.
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Bottom bar */}
           <div
-            className="h-1.5"
+            className="h-1.5 shrink-0"
             style={{ backgroundColor: hc }}
           />
         </div>
