@@ -273,6 +273,9 @@ const App = () => (
             <Route path="/upgrade" element={<Upgrade />} />
             <Route path="/billing" element={<Billing />} />
 
+            {/* Onboarding */}
+            <Route path="/onboarding" element={<Onboarding />} />
+
             {/* Dashboard & Core App */}
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/payments" element={<PaymentsActivity />} />
