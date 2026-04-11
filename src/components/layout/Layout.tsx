@@ -77,7 +77,7 @@ const Layout = ({ children }: LayoutProps) => {
   const [trialBannerVisible, setTrialBannerVisible] = useState(false);
   const [isFounder, setIsFounder] = useState(false);
   const { unreadCount: alertUnreadCount } = useUserAlerts();
-  const { percentage: onboardingPct, showRing } = useOnboardingCompletion();
+  const { percentage: onboardingPct, showRing, missingItems } = useOnboardingCompletion();
   const { 
     isTeamMember, 
     ownerName, 
