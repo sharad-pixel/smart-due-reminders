@@ -71,6 +71,8 @@ interface BrandingSettings {
   auto_approve_drafts: boolean | null;
   // Public invoice links
   public_invoice_links_enabled: boolean | null;
+  // Payment portal link in outreach
+  include_portal_link_in_outreach: boolean | null;
 }
 
 export default function Branding() {
