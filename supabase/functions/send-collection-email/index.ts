@@ -38,6 +38,7 @@ function replaceTemplateVars(
   // CRITICAL: Get business name with proper fallback chain
   // Priority: business_name > from_name > 'Your Company' (never use empty string)
   const businessName = branding?.business_name?.trim() || branding?.from_name?.trim() || 'Your Company';
+  const portalUrl = 'https://recouply.ai/debtor-portal';
   const arPageUrl =
     branding?.ar_page_public_token && branding?.ar_page_enabled
       ? `https://recouply.ai/ar/${branding.ar_page_public_token}`
@@ -85,9 +86,9 @@ function replaceTemplateVars(
     .replace(/\{\{invoiceLink\}\}/gi, invoiceLink)
     .replace(/\{\{external_link\}\}/gi, invoiceLink)
     .replace(/\{\{integration_url\}\}/gi, invoiceLink)
-    // AR Portal link
+    // AR Portal link (legacy)
     .replace(/\{\{ar_portal_link\}\}/gi, arPageUrl)
-    .replace(/\{\{portal_link\}\}/gi, arPageUrl)
+    .replace(/\{\{portal_link\}\}/gi, portalUrl)
     // Product/Service description variations
     .replace(/\{\{product_description\}\}/gi, productDescription)
     .replace(/\{\{product description\}\}/gi, productDescription)
