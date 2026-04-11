@@ -399,7 +399,10 @@ Deno.serve(async (req) => {
           }
 
           // Append links if not already in template body
-          if (arPageUrl && branding?.include_portal_link_in_outreach !== false && !body.includes(arPageUrl)) body += `\n\n📄 Access your ${businessName} payment portal: ${arPageUrl}`;
+          if (branding?.include_portal_link_in_outreach !== false) {
+            const portalUrl = 'https://recouply.ai/debtor-portal';
+            if (!body.includes(portalUrl)) body += `\n\n📄 View all outstanding balances on your ${businessName} payment portal: ${portalUrl}\nUse the email address this message was sent to for secure, encrypted access.`;
+          }
           if (secureInvoiceUrl && !body.includes(secureInvoiceUrl)) body += `\n\n🔒 View this invoice securely: ${secureInvoiceUrl}`;
           if (paymentLink && !body.includes(paymentLink)) body += `\n\n💳 Make a payment: ${paymentLink}`;
           if (!body.includes(businessName)) body += `\n\nThank you for your business.\n\n---\n${businessName}`;
