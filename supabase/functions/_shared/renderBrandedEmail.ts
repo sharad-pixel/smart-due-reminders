@@ -283,7 +283,7 @@ function cleanupPlaceholders(text: string): string {
  * MAIN: Render a fully branded email – clean design
  */
 export function renderBrandedEmail(input: EmailRenderInput, personaName?: string): string {
-  const { brand, cta, meta } = input;
+  const { brand, cta, meta, secureInvoiceUrl } = input;
   const bodyHtml = cleanupPlaceholders(input.bodyHtml);
   
   const businessName = brand.business_name || brand.from_name || personaName || "Recouply.ai";
@@ -297,6 +297,7 @@ export function renderBrandedEmail(input: EmailRenderInput, personaName?: string
     : "";
   
   const ctaHtml = cta ? generateCtaButton(cta, accentColor) : "";
+  const secureInvoiceHtml = secureInvoiceUrl ? generateSecureInvoiceCTA(secureInvoiceUrl) : "";
   
   return `
 <!DOCTYPE html>
@@ -342,6 +343,7 @@ export function renderBrandedEmail(input: EmailRenderInput, personaName?: string
           <tr>
             <td style="padding: 32px; color: #1e293b; font-size: 14px; line-height: 1.7; font-family: ${FONT_STACK};">
               ${bodyHtml}
+              ${secureInvoiceHtml}
               ${ctaHtml}
               ${signatureHtml}
             </td>
