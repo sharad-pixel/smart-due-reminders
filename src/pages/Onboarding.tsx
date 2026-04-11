@@ -10,7 +10,9 @@ import { toast } from "sonner";
 import { 
   Building2, FileUp, Palette, PlayCircle, 
   CheckCircle2, ChevronRight, ChevronLeft, 
-  Sparkles, PartyPopper, Rocket, SkipForward
+  Sparkles, PartyPopper, Rocket, SkipForward,
+  Image, FileText, Landmark, CreditCard, 
+  Smartphone, QrCode, ExternalLink, Upload
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
