@@ -453,7 +453,6 @@ export function processDraftContent(input: DraftContentInput): DraftContentOutpu
   // Step 2: Auto-append useful links if not already present
   const invoiceLink = getInvoiceLink(invoice, branding);
   const paymentLink = branding.stripe_payment_link || '';
-  const arPortalUrl = getArPortalUrl(branding);
 
   if (includeInvoiceLink && invoiceLink && !body.includes(invoiceLink)) {
     body += `\n\nView your invoice: ${invoiceLink}`;
