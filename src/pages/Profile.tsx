@@ -45,7 +45,6 @@ import { useNicolasPreferences } from "@/hooks/useNicolasPreferences";
 import nicolasAvatar from "@/assets/personas/nicolas.png";
 import { TrialCountdown } from "@/components/billing/TrialCountdown";
 import { useOnboardingCompletion } from "@/hooks/useOnboardingCompletion";
-import { OnboardingProgressRing } from "@/components/layout/OnboardingProgressRing";
 import { Progress } from "@/components/ui/progress";
 
 type AppRole = "owner" | "admin" | "member" | "viewer";
@@ -96,8 +95,8 @@ interface PlanInfo {
 
 // Onboarding & Assistant Card Component
 const OnboardingAssistantCard = () => {
-  const { preferences, toggleAssistant, resetOnboarding } = useNicolasPreferences();
-  const { percentage, completedSteps, totalSteps, isComplete } = useOnboardingCompletion();
+  const { preferences, toggleAssistant } = useNicolasPreferences();
+  const { percentage, completedSteps, totalSteps, isComplete, progress } = useOnboardingCompletion();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -132,11 +131,11 @@ const OnboardingAssistantCard = () => {
         {/* Step checklist */}
         <div className="space-y-2">
           {steps.map((step) => {
-            const done = isComplete || false;
+            const done = isComplete || (progress as any)?.[step.key] || false;
             return (
               <div key={step.key} className="flex items-center gap-2 text-sm">
                 {done ? (
-                  <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+                  <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
                 ) : (
                   <XCircle className="h-4 w-4 text-muted-foreground/50 shrink-0" />
                 )}
