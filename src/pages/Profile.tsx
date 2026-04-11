@@ -3,6 +3,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadModeratedImage } from "@/lib/moderatedUpload";
+import { compressImage } from "@/lib/uploadUtils";
 import { ImageCropDialog } from "@/components/ui/ImageCropDialog";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -458,11 +459,12 @@ const Profile = () => {
     const fileName = `${profile.id}.${fileExt}`;
     const filePath = `${profile.id}/${fileName}`;
     const croppedFile = new File([croppedBlob], fileName, { type: "image/jpeg" });
+    const compressedFile = await compressImage(croppedFile);
 
     setUploading(true);
     try {
       const result = await uploadModeratedImage({
-        file: croppedFile,
+        file: compressedFile,
         purpose: "profile_avatar",
         bucket: "avatars",
         storagePath: filePath,
