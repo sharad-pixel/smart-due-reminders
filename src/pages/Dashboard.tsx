@@ -27,7 +27,9 @@ import { CollectionIntelligenceCard } from "@/components/ai/CollectionIntelligen
 import { CollectionIntelligenceDashboard } from "@/components/ai/CollectionIntelligenceDashboard";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
 import { useOrgAvgDPD } from "@/hooks/useAvgDPD";
-import { KnowledgeBaseAgent } from "@/components/ai/KnowledgeBaseAgent";
+import { useOnboardingCompletion } from "@/hooks/useOnboardingCompletion";
+import { Progress } from "@/components/ui/progress";
+import { AlertTriangle, ArrowRight, CheckCircle2, XCircle } from "lucide-react";
 import { IntegrationSetupModal } from "@/components/integrations/IntegrationSetupModal";
 import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 
