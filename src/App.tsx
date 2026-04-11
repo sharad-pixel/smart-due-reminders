@@ -118,6 +118,7 @@ const Team = lazy(() => import("./pages/Team"));
 const AcceptInvite = lazy(() => import("./pages/AcceptInvite"));
 const PublicPaymentPlanPage = lazy(() => import("./pages/PublicPaymentPlanPage"));
 const DebtorPortalPage = lazy(() => import("./pages/DebtorPortalPage"));
+const Onboarding = lazy(() => import("./pages/Onboarding"));
 
 // Feature Pages
 const AIWorkflows = lazy(() => import("./pages/AIWorkflows"));
@@ -271,6 +272,9 @@ const App = () => (
             <Route path="/contact" element={<ContactUs />} />
             <Route path="/upgrade" element={<Upgrade />} />
             <Route path="/billing" element={<Billing />} />
+
+            {/* Onboarding */}
+            <Route path="/onboarding" element={<Onboarding />} />
 
             {/* Dashboard & Core App */}
             <Route path="/dashboard" element={<Dashboard />} />

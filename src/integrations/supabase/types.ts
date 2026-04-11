@@ -6119,6 +6119,48 @@ export type Database = {
           },
         ]
       }
+      onboarding_progress: {
+        Row: {
+          branding_completed: boolean
+          business_profile_completed: boolean
+          completed_at: string | null
+          created_at: string
+          current_step: number
+          dismissed_at: string | null
+          documents_uploaded: boolean
+          id: string
+          training_viewed: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          branding_completed?: boolean
+          business_profile_completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          current_step?: number
+          dismissed_at?: string | null
+          documents_uploaded?: boolean
+          id?: string
+          training_viewed?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          branding_completed?: boolean
+          business_profile_completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          current_step?: number
+          dismissed_at?: string | null
+          documents_uploaded?: boolean
+          id?: string
+          training_viewed?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       organizations: {
         Row: {
           accent_color: string | null
