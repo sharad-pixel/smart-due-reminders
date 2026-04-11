@@ -184,6 +184,29 @@ function generateCtaButton(cta: { label: string; url: string }, accentColor: str
   `.trim();
 }
 
+/**
+ * Generate a secure invoice view CTA – always included when invoice public_token is available
+ */
+function generateSecureInvoiceCTA(invoiceUrl: string): string {
+  return `
+    <div style="text-align: center; margin: 24px 0; padding: 20px; background-color: #f0fdf4; border-radius: 8px; border: 1px solid #bbf7d0;">
+      <p style="margin: 0 0 6px; font-size: 14px; color: #1e293b; font-weight: 600; font-family: ${FONT_STACK};">
+        🔒 Secure Invoice View
+      </p>
+      <p style="margin: 0 0 14px; font-size: 13px; color: #64748b; font-family: ${FONT_STACK};">
+        View this invoice on a secure, encrypted page with payment options
+      </p>
+      <a href="${escapeHtml(invoiceUrl)}" 
+         style="display: inline-block; background-color: #16a34a; color: #ffffff; text-decoration: none; padding: 10px 24px; border-radius: 6px; font-size: 13px; font-weight: 600; font-family: ${FONT_STACK};">
+        View Invoice &amp; Pay Securely →
+      </a>
+      <p style="margin: 10px 0 0; font-size: 11px; color: #64748b; font-family: ${FONT_STACK};">
+        256-bit encrypted · Powered by Recouply.ai
+      </p>
+    </div>
+  `.trim();
+}
+
 function generatePublicARPageCTA(brand: BrandingConfig): string {
   const arPageUrl = getPublicARPageUrl(brand.ar_page_public_token);
   if (!arPageUrl || !brand.ar_page_enabled) return "";
