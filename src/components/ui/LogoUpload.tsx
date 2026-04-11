@@ -220,9 +220,9 @@ export function LogoUpload({ currentLogoUrl, onLogoChange }: LogoUploadProps) {
       <div className="flex items-start gap-2 text-xs text-muted-foreground">
         <ShieldCheck className="h-4 w-4 mt-0.5 text-green-600 flex-shrink-0" />
         <p>
-          All uploads are automatically scanned for inappropriate content.
+          All uploads are automatically scanned for inappropriate content and compressed for efficiency.
           This logo will appear in the footer/signature of all outbound Recouply.ai messages.
-          Recommended: Transparent PNG or SVG with landscape orientation. Max 2MB.
+          Recommended: Transparent PNG or SVG with landscape orientation. Max 5MB.
         </p>
       </div>
 
