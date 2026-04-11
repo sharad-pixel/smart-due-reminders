@@ -57,6 +57,7 @@ export interface EmailRenderInput {
     label: string;
     url: string;
   };
+  secureInvoiceUrl?: string;
   meta?: {
     invoiceId?: string;
     debtorId?: string;
