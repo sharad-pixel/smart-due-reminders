@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Upload, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { ImageCropDialog } from "@/components/ui/ImageCropDialog";
+import { MAX_UPLOAD_SIZE, compressImage } from "@/lib/uploadUtils";
 import venmoLogo from "@/assets/venmo-logo.png";
 import paypalLogo from "@/assets/paypal-logo.png";
 import cashappLogo from "@/assets/cashapp-logo.png";
@@ -39,8 +40,8 @@ export const QrCodeUploadField = ({
       toast.error("Please upload an image file");
       return;
     }
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error("File must be under 2MB");
+    if (file.size > MAX_UPLOAD_SIZE) {
+      toast.error("File must be under 5MB");
       return;
     }
 
@@ -58,7 +59,9 @@ export const QrCodeUploadField = ({
     try {
       const path = `${effectiveAccountId}/qr-${label.toLowerCase().replace(/\s+/g, "-")}-${Date.now()}.png`;
 
-      const file = new File([blob], "qr-cropped.png", { type: "image/png" });
+      // Compress before uploading
+      const compressed = await compressImage(new File([blob], "qr-cropped.png", { type: "image/png" }));
+      const file = compressed;
 
       const { error: uploadError } = await supabase.storage
         .from("org-logos")

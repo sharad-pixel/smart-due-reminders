@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/svg+xml", "image/webp"];
 const MODERATION_THRESHOLD = 0.7;
 
@@ -218,7 +218,7 @@ serve(async (req) => {
     // Validate file size
     if (file.size > MAX_FILE_SIZE) {
       return new Response(JSON.stringify({ 
-        error: "File size must be less than 2MB" 
+        error: "File size must be less than 5MB" 
       }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

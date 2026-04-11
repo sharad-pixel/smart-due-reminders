@@ -5,6 +5,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Upload, FileText, X } from "lucide-react";
 import { useUploadDocument } from "@/hooks/useDocuments";
+import { toast } from "sonner";
+import { MAX_UPLOAD_SIZE } from "@/lib/uploadUtils";
 
 interface DocumentUploadProps {
   organizationId?: string;
@@ -35,6 +37,10 @@ export default function DocumentUpload({ organizationId, debtorId, onUploadCompl
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > MAX_UPLOAD_SIZE) {
+        toast.error("File size must be less than 5MB");
+        return;
+      }
       setSelectedFile(file);
     }
   };
@@ -53,6 +59,10 @@ export default function DocumentUpload({ organizationId, debtorId, onUploadCompl
     setIsDragging(false);
     const file = e.dataTransfer.files[0];
     if (file) {
+      if (file.size > MAX_UPLOAD_SIZE) {
+        toast.error("File size must be less than 5MB");
+        return;
+      }
       setSelectedFile(file);
     }
   };

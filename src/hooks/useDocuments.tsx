@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { MAX_UPLOAD_SIZE, compressImage } from "@/lib/uploadUtils";
 
 export interface Document {
   id: string;
@@ -80,16 +81,24 @@ export function useUploadDocument() {
       debtorId?: string;
       notes?: string;
     }) => {
-      const filePath = `${Date.now()}-${file.name}`;
+      // Validate file size
+      if (file.size > MAX_UPLOAD_SIZE) {
+        throw new Error("File size must be less than 5MB");
+      }
+
+      // Compress images before upload
+      const processedFile = IMAGE_TYPES.includes(file.type) ? await compressImage(file) : file;
+
+      const filePath = `${Date.now()}-${processedFile.name}`;
       let uploadPath = filePath;
 
       // Check if file is an image type - use moderated upload
-      if (IMAGE_TYPES.includes(file.type)) {
+      if (IMAGE_TYPES.includes(processedFile.type)) {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) throw new Error("Not authenticated");
 
         const formData = new FormData();
-        formData.append("file", file);
+        formData.append("file", processedFile);
         formData.append("purpose", `document_${category}`);
         formData.append("bucket", "documents");
         formData.append("storagePath", filePath);
@@ -117,7 +126,7 @@ export function useUploadDocument() {
         // Non-image files: direct upload to storage
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from("documents")
-          .upload(filePath, file);
+          .upload(filePath, processedFile);
 
         if (uploadError) throw uploadError;
         uploadPath = uploadData.path;
