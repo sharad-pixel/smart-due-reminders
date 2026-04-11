@@ -98,8 +98,14 @@ const About = () => {
       </section>
 
       {/* Founder Introduction */}
-      <section className="py-20 bg-card/50">
-        <div className="container mx-auto px-4">
+      <section className="relative py-20 overflow-hidden">
+        {/* Car background image */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-10 dark:opacity-[0.07]"
+          style={{ backgroundImage: `url(${founderCarPhoto})` }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-card/80 via-card/60 to-card/80" />
+        <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-5xl mx-auto">
             <div className="grid lg:grid-cols-5 gap-12 items-start">
               <div className="lg:col-span-2">
@@ -130,17 +136,6 @@ const About = () => {
                       </p>
                     </div>
 
-                    {/* Founder's Car */}
-                    <div className="mt-6 relative group rounded-xl overflow-hidden border border-primary/20 animate-fade-in" style={{ animationDelay: '0.8s' }}>
-                      <img 
-                        src={founderCarPhoto} 
-                        alt="REV OPS - Founder's Audi e-tron GT"
-                        className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-background/80 to-transparent p-3">
-                        <p className="text-xs text-muted-foreground text-center font-medium">REV OPS — Driven by Revenue Operations</p>
-                      </div>
-                    </div>
                   </div>
                 </div>
               </div>
