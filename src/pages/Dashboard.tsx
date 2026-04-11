@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useOnboarding } from "@/hooks/useOnboarding";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -251,9 +252,21 @@ const Dashboard = () => {
     );
 
     // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setUser(session?.user ?? null);
       if (session?.user) {
+        // Check if user needs onboarding
+        const { data: onboardingData } = await supabase
+          .from('onboarding_progress')
+          .select('completed_at, dismissed_at')
+          .eq('user_id', session.user.id)
+          .maybeSingle();
+        
+        if (onboardingData && !onboardingData.completed_at && !onboardingData.dismissed_at) {
+          navigate('/onboarding');
+          return;
+        }
+        
         fetchDashboardData();
       } else {
         navigate("/login");
