@@ -193,7 +193,16 @@ serve(async (req) => {
     // Replace template variables in subject and body
     // CRITICAL: Sanitize subject to remove any URLs - they should only appear in email body
     const processedSubject = sanitizeSubjectLine(replaceTemplateVars(subject, invoice, debtor, branding, daysPastDue));
-    const processedBody = replaceTemplateVars(body, invoice, debtor, branding, daysPastDue);
+    let processedBody = replaceTemplateVars(body, invoice, debtor, branding, daysPastDue);
+
+    // Always append Payment Portal link if enabled
+    if (branding?.include_portal_link_in_outreach !== false) {
+      const pUrl = 'https://recouply.ai/debtor-portal';
+      const bizName = branding?.business_name?.trim() || branding?.from_name?.trim() || 'your';
+      if (!processedBody.includes(pUrl)) {
+        processedBody += `\n\n📄 View all outstanding balances on your ${bizName} payment portal: ${pUrl}\nUse the email address this message was sent to for secure, encrypted access.`;
+      }
+    }
 
     // Build branding config for white-labeled email
     const brandingConfig: BrandingConfig = {
