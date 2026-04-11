@@ -150,25 +150,23 @@ async function processInvoiceBatch(
     // Generate From address with user's branding (falls back to Recouply.ai if no branding)
     const fromEmail = getEmailFromAddress(brandingData);
 
-    // Resolve invoice link using the same fallback chain as the scheduled outreach engine
-    const _isDashboard = (u: string) => u?.includes('dashboard.stripe.com') || u?.includes('app.qbo.intuit.com');
-    let invoiceLink = [invoice.stripe_hosted_url, invoice.external_link, invoice.integration_url]
-      .find(u => u && !_isDashboard(u)) || '';
-    if (!invoiceLink && brandingData?.public_invoice_links_enabled && invoice.public_token) {
-      invoiceLink = `https://recouply.ai/invoice/${invoice.public_token}`;
-    }
+    // Always build secure invoice URL from public_token
+    const secureInvoiceUrl = invoice.public_token 
+      ? `https://recouply.ai/invoice/${invoice.public_token}` 
+      : undefined;
 
     // Format body with line breaks
     const formattedBody = personalizedBody.replace(/\n/g, "<br>");
 
-    // Generate fully branded email HTML with invoice payment link
+    // Generate fully branded email HTML with secure invoice link
     const emailHtml = generateBrandedEmail(
       formattedBody,
       brandingData,
       {
         invoiceId: invoice.id,
         amount: invoice.amount,
-        paymentUrl: invoiceLink || brandingData?.stripe_payment_link || undefined,
+        paymentUrl: brandingData?.stripe_payment_link || undefined,
+        secureInvoiceUrl,
       }
     );
 
