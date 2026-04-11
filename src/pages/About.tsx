@@ -18,7 +18,8 @@ import {
   TrendingUp,
   Bot
 } from "lucide-react";
-import founderPhoto from "@/assets/founder-sharad-office.png";
+import founderPhoto from "@/assets/founder-sharad-anime.png";
+import founderCarPhoto from "@/assets/founder-car-anime.png";
 import {
   founderConfig,
   companyTimeline,
@@ -127,6 +128,18 @@ const About = () => {
                       <p className="mt-3 font-signature text-lg bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                         — {founderConfig.name}
                       </p>
+                    </div>
+
+                    {/* Founder's Car */}
+                    <div className="mt-6 relative group rounded-xl overflow-hidden border border-primary/20 animate-fade-in" style={{ animationDelay: '0.8s' }}>
+                      <img 
+                        src={founderCarPhoto} 
+                        alt="REV OPS - Founder's Audi e-tron GT"
+                        className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-background/80 to-transparent p-3">
+                        <p className="text-xs text-muted-foreground text-center font-medium">REV OPS — Driven by Revenue Operations</p>
+                      </div>
                     </div>
                   </div>
                 </div>
