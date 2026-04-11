@@ -31,7 +31,7 @@ import { useOnboardingCompletion } from "@/hooks/useOnboardingCompletion";
 import { Progress } from "@/components/ui/progress";
 import { AlertTriangle, ArrowRight, CheckCircle2, XCircle } from "lucide-react";
 import { IntegrationSetupModal } from "@/components/integrations/IntegrationSetupModal";
-import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
+
 
 
 interface Invoice {
