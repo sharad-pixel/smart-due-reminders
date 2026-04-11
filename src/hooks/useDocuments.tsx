@@ -93,12 +93,12 @@ export function useUploadDocument() {
       let uploadPath = filePath;
 
       // Check if file is an image type - use moderated upload
-      if (IMAGE_TYPES.includes(file.type)) {
+      if (IMAGE_TYPES.includes(processedFile.type)) {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) throw new Error("Not authenticated");
 
         const formData = new FormData();
-        formData.append("file", file);
+        formData.append("file", processedFile);
         formData.append("purpose", `document_${category}`);
         formData.append("bucket", "documents");
         formData.append("storagePath", filePath);
@@ -126,7 +126,7 @@ export function useUploadDocument() {
         // Non-image files: direct upload to storage
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from("documents")
-          .upload(filePath, file);
+          .upload(filePath, processedFile);
 
         if (uploadError) throw uploadError;
         uploadPath = uploadData.path;
