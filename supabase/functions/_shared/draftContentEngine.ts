@@ -47,6 +47,7 @@ export interface BrandingData {
   ar_page_public_token?: string;
   ar_page_enabled?: boolean;
   public_invoice_links_enabled?: boolean;
+  include_portal_link_in_outreach?: boolean;
   escalation_contact_name?: string;
   escalation_contact_email?: string;
   escalation_contact_phone?: string;
@@ -435,8 +436,9 @@ export function processDraftContent(input: DraftContentInput): DraftContentOutpu
     body += `\n\n💳 Make a payment: ${paymentLink}`;
   }
 
-  if (includeArPortal && arPortalUrl && !body.includes(arPortalUrl)) {
-    body += `\n\n📄 Access your account portal: ${arPortalUrl}`;
+  if (includeArPortal && arPortalUrl && branding.include_portal_link_in_outreach !== false && !body.includes(arPortalUrl)) {
+    const portalBusinessName = branding.business_name || branding.from_name || 'your';
+    body += `\n\n📄 Access your ${portalBusinessName} payment portal: ${arPortalUrl}`;
   }
 
   // Step 3: Add signature if available and requested

@@ -132,8 +132,9 @@ function ensureMessageHasContactInfo(
   const businessName = branding?.business_name?.trim() || branding?.from_name?.trim() || 'Your Company';
   
   // Append AR portal link if available and not already in body
-  if (arPageUrl && !result.includes(arPageUrl)) {
-    result += `\n\n📄 Access your account portal: ${arPageUrl}`;
+  if (arPageUrl && branding?.include_portal_link_in_outreach !== false && !result.includes(arPageUrl)) {
+    const portalBusinessName = branding?.business_name?.trim() || branding?.from_name?.trim() || 'your';
+    result += `\n\n📄 Access your ${portalBusinessName} payment portal: ${arPageUrl}`;
   }
   
   // Append payment link if available and not already in body
@@ -502,7 +503,7 @@ Deno.serve(async (req) => {
           .replace(/[📄💳🔒]/g, '')         // Remove emojis
           .replace(/---/g, '')              // Remove separators
           .replace(/View your invoice:/gi, '')
-          .replace(/Access your account portal:/gi, '')
+          .replace(/Access your .+? payment portal:/gi, '')
           .replace(/Make a payment:/gi, '')
           .replace(/Thank you for your business\./gi, '')
           .trim();
@@ -737,7 +738,7 @@ Deno.serve(async (req) => {
           .replace(/[📄💳🔒]/g, '')
           .replace(/---/g, '')
           .replace(/View your invoice:/gi, '')
-          .replace(/Access your account portal:/gi, '')
+          .replace(/Access your .+? payment portal:/gi, '')
           .replace(/Make a payment:/gi, '')
           .replace(/Thank you for your business\./gi, '')
           .trim();

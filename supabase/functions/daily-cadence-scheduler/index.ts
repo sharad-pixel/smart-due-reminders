@@ -197,7 +197,7 @@ Deno.serve(async (req) => {
 
         const { data: branding } = await supabaseAdmin
           .from('branding_settings')
-          .select('business_name, from_name, stripe_payment_link, ar_page_public_token, ar_page_enabled, escalation_contact_name, escalation_contact_email, escalation_contact_phone, email_signature, auto_approve_drafts')
+          .select('business_name, from_name, stripe_payment_link, ar_page_public_token, ar_page_enabled, include_portal_link_in_outreach, escalation_contact_name, escalation_contact_email, escalation_contact_phone, email_signature, auto_approve_drafts')
           .eq('user_id', brandingOwnerId)
           .single();
 
@@ -345,8 +345,8 @@ Deno.serve(async (req) => {
         }
 
         // Append AR portal link if available and enabled
-        if (arPageUrl && !body.includes(arPageUrl)) {
-          body += `\n\n📄 Access your account portal: ${arPageUrl}`;
+        if (arPageUrl && branding?.include_portal_link_in_outreach !== false && !body.includes(arPageUrl)) {
+          body += `\n\n📄 Access your ${businessName} payment portal: ${arPageUrl}`;
         }
 
         // Append payment link if available
