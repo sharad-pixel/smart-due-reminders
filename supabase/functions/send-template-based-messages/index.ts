@@ -89,8 +89,8 @@ async function processInvoiceBatch(
     const daysPastDue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
 
     // Resolve sender/recipient names with safe fallbacks
-    const businessName = (branding?.business_name || branding?.from_name || '').trim() || 'Your Company';
-    const fromName = (branding?.from_name || businessName).trim() || businessName;
+    const businessName = (brandingData?.business_name || brandingData?.from_name || '').trim() || 'Your Company';
+    const fromName = (brandingData?.from_name || businessName).trim() || businessName;
     const recipientName = (contactName || debtor?.name || debtor?.company_name || '').trim() || 'Valued Customer';
 
     // Apply a consistent set of placeholders across both subject + body
