@@ -79,7 +79,7 @@ async function processInvoiceBatch(
     // Always fetch fresh branding (no cache) to ensure correct company name
     const { data: branding } = await supabase
       .from('branding_settings')
-      .select('logo_url, business_name, from_name, email_signature, email_footer, primary_color, ar_page_public_token, ar_page_enabled, stripe_payment_link')
+      .select('logo_url, business_name, from_name, email_signature, email_footer, primary_color, ar_page_public_token, ar_page_enabled, stripe_payment_link, include_portal_link_in_outreach, public_invoice_links_enabled')
       .eq('user_id', template.user_id)
       .maybeSingle();
     const brandingData = branding || {};
