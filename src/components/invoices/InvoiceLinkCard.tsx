@@ -39,6 +39,7 @@ export const InvoiceLinkCard = ({
     header_color: string | null;
     font_style: string | null;
   } | null>(null);
+  const [companyAddress, setCompanyAddress] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -51,7 +52,7 @@ export const InvoiceLinkCard = ({
 
       const accountId = effectiveId || user.id;
 
-      const [brandingRes, templateRes] = await Promise.all([
+      const [brandingRes, templateRes, profileRes] = await Promise.all([
         supabase
           .from("branding_settings")
           .select("public_invoice_links_enabled, business_name, primary_color, logo_url")
@@ -59,21 +60,44 @@ export const InvoiceLinkCard = ({
           .maybeSingle(),
         supabase
           .from("invoice_templates")
-          .select("header_color, font_style")
+          .select("header_color, font_style, company_address")
           .eq("user_id", accountId)
+          .maybeSingle(),
+        supabase
+          .from("profiles")
+          .select("business_name, business_address_line1, business_address_line2, business_city, business_state, business_postal_code")
+          .eq("id", accountId)
           .maybeSingle(),
       ]);
 
       setEnabled(brandingRes.data?.public_invoice_links_enabled ?? false);
+
+      // Use profile business_name as primary, fall back to branding
+      const profileName = profileRes.data?.business_name;
       if (brandingRes.data) {
         setBranding({
-          business_name: brandingRes.data.business_name,
+          business_name: profileName || brandingRes.data.business_name,
           primary_color: brandingRes.data.primary_color,
           logo_url: brandingRes.data.logo_url,
         });
       }
       if (templateRes.data) {
         setTemplate(templateRes.data);
+      }
+
+      // Build company address: prefer template, fall back to profile
+      const templateAddr = (templateRes.data as any)?.company_address;
+      if (templateAddr) {
+        setCompanyAddress(templateAddr);
+      } else if (profileRes.data) {
+        const p = profileRes.data;
+        const addr = [
+          p.business_address_line1,
+          p.business_address_line2,
+          [p.business_city, p.business_state].filter(Boolean).join(", "),
+          p.business_postal_code,
+        ].filter(Boolean).join("\n");
+        if (addr) setCompanyAddress(addr);
       }
     })();
   }, []);
@@ -134,6 +158,11 @@ export const InvoiceLinkCard = ({
                     <div className="font-semibold" style={{ color: hc, fontSize: "11px" }}>
                       {branding.business_name}
                     </div>
+                    {companyAddress && (
+                      <div className="text-gray-600 whitespace-pre-line" style={{ fontSize: "8px", lineHeight: 1.3 }}>
+                        {companyAddress}
+                      </div>
+                    )}
                   </div>
                   <div className="text-right">
                     <div className="font-light tracking-wide" style={{ color: hc, fontSize: "14px" }}>Invoice</div>
