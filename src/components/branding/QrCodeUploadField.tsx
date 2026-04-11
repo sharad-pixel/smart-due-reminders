@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Upload, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { ImageCropDialog } from "@/components/ui/ImageCropDialog";
 import venmoLogo from "@/assets/venmo-logo.png";
 import paypalLogo from "@/assets/paypal-logo.png";
 import cashappLogo from "@/assets/cashapp-logo.png";
@@ -29,9 +30,10 @@ export const QrCodeUploadField = ({
   onChange,
 }: QrCodeUploadFieldProps) => {
   const [uploading, setUploading] = useState(false);
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleUpload = async (file: File) => {
+  const handleFileSelect = (file: File) => {
     if (!effectiveAccountId) return;
     if (!file.type.startsWith("image/")) {
       toast.error("Please upload an image file");
@@ -42,10 +44,21 @@ export const QrCodeUploadField = ({
       return;
     }
 
+    // Show crop dialog
+    const reader = new FileReader();
+    reader.onload = () => setCropSrc(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const handleCropComplete = async (blob: Blob) => {
+    setCropSrc(null);
+    if (!effectiveAccountId) return;
+
     setUploading(true);
     try {
-      const ext = file.name.split(".").pop() || "png";
-      const path = `${effectiveAccountId}/qr-${label.toLowerCase().replace(/\s+/g, "-")}-${Date.now()}.${ext}`;
+      const path = `${effectiveAccountId}/qr-${label.toLowerCase().replace(/\s+/g, "-")}-${Date.now()}.png`;
+
+      const file = new File([blob], "qr-cropped.png", { type: "image/png" });
 
       const { error: uploadError } = await supabase.storage
         .from("org-logos")
@@ -110,7 +123,7 @@ export const QrCodeUploadField = ({
             className="hidden"
             onChange={(e) => {
               const file = e.target.files?.[0];
-              if (file) handleUpload(file);
+              if (file) handleFileSelect(file);
               e.target.value = "";
             }}
           />
@@ -130,6 +143,19 @@ export const QrCodeUploadField = ({
             {uploading ? "Uploading…" : "Upload QR Code"}
           </Button>
         </div>
+      )}
+
+      {cropSrc && (
+        <ImageCropDialog
+          open={!!cropSrc}
+          imageSrc={cropSrc}
+          onClose={() => setCropSrc(null)}
+          onCropComplete={handleCropComplete}
+          aspect={1}
+          cropShape="rect"
+          title={`Crop ${label} QR Code`}
+          outputType="image/png"
+        />
       )}
     </div>
   );
