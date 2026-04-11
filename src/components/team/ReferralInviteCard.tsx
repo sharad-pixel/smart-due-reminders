@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Gift, Mail, Linkedin, Copy, Check, Users, Sparkles, Send } from "lucide-react";
+import { Gift, Mail, Linkedin, Copy, Check, Sparkles, Send } from "lucide-react";
 import { useReferrals } from "@/hooks/useReferrals";
 import { useSubscription } from "@/hooks/useSubscription";
 
@@ -24,7 +24,7 @@ export function ReferralInviteCard() {
   const [email, setEmail] = useState("");
   const [sending, setSending] = useState(false);
   const [copied, setCopied] = useState(false);
-  const { referrals, referralCode, totalCreditsEarned, availableCredits, loading, sendEmailInvite, generateShareLink } = useReferrals();
+  const { referrals, referralCode, availableCredits, sendEmailInvite, generateShareLink } = useReferrals();
   const { plan } = useSubscription();
 
   const creditsPerReferral = PLAN_CREDITS[plan] || 0;
