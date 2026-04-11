@@ -192,6 +192,76 @@ serve(async (req) => {
             logStep("Error updating profile after checkout", { error: updateError });
           } else {
             logStep("Profile updated after checkout", { customerId, userId, planType, billingInterval });
+
+            // === REFERRAL REWARD LOGIC ===
+            // Check if this new subscriber was referred by someone
+            if (userId && planType !== 'free') {
+              try {
+                // Get the new user's email
+                const { data: newUserProfile } = await supabase
+                  .from('profiles')
+                  .select('email')
+                  .eq('id', userId)
+                  .maybeSingle();
+
+                if (newUserProfile?.email) {
+                  // Find pending referral matching this email
+                  const { data: referral } = await supabase
+                    .from('referrals')
+                    .select('id, referrer_id, status')
+                    .eq('referred_email', newUserProfile.email.toLowerCase())
+                    .eq('status', 'pending')
+                    .maybeSingle();
+
+                  if (referral) {
+                    // Get credits amount for the referrer's plan
+                    const { data: referrerProfile } = await supabase
+                      .from('profiles')
+                      .select('plan_type')
+                      .eq('id', referral.referrer_id)
+                      .maybeSingle();
+
+                    const referrerPlan = referrerProfile?.plan_type || 'free';
+                    const { data: creditsAmount } = await supabase
+                      .rpc('get_referral_credits_for_plan', { p_plan_type: referrerPlan });
+
+                    if (creditsAmount && creditsAmount > 0) {
+                      // Award credits to referrer
+                      const expiresAt = new Date();
+                      expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+
+                      await supabase.from('referral_credits').insert({
+                        user_id: referral.referrer_id,
+                        referral_id: referral.id,
+                        credits_amount: creditsAmount,
+                        plan_at_referral: referrerPlan,
+                        expires_at: expiresAt.toISOString(),
+                      });
+
+                      logStep("Referral credits awarded", { 
+                        referrerId: referral.referrer_id, 
+                        credits: creditsAmount, 
+                        referrerPlan 
+                      });
+                    }
+
+                    // Mark referral as completed
+                    await supabase
+                      .from('referrals')
+                      .update({ 
+                        status: 'completed', 
+                        referred_user_id: userId, 
+                        completed_at: new Date().toISOString() 
+                      })
+                      .eq('id', referral.id);
+
+                    logStep("Referral completed", { referralId: referral.id });
+                  }
+                }
+              } catch (refError) {
+                logStep("Error processing referral reward (non-fatal)", { error: refError });
+              }
+            }
           }
         }
         break;
