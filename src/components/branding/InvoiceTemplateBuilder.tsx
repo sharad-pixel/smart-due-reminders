@@ -443,7 +443,10 @@ export const InvoiceTemplateBuilder = ({
       {/* Live Preview */}
       {showPreview && (
         <InvoiceTemplatePreview
-          template={formData}
+          template={{
+            ...formData,
+            company_address: formData.company_address || profileAddressStr,
+          }}
           businessName={businessName}
           logoUrl={logoUrl}
           sampleInvoice={sampleInvoice ? {
