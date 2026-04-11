@@ -98,7 +98,13 @@ const About = () => {
       </section>
 
       {/* Founder Introduction */}
-      <section className="py-20 bg-card/50">
+      <section className="relative py-20 overflow-hidden">
+        {/* Car background image */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-10 dark:opacity-[0.07]"
+          style={{ backgroundImage: `url(${founderCarPhoto})` }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-card/80 via-card/60 to-card/80" />
         <div className="container mx-auto px-4">
           <div className="max-w-5xl mx-auto">
             <div className="grid lg:grid-cols-5 gap-12 items-start">
