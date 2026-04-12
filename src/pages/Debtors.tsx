@@ -15,6 +15,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Plus, Search, Upload, Building2, User, Mail, MapPin, Clock, DollarSign, TrendingUp, FileBarChart, ExternalLink, CreditCard, LayoutGrid, List, Trash2, UserPlus, ChevronLeft, ChevronRight, Radio, Zap, Merge, Sparkles } from "lucide-react";
+import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
+import { SetupRequiredBadge } from "@/components/onboarding/SetupRequiredBadge";
 import { EmailStatusBadge } from "@/components/alerts/EmailStatusBadge";
 import { ScoringModelTooltip } from "@/components/ai/ScoringModelTooltip";
 import { useNavigate } from "react-router-dom";
@@ -395,7 +397,10 @@ const Debtors = () => {
       <div className="space-y-4 sm:space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
           <div>
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary">Accounts</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary">Accounts</h1>
+              <SetupRequiredBadge show={!onboardingStatus.hasAccounts} label="Add accounts to complete setup" />
+            </div>
             <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">
               Manage your customer accounts • <span className="font-medium">{debtors.length} total accounts</span>
             </p>
