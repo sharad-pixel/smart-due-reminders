@@ -85,7 +85,7 @@ export function wrapEmailContent(body: string, branding: BrandingSettings = {}):
           <tr>
             <td style="padding: 24px 32px; background-color: ${primaryColor};">
               ${branding.logo_url 
-                ? `<img src="${escapeHtml(branding.logo_url)}" alt="${escapeHtml(businessName)}" style="max-height: 48px; max-width: 180px; height: auto;" />`
+                ? `<img src="${escapeHtml(branding.logo_url)}" alt="${escapeHtml(businessName)}" style="max-height: 72px; max-width: 280px; height: auto;" />`
                 : `<span style="color: #ffffff; font-size: 20px; font-weight: 600;">${escapeHtml(businessName)}</span>`
               }
             </td>
