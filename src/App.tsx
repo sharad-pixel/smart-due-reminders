@@ -147,6 +147,7 @@ const Checkout = lazy(() => import("./pages/Checkout"));
 const Billing = lazy(() => import("./pages/Billing"));
 const Upgrade = lazy(() => import("./pages/Upgrade"));
 const PaymentsActivity = lazy(() => import("./pages/PaymentsActivity"));
+const ARIntroduction = lazy(() => import("./pages/ARIntroduction"));
 
 // Contact
 const ContactUs = lazy(() => import("./pages/ContactUs"));
@@ -305,6 +306,7 @@ const App = () => (
             <Route path="/payment-plan/:token" element={<PublicPaymentPlanPage />} />
             <Route path="/debtor-portal" element={<DebtorPortalPage />} />
             <Route path="/ar-upload" element={<ARDataUpload />} />
+            <Route path="/ar-introduction" element={<ARIntroduction />} />
             <Route path="/reconciliation" element={<Reconciliation />} />
             <Route path="/ar-aging" element={<ARAging />} />
             <Route path="/data-center" element={<DataCenter />} />
