@@ -168,6 +168,8 @@ const AdminUserDetail = () => {
   const [blockDialogOpen, setBlockDialogOpen] = useState(false);
   const [suspendDialogOpen, setSuspendDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [transferOwnerDialogOpen, setTransferOwnerDialogOpen] = useState(false);
+  const [selectedNewOwnerId, setSelectedNewOwnerId] = useState("");
   const [blockReason, setBlockReason] = useState("");
   const [suspendReason, setSuspendReason] = useState("");
   const [deleteReason, setDeleteReason] = useState("");
