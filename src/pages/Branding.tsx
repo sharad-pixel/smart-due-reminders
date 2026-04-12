@@ -524,7 +524,40 @@ export default function Branding() {
               effectiveAccountId={effectiveAccountId}
             />
 
-            {/* Public Invoice Links */}
+            {/* AR Introduction Emails */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Mail className="h-5 w-5" />
+                  AR Introduction Emails
+                </CardTitle>
+                <CardDescription>
+                  Notify your clients that you're using Recouply.ai for enhanced accounts receivable communication
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">
+                      Send branded introduction emails to your debtor accounts
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Includes your logo, company address, and a secure payment portal link
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 shrink-0"
+                    onClick={() => window.location.href = "/ar-introduction"}
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    Manage
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
