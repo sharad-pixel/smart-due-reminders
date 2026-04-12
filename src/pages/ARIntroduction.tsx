@@ -96,6 +96,11 @@ const ARIntroduction = () => {
       return;
     }
 
+    if (!replyTo.trim()) {
+      toast.error("Reply-to email address is required.");
+      return;
+    }
+
     setSending(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
