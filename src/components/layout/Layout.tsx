@@ -635,6 +635,7 @@ const Layout = ({ children }: LayoutProps) => {
       <OnboardingWelcome />
       <NicolasPageTip />
       <NicolasChat />
+      <FloatingReferralAgent />
     </div>
     </RequireSubscription>
   );
