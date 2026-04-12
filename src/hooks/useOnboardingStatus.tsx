@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 export interface OnboardingStatus {
   hasAccounts: boolean;
   hasInvoices: boolean;
-  stripeConnected: boolean;
+  hasPaymentInstructions: boolean;
+  hasLogo: boolean;
   quickbooksConnected: boolean;
   workflowsConfigured: boolean;
   brandingConfigured: boolean;
@@ -30,13 +31,6 @@ export const useOnboardingStatus = () => {
         .select("id", { count: "exact", head: true })
         .eq("user_id", user.id);
 
-      // Check Stripe integration
-      const { data: stripeIntegration } = await supabase
-        .from("stripe_integrations")
-        .select("stripe_secret_key_encrypted")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
       // Check QuickBooks integration
       const { data: profile } = await supabase
         .from("profiles")
@@ -51,29 +45,40 @@ export const useOnboardingStatus = () => {
         .eq("user_id", user.id)
         .eq("is_active", true);
 
-      // Check branding configured
+      // Check branding configured — includes logo, payment link, and payment methods
       const { data: branding } = await supabase
         .from("branding_settings")
-        .select("logo_url, business_name")
+        .select("logo_url, business_name, stripe_payment_link, supported_payment_methods")
         .eq("user_id", user.id)
         .maybeSingle();
+
+      const hasLogo = !!branding?.logo_url;
+
+      // Payment is considered configured if there's a stripe payment link OR supported payment methods with at least one entry
+      const hasPaymentLink = !!branding?.stripe_payment_link;
+      const paymentMethods = branding?.supported_payment_methods;
+      const hasPaymentMethods = Array.isArray(paymentMethods)
+        ? paymentMethods.length > 0
+        : !!paymentMethods && typeof paymentMethods === "object" && Object.keys(paymentMethods).length > 0;
 
       return {
         hasAccounts: (accountsCount || 0) > 0,
         hasInvoices: (invoicesCount || 0) > 0,
-        stripeConnected: !!stripeIntegration?.stripe_secret_key_encrypted,
+        hasPaymentInstructions: hasPaymentLink || hasPaymentMethods,
+        hasLogo,
         quickbooksConnected: !!profile?.quickbooks_realm_id,
         workflowsConfigured: (workflowsCount || 0) > 0,
-        brandingConfigured: !!branding?.logo_url || !!branding?.business_name,
+        brandingConfigured: !!branding?.business_name,
       };
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 5,
   });
 
   return {
     hasAccounts: data?.hasAccounts ?? false,
     hasInvoices: data?.hasInvoices ?? false,
-    stripeConnected: data?.stripeConnected ?? false,
+    hasPaymentInstructions: data?.hasPaymentInstructions ?? false,
+    hasLogo: data?.hasLogo ?? false,
     quickbooksConnected: data?.quickbooksConnected ?? false,
     workflowsConfigured: data?.workflowsConfigured ?? false,
     brandingConfigured: data?.brandingConfigured ?? false,
