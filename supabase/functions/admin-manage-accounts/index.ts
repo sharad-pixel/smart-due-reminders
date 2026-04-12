@@ -491,7 +491,9 @@ Deno.serve(async (req) => {
           supabaseClient.from('profiles').select('email, name').eq('id', newOwnerId).single(),
         ]);
 
-        // Demote current owner to admin (disable by setting status to 'disabled' if requested)
+        const oldOwnerId = currentOwnerMembership.user_id;
+
+        // 1. Demote current owner to admin + disabled
         await supabaseClient
           .from('account_users')
           .update({
@@ -503,7 +505,7 @@ Deno.serve(async (req) => {
           })
           .eq('id', currentOwnerMembership.id);
 
-        // Promote new owner
+        // 2. Promote new owner
         await supabaseClient
           .from('account_users')
           .update({
@@ -513,11 +515,60 @@ Deno.serve(async (req) => {
           })
           .eq('id', newOwnerMembership.id);
 
-        // Update the organization owner
+        // 3. Update the organization owner
         await supabaseClient
           .from('organizations')
           .update({ owner_user_id: newOwnerId })
-          .eq('owner_user_id', currentOwnerMembership.user_id);
+          .eq('owner_user_id', oldOwnerId);
+
+        // 4. Reassign all data from old owner to new owner
+        const dataTransferTables = [
+          'debtors', 'invoices', 'payments', 'ai_drafts', 'ai_workflows',
+          'collection_activities', 'collection_tasks', 'collection_outcomes',
+          'branding_settings', 'outreach_logs', 'ar_summary',
+          'collection_campaigns', 'campaign_accounts', 'cached_reports',
+          'daily_digests', 'daily_usage_limits', 'ai_command_logs',
+          'ai_creations', 'ar_introduction_emails', 'cs_cases',
+          'contacts', 'invoice_outreach', 'outreach_templates',
+        ];
+
+        let totalDataMoved = 0;
+        for (const table of dataTransferTables) {
+          try {
+            const { count } = await supabaseClient
+              .from(table)
+              .update({ user_id: newOwnerId })
+              .eq('user_id', oldOwnerId)
+              .select('id', { count: 'exact', head: true });
+            totalDataMoved += count || 0;
+          } catch (_) {
+            // Table may not exist or have different structure
+          }
+        }
+
+        // 5. Transfer profile billing info to new owner
+        const { data: oldProfile } = await supabaseClient
+          .from('profiles')
+          .select('plan_type, subscription_status, billing_interval, stripe_customer_id, stripe_subscription_id, trial_ends_at, invoice_limit, overage_rate, plan_id')
+          .eq('id', oldOwnerId)
+          .single();
+
+        if (oldProfile) {
+          await supabaseClient
+            .from('profiles')
+            .update({
+              plan_type: oldProfile.plan_type,
+              subscription_status: oldProfile.subscription_status,
+              billing_interval: oldProfile.billing_interval,
+              stripe_customer_id: oldProfile.stripe_customer_id,
+              stripe_subscription_id: oldProfile.stripe_subscription_id,
+              trial_ends_at: oldProfile.trial_ends_at,
+              invoice_limit: oldProfile.invoice_limit,
+              overage_rate: oldProfile.overage_rate,
+              plan_id: oldProfile.plan_id,
+            })
+            .eq('id', newOwnerId);
+        }
 
         // Audit log
         await supabaseClient.from('audit_logs').insert({
@@ -525,14 +576,14 @@ Deno.serve(async (req) => {
           action_type: 'admin_transfer_ownership',
           resource_type: 'account',
           resource_id: accountId,
-          old_values: { owner_user_id: currentOwnerMembership.user_id, owner_email: oldOwnerProfile.data?.email },
-          new_values: { owner_user_id: newOwnerId, owner_email: newOwnerProfile.data?.email },
+          old_values: { owner_user_id: oldOwnerId, owner_email: oldOwnerProfile.data?.email },
+          new_values: { owner_user_id: newOwnerId, owner_email: newOwnerProfile.data?.email, data_records_moved: totalDataMoved },
           metadata: { admin_action: true },
         });
 
         return new Response(JSON.stringify({
           success: true,
-          message: `Ownership transferred from ${oldOwnerProfile.data?.email} to ${newOwnerProfile.data?.email}. Previous owner has been disabled.`,
+          message: `Ownership transferred from ${oldOwnerProfile.data?.email} to ${newOwnerProfile.data?.email}. ${totalDataMoved} data records reassigned. Previous owner has been disabled.`,
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
