@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -118,6 +119,7 @@ export default function Onboarding() {
 
   // AR Introduction state
   const [customMessage, setCustomMessage] = useState("");
+  const [replyTo, setReplyTo] = useState("");
   const [sendingIntro, setSendingIntro] = useState(false);
   const [debtorCount, setDebtorCount] = useState(0);
   const [alreadySentCount, setAlreadySentCount] = useState(0);
@@ -223,6 +225,7 @@ export default function Onboarding() {
           debtorIds: debtors.map(d => d.id),
           customMessage: customMessage.trim() || undefined,
           businessName: businessName || "Your Company",
+          replyTo: replyTo.trim() || undefined,
         },
       });
 
@@ -459,6 +462,25 @@ export default function Onboarding() {
                           rows={3}
                           className="text-sm"
                         />
+                      </div>
+
+                      {/* Reply-to address */}
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium flex items-center gap-1.5">
+                          <Mail className="h-3.5 w-3.5 text-primary" />
+                          Reply-To Address
+                          <span className="text-[10px] text-muted-foreground font-normal">(optional)</span>
+                        </Label>
+                        <Input
+                          type="email"
+                          placeholder="e.g., ar@yourcompany.com"
+                          value={replyTo}
+                          onChange={(e) => setReplyTo(e.target.value)}
+                          className="text-sm"
+                        />
+                        <p className="text-[11px] text-muted-foreground">
+                          Where debtor replies will be directed. Defaults to Recouply.ai platform inbox if left blank.
+                        </p>
                       </div>
 
                       {/* Send button */}

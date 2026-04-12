@@ -12,6 +12,7 @@ interface SendIntroRequest {
   debtorIds: string[];       // Array of debtor IDs to send to
   customMessage?: string;    // Optional custom message from the user
   businessName: string;      // The creditor's business name
+  replyTo?: string;          // Optional user-defined reply-to address
 }
 
 serve(async (req) => {
@@ -69,7 +70,7 @@ serve(async (req) => {
     var requestBody = await req.json();
   }
 
-  const { debtorIds, customMessage, businessName }: SendIntroRequest = requestBody;
+  const { debtorIds, customMessage, businessName, replyTo }: SendIntroRequest = requestBody;
 
   if (!debtorIds?.length) {
     return new Response(
@@ -245,7 +246,7 @@ serve(async (req) => {
         body: JSON.stringify({
           from: fromAddress,
           to: [contact.email],
-          reply_to: EMAIL_CONFIG.DEFAULT_REPLY_TO,
+          reply_to: replyTo || EMAIL_CONFIG.DEFAULT_REPLY_TO,
           subject: `Important: ${businessName} — Enhanced Accounts Receivable Communication`,
           html: htmlContent,
         }),
