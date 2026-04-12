@@ -408,12 +408,16 @@ export default function Branding() {
             </Card>
 
             {/* Public AR Page */}
+            <SetupRequiredWrapper show={!onboardingStatus.hasPaymentInstructions}>
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Globe className="h-5 w-5" />
-                  Public AR Information Page
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Globe className="h-5 w-5" />
+                    Public AR Information Page
+                  </CardTitle>
+                  <SetupRequiredBadge show={!onboardingStatus.hasPaymentInstructions} label="Payment instructions needed" />
+                </div>
                 <CardDescription>
                   Share payment instructions, documents, and contact info with customers
                 </CardDescription>
