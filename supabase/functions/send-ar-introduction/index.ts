@@ -12,6 +12,7 @@ interface SendIntroRequest {
   debtorIds: string[];       // Array of debtor IDs to send to
   customMessage?: string;    // Optional custom message from the user
   businessName: string;      // The creditor's business name
+  replyTo?: string;          // Optional user-defined reply-to address
 }
 
 serve(async (req) => {
