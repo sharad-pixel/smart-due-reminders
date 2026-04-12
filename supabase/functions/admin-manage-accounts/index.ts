@@ -350,6 +350,88 @@ Deno.serve(async (req) => {
         });
       }
 
+      case 'transfer_ownership': {
+        // Transfer owner role from current owner to a new user within the same account
+        const { accountId, newOwnerId } = body;
+        if (!accountId || !newOwnerId) {
+          throw new Error('accountId and newOwnerId are required');
+        }
+
+        // Get current owner membership
+        const { data: currentOwnerMembership } = await supabaseClient
+          .from('account_users')
+          .select('id, user_id, role, is_owner')
+          .eq('account_id', accountId)
+          .eq('is_owner', true)
+          .single();
+
+        if (!currentOwnerMembership) throw new Error('Current owner not found for this account');
+        if (currentOwnerMembership.user_id === newOwnerId) throw new Error('This user is already the owner');
+
+        // Verify the new owner is an existing active member of this account
+        const { data: newOwnerMembership } = await supabaseClient
+          .from('account_users')
+          .select('id, user_id, role')
+          .eq('account_id', accountId)
+          .eq('user_id', newOwnerId)
+          .eq('status', 'active')
+          .single();
+
+        if (!newOwnerMembership) throw new Error('New owner must be an active member of this account');
+
+        // Get profiles for audit
+        const [oldOwnerProfile, newOwnerProfile] = await Promise.all([
+          supabaseClient.from('profiles').select('email, name').eq('id', currentOwnerMembership.user_id).single(),
+          supabaseClient.from('profiles').select('email, name').eq('id', newOwnerId).single(),
+        ]);
+
+        // Demote current owner to admin (disable by setting status to 'disabled' if requested)
+        await supabaseClient
+          .from('account_users')
+          .update({
+            role: 'admin',
+            is_owner: false,
+            status: 'disabled',
+            disabled_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', currentOwnerMembership.id);
+
+        // Promote new owner
+        await supabaseClient
+          .from('account_users')
+          .update({
+            role: 'owner',
+            is_owner: true,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', newOwnerMembership.id);
+
+        // Update the organization owner
+        await supabaseClient
+          .from('organizations')
+          .update({ owner_user_id: newOwnerId })
+          .eq('owner_user_id', currentOwnerMembership.user_id);
+
+        // Audit log
+        await supabaseClient.from('audit_logs').insert({
+          user_id: admin.id,
+          action_type: 'admin_transfer_ownership',
+          resource_type: 'account',
+          resource_id: accountId,
+          old_values: { owner_user_id: currentOwnerMembership.user_id, owner_email: oldOwnerProfile.data?.email },
+          new_values: { owner_user_id: newOwnerId, owner_email: newOwnerProfile.data?.email },
+          metadata: { admin_action: true },
+        });
+
+        return new Response(JSON.stringify({
+          success: true,
+          message: `Ownership transferred from ${oldOwnerProfile.data?.email} to ${newOwnerProfile.data?.email}. Previous owner has been disabled.`,
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
       default:
         throw new Error(`Unknown action: ${action}`);
     }
