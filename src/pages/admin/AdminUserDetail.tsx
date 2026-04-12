@@ -413,6 +413,57 @@ const AdminUserDetail = () => {
     }
   };
 
+  const handleDisableMember = async (accountId: string, memberId: string, memberName: string) => {
+    if (!confirm(`Disable "${memberName}"? They will lose access until re-enabled.`)) return;
+    try {
+      const response = await supabase.functions.invoke("admin-manage-accounts", {
+        body: { action: 'disable_user', accountId, userId: memberId },
+      });
+      if (response.error) throw new Error(response.data?.error || response.error.message);
+      if (response.data?.error) throw new Error(response.data.error);
+      toast.success(response.data?.message || "User disabled");
+      fetchUserDetails();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to disable user");
+    }
+  };
+
+  const handleEnableMember = async (accountId: string, memberId: string, memberName: string) => {
+    if (!confirm(`Re-enable "${memberName}"?`)) return;
+    try {
+      const response = await supabase.functions.invoke("admin-manage-accounts", {
+        body: { action: 'enable_user', accountId, userId: memberId },
+      });
+      if (response.error) throw new Error(response.data?.error || response.error.message);
+      if (response.data?.error) throw new Error(response.data.error);
+      toast.success(response.data?.message || "User re-enabled");
+      fetchUserDetails();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to enable user");
+    }
+  };
+
+  const handleTransferOwnership = async () => {
+    if (!user || !selectedNewOwnerId) return;
+    try {
+      const response = await supabase.functions.invoke("admin-manage-accounts", {
+        body: {
+          action: 'transfer_ownership',
+          accountId: user.id,
+          newOwnerId: selectedNewOwnerId,
+        },
+      });
+      if (response.error) throw new Error(response.data?.error || response.error.message);
+      if (response.data?.error) throw new Error(response.data.error);
+      toast.success(response.data?.message || "Ownership transferred");
+      setTransferOwnerDialogOpen(false);
+      setSelectedNewOwnerId("");
+      fetchUserDetails();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to transfer ownership");
+    }
+  };
+
   const handleClearOverride = async () => {
     if (!user) return;
     try {
