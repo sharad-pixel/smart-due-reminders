@@ -231,6 +231,30 @@ const AdminAccountsHierarchy = () => {
     }
   };
 
+  const handleTransferOwnership = async () => {
+    if (!transferOwnerDialog.account || !selectedNewOwnerId) return;
+    setActionLoading(true);
+    try {
+      const response = await supabase.functions.invoke("admin-manage-accounts", {
+        body: {
+          action: 'transfer_ownership',
+          accountId: transferOwnerDialog.account.id,
+          newOwnerId: selectedNewOwnerId,
+        },
+      });
+      if (response.error) throw new Error(response.data?.error || response.error.message);
+      if (response.data?.error) throw new Error(response.data.error);
+      toast.success(response.data?.message || "Ownership transferred successfully");
+      setTransferOwnerDialog({ open: false, account: null });
+      setSelectedNewOwnerId("");
+      fetchAccounts();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to transfer ownership");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const getSubscriptionBadge = (account: AccountData) => {
     if (account.is_blocked) return <Badge variant="destructive" className="bg-red-900"><Ban className="h-3 w-3 mr-1" />Blocked</Badge>;
     if (account.is_suspended) return <Badge variant="destructive">Suspended</Badge>;
