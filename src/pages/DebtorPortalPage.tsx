@@ -107,6 +107,7 @@ const installmentStatusIcons: Record<string, React.ReactNode> = {
   overdue: <XCircle className="h-4 w-4 text-red-600" />,
 };
 
+// Debtor Portal Page Component
 export default function DebtorPortalPage() {
   const [searchParams] = useSearchParams();
   // Clean and decode the token - email clients sometimes add trailing chars or encode
