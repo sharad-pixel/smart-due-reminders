@@ -24,6 +24,12 @@ const ARIntroduction = () => {
   const [alreadySentCount, setAlreadySentCount] = useState(0);
   const [uniqueEmailCount, setUniqueEmailCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [primaryColor, setPrimaryColor] = useState("#6366f1");
+  const [accentColor, setAccentColor] = useState("#f59e0b");
+  const [companyAddress, setCompanyAddress] = useState("");
+  const [companyPhone, setCompanyPhone] = useState("");
+  const [companyWebsite, setCompanyWebsite] = useState("");
 
   useEffect(() => {
     loadStats();
