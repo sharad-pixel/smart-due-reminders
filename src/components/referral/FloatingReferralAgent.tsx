@@ -153,7 +153,7 @@ export function FloatingReferralAgent() {
                 Invite & Earn
               </Button>
               {/* Arrow pointing to avatar */}
-              <div className="absolute -bottom-2 right-6 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-card" />
+              <div className="absolute -bottom-2 left-6 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-card" />
             </motion.div>
           )}
         </AnimatePresence>

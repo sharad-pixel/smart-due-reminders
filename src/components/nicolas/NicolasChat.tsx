@@ -413,6 +413,17 @@ export default function NicolasChat() {
           </div>
           {/* Online indicator */}
           <div className="absolute -bottom-0.5 -right-0.5 h-4 w-4 bg-accent rounded-full border-2 border-background animate-pulse"></div>
+          {/* Close/dismiss button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleAssistant(false);
+            }}
+            className="absolute -top-1 -left-1 h-5 w-5 rounded-full bg-muted border border-border flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive hover:text-destructive-foreground"
+            title="Hide assistant"
+          >
+            <X className="h-3 w-3" />
+          </button>
         </div>
       </div>
     );
