@@ -525,7 +525,7 @@ export function SmartIngestionSection() {
 
       {/* Tabs: Review Queue / Dashboard */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="flex-wrap">
+        <TabsList className="flex w-full overflow-x-auto overflow-y-hidden no-scrollbar h-auto flex-nowrap justify-start">
           <TabsTrigger value="overview" className="gap-2">
             <FileText className="h-4 w-4" /> Scanned Files
           </TabsTrigger>
