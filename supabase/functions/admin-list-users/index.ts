@@ -99,6 +99,7 @@ Deno.serve(async (req) => {
         subscription_status,
         stripe_customer_id,
         stripe_subscription_id,
+        quickbooks_realm_id,
         plans:plan_id (
           name,
           monthly_price,
@@ -160,14 +161,117 @@ Deno.serve(async (req) => {
       console.error('[admin-list-users] Error fetching auth users:', authErr);
     }
 
-    // Merge blocked status and login activity into users
-    const usersWithBlockStatus = users?.map((user: any) => ({
-      ...user,
-      is_blocked: blockedMap.has(user.email?.toLowerCase()),
-      blocked_at: blockedMap.get(user.email?.toLowerCase())?.blocked_at || null,
-      blocked_reason: blockedMap.get(user.email?.toLowerCase())?.reason || null,
-      last_login: authUserMap.get(user.id)?.last_sign_in_at || null,
-    }));
+    // Batch fetch onboarding & usage data for all users in this page
+    // 1. Invoice counts per user
+    const { data: invoiceCounts } = await supabaseClient
+      .rpc('admin_count_by_user', undefined)
+      .select('*');
+
+    // Since RPC may not exist, fall back to per-user counts via raw queries
+    // We'll use a more efficient approach: fetch counts grouped by user_id
+    const invoiceCountMap = new Map<string, number>();
+    const debtorCountMap = new Map<string, number>();
+    const workflowCountMap = new Map<string, number>();
+    const brandingMap = new Map<string, { logo_url: string | null; business_name: string | null; stripe_payment_link: string | null; supported_payment_methods: any }>();
+
+    // Fetch invoice counts for these users
+    try {
+      for (const uid of userIds) {
+        // We'll batch these - but Supabase doesn't have GROUP BY easily
+        // So fetch counts in parallel for efficiency
+      }
+      
+      // Use Promise.all for parallel fetching
+      const [invoiceResults, debtorResults, workflowResults, brandingResults] = await Promise.all([
+        // Invoice counts
+        Promise.all(userIds.map(async (uid: string) => {
+          const { count } = await supabaseClient
+            .from('invoices')
+            .select('id', { count: 'exact', head: true })
+            .eq('user_id', uid);
+          return { uid, count: count || 0 };
+        })),
+        // Debtor counts
+        Promise.all(userIds.map(async (uid: string) => {
+          const { count } = await supabaseClient
+            .from('debtors')
+            .select('id', { count: 'exact', head: true })
+            .eq('user_id', uid);
+          return { uid, count: count || 0 };
+        })),
+        // Active workflow counts
+        Promise.all(userIds.map(async (uid: string) => {
+          const { count } = await supabaseClient
+            .from('collection_workflows')
+            .select('id', { count: 'exact', head: true })
+            .eq('user_id', uid)
+            .eq('is_active', true);
+          return { uid, count: count || 0 };
+        })),
+        // Branding settings
+        supabaseClient
+          .from('branding_settings')
+          .select('user_id, logo_url, business_name, stripe_payment_link, supported_payment_methods')
+          .in('user_id', userIds),
+      ]);
+
+      for (const r of invoiceResults) invoiceCountMap.set(r.uid, r.count);
+      for (const r of debtorResults) debtorCountMap.set(r.uid, r.count);
+      for (const r of workflowResults) workflowCountMap.set(r.uid, r.count);
+      
+      for (const b of (brandingResults.data || [])) {
+        brandingMap.set(b.user_id, {
+          logo_url: b.logo_url,
+          business_name: b.business_name,
+          stripe_payment_link: b.stripe_payment_link,
+          supported_payment_methods: b.supported_payment_methods,
+        });
+      }
+    } catch (statsErr) {
+      console.error('[admin-list-users] Error fetching usage stats:', statsErr);
+    }
+
+    // Merge all data into users
+    const usersWithBlockStatus = users?.map((user: any) => {
+      const branding = brandingMap.get(user.id);
+      const hasLogo = !!branding?.logo_url;
+      const hasBranding = !!branding?.business_name;
+      const hasPaymentLink = !!branding?.stripe_payment_link;
+      const pm = branding?.supported_payment_methods;
+      const hasPaymentMethods = Array.isArray(pm) ? pm.length > 0 : (!!pm && typeof pm === 'object' && Object.keys(pm).length > 0);
+      const hasAccounts = (debtorCountMap.get(user.id) || 0) > 0;
+      const hasInvoices = (invoiceCountMap.get(user.id) || 0) > 0;
+      const hasWorkflows = (workflowCountMap.get(user.id) || 0) > 0;
+      const hasQB = !!user.quickbooks_realm_id;
+
+      // Calculate onboarding steps (matches useOnboardingCompletion logic)
+      const steps = [
+        hasBranding,         // Business name configured
+        hasLogo,             // Logo uploaded
+        hasPaymentLink || hasPaymentMethods, // Payment instructions
+        hasAccounts,         // At least one account
+        hasInvoices,         // At least one invoice
+        hasWorkflows,        // Active workflow
+      ];
+      const completedSteps = steps.filter(Boolean).length;
+      const totalSteps = steps.length;
+      const onboardingPct = Math.round((completedSteps / totalSteps) * 100);
+
+      return {
+        ...user,
+        is_blocked: blockedMap.has(user.email?.toLowerCase()),
+        blocked_at: blockedMap.get(user.email?.toLowerCase())?.blocked_at || null,
+        blocked_reason: blockedMap.get(user.email?.toLowerCase())?.reason || null,
+        last_login: authUserMap.get(user.id)?.last_sign_in_at || null,
+        // Usage stats
+        invoice_count: invoiceCountMap.get(user.id) || 0,
+        debtor_count: debtorCountMap.get(user.id) || 0,
+        // Onboarding
+        onboarding_pct: onboardingPct,
+        onboarding_completed: completedSteps,
+        onboarding_total: totalSteps,
+      };
+    });
 
     console.log('[admin-list-users] Returning', usersWithBlockStatus?.length, 'users');
 
