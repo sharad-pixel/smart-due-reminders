@@ -147,6 +147,7 @@ const Checkout = lazy(() => import("./pages/Checkout"));
 const Billing = lazy(() => import("./pages/Billing"));
 const Upgrade = lazy(() => import("./pages/Upgrade"));
 const PaymentsActivity = lazy(() => import("./pages/PaymentsActivity"));
+const ARIntroduction = lazy(() => import("./pages/ARIntroduction"));
 
 // Contact
 const ContactUs = lazy(() => import("./pages/ContactUs"));
