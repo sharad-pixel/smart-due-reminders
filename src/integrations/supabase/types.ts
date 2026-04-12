@@ -6176,6 +6176,7 @@ export type Database = {
       }
       onboarding_progress: {
         Row: {
+          ar_introduction_sent: boolean
           branding_completed: boolean
           business_profile_completed: boolean
           completed_at: string | null
@@ -6189,6 +6190,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          ar_introduction_sent?: boolean
           branding_completed?: boolean
           business_profile_completed?: boolean
           completed_at?: string | null
@@ -6202,6 +6204,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          ar_introduction_sent?: boolean
           branding_completed?: boolean
           business_profile_completed?: boolean
           completed_at?: string | null
