@@ -96,6 +96,11 @@ const ARIntroduction = () => {
       return;
     }
 
+    if (!replyTo.trim()) {
+      toast.error("Reply-to email address is required.");
+      return;
+    }
+
     setSending(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -113,12 +118,12 @@ const ARIntroduction = () => {
       }
 
       const { data, error } = await supabase.functions.invoke("send-ar-introduction", {
-        body: {
-          debtorIds: debtors.map(d => d.id),
-          customMessage: customMessage.trim() || undefined,
-          businessName: businessName || "Your Company",
-          replyTo: replyTo.trim() || undefined,
-        },
+          body: {
+            debtorIds: debtors.map(d => d.id),
+            customMessage: customMessage.trim() || undefined,
+            businessName: businessName || "Your Company",
+            replyTo: replyTo.trim(),
+          },
       });
 
       if (error) throw error;
@@ -254,7 +259,7 @@ const ARIntroduction = () => {
               <Label className="text-sm font-medium flex items-center gap-1.5">
                 <Mail className="h-3.5 w-3.5 text-primary" />
                 Reply-To Address
-                <span className="text-[10px] text-muted-foreground font-normal">(optional)</span>
+                <span className="text-[10px] text-destructive font-normal">*required</span>
               </Label>
               <Input
                 type="email"
@@ -262,9 +267,10 @@ const ARIntroduction = () => {
                 value={replyTo}
                 onChange={(e) => setReplyTo(e.target.value)}
                 className="text-sm"
+                required
               />
               <p className="text-[11px] text-muted-foreground">
-                Where debtor replies will be directed. Defaults to Recouply.ai platform inbox if left blank.
+                Where debtor replies will be directed. This is required so clients can reach you directly.
               </p>
             </div>
 
@@ -283,7 +289,7 @@ const ARIntroduction = () => {
             {/* Send */}
             <Button
               onClick={handleSend}
-              disabled={sending || pendingCount === 0}
+              disabled={sending || pendingCount === 0 || !replyTo.trim()}
               className="w-full gap-2"
               size="lg"
             >

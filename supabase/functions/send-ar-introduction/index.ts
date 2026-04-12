@@ -12,7 +12,29 @@ interface SendIntroRequest {
   debtorIds: string[];
   customMessage?: string;
   businessName: string;
-  replyTo?: string;
+  replyTo: string;
+}
+
+// Helper to batch .in() queries to avoid URL length limits
+async function batchInQuery(
+  supabase: any,
+  table: string,
+  column: string,
+  ids: string[],
+  selectCols: string,
+  extraFilters?: (q: any) => any,
+  batchSize = 100
+) {
+  const results: any[] = [];
+  for (let i = 0; i < ids.length; i += batchSize) {
+    const chunk = ids.slice(i, i + batchSize);
+    let query = supabase.from(table).select(selectCols).in(column, chunk);
+    if (extraFilters) query = extraFilters(query);
+    const { data, error } = await query;
+    if (error) throw error;
+    if (data) results.push(...data);
+  }
+  return results;
 }
 
 serve(async (req) => {
@@ -31,7 +53,6 @@ serve(async (req) => {
     );
   }
 
-  // Auth check
   const authHeader = req.headers.get("Authorization");
   if (!authHeader?.startsWith("Bearer ")) {
     return new Response(
@@ -79,6 +100,13 @@ serve(async (req) => {
     );
   }
 
+  if (!replyTo?.trim()) {
+    return new Response(
+      JSON.stringify({ error: "Reply-to email address is required" }),
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   // ── Fetch branding & invoice template for logo + address ──
@@ -105,7 +133,6 @@ serve(async (req) => {
   const primaryColor = brandingData?.primary_color || BRAND.primary;
   const accentColor = brandingData?.accent_color || BRAND.accent;
 
-  // Build company address from invoice template or profile fallback
   const companyAddress = templateData?.company_address ||
     [profileData?.business_address_line1, profileData?.business_address_line2,
      [profileData?.business_city, profileData?.business_state].filter(Boolean).join(", "),
@@ -114,15 +141,18 @@ serve(async (req) => {
   const companyPhone = templateData?.company_phone || profileData?.business_phone || null;
   const companyWebsite = templateData?.company_website || null;
 
-  // ── Fetch debtor contact emails ──
-  const { data: contacts, error: contactError } = await supabase
-    .from("debtor_contacts")
-    .select("debtor_id, email, name, is_primary")
-    .in("debtor_id", debtorIds)
-    .eq("outreach_enabled", true)
-    .order("is_primary", { ascending: false });
-
-  if (contactError) {
+  // ── Fetch debtor contact emails (batched to avoid URL length limits) ──
+  let contacts: any[];
+  try {
+    contacts = await batchInQuery(
+      supabase,
+      "debtor_contacts",
+      "debtor_id",
+      debtorIds,
+      "debtor_id, email, name, is_primary",
+      (q: any) => q.eq("outreach_enabled", true).order("is_primary", { ascending: false })
+    );
+  } catch (contactError) {
     console.error("Error fetching contacts:", contactError);
     return new Response(
       JSON.stringify({ error: "Failed to fetch debtor contacts" }),
@@ -130,27 +160,31 @@ serve(async (req) => {
     );
   }
 
-  // ── Check which debtor_ids have already been sent for this user ──
-  const { data: alreadySent } = await supabase
+  // ── Check which debtor_ids have already been sent for this user (batched) ──
+  let alreadySent: any[];
+  try {
+    alreadySent = await batchInQuery(
+      supabase,
+      "ar_introduction_emails",
+      "debtor_id",
+      debtorIds,
+      "debtor_id, debtor_email",
+      (q: any) => q.eq("user_id", userId)
+    );
+  } catch {
+    alreadySent = [];
+  }
+
+  const sentDebtorSet = new Set(alreadySent.map((r: any) => r.debtor_id));
+  const sentEmailSet = new Set(alreadySent.map((r: any) => r.debtor_email?.toLowerCase()).filter(Boolean));
+
+  // Also check ALL emails this user has ever sent intros to
+  const { data: allSentEmails } = await supabase
     .from("ar_introduction_emails")
-    .select("debtor_id, debtor_email")
-    .eq("user_id", userId)
-    .in("debtor_id", debtorIds);
-
-  const sentDebtorSet = new Set((alreadySent || []).map((r: any) => r.debtor_id));
-  // Track emails already sent by this user to avoid duplicates across debtors
-  const sentEmailSet = new Set((alreadySent || []).map((r: any) => r.debtor_email?.toLowerCase()));
-
-  // Also check ALL emails this user has ever sent intros to (beyond current batch)
-  const allEmails = (contacts || []).map(c => c.email?.toLowerCase()).filter(Boolean);
-  if (allEmails.length > 0) {
-    const { data: allSentEmails } = await supabase
-      .from("ar_introduction_emails")
-      .select("debtor_email")
-      .eq("user_id", userId);
-    for (const row of allSentEmails || []) {
-      if (row.debtor_email) sentEmailSet.add(row.debtor_email.toLowerCase());
-    }
+    .select("debtor_email")
+    .eq("user_id", userId);
+  for (const row of allSentEmails || []) {
+    if (row.debtor_email) sentEmailSet.add(row.debtor_email.toLowerCase());
   }
 
   const fromAddress = getVerifiedFromAddress(businessName, "notifications");
@@ -163,13 +197,12 @@ serve(async (req) => {
 
   // ── Group contacts by debtor (primary first) ──
   const debtorContactMap = new Map<string, { email: string; name: string | null }>();
-  for (const c of contacts || []) {
+  for (const c of contacts) {
     if (!debtorContactMap.has(c.debtor_id) && c.email) {
       debtorContactMap.set(c.debtor_id, { email: c.email, name: c.name });
     }
   }
 
-  // ── Track emails sent in THIS batch to dedupe within the request ──
   const batchSentEmails = new Set<string>();
 
   for (const debtorId of debtorIds) {
@@ -186,9 +219,7 @@ serve(async (req) => {
 
     const emailLower = contact.email.toLowerCase();
 
-    // ── DEDUP: Skip if this email was already sent by this creditor ──
     if (sentEmailSet.has(emailLower) || batchSentEmails.has(emailLower)) {
-      // Still record the debtor_id as sent to prevent future attempts
       await supabase.from("ar_introduction_emails").insert({
         debtor_id: debtorId,
         user_id: userId,
@@ -202,7 +233,6 @@ serve(async (req) => {
 
     const recipientName = contact.name || "Valued Client";
 
-    // ── Build branded email HTML ──
     const logoHtml = logoUrl
       ? `<div style="text-align: center; margin: 0 0 24px;">
            <img src="${logoUrl}" alt="${businessName}" style="max-height: 60px; max-width: 200px;" />
@@ -329,7 +359,7 @@ serve(async (req) => {
         body: JSON.stringify({
           from: fromAddress,
           to: [contact.email],
-          reply_to: replyTo || EMAIL_CONFIG.DEFAULT_REPLY_TO,
+          reply_to: replyTo,
           subject: `Important: ${businessName} — Enhanced Accounts Receivable Communication`,
           html: htmlContent,
         }),
@@ -343,7 +373,6 @@ serve(async (req) => {
         continue;
       }
 
-      // Record success
       await supabase.from("ar_introduction_emails").insert({
         debtor_id: debtorId,
         user_id: userId,
