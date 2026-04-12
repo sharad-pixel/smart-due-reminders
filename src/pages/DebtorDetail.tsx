@@ -1115,7 +1115,7 @@ const DebtorDetail = () => {
         />
 
         <Tabs defaultValue="invoices" className="space-y-4">
-          <TabsList className="flex-wrap">
+          <TabsList className="flex w-full overflow-x-auto overflow-y-hidden no-scrollbar h-auto flex-nowrap justify-start">
             <TabsTrigger value="invoices">Invoices ({invoices.filter(inv => ["Open", "Overdue", "InPaymentPlan", "PartiallyPaid"].includes(inv.status)).length} Open)</TabsTrigger>
             <TabsTrigger value="payment-plans">
               Payment Plans ({paymentPlans?.length || 0})
