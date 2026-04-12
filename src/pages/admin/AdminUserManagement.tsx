@@ -902,10 +902,11 @@ Delaware, USA`;
                       <TableHead>User</TableHead>
                       <TableHead>Company</TableHead>
                       <TableHead>Plan</TableHead>
+                      <TableHead>Onboarding</TableHead>
+                      <TableHead>Usage</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Created</TableHead>
                       <TableHead>Last Login</TableHead>
-                      <TableHead>Stripe ID</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
