@@ -66,6 +66,7 @@ interface Debtor {
 const Invoices = () => {
   usePageTitle("Invoices");
   const navigate = useNavigate();
+  const onboardingStatus = useOnboardingStatus();
   const [searchParams] = useSearchParams();
   const debtorIdFromUrl = searchParams.get('debtor');
   const agingFromUrl = searchParams.get('aging');

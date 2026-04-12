@@ -86,6 +86,7 @@ const getCurrencySymbol = (currency: string) => {
 const Debtors = () => {
   usePageTitle("Accounts");
   const navigate = useNavigate();
+  const onboardingStatus = useOnboardingStatus();
   const { data: accountsAvgDPD } = useAccountsAvgDPD();
   const [debtors, setDebtors] = useState<Debtor[]>([]);
   const [filteredDebtors, setFilteredDebtors] = useState<Debtor[]>([]);
