@@ -29,7 +29,7 @@ import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
 import { useOrgAvgDPD } from "@/hooks/useAvgDPD";
 import { useOnboardingCompletion } from "@/hooks/useOnboardingCompletion";
 import { Progress } from "@/components/ui/progress";
-import { AlertTriangle, ArrowRight, CheckCircle2, XCircle } from "lucide-react";
+import { AlertTriangle, ArrowRight, CheckCircle2 } from "lucide-react";
 import { IntegrationSetupModal } from "@/components/integrations/IntegrationSetupModal";
 
 
