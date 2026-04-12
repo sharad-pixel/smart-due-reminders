@@ -531,6 +531,7 @@ export default function Branding() {
                 </div>
               </CardContent>
             </Card>
+            </SetupRequiredWrapper>
 
             {/* Invoice Template Builder */}
             <InvoiceTemplateBuilder
