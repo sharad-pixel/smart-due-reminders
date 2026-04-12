@@ -383,6 +383,61 @@ export type Database = {
           },
         ]
       }
+      ar_introduction_emails: {
+        Row: {
+          business_name: string | null
+          created_at: string
+          debtor_email: string
+          debtor_id: string
+          id: string
+          organization_id: string | null
+          sent_at: string
+          user_id: string
+        }
+        Insert: {
+          business_name?: string | null
+          created_at?: string
+          debtor_email: string
+          debtor_id: string
+          id?: string
+          organization_id?: string | null
+          sent_at?: string
+          user_id: string
+        }
+        Update: {
+          business_name?: string | null
+          created_at?: string
+          debtor_email?: string
+          debtor_id?: string
+          id?: string
+          organization_id?: string | null
+          sent_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ar_introduction_emails_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
+            referencedRelation: "debtor_contact_emails"
+            referencedColumns: ["debtor_id"]
+          },
+          {
+            foreignKeyName: "ar_introduction_emails_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
+            referencedRelation: "debtors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ar_introduction_emails_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ar_page_access_logs: {
         Row: {
           accessed_at: string | null
