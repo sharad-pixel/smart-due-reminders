@@ -36,7 +36,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, User, CreditCard, Users, Crown, Clock, AlertCircle, CheckCircle, Ban, Shield, Trash2, Save, RefreshCw, ExternalLink, FileText, Activity, UserPlus, Link2 } from "lucide-react";
+import { ArrowLeft, Loader2, User, CreditCard, Users, Crown, Clock, AlertCircle, CheckCircle, Ban, Shield, Trash2, Save, RefreshCw, ExternalLink, FileText, Activity, UserPlus, Link2, UserCog } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format as formatDate } from "date-fns";
 import { AdminIntegrationToggles } from "@/components/admin/AdminIntegrationToggles";
@@ -168,6 +168,8 @@ const AdminUserDetail = () => {
   const [blockDialogOpen, setBlockDialogOpen] = useState(false);
   const [suspendDialogOpen, setSuspendDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [transferOwnerDialogOpen, setTransferOwnerDialogOpen] = useState(false);
+  const [selectedNewOwnerId, setSelectedNewOwnerId] = useState("");
   const [blockReason, setBlockReason] = useState("");
   const [suspendReason, setSuspendReason] = useState("");
   const [deleteReason, setDeleteReason] = useState("");
@@ -408,6 +410,57 @@ const AdminUserDetail = () => {
       toast.error("Failed to process deletion: " + (error.message || "Unknown error"));
     } finally {
       setDeletingUser(false);
+    }
+  };
+
+  const handleDisableMember = async (accountId: string, memberId: string, memberName: string) => {
+    if (!confirm(`Disable "${memberName}"? They will lose access until re-enabled.`)) return;
+    try {
+      const response = await supabase.functions.invoke("admin-manage-accounts", {
+        body: { action: 'disable_user', accountId, userId: memberId },
+      });
+      if (response.error) throw new Error(response.data?.error || response.error.message);
+      if (response.data?.error) throw new Error(response.data.error);
+      toast.success(response.data?.message || "User disabled");
+      fetchUserDetails();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to disable user");
+    }
+  };
+
+  const handleEnableMember = async (accountId: string, memberId: string, memberName: string) => {
+    if (!confirm(`Re-enable "${memberName}"?`)) return;
+    try {
+      const response = await supabase.functions.invoke("admin-manage-accounts", {
+        body: { action: 'enable_user', accountId, userId: memberId },
+      });
+      if (response.error) throw new Error(response.data?.error || response.error.message);
+      if (response.data?.error) throw new Error(response.data.error);
+      toast.success(response.data?.message || "User re-enabled");
+      fetchUserDetails();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to enable user");
+    }
+  };
+
+  const handleTransferOwnership = async () => {
+    if (!user || !selectedNewOwnerId) return;
+    try {
+      const response = await supabase.functions.invoke("admin-manage-accounts", {
+        body: {
+          action: 'transfer_ownership',
+          accountId: user.id,
+          newOwnerId: selectedNewOwnerId,
+        },
+      });
+      if (response.error) throw new Error(response.data?.error || response.error.message);
+      if (response.data?.error) throw new Error(response.data.error);
+      toast.success(response.data?.message || "Ownership transferred");
+      setTransferOwnerDialogOpen(false);
+      setSelectedNewOwnerId("");
+      fetchUserDetails();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to transfer ownership");
     }
   };
 
@@ -933,13 +986,32 @@ const AdminUserDetail = () => {
             {isOwnerOfAccount && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Crown className="h-5 w-5 text-yellow-500" />
-                    Account Owner
-                  </CardTitle>
-                  <CardDescription>
-                    This user owns their own account and can have team members
-                  </CardDescription>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <Crown className="h-5 w-5 text-yellow-500" />
+                        Account Owner
+                      </CardTitle>
+                      <CardDescription>
+                        This user owns their own account and can have team members
+                      </CardDescription>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {teamMembers.filter(m => !m.is_owner && m.status === 'active' && m.user_id).length > 0 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setTransferOwnerDialogOpen(true);
+                            setSelectedNewOwnerId("");
+                          }}
+                        >
+                          <UserCog className="h-4 w-4 mr-2" />
+                          Transfer Ownership
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   {teamMembers.length > 0 ? (
@@ -950,7 +1022,7 @@ const AdminUserDetail = () => {
                           <TableHead>Role</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead>Joined</TableHead>
-                          <TableHead></TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -985,6 +1057,10 @@ const AdminUserDetail = () => {
                             <TableCell>
                               {member.status === 'active' ? (
                                 <Badge className="bg-green-500/10 text-green-600">Active</Badge>
+                              ) : member.status === 'disabled' ? (
+                                <Badge variant="destructive" className="bg-amber-500/10 text-amber-600 border-amber-500">
+                                  <Ban className="h-3 w-3 mr-1" />Disabled
+                                </Badge>
                               ) : (
                                 <Badge variant="secondary">{member.status}</Badge>
                               )}
@@ -995,16 +1071,40 @@ const AdminUserDetail = () => {
                                 : "—"
                               }
                             </TableCell>
-                            <TableCell>
-                              {member.user_id && member.user_id !== userId && (
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm"
-                                  onClick={() => navigate(`/admin/users/${member.user_id}`)}
-                                >
-                                  <ExternalLink className="h-4 w-4" />
-                                </Button>
-                              )}
+                            <TableCell className="text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                {member.user_id && member.user_id !== userId && (
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    onClick={() => navigate(`/admin/users/${member.user_id}`)}
+                                  >
+                                    <ExternalLink className="h-4 w-4" />
+                                  </Button>
+                                )}
+                                {member.user_id && !member.is_owner && member.status === 'active' && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-amber-600 hover:text-amber-700"
+                                    onClick={() => handleDisableMember(userId!, member.user_id!, member.profiles?.name || member.email || 'user')}
+                                  >
+                                    <Ban className="h-3 w-3 mr-1" />
+                                    Disable
+                                  </Button>
+                                )}
+                                {member.user_id && !member.is_owner && member.status === 'disabled' && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-green-600 hover:text-green-700"
+                                    onClick={() => handleEnableMember(userId!, member.user_id!, member.profiles?.name || member.email || 'user')}
+                                  >
+                                    <CheckCircle className="h-3 w-3 mr-1" />
+                                    Enable
+                                  </Button>
+                                )}
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -1351,6 +1451,56 @@ const AdminUserDetail = () => {
             >
               {deletingUser ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />}
               {deleteMode === "scheduled" ? "Schedule Deletion" : "Delete Now"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Transfer Ownership Dialog */}
+      <AlertDialog open={transferOwnerDialogOpen} onOpenChange={setTransferOwnerDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <UserCog className="h-5 w-5" />
+              Transfer Account Ownership
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Disable the current owner ({user?.name || user?.email}) and promote a team member to owner. The previous owner will be disabled.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label>New Owner (select from active team members)</Label>
+              <Select value={selectedNewOwnerId} onValueChange={setSelectedNewOwnerId}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Select a team member..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {teamMembers
+                    .filter(m => !m.is_owner && m.status === 'active' && m.user_id)
+                    .map((member) => (
+                      <SelectItem key={member.id} value={member.user_id!}>
+                        {member.profiles?.name || member.profiles?.email || member.email || "Unknown"} — {member.role}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {selectedNewOwnerId && (
+              <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-md text-sm text-destructive">
+                <strong>⚠️ Warning:</strong> The current owner will be <strong>disabled</strong> and the selected team member will become the new account owner. This is logged for audit purposes.
+              </div>
+            )}
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleTransferOwnership}
+              disabled={!selectedNewOwnerId}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              <UserCog className="h-4 w-4 mr-2" />
+              Transfer Ownership
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
