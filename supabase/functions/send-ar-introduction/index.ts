@@ -70,7 +70,7 @@ serve(async (req) => {
     var requestBody = await req.json();
   }
 
-  const { debtorIds, customMessage, businessName }: SendIntroRequest = requestBody;
+  const { debtorIds, customMessage, businessName, replyTo }: SendIntroRequest = requestBody;
 
   if (!debtorIds?.length) {
     return new Response(
