@@ -986,13 +986,32 @@ const AdminUserDetail = () => {
             {isOwnerOfAccount && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Crown className="h-5 w-5 text-yellow-500" />
-                    Account Owner
-                  </CardTitle>
-                  <CardDescription>
-                    This user owns their own account and can have team members
-                  </CardDescription>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <Crown className="h-5 w-5 text-yellow-500" />
+                        Account Owner
+                      </CardTitle>
+                      <CardDescription>
+                        This user owns their own account and can have team members
+                      </CardDescription>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {teamMembers.filter(m => !m.is_owner && m.status === 'active' && m.user_id).length > 0 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setTransferOwnerDialogOpen(true);
+                            setSelectedNewOwnerId("");
+                          }}
+                        >
+                          <UserCog className="h-4 w-4 mr-2" />
+                          Transfer Ownership
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   {teamMembers.length > 0 ? (
@@ -1003,7 +1022,7 @@ const AdminUserDetail = () => {
                           <TableHead>Role</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead>Joined</TableHead>
-                          <TableHead></TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1038,6 +1057,10 @@ const AdminUserDetail = () => {
                             <TableCell>
                               {member.status === 'active' ? (
                                 <Badge className="bg-green-500/10 text-green-600">Active</Badge>
+                              ) : member.status === 'disabled' ? (
+                                <Badge variant="destructive" className="bg-amber-500/10 text-amber-600 border-amber-500">
+                                  <Ban className="h-3 w-3 mr-1" />Disabled
+                                </Badge>
                               ) : (
                                 <Badge variant="secondary">{member.status}</Badge>
                               )}
@@ -1048,16 +1071,40 @@ const AdminUserDetail = () => {
                                 : "—"
                               }
                             </TableCell>
-                            <TableCell>
-                              {member.user_id && member.user_id !== userId && (
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm"
-                                  onClick={() => navigate(`/admin/users/${member.user_id}`)}
-                                >
-                                  <ExternalLink className="h-4 w-4" />
-                                </Button>
-                              )}
+                            <TableCell className="text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                {member.user_id && member.user_id !== userId && (
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    onClick={() => navigate(`/admin/users/${member.user_id}`)}
+                                  >
+                                    <ExternalLink className="h-4 w-4" />
+                                  </Button>
+                                )}
+                                {member.user_id && !member.is_owner && member.status === 'active' && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-amber-600 hover:text-amber-700"
+                                    onClick={() => handleDisableMember(userId!, member.user_id!, member.profiles?.name || member.email || 'user')}
+                                  >
+                                    <Ban className="h-3 w-3 mr-1" />
+                                    Disable
+                                  </Button>
+                                )}
+                                {member.user_id && !member.is_owner && member.status === 'disabled' && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-green-600 hover:text-green-700"
+                                    onClick={() => handleEnableMember(userId!, member.user_id!, member.profiles?.name || member.email || 'user')}
+                                  >
+                                    <CheckCircle className="h-3 w-3 mr-1" />
+                                    Enable
+                                  </Button>
+                                )}
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))}
