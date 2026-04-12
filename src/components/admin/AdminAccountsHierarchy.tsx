@@ -509,7 +509,7 @@ const AdminAccountsHierarchy = () => {
                                       ) : <span className="text-sm text-muted-foreground">—</span>}
                                     </TableCell>
                                     <TableCell className="text-right">
-                                      <div className="flex items-center justify-end gap-1">
+                                       <div className="flex items-center justify-end gap-1">
                                         <Button
                                           variant="ghost"
                                           size="sm"
@@ -521,6 +521,28 @@ const AdminAccountsHierarchy = () => {
                                           <Shield className="h-3 w-3 mr-1" />
                                           Change Role
                                         </Button>
+                                        {member.status === 'active' && member.user_id && (
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="text-amber-600 hover:text-amber-700"
+                                            onClick={() => handleDisableUser(account.id, member.user_id!, member.profiles?.name || member.profiles?.email || 'user')}
+                                          >
+                                            <Ban className="h-3 w-3 mr-1" />
+                                            Disable
+                                          </Button>
+                                        )}
+                                        {member.status === 'disabled' && member.user_id && (
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="text-green-600 hover:text-green-700"
+                                            onClick={() => handleEnableUser(account.id, member.user_id!, member.profiles?.name || member.profiles?.email || 'user')}
+                                          >
+                                            <CheckCircle className="h-3 w-3 mr-1" />
+                                            Enable
+                                          </Button>
+                                        )}
                                         <Button
                                           variant="ghost"
                                           size="sm"
