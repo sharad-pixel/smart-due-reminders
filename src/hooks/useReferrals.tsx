@@ -27,7 +27,7 @@ interface UseReferralsReturn {
   totalCreditsEarned: number;
   availableCredits: number;
   loading: boolean;
-  sendEmailInvite: (email: string) => Promise<boolean>;
+  sendEmailInvite: (email: string) => Promise<boolean | 'already_exists'>;
   generateShareLink: () => string;
   refresh: () => Promise<void>;
 }
@@ -94,16 +94,29 @@ export function useReferrals(): UseReferralsReturn {
     fetchData();
   }, [fetchData]);
 
-  const sendEmailInvite = async (email: string): Promise<boolean> => {
+  const sendEmailInvite = async (email: string): Promise<boolean | 'already_exists'> => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user || !referralCode) return false;
+
+      const normalizedEmail = email.toLowerCase().trim();
+
+      // Check if this email already has an account
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', normalizedEmail)
+        .maybeSingle();
+
+      if (existingProfile) {
+        return 'already_exists';
+      }
 
       // Create referral record for this email
       const { error } = await supabase.from('referrals').insert({
         referrer_id: user.id,
         referral_code: referralCode,
-        referred_email: email.toLowerCase().trim(),
+        referred_email: normalizedEmail,
         channel: 'email',
       });
 
@@ -123,11 +136,11 @@ export function useReferrals(): UseReferralsReturn {
 
       await supabase.functions.invoke('send-referral-invite', {
         body: {
-          email: email.toLowerCase().trim(),
+          email: normalizedEmail,
           referralCode,
           referrerName: profile?.name || 'A Recouply user',
           referrerCompany: profile?.company_name || '',
-          signupLink: `${siteUrl}/auth?ref=${referralCode}`,
+          signupLink: `${siteUrl}/signup?ref=${referralCode}`,
         },
       });
 
@@ -141,7 +154,7 @@ export function useReferrals(): UseReferralsReturn {
 
   const generateShareLink = () => {
     const siteUrl = window.location.origin;
-    return `${siteUrl}/auth?ref=${referralCode}`;
+    return `${siteUrl}/signup?ref=${referralCode}`;
   };
 
   const totalCreditsEarned = credits.reduce((sum, c) => sum + c.credits_amount, 0);

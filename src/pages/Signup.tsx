@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +42,8 @@ const signupSchema = z.object({
 
 const Signup = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const referralCode = searchParams.get('ref');
   const [user, setUser] = useState<User | null>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -56,6 +58,13 @@ const Signup = () => {
   // Calculate password strength
   const passedRequirements = passwordRequirements.filter(req => req.test(password));
   const passwordStrength = passedRequirements.length;
+
+  // Store referral code for post-signup attribution
+  useEffect(() => {
+    if (referralCode) {
+      localStorage.setItem('referral_code', referralCode);
+    }
+  }, [referralCode]);
 
   useEffect(() => {
     // Check for invite token in URL hash

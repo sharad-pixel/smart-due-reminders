@@ -41,10 +41,12 @@ export function ReferralInviteCard() {
     }
 
     setSending(true);
-    const success = await sendEmailInvite(email);
+    const result = await sendEmailInvite(email);
     setSending(false);
 
-    if (success) {
+    if (result === 'already_exists') {
+      toast.error("This email is already registered on Recouply.ai");
+    } else if (result) {
       toast.success(`Referral invite sent to ${email}`);
       setEmail("");
     } else {
