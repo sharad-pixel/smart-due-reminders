@@ -407,7 +407,7 @@ const Layout = ({ children }: LayoutProps) => {
                     <span className="hidden md:inline-block text-sm pr-1">{userName}</span>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-72 sm:w-80 bg-card border shadow-lg z-[100]">
+                <DropdownMenuContent align="end" className="w-72 sm:w-80 bg-card border shadow-lg z-[100] max-h-[80vh] overflow-y-auto">
                   <DropdownMenuLabel>My Account</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   
