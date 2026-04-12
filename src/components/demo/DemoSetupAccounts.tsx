@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { ArrowRight, Building2, Mail, Phone, Shield, Clock, DollarSign, ChevronDown } from "lucide-react";
 import { DemoTutorialCallout, TryItPrompt } from "./DemoTutorialCallout";
+import { formatPhone } from "@/lib/formatPhone";
 
 export const DemoSetupAccounts = () => {
   const { customers, nextStep } = useDemoContext();
@@ -102,7 +103,7 @@ export const DemoSetupAccounts = () => {
                           <Mail className="h-3 w-3" /> {c.email}
                         </div>
                         <div className="flex items-center gap-1.5 text-muted-foreground">
-                          <Phone className="h-3 w-3" /> {c.phone}
+                          <Phone className="h-3 w-3" /> {formatPhone(c.phone)}
                         </div>
                         <div className="flex items-center gap-1.5 text-muted-foreground">
                           <Clock className="h-3 w-3" /> {c.payment_terms} · Avg {c.avg_days_to_pay}d
