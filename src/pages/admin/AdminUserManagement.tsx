@@ -7,8 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import AdminAccountsHierarchy from "@/components/admin/AdminAccountsHierarchy";
-import { Search, UserX, UserCheck, Shield, ShieldOff, Loader2, Download, Eye, Users, TrendingUp, AlertTriangle, CheckCircle, MoreHorizontal, FileText, Building2, Calendar, DollarSign, RefreshCw, Filter, ChevronLeft, ChevronRight, Trash2, Ban, UserPlus, ClipboardCheck } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
+import { Search, UserX, UserCheck, Shield, ShieldOff, Loader2, Download, Eye, Users, TrendingUp, AlertTriangle, CheckCircle, MoreHorizontal, FileText, Building2, Calendar, DollarSign, RefreshCw, Filter, ChevronLeft, ChevronRight, Trash2, Ban, UserPlus } from "lucide-react";
 import {
   Table,
   TableBody,
