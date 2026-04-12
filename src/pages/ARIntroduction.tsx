@@ -40,13 +40,26 @@ const ARIntroduction = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Fetch business name
+      // Fetch branding
       const { data: branding } = await supabase
         .from("branding_settings")
-        .select("business_name")
+        .select("business_name, logo_url, primary_color, accent_color")
         .eq("user_id", user.id)
         .single();
       if (branding?.business_name) setBusinessName(branding.business_name);
+      if (branding?.logo_url) setLogoUrl(branding.logo_url);
+      if (branding?.primary_color) setPrimaryColor(branding.primary_color);
+      if (branding?.accent_color) setAccentColor(branding.accent_color);
+
+      // Fetch address from invoice template or profile
+      const { data: template } = await supabase
+        .from("invoice_templates")
+        .select("company_address, company_phone, company_website")
+        .eq("user_id", user.id)
+        .single();
+      if (template?.company_address) setCompanyAddress(template.company_address);
+      if (template?.company_phone) setCompanyPhone(template.company_phone);
+      if (template?.company_website) setCompanyWebsite(template.company_website);
 
       // Count total debtors
       const { count: totalDebtors } = await supabase
