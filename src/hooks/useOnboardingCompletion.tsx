@@ -13,10 +13,10 @@ export function useOnboardingCompletion() {
   const { percentage, completedSteps, totalSteps, items } = useMemo(() => {
     const allItems: SetupItem[] = [
       { label: "Business Profile", completed: status.brandingConfigured, route: "/branding" },
-      { label: "Company Logo", completed: !!status.brandingConfigured, route: "/branding" },
+      { label: "Company Logo", completed: status.hasLogo, route: "/branding" },
       { label: "Customer Accounts", completed: status.hasAccounts, route: "/accounts" },
       { label: "Invoices Uploaded", completed: status.hasInvoices, route: "/invoices" },
-      { label: "Payment Integration", completed: status.stripeConnected, route: "/branding" },
+      { label: "Payment Instructions", completed: status.hasPaymentInstructions, route: "/branding" },
       { label: "Collection Workflows", completed: status.workflowsConfigured, route: "/ai-workflows" },
     ];
 

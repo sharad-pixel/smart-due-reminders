@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { User, Mail, Phone as PhoneIcon, Edit, Trash2 } from "lucide-react";
+import { formatPhone } from "@/lib/formatPhone";
 import { toast } from "sonner";
 
 interface Contact {
@@ -152,7 +153,7 @@ export const ContactCard = ({ contact, debtorId, onToggleOutreach, onDelete, onU
           {contact.phone && (
             <div className="flex items-center gap-1">
               <PhoneIcon className="h-3 w-3 text-muted-foreground" />
-              <span>{contact.phone}</span>
+              <span>{formatPhone(contact.phone)}</span>
             </div>
           )}
         </div>
