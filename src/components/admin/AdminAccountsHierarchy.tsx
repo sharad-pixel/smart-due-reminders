@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Search, Loader2, Users, ChevronDown, ChevronRight, Building2, CreditCard, UserPlus, Crown, Clock, AlertCircle, CheckCircle, Ban, GitMerge, ArrowRightLeft, Shield, Trash2, MoreHorizontal } from "lucide-react";
+import { Search, Loader2, Users, ChevronDown, ChevronRight, Building2, CreditCard, UserPlus, Crown, Clock, AlertCircle, CheckCircle, Ban, GitMerge, ArrowRightLeft, Shield, Trash2, MoreHorizontal, UserCog } from "lucide-react";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -90,6 +90,8 @@ const AdminAccountsHierarchy = () => {
   const [mergeDialog, setMergeDialog] = useState<{ open: boolean; sourceAccount: AccountData | null }>({ open: false, sourceAccount: null });
   const [assignParentDialog, setAssignParentDialog] = useState<{ open: boolean; childAccount: AccountData | null }>({ open: false, childAccount: null });
   const [changeRoleDialog, setChangeRoleDialog] = useState<{ open: boolean; member: TeamMember | null; accountId: string }>({ open: false, member: null, accountId: '' });
+  const [transferOwnerDialog, setTransferOwnerDialog] = useState<{ open: boolean; account: AccountData | null }>({ open: false, account: null });
+  const [selectedNewOwnerId, setSelectedNewOwnerId] = useState("");
   const [targetAccountSearch, setTargetAccountSearch] = useState("");
   const [targetAccounts, setTargetAccounts] = useState<AccountData[]>([]);
   const [selectedTargetId, setSelectedTargetId] = useState("");
@@ -226,6 +228,30 @@ const AdminAccountsHierarchy = () => {
       fetchAccounts();
     } catch (error: any) {
       toast.error(error.message || "Failed to remove user");
+    }
+  };
+
+  const handleTransferOwnership = async () => {
+    if (!transferOwnerDialog.account || !selectedNewOwnerId) return;
+    setActionLoading(true);
+    try {
+      const response = await supabase.functions.invoke("admin-manage-accounts", {
+        body: {
+          action: 'transfer_ownership',
+          accountId: transferOwnerDialog.account.id,
+          newOwnerId: selectedNewOwnerId,
+        },
+      });
+      if (response.error) throw new Error(response.data?.error || response.error.message);
+      if (response.data?.error) throw new Error(response.data.error);
+      toast.success(response.data?.message || "Ownership transferred successfully");
+      setTransferOwnerDialog({ open: false, account: null });
+      setSelectedNewOwnerId("");
+      fetchAccounts();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to transfer ownership");
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -385,6 +411,16 @@ const AdminAccountsHierarchy = () => {
                                 <ArrowRightLeft className="h-4 w-4 mr-2" />
                                 Assign to Parent Account
                               </DropdownMenuItem>
+                              {account.team_members.filter(m => !m.is_owner && m.status === 'active').length > 0 && (
+                                <DropdownMenuItem onClick={(e) => {
+                                  e.stopPropagation();
+                                  setTransferOwnerDialog({ open: true, account });
+                                  setSelectedNewOwnerId("");
+                                }}>
+                                  <UserCog className="h-4 w-4 mr-2" />
+                                  Transfer Ownership
+                                </DropdownMenuItem>
+                              )}
                               <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigate(`/admin/users/${account.id}`); }}>
                                 View Details
@@ -672,6 +708,59 @@ const AdminAccountsHierarchy = () => {
             <Button onClick={handleChangeRole} disabled={actionLoading}>
               {actionLoading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               Update Role
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Transfer Ownership Dialog */}
+      <Dialog open={transferOwnerDialog.open} onOpenChange={(open) => setTransferOwnerDialog({ open, account: open ? transferOwnerDialog.account : null })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserCog className="h-5 w-5" />
+              Transfer Account Ownership
+            </DialogTitle>
+            <DialogDescription>
+              Disable the current owner and promote a team member to owner for <strong>{transferOwnerDialog.account?.name || transferOwnerDialog.account?.email}</strong>. The previous owner will be disabled.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Current Owner</Label>
+              <div className="p-3 bg-muted rounded-md mt-1">
+                <div className="font-medium">{transferOwnerDialog.account?.name || "—"}</div>
+                <div className="text-sm text-muted-foreground">{transferOwnerDialog.account?.email}</div>
+              </div>
+            </div>
+            <div>
+              <Label>New Owner (select from active team members)</Label>
+              <Select value={selectedNewOwnerId} onValueChange={setSelectedNewOwnerId}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Select a team member..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {transferOwnerDialog.account?.team_members
+                    .filter(m => !m.is_owner && m.status === 'active' && m.user_id)
+                    .map((member) => (
+                      <SelectItem key={member.id} value={member.user_id!}>
+                        {member.profiles?.name || member.profiles?.email || "Unknown"} — {member.role}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {selectedNewOwnerId && (
+              <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-md text-sm text-destructive">
+                <strong>⚠️ Warning:</strong> The current owner will be <strong>disabled</strong> and the selected team member will become the new account owner. This affects billing ownership and all account-level permissions.
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTransferOwnerDialog({ open: false, account: null })}>Cancel</Button>
+            <Button onClick={handleTransferOwnership} disabled={!selectedNewOwnerId || actionLoading} variant="destructive">
+              {actionLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <UserCog className="h-4 w-4 mr-2" />}
+              Transfer Ownership
             </Button>
           </DialogFooter>
         </DialogContent>
