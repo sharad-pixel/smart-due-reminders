@@ -7,6 +7,7 @@ export interface OnboardingProgress {
   business_profile_completed: boolean;
   documents_uploaded: boolean;
   branding_completed: boolean;
+  ar_introduction_sent: boolean;
   training_viewed: boolean;
   completed_at: string | null;
   dismissed_at: string | null;

@@ -7,13 +7,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { 
   Building2, FileUp, Palette, PlayCircle, 
   CheckCircle2, ChevronRight, ChevronLeft, 
   Sparkles, PartyPopper, Rocket, SkipForward,
   Image, FileText, Landmark, CreditCard, 
-  Smartphone, QrCode, Upload
+  Smartphone, QrCode, Upload, Mail, Send, Users
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -65,6 +68,22 @@ const STEPS = [
   },
   {
     id: 4,
+    key: "ar_introduction_sent" as const,
+    title: "Notify Your Clients",
+    subtitle: "Introduce Recouply to your accounts",
+    icon: Mail,
+    description: "Send a professional introduction email to your client accounts, informing them of your enhanced AR procedures. This builds trust and ensures they recognize future communications from Recouply.ai.",
+    action: "View Accounts",
+    route: "/accounts",
+    tips: [
+      "Clients will learn to trust emails from Recouply.ai on your behalf",
+      "The email includes a link to the secure Payment Portal for balance visibility",
+      "You can add a personal message to customize the introduction",
+      "This step is optional but highly recommended for best collection results",
+    ],
+  },
+  {
+    id: 5,
     key: "training_viewed" as const,
     title: "Product Training",
     subtitle: "Learn the platform",
@@ -81,48 +100,12 @@ const STEPS = [
 ];
 
 const TRAINING_VIDEOS = [
-  {
-    title: "Getting Started with Recouply.ai",
-    description: "Platform overview and navigation",
-    duration: "3 min",
-    thumbnail: null,
-    status: "coming_soon" as const,
-  },
-  {
-    title: "AI Collection Agents",
-    description: "How AI agents automate your outreach",
-    duration: "4 min",
-    thumbnail: null,
-    status: "coming_soon" as const,
-  },
-  {
-    title: "Risk Scoring & Intelligence",
-    description: "Understanding customer risk profiles",
-    duration: "3 min",
-    thumbnail: null,
-    status: "coming_soon" as const,
-  },
-  {
-    title: "Workflows & Automation",
-    description: "Setting up automated collection workflows",
-    duration: "5 min",
-    thumbnail: null,
-    status: "coming_soon" as const,
-  },
-  {
-    title: "Payment Plans & Portal",
-    description: "Managing payment arrangements",
-    duration: "3 min",
-    thumbnail: null,
-    status: "coming_soon" as const,
-  },
-  {
-    title: "Reports & Analytics",
-    description: "Tracking performance and ROI",
-    duration: "2 min",
-    thumbnail: null,
-    status: "coming_soon" as const,
-  },
+  { title: "Getting Started with Recouply.ai", description: "Platform overview and navigation", duration: "3 min", status: "coming_soon" as const },
+  { title: "AI Collection Agents", description: "How AI agents automate your outreach", duration: "4 min", status: "coming_soon" as const },
+  { title: "Risk Scoring & Intelligence", description: "Understanding customer risk profiles", duration: "3 min", status: "coming_soon" as const },
+  { title: "Workflows & Automation", description: "Setting up automated collection workflows", duration: "5 min", status: "coming_soon" as const },
+  { title: "Payment Plans & Portal", description: "Managing payment arrangements", duration: "3 min", status: "coming_soon" as const },
+  { title: "Reports & Analytics", description: "Tracking performance and ROI", duration: "2 min", status: "coming_soon" as const },
 ];
 
 export default function Onboarding() {
@@ -133,23 +116,44 @@ export default function Onboarding() {
   const [showCelebration, setShowCelebration] = useState(false);
   const [userName, setUserName] = useState("");
 
+  // AR Introduction state
+  const [customMessage, setCustomMessage] = useState("");
+  const [sendingIntro, setSendingIntro] = useState(false);
+  const [debtorCount, setDebtorCount] = useState(0);
+  const [alreadySentCount, setAlreadySentCount] = useState(0);
+  const [businessName, setBusinessName] = useState("");
+
   useEffect(() => {
     if (progress) {
-      // Find first incomplete step
       const firstIncomplete = STEPS.findIndex(s => !progress[s.key]);
       setActiveStep(firstIncomplete === -1 ? STEPS.length - 1 : firstIncomplete);
     }
   }, [progress]);
 
   useEffect(() => {
-    const fetchName = async () => {
+    const fetchUserData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data } = await supabase.from("profiles").select("name").eq("id", user.id).maybeSingle();
-        setUserName(data?.name || "");
-      }
+      if (!user) return;
+
+      const { data: profile } = await supabase.from("profiles").select("name, business_name, company_name").eq("id", user.id).maybeSingle();
+      setUserName(profile?.name || "");
+      setBusinessName(profile?.business_name || profile?.company_name || "");
+
+      // Fetch debtor count
+      const { count } = await supabase
+        .from("debtors")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id);
+      setDebtorCount(count || 0);
+
+      // Fetch already sent count
+      const { count: sentCount } = await supabase
+        .from("ar_introduction_emails")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id);
+      setAlreadySentCount(sentCount || 0);
     };
-    fetchName();
+    fetchUserData();
   }, []);
 
   if (loading) {
@@ -168,7 +172,6 @@ export default function Onboarding() {
   const progressPct = (completedCount / STEPS.length) * 100;
   const currentStep = STEPS[activeStep];
   const isStepComplete = progress?.[currentStep.key] ?? false;
-  const allComplete = completedCount === STEPS.length;
 
   const handleMarkComplete = async () => {
     await updateStep({ [currentStep.key]: true, current_step: activeStep + 2 });
@@ -190,6 +193,58 @@ export default function Onboarding() {
   const handleNavigateToStep = () => {
     if (currentStep.route) {
       navigate(currentStep.route);
+    }
+  };
+
+  const handleSendARIntroduction = async () => {
+    if (debtorCount === 0) {
+      toast.error("No accounts found. Add accounts first before sending introductions.");
+      return;
+    }
+
+    setSendingIntro(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      // Fetch all debtor IDs for this user
+      const { data: debtors } = await supabase
+        .from("debtors")
+        .select("id")
+        .eq("user_id", user.id);
+
+      if (!debtors?.length) {
+        toast.error("No accounts found.");
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke("send-ar-introduction", {
+        body: {
+          debtorIds: debtors.map(d => d.id),
+          customMessage: customMessage.trim() || undefined,
+          businessName: businessName || "Your Company",
+        },
+      });
+
+      if (error) throw error;
+
+      const result = data;
+      if (result.sent > 0) {
+        toast.success(`AR introduction sent to ${result.sent} account${result.sent > 1 ? "s" : ""}!`);
+        await updateStep({ ar_introduction_sent: true });
+        setAlreadySentCount(prev => prev + result.sent);
+      }
+      if (result.skipped > 0) {
+        toast.info(`${result.skipped} account${result.skipped > 1 ? "s" : ""} skipped (already sent or no email on file).`);
+      }
+      if (result.failed > 0) {
+        toast.error(`${result.failed} email${result.failed > 1 ? "s" : ""} failed to send.`);
+      }
+    } catch (err: any) {
+      console.error("Error sending AR introduction:", err);
+      toast.error("Failed to send introduction emails. Please try again.");
+    } finally {
+      setSendingIntro(false);
     }
   };
 
@@ -350,7 +405,84 @@ export default function Onboarding() {
                     </div>
                   )}
 
-                  {/* Training Videos (Step 4) */}
+                  {/* AR Introduction (Step 4) */}
+                  {currentStep.key === "ar_introduction_sent" && (
+                    <div className="space-y-4">
+                      {/* Status summary */}
+                      <div className="flex items-center gap-3 rounded-lg bg-muted/50 border p-3">
+                        <Users className="h-5 w-5 text-primary flex-shrink-0" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-foreground">
+                            {debtorCount} account{debtorCount !== 1 ? "s" : ""} on file
+                          </p>
+                          {alreadySentCount > 0 && (
+                            <p className="text-xs text-muted-foreground">
+                              {alreadySentCount} already notified
+                            </p>
+                          )}
+                        </div>
+                        {debtorCount === 0 && (
+                          <Button variant="outline" size="sm" onClick={() => navigate("/accounts")} className="gap-1 text-xs">
+                            Add Accounts <ChevronRight className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
+
+                      {/* Email preview */}
+                      <div className="rounded-lg border bg-card p-4 space-y-3">
+                        <div className="flex items-center gap-2">
+                          <Mail className="h-4 w-4 text-primary" />
+                          <p className="text-sm font-semibold text-foreground">Email Preview</p>
+                          <Badge variant="secondary" className="text-[10px]">Sent on your behalf</Badge>
+                        </div>
+                        <div className="rounded-md bg-muted/30 border p-3 text-xs text-muted-foreground space-y-2">
+                          <p><strong className="text-foreground">Subject:</strong> Important: {businessName || "Your Company"} — Enhanced Accounts Receivable Communication</p>
+                          <p><strong className="text-foreground">From:</strong> {businessName || "Your Company"} via Recouply.ai</p>
+                          <hr className="border-border/50" />
+                          <p className="leading-relaxed">
+                            This email informs your clients that <strong>{businessName || "your company"}</strong> has implemented enhanced AR procedures powered by Recouply.ai. It explains that future communications may come from Recouply.ai addresses, builds trust through security assurances, and includes a direct link to the secure Payment Portal where clients can view balances and pay invoices.
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Custom message */}
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium flex items-center gap-1.5">
+                          <Sparkles className="h-3.5 w-3.5 text-primary" />
+                          Add a Personal Message
+                          <span className="text-[10px] text-muted-foreground font-normal">(optional)</span>
+                        </Label>
+                        <Textarea
+                          placeholder="e.g., We value our partnership and are committed to providing you with a seamless billing experience..."
+                          value={customMessage}
+                          onChange={(e) => setCustomMessage(e.target.value)}
+                          rows={3}
+                          className="text-sm"
+                        />
+                      </div>
+
+                      {/* Send button */}
+                      <Button
+                        onClick={handleSendARIntroduction}
+                        disabled={sendingIntro || debtorCount === 0}
+                        className="w-full gap-2"
+                      >
+                        {sendingIntro ? (
+                          <>
+                            <div className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                            Sending to {debtorCount} account{debtorCount !== 1 ? "s" : ""}...
+                          </>
+                        ) : (
+                          <>
+                            <Send className="h-4 w-4" />
+                            Send Introduction to {debtorCount} Account{debtorCount !== 1 ? "s" : ""}
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Training Videos (Step 5) */}
                   {currentStep.key === "training_viewed" && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {TRAINING_VIDEOS.map((video, i) => (
@@ -492,7 +624,6 @@ function CelebrationScreen({ userName, onContinue }: { userName: string; onConti
           </Button>
         </motion.div>
 
-        {/* Confetti dots */}
         {Array.from({ length: 20 }).map((_, i) => (
           <motion.div
             key={i}
