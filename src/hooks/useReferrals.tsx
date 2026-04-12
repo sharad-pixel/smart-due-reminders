@@ -27,7 +27,7 @@ interface UseReferralsReturn {
   totalCreditsEarned: number;
   availableCredits: number;
   loading: boolean;
-  sendEmailInvite: (email: string) => Promise<boolean>;
+  sendEmailInvite: (email: string) => Promise<boolean | 'already_exists'>;
   generateShareLink: () => string;
   refresh: () => Promise<void>;
 }
