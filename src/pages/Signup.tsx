@@ -59,6 +59,13 @@ const Signup = () => {
   const passedRequirements = passwordRequirements.filter(req => req.test(password));
   const passwordStrength = passedRequirements.length;
 
+  // Store referral code for post-signup attribution
+  useEffect(() => {
+    if (referralCode) {
+      localStorage.setItem('referral_code', referralCode);
+    }
+  }, [referralCode]);
+
   useEffect(() => {
     // Check for invite token in URL hash
     const handleInviteToken = async () => {
