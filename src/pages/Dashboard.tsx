@@ -608,19 +608,22 @@ const Dashboard = () => {
                 {onboardingCompletion.items.map((item) => (
                   <div
                     key={item.label}
-                    className={`flex items-center gap-2 text-sm px-3 py-2 rounded-md border cursor-pointer transition-colors ${
+                    className={`flex items-center gap-2 text-sm px-3 py-2.5 rounded-md border cursor-pointer transition-all ${
                       item.completed
                         ? "bg-green-50 border-green-200 text-green-700 dark:bg-green-950/30 dark:border-green-800 dark:text-green-400"
-                        : "bg-muted/50 border-border hover:bg-muted"
+                        : "bg-amber-50 border-amber-300 text-amber-800 dark:bg-amber-950/30 dark:border-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-950/50 ring-1 ring-amber-200 dark:ring-amber-800 shadow-sm"
                     }`}
                     onClick={() => !item.completed && navigate(item.route)}
                   >
                     {item.completed ? (
                       <CheckCircle2 className="h-4 w-4 shrink-0" />
                     ) : (
-                      <XCircle className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500 animate-pulse" />
                     )}
-                    <span className={item.completed ? "" : "text-muted-foreground"}>{item.label}</span>
+                    <span className={item.completed ? "" : "font-medium"}>{item.label}</span>
+                    {!item.completed && (
+                      <ArrowRight className="h-3.5 w-3.5 shrink-0 ml-auto text-amber-500" />
+                    )}
                   </div>
                 ))}
               </div>
