@@ -33,6 +33,8 @@ import {
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
+import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
+import { SetupRequiredBadge, SetupRequiredWrapper } from "@/components/onboarding/SetupRequiredBadge";
 
 interface BrandingSettings {
   id: string;
@@ -79,6 +81,7 @@ export default function Branding() {
   usePageTitle("Branding");
   const queryClient = useQueryClient();
   const { effectiveAccountId, isTeamMember } = useEffectiveAccount();
+  const onboardingStatus = useOnboardingStatus();
   const [formData, setFormData] = useState<Partial<BrandingSettings>>({});
   const [hasChanges, setHasChanges] = useState(false);
 
@@ -219,19 +222,26 @@ export default function Branding() {
             />
 
             {/* Logo & Brand Colors */}
+            <SetupRequiredWrapper show={!onboardingStatus.hasLogo || !onboardingStatus.brandingConfigured}>
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Palette className="h-5 w-5" />
-                  Brand Identity
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Palette className="h-5 w-5" />
+                    Brand Identity
+                  </CardTitle>
+                  <SetupRequiredBadge show={!onboardingStatus.hasLogo || !onboardingStatus.brandingConfigured} />
+                </div>
                 <CardDescription>
                   Your logo and colors appear on emails and the public AR page
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div>
-                  <Label>Company Logo</Label>
+                  <Label className="flex items-center gap-2">
+                    Company Logo
+                    <SetupRequiredBadge show={!onboardingStatus.hasLogo} label="Upload required" />
+                  </Label>
                   <div className="mt-2">
                     <LogoUpload
                       currentLogoUrl={formData.logo_url || null}
@@ -282,6 +292,7 @@ export default function Branding() {
                 </div>
               </CardContent>
             </Card>
+            </SetupRequiredWrapper>
 
             {/* Email Content Settings */}
             <Card>
@@ -397,12 +408,16 @@ export default function Branding() {
             </Card>
 
             {/* Public AR Page */}
+            <SetupRequiredWrapper show={!onboardingStatus.hasPaymentInstructions}>
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Globe className="h-5 w-5" />
-                  Public AR Information Page
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Globe className="h-5 w-5" />
+                    Public AR Information Page
+                  </CardTitle>
+                  <SetupRequiredBadge show={!onboardingStatus.hasPaymentInstructions} label="Payment instructions needed" />
+                </div>
                 <CardDescription>
                   Share payment instructions, documents, and contact info with customers
                 </CardDescription>
@@ -516,6 +531,7 @@ export default function Branding() {
                 </div>
               </CardContent>
             </Card>
+            </SetupRequiredWrapper>
 
             {/* Invoice Template Builder */}
             <InvoiceTemplateBuilder

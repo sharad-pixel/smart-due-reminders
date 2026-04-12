@@ -35,6 +35,8 @@ import { WorkflowHeroHeader } from "@/components/ai-workflows/WorkflowHeroHeader
 import { AutoGenerateAlert } from "@/components/ai-workflows/AutoGenerateAlert";
 import { OutreachForecastSimulator } from "@/components/ai-workflows/OutreachForecastSimulator";
 import { IncompleteWorkflowAlert } from "@/components/ai-workflows/IncompleteWorkflowAlert";
+import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
+import { SetupRequiredBadge } from "@/components/onboarding/SetupRequiredBadge";
 
 interface WorkflowStep {
   id: string;
@@ -82,6 +84,7 @@ const AIWorkflows = () => {
   const _navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
+  const onboardingStatus = useOnboardingStatus();
   const initialTab = searchParams.get('tab') || 'agents';
   const [loading, setLoading] = useState(true);
   const [selectedBucket, setSelectedBucket] = useState("dpd_1_30");
@@ -1219,6 +1222,12 @@ const AIWorkflows = () => {
           reassigning={reassigning}
           isRunningEngine={isRunningEngine}
         />
+
+        {!onboardingStatus.isLoading && !onboardingStatus.workflowsConfigured && (
+          <div className="flex items-center gap-2 px-4 py-3 rounded-lg ring-2 ring-amber-400/60 bg-amber-50 dark:bg-amber-950/30 dark:ring-amber-700">
+            <SetupRequiredBadge show={true} label="Configure at least one active workflow to complete setup" />
+          </div>
+        )}
 
         {/* Auto-Generate Disabled Alert */}
         <AutoGenerateAlert

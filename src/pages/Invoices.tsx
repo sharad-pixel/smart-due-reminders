@@ -21,6 +21,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Checkbox } from "@/components/ui/checkbox";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
+import { SetupRequiredBadge } from "@/components/onboarding/SetupRequiredBadge";
 import { PersonaAvatar } from "@/components/ai/PersonaAvatar";
 import { getPersonaByDaysPastDue } from "@/lib/personaConfig";
 import { calculateDueDateFromTerms } from "@/lib/paymentTerms";
@@ -64,6 +66,7 @@ interface Debtor {
 const Invoices = () => {
   usePageTitle("Invoices");
   const navigate = useNavigate();
+  const onboardingStatus = useOnboardingStatus();
   const [searchParams] = useSearchParams();
   const debtorIdFromUrl = searchParams.get('debtor');
   const agingFromUrl = searchParams.get('aging');
@@ -380,7 +383,10 @@ const Invoices = () => {
       <div className="space-y-4 sm:space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
           <div>
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary">Invoices</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary">Invoices</h1>
+              <SetupRequiredBadge show={!onboardingStatus.hasInvoices} label="Upload invoices to complete setup" />
+            </div>
             <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">Track and manage outstanding invoices</p>
           </div>
           <div className="flex flex-wrap gap-2 w-full sm:w-auto">
