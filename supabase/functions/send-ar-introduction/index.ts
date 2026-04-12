@@ -246,7 +246,7 @@ serve(async (req) => {
         body: JSON.stringify({
           from: fromAddress,
           to: [contact.email],
-          reply_to: EMAIL_CONFIG.DEFAULT_REPLY_TO,
+          reply_to: replyTo || EMAIL_CONFIG.DEFAULT_REPLY_TO,
           subject: `Important: ${businessName} — Enhanced Accounts Receivable Communication`,
           html: htmlContent,
         }),
