@@ -9,10 +9,10 @@ const corsHeaders = {
 };
 
 interface SendIntroRequest {
-  debtorIds: string[];       // Array of debtor IDs to send to
-  customMessage?: string;    // Optional custom message from the user
-  businessName: string;      // The creditor's business name
-  replyTo?: string;          // Optional user-defined reply-to address
+  debtorIds: string[];
+  customMessage?: string;
+  businessName: string;
+  replyTo?: string;
 }
 
 serve(async (req) => {
@@ -44,17 +44,17 @@ serve(async (req) => {
   const isServiceRole = supabaseServiceKey && token === supabaseServiceKey;
 
   let userId: string;
+  let requestBody: any;
 
   if (isServiceRole) {
-    const body = await req.json();
-    userId = body.userId;
+    requestBody = await req.json();
+    userId = requestBody.userId;
     if (!userId) {
       return new Response(
         JSON.stringify({ error: "userId required for service role calls" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-    var requestBody = body;
   } else {
     const supabaseAuth = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
       global: { headers: { Authorization: authHeader } },
@@ -67,7 +67,7 @@ serve(async (req) => {
       );
     }
     userId = user.id;
-    var requestBody = await req.json();
+    requestBody = await req.json();
   }
 
   const { debtorIds, customMessage, businessName, replyTo }: SendIntroRequest = requestBody;
@@ -81,7 +81,40 @@ serve(async (req) => {
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-  // Fetch debtor contact emails
+  // ── Fetch branding & invoice template for logo + address ──
+  const { data: brandingData } = await supabase
+    .from("branding_settings")
+    .select("logo_url, primary_color, accent_color")
+    .eq("user_id", userId)
+    .single();
+
+  const { data: templateData } = await supabase
+    .from("invoice_templates")
+    .select("company_address, company_phone, company_website")
+    .eq("user_id", userId)
+    .single();
+
+  const { data: profileData } = await supabase
+    .from("profiles")
+    .select("organization_id, business_address_line1, business_address_line2, business_city, business_state, business_postal_code, business_phone")
+    .eq("id", userId)
+    .single();
+
+  const orgId = profileData?.organization_id || null;
+  const logoUrl = brandingData?.logo_url || null;
+  const primaryColor = brandingData?.primary_color || BRAND.primary;
+  const accentColor = brandingData?.accent_color || BRAND.accent;
+
+  // Build company address from invoice template or profile fallback
+  const companyAddress = templateData?.company_address ||
+    [profileData?.business_address_line1, profileData?.business_address_line2,
+     [profileData?.business_city, profileData?.business_state].filter(Boolean).join(", "),
+     profileData?.business_postal_code].filter(Boolean).join("\n");
+
+  const companyPhone = templateData?.company_phone || profileData?.business_phone || null;
+  const companyWebsite = templateData?.company_website || null;
+
+  // ── Fetch debtor contact emails ──
   const { data: contacts, error: contactError } = await supabase
     .from("debtor_contacts")
     .select("debtor_id, email, name, is_primary")
@@ -97,23 +130,29 @@ serve(async (req) => {
     );
   }
 
-  // Check which have already been sent
+  // ── Check which debtor_ids have already been sent for this user ──
   const { data: alreadySent } = await supabase
     .from("ar_introduction_emails")
-    .select("debtor_id")
+    .select("debtor_id, debtor_email")
     .eq("user_id", userId)
     .in("debtor_id", debtorIds);
 
-  const sentSet = new Set((alreadySent || []).map((r: any) => r.debtor_id));
+  const sentDebtorSet = new Set((alreadySent || []).map((r: any) => r.debtor_id));
+  // Track emails already sent by this user to avoid duplicates across debtors
+  const sentEmailSet = new Set((alreadySent || []).map((r: any) => r.debtor_email?.toLowerCase()));
 
-  // Get org ID
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("organization_id")
-    .eq("id", userId)
-    .single();
+  // Also check ALL emails this user has ever sent intros to (beyond current batch)
+  const allEmails = (contacts || []).map(c => c.email?.toLowerCase()).filter(Boolean);
+  if (allEmails.length > 0) {
+    const { data: allSentEmails } = await supabase
+      .from("ar_introduction_emails")
+      .select("debtor_email")
+      .eq("user_id", userId);
+    for (const row of allSentEmails || []) {
+      if (row.debtor_email) sentEmailSet.add(row.debtor_email.toLowerCase());
+    }
+  }
 
-  const orgId = profile?.organization_id || null;
   const fromAddress = getVerifiedFromAddress(businessName, "notifications");
   const portalUrl = "https://recouply.ai/debtor-portal";
 
@@ -122,7 +161,7 @@ serve(async (req) => {
   let failed = 0;
   const errors: string[] = [];
 
-  // Group contacts by debtor (pick primary or first available)
+  // ── Group contacts by debtor (primary first) ──
   const debtorContactMap = new Map<string, { email: string; name: string | null }>();
   for (const c of contacts || []) {
     if (!debtorContactMap.has(c.debtor_id) && c.email) {
@@ -130,8 +169,11 @@ serve(async (req) => {
     }
   }
 
+  // ── Track emails sent in THIS batch to dedupe within the request ──
+  const batchSentEmails = new Set<string>();
+
   for (const debtorId of debtorIds) {
-    if (sentSet.has(debtorId)) {
+    if (sentDebtorSet.has(debtorId)) {
       skipped++;
       continue;
     }
@@ -142,9 +184,46 @@ serve(async (req) => {
       continue;
     }
 
+    const emailLower = contact.email.toLowerCase();
+
+    // ── DEDUP: Skip if this email was already sent by this creditor ──
+    if (sentEmailSet.has(emailLower) || batchSentEmails.has(emailLower)) {
+      // Still record the debtor_id as sent to prevent future attempts
+      await supabase.from("ar_introduction_emails").insert({
+        debtor_id: debtorId,
+        user_id: userId,
+        organization_id: orgId,
+        debtor_email: contact.email,
+        business_name: businessName,
+      }).then(() => {}).catch(() => {});
+      skipped++;
+      continue;
+    }
+
     const recipientName = contact.name || "Valued Client";
 
+    // ── Build branded email HTML ──
+    const logoHtml = logoUrl
+      ? `<div style="text-align: center; margin: 0 0 24px;">
+           <img src="${logoUrl}" alt="${businessName}" style="max-height: 60px; max-width: 200px;" />
+         </div>`
+      : "";
+
+    const addressHtml = companyAddress
+      ? `<p style="margin: 4px 0 0; color: ${BRAND.muted}; font-size: 12px; white-space: pre-line;">${companyAddress}</p>`
+      : "";
+
+    const phoneHtml = companyPhone
+      ? `<p style="margin: 2px 0 0; color: ${BRAND.muted}; font-size: 12px;">📞 ${companyPhone}</p>`
+      : "";
+
+    const websiteHtml = companyWebsite
+      ? `<p style="margin: 2px 0 0; color: ${BRAND.muted}; font-size: 12px;">🌐 <a href="${companyWebsite}" style="color: ${primaryColor}; text-decoration: none;">${companyWebsite}</a></p>`
+      : "";
+
     const bodyContent = `
+      ${logoHtml}
+
       <h2 style="margin: 0 0 24px; color: ${BRAND.foreground}; font-size: 22px; font-weight: 700;">
         Enhanced Accounts Receivable Communication
       </h2>
@@ -157,7 +236,7 @@ serve(async (req) => {
         We are writing to inform you that <strong>${businessName}</strong> has implemented an enhanced accounts receivable management system powered by <strong>Recouply.ai</strong> — a Collections &amp; Risk Intelligence Platform designed to improve client communication, transparency, and efficiency.
       </p>
 
-      <div style="background-color: ${BRAND.primary}; border-radius: 8px; padding: 24px; margin: 24px 0; text-align: center;">
+      <div style="background-color: ${primaryColor}; border-radius: 8px; padding: 24px; margin: 24px 0; text-align: center;">
         <p style="margin: 0; color: #ffffff; font-size: 18px; font-weight: 700;">
           What This Means for You
         </p>
@@ -183,7 +262,7 @@ serve(async (req) => {
       </div>
 
       ${customMessage ? `
-      <div style="background: #f8fafc; border-left: 4px solid ${BRAND.primary}; border-radius: 4px; padding: 16px; margin: 24px 0;">
+      <div style="background: #f8fafc; border-left: 4px solid ${primaryColor}; border-radius: 4px; padding: 16px; margin: 24px 0;">
         <p style="margin: 0 0 8px; color: ${BRAND.foreground}; font-size: 13px; font-weight: 600;">
           A message from ${businessName}:
         </p>
@@ -201,7 +280,7 @@ serve(async (req) => {
       </p>
 
       <div style="text-align: center; margin: 28px 0;">
-        <a href="${portalUrl}" style="display: inline-block; background-color: ${BRAND.accent}; color: #ffffff; text-decoration: none; padding: 14px 36px; border-radius: 6px; font-size: 14px; font-weight: 600;">
+        <a href="${portalUrl}" style="display: inline-block; background-color: ${accentColor}; color: #ffffff; text-decoration: none; padding: 14px 36px; border-radius: 6px; font-size: 14px; font-weight: 600;">
           Access Your Payment Portal →
         </a>
         <p style="margin: 10px 0 0; color: ${BRAND.muted}; font-size: 12px;">
@@ -218,13 +297,17 @@ serve(async (req) => {
       </p>
 
       <div style="margin: 24px 0 0; padding-top: 18px; border-top: 1px solid ${BRAND.border};">
+        ${logoUrl ? `<img src="${logoUrl}" alt="${businessName}" style="max-height: 36px; max-width: 140px; margin-bottom: 8px;" />` : ""}
         <p style="margin: 0; color: ${BRAND.foreground}; font-size: 15px; font-weight: 600;">
           ${businessName}
         </p>
         <p style="margin: 4px 0 0; color: ${BRAND.muted}; font-size: 13px;">
           Accounts Receivable Department
         </p>
-        <p style="margin: 4px 0 0; color: ${BRAND.primary}; font-size: 12px; font-style: italic;">
+        ${addressHtml}
+        ${phoneHtml}
+        ${websiteHtml}
+        <p style="margin: 8px 0 0; color: ${primaryColor}; font-size: 12px; font-style: italic;">
           Powered by Recouply.ai — Collections &amp; Risk Intelligence
         </p>
       </div>
@@ -269,9 +352,9 @@ serve(async (req) => {
         business_name: businessName,
       });
 
+      batchSentEmails.add(emailLower);
       sent++;
 
-      // Small delay to avoid rate limits
       if (debtorIds.length > 1) {
         await new Promise((r) => setTimeout(r, 200));
       }
