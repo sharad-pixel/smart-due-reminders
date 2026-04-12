@@ -312,6 +312,17 @@ const ARIntroduction = () => {
             )}
           </CardContent>
         </Card>
+        {/* Email Preview */}
+        <AREmailPreview
+          businessName={businessName}
+          customMessage={customMessage}
+          logoUrl={logoUrl}
+          primaryColor={primaryColor}
+          accentColor={accentColor}
+          companyAddress={companyAddress}
+          companyPhone={companyPhone}
+          companyWebsite={companyWebsite}
+        />
       </div>
     </Layout>
   );
