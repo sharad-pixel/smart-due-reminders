@@ -1455,6 +1455,56 @@ const AdminUserDetail = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Transfer Ownership Dialog */}
+      <AlertDialog open={transferOwnerDialogOpen} onOpenChange={setTransferOwnerDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <UserCog className="h-5 w-5" />
+              Transfer Account Ownership
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Disable the current owner ({user?.name || user?.email}) and promote a team member to owner. The previous owner will be disabled.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label>New Owner (select from active team members)</Label>
+              <Select value={selectedNewOwnerId} onValueChange={setSelectedNewOwnerId}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Select a team member..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {teamMembers
+                    .filter(m => !m.is_owner && m.status === 'active' && m.user_id)
+                    .map((member) => (
+                      <SelectItem key={member.id} value={member.user_id!}>
+                        {member.profiles?.name || member.profiles?.email || member.email || "Unknown"} — {member.role}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {selectedNewOwnerId && (
+              <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-md text-sm text-destructive">
+                <strong>⚠️ Warning:</strong> The current owner will be <strong>disabled</strong> and the selected team member will become the new account owner. This is logged for audit purposes.
+              </div>
+            )}
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleTransferOwnership}
+              disabled={!selectedNewOwnerId}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              <UserCog className="h-4 w-4 mr-2" />
+              Transfer Ownership
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminLayout>
   );
 };
