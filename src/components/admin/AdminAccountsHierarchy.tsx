@@ -90,6 +90,8 @@ const AdminAccountsHierarchy = () => {
   const [mergeDialog, setMergeDialog] = useState<{ open: boolean; sourceAccount: AccountData | null }>({ open: false, sourceAccount: null });
   const [assignParentDialog, setAssignParentDialog] = useState<{ open: boolean; childAccount: AccountData | null }>({ open: false, childAccount: null });
   const [changeRoleDialog, setChangeRoleDialog] = useState<{ open: boolean; member: TeamMember | null; accountId: string }>({ open: false, member: null, accountId: '' });
+  const [transferOwnerDialog, setTransferOwnerDialog] = useState<{ open: boolean; account: AccountData | null }>({ open: false, account: null });
+  const [selectedNewOwnerId, setSelectedNewOwnerId] = useState("");
   const [targetAccountSearch, setTargetAccountSearch] = useState("");
   const [targetAccounts, setTargetAccounts] = useState<AccountData[]>([]);
   const [selectedTargetId, setSelectedTargetId] = useState("");
