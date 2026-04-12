@@ -452,6 +452,37 @@ const AdminAccountsHierarchy = () => {
                                 </DropdownMenuItem>
                               )}
                               <DropdownMenuSeparator />
+                              {/* Disable/Enable the owner account */}
+                              {account.team_members.find(m => m.is_owner && m.status === 'active' && m.user_id) && (
+                                <DropdownMenuItem
+                                  className="text-amber-600"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const owner = account.team_members.find(m => m.is_owner);
+                                    if (owner?.user_id) {
+                                      handleDisableUser(account.id, owner.user_id, account.name || account.email);
+                                    }
+                                  }}
+                                >
+                                  <Ban className="h-4 w-4 mr-2" />
+                                  Disable Owner
+                                </DropdownMenuItem>
+                              )}
+                              {account.team_members.find(m => m.is_owner && m.status === 'disabled' && m.user_id) && (
+                                <DropdownMenuItem
+                                  className="text-green-600"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const owner = account.team_members.find(m => m.is_owner);
+                                    if (owner?.user_id) {
+                                      handleEnableUser(account.id, owner.user_id, account.name || account.email);
+                                    }
+                                  }}
+                                >
+                                  <CheckCircle className="h-4 w-4 mr-2" />
+                                  Re-enable Owner
+                                </DropdownMenuItem>
+                              )}
                               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigate(`/admin/users/${account.id}`); }}>
                                 View Details
                               </DropdownMenuItem>
