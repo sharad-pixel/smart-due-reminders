@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Search, Loader2, Users, ChevronDown, ChevronRight, Building2, CreditCard, UserPlus, Crown, Clock, AlertCircle, CheckCircle, Ban, GitMerge, ArrowRightLeft, Shield, Trash2, MoreHorizontal } from "lucide-react";
+import { Search, Loader2, Users, ChevronDown, ChevronRight, Building2, CreditCard, UserPlus, Crown, Clock, AlertCircle, CheckCircle, Ban, GitMerge, ArrowRightLeft, Shield, Trash2, MoreHorizontal, UserCog } from "lucide-react";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
