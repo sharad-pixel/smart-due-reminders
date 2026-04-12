@@ -35,6 +35,8 @@ import { WorkflowHeroHeader } from "@/components/ai-workflows/WorkflowHeroHeader
 import { AutoGenerateAlert } from "@/components/ai-workflows/AutoGenerateAlert";
 import { OutreachForecastSimulator } from "@/components/ai-workflows/OutreachForecastSimulator";
 import { IncompleteWorkflowAlert } from "@/components/ai-workflows/IncompleteWorkflowAlert";
+import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
+import { SetupRequiredBadge } from "@/components/onboarding/SetupRequiredBadge";
 
 interface WorkflowStep {
   id: string;
@@ -82,6 +84,7 @@ const AIWorkflows = () => {
   const _navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
+  const onboardingStatus = useOnboardingStatus();
   const initialTab = searchParams.get('tab') || 'agents';
   const [loading, setLoading] = useState(true);
   const [selectedBucket, setSelectedBucket] = useState("dpd_1_30");
