@@ -306,6 +306,7 @@ const App = () => (
             <Route path="/payment-plan/:token" element={<PublicPaymentPlanPage />} />
             <Route path="/debtor-portal" element={<DebtorPortalPage />} />
             <Route path="/ar-upload" element={<ARDataUpload />} />
+            <Route path="/ar-introduction" element={<ARIntroduction />} />
             <Route path="/reconciliation" element={<Reconciliation />} />
             <Route path="/ar-aging" element={<ARAging />} />
             <Route path="/data-center" element={<DataCenter />} />
