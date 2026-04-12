@@ -350,6 +350,112 @@ Deno.serve(async (req) => {
         });
       }
 
+      case 'disable_user': {
+        // Disable a user (owner or team member) within an account hierarchy
+        const { accountId, userId: disableUserId } = body;
+        if (!accountId || !disableUserId) {
+          throw new Error('accountId and userId are required');
+        }
+
+        // Find the membership
+        const { data: memberToDisable } = await supabaseClient
+          .from('account_users')
+          .select('id, user_id, role, is_owner, status')
+          .eq('account_id', accountId)
+          .eq('user_id', disableUserId)
+          .single();
+
+        if (!memberToDisable) throw new Error('User not found in this account');
+        if (memberToDisable.status === 'disabled') throw new Error('User is already disabled');
+
+        // Get user profile for audit
+        const { data: disableProfile } = await supabaseClient
+          .from('profiles')
+          .select('email, name')
+          .eq('id', disableUserId)
+          .single();
+
+        // Disable the user
+        await supabaseClient
+          .from('account_users')
+          .update({
+            status: 'disabled',
+            disabled_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', memberToDisable.id);
+
+        // Audit log
+        await supabaseClient.from('audit_logs').insert({
+          user_id: admin.id,
+          action_type: 'admin_disable_user',
+          resource_type: 'account_users',
+          resource_id: memberToDisable.id,
+          old_values: { status: memberToDisable.status, role: memberToDisable.role },
+          new_values: { status: 'disabled' },
+          metadata: { admin_action: true, account_id: accountId, disabled_email: disableProfile?.email },
+        });
+
+        return new Response(JSON.stringify({
+          success: true,
+          message: `User ${disableProfile?.email || disableUserId} has been disabled`,
+          was_owner: memberToDisable.is_owner,
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      case 'enable_user': {
+        // Re-enable a disabled user
+        const { accountId: enableAccountId, userId: enableUserId } = body;
+        if (!enableAccountId || !enableUserId) {
+          throw new Error('accountId and userId are required');
+        }
+
+        const { data: memberToEnable } = await supabaseClient
+          .from('account_users')
+          .select('id, user_id, role, is_owner, status')
+          .eq('account_id', enableAccountId)
+          .eq('user_id', enableUserId)
+          .single();
+
+        if (!memberToEnable) throw new Error('User not found in this account');
+        if (memberToEnable.status !== 'disabled') throw new Error('User is not disabled');
+
+        const { data: enableProfile } = await supabaseClient
+          .from('profiles')
+          .select('email, name')
+          .eq('id', enableUserId)
+          .single();
+
+        await supabaseClient
+          .from('account_users')
+          .update({
+            status: 'active',
+            disabled_at: null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', memberToEnable.id);
+
+        // Audit log
+        await supabaseClient.from('audit_logs').insert({
+          user_id: admin.id,
+          action_type: 'admin_enable_user',
+          resource_type: 'account_users',
+          resource_id: memberToEnable.id,
+          old_values: { status: 'disabled' },
+          new_values: { status: 'active' },
+          metadata: { admin_action: true, account_id: enableAccountId, enabled_email: enableProfile?.email },
+        });
+
+        return new Response(JSON.stringify({
+          success: true,
+          message: `User ${enableProfile?.email || enableUserId} has been re-enabled`,
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
       case 'transfer_ownership': {
         // Transfer owner role from current owner to a new user within the same account
         const { accountId, newOwnerId } = body;

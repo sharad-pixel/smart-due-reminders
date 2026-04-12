@@ -231,6 +231,36 @@ const AdminAccountsHierarchy = () => {
     }
   };
 
+  const handleDisableUser = async (accountId: string, userId: string, userName: string) => {
+    if (!confirm(`Disable user "${userName}"? They will lose access to this account until re-enabled.`)) return;
+    try {
+      const response = await supabase.functions.invoke("admin-manage-accounts", {
+        body: { action: 'disable_user', accountId, userId },
+      });
+      if (response.error) throw new Error(response.data?.error || response.error.message);
+      if (response.data?.error) throw new Error(response.data.error);
+      toast.success(response.data?.message || "User disabled");
+      fetchAccounts();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to disable user");
+    }
+  };
+
+  const handleEnableUser = async (accountId: string, userId: string, userName: string) => {
+    if (!confirm(`Re-enable user "${userName}"?`)) return;
+    try {
+      const response = await supabase.functions.invoke("admin-manage-accounts", {
+        body: { action: 'enable_user', accountId, userId },
+      });
+      if (response.error) throw new Error(response.data?.error || response.error.message);
+      if (response.data?.error) throw new Error(response.data.error);
+      toast.success(response.data?.message || "User re-enabled");
+      fetchAccounts();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to enable user");
+    }
+  };
+
   const handleTransferOwnership = async () => {
     if (!transferOwnerDialog.account || !selectedNewOwnerId) return;
     setActionLoading(true);
