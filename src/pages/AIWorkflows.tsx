@@ -1223,6 +1223,12 @@ const AIWorkflows = () => {
           isRunningEngine={isRunningEngine}
         />
 
+        {!onboardingStatus.isLoading && !onboardingStatus.workflowsConfigured && (
+          <div className="flex items-center gap-2 px-4 py-3 rounded-lg ring-2 ring-amber-400/60 bg-amber-50 dark:bg-amber-950/30 dark:ring-amber-700">
+            <SetupRequiredBadge show={true} label="Configure at least one active workflow to complete setup" />
+          </div>
+        )}
+
         {/* Auto-Generate Disabled Alert */}
         <AutoGenerateAlert
           workflows={workflows}
