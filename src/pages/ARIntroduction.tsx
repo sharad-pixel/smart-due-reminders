@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Send, Mail, Users, CheckCircle2, AlertCircle, Sparkles, Shield, Info } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import AREmailPreview from "@/components/ar-introduction/AREmailPreview";
 
 const ARIntroduction = () => {
   usePageTitle("AR Introduction Emails");
