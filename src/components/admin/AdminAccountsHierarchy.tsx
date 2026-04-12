@@ -411,6 +411,16 @@ const AdminAccountsHierarchy = () => {
                                 <ArrowRightLeft className="h-4 w-4 mr-2" />
                                 Assign to Parent Account
                               </DropdownMenuItem>
+                              {account.team_members.filter(m => !m.is_owner && m.status === 'active').length > 0 && (
+                                <DropdownMenuItem onClick={(e) => {
+                                  e.stopPropagation();
+                                  setTransferOwnerDialog({ open: true, account });
+                                  setSelectedNewOwnerId("");
+                                }}>
+                                  <UserCog className="h-4 w-4 mr-2" />
+                                  Transfer Ownership
+                                </DropdownMenuItem>
+                              )}
                               <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigate(`/admin/users/${account.id}`); }}>
                                 View Details
