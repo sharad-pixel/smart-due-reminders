@@ -74,6 +74,10 @@ interface UserProfile {
   invoice_count?: number;
   debtor_count?: number;
   last_login?: string | null;
+  // Onboarding
+  onboarding_pct?: number;
+  onboarding_completed?: number;
+  onboarding_total?: number;
 }
 
 interface UserStats {
@@ -897,17 +901,18 @@ Delaware, USA`;
                       <TableHead>User</TableHead>
                       <TableHead>Company</TableHead>
                       <TableHead>Plan</TableHead>
+                      <TableHead>Onboarding</TableHead>
+                      <TableHead>Usage</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Created</TableHead>
                       <TableHead>Last Login</TableHead>
-                      <TableHead>Stripe ID</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {users.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                        <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                           No users found
                         </TableCell>
                       </TableRow>
@@ -947,6 +952,51 @@ Delaware, USA`;
                                 {user.plans?.monthly_price ? `$${user.plans.monthly_price}/mo` : ''}
                               </div>
                             )}
+                          </TableCell>
+                          {/* Onboarding Progress */}
+                          <TableCell>
+                            <div className="w-24">
+                              <div className="flex items-center gap-1.5 mb-1">
+                                <span className={`text-xs font-semibold ${
+                                  (user.onboarding_pct ?? 0) === 100 ? 'text-green-600' :
+                                  (user.onboarding_pct ?? 0) >= 50 ? 'text-amber-600' :
+                                  'text-destructive'
+                                }`}>
+                                  {user.onboarding_pct ?? 0}%
+                                </span>
+                                {(user.onboarding_pct ?? 0) === 100 && (
+                                  <CheckCircle className="h-3 w-3 text-green-600" />
+                                )}
+                              </div>
+                              <div className="w-full bg-muted rounded-full h-1.5">
+                                <div
+                                  className={`h-1.5 rounded-full transition-all ${
+                                    (user.onboarding_pct ?? 0) === 100 ? 'bg-green-500' :
+                                    (user.onboarding_pct ?? 0) >= 50 ? 'bg-amber-500' :
+                                    'bg-destructive'
+                                  }`}
+                                  style={{ width: `${user.onboarding_pct ?? 0}%` }}
+                                />
+                              </div>
+                              <div className="text-[10px] text-muted-foreground mt-0.5">
+                                {user.onboarding_completed ?? 0}/{user.onboarding_total ?? 6} steps
+                              </div>
+                            </div>
+                          </TableCell>
+                          {/* Usage Stats */}
+                          <TableCell>
+                            <div className="text-xs space-y-0.5">
+                              <div className="flex items-center gap-1.5">
+                                <Building2 className="h-3 w-3 text-muted-foreground" />
+                                <span className="font-medium">{user.debtor_count ?? 0}</span>
+                                <span className="text-muted-foreground">accounts</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <FileText className="h-3 w-3 text-muted-foreground" />
+                                <span className="font-medium">{user.invoice_count ?? 0}</span>
+                                <span className="text-muted-foreground">invoices</span>
+                              </div>
+                            </div>
                           </TableCell>
                           <TableCell>
                             {user.is_blocked ? (
@@ -1019,15 +1069,6 @@ Delaware, USA`;
                               </div>
                             ) : (
                               <span className="text-muted-foreground text-sm">Never</span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {user.stripe_customer_id ? (
-                              <code className="text-xs bg-muted px-1 py-0.5 rounded">
-                                {user.stripe_customer_id.slice(0, 14)}...
-                              </code>
-                            ) : (
-                              <span className="text-muted-foreground">—</span>
                             )}
                           </TableCell>
                           <TableCell className="text-right">
