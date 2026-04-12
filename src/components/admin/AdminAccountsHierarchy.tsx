@@ -231,6 +231,36 @@ const AdminAccountsHierarchy = () => {
     }
   };
 
+  const handleDisableUser = async (accountId: string, userId: string, userName: string) => {
+    if (!confirm(`Disable user "${userName}"? They will lose access to this account until re-enabled.`)) return;
+    try {
+      const response = await supabase.functions.invoke("admin-manage-accounts", {
+        body: { action: 'disable_user', accountId, userId },
+      });
+      if (response.error) throw new Error(response.data?.error || response.error.message);
+      if (response.data?.error) throw new Error(response.data.error);
+      toast.success(response.data?.message || "User disabled");
+      fetchAccounts();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to disable user");
+    }
+  };
+
+  const handleEnableUser = async (accountId: string, userId: string, userName: string) => {
+    if (!confirm(`Re-enable user "${userName}"?`)) return;
+    try {
+      const response = await supabase.functions.invoke("admin-manage-accounts", {
+        body: { action: 'enable_user', accountId, userId },
+      });
+      if (response.error) throw new Error(response.data?.error || response.error.message);
+      if (response.data?.error) throw new Error(response.data.error);
+      toast.success(response.data?.message || "User re-enabled");
+      fetchAccounts();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to enable user");
+    }
+  };
+
   const handleTransferOwnership = async () => {
     if (!transferOwnerDialog.account || !selectedNewOwnerId) return;
     setActionLoading(true);
@@ -422,6 +452,37 @@ const AdminAccountsHierarchy = () => {
                                 </DropdownMenuItem>
                               )}
                               <DropdownMenuSeparator />
+                              {/* Disable/Enable the owner account */}
+                              {account.team_members.find(m => m.is_owner && m.status === 'active' && m.user_id) && (
+                                <DropdownMenuItem
+                                  className="text-amber-600"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const owner = account.team_members.find(m => m.is_owner);
+                                    if (owner?.user_id) {
+                                      handleDisableUser(account.id, owner.user_id, account.name || account.email);
+                                    }
+                                  }}
+                                >
+                                  <Ban className="h-4 w-4 mr-2" />
+                                  Disable Owner
+                                </DropdownMenuItem>
+                              )}
+                              {account.team_members.find(m => m.is_owner && m.status === 'disabled' && m.user_id) && (
+                                <DropdownMenuItem
+                                  className="text-green-600"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const owner = account.team_members.find(m => m.is_owner);
+                                    if (owner?.user_id) {
+                                      handleEnableUser(account.id, owner.user_id, account.name || account.email);
+                                    }
+                                  }}
+                                >
+                                  <CheckCircle className="h-4 w-4 mr-2" />
+                                  Re-enable Owner
+                                </DropdownMenuItem>
+                              )}
                               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigate(`/admin/users/${account.id}`); }}>
                                 View Details
                               </DropdownMenuItem>
@@ -479,7 +540,7 @@ const AdminAccountsHierarchy = () => {
                                       ) : <span className="text-sm text-muted-foreground">—</span>}
                                     </TableCell>
                                     <TableCell className="text-right">
-                                      <div className="flex items-center justify-end gap-1">
+                                       <div className="flex items-center justify-end gap-1">
                                         <Button
                                           variant="ghost"
                                           size="sm"
@@ -491,6 +552,28 @@ const AdminAccountsHierarchy = () => {
                                           <Shield className="h-3 w-3 mr-1" />
                                           Change Role
                                         </Button>
+                                        {member.status === 'active' && member.user_id && (
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="text-amber-600 hover:text-amber-700"
+                                            onClick={() => handleDisableUser(account.id, member.user_id!, member.profiles?.name || member.profiles?.email || 'user')}
+                                          >
+                                            <Ban className="h-3 w-3 mr-1" />
+                                            Disable
+                                          </Button>
+                                        )}
+                                        {member.status === 'disabled' && member.user_id && (
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="text-green-600 hover:text-green-700"
+                                            onClick={() => handleEnableUser(account.id, member.user_id!, member.profiles?.name || member.profiles?.email || 'user')}
+                                          >
+                                            <CheckCircle className="h-3 w-3 mr-1" />
+                                            Enable
+                                          </Button>
+                                        )}
                                         <Button
                                           variant="ghost"
                                           size="sm"
