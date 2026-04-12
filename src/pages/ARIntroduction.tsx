@@ -118,12 +118,12 @@ const ARIntroduction = () => {
       }
 
       const { data, error } = await supabase.functions.invoke("send-ar-introduction", {
-        body: {
-          debtorIds: debtors.map(d => d.id),
-          customMessage: customMessage.trim() || undefined,
-          businessName: businessName || "Your Company",
-          replyTo: replyTo.trim() || undefined,
-        },
+          body: {
+            debtorIds: debtors.map(d => d.id),
+            customMessage: customMessage.trim() || undefined,
+            businessName: businessName || "Your Company",
+            replyTo: replyTo.trim(),
+          },
       });
 
       if (error) throw error;
