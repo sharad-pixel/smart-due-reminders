@@ -156,7 +156,7 @@ export function LogoUpload({ currentLogoUrl, onLogoChange }: LogoUploadProps) {
                 <img
                   src={currentLogoUrl}
                   alt="Company logo"
-                  className="max-w-[200px] max-h-[80px] object-contain"
+                  className="max-w-[320px] max-h-[120px] object-contain"
                   onError={(e) => {
                     (e.target as HTMLImageElement).style.display = "none";
                   }}

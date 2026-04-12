@@ -330,7 +330,7 @@ export function renderBrandedEmail(input: EmailRenderInput, personaName?: string
                 <tr>
                   <td>
                     ${brand.logo_url 
-                      ? `<img src="${escapeHtml(brand.logo_url)}" alt="${escapeHtml(businessName)}" style="max-height: 44px; max-width: 180px; height: auto;" />`
+                      ? `<img src="${escapeHtml(brand.logo_url)}" alt="${escapeHtml(businessName)}" style="max-height: 72px; max-width: 280px; height: auto;" />`
                       : `<span style="color: #ffffff; font-size: 20px; font-weight: 700; letter-spacing: -0.3px; font-family: ${FONT_STACK};">${escapeHtml(businessName)}</span>`
                     }
                   </td>

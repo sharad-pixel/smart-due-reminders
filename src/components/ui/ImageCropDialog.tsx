@@ -98,11 +98,11 @@ export const ImageCropDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-lg md:max-w-xl">
+      <DialogContent className="sm:max-w-xl md:max-w-2xl lg:max-w-3xl">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
-        <div className="relative w-full h-[50vh] min-h-[320px] max-h-[520px] bg-muted rounded-lg overflow-hidden">
+        <div className="relative w-full h-[60vh] min-h-[360px] max-h-[640px] bg-muted rounded-lg overflow-hidden">
           <Cropper
             image={imageSrc}
             crop={crop}
