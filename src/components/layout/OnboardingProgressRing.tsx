@@ -10,8 +10,8 @@ interface OnboardingProgressRingProps {
 
 export const OnboardingProgressRing = ({
   percentage,
-  size = 44,
-  strokeWidth = 3,
+  size = 48,
+  strokeWidth = 3.5,
   children,
 }: OnboardingProgressRingProps) => {
   const navigate = useNavigate();
@@ -22,18 +22,30 @@ export const OnboardingProgressRing = ({
 
   if (isComplete) return <>{children}</>;
 
+  // Color based on progress
+  const getProgressColor = () => {
+    if (percentage >= 75) return "hsl(var(--primary))";
+    if (percentage >= 50) return "hsl(142 76% 36%)"; // green-600
+    if (percentage >= 25) return "hsl(38 92% 50%)"; // amber-500
+    return "hsl(0 84% 60%)"; // red-500
+  };
+
+  const progressColor = getProgressColor();
+  const roundedPct = Math.round(percentage);
+
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
           <div
-            className="relative cursor-pointer"
+            className="relative cursor-pointer group"
             style={{ width: size, height: size }}
             onClick={(e) => {
               e.stopPropagation();
               navigate("/onboarding");
             }}
           >
+            {/* Track circle */}
             <svg
               width={size}
               height={size}
@@ -47,29 +59,37 @@ export const OnboardingProgressRing = ({
                 stroke="hsl(var(--muted))"
                 strokeWidth={strokeWidth}
               />
+              {/* Progress arc */}
               <circle
                 cx={size / 2}
                 cy={size / 2}
                 r={radius}
                 fill="none"
-                stroke="hsl(var(--primary))"
+                stroke={progressColor}
                 strokeWidth={strokeWidth}
                 strokeDasharray={circumference}
                 strokeDashoffset={offset}
                 strokeLinecap="round"
-                className="transition-all duration-700 ease-out"
+                className="transition-all duration-700 ease-out drop-shadow-sm"
               />
             </svg>
+            {/* Avatar */}
             <div className="absolute inset-0 flex items-center justify-center">
               {children}
             </div>
-            <div className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground text-[9px] font-bold rounded-full h-4 w-4 flex items-center justify-center shadow-sm border border-background">
-              {Math.round(percentage)}
+            {/* Percentage badge */}
+            <div
+              className="absolute -bottom-1 -right-1 text-[10px] font-bold rounded-full h-[18px] min-w-[18px] px-0.5 flex items-center justify-center shadow-md border-2 border-background"
+              style={{ backgroundColor: progressColor, color: "white" }}
+            >
+              {roundedPct}
             </div>
+            {/* Pulse on hover */}
+            <div className="absolute inset-0 rounded-full ring-2 ring-transparent group-hover:ring-primary/20 transition-all duration-200" />
           </div>
         </TooltipTrigger>
-        <TooltipContent side="bottom">
-          <p className="text-xs">Setup {Math.round(percentage)}% complete — click to continue</p>
+        <TooltipContent side="bottom" className="text-xs">
+          <p>Setup {roundedPct}% complete — click to continue</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>

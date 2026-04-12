@@ -17,7 +17,7 @@ export function useOnboardingCompletion() {
       { label: "Customer Accounts", completed: status.hasAccounts, route: "/accounts" },
       { label: "Invoices Uploaded", completed: status.hasInvoices, route: "/invoices" },
       { label: "Payment Integration", completed: status.stripeConnected, route: "/branding" },
-      { label: "Collection Workflows", completed: status.workflowsConfigured, route: "/workflows" },
+      { label: "Collection Workflows", completed: status.workflowsConfigured, route: "/ai-workflows" },
     ];
 
     const completed = allItems.filter(i => i.completed).length;
