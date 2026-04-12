@@ -98,11 +98,11 @@ export const ImageCropDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg md:max-w-xl">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
-        <div className="relative w-full h-72 bg-muted rounded-lg overflow-hidden">
+        <div className="relative w-full h-[50vh] min-h-[320px] max-h-[520px] bg-muted rounded-lg overflow-hidden">
           <Cropper
             image={imageSrc}
             crop={crop}
@@ -113,13 +113,15 @@ export const ImageCropDialog = ({
             onCropChange={onCropChange}
             onZoomChange={onZoomChange}
             onCropComplete={handleCropComplete}
+            minZoom={0.5}
+            restrictPosition={false}
           />
         </div>
         <div className="flex items-center gap-3 px-2">
           <ZoomOut className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           <Slider
             value={[zoom]}
-            min={1}
+            min={0.5}
             max={3}
             step={0.05}
             onValueChange={([v]) => setZoom(v)}
