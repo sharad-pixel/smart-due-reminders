@@ -101,7 +101,7 @@ export function IndustryOutreachDialog({ open, onOpenChange, onGenerate }: Indus
           setGenerating(false);
           return;
         }
-        console.log("Saved industry context:", { industry, businessDescription: businessDescription.substring(0, 50) });
+        console.log("[IndustryOutreachDialog] Saved industry context:", { industry, desc: businessDescription.substring(0, 50) });
       }
 
       await onGenerate(industry, businessDescription, replaceScheduled);
