@@ -815,7 +815,7 @@ const AIWorkflows = () => {
   };
 
 
-  const handleGenerateAllAITemplates = async () => {
+  const _handleGenerateAllAITemplates = async () => {
     setGeneratingAllTemplates(true);
     try {
       const { data, error } = await supabase.functions.invoke('generate-all-workflow-templates', {
