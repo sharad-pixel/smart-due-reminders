@@ -137,7 +137,7 @@ const PublicInvoicePage = () => {
     );
   }
 
-  const { invoice, debtor, branding, template } = data;
+  const { invoice, debtor, branding, template, payments = [], transactions = [] } = data;
   const hc = template?.header_color || branding.primary_color || "#1a56db";
   const fontFamily =
     template?.font_style === "classic"
@@ -153,6 +153,13 @@ const PublicInvoicePage = () => {
 
   const formatDate = (d: string) =>
     new Date(d).toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" });
+
+  const totalPayments = payments.reduce((s, p) => s + (p.amount || 0), 0);
+  const credits = transactions.filter(t => t.transaction_type === 'credit');
+  const writeOffs = transactions.filter(t => t.transaction_type === 'write_off');
+  const totalCredits = credits.reduce((s, t) => s + (t.amount || 0), 0);
+  const totalWriteOffs = writeOffs.reduce((s, t) => s + (t.amount || 0), 0);
+  const hasAdjustments = totalPayments > 0 || totalCredits > 0 || totalWriteOffs > 0;
 
   const debtorAddress = [
     debtor?.address_line1,
