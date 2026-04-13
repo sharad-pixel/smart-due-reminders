@@ -65,10 +65,26 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    const { buckets } = await req.json();
+    const { buckets, industry, business_description } = await req.json();
     const targetBuckets = buckets || Object.keys(BUCKET_STEPS);
 
-    console.log(`[GENERATE-ALL-TEMPLATES] Generating AI templates for user ${user.id}, buckets: ${targetBuckets.join(', ')}`);
+    // Fetch branding for business name and saved industry context
+    const { data: branding } = await supabase
+      .from('branding_settings')
+      .select('business_name, industry, business_description')
+      .eq('user_id', user.id)
+      .single();
+
+    const businessName = branding?.business_name || 'Your Company';
+    // Use passed-in values (from dialog) or fall back to saved branding values
+    const effectiveIndustry = industry || (branding as any)?.industry || null;
+    const effectiveBusinessDescription = business_description || (branding as any)?.business_description || null;
+
+    const industryContext = effectiveIndustry && effectiveBusinessDescription
+      ? { industry: effectiveIndustry, businessDescription: effectiveBusinessDescription, businessName }
+      : null;
+
+    console.log(`[GENERATE-ALL-TEMPLATES] Generating AI templates for user ${user.id}, buckets: ${targetBuckets.join(', ')}${industryContext ? `, industry: ${industryContext.industry}` : ''}`);
 
     const results: any[] = [];
     let totalTemplatesCreated = 0;
@@ -152,7 +168,8 @@ serve(async (req) => {
             step.label,
             step.day_offset,
             steps.length,
-            persona
+            persona,
+            industryContext
           );
 
           // Create or update workflow step with AI content
@@ -289,7 +306,8 @@ async function generateAITemplate(
   stepLabel: string,
   dayOffset: number,
   totalSteps: number,
-  persona: any
+  persona: any,
+  industryContext: { industry: string; businessDescription: string; businessName: string } | null = null
 ): Promise<{ subject: string; body: string }> {
   const isFirstStep = stepNumber === 1;
   const isLastStep = stepNumber === totalSteps;
@@ -299,9 +317,19 @@ async function generateAITemplate(
       ? "This is the FINAL/LAST contact in this collection phase before escalation."
       : `This is follow-up contact ${stepNumber} of ${totalSteps} in this collection phase.`;
 
+  const industryPromptSection = industryContext
+    ? `\nINDUSTRY CONTEXT:
+- Industry: ${industryContext.industry}
+- Business: ${industryContext.businessName}
+- Products/Services: ${industryContext.businessDescription}
+
+IMPORTANT: Tailor the collection message to this specific industry and business. Reference their products/services naturally in the message. Make the outreach feel like it comes from someone who understands the business relationship, not a generic collection notice. For example, reference project deliverables, subscription services, consulting engagements, or whatever is relevant to their business type.`
+    : '';
+
   const systemPrompt = `You are an expert collections email copywriter. Your task is to generate professional, compliant collection email templates.
 
 ${persona.systemPromptGuidelines}
+${industryPromptSection}
 
 CRITICAL RULES:
 1. ALWAYS write in English
@@ -311,7 +339,8 @@ CRITICAL RULES:
 5. Never use harassment, threats, or non-compliant language
 6. Include a clear call to action
 7. Maintain ${persona.name}'s tone throughout
-8. Do NOT include a signature - that's added automatically`;
+8. Do NOT include a signature - that's added automatically
+${industryContext ? '9. Reference the business products/services naturally - make the message feel industry-specific' : ''}`;
 
   const bucketDescriptions: Record<string, string> = {
     dpd_1_30: '1-30 days past due - Early stage, friendly reminder approach',

@@ -36,6 +36,7 @@ import { AutoGenerateAlert } from "@/components/ai-workflows/AutoGenerateAlert";
 import { OutreachForecastSimulator } from "@/components/ai-workflows/OutreachForecastSimulator";
 import { IncompleteWorkflowAlert } from "@/components/ai-workflows/IncompleteWorkflowAlert";
 import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
+import { IndustryOutreachDialog } from "@/components/ai-workflows/IndustryOutreachDialog";
 import { SetupRequiredBadge } from "@/components/onboarding/SetupRequiredBadge";
 
 interface WorkflowStep {
@@ -123,6 +124,7 @@ const AIWorkflows = () => {
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [generatingAllTemplates, setGeneratingAllTemplates] = useState(false);
   const [_showErrors, _setShowErrors] = useState(false);
+  const [industryDialogOpen, setIndustryDialogOpen] = useState(false);
   const [isRunningEngine, setIsRunningEngine] = useState(false);
   const [engineResult, setEngineResult] = useState<{
     cancelledDrafts: number;
@@ -1218,9 +1220,35 @@ const AIWorkflows = () => {
           onGenerateAllTemplates={handleGenerateAllAITemplates}
           onReassignAll={handleManualReassignment}
           onRunEngine={handleRunOutreachEngine}
+          onIndustryOutreach={() => setIndustryDialogOpen(true)}
           generatingAllTemplates={generatingAllTemplates}
           reassigning={reassigning}
           isRunningEngine={isRunningEngine}
+        />
+
+        <IndustryOutreachDialog
+          open={industryDialogOpen}
+          onOpenChange={setIndustryDialogOpen}
+          onGenerate={async (industry, businessDescription) => {
+            setGeneratingAllTemplates(true);
+            try {
+              const { data, error } = await supabase.functions.invoke('generate-all-workflow-templates', {
+                body: { industry, business_description: businessDescription }
+              });
+              if (error) throw error;
+              if (data?.success) {
+                toast.success(
+                  `Generated ${data.templates_created} industry-specific templates across ${data.results?.length || 0} workflows`,
+                  { duration: 6000 }
+                );
+                await Promise.all([fetchWorkflows(), fetchDraftsByPersona(), fetchStepDraftCounts()]);
+              } else {
+                throw new Error(data?.error || 'Failed to generate templates');
+              }
+            } finally {
+              setGeneratingAllTemplates(false);
+            }
+          }}
         />
 
         {!onboardingStatus.isLoading && !onboardingStatus.workflowsConfigured && (
