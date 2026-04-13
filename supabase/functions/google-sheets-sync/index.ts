@@ -899,7 +899,7 @@ async function pullPayments(
   await updateProgress('syncing', { phase: 'processing', percent: 25, direction: 'pull' });
   const [{ data: allDebtors }, { data: allInvoices }] = await Promise.all([
     supabase.from('debtors').select('id, reference_id, sheet_sync_enabled').eq('user_id', userId).eq('is_archived', false),
-    supabase.from('invoices').select('id, invoice_number, debtor_id, amount_outstanding, amount').eq('user_id', userId),
+    supabase.from('invoices').select('id, invoice_number, reference_id, debtor_id, amount_outstanding, amount').eq('user_id', userId),
   ]);
 
   const raidToDebtorId = new Map<string, string>();
@@ -910,8 +910,10 @@ async function pullPayments(
   }
 
   const invNumToInvoice = new Map<string, any>();
+  const invRefToInvoice = new Map<string, any>();
   for (const inv of (allInvoices || [])) {
     if (inv.invoice_number) invNumToInvoice.set(inv.invoice_number, inv);
+    if (inv.reference_id) invRefToInvoice.set(inv.reference_id.toLowerCase(), inv);
   }
 
   // Collect insertable rows
