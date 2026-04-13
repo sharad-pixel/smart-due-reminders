@@ -934,17 +934,20 @@ async function pullPayments(
     if (!amount || isNaN(amount)) continue;
 
     const invoiceNum = getVal(row, invNumIdx);
+    const invoiceRef = getVal(row, invRefIdx);
     const paymentDate = parseDate(getVal(row, dateIdx));
 
     let debtorId: string | null = accountRaid ? raidToDebtorId.get(accountRaid) || null : null;
     let invoiceId: string | null = null;
 
-    if (invoiceNum) {
+    // Try matching by Recouply Invoice Ref first, then SS Invoice #
+    if (invoiceRef) {
+      const inv = invRefToInvoice.get(invoiceRef.toLowerCase());
+      if (inv) { invoiceId = inv.id; if (!debtorId) debtorId = inv.debtor_id; }
+    }
+    if (!invoiceId && invoiceNum) {
       const inv = invNumToInvoice.get(invoiceNum);
-      if (inv) {
-        invoiceId = inv.id;
-        if (!debtorId) debtorId = inv.debtor_id;
-      }
+      if (inv) { invoiceId = inv.id; if (!debtorId) debtorId = inv.debtor_id; }
     }
 
     if (!debtorId) { skipped++; continue; }
