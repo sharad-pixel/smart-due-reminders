@@ -106,7 +106,7 @@ export async function exportPaymentTemplate() {
   ws["!cols"] = [
     { wch: 14 }, { wch: 24 }, { wch: 18 }, { wch: 22 },
     { wch: 7 }, { wch: 8 }, { wch: 30 }, { wch: 14 },
-    { wch: 22 }, { wch: 10 },
+    { wch: 22 }, { wch: 10 }, { wch: 16 },
     { wch: 16 }, { wch: 20 }, { wch: 14 },
   ];
 
