@@ -62,7 +62,7 @@ export function AITemplateContextCard() {
           </div>
         ) : (
           <div className="flex items-start gap-2 text-sm text-muted-foreground">
-            <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-amber-500" />
+            <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-destructive" />
             <p>
               No industry context configured yet. Click <strong>"Generate Templates"</strong> above to provide your business details — this helps AI agents craft outreach that references your products and services naturally.
             </p>
