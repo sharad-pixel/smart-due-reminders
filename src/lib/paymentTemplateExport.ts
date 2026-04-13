@@ -50,10 +50,11 @@ export async function exportPaymentTemplate() {
     "Line Amount",            // 7
     "Invoice Total Outstanding", // 8
     "Currency",               // 9
+    "Invoice Source",         // 10
     // --- User fills these ---
-    "Payment Amount",         // 10
-    "Payment Reference",      // 11
-    "Payment Date",           // 12
+    "Payment Amount",         // 11
+    "Payment Reference",      // 12
+    "Payment Date",           // 13
   ];
 
   const rows: any[][] = [];
@@ -66,6 +67,7 @@ export async function exportPaymentTemplate() {
       inv.invoice_number || "",
       inv.reference_id || "",
     ];
+    const invoiceSource = (inv as any).integration_source || "manual";
 
     if (items && items.length > 0) {
       for (let idx = 0; idx < items.length; idx++) {
@@ -78,6 +80,7 @@ export async function exportPaymentTemplate() {
           li.line_total || 0,
           inv.amount_outstanding || inv.amount || 0,
           inv.currency || "USD",
+          invoiceSource,
           "", "", "", // empty payment columns for user to fill
         ]);
       }
@@ -91,6 +94,7 @@ export async function exportPaymentTemplate() {
         inv.amount_outstanding || inv.amount || 0,
         inv.amount_outstanding || inv.amount || 0,
         inv.currency || "USD",
+        invoiceSource,
         "", "", "",
       ]);
     }
