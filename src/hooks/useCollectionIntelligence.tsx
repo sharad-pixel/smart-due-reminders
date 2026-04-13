@@ -190,19 +190,20 @@ export const useCollectionIntelligenceDashboard = () => {
     return realtimeUpdate ? { ...d, ...realtimeUpdate } : d;
   });
 
-  // Calculate summary stats
-  const summary = data ? {
-    totalAccounts: data.length,
-    healthyCount: data.filter((d) => d.collection_health_tier === "Healthy").length,
-    watchCount: data.filter((d) => d.collection_health_tier === "Watch").length,
-    atRiskCount: data.filter((d) => d.collection_health_tier === "At Risk").length,
-    criticalCount: data.filter((d) => d.collection_health_tier === "Critical").length,
-    unscored: data.filter((d) => d.collection_intelligence_score === null).length,
-    avgScore: data.filter((d) => d.collection_intelligence_score !== null).length > 0
+  // Calculate summary stats - only count accounts with open balance (matches dashboard display)
+  const accountsWithBalance = data?.filter((d) => (d.total_open_balance || 0) > 0);
+  const summary = accountsWithBalance ? {
+    totalAccounts: accountsWithBalance.length,
+    healthyCount: accountsWithBalance.filter((d) => d.collection_health_tier === "Healthy").length,
+    watchCount: accountsWithBalance.filter((d) => d.collection_health_tier === "Watch").length,
+    atRiskCount: accountsWithBalance.filter((d) => d.collection_health_tier === "At Risk").length,
+    criticalCount: accountsWithBalance.filter((d) => d.collection_health_tier === "Critical").length,
+    unscored: accountsWithBalance.filter((d) => d.collection_intelligence_score === null).length,
+    avgScore: accountsWithBalance.filter((d) => d.collection_intelligence_score !== null).length > 0
       ? Math.round(
-          data.filter((d) => d.collection_intelligence_score !== null)
+          accountsWithBalance.filter((d) => d.collection_intelligence_score !== null)
             .reduce((sum, d) => sum + (d.collection_intelligence_score || 0), 0) /
-          data.filter((d) => d.collection_intelligence_score !== null).length
+          accountsWithBalance.filter((d) => d.collection_intelligence_score !== null).length
         )
       : 0,
   } : null;
