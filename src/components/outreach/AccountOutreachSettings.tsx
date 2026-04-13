@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { PauseCircle, PlayCircle } from "lucide-react";
 import { Calendar, Users, Zap, AlertCircle, Brain, Sparkles, Send, Eye, CheckCircle, Volume2 } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { PersonaAvatar } from "@/components/ai/PersonaAvatar";
@@ -17,6 +18,7 @@ import { toneIntensityModifiers } from "@/lib/personaTones";
 interface AccountOutreachSettingsProps {
   debtorId: string;
   debtorName: string;
+  outreachPaused?: boolean;
   initialSettings?: {
     account_outreach_enabled: boolean;
     outreach_frequency: string;
@@ -49,6 +51,7 @@ const PERSONA_OPTIONS = [
 export const AccountOutreachSettings = ({
   debtorId,
   debtorName,
+  outreachPaused = false,
   initialSettings,
   onSettingsChange,
 }: AccountOutreachSettingsProps) => {
@@ -120,6 +123,23 @@ export const AccountOutreachSettings = ({
     }
   };
 
+  const handleResumeOutreach = async () => {
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("debtors")
+        .update({ outreach_paused: false, outreach_paused_at: null })
+        .eq("id", debtorId);
+      if (error) throw error;
+      toast.success("Outreach resumed for this account");
+      onSettingsChange?.();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to resume outreach");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleTriggerOutreach = async (generateOnly: boolean = false) => {
     setSaving(true);
     try {
@@ -186,6 +206,29 @@ export const AccountOutreachSettings = ({
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
+        {outreachPaused && (
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <PauseCircle className="h-5 w-5 text-orange-600 shrink-0" />
+              <div>
+                <p className="font-medium text-orange-800">Outreach Paused</p>
+                <p className="text-sm text-orange-700">
+                  All outreach for this account is paused. No emails, SMS, or other communications will be sent until resumed.
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleResumeOutreach}
+              disabled={saving}
+              className="shrink-0 border-orange-300 text-orange-700 hover:bg-orange-100"
+            >
+              <PlayCircle className="h-4 w-4 mr-2" />
+              Resume Outreach
+            </Button>
+          </div>
+        )}
         {enabled && (
           <>
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
@@ -424,7 +467,8 @@ export const AccountOutreachSettings = ({
                 <Button 
                   variant="outline" 
                   onClick={() => handleTriggerOutreach(true)}
-                  disabled={saving}
+                  disabled={saving || outreachPaused}
+                  title={outreachPaused ? "Resume outreach to generate drafts" : undefined}
                 >
                   <Eye className="h-4 w-4 mr-2" />
                   Generate Draft
@@ -432,7 +476,8 @@ export const AccountOutreachSettings = ({
                 <Button 
                   variant="outline" 
                   onClick={() => handleTriggerOutreach(false)}
-                  disabled={saving}
+                  disabled={saving || outreachPaused}
+                  title={outreachPaused ? "Resume outreach to send" : undefined}
                 >
                   <Send className="h-4 w-4 mr-2" />
                   Generate & Send Now

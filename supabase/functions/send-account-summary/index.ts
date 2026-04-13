@@ -104,6 +104,14 @@ serve(async (req) => {
       throw new Error("Debtor not found");
     }
 
+    // Check if outreach is paused for this account
+    if (debtor.outreach_paused === true) {
+      return new Response(
+        JSON.stringify({ error: "Outreach is paused for this account. Please resume outreach before sending." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Get effective account ID (for team member support)
     const { data: effectiveAccountId } = await supabase.rpc('get_effective_account_id', { p_user_id: user.id });
     const brandingOwnerId = effectiveAccountId || user.id;

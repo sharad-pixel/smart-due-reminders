@@ -250,7 +250,8 @@ Deno.serve(async (req) => {
             name,
             company_name,
             email,
-            phone
+            phone,
+            outreach_paused
           )
         )
       `)
@@ -385,6 +386,13 @@ Deno.serve(async (req) => {
     for (const draft of invoiceDrafts || []) {
       const invoice = (draft as any).invoices as any;
       const debtor = invoice?.debtors as any;
+
+      // Skip if debtor has outreach paused
+      if (debtor?.outreach_paused === true) {
+        console.log(`[AUTO-SEND] Skipping invoice draft ${draft.id}: account outreach is paused for debtor ${debtor?.id}`);
+        skippedCount++;
+        continue;
+      }
 
       // Only process active invoice statuses - mark others as skipped
       if (invoice?.status !== 'Open' && invoice?.status !== 'InPaymentPlan' && invoice?.status !== 'PartiallyPaid') {
@@ -673,12 +681,19 @@ Deno.serve(async (req) => {
       try {
         const { data: debtor, error: debtorError } = await supabaseAdmin
           .from('debtors')
-          .select('id, name, company_name, email, phone')
+          .select('id, name, company_name, email, phone, outreach_paused')
           .eq('id', debtorId)
           .single();
 
         if (debtorError || !debtor) {
           console.log(`[AUTO-SEND] Skipping account draft ${draft.id}: debtor not found (${debtorError?.message || 'unknown'})`);
+          skippedCount++;
+          continue;
+        }
+
+        // Skip if debtor has outreach paused
+        if (debtor.outreach_paused === true) {
+          console.log(`[AUTO-SEND] Skipping account draft ${draft.id}: account outreach is paused for debtor ${debtorId}`);
           skippedCount++;
           continue;
         }
