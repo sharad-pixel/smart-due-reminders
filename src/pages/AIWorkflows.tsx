@@ -1217,10 +1217,9 @@ const AIWorkflows = () => {
       <div className="space-y-5">
         {/* Hero Header */}
         <WorkflowHeroHeader
-          onGenerateAllTemplates={handleGenerateAllAITemplates}
+          onGenerateAllTemplates={() => setIndustryDialogOpen(true)}
           onReassignAll={handleManualReassignment}
           onRunEngine={handleRunOutreachEngine}
-          onIndustryOutreach={() => setIndustryDialogOpen(true)}
           generatingAllTemplates={generatingAllTemplates}
           reassigning={reassigning}
           isRunningEngine={isRunningEngine}
@@ -1229,9 +1228,26 @@ const AIWorkflows = () => {
         <IndustryOutreachDialog
           open={industryDialogOpen}
           onOpenChange={setIndustryDialogOpen}
-          onGenerate={async (industry, businessDescription) => {
+          onGenerate={async (industry, businessDescription, replaceScheduled) => {
             setGeneratingAllTemplates(true);
             try {
+              // If replace scheduled is checked, cancel all pending/scheduled drafts first
+              if (replaceScheduled) {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                  const { error: cancelError } = await supabase
+                    .from("ai_drafts")
+                    .update({ status: "rejected" as any })
+                    .eq("user_id", user.id)
+                    .in("status", ["pending", "approved"]);
+                  if (cancelError) {
+                    console.error("Failed to cancel scheduled drafts:", cancelError);
+                  } else {
+                    toast.info("Cancelled all pending/scheduled drafts");
+                  }
+                }
+              }
+
               const { data, error } = await supabase.functions.invoke('generate-all-workflow-templates', {
                 body: { industry, business_description: businessDescription }
               });
