@@ -882,13 +882,14 @@ async function pullPayments(
   const headers = rows[0].map((h: string) => h.toLowerCase().trim());
   const accountRaidIdx = headers.indexOf('account raid');
   const invNumIdx = headers.findIndex((h: string) => h === 'ss invoice #' || h === 'invoice number' || h === 'invoice ref');
+  const invRefIdx = headers.findIndex((h: string) => h.includes('recouply invoice ref'));
   const amountIdx = headers.indexOf('payment amount');
   const currIdx = headers.indexOf('currency');
   const dateIdx = headers.indexOf('payment date');
   const refIdx = headers.indexOf('payment reference');
   const reconIdx = headers.findIndex((h: string) => h === 'reconciliation status' || h === 'status');
   const notesIdx = headers.indexOf('notes');
-  const payRefIdx = headers.findIndex((h: string) => h.includes('recouply') && h.includes('ref') && h.includes('do not edit'));
+  const payRefIdx = headers.findIndex((h: string) => h.includes('recouply') && h.includes('payment') && h.includes('ref') && h.includes('do not edit'));
   const sourceIdx = headers.indexOf('source');
 
   let created = 0, skipped = 0, syncProtected = 0;
