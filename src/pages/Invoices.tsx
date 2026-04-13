@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, AlertCircle, X, ListChecks } from "lucide-react";
+import { Plus, Search, AlertCircle, X, ListChecks, Download } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -390,6 +390,23 @@ const Invoices = () => {
             <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">Track and manage outstanding invoices</p>
           </div>
           <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 sm:flex-initial"
+              onClick={async () => {
+                try {
+                  const { exportInvoicesAsCSV } = await import("@/lib/invoiceExport");
+                  await exportInvoicesAsCSV();
+                  toast.success("Invoices exported successfully");
+                } catch (err: any) {
+                  toast.error(err.message || "Export failed");
+                }
+              }}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export CSV
+            </Button>
             <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
               <DialogTrigger asChild>
                 <Button className="flex-1 sm:flex-initial" size="sm">

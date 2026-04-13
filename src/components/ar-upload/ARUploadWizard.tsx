@@ -67,7 +67,12 @@ const getOptionalFields = (uploadType: UploadType): string[] => {
         "contact_name",
         "external_invoice_id",
         "po_number",
-        "payment_terms"
+        "payment_terms",
+        "line_number",
+        "line_type",
+        "line_description",
+        "line_qty",
+        "line_unit_price",
       ];
     case "payments":
       return ["currency", "reference", "invoice_number", "notes"];
@@ -444,50 +449,133 @@ export const ARUploadWizard = ({ open, onClose, uploadType }: ARUploadWizardProp
       const BULK_SIZE = 50;
 
       if (uploadType === "invoice_detail") {
-        // Build all invoice records first
-        const invoiceRecords: Record<string, any>[] = [];
-        for (let i = 0; i < parsedData.rows.length; i++) {
-          if (duplicateRows.has(i) || errorRowSet.has(i)) continue;
-          const row = parsedData.rows[i];
-          const customerName = String(row[columnMapping.customer_name!] || "").trim();
-          const debtorId = customerIdMap.get(normalizeString(customerName));
-          if (!debtorId) { errorCount++; continue; }
-
-          const amount = parseFloat(row[columnMapping.amount!]) || 0;
-          const status = columnMapping.status ? mapStatus(row[columnMapping.status]) : "Open";
-          const record: Record<string, any> = {
-            user_id: user.id,
-            debtor_id: debtorId,
-            invoice_number: String(row[columnMapping.invoice_number!] || ""),
-            invoice_date: parseDate(row[columnMapping.invoice_date!]),
-            due_date: parseDate(row[columnMapping.due_date!]),
-            amount, amount_original: amount,
-            amount_outstanding: status === "Paid" ? 0 : amount,
-            currency: columnMapping.currency ? String(row[columnMapping.currency] || "USD") : "USD",
-            status,
-            upload_batch_id: batchId,
-            reference_id: `INV-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
-          };
-          if (columnMapping.notes && row[columnMapping.notes]) record.notes = String(row[columnMapping.notes]);
-          if (columnMapping.product_description && row[columnMapping.product_description]) record.product_description = String(row[columnMapping.product_description]);
-          if (columnMapping.external_invoice_id && row[columnMapping.external_invoice_id]) record.external_invoice_id = String(row[columnMapping.external_invoice_id]);
-          if (columnMapping.po_number && row[columnMapping.po_number]) record.po_number = String(row[columnMapping.po_number]);
-          if (columnMapping.payment_terms && row[columnMapping.payment_terms]) record.payment_terms = String(row[columnMapping.payment_terms]);
-          invoiceRecords.push(record);
-        }
-
-        // Bulk insert in chunks
-        for (let i = 0; i < invoiceRecords.length; i += BULK_SIZE) {
-          const chunk = invoiceRecords.slice(i, i + BULK_SIZE);
-          const { data: inserted, error: bulkError } = await supabase.from("invoices").insert(chunk as any).select("id");
-          if (bulkError) {
-            console.error("Bulk insert error, falling back:", bulkError.message);
-            for (const inv of chunk) {
-              const { error } = await supabase.from("invoices").insert(inv as any);
-              if (error) { errorCount++; } else { successCount++; }
+        // Check if line item columns are mapped
+        const hasLineItems = !!(columnMapping.line_number || columnMapping.line_description);
+        
+        if (hasLineItems) {
+          // Group rows by invoice number + customer to handle multi-line invoices
+          const invoiceGroups = new Map<string, { rows: Record<string, any>[]; indices: number[] }>();
+          
+          for (let i = 0; i < parsedData.rows.length; i++) {
+            if (duplicateRows.has(i) || errorRowSet.has(i)) continue;
+            const row = parsedData.rows[i];
+            const customerName = normalizeString(String(row[columnMapping.customer_name!] || "").trim());
+            const invoiceNum = String(row[columnMapping.invoice_number!] || "");
+            const key = `${customerName}::${invoiceNum}`;
+            
+            if (!invoiceGroups.has(key)) {
+              invoiceGroups.set(key, { rows: [], indices: [] });
             }
-          } else {
-            successCount += inserted?.length || chunk.length;
+            invoiceGroups.get(key)!.rows.push(row);
+            invoiceGroups.get(key)!.indices.push(i);
+          }
+
+          // Process each grouped invoice
+          for (const [, group] of invoiceGroups) {
+            const firstRow = group.rows[0];
+            const customerName = String(firstRow[columnMapping.customer_name!] || "").trim();
+            const debtorId = customerIdMap.get(normalizeString(customerName));
+            if (!debtorId) { errorCount += group.rows.length; continue; }
+
+            // Build line items from all rows in group
+            const lineItems = group.rows.map((row, idx) => ({
+              description: columnMapping.line_description ? String(row[columnMapping.line_description] || "") : "",
+              quantity: columnMapping.line_qty ? parseFloat(row[columnMapping.line_qty]) || 1 : 1,
+              unit_price: columnMapping.line_unit_price ? parseFloat(row[columnMapping.line_unit_price]) || 0 : 0,
+              line_type: columnMapping.line_type ? (String(row[columnMapping.line_type] || "item").toLowerCase().includes("tax") ? "tax" : "item") : "item",
+              sort_order: columnMapping.line_number ? parseInt(row[columnMapping.line_number]) || (idx + 1) : (idx + 1),
+            }));
+
+            // Calculate totals from line items
+            const lineItemTotals = lineItems.map(li => li.quantity * li.unit_price);
+            const totalAmount = lineItemTotals.reduce((s, t) => s + t, 0);
+            const amount = totalAmount > 0 ? totalAmount : (parseFloat(firstRow[columnMapping.amount!]) || 0);
+
+            const status = columnMapping.status ? mapStatus(firstRow[columnMapping.status]) : "Open";
+            const record: Record<string, any> = {
+              user_id: user.id,
+              debtor_id: debtorId,
+              invoice_number: String(firstRow[columnMapping.invoice_number!] || ""),
+              invoice_date: parseDate(firstRow[columnMapping.invoice_date!]),
+              due_date: parseDate(firstRow[columnMapping.due_date!]),
+              amount, amount_original: amount,
+              amount_outstanding: status === "Paid" ? 0 : amount,
+              currency: columnMapping.currency ? String(firstRow[columnMapping.currency] || "USD") : "USD",
+              status,
+              upload_batch_id: batchId,
+              reference_id: `INV-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
+            };
+            if (columnMapping.notes && firstRow[columnMapping.notes]) record.notes = String(firstRow[columnMapping.notes]);
+            if (columnMapping.product_description && firstRow[columnMapping.product_description]) record.product_description = String(firstRow[columnMapping.product_description]);
+            if (columnMapping.external_invoice_id && firstRow[columnMapping.external_invoice_id]) record.external_invoice_id = String(firstRow[columnMapping.external_invoice_id]);
+            if (columnMapping.po_number && firstRow[columnMapping.po_number]) record.po_number = String(firstRow[columnMapping.po_number]);
+            if (columnMapping.payment_terms && firstRow[columnMapping.payment_terms]) record.payment_terms = String(firstRow[columnMapping.payment_terms]);
+
+            // Insert invoice
+            const { data: inserted, error: invErr } = await supabase.from("invoices").insert(record as any).select("id").single();
+            if (invErr) { errorCount++; continue; }
+
+            successCount++;
+
+            // Insert line items
+            if (inserted) {
+              const lineItemRecords = lineItems.map(li => ({
+                invoice_id: inserted.id,
+                user_id: user.id,
+                description: li.description,
+                quantity: li.quantity,
+                unit_price: li.unit_price,
+                line_total: li.quantity * li.unit_price,
+                line_type: li.line_type,
+                sort_order: li.sort_order,
+              }));
+              await supabase.from("invoice_line_items").insert(lineItemRecords as any);
+            }
+          }
+        } else {
+          // Original flow: no line items
+          const invoiceRecords: Record<string, any>[] = [];
+          for (let i = 0; i < parsedData.rows.length; i++) {
+            if (duplicateRows.has(i) || errorRowSet.has(i)) continue;
+            const row = parsedData.rows[i];
+            const customerName = String(row[columnMapping.customer_name!] || "").trim();
+            const debtorId = customerIdMap.get(normalizeString(customerName));
+            if (!debtorId) { errorCount++; continue; }
+
+            const amount = parseFloat(row[columnMapping.amount!]) || 0;
+            const status = columnMapping.status ? mapStatus(row[columnMapping.status]) : "Open";
+            const record: Record<string, any> = {
+              user_id: user.id,
+              debtor_id: debtorId,
+              invoice_number: String(row[columnMapping.invoice_number!] || ""),
+              invoice_date: parseDate(row[columnMapping.invoice_date!]),
+              due_date: parseDate(row[columnMapping.due_date!]),
+              amount, amount_original: amount,
+              amount_outstanding: status === "Paid" ? 0 : amount,
+              currency: columnMapping.currency ? String(row[columnMapping.currency] || "USD") : "USD",
+              status,
+              upload_batch_id: batchId,
+              reference_id: `INV-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
+            };
+            if (columnMapping.notes && row[columnMapping.notes]) record.notes = String(row[columnMapping.notes]);
+            if (columnMapping.product_description && row[columnMapping.product_description]) record.product_description = String(row[columnMapping.product_description]);
+            if (columnMapping.external_invoice_id && row[columnMapping.external_invoice_id]) record.external_invoice_id = String(row[columnMapping.external_invoice_id]);
+            if (columnMapping.po_number && row[columnMapping.po_number]) record.po_number = String(row[columnMapping.po_number]);
+            if (columnMapping.payment_terms && row[columnMapping.payment_terms]) record.payment_terms = String(row[columnMapping.payment_terms]);
+            invoiceRecords.push(record);
+          }
+
+          for (let i = 0; i < invoiceRecords.length; i += BULK_SIZE) {
+            const chunk = invoiceRecords.slice(i, i + BULK_SIZE);
+            const { data: inserted, error: bulkError } = await supabase.from("invoices").insert(chunk as any).select("id");
+            if (bulkError) {
+              for (const inv of chunk) {
+                const { error } = await supabase.from("invoices").insert(inv as any);
+                if (error) { errorCount++; } else { successCount++; }
+              }
+            } else {
+              successCount += inserted?.length || chunk.length;
+            }
           }
         }
       } else if (uploadType === "payments") {

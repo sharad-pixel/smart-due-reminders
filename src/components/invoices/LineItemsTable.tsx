@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Trash2, Plus } from "lucide-react";
 
 export interface LineItem {
@@ -8,6 +9,7 @@ export interface LineItem {
   quantity: number;
   unit_price: number;
   line_total: number;
+  line_type: "item" | "tax";
 }
 
 interface LineItemsTableProps {
@@ -18,7 +20,7 @@ interface LineItemsTableProps {
 
 export const LineItemsTable = ({ items, onChange, disabled }: LineItemsTableProps) => {
   const addLineItem = () => {
-    onChange([...items, { description: "", quantity: 1, unit_price: 0, line_total: 0 }]);
+    onChange([...items, { description: "", quantity: 1, unit_price: 0, line_total: 0, line_type: "item" }]);
   };
 
   const removeLineItem = (index: number) => {
@@ -29,7 +31,6 @@ export const LineItemsTable = ({ items, onChange, disabled }: LineItemsTableProp
     const updated = [...items];
     updated[index] = { ...updated[index], [field]: value };
     
-    // Recalculate line total
     if (field === "quantity" || field === "unit_price") {
       updated[index].line_total = updated[index].quantity * updated[index].unit_price;
     }
@@ -59,6 +60,7 @@ export const LineItemsTable = ({ items, onChange, disabled }: LineItemsTableProp
         <table className="w-full">
           <thead className="bg-muted">
             <tr>
+              <th className="text-left p-3 font-medium w-24">Type</th>
               <th className="text-left p-3 font-medium">Description</th>
               <th className="text-right p-3 font-medium w-24">Qty</th>
               <th className="text-right p-3 font-medium w-32">Unit Price</th>
@@ -69,7 +71,7 @@ export const LineItemsTable = ({ items, onChange, disabled }: LineItemsTableProp
           <tbody>
             {items.length === 0 ? (
               <tr>
-                <td colSpan={5} className="text-center p-6 text-muted-foreground">
+                <td colSpan={6} className="text-center p-6 text-muted-foreground">
                   No line items. Click "Add Line" to get started.
                 </td>
               </tr>
@@ -77,10 +79,25 @@ export const LineItemsTable = ({ items, onChange, disabled }: LineItemsTableProp
               items.map((item, index) => (
                 <tr key={index} className="border-t">
                   <td className="p-2">
+                    <Select
+                      value={item.line_type}
+                      onValueChange={(val) => updateLineItem(index, "line_type", val)}
+                      disabled={disabled}
+                    >
+                      <SelectTrigger className="w-20">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="item">Item</SelectItem>
+                        <SelectItem value="tax">Tax</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </td>
+                  <td className="p-2">
                     <Input
                       value={item.description}
                       onChange={(e) => updateLineItem(index, "description", e.target.value)}
-                      placeholder="Item description"
+                      placeholder={item.line_type === "tax" ? "Tax description" : "Item description"}
                       disabled={disabled}
                     />
                   </td>
@@ -127,7 +144,7 @@ export const LineItemsTable = ({ items, onChange, disabled }: LineItemsTableProp
           {items.length > 0 && (
             <tfoot className="bg-muted font-medium">
               <tr>
-                <td colSpan={3} className="text-right p-3">Subtotal:</td>
+                <td colSpan={4} className="text-right p-3">Subtotal:</td>
                 <td className="text-right p-3">${subtotal.toFixed(2)}</td>
                 <td></td>
               </tr>

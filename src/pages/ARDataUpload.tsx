@@ -13,7 +13,7 @@ const uploadTypes = [
     description: "Upload invoice-level AR aging data with customer and invoice details",
     icon: FileSpreadsheet,
     requiredFields: ["Customer Name", "Invoice Number", "Invoice Date", "Due Date", "Amount"],
-    optionalFields: ["Currency", "Status", "Notes", "Product Description", "Contact Email", "Contact Name"],
+    optionalFields: ["Currency", "Status", "Notes", "Product Description", "Contact Email", "Contact Name", "Line #", "Line Type", "Line Description", "Line Qty", "Line Unit Price"],
   },
   {
     type: "payments" as UploadType,
