@@ -141,10 +141,14 @@ export function IndustryOutreachDialog({ open, onOpenChange, onGenerate }: Indus
               id="businessDescription"
               placeholder="e.g. We provide cloud-based project management software for construction teams. Our main products are a scheduling tool and a field reporting app sold on annual subscriptions."
               value={businessDescription}
-              onChange={(e) => setBusinessDescription(e.target.value)}
+              onChange={(e) => setBusinessDescription(e.target.value.slice(0, 1000))}
+              maxLength={1000}
               rows={4}
               className="resize-none"
             />
+            <p className="text-xs text-muted-foreground text-right">
+              {businessDescription.length}/1,000
+            </p>
             <p className="text-xs text-muted-foreground">
               This context helps AI agents reference your specific offerings in collection messages, making outreach feel personalized and relevant.
             </p>
