@@ -1,0 +1,1 @@
+UPDATE public.google_sheet_templates SET status = 'archived' WHERE template_type = 'payments' AND status = 'active';
