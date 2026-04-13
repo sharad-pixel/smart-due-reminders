@@ -4854,6 +4854,7 @@ export type Database = {
           id: string
           invoice_id: string
           line_total: number
+          line_type: string
           quantity: number
           sort_order: number
           unit_price: number
@@ -4866,6 +4867,7 @@ export type Database = {
           id?: string
           invoice_id: string
           line_total: number
+          line_type?: string
           quantity?: number
           sort_order?: number
           unit_price: number
@@ -4878,6 +4880,7 @@ export type Database = {
           id?: string
           invoice_id?: string
           line_total?: number
+          line_type?: string
           quantity?: number
           sort_order?: number
           unit_price?: number
