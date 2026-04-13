@@ -599,15 +599,25 @@ const DebtorDetail = () => {
         invoices: activity.invoices,
       }));
 
-      // Combine and deduplicate by id, then sort by date
+      // Combine and deduplicate
+      // Activities and logs can represent the same send event (both logged in send-ai-draft)
+      // Deduplicate by matching linked_draft_id (activities) with delivery_metadata.draft_id (logs)
       const combinedMap = new Map<string, OutreachLog>();
+      const draftIdsSeen = new Set<string>();
       
       // Add activities first (they may be more comprehensive)
-      activitiesFormatted.forEach(a => combinedMap.set(a.id, a));
+      activitiesFormatted.forEach(a => {
+        combinedMap.set(a.id, a);
+        const draftId = a.delivery_metadata?.draft_id || (a as any).linked_draft_id;
+        if (draftId) draftIdsSeen.add(draftId);
+      });
       
-      // Add logs - but check if this is a duplicate (linked via activity)
+      // Add logs - but skip if the same draft_id was already added via activities
       logsFormatted.forEach(log => {
-        // Check if already in combined from activities
+        const logDraftId = log.delivery_metadata?.draft_id;
+        if (logDraftId && draftIdsSeen.has(logDraftId)) {
+          return; // Skip - already represented by a collection_activity
+        }
         if (!combinedMap.has(log.id)) {
           combinedMap.set(log.id, log);
         }
