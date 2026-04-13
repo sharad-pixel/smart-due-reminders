@@ -67,7 +67,12 @@ const getOptionalFields = (uploadType: UploadType): string[] => {
         "contact_name",
         "external_invoice_id",
         "po_number",
-        "payment_terms"
+        "payment_terms",
+        "line_number",
+        "line_type",
+        "line_description",
+        "line_qty",
+        "line_unit_price",
       ];
     case "payments":
       return ["currency", "reference", "invoice_number", "notes"];
