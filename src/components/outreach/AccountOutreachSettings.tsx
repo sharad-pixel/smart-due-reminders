@@ -467,7 +467,8 @@ export const AccountOutreachSettings = ({
                 <Button 
                   variant="outline" 
                   onClick={() => handleTriggerOutreach(true)}
-                  disabled={saving}
+                  disabled={saving || outreachPaused}
+                  title={outreachPaused ? "Resume outreach to generate drafts" : undefined}
                 >
                   <Eye className="h-4 w-4 mr-2" />
                   Generate Draft
@@ -475,7 +476,8 @@ export const AccountOutreachSettings = ({
                 <Button 
                   variant="outline" 
                   onClick={() => handleTriggerOutreach(false)}
-                  disabled={saving}
+                  disabled={saving || outreachPaused}
+                  title={outreachPaused ? "Resume outreach to send" : undefined}
                 >
                   <Send className="h-4 w-4 mr-2" />
                   Generate & Send Now

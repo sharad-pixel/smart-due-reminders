@@ -1073,6 +1073,7 @@ const DebtorDetail = () => {
         <AccountOutreachSettings
           debtorId={debtor.id}
           debtorName={debtor.company_name || debtor.name}
+          outreachPaused={debtor.outreach_paused === true}
           initialSettings={{
             account_outreach_enabled: debtor.account_outreach_enabled || false,
             outreach_frequency: debtor.outreach_frequency || "weekly",
