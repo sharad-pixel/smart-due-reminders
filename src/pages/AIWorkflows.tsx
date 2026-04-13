@@ -29,7 +29,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { personaConfig, PersonaConfig } from "@/lib/personaConfig";
 import { cn } from "@/lib/utils";
 import { OutreachStatusCards } from "@/components/outreach/OutreachStatusCards";
-import { OutreachBatchRunHistory } from "@/components/outreach/OutreachBatchRunHistory";
+import { AITemplateContextCard } from "@/components/ai-workflows/AITemplateContextCard";
 import { OutreachInsightsPanel } from "@/components/ai-workflows/OutreachInsightsPanel";
 import { WorkflowHeroHeader } from "@/components/ai-workflows/WorkflowHeroHeader";
 import { AutoGenerateAlert } from "@/components/ai-workflows/AutoGenerateAlert";
