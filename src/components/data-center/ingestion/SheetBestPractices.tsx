@@ -9,6 +9,7 @@ import {
   AlertTriangle,
   Columns,
   Lightbulb,
+  CreditCard,
 } from "lucide-react";
 
 const sections = [
@@ -47,9 +48,22 @@ const sections = [
     icon: Columns,
     title: "Sheet Schema",
     items: [
-      "Accounts: RAID · Company Name · Contact Name · Email · Phone · Address · Balance · Risk Score · Risk Tier · Sync Protected",
-      "Invoices: RAID · SS Invoice # · Reference ID · Amount · Balance Due · Issue Date · Due Date · Status · Days Past Due",
-      "Payments: RAID · Invoice Ref ID · Amount · Payment Date · Method · Reference · Notes",
+      "Accounts: RAID · Company Name · Type · Contact Name · Email · Phone · Address · Balance · Source · Risk Score · Risk Tier",
+      "Invoices (Open & Paid tabs): Account RAID · SS Invoice # · Amounts · Dates · Status · Line # · Line Type (item/tax) · Description · Qty · Unit Price · Line Total",
+      "Payments — Payment Template tab: Pre-populated with open invoices + line items. Just fill in Payment Amount, Payment Reference & Payment Date to reconcile.",
+      "Payments — Recorded Payments tab: History of all recorded payments with reconciliation status.",
+    ],
+  },
+  {
+    icon: CreditCard,
+    title: "Payment Reconciliation (Simplified)",
+    items: [
+      "Push the Payments template → opens a pre-populated sheet with all open invoices broken down by line item and tax.",
+      "Each row shows: Account · Invoice # · Recouply Ref · Line # · Type (item/tax) · Description · Line Amount · Invoice Total Outstanding.",
+      "To record a payment: fill in Payment Amount, Payment Reference, and Payment Date on the relevant rows.",
+      "You can pay at invoice level (one row) or line level (individual item/tax rows) — both are supported.",
+      "Pull the sheet back → Recouply automatically aggregates payments per invoice, updates balances, and marks invoices as Paid or PartiallyPaid.",
+      "The Recorded Payments tab is read-only and shows your full payment history.",
     ],
   },
   {
@@ -61,6 +75,7 @@ const sections = [
       "Avoid duplicate RAIDs — each account must have a unique identifier.",
       "Don't paste formatted data from other spreadsheets — use Paste Values Only.",
       "If a Pull seems to skip rows, check that the RAID column isn't blank.",
+      "Don't edit columns marked 'DO NOT EDIT' — these are Recouply reference IDs used for matching.",
     ],
   },
   {
