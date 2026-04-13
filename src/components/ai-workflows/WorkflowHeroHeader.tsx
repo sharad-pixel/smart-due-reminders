@@ -5,7 +5,6 @@ interface WorkflowHeroHeaderProps {
   onGenerateAllTemplates: () => void;
   onReassignAll: () => void;
   onRunEngine: () => void;
-  onIndustryOutreach: () => void;
   generatingAllTemplates: boolean;
   reassigning: boolean;
   isRunningEngine: boolean;
