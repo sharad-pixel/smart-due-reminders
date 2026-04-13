@@ -279,34 +279,105 @@ Deno.serve(async (req) => {
         ];
       } else {
         sheetTitle = `${businessName} - Payments Master`;
-        // Payments link to invoices via payment_invoice_links
-        const { data: payments } = await supabase
+
+        // Fetch open invoices with line items for pre-populated payment template
+        const { data: openInvoices } = await supabase
+          .from('invoices')
+          .select('id, invoice_number, amount, amount_outstanding, currency, reference_id, debtors(reference_id, company_name)')
+          .eq('user_id', user.id)
+          .in('status', ['Open', 'PartiallyPaid', 'InPaymentPlan', 'Disputed'])
+          .order('due_date', { ascending: true });
+
+        // Fetch line items for open invoices
+        const openInvIds = (openInvoices || []).map((i: any) => i.id);
+        const lineItemsByInvoice = new Map<string, any[]>();
+        for (let i = 0; i < openInvIds.length; i += 100) {
+          const chunk = openInvIds.slice(i, i + 100);
+          const { data: items } = await supabase
+            .from('invoice_line_items')
+            .select('invoice_id, description, quantity, unit_price, line_total, sort_order, line_type')
+            .in('invoice_id', chunk)
+            .order('sort_order', { ascending: true });
+          for (const item of (items || [])) {
+            if (!lineItemsByInvoice.has(item.invoice_id)) lineItemsByInvoice.set(item.invoice_id, []);
+            lineItemsByInvoice.get(item.invoice_id)!.push(item);
+          }
+        }
+
+        // Payment Template headers (pre-populated + user-fillable)
+        const templateHeaders = [
+          'Account RAID', 'Account Name', 'SS Invoice #', 'Recouply Invoice Ref (DO NOT EDIT)',
+          'Line #', 'Line Type', 'Line Description', 'Line Amount',
+          'Invoice Total Outstanding', 'Currency',
+          'Payment Amount', 'Payment Reference', 'Payment Date',
+          'Recouply Payment Ref (DO NOT EDIT)', 'Source'
+        ];
+
+        const templateRows: (string | number)[][] = [];
+        for (const inv of (openInvoices || [])) {
+          const items = lineItemsByInvoice.get(inv.id);
+          const baseRow = [
+            inv.debtors?.reference_id || '', inv.debtors?.company_name || '',
+            inv.invoice_number || '', inv.reference_id || '',
+          ];
+          if (items && items.length > 0) {
+            for (let idx = 0; idx < items.length; idx++) {
+              const li = items[idx];
+              templateRows.push([
+                ...baseRow,
+                idx + 1, li.line_type || 'item', li.description || '', li.line_total || 0,
+                inv.amount_outstanding || inv.amount || 0, inv.currency || 'USD',
+                '', '', '', '', '',
+              ]);
+            }
+          } else {
+            templateRows.push([
+              ...baseRow,
+              '', '', '', inv.amount_outstanding || inv.amount || 0,
+              inv.amount_outstanding || inv.amount || 0, inv.currency || 'USD',
+              '', '', '', '', '',
+            ]);
+          }
+        }
+
+        // Recorded Payments sheet with existing payments
+        const { data: existingPayments } = await supabase
           .from('payments')
           .select('reference_id, amount, currency, payment_date, reference, reconciliation_status, invoice_number_hint, notes, source_system, debtors(reference_id, company_name)')
           .eq('user_id', user.id)
           .order('payment_date', { ascending: false })
           .limit(1000);
 
-        const headers = [
+        const recordedHeaders = [
           'Account RAID', 'Account Name', 'SS Invoice #', 'Payment Amount', 'Currency',
           'Payment Date', 'Payment Reference', 'Reconciliation Status',
           'Notes', 'Recouply Payment Ref (DO NOT EDIT)', 'Source'
         ];
-        const dataRows = (payments || []).map((p: any) => [
+        const recordedRows = (existingPayments || []).map((p: any) => [
           p.debtors?.reference_id || '', p.debtors?.company_name || '',
           p.invoice_number_hint || '', p.amount || 0, p.currency || 'USD',
           p.payment_date || '', p.reference || '',
           p.reconciliation_status || 'pending', p.notes || '', p.reference_id || '',
-          p.source_system || 'recouply'
+          p.source_system || 'recouply',
         ]);
-        rowCount = dataRows.length;
-        sheets = [{
-          properties: { title: 'Payments', gridProperties: { frozenRowCount: 1 } },
-          data: [{ startRow: 0, startColumn: 0, rowData: [
-            buildHeaderRow(headers),
-            ...dataRows.map(r => buildDataRow(r, [4])),
-          ]}],
-        }];
+
+        rowCount = templateRows.length;
+        sheets = [
+          {
+            properties: { title: 'Payment Template', gridProperties: { frozenRowCount: 1 } },
+            data: [{ startRow: 0, startColumn: 0, rowData: [
+              buildHeaderRow(templateHeaders),
+              ...templateRows.map(r => buildDataRow(r, [7, 8])),
+            ]}],
+          },
+          {
+            properties: { title: 'Recorded Payments', gridProperties: { frozenRowCount: 1 } },
+            data: [{ startRow: 0, startColumn: 0, rowData: [
+              buildHeaderRow(recordedHeaders),
+              ...recordedRows.map(r => buildDataRow(r, [3])),
+            ]}],
+          },
+        ];
       }
 
       // Create Google Sheet
