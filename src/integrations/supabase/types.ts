@@ -6817,13 +6817,16 @@ export type Database = {
           data_center_upload_id: string | null
           debtor_id: string | null
           id: string
+          invoice_id: string | null
           invoice_number_hint: string | null
+          line_item_id: string | null
           notes: string | null
           organization_id: string | null
           payment_date: string
           reconciliation_status: string | null
           reference: string | null
           reference_id: string | null
+          source_system: string | null
           upload_batch_id: string | null
           user_id: string
         }
@@ -6834,13 +6837,16 @@ export type Database = {
           data_center_upload_id?: string | null
           debtor_id?: string | null
           id?: string
+          invoice_id?: string | null
           invoice_number_hint?: string | null
+          line_item_id?: string | null
           notes?: string | null
           organization_id?: string | null
           payment_date: string
           reconciliation_status?: string | null
           reference?: string | null
           reference_id?: string | null
+          source_system?: string | null
           upload_batch_id?: string | null
           user_id: string
         }
@@ -6851,13 +6857,16 @@ export type Database = {
           data_center_upload_id?: string | null
           debtor_id?: string | null
           id?: string
+          invoice_id?: string | null
           invoice_number_hint?: string | null
+          line_item_id?: string | null
           notes?: string | null
           organization_id?: string | null
           payment_date?: string
           reconciliation_status?: string | null
           reference?: string | null
           reference_id?: string | null
+          source_system?: string | null
           upload_batch_id?: string | null
           user_id?: string
         }
@@ -6881,6 +6890,20 @@ export type Database = {
             columns: ["debtor_id"]
             isOneToOne: false
             referencedRelation: "debtors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_line_item_id_fkey"
+            columns: ["line_item_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_line_items"
             referencedColumns: ["id"]
           },
           {
