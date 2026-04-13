@@ -13,7 +13,7 @@ export async function exportPaymentTemplate() {
   // Fetch open/partially-paid invoices with debtor info
   const { data: invoices, error } = await supabase
     .from("invoices")
-    .select("id, invoice_number, amount, amount_outstanding, currency, due_date, status, reference_id, debtors(company_name, reference_id)")
+    .select("id, invoice_number, amount, amount_outstanding, currency, due_date, status, reference_id, integration_source, debtors(company_name, reference_id)")
     .eq("user_id", user.id)
     .in("status", ["Open", "PartiallyPaid", "InPaymentPlan", "Disputed"])
     .order("due_date", { ascending: true });
@@ -50,10 +50,11 @@ export async function exportPaymentTemplate() {
     "Line Amount",            // 7
     "Invoice Total Outstanding", // 8
     "Currency",               // 9
+    "Invoice Source",         // 10
     // --- User fills these ---
-    "Payment Amount",         // 10
-    "Payment Reference",      // 11
-    "Payment Date",           // 12
+    "Payment Amount",         // 11
+    "Payment Reference",      // 12
+    "Payment Date",           // 13
   ];
 
   const rows: any[][] = [];
@@ -66,6 +67,7 @@ export async function exportPaymentTemplate() {
       inv.invoice_number || "",
       inv.reference_id || "",
     ];
+    const invoiceSource = (inv as any).integration_source || "manual";
 
     if (items && items.length > 0) {
       for (let idx = 0; idx < items.length; idx++) {
@@ -78,6 +80,7 @@ export async function exportPaymentTemplate() {
           li.line_total || 0,
           inv.amount_outstanding || inv.amount || 0,
           inv.currency || "USD",
+          invoiceSource,
           "", "", "", // empty payment columns for user to fill
         ]);
       }
@@ -91,6 +94,7 @@ export async function exportPaymentTemplate() {
         inv.amount_outstanding || inv.amount || 0,
         inv.amount_outstanding || inv.amount || 0,
         inv.currency || "USD",
+        invoiceSource,
         "", "", "",
       ]);
     }
@@ -102,7 +106,7 @@ export async function exportPaymentTemplate() {
   ws["!cols"] = [
     { wch: 14 }, { wch: 24 }, { wch: 18 }, { wch: 22 },
     { wch: 7 }, { wch: 8 }, { wch: 30 }, { wch: 14 },
-    { wch: 22 }, { wch: 10 },
+    { wch: 22 }, { wch: 10 }, { wch: 16 },
     { wch: 16 }, { wch: 20 }, { wch: 14 },
   ];
 

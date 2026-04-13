@@ -290,7 +290,7 @@ async function pushPayments(supabase: any, accessToken: string, template: any, u
   // Fetch open/partially-paid invoices with debtors + line items for pre-populated template
   const { data: invoices } = await supabase
     .from('invoices')
-    .select('id, invoice_number, amount, amount_outstanding, currency, reference_id, debtors(reference_id, company_name)')
+    .select('id, invoice_number, amount, amount_outstanding, currency, reference_id, integration_source, debtors(reference_id, company_name)')
     .eq('user_id', userId)
     .in('status', ['Open', 'PartiallyPaid', 'InPaymentPlan', 'Disputed'])
     .order('due_date', { ascending: true });
@@ -323,7 +323,7 @@ async function pushPayments(supabase: any, accessToken: string, template: any, u
   const templateHeaders = [
     'Account RAID', 'Account Name', 'SS Invoice #', 'Recouply Invoice Ref (DO NOT EDIT)',
     'Line #', 'Line Type', 'Line Description', 'Line Amount',
-    'Invoice Total Outstanding', 'Currency',
+    'Invoice Total Outstanding', 'Currency', 'Invoice Source',
     'Payment Amount', 'Payment Reference', 'Payment Date',
     'Recouply Payment Ref (DO NOT EDIT)', 'Source'
   ];
@@ -335,13 +335,14 @@ async function pushPayments(supabase: any, accessToken: string, template: any, u
       inv.debtors?.reference_id || '', inv.debtors?.company_name || '',
       inv.invoice_number || '', inv.reference_id || '',
     ];
+    const invoiceSource = inv.integration_source || 'manual';
     if (items && items.length > 0) {
       for (let idx = 0; idx < items.length; idx++) {
         const li = items[idx];
         templateRows.push([
           ...baseRow,
           idx + 1, li.line_type || 'item', li.description || '', li.line_total || 0,
-          inv.amount_outstanding || inv.amount || 0, inv.currency || 'USD',
+          inv.amount_outstanding || inv.amount || 0, inv.currency || 'USD', invoiceSource,
           '', '', '', '', '', // empty payment columns for user to fill
         ]);
       }
@@ -349,7 +350,7 @@ async function pushPayments(supabase: any, accessToken: string, template: any, u
       templateRows.push([
         ...baseRow,
         '', '', '', inv.amount_outstanding || inv.amount || 0,
-        inv.amount_outstanding || inv.amount || 0, inv.currency || 'USD',
+        inv.amount_outstanding || inv.amount || 0, inv.currency || 'USD', invoiceSource,
         '', '', '', '', '',
       ]);
     }
@@ -371,7 +372,7 @@ async function pushPayments(supabase: any, accessToken: string, template: any, u
 
   // Push template sheet (key col 3 = Recouply Invoice Ref) and recorded payments (key col 9)
   const [templateResult, recordedResult] = await Promise.all([
-    incrementalPush(accessToken, template.sheet_id, 'Payment Template', 'A:O', templateHeaders, templateRows, 3),
+    incrementalPush(accessToken, template.sheet_id, 'Payment Template', 'A:P', templateHeaders, templateRows, 3),
     incrementalPush(accessToken, template.sheet_id, 'Recorded Payments', 'A:K', recordedHeaders, recordedRows, 9),
   ]);
 
