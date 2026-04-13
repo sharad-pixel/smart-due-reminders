@@ -556,63 +556,153 @@ async function pullInvoices(
     if (d.sheet_sync_enabled === false && d.reference_id) protectedRaids.add(d.reference_id);
   }
 
-  // Classify rows
+  // Classify rows - group by invoice number when line items present
   const updateBatch: { ref: string; data: any; rowIdx: number }[] = [];
-  const insertBatch: { record: any; rowIdx: number }[] = [];
+  const insertBatch: { record: any; rowIdx: number; lineItems: any[] }[] = [];
 
-  for (let i = 1; i < rows.length; i++) {
-    const row = rows[i];
-    if (!row || row.length === 0) continue;
+  if (hasLineItemCols) {
+    // Group rows by invoice number + account RAID for line item grouping
+    const invoiceGroups = new Map<string, { rows: any[][]; indices: number[] }>();
+    
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row || row.length === 0) continue;
+      const invoiceNumber = getVal(row, invNumIdx);
+      const accountRaid = getVal(row, accountRaidIdx);
+      if (!invoiceNumber) continue;
+      
+      const recouplyRef = getVal(row, refIdx);
+      const source = getVal(row, sourceIdx);
+      
+      // Updates go through individually
+      if (recouplyRef && source.toLowerCase() === 'recouply') {
+        if (accountRaid && protectedRaids.has(accountRaid)) { syncProtected++; continue; }
+        const status = getVal(row, statusIdx);
+        const updateData: any = {};
+        const amtOut = parseFloat(getVal(row, amtOutIdx));
+        if (!isNaN(amtOut)) updateData.amount_outstanding = amtOut;
+        if (status) updateData.status = status;
+        updateBatch.push({ ref: recouplyRef, data: updateData, rowIdx: i });
+        const terminalStatuses = ['paid', 'canceled', 'voided', 'writtenoff', 'settled', 'credited'];
+        if (terminalStatuses.includes(status.toLowerCase())) rowsToMoveToPaid.push(i);
+        continue;
+      }
+      
+      const key = `${accountRaid}::${invoiceNumber}`;
+      if (!invoiceGroups.has(key)) invoiceGroups.set(key, { rows: [], indices: [] });
+      invoiceGroups.get(key)!.rows.push(row);
+      invoiceGroups.get(key)!.indices.push(i);
+    }
 
-    const recouplyRef = getVal(row, refIdx);
-    const source = getVal(row, sourceIdx);
-    const invoiceNumber = getVal(row, invNumIdx);
-    const accountRaid = getVal(row, accountRaidIdx);
-    const status = getVal(row, statusIdx);
-
-    if (!invoiceNumber) continue;
-    if (accountRaid && protectedRaids.has(accountRaid)) { syncProtected++; continue; }
-
-    const terminalStatuses = ['paid', 'canceled', 'voided', 'writtenoff', 'settled', 'credited'];
-    const isTerminal = terminalStatuses.includes(status.toLowerCase());
-
-    if (recouplyRef && source.toLowerCase() === 'recouply') {
-      const updateData: any = {};
-      const amtOut = parseFloat(getVal(row, amtOutIdx));
-      if (!isNaN(amtOut)) updateData.amount_outstanding = amtOut;
-      if (status) updateData.status = status;
-      updateBatch.push({ ref: recouplyRef, data: updateData, rowIdx: i });
-      if (isTerminal) rowsToMoveToPaid.push(i);
-    } else {
+    // Convert groups to insert batch
+    for (const [, group] of invoiceGroups) {
+      const firstRow = group.rows[0];
+      const accountRaid = getVal(firstRow, accountRaidIdx);
+      if (accountRaid && protectedRaids.has(accountRaid)) { syncProtected++; continue; }
+      
       const debtorId = accountRaid ? raidToDebtorId.get(accountRaid) || null : null;
       if (!debtorId) { skipped++; continue; }
 
-      const amount = parseFloat(getVal(row, amountIdx)) || 0;
-      const dueDate = parseDate(getVal(row, dueDateIdx));
+      const status = getVal(firstRow, statusIdx);
+      const dueDate = parseDate(getVal(firstRow, dueDateIdx));
       if (!dueDate) { skipped++; continue; }
+
+      // Build line items from all rows in group
+      const lineItems = group.rows.map((row, idx) => ({
+        description: getVal(row, lineDescIdx),
+        quantity: parseFloat(getVal(row, lineQtyIdx)) || 1,
+        unit_price: parseFloat(getVal(row, lineUnitPriceIdx)) || 0,
+        line_total: parseFloat(getVal(row, lineTotalIdx)) || 0,
+        line_type: getVal(row, lineTypeIdx).toLowerCase().includes('tax') ? 'tax' : 'item',
+        sort_order: parseInt(getVal(row, lineNumIdx)) || (idx + 1),
+      }));
+
+      const liTotal = lineItems.reduce((s, li) => s + (li.line_total || li.quantity * li.unit_price), 0);
+      const amount = liTotal > 0 ? liTotal : (parseFloat(getVal(firstRow, amountIdx)) || 0);
 
       insertBatch.push({
         record: {
           user_id: userId,
           organization_id: orgId,
           debtor_id: debtorId,
-          invoice_number: invoiceNumber,
-          amount,
-          amount_original: amount,
-          amount_outstanding: parseFloat(getVal(row, amtOutIdx)) || amount,
-          currency: (getVal(row, currIdx) || 'USD').toUpperCase(),
-          issue_date: parseDate(getVal(row, issueDateIdx)),
+          invoice_number: getVal(firstRow, invNumIdx),
+          amount, amount_original: amount,
+          amount_outstanding: parseFloat(getVal(firstRow, amtOutIdx)) || amount,
+          currency: (getVal(firstRow, currIdx) || 'USD').toUpperCase(),
+          issue_date: parseDate(getVal(firstRow, issueDateIdx)),
           due_date: dueDate,
           status: status || 'Open',
-          po_number: getVal(row, poIdx) || null,
-          product_description: getVal(row, descIdx) || null,
-          payment_terms: getVal(row, termsIdx) || null,
-          notes: getVal(row, notesIdx) ? `[Sheet] ${getVal(row, notesIdx)}` : '[Sheet Import]',
+          po_number: getVal(firstRow, poIdx) || null,
+          product_description: getVal(firstRow, descIdx) || null,
+          payment_terms: getVal(firstRow, termsIdx) || null,
+          notes: getVal(firstRow, notesIdx) ? `[Sheet] ${getVal(firstRow, notesIdx)}` : '[Sheet Import]',
           source_system: 'google_sheets',
         },
-        rowIdx: i,
+        rowIdx: group.indices[0],
+        lineItems,
       });
-      if (isTerminal) rowsToMoveToPaid.push(i);
+
+      const terminalStatuses = ['paid', 'canceled', 'voided', 'writtenoff', 'settled', 'credited'];
+      if (terminalStatuses.includes(status.toLowerCase())) {
+        group.indices.forEach(idx => rowsToMoveToPaid.push(idx));
+      }
+    }
+  } else {
+    // Original non-line-item flow
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row || row.length === 0) continue;
+
+      const recouplyRef = getVal(row, refIdx);
+      const source = getVal(row, sourceIdx);
+      const invoiceNumber = getVal(row, invNumIdx);
+      const accountRaid = getVal(row, accountRaidIdx);
+      const status = getVal(row, statusIdx);
+
+      if (!invoiceNumber) continue;
+      if (accountRaid && protectedRaids.has(accountRaid)) { syncProtected++; continue; }
+
+      const terminalStatuses = ['paid', 'canceled', 'voided', 'writtenoff', 'settled', 'credited'];
+      const isTerminal = terminalStatuses.includes(status.toLowerCase());
+
+      if (recouplyRef && source.toLowerCase() === 'recouply') {
+        const updateData: any = {};
+        const amtOut = parseFloat(getVal(row, amtOutIdx));
+        if (!isNaN(amtOut)) updateData.amount_outstanding = amtOut;
+        if (status) updateData.status = status;
+        updateBatch.push({ ref: recouplyRef, data: updateData, rowIdx: i });
+        if (isTerminal) rowsToMoveToPaid.push(i);
+      } else {
+        const debtorId = accountRaid ? raidToDebtorId.get(accountRaid) || null : null;
+        if (!debtorId) { skipped++; continue; }
+
+        const amount = parseFloat(getVal(row, amountIdx)) || 0;
+        const dueDate = parseDate(getVal(row, dueDateIdx));
+        if (!dueDate) { skipped++; continue; }
+
+        insertBatch.push({
+          record: {
+            user_id: userId,
+            organization_id: orgId,
+            debtor_id: debtorId,
+            invoice_number: invoiceNumber,
+            amount, amount_original: amount,
+            amount_outstanding: parseFloat(getVal(row, amtOutIdx)) || amount,
+            currency: (getVal(row, currIdx) || 'USD').toUpperCase(),
+            issue_date: parseDate(getVal(row, issueDateIdx)),
+            due_date: dueDate,
+            status: status || 'Open',
+            po_number: getVal(row, poIdx) || null,
+            product_description: getVal(row, descIdx) || null,
+            payment_terms: getVal(row, termsIdx) || null,
+            notes: getVal(row, notesIdx) ? `[Sheet] ${getVal(row, notesIdx)}` : '[Sheet Import]',
+            source_system: 'google_sheets',
+          },
+          rowIdx: i,
+          lineItems: [],
+        });
+        if (isTerminal) rowsToMoveToPaid.push(i);
+      }
     }
   }
 
@@ -646,7 +736,7 @@ async function pullInvoices(
     const { data: inserted, error } = await supabase
       .from('invoices')
       .insert(records)
-      .select('reference_id, invoice_number');
+      .select('id, reference_id, invoice_number');
 
     if (!error && inserted) {
       created += inserted.length;
@@ -655,6 +745,24 @@ async function pullInvoices(
         const rowIdx = chunk[j].rowIdx;
         if (refIdx >= 0) sheetUpdates.push({ range: `'Open Invoices'!${String.fromCharCode(65 + refIdx)}${rowIdx + 1}`, values: [[inv.reference_id]] });
         if (sourceIdx >= 0) sheetUpdates.push({ range: `'Open Invoices'!${String.fromCharCode(65 + sourceIdx)}${rowIdx + 1}`, values: [['recouply']] });
+
+        // Insert line items if present
+        const liItems = chunk[j].lineItems;
+        if (liItems && liItems.length > 0) {
+          const liRecords = liItems.map((li: any) => ({
+            invoice_id: inv.id,
+            user_id: userId,
+            description: li.description,
+            quantity: li.quantity,
+            unit_price: li.unit_price,
+            line_total: li.line_total || li.quantity * li.unit_price,
+            line_type: li.line_type,
+            sort_order: li.sort_order,
+          }));
+          const { error: liErr } = await supabase.from('invoice_line_items').insert(liRecords);
+          if (!liErr) lineItemsCreated += liRecords.length;
+          else console.error('Line items insert error:', liErr.message);
+        }
       }
     } else {
       skipped += chunk.length;
@@ -681,13 +789,13 @@ async function pullInvoices(
     );
     movedToPaid = rowsToMoveToPaid.length;
     const clearUpdates = rowsToMoveToPaid.map(ri => ({
-      range: `'Open Invoices'!A${ri + 1}:P${ri + 1}`,
-      values: [Array(16).fill('')],
+      range: `'Open Invoices'!A${ri + 1}:V${ri + 1}`,
+      values: [Array(22).fill('')],
     }));
     await batchUpdateSheet(accessToken, template.sheet_id, clearUpdates);
   }
 
-  return { created, updated, skipped, movedToPaid, syncProtected };
+  return { created, updated, skipped, movedToPaid, syncProtected, lineItemsCreated };
 }
 
 async function pullPayments(
