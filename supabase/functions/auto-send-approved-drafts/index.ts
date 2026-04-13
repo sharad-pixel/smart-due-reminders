@@ -250,7 +250,8 @@ Deno.serve(async (req) => {
             name,
             company_name,
             email,
-            phone
+            phone,
+            outreach_paused
           )
         )
       `)
