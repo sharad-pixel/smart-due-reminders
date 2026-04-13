@@ -1239,7 +1239,7 @@ const AIWorkflows = () => {
                     .from("ai_drafts")
                     .update({ status: "rejected" as any })
                     .eq("user_id", user.id)
-                    .in("status", ["pending", "approved"]);
+                    .in("status", ["pending_approval", "approved"]);
                   if (cancelError) {
                     console.error("Failed to cancel scheduled drafts:", cancelError);
                   } else {
