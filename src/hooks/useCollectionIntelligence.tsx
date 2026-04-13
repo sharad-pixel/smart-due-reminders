@@ -33,72 +33,32 @@ export const useCollectionIntelligence = (debtorId?: string) => {
   const queryClient = useQueryClient();
   const [batchProgress, setBatchProgress] = useState<BatchProgress | null>(null);
 
-  // Calculate intelligence score for a single debtor
   const calculateIntelligence = useMutation({
     mutationFn: async ({ debtor_id, recalculate_all }: { debtor_id?: string; recalculate_all?: boolean }) => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
 
-      // Single debtor - direct call
-      if (debtor_id && !recalculate_all) {
-        const { data, error } = await supabase.functions.invoke("calculate-collection-intelligence", {
-          body: { debtor_id, recalculate_all: false },
-        });
-        if (error) throw error;
-        return data;
-      }
+      // Single call — the edge function handles bulk processing server-side
+      setBatchProgress({ current: 0, total: 1, percent: 10, failed: 0 });
 
-      // Recalculate all - use batch processing
-      const { data: debtors, error: fetchError } = await supabase
-        .from("debtors")
-        .select("id")
-        .eq("is_archived", false);
+      const { data, error } = await supabase.functions.invoke("calculate-collection-intelligence", {
+        body: { debtor_id: debtor_id || undefined, recalculate_all: recalculate_all || !debtor_id },
+      });
 
-      if (fetchError) throw fetchError;
-      if (!debtors || debtors.length === 0) return { processed: 0 };
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
-      const BATCH_SIZE = 5;
-      const debtorIds = debtors.map(d => d.id);
-      let processedCount = 0;
-      let failedCount = 0;
+      setBatchProgress({
+        current: data.processed || 1,
+        total: data.processed || 1,
+        percent: 100,
+        failed: 0,
+      });
 
-      setBatchProgress({ current: 0, total: debtorIds.length, percent: 0, failed: 0 });
+      // Clear progress after brief display
+      setTimeout(() => setBatchProgress(null), 1500);
 
-      for (let i = 0; i < debtorIds.length; i += BATCH_SIZE) {
-        const batch = debtorIds.slice(i, i + BATCH_SIZE);
-        
-        // Process batch items in parallel
-        const results = await Promise.allSettled(
-          batch.map(id =>
-            supabase.functions.invoke("calculate-collection-intelligence", {
-              body: { debtor_id: id, recalculate_all: false },
-            })
-          )
-        );
-
-        results.forEach(r => {
-          if (r.status === "fulfilled" && !r.value.error) {
-            processedCount++;
-          } else {
-            failedCount++;
-          }
-        });
-
-        setBatchProgress({
-          current: processedCount + failedCount,
-          total: debtorIds.length,
-          percent: Math.round(((processedCount + failedCount) / debtorIds.length) * 100),
-          failed: failedCount,
-        });
-
-        // Small delay between batches to avoid rate limiting
-        if (i + BATCH_SIZE < debtorIds.length) {
-          await new Promise(resolve => setTimeout(resolve, 300));
-        }
-      }
-
-      setBatchProgress(null);
-      return { processed: processedCount, failed: failedCount, total: debtorIds.length };
+      return data;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["debtors"] });
@@ -107,10 +67,7 @@ export const useCollectionIntelligence = (debtorId?: string) => {
       if (debtorId) {
         queryClient.invalidateQueries({ queryKey: ["debtor", debtorId] });
       }
-      const msg = data?.failed 
-        ? `Recalculated ${data.processed} of ${data.total} accounts (${data.failed} failed)`
-        : "Collection Intelligence scores recalculated";
-      toast.success(msg);
+      toast.success(`Collection Intelligence scores recalculated — ${data.processed} accounts`);
     },
     onError: (error: any) => {
       setBatchProgress(null);
@@ -129,7 +86,7 @@ export const useCollectionIntelligenceDashboard = () => {
 
   const query = useQuery({
     queryKey: ["collection-intelligence-dashboard"],
-    staleTime: 30 * 60 * 1000, // 30 minutes — data is pre-cached daily
+    staleTime: 30 * 60 * 1000,
     gcTime: 60 * 60 * 1000,
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -165,15 +122,12 @@ export const useCollectionIntelligenceDashboard = () => {
           table: "debtors",
         },
         (payload) => {
-          
-          // Update the local cache with new data
           setRealtimeData((prev) => {
             const updated = prev.map((d) =>
               d.id === payload.new.id ? { ...d, ...payload.new } : d
             );
             return updated;
           });
-          // Also invalidate the query to refresh
           query.refetch();
         }
       )
@@ -190,7 +144,7 @@ export const useCollectionIntelligenceDashboard = () => {
     return realtimeUpdate ? { ...d, ...realtimeUpdate } : d;
   });
 
-  // Calculate summary stats - only count accounts with open balance (matches dashboard display)
+  // Calculate summary stats - only count accounts with open balance
   const accountsWithBalance = data?.filter((d) => (d.total_open_balance || 0) > 0);
   const summary = accountsWithBalance ? {
     totalAccounts: accountsWithBalance.length,
@@ -232,10 +186,9 @@ export const useDebtorIntelligence = (debtorId: string) => {
   const query = useQuery({
     queryKey: ["debtor-intelligence", debtorId],
     enabled: !!debtorId,
-    staleTime: 30 * 60 * 1000, // 30 minutes — data is pre-cached daily
+    staleTime: 30 * 60 * 1000,
     gcTime: 60 * 60 * 1000,
     queryFn: async () => {
-      // Fetch debtor data, invoices, and inbound emails in parallel
       const [debtorResult, invoicesResult, inboundResult] = await Promise.all([
         supabase
           .from("debtors")
@@ -268,24 +221,20 @@ export const useDebtorIntelligence = (debtorId: string) => {
 
       const today = new Date();
       const paidInvoices = invoices.filter(inv => inv.status === "paid" || inv.status === "Paid");
-      const overdueInvoices = invoices.filter(inv => 
-        !["paid", "Paid", "Canceled", "Settled"].includes(inv.status) && 
+      const overdueInvoices = invoices.filter(inv =>
+        !["paid", "Paid", "Canceled", "Settled"].includes(inv.status) &&
         inv.due_date && new Date(inv.due_date) < today
       );
-      const totalInvoices = invoices.length;
 
-      // Get actual inbound email count and sentiments
       const actualInboundCount = inboundEmails.length;
       const inboundSentiments = inboundEmails
         .map(e => e.ai_sentiment)
         .filter((s): s is string => !!s);
 
-      // Determine if we have sufficient data for intelligence
-      const hasSufficientData = totalInvoices > 0 || 
-        (debtorData.touchpoint_count || 0) > 0 || 
+      const hasSufficientData = invoices.length > 0 ||
+        (debtorData.touchpoint_count || 0) > 0 ||
         actualInboundCount > 0;
 
-      // Determine primary currency from invoices (most common one)
       const currencyCounts = invoices.reduce((acc: Record<string, number>, inv: any) => {
         const c = inv.currency || 'USD';
         acc[c] = (acc[c] || 0) + 1;
@@ -298,7 +247,6 @@ export const useDebtorIntelligence = (debtorId: string) => {
         paid_invoices_count: paidInvoices.length,
         overdue_invoices_count: overdueInvoices.length,
         actual_inbound_email_count: actualInboundCount,
-        // Use real count instead of cached count
         inbound_email_count: actualInboundCount,
         inbound_sentiments: inboundSentiments,
         has_sufficient_data: hasSufficientData,
@@ -307,7 +255,6 @@ export const useDebtorIntelligence = (debtorId: string) => {
     },
   });
 
-  // Setup realtime subscription for this specific debtor
   useEffect(() => {
     if (!debtorId) return;
 
@@ -315,14 +262,8 @@ export const useDebtorIntelligence = (debtorId: string) => {
       .channel(`debtor-intelligence-${debtorId}`)
       .on(
         "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "debtors",
-          filter: `id=eq.${debtorId}`,
-        },
+        { event: "UPDATE", schema: "public", table: "debtors", filter: `id=eq.${debtorId}` },
         (payload) => {
-          
           if (payload.new.collection_intelligence_score !== undefined) {
             setRealtimeScore(payload.new.collection_intelligence_score);
           }
@@ -331,21 +272,12 @@ export const useDebtorIntelligence = (debtorId: string) => {
       )
       .subscribe();
 
-    // Also listen for new inbound emails to this debtor
     const inboundChannel = supabase
       .channel(`debtor-inbound-${debtorId}`)
       .on(
         "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "inbound_emails",
-          filter: `debtor_id=eq.${debtorId}`,
-        },
-        (_payload) => {
-          
-          query.refetch();
-        }
+        { event: "INSERT", schema: "public", table: "inbound_emails", filter: `debtor_id=eq.${debtorId}` },
+        () => { query.refetch(); }
       )
       .subscribe();
 
