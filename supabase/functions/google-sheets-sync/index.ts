@@ -215,42 +215,75 @@ async function pushAccounts(supabase: any, accessToken: string, template: any, u
 async function pushInvoices(supabase: any, accessToken: string, template: any, userId: string) {
   const { data: openInvoices } = await supabase
     .from('invoices')
-    .select('invoice_number, amount, amount_original, amount_outstanding, currency, issue_date, due_date, paid_date, status, po_number, product_description, payment_terms, notes, reference_id, integration_source, source_system, debtors(reference_id, company_name)')
+    .select('id, invoice_number, amount, amount_original, amount_outstanding, currency, issue_date, due_date, paid_date, status, po_number, product_description, payment_terms, notes, reference_id, integration_source, source_system, debtors(reference_id, company_name)')
     .eq('user_id', userId)
     .in('status', ['Open', 'InPaymentPlan', 'PartiallyPaid', 'Disputed'])
     .order('due_date', { ascending: false });
 
   const { data: paidInvoices } = await supabase
     .from('invoices')
-    .select('invoice_number, amount, amount_original, amount_outstanding, currency, issue_date, due_date, paid_date, status, po_number, product_description, payment_terms, notes, reference_id, integration_source, source_system, debtors(reference_id, company_name)')
+    .select('id, invoice_number, amount, amount_original, amount_outstanding, currency, issue_date, due_date, paid_date, status, po_number, product_description, payment_terms, notes, reference_id, integration_source, source_system, debtors(reference_id, company_name)')
     .eq('user_id', userId)
     .in('status', ['Paid', 'Canceled', 'Voided', 'Settled', 'FinalInternalCollections'])
     .order('due_date', { ascending: false })
     .limit(1000);
 
+  // Fetch line items for all invoices
+  const allInvIds = [...(openInvoices || []), ...(paidInvoices || [])].map((i: any) => i.id);
+  const lineItemsByInvoice = new Map<string, any[]>();
+  
+  for (let i = 0; i < allInvIds.length; i += 100) {
+    const chunk = allInvIds.slice(i, i + 100);
+    const { data: items } = await supabase
+      .from('invoice_line_items')
+      .select('invoice_id, description, quantity, unit_price, line_total, sort_order, line_type')
+      .in('invoice_id', chunk)
+      .order('sort_order', { ascending: true });
+    for (const item of (items || [])) {
+      if (!lineItemsByInvoice.has(item.invoice_id)) lineItemsByInvoice.set(item.invoice_id, []);
+      lineItemsByInvoice.get(item.invoice_id)!.push(item);
+    }
+  }
+
   const headers = [
     'Account RAID', 'Account Name', 'SS Invoice #', 'Original Amount', 'Amount Outstanding',
     'Currency', 'Issue Date', 'Due Date', 'Status', 'PO Number', 'Product/Description',
-    'Payment Terms', 'Paid Date', 'Notes', 'Recouply Invoice Ref (DO NOT EDIT)', 'Source'
+    'Payment Terms', 'Paid Date', 'Notes', 'Recouply Invoice Ref (DO NOT EDIT)', 'Source',
+    'Line #', 'Line Type', 'Line Description', 'Line Qty', 'Line Unit Price', 'Line Total'
   ];
 
-  const mapInv = (inv: any) => [
-    inv.debtors?.reference_id || '', inv.debtors?.company_name || '',
-    inv.invoice_number || '', inv.amount_original || inv.amount || 0,
-    inv.amount_outstanding || inv.amount || 0,
-    inv.currency || 'USD', inv.issue_date || '', inv.due_date || '', inv.status || '',
-    inv.po_number || '', inv.product_description || '', inv.payment_terms || '',
-    inv.paid_date || '', inv.notes || '', inv.reference_id || '',
-    inv.integration_source || inv.source_system || 'recouply',
-  ];
+  const mapInvRows = (inv: any): any[][] => {
+    const baseRow = [
+      inv.debtors?.reference_id || '', inv.debtors?.company_name || '',
+      inv.invoice_number || '', inv.amount_original || inv.amount || 0,
+      inv.amount_outstanding || inv.amount || 0,
+      inv.currency || 'USD', inv.issue_date || '', inv.due_date || '', inv.status || '',
+      inv.po_number || '', inv.product_description || '', inv.payment_terms || '',
+      inv.paid_date || '', inv.notes || '', inv.reference_id || '',
+      inv.integration_source || inv.source_system || 'recouply',
+    ];
+    
+    const items = lineItemsByInvoice.get(inv.id);
+    if (items && items.length > 0) {
+      return items.map((li: any, idx: number) => [
+        ...baseRow,
+        idx + 1, li.line_type || 'item', li.description || '',
+        li.quantity || 0, li.unit_price || 0, li.line_total || 0,
+      ]);
+    }
+    return [[...baseRow, '', '', '', '', '', '']];
+  };
+
+  const openDataRows = (openInvoices || []).flatMap(mapInvRows);
+  const paidDataRows = (paidInvoices || []).flatMap(mapInvRows);
 
   // Key col 14 = Recouply Invoice Ref
   const [openResult, paidResult] = await Promise.all([
-    incrementalPush(accessToken, template.sheet_id, 'Open Invoices', 'A:P', headers, (openInvoices || []).map(mapInv), 14),
-    incrementalPush(accessToken, template.sheet_id, 'Paid Invoices', 'A:P', headers, (paidInvoices || []).map(mapInv), 14),
+    incrementalPush(accessToken, template.sheet_id, 'Open Invoices', 'A:V', headers, openDataRows, 14),
+    incrementalPush(accessToken, template.sheet_id, 'Paid Invoices', 'A:V', headers, paidDataRows, 14),
   ]);
 
-  return { openPushed: (openInvoices || []).length, paidPushed: (paidInvoices || []).length, openResult, paidResult };
+  return { openPushed: openDataRows.length, paidPushed: paidDataRows.length, openResult, paidResult };
 }
 
 async function pushPayments(supabase: any, accessToken: string, template: any, userId: string) {
