@@ -36,7 +36,7 @@ import { GoogleSheetsIcon } from "@/components/icons/GoogleIcons";
 const TEMPLATE_TYPES = [
   { key: 'accounts', label: 'Accounts', icon: Users, description: 'Customer accounts with RAID, contacts & balances' },
   { key: 'invoices', label: 'Invoices', icon: FileText, description: 'Open & Paid invoices with auto tab management' },
-  { key: 'payments', label: 'Payments', icon: CreditCard, description: 'Payment records with partial payment support' },
+  { key: 'payments', label: 'Payments', icon: CreditCard, description: 'Pre-populated reconciliation template — just add payment amounts, references & dates' },
 ] as const;
 
 interface SyncProgress {
