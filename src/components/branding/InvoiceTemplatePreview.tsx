@@ -259,9 +259,18 @@ export const InvoiceTemplatePreview = ({
                   <span>Total</span>
                   <span>{amount}</span>
                 </div>
-                <div className="flex justify-between font-semibold text-gray-600">
+                {/* Sample payment adjustment */}
+                <div className="flex justify-between text-green-700 text-[9px]">
+                  <span>Payment 03/15/2026</span>
+                  <span>−$50,000.00</span>
+                </div>
+                <div className="flex justify-between text-blue-700 text-[9px]">
+                  <span>Credit — Early pay</span>
+                  <span>−$5,000.00</span>
+                </div>
+                <div className="flex justify-between font-bold pt-0.5 border-t" style={{ color: hc }}>
                   <span>Amount Due</span>
-                  <span>{amount}</span>
+                  <span>$675,260.92</span>
                 </div>
               </div>
             </div>

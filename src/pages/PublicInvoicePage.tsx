@@ -159,7 +159,7 @@ const PublicInvoicePage = () => {
   const writeOffs = transactions.filter(t => t.transaction_type === 'write_off');
   const totalCredits = credits.reduce((s, t) => s + (t.amount || 0), 0);
   const totalWriteOffs = writeOffs.reduce((s, t) => s + (t.amount || 0), 0);
-  const hasAdjustments = totalPayments > 0 || totalCredits > 0 || totalWriteOffs > 0;
+  
 
   const debtorAddress = [
     debtor?.address_line1,
