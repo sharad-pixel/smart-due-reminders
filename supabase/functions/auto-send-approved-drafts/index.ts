@@ -387,6 +387,13 @@ Deno.serve(async (req) => {
       const invoice = (draft as any).invoices as any;
       const debtor = invoice?.debtors as any;
 
+      // Skip if debtor has outreach paused
+      if (debtor?.outreach_paused === true) {
+        console.log(`[AUTO-SEND] Skipping invoice draft ${draft.id}: account outreach is paused for debtor ${debtor?.id}`);
+        skippedCount++;
+        continue;
+      }
+
       // Only process active invoice statuses - mark others as skipped
       if (invoice?.status !== 'Open' && invoice?.status !== 'InPaymentPlan' && invoice?.status !== 'PartiallyPaid') {
         console.log(`[AUTO-SEND] Skipping invoice draft ${draft.id}: invoice ${invoice?.id} status is ${invoice?.status}`);
