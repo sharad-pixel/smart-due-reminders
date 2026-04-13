@@ -4,7 +4,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Factory, Sparkles } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Loader2, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -42,12 +43,13 @@ const INDUSTRIES = [
 interface IndustryOutreachDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onGenerate: (industry: string, businessDescription: string) => Promise<void>;
+  onGenerate: (industry: string, businessDescription: string, replaceScheduled: boolean) => Promise<void>;
 }
 
 export function IndustryOutreachDialog({ open, onOpenChange, onGenerate }: IndustryOutreachDialogProps) {
   const [industry, setIndustry] = useState("");
   const [businessDescription, setBusinessDescription] = useState("");
+  const [replaceScheduled, setReplaceScheduled] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
@@ -92,7 +94,7 @@ export function IndustryOutreachDialog({ open, onOpenChange, onGenerate }: Indus
           .eq("user_id", user.id);
       }
 
-      await onGenerate(industry, businessDescription);
+      await onGenerate(industry, businessDescription, replaceScheduled);
       onOpenChange(false);
     } catch (error: any) {
       toast.error(error.message || "Failed to generate industry-specific outreach");
@@ -101,16 +103,18 @@ export function IndustryOutreachDialog({ open, onOpenChange, onGenerate }: Indus
     }
   };
 
+  const hasBusinessInfo = !!industry && !!businessDescription.trim();
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Factory className="h-5 w-5 text-primary" />
-            Industry-Specific Outreach
+            <Sparkles className="h-5 w-5 text-primary" />
+            Generate AI Templates
           </DialogTitle>
           <DialogDescription>
-            Describe your industry and business so AI agents can craft outreach messages that reference your products/services naturally — making collections feel contextual, not generic.
+            Provide your industry and business details so AI agents can craft outreach messages that reference your products/services naturally — making collections feel contextual, not generic.
           </DialogDescription>
         </DialogHeader>
 
@@ -145,15 +149,31 @@ export function IndustryOutreachDialog({ open, onOpenChange, onGenerate }: Indus
               This context helps AI agents reference your specific offerings in collection messages, making outreach feel personalized and relevant.
             </p>
           </div>
+
+          <div className="flex items-start space-x-3 rounded-md border p-3 bg-muted/30">
+            <Checkbox
+              id="replaceScheduled"
+              checked={replaceScheduled}
+              onCheckedChange={(checked) => setReplaceScheduled(checked === true)}
+            />
+            <div className="space-y-1 leading-none">
+              <Label htmlFor="replaceScheduled" className="text-sm font-medium cursor-pointer">
+                Replace all scheduled outreach with new templates
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                This will cancel all pending/scheduled drafts and regenerate them using the new industry-specific templates. Existing sent outreach will not be affected.
+              </p>
+            </div>
+          </div>
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={generating}>
             Cancel
           </Button>
-          <Button onClick={handleGenerate} disabled={generating || !industry || !businessDescription.trim()} className="gap-1.5">
+          <Button onClick={handleGenerate} disabled={generating || !hasBusinessInfo} className="gap-1.5">
             {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-            {generating ? "Generating..." : "Generate Industry Outreach"}
+            {generating ? "Generating..." : "Generate Templates"}
           </Button>
         </DialogFooter>
       </DialogContent>
