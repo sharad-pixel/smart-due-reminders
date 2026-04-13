@@ -317,9 +317,19 @@ async function generateAITemplate(
       ? "This is the FINAL/LAST contact in this collection phase before escalation."
       : `This is follow-up contact ${stepNumber} of ${totalSteps} in this collection phase.`;
 
+  const industryPromptSection = industryContext
+    ? `\nINDUSTRY CONTEXT:
+- Industry: ${industryContext.industry}
+- Business: ${industryContext.businessName}
+- Products/Services: ${industryContext.businessDescription}
+
+IMPORTANT: Tailor the collection message to this specific industry and business. Reference their products/services naturally in the message. Make the outreach feel like it comes from someone who understands the business relationship, not a generic collection notice. For example, reference project deliverables, subscription services, consulting engagements, or whatever is relevant to their business type.`
+    : '';
+
   const systemPrompt = `You are an expert collections email copywriter. Your task is to generate professional, compliant collection email templates.
 
 ${persona.systemPromptGuidelines}
+${industryPromptSection}
 
 CRITICAL RULES:
 1. ALWAYS write in English
@@ -329,7 +339,8 @@ CRITICAL RULES:
 5. Never use harassment, threats, or non-compliant language
 6. Include a clear call to action
 7. Maintain ${persona.name}'s tone throughout
-8. Do NOT include a signature - that's added automatically`;
+8. Do NOT include a signature - that's added automatically
+${industryContext ? '9. Reference the business products/services naturally - make the message feel industry-specific' : ''}`;
 
   const bucketDescriptions: Record<string, string> = {
     dpd_1_30: '1-30 days past due - Early stage, friendly reminder approach',
