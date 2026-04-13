@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { PauseCircle, PlayCircle } from "lucide-react";
 import { Calendar, Users, Zap, AlertCircle, Brain, Sparkles, Send, Eye, CheckCircle, Volume2 } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { PersonaAvatar } from "@/components/ai/PersonaAvatar";
@@ -17,6 +18,7 @@ import { toneIntensityModifiers } from "@/lib/personaTones";
 interface AccountOutreachSettingsProps {
   debtorId: string;
   debtorName: string;
+  outreachPaused?: boolean;
   initialSettings?: {
     account_outreach_enabled: boolean;
     outreach_frequency: string;
@@ -49,6 +51,7 @@ const PERSONA_OPTIONS = [
 export const AccountOutreachSettings = ({
   debtorId,
   debtorName,
+  outreachPaused = false,
   initialSettings,
   onSettingsChange,
 }: AccountOutreachSettingsProps) => {
