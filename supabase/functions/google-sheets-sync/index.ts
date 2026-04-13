@@ -529,8 +529,15 @@ async function pullInvoices(
   const notesIdx = headers.indexOf('notes');
   const refIdx = headers.findIndex((h: string) => h.includes('recouply') && h.includes('ref') && h.includes('do not edit'));
   const sourceIdx = headers.indexOf('source');
+  const lineNumIdx = headers.indexOf('line #');
+  const lineTypeIdx = headers.indexOf('line type');
+  const lineDescIdx = headers.indexOf('line description');
+  const lineQtyIdx = headers.indexOf('line qty');
+  const lineUnitPriceIdx = headers.indexOf('line unit price');
+  const lineTotalIdx = headers.indexOf('line total');
+  const hasLineItemCols = lineNumIdx >= 0 || lineDescIdx >= 0;
 
-  let created = 0, updated = 0, skipped = 0, movedToPaid = 0, syncProtected = 0;
+  let created = 0, updated = 0, skipped = 0, movedToPaid = 0, syncProtected = 0, lineItemsCreated = 0;
   const sheetUpdates: any[] = [];
   const rowsToMoveToPaid: number[] = [];
 
