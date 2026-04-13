@@ -65,10 +65,26 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    const { buckets } = await req.json();
+    const { buckets, industry, business_description } = await req.json();
     const targetBuckets = buckets || Object.keys(BUCKET_STEPS);
 
-    console.log(`[GENERATE-ALL-TEMPLATES] Generating AI templates for user ${user.id}, buckets: ${targetBuckets.join(', ')}`);
+    // Fetch branding for business name and saved industry context
+    const { data: branding } = await supabase
+      .from('branding_settings')
+      .select('business_name, industry, business_description')
+      .eq('user_id', user.id)
+      .single();
+
+    const businessName = branding?.business_name || 'Your Company';
+    // Use passed-in values (from dialog) or fall back to saved branding values
+    const effectiveIndustry = industry || (branding as any)?.industry || null;
+    const effectiveBusinessDescription = business_description || (branding as any)?.business_description || null;
+
+    const industryContext = effectiveIndustry && effectiveBusinessDescription
+      ? { industry: effectiveIndustry, businessDescription: effectiveBusinessDescription, businessName }
+      : null;
+
+    console.log(`[GENERATE-ALL-TEMPLATES] Generating AI templates for user ${user.id}, buckets: ${targetBuckets.join(', ')}${industryContext ? `, industry: ${industryContext.industry}` : ''}`);
 
     const results: any[] = [];
     let totalTemplatesCreated = 0;
