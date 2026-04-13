@@ -168,7 +168,8 @@ serve(async (req) => {
             step.label,
             step.day_offset,
             steps.length,
-            persona
+            persona,
+            industryContext
           );
 
           // Create or update workflow step with AI content
