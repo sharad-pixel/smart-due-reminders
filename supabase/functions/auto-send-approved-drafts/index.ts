@@ -681,12 +681,19 @@ Deno.serve(async (req) => {
       try {
         const { data: debtor, error: debtorError } = await supabaseAdmin
           .from('debtors')
-          .select('id, name, company_name, email, phone')
+          .select('id, name, company_name, email, phone, outreach_paused')
           .eq('id', debtorId)
           .single();
 
         if (debtorError || !debtor) {
           console.log(`[AUTO-SEND] Skipping account draft ${draft.id}: debtor not found (${debtorError?.message || 'unknown'})`);
+          skippedCount++;
+          continue;
+        }
+
+        // Skip if debtor has outreach paused
+        if (debtor.outreach_paused === true) {
+          console.log(`[AUTO-SEND] Skipping account draft ${draft.id}: account outreach is paused for debtor ${debtorId}`);
           skippedCount++;
           continue;
         }
