@@ -300,6 +300,20 @@ serve(async (req) => {
       );
     }
 
+    // Check if outreach is paused at account or invoice level
+    if (debtor.outreach_paused === true) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Outreach is paused for this account. Please resume outreach before sending." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    if (invoice.outreach_paused === true) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Outreach is paused for this invoice. Please resume outreach before sending." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Calculate days past due for template replacement
     const invoiceDueDate = new Date(invoice.due_date);
     const todayDate = new Date();
