@@ -290,7 +290,7 @@ async function pushPayments(supabase: any, accessToken: string, template: any, u
   // Fetch open/partially-paid invoices with debtors + line items for pre-populated template
   const { data: invoices } = await supabase
     .from('invoices')
-    .select('id, invoice_number, amount, amount_outstanding, currency, reference_id, debtors(reference_id, company_name)')
+    .select('id, invoice_number, amount, amount_outstanding, currency, reference_id, integration_source, debtors(reference_id, company_name)')
     .eq('user_id', userId)
     .in('status', ['Open', 'PartiallyPaid', 'InPaymentPlan', 'Disputed'])
     .order('due_date', { ascending: true });
@@ -323,7 +323,7 @@ async function pushPayments(supabase: any, accessToken: string, template: any, u
   const templateHeaders = [
     'Account RAID', 'Account Name', 'SS Invoice #', 'Recouply Invoice Ref (DO NOT EDIT)',
     'Line #', 'Line Type', 'Line Description', 'Line Amount',
-    'Invoice Total Outstanding', 'Currency',
+    'Invoice Total Outstanding', 'Currency', 'Invoice Source',
     'Payment Amount', 'Payment Reference', 'Payment Date',
     'Recouply Payment Ref (DO NOT EDIT)', 'Source'
   ];
