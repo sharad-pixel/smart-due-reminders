@@ -710,6 +710,7 @@ export type Database = {
           ar_page_last_updated_at: string | null
           ar_page_public_token: string | null
           auto_approve_drafts: boolean
+          business_description: string | null
           business_name: string
           created_at: string | null
           email_footer: string | null
@@ -726,6 +727,7 @@ export type Database = {
           from_name: string | null
           id: string
           include_portal_link_in_outreach: boolean
+          industry: string | null
           last_test_email_sent_at: string | null
           logo_url: string | null
           organization_id: string | null
@@ -747,6 +749,7 @@ export type Database = {
           ar_page_last_updated_at?: string | null
           ar_page_public_token?: string | null
           auto_approve_drafts?: boolean
+          business_description?: string | null
           business_name: string
           created_at?: string | null
           email_footer?: string | null
@@ -763,6 +766,7 @@ export type Database = {
           from_name?: string | null
           id?: string
           include_portal_link_in_outreach?: boolean
+          industry?: string | null
           last_test_email_sent_at?: string | null
           logo_url?: string | null
           organization_id?: string | null
@@ -784,6 +788,7 @@ export type Database = {
           ar_page_last_updated_at?: string | null
           ar_page_public_token?: string | null
           auto_approve_drafts?: boolean
+          business_description?: string | null
           business_name?: string
           created_at?: string | null
           email_footer?: string | null
@@ -800,6 +805,7 @@ export type Database = {
           from_name?: string | null
           id?: string
           include_portal_link_in_outreach?: boolean
+          industry?: string | null
           last_test_email_sent_at?: string | null
           logo_url?: string | null
           organization_id?: string | null
