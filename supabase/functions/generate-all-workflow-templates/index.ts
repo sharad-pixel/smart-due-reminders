@@ -306,7 +306,8 @@ async function generateAITemplate(
   stepLabel: string,
   dayOffset: number,
   totalSteps: number,
-  persona: any
+  persona: any,
+  industryContext: { industry: string; businessDescription: string; businessName: string } | null = null
 ): Promise<{ subject: string; body: string }> {
   const isFirstStep = stepNumber === 1;
   const isLastStep = stepNumber === totalSteps;
