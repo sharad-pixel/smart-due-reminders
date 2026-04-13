@@ -335,13 +335,14 @@ async function pushPayments(supabase: any, accessToken: string, template: any, u
       inv.debtors?.reference_id || '', inv.debtors?.company_name || '',
       inv.invoice_number || '', inv.reference_id || '',
     ];
+    const invoiceSource = inv.integration_source || 'manual';
     if (items && items.length > 0) {
       for (let idx = 0; idx < items.length; idx++) {
         const li = items[idx];
         templateRows.push([
           ...baseRow,
           idx + 1, li.line_type || 'item', li.description || '', li.line_total || 0,
-          inv.amount_outstanding || inv.amount || 0, inv.currency || 'USD',
+          inv.amount_outstanding || inv.amount || 0, inv.currency || 'USD', invoiceSource,
           '', '', '', '', '', // empty payment columns for user to fill
         ]);
       }
@@ -349,7 +350,7 @@ async function pushPayments(supabase: any, accessToken: string, template: any, u
       templateRows.push([
         ...baseRow,
         '', '', '', inv.amount_outstanding || inv.amount || 0,
-        inv.amount_outstanding || inv.amount || 0, inv.currency || 'USD',
+        inv.amount_outstanding || inv.amount || 0, inv.currency || 'USD', invoiceSource,
         '', '', '', '', '',
       ]);
     }
