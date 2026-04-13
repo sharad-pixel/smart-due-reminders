@@ -287,19 +287,81 @@ async function pushInvoices(supabase: any, accessToken: string, template: any, u
 }
 
 async function pushPayments(supabase: any, accessToken: string, template: any, userId: string) {
-  const { data: payments } = await supabase
+  // Fetch open/partially-paid invoices with debtors + line items for pre-populated template
+  const { data: invoices } = await supabase
+    .from('invoices')
+    .select('id, invoice_number, amount, amount_outstanding, currency, reference_id, debtors(reference_id, company_name)')
+    .eq('user_id', userId)
+    .in('status', ['Open', 'PartiallyPaid', 'InPaymentPlan', 'Disputed'])
+    .order('due_date', { ascending: true });
+
+  // Fetch line items
+  const allInvIds = (invoices || []).map((i: any) => i.id);
+  const lineItemsByInvoice = new Map<string, any[]>();
+  for (let i = 0; i < allInvIds.length; i += 100) {
+    const chunk = allInvIds.slice(i, i + 100);
+    const { data: items } = await supabase
+      .from('invoice_line_items')
+      .select('invoice_id, description, quantity, unit_price, line_total, sort_order, line_type')
+      .in('invoice_id', chunk)
+      .order('sort_order', { ascending: true });
+    for (const item of (items || [])) {
+      if (!lineItemsByInvoice.has(item.invoice_id)) lineItemsByInvoice.set(item.invoice_id, []);
+      lineItemsByInvoice.get(item.invoice_id)!.push(item);
+    }
+  }
+
+  // Also fetch existing payments to show in a second sheet
+  const { data: existingPayments } = await supabase
     .from('payments')
     .select('reference_id, amount, currency, payment_date, reference, reconciliation_status, invoice_number_hint, notes, source_system, debtors(reference_id, company_name)')
     .eq('user_id', userId)
     .order('payment_date', { ascending: false })
     .limit(1000);
 
-  const headers = [
+  // Template sheet headers — pre-populated + user-fillable
+  const templateHeaders = [
+    'Account RAID', 'Account Name', 'SS Invoice #', 'Recouply Invoice Ref (DO NOT EDIT)',
+    'Line #', 'Line Type', 'Line Description', 'Line Amount',
+    'Invoice Total Outstanding', 'Currency',
+    'Payment Amount', 'Payment Reference', 'Payment Date',
+    'Recouply Payment Ref (DO NOT EDIT)', 'Source'
+  ];
+
+  const templateRows: any[][] = [];
+  for (const inv of (invoices || [])) {
+    const items = lineItemsByInvoice.get(inv.id);
+    const baseRow = [
+      inv.debtors?.reference_id || '', inv.debtors?.company_name || '',
+      inv.invoice_number || '', inv.reference_id || '',
+    ];
+    if (items && items.length > 0) {
+      for (let idx = 0; idx < items.length; idx++) {
+        const li = items[idx];
+        templateRows.push([
+          ...baseRow,
+          idx + 1, li.line_type || 'item', li.description || '', li.line_total || 0,
+          inv.amount_outstanding || inv.amount || 0, inv.currency || 'USD',
+          '', '', '', '', '', // empty payment columns for user to fill
+        ]);
+      }
+    } else {
+      templateRows.push([
+        ...baseRow,
+        '', '', '', inv.amount_outstanding || inv.amount || 0,
+        inv.amount_outstanding || inv.amount || 0, inv.currency || 'USD',
+        '', '', '', '', '',
+      ]);
+    }
+  }
+
+  // Recorded payments sheet
+  const recordedHeaders = [
     'Account RAID', 'Account Name', 'SS Invoice #', 'Payment Amount', 'Currency',
     'Payment Date', 'Payment Reference', 'Reconciliation Status',
     'Notes', 'Recouply Payment Ref (DO NOT EDIT)', 'Source'
   ];
-  const dataRows = (payments || []).map((p: any) => [
+  const recordedRows = (existingPayments || []).map((p: any) => [
     p.debtors?.reference_id || '', p.debtors?.company_name || '',
     p.invoice_number_hint || '', p.amount || 0, p.currency || 'USD',
     p.payment_date || '', p.reference || '',
@@ -307,8 +369,13 @@ async function pushPayments(supabase: any, accessToken: string, template: any, u
     p.source_system || 'recouply',
   ]);
 
-  // Key col 9 = Recouply Payment Ref
-  return await incrementalPush(accessToken, template.sheet_id, 'Payments', 'A:K', headers, dataRows, 9);
+  // Push template sheet (key col 3 = Recouply Invoice Ref) and recorded payments (key col 9)
+  const [templateResult, recordedResult] = await Promise.all([
+    incrementalPush(accessToken, template.sheet_id, 'Payment Template', 'A:O', templateHeaders, templateRows, 3),
+    incrementalPush(accessToken, template.sheet_id, 'Recorded Payments', 'A:K', recordedHeaders, recordedRows, 9),
+  ]);
+
+  return { templatePushed: templateRows.length, recordedPushed: recordedRows.length, templateResult, recordedResult };
 }
 
 async function pullAccounts(
@@ -803,19 +870,26 @@ async function pullPayments(
   updateProgress: (status: string, progress: Record<string, any>) => Promise<void>
 ) {
   await updateProgress('syncing', { phase: 'reading_sheet', percent: 15, direction: 'pull' });
-  const rows = await readSheet(accessToken, template.sheet_id, 'Payments!A1:K5000');
+  // Read from "Payment Template" sheet (new format) or fall back to "Payments" (legacy)
+  let rows: any[][] = [];
+  try {
+    rows = await readSheet(accessToken, template.sheet_id, "'Payment Template'!A1:O5000");
+  } catch {
+    rows = await readSheet(accessToken, template.sheet_id, 'Payments!A1:K5000');
+  }
   if (rows.length <= 1) return { created: 0, skipped: 0, syncProtected: 0 };
 
   const headers = rows[0].map((h: string) => h.toLowerCase().trim());
   const accountRaidIdx = headers.indexOf('account raid');
   const invNumIdx = headers.findIndex((h: string) => h === 'ss invoice #' || h === 'invoice number' || h === 'invoice ref');
+  const invRefIdx = headers.findIndex((h: string) => h.includes('recouply invoice ref'));
   const amountIdx = headers.indexOf('payment amount');
   const currIdx = headers.indexOf('currency');
   const dateIdx = headers.indexOf('payment date');
   const refIdx = headers.indexOf('payment reference');
   const reconIdx = headers.findIndex((h: string) => h === 'reconciliation status' || h === 'status');
   const notesIdx = headers.indexOf('notes');
-  const payRefIdx = headers.findIndex((h: string) => h.includes('recouply') && h.includes('ref') && h.includes('do not edit'));
+  const payRefIdx = headers.findIndex((h: string) => h.includes('recouply') && h.includes('payment') && h.includes('ref') && h.includes('do not edit'));
   const sourceIdx = headers.indexOf('source');
 
   let created = 0, skipped = 0, syncProtected = 0;
@@ -825,7 +899,7 @@ async function pullPayments(
   await updateProgress('syncing', { phase: 'processing', percent: 25, direction: 'pull' });
   const [{ data: allDebtors }, { data: allInvoices }] = await Promise.all([
     supabase.from('debtors').select('id, reference_id, sheet_sync_enabled').eq('user_id', userId).eq('is_archived', false),
-    supabase.from('invoices').select('id, invoice_number, debtor_id, amount_outstanding, amount').eq('user_id', userId),
+    supabase.from('invoices').select('id, invoice_number, reference_id, debtor_id, amount_outstanding, amount').eq('user_id', userId),
   ]);
 
   const raidToDebtorId = new Map<string, string>();
@@ -836,8 +910,10 @@ async function pullPayments(
   }
 
   const invNumToInvoice = new Map<string, any>();
+  const invRefToInvoice = new Map<string, any>();
   for (const inv of (allInvoices || [])) {
     if (inv.invoice_number) invNumToInvoice.set(inv.invoice_number, inv);
+    if (inv.reference_id) invRefToInvoice.set(inv.reference_id.toLowerCase(), inv);
   }
 
   // Collect insertable rows
@@ -858,17 +934,20 @@ async function pullPayments(
     if (!amount || isNaN(amount)) continue;
 
     const invoiceNum = getVal(row, invNumIdx);
+    const invoiceRef = getVal(row, invRefIdx);
     const paymentDate = parseDate(getVal(row, dateIdx));
 
     let debtorId: string | null = accountRaid ? raidToDebtorId.get(accountRaid) || null : null;
     let invoiceId: string | null = null;
 
-    if (invoiceNum) {
+    // Try matching by Recouply Invoice Ref first, then SS Invoice #
+    if (invoiceRef) {
+      const inv = invRefToInvoice.get(invoiceRef.toLowerCase());
+      if (inv) { invoiceId = inv.id; if (!debtorId) debtorId = inv.debtor_id; }
+    }
+    if (!invoiceId && invoiceNum) {
       const inv = invNumToInvoice.get(invoiceNum);
-      if (inv) {
-        invoiceId = inv.id;
-        if (!debtorId) debtorId = inv.debtor_id;
-      }
+      if (inv) { invoiceId = inv.id; if (!debtorId) debtorId = inv.debtor_id; }
     }
 
     if (!debtorId) { skipped++; continue; }
@@ -908,8 +987,8 @@ async function pullPayments(
       created += inserted.length;
       for (let j = 0; j < inserted.length; j++) {
         const rowIdx = chunk[j].rowIdx;
-        if (payRefIdx >= 0) sheetUpdates.push({ range: `Payments!${String.fromCharCode(65 + payRefIdx)}${rowIdx + 1}`, values: [[inserted[j].reference_id]] });
-        if (sourceIdx >= 0) sheetUpdates.push({ range: `Payments!${String.fromCharCode(65 + sourceIdx)}${rowIdx + 1}`, values: [['recouply']] });
+        if (payRefIdx >= 0) sheetUpdates.push({ range: `'Payment Template'!${String.fromCharCode(65 + payRefIdx)}${rowIdx + 1}`, values: [[inserted[j].reference_id]] });
+        if (sourceIdx >= 0) sheetUpdates.push({ range: `'Payment Template'!${String.fromCharCode(65 + sourceIdx)}${rowIdx + 1}`, values: [['recouply']] });
         if (chunk[j].invoiceId) {
           invoiceUpdates.push({ id: chunk[j].invoiceId!, amount: chunk[j].record.amount });
         }
