@@ -15,6 +15,20 @@ const QR_LOGOS: Record<string, string> = {
   Stripe: stripeLogo,
 };
 
+interface PaymentRecord {
+  amount: number;
+  payment_date: string;
+  reference: string | null;
+}
+
+interface TransactionRecord {
+  transaction_type: string;
+  amount: number;
+  transaction_date: string;
+  reason: string | null;
+  reference_number: string | null;
+}
+
 interface PublicInvoiceData {
   invoice: {
     id: string;
@@ -71,6 +85,8 @@ interface PublicInvoiceData {
     qr_code_paypal_url: string | null;
     qr_code_cashapp_url: string | null;
   } | null;
+  payments?: PaymentRecord[];
+  transactions?: TransactionRecord[];
 }
 
 const PublicInvoicePage = () => {
