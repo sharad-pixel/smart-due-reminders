@@ -15,6 +15,20 @@ const QR_LOGOS: Record<string, string> = {
   Stripe: stripeLogo,
 };
 
+interface PaymentRecord {
+  amount: number;
+  payment_date: string;
+  reference: string | null;
+}
+
+interface TransactionRecord {
+  transaction_type: string;
+  amount: number;
+  transaction_date: string;
+  reason: string | null;
+  reference_number: string | null;
+}
+
 interface PublicInvoiceData {
   invoice: {
     id: string;
@@ -71,6 +85,8 @@ interface PublicInvoiceData {
     qr_code_paypal_url: string | null;
     qr_code_cashapp_url: string | null;
   } | null;
+  payments?: PaymentRecord[];
+  transactions?: TransactionRecord[];
 }
 
 const PublicInvoicePage = () => {
@@ -121,7 +137,7 @@ const PublicInvoicePage = () => {
     );
   }
 
-  const { invoice, debtor, branding, template } = data;
+  const { invoice, debtor, branding, template, payments = [], transactions = [] } = data;
   const hc = template?.header_color || branding.primary_color || "#1a56db";
   const fontFamily =
     template?.font_style === "classic"
@@ -137,6 +153,9 @@ const PublicInvoicePage = () => {
 
   const formatDate = (d: string) =>
     new Date(d).toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" });
+
+  const credits = transactions.filter(t => t.transaction_type === 'credit');
+  const writeOffs = transactions.filter(t => t.transaction_type === 'write_off');
 
   const debtorAddress = [
     debtor?.address_line1,
@@ -326,7 +345,7 @@ const PublicInvoicePage = () => {
             {/* Totals */}
             <div className="px-8 mt-4">
               <div className="flex justify-end">
-                <div className="w-56 text-sm space-y-1">
+                <div className="w-64 text-sm space-y-1">
                   <div className="flex justify-between">
                     <span className="font-semibold text-gray-600">Subtotal</span>
                     <span>{formatCurrency(subtotal)}</span>
@@ -341,9 +360,55 @@ const PublicInvoicePage = () => {
                     <span>Total</span>
                     <span>{formatCurrency(total)}</span>
                   </div>
-                  {!isPaid && outstanding !== total && (
-                    <div className="flex justify-between font-semibold text-gray-600">
-                      <span>Amount Due</span>
+
+                  {/* Payments applied */}
+                  {payments.length > 0 && (
+                    <>
+                      {payments.map((p, i) => (
+                        <div key={`pay-${i}`} className="flex justify-between text-green-700">
+                          <span className="text-xs">
+                            Payment {formatDate(p.payment_date)}
+                            {p.reference ? ` (${p.reference})` : ""}
+                          </span>
+                          <span>−{formatCurrency(p.amount)}</span>
+                        </div>
+                      ))}
+                    </>
+                  )}
+
+                  {/* Credits applied */}
+                  {credits.length > 0 && (
+                    <>
+                      {credits.map((t, i) => (
+                        <div key={`cr-${i}`} className="flex justify-between text-blue-700">
+                          <span className="text-xs">
+                            Credit {formatDate(t.transaction_date)}
+                            {t.reason ? ` — ${t.reason}` : ""}
+                          </span>
+                          <span>−{formatCurrency(t.amount)}</span>
+                        </div>
+                      ))}
+                    </>
+                  )}
+
+                  {/* Write-offs */}
+                  {writeOffs.length > 0 && (
+                    <>
+                      {writeOffs.map((t, i) => (
+                        <div key={`wo-${i}`} className="flex justify-between text-orange-700">
+                          <span className="text-xs">
+                            Write-off {formatDate(t.transaction_date)}
+                          </span>
+                          <span>−{formatCurrency(t.amount)}</span>
+                        </div>
+                      ))}
+                    </>
+                  )}
+
+                  {/* Amount Due */}
+                  {outstanding !== total && (
+                    <div className="flex justify-between font-bold pt-1 border-t" style={{ color: hc }}>
+                      <span>{isPaid ? "Amount Paid" : "Amount Due"}</span>
                       <span>{formatCurrency(outstanding)}</span>
                     </div>
                   )}
