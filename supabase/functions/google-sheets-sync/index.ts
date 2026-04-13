@@ -870,7 +870,13 @@ async function pullPayments(
   updateProgress: (status: string, progress: Record<string, any>) => Promise<void>
 ) {
   await updateProgress('syncing', { phase: 'reading_sheet', percent: 15, direction: 'pull' });
-  const rows = await readSheet(accessToken, template.sheet_id, 'Payments!A1:K5000');
+  // Read from "Payment Template" sheet (new format) or fall back to "Payments" (legacy)
+  let rows: any[][] = [];
+  try {
+    rows = await readSheet(accessToken, template.sheet_id, "'Payment Template'!A1:O5000");
+  } catch {
+    rows = await readSheet(accessToken, template.sheet_id, 'Payments!A1:K5000');
+  }
   if (rows.length <= 1) return { created: 0, skipped: 0, syncProtected: 0 };
 
   const headers = rows[0].map((h: string) => h.toLowerCase().trim());
