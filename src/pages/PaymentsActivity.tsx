@@ -90,13 +90,24 @@ const PaymentsActivity = () => {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold">Payments & Reconciliation</h1>
-            <p className="text-muted-foreground">Track payments, match details, and manage reconciliation</p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold">Payments & Reconciliation</h1>
+              <p className="text-muted-foreground">Track payments, match details, and manage reconciliation</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handleExportTemplate}>
+              <Download className="h-4 w-4 mr-1" /> Export Template
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={isImporting}>
+              <Upload className="h-4 w-4 mr-1" /> {isImporting ? "Importing..." : "Import Payments"}
+            </Button>
+            <input ref={fileInputRef} type="file" accept=".csv,.xlsx" className="hidden" onChange={handleImportPayments} />
           </div>
         </div>
 
