@@ -13,7 +13,7 @@ export async function exportPaymentTemplate() {
   // Fetch open/partially-paid invoices with debtor info
   const { data: invoices, error } = await supabase
     .from("invoices")
-    .select("id, invoice_number, amount, amount_outstanding, currency, due_date, status, reference_id, debtors(company_name, reference_id)")
+    .select("id, invoice_number, amount, amount_outstanding, currency, due_date, status, reference_id, integration_source, debtors(company_name, reference_id)")
     .eq("user_id", user.id)
     .in("status", ["Open", "PartiallyPaid", "InPaymentPlan", "Disputed"])
     .order("due_date", { ascending: true });

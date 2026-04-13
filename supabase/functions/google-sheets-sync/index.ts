@@ -372,7 +372,7 @@ async function pushPayments(supabase: any, accessToken: string, template: any, u
 
   // Push template sheet (key col 3 = Recouply Invoice Ref) and recorded payments (key col 9)
   const [templateResult, recordedResult] = await Promise.all([
-    incrementalPush(accessToken, template.sheet_id, 'Payment Template', 'A:O', templateHeaders, templateRows, 3),
+    incrementalPush(accessToken, template.sheet_id, 'Payment Template', 'A:P', templateHeaders, templateRows, 3),
     incrementalPush(accessToken, template.sheet_id, 'Recorded Payments', 'A:K', recordedHeaders, recordedRows, 9),
   ]);
 
