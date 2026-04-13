@@ -88,10 +88,20 @@ export function IndustryOutreachDialog({ open, onOpenChange, onGenerate }: Indus
       // Save to branding_settings
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        await supabase
+        const { error: saveError } = await supabase
           .from("branding_settings")
-          .update({ industry, business_description: businessDescription } as any)
+          .update({ 
+            industry: industry, 
+            business_description: businessDescription 
+          } as any)
           .eq("user_id", user.id);
+        if (saveError) {
+          console.error("Failed to save industry context:", saveError);
+          toast.error("Failed to save industry context");
+          setGenerating(false);
+          return;
+        }
+        console.log("Saved industry context:", { industry, businessDescription: businessDescription.substring(0, 50) });
       }
 
       await onGenerate(industry, businessDescription, replaceScheduled);
