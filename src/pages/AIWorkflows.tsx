@@ -1289,7 +1289,7 @@ const AIWorkflows = () => {
               refetchErrors();
               queryClient.invalidateQueries({ queryKey: ["outreach-batch-runs"] });
             }} />
-            <OutreachBatchRunHistory />
+            <AITemplateContextCard />
           </div>
           <OutreachInsightsPanel />
         </div>
