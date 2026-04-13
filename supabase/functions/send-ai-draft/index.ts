@@ -86,10 +86,18 @@ serve(async (req) => {
       // Fetch debtor
       const { data: debtor, error: debtorErr } = await supabaseClient
         .from("debtors")
-        .select("id, name, company_name, email, phone")
+        .select("id, name, company_name, email, phone, outreach_paused")
         .eq("id", debtor_id)
         .single();
       if (debtorErr || !debtor) throw new Error("Account not found");
+
+      // Check if outreach is paused
+      if (debtor.outreach_paused === true) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Outreach is paused for this account. Please resume outreach before sending." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
 
       // Resolve recipients
       const outreachContacts = await getOutreachContacts(supabaseClient, debtor_id, debtor);
