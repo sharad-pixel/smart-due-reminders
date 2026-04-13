@@ -261,7 +261,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
           .order("sent_at", { ascending: false }),
         supabase
           .from("collection_activities")
-          .select("*")
+          .select("*, linked_draft_id")
           .eq("invoice_id", id)
           .eq("direction", "outbound")
           .order("sent_at", { ascending: false }),
@@ -311,8 +311,21 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
         };
       });
       
-      // Combine and deduplicate (prefer collection_activities if both exist)
-      const allOutreach = [...outreachFromActivities, ...outreachFromLogs]
+      // Combine and deduplicate (prefer collection_activities if both exist for same draft)
+      const draftIdsSeen = new Set<string>();
+      outreachFromActivities.forEach(a => {
+        const draftId = (a as any).linked_draft_id || a.delivery_metadata?.draft_id;
+        if (draftId) draftIdsSeen.add(draftId);
+      });
+      
+      // Filter out outreach_logs that are duplicates of collection_activities (same draft)
+      const dedupedLogs = outreachFromLogs.filter(log => {
+        const logDraftId = log.delivery_metadata?.draft_id;
+        if (logDraftId && draftIdsSeen.has(logDraftId)) return false;
+        return true;
+      });
+      
+      const allOutreach = [...outreachFromActivities, ...dedupedLogs]
         .sort((a, b) => new Date(b.sent_at || 0).getTime() - new Date(a.sent_at || 0).getTime());
       
       setOutreach(allOutreach);
