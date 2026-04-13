@@ -1,10 +1,11 @@
 import { Button } from "@/components/ui/button";
-import { Sparkles, Workflow, Zap, Loader2 } from "lucide-react";
+import { Sparkles, Workflow, Zap, Loader2, Factory } from "lucide-react";
 
 interface WorkflowHeroHeaderProps {
   onGenerateAllTemplates: () => void;
   onReassignAll: () => void;
   onRunEngine: () => void;
+  onIndustryOutreach: () => void;
   generatingAllTemplates: boolean;
   reassigning: boolean;
   isRunningEngine: boolean;
@@ -14,6 +15,7 @@ export function WorkflowHeroHeader({
   onGenerateAllTemplates,
   onReassignAll,
   onRunEngine,
+  onIndustryOutreach,
   generatingAllTemplates,
   reassigning,
   isRunningEngine,
@@ -36,6 +38,15 @@ export function WorkflowHeroHeader({
         </div>
 
         <div className="flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onIndustryOutreach}
+            className="gap-1.5"
+          >
+            <Factory className="h-3.5 w-3.5" />
+            Industry Outreach
+          </Button>
           <Button
             size="sm"
             variant="outline"
