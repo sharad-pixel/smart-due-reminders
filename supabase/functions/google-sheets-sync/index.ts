@@ -987,8 +987,8 @@ async function pullPayments(
       created += inserted.length;
       for (let j = 0; j < inserted.length; j++) {
         const rowIdx = chunk[j].rowIdx;
-        if (payRefIdx >= 0) sheetUpdates.push({ range: `Payments!${String.fromCharCode(65 + payRefIdx)}${rowIdx + 1}`, values: [[inserted[j].reference_id]] });
-        if (sourceIdx >= 0) sheetUpdates.push({ range: `Payments!${String.fromCharCode(65 + sourceIdx)}${rowIdx + 1}`, values: [['recouply']] });
+        if (payRefIdx >= 0) sheetUpdates.push({ range: `'Payment Template'!${String.fromCharCode(65 + payRefIdx)}${rowIdx + 1}`, values: [[inserted[j].reference_id]] });
+        if (sourceIdx >= 0) sheetUpdates.push({ range: `'Payment Template'!${String.fromCharCode(65 + sourceIdx)}${rowIdx + 1}`, values: [['recouply']] });
         if (chunk[j].invoiceId) {
           invoiceUpdates.push({ id: chunk[j].invoiceId!, amount: chunk[j].record.amount });
         }
