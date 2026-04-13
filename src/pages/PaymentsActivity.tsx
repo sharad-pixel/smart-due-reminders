@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { usePageTitle } from "@/hooks/usePageTitle";
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
@@ -8,15 +8,16 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
   DollarSign, ArrowLeft, TrendingUp, Calendar, CreditCard, 
-  Building2, Zap, LinkIcon, FileSpreadsheet, Activity
+  Building2, Zap, LinkIcon, FileSpreadsheet, Activity, Download, Upload
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { usePaymentsSummary } from '@/hooks/usePaymentsActivity';
 import { PaymentReconciliationTable } from '@/components/payments/PaymentReconciliationTable';
 import { TransactionActivityTable } from '@/components/payments/TransactionActivityTable';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/formatters';
 
 const getSourceIcon = (source: string | null) => {
@@ -31,8 +32,42 @@ const getSourceIcon = (source: string | null) => {
 const PaymentsActivity = () => {
   usePageTitle("Payments");
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [selectedUploadId, setSelectedUploadId] = useState<string | null>(null);
   const { data: summary, isLoading: summaryLoading } = usePaymentsSummary();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isImporting, setIsImporting] = useState(false);
+
+  const handleExportTemplate = async () => {
+    try {
+      const { exportPaymentTemplate } = await import("@/lib/paymentTemplateExport");
+      await exportPaymentTemplate();
+      toast.success("Payment template exported");
+    } catch (err: any) {
+      toast.error(err.message || "Export failed");
+    }
+  };
+
+  const handleImportPayments = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsImporting(true);
+    try {
+      const { importPaymentTemplate } = await import("@/lib/paymentTemplateExport");
+      const result = await importPaymentTemplate(file);
+      queryClient.invalidateQueries({ queryKey: ["payments"] });
+      queryClient.invalidateQueries({ queryKey: ["payments-summary"] });
+      toast.success(`${result.created} payment(s) reconciled. ${result.skipped} skipped.`);
+      if (result.errors.length > 0) {
+        toast.warning(`${result.errors.length} error(s): ${result.errors[0]}`);
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Import failed");
+    } finally {
+      setIsImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   // Fetch payment uploads from Data Center
   const { data: paymentUploads } = useQuery({
