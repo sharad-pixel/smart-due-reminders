@@ -3,29 +3,35 @@ import TrustPolicyPage from "./TrustPolicyPage";
 const VendorSecurity = () => (
   <TrustPolicyPage
     title="Vendor & Subprocessor Security"
-    metaDescription="Recouply.ai's vendor security policy covering third-party provider review, access limitations, and subprocessor management."
+    metaDescription="Recouply.ai's vendor security policy: third-party evaluation, access limitations, periodic review, and subprocessor transparency."
     canonicalPath="/trust/vendor-security"
     lastUpdated="April 2026"
+    intro="We rely on a small number of established, enterprise-grade providers. Every vendor relationship is evaluated for security posture, access scope, and ongoing risk."
     sections={[
-      { title: "Third-Party Provider Review", content: [
-        "We evaluate the security posture of third-party providers before engagement and on an ongoing basis. Evaluation criteria include security certifications, data handling practices, and operational maturity.",
-        "Critical vendors are selected based on their established track records in serving enterprise and security-sensitive customers."
+      { title: "Vendor Evaluation", bullets: [
+        "Security posture, certifications, and data handling practices are assessed before engagement.",
+        "Critical vendors are selected based on established track records serving security-sensitive customers.",
+        "Contractual obligations govern data handling, access, and incident notification.",
       ]},
-      { title: "Established Infrastructure Partners", content: [
-        "Recouply.ai is built on enterprise-grade cloud infrastructure and service providers that maintain their own comprehensive security programs and certifications.",
-        "We leverage the security investments of our infrastructure partners while maintaining our own application-level security controls."
+      { title: "Infrastructure Partners", bullets: [
+        "Recouply.ai runs on enterprise-grade cloud infrastructure with comprehensive provider security programs.",
+        "Provider security investments complement our application-level controls.",
+        "Infrastructure certifications (SOC 2, ISO 27001) are validated as part of vendor review.",
       ]},
-      { title: "Limiting Vendor Access", content: [
-        "Third-party vendors are granted the minimum access necessary to deliver their services. Vendor access to customer data is restricted and governed by contractual obligations.",
-        "We do not share customer data with vendors except as necessary to operate and deliver the platform."
+      { title: "Access Limitations", bullets: [
+        "Vendors receive minimum necessary access to deliver their services.",
+        "Customer data is not shared with vendors except as operationally required.",
+        "Vendor access is governed by contractual terms and technical controls.",
       ]},
-      { title: "Periodic Evaluation", content: [
-        "Critical vendors are subject to periodic security review. Changes in vendor security posture, service terms, or data handling practices are assessed for impact.",
-        "Vendor relationships are reviewed as part of our overall security program management."
+      { title: "Periodic Review", bullets: [
+        "Critical vendors undergo periodic security reassessment.",
+        "Changes in vendor posture, terms, or practices are evaluated for impact.",
+        "Vendor inventory is maintained as part of overall security program management.",
       ]},
-      { title: "Subprocessor List", content: [
-        "We maintain awareness of subprocessors involved in delivering our services. A list of key subprocessors may be provided to customers upon request as part of security review or procurement processes.",
-        "Changes to critical subprocessors are communicated to customers when appropriate."
+      { title: "Subprocessor Transparency", bullets: [
+        "Key subprocessors involved in service delivery are documented and tracked.",
+        "A subprocessor list is available to customers upon request during security review or procurement.",
+        "Material changes to critical subprocessors are communicated proactively.",
       ]},
     ]}
   />

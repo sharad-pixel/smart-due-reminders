@@ -3,29 +3,35 @@ import TrustPolicyPage from "./TrustPolicyPage";
 const IncidentResponse = () => (
   <TrustPolicyPage
     title="Incident Response Policy"
-    metaDescription="Recouply.ai's incident response policy covering identification, escalation, containment, and customer notification procedures."
+    metaDescription="Recouply.ai's incident response policy: detection, escalation, containment, customer notification, and continuous improvement."
     canonicalPath="/trust/incident-response"
     lastUpdated="April 2026"
+    intro="We maintain a structured incident response process designed to detect, contain, and resolve security events promptly — with transparent customer communication when warranted."
     sections={[
-      { title: "Incident Identification", content: [
-        "We maintain monitoring and alerting systems to detect potential security incidents promptly. Anomalous activity, unauthorized access attempts, and system irregularities are flagged for investigation.",
-        "Team members are trained to recognize and report potential security events through established channels."
+      { title: "Detection & Identification", bullets: [
+        "Monitoring and alerting systems flag anomalous activity, unauthorized access attempts, and system irregularities.",
+        "All team members are trained to recognize and escalate potential security events.",
+        "Automated alerts reduce mean time to detection.",
       ]},
-      { title: "Escalation & Triage", content: [
-        "Identified incidents are assessed for severity and impact. A structured triage process determines the appropriate response level and resource allocation.",
-        "Critical incidents are escalated immediately to senior technical and leadership team members."
+      { title: "Escalation & Triage", bullets: [
+        "Structured severity classification determines response level and resource allocation.",
+        "Critical incidents are escalated immediately to senior technical and leadership personnel.",
+        "Clear ownership is assigned for every incident.",
       ]},
-      { title: "Containment & Remediation", content: [
-        "Once an incident is confirmed, containment measures are implemented to limit impact. This may include isolating affected systems, revoking compromised credentials, or applying emergency patches.",
-        "Remediation efforts address the root cause and restore affected systems to a secure state."
+      { title: "Containment & Remediation", bullets: [
+        "Containment actions include system isolation, credential revocation, and emergency patching.",
+        "Root cause analysis drives remediation to prevent recurrence.",
+        "Systems are restored to a verified secure state before resuming normal operations.",
       ]},
-      { title: "Customer Notification", content: [
-        "When a security incident may affect customer data, we notify impacted customers promptly with relevant details about the incident, its impact, and the steps being taken to address it.",
-        "Notification timelines and methods are aligned with applicable regulatory requirements and contractual obligations."
+      { title: "Customer Notification", bullets: [
+        "Impacted customers are notified promptly with details about the incident, its scope, and remediation steps.",
+        "Notification timelines align with regulatory requirements and contractual obligations.",
+        "Follow-up communication provided until resolution is confirmed.",
       ]},
-      { title: "Post-Incident Review", content: [
-        "After resolution, we conduct internal reviews to identify contributing factors and improvement opportunities. Lessons learned are incorporated into our security practices and procedures.",
-        "Post-incident reviews inform updates to monitoring, controls, and response procedures."
+      { title: "Post-Incident Review", bullets: [
+        "Every incident triggers an internal review to identify contributing factors.",
+        "Lessons learned are incorporated into monitoring, controls, and response procedures.",
+        "Review outcomes are documented and tracked.",
       ]},
     ]}
   />

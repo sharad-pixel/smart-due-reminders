@@ -3,29 +3,35 @@ import TrustPolicyPage from "./TrustPolicyPage";
 const AccessControl = () => (
   <TrustPolicyPage
     title="Access Control Policy"
-    metaDescription="Recouply.ai's access control policy covering role-based permissions, least privilege principles, and credential management."
+    metaDescription="Recouply.ai's access control policy: RBAC, least-privilege enforcement, MFA, credential management, and access lifecycle management."
     canonicalPath="/trust/access-control"
     lastUpdated="April 2026"
+    intro="Access to Recouply.ai follows the principle of least privilege. Every permission is scoped to role, and every access event is logged."
     sections={[
-      { title: "Least Privilege Principles", content: [
-        "Access to customer data and platform resources follows the principle of least privilege. Users and team members are granted only the permissions necessary to perform their specific functions.",
-        "Administrative access is restricted and subject to additional controls."
+      { title: "Least Privilege", bullets: [
+        "Users and internal team members receive only the permissions necessary for their function.",
+        "Administrative access requires additional authorization and is subject to periodic review.",
+        "Privilege escalation is logged and monitored.",
       ]},
-      { title: "Role-Based Access", content: [
-        "Recouply.ai implements role-based access controls (RBAC) throughout the platform. Customer organizations can assign roles to team members that govern access to data, workflows, outreach tools, and administrative settings.",
-        "Available roles are designed to support typical finance team structures with appropriate separation of duties."
+      { title: "Role-Based Access Controls", bullets: [
+        "Customer organizations assign roles that govern access to data, workflows, outreach tools, and admin settings.",
+        "Roles map to typical finance team structures — supporting separation of duties for collections, approvals, and reporting.",
+        "Role changes are audit-logged with timestamps and actor attribution.",
       ]},
-      { title: "Internal Access Limitations", content: [
-        "Internal team access to production systems and customer data is strictly limited. Access is granted on a need-to-know basis and is reviewed regularly.",
-        "Direct database access is restricted to authorized personnel for operational and support purposes only."
+      { title: "Authentication & MFA", bullets: [
+        "Strong password requirements enforced platform-wide.",
+        "Multi-factor authentication supported for all accounts and expected for privileged access.",
+        "Session management includes configurable timeouts and forced re-authentication.",
       ]},
-      { title: "Credential Management", content: [
-        "Strong password requirements are enforced across the platform. We support and encourage multi-factor authentication for all accounts.",
-        "Multi-factor authentication is expected for privileged access to production systems and administrative interfaces."
+      { title: "Internal Access", bullets: [
+        "Production system access limited to authorized personnel on a need-to-know basis.",
+        "Direct database access restricted and logged.",
+        "No customer data is used in non-production environments.",
       ]},
-      { title: "Onboarding & Offboarding", content: [
-        "Access provisioning follows documented onboarding procedures. When team members change roles or leave the organization, access is reviewed and revoked promptly.",
-        "Customer administrators can manage team access, invite new members, and revoke access directly through the platform."
+      { title: "Access Lifecycle", bullets: [
+        "Documented onboarding procedures for provisioning access.",
+        "Prompt revocation when team members change roles or depart.",
+        "Customer admins manage invitations, role assignment, and access removal directly.",
       ]},
     ]}
   />

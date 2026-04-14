@@ -1,41 +1,55 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import MarketingLayout from "@/components/layout/MarketingLayout";
 import SEOHead from "@/components/seo/SEOHead";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Shield, Lock, Server, Eye, Activity, RefreshCw, Brain, CheckCircle2, ArrowRight, ShieldCheck, FileText, Users, Workflow, ClipboardCheck } from "lucide-react";
+import {
+  Shield, Lock, Server, Eye, Activity, RefreshCw, Brain,
+  CheckCircle2, ArrowRight, ShieldCheck, FileText, Users,
+  Workflow, ClipboardCheck, Database, Code, Fingerprint, KeyRound
+} from "lucide-react";
 
 const securityCards = [
-  { icon: Lock, title: "Data Security", description: "All customer data is encrypted in transit using TLS 1.2+ and at rest using AES-256. We apply data minimization principles and controlled retention policies." },
-  { icon: Users, title: "Access Controls", description: "Role-based access controls enforce least-privilege principles. Privileged access requires multi-factor authentication and is subject to regular review." },
-  { icon: Server, title: "Infrastructure Security", description: "Our platform runs on enterprise-grade cloud infrastructure with automated patching, network isolation, and continuous monitoring across all environments." },
-  { icon: Shield, title: "Application Security", description: "We follow secure development practices including code review, dependency scanning, environment separation, and structured change management." },
-  { icon: Activity, title: "Monitoring & Logging", description: "Comprehensive audit logs track user actions, system events, and data access. Logs are retained for compliance and incident investigation purposes." },
-  { icon: RefreshCw, title: "Business Continuity", description: "Routine backups, recovery planning, and infrastructure redundancy ensure minimal disruption. We continuously evaluate our continuity posture." },
+  { icon: Database, title: "Data Security", description: "AES-256 encryption at rest. TLS 1.2+ in transit. Logical tenant isolation. Data minimization by design." },
+  { icon: KeyRound, title: "Access Controls", description: "RBAC with least-privilege enforcement. MFA for privileged access. Automated onboarding and offboarding workflows." },
+  { icon: Server, title: "Infrastructure", description: "Enterprise-grade cloud hosting. Network isolation, automated patching, and multi-AZ redundancy across production systems." },
+  { icon: Code, title: "Application Security", description: "Mandatory code review. Dependency scanning. Environment separation. Structured change management with rollback capability." },
+  { icon: Eye, title: "Audit & Monitoring", description: "Every user action, workflow change, and data access event is logged. Retained for compliance, investigation, and operational review." },
+  { icon: RefreshCw, title: "Business Continuity", description: "Automated backups with geo-redundancy. Defined RPO/RTO. Regular restoration testing and continuity scenario planning." },
 ];
 
 const trustReasons = [
-  { icon: Workflow, text: "Centralized handoffs between team members with full audit visibility" },
-  { icon: ClipboardCheck, text: "Approval-based outreach ensures every message is reviewed before sending" },
-  { icon: Eye, text: "Complete audit trails for every action, draft, and communication" },
-  { icon: Users, text: "Operational accountability through role-based permissions and task assignment" },
-  { icon: Shield, text: "Reduced manual risk with structured, repeatable workflows" },
-  { icon: Brain, text: "Controlled AI-assisted workflows with human oversight at every step" },
+  { icon: Workflow, title: "Centralized handoffs", text: "Every account transition between team members is logged with full context and audit visibility." },
+  { icon: ClipboardCheck, title: "Approval-gated outreach", text: "No message reaches a customer without passing through configured approval workflows." },
+  { icon: Eye, title: "Complete audit trails", text: "Every draft, edit, send, and escalation is recorded — searchable and exportable." },
+  { icon: Fingerprint, title: "Role-based accountability", text: "Permissions map to job functions. Who did what, when, and why is always answerable." },
+  { icon: Shield, title: "Structured workflows", text: "Repeatable, template-driven processes replace ad-hoc manual actions and reduce operational risk." },
+  { icon: Brain, title: "Human-in-the-loop AI", text: "AI generates drafts. Humans approve them. Every suggestion is traceable and reversible." },
 ];
 
 const faqItems = [
-  { q: "How is customer data protected?", a: "Customer data is protected through encryption in transit and at rest, role-based access controls, logical data segregation, and continuous monitoring. We apply data minimization principles and maintain controlled retention and deletion processes." },
-  { q: "Does Recouply.ai support role-based permissions?", a: "Yes. Recouply.ai enforces role-based access controls across the platform. Users are assigned roles that govern their access to data, workflows, and administrative functions. Access follows least-privilege principles." },
-  { q: "Is data encrypted?", a: "All data is encrypted in transit using TLS 1.2+ and at rest using AES-256 encryption. This applies to all customer data including invoices, communications, workflow records, and uploaded documents." },
-  { q: "Does Recouply.ai maintain audit logs?", a: "Yes. Comprehensive audit logs capture user actions, system events, workflow changes, and data access. These logs support compliance requirements, internal reviews, and incident investigation." },
-  { q: "How does Recouply.ai handle backups?", a: "We perform routine automated backups with defined recovery objectives. Our backup strategy includes geographic redundancy and regular restoration testing to ensure data availability." },
-  { q: "Can customer data be deleted upon request?", a: "Yes. We support data deletion requests in accordance with applicable privacy regulations. Customers can request deletion of their data, and we process these requests within documented timeframes." },
-  { q: "How does Recouply.ai support security reviews?", a: "We provide security documentation, architecture summaries, and control descriptions to support customer due diligence. Our team can respond to security questionnaires and participate in review calls as needed." },
-  { q: "Does Recouply.ai use secure third-party providers?", a: "Yes. We rely on established, enterprise-grade infrastructure and service providers. All critical vendors are evaluated for security posture and are subject to periodic review." },
-  { q: "How are application changes monitored?", a: "All code changes go through structured review processes. We maintain environment separation, automated testing, and change management procedures to ensure stability and security." },
-  { q: "How does Recouply.ai support secure integrations?", a: "Integrations with platforms like Stripe and QuickBooks use secure, authenticated API connections with scoped permissions. We do not store integration credentials in application code." },
+  { q: "How is customer data protected?", a: "Encryption in transit (TLS 1.2+) and at rest (AES-256), role-based access controls, logical tenant isolation, continuous monitoring, and data minimization by design." },
+  { q: "Does Recouply.ai support role-based permissions?", a: "Yes. RBAC governs access to data, workflows, outreach tools, and admin settings. Roles follow least-privilege principles and can be managed directly by customer admins." },
+  { q: "Is data encrypted?", a: "All data is encrypted in transit and at rest. This covers invoices, communications, workflow records, uploaded documents, and all customer-submitted content." },
+  { q: "Does Recouply.ai maintain audit logs?", a: "Yes. Comprehensive logs capture every user action, workflow change, outreach event, and data access. Logs are retained for compliance and are available for customer review." },
+  { q: "How does Recouply.ai handle backups?", a: "Automated backups run on defined schedules with geo-redundant storage. We regularly test restoration procedures and maintain documented RPO/RTO targets." },
+  { q: "Can customer data be deleted upon request?", a: "Yes. We process deletion requests in accordance with applicable privacy regulations within documented timeframes." },
+  { q: "How does Recouply.ai support security reviews?", a: "We provide architecture summaries, control descriptions, and policy documentation. Our team responds to security questionnaires and can join review calls." },
+  { q: "Does Recouply.ai use secure third-party providers?", a: "Yes. We use established infrastructure partners with strong security programs. All critical vendors are evaluated before engagement and reviewed periodically." },
+  { q: "How are application changes managed?", a: "All changes go through peer review, automated testing, and structured deployment pipelines. Environment separation prevents untested code from reaching production." },
+  { q: "How are integrations secured?", a: "Integrations with Stripe, QuickBooks, and other platforms use authenticated API connections with scoped permissions. No integration credentials are stored in application code." },
+];
+
+const policyLinks = [
+  { title: "Security Overview", desc: "Commitment, safeguards, and controls", path: "/trust/security-overview", icon: Shield },
+  { title: "Access Control", desc: "RBAC, MFA, and credential management", path: "/trust/access-control", icon: KeyRound },
+  { title: "Data Protection", desc: "Encryption, segregation, and retention", path: "/trust/data-protection", icon: Database },
+  { title: "Incident Response", desc: "Detection, triage, and notification", path: "/trust/incident-response", icon: Activity },
+  { title: "Business Continuity", desc: "Backups, recovery, and redundancy", path: "/trust/business-continuity", icon: RefreshCw },
+  { title: "Application Security", desc: "Secure SDLC and change management", path: "/trust/application-security", icon: Code },
+  { title: "Vendor Security", desc: "Third-party review and oversight", path: "/trust/vendor-security", icon: Users },
+  { title: "Privacy & Data Handling", desc: "Data use, retention, and deletion", path: "/trust/privacy-data-handling", icon: FileText },
 ];
 
 const TrustCenter = () => {
@@ -50,23 +64,25 @@ const TrustCenter = () => {
       />
 
       {/* Hero */}
-      <section className="py-20 px-4 bg-gradient-to-b from-primary/5 to-background">
-        <div className="container mx-auto max-w-6xl">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div>
+      <section className="py-24 px-4 bg-gradient-to-br from-primary/8 via-primary/3 to-background relative overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,hsl(var(--primary)/0.06),transparent_70%)]" />
+        <div className="container mx-auto max-w-6xl relative">
+          <div className="grid lg:grid-cols-5 gap-16 items-center">
+            <div className="lg:col-span-3">
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-6">
-                <ShieldCheck className="h-4 w-4 text-primary" />
-                <span className="text-sm font-medium text-primary">Trust Center</span>
+                <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+                <span className="text-xs font-semibold tracking-wide uppercase text-primary">Trust Center</span>
               </div>
-              <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-6">
-                Security and trust, built into every workflow
+              <h1 className="text-4xl md:text-5xl lg:text-[3.25rem] font-bold tracking-tight leading-[1.15] mb-5">
+                Security and trust,{" "}
+                <span className="text-primary">built into every workflow</span>
               </h1>
-              <p className="text-lg text-muted-foreground mb-8 max-w-lg">
-                Recouply.ai helps finance teams centralize collections operations with secure workflows, role-based access, audit-ready visibility, and controlled automation.
+              <p className="text-lg text-muted-foreground mb-8 max-w-xl leading-relaxed">
+                Recouply.ai gives finance teams secure, auditable, approval-gated collections workflows — with the controls mid-market and enterprise buyers expect.
               </p>
               <div className="flex flex-wrap gap-3">
                 <Button size="lg" onClick={() => navigate("/trust/security-review-resources")}>
-                  Request Security Information
+                  Request Security Pack
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
                 <Button size="lg" variant="outline" onClick={() => navigate("/contact")}>
@@ -74,21 +90,18 @@ const TrustCenter = () => {
                 </Button>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="lg:col-span-2 grid grid-cols-2 gap-3">
               {[
-                { icon: Lock, label: "Encryption in transit and at rest" },
-                { icon: Users, label: "Role-based access controls" },
-                { icon: Eye, label: "Audit logs and workflow traceability" },
-                { icon: Server, label: "Secure infrastructure and backups" },
+                { icon: Lock, label: "Encryption", sub: "TLS 1.2+ / AES-256" },
+                { icon: KeyRound, label: "Access Controls", sub: "RBAC + MFA" },
+                { icon: Eye, label: "Audit Logs", sub: "Full traceability" },
+                { icon: Server, label: "Infrastructure", sub: "Multi-AZ, geo-redundant" },
               ].map((item) => (
-                <Card key={item.label} className="border-primary/10 bg-card/80">
-                  <CardContent className="p-4 flex flex-col items-center text-center gap-3">
-                    <div className="p-3 rounded-xl bg-primary/10">
-                      <item.icon className="h-5 w-5 text-primary" />
-                    </div>
-                    <p className="text-sm font-medium">{item.label}</p>
-                  </CardContent>
-                </Card>
+                <div key={item.label} className="p-4 rounded-xl border bg-card/90 backdrop-blur-sm hover:border-primary/30 transition-colors">
+                  <item.icon className="h-5 w-5 text-primary mb-3" />
+                  <p className="text-sm font-semibold mb-0.5">{item.label}</p>
+                  <p className="text-xs text-muted-foreground">{item.sub}</p>
+                </div>
               ))}
             </div>
           </div>
@@ -96,21 +109,21 @@ const TrustCenter = () => {
       </section>
 
       {/* Security Overview Grid */}
-      <section className="py-20 px-4">
+      <section className="py-24 px-4">
         <div className="container mx-auto max-w-6xl">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Security overview</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">Our security controls are designed to protect customer data and support enterprise expectations across every layer of the platform.</p>
+          <div className="max-w-2xl mb-14">
+            <h2 className="text-3xl font-bold mb-3">Platform security controls</h2>
+            <p className="text-muted-foreground">Layered protections across data, infrastructure, application, and operations.</p>
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
             {securityCards.map((card) => (
-              <Card key={card.title} className="hover:shadow-md transition-shadow">
+              <Card key={card.title} className="border-border/60 hover:border-primary/20 hover:shadow-lg transition-all duration-200 group">
                 <CardContent className="p-6">
-                  <div className="p-3 rounded-xl bg-primary/10 w-fit mb-4">
+                  <div className="p-2.5 rounded-lg bg-primary/8 w-fit mb-4 group-hover:bg-primary/12 transition-colors">
                     <card.icon className="h-5 w-5 text-primary" />
                   </div>
-                  <h3 className="font-semibold text-lg mb-2">{card.title}</h3>
-                  <p className="text-sm text-muted-foreground">{card.description}</p>
+                  <h3 className="font-semibold mb-2">{card.title}</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{card.description}</p>
                 </CardContent>
               </Card>
             ))}
@@ -119,19 +132,22 @@ const TrustCenter = () => {
       </section>
 
       {/* Why Customers Trust Us */}
-      <section className="py-20 px-4 bg-muted/30">
+      <section className="py-24 px-4 bg-muted/40 border-y">
         <div className="container mx-auto max-w-6xl">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Why customers trust Recouply.ai</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">Recouply.ai is purpose-built for finance and collections workflows where accountability, auditability, and controlled operations are essential.</p>
+          <div className="max-w-2xl mb-14">
+            <h2 className="text-3xl font-bold mb-3">Built for finance-team accountability</h2>
+            <p className="text-muted-foreground">Every feature in Recouply.ai is designed around auditability, controlled operations, and operational trust.</p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {trustReasons.map((reason) => (
-              <div key={reason.text} className="flex items-start gap-4 p-4">
-                <div className="p-2 rounded-lg bg-primary/10 shrink-0">
-                  <reason.icon className="h-4 w-4 text-primary" />
+              <div key={reason.title} className="p-5 rounded-xl bg-card border hover:border-primary/20 transition-colors">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-2 rounded-lg bg-primary/8">
+                    <reason.icon className="h-4 w-4 text-primary" />
+                  </div>
+                  <h3 className="font-semibold text-sm">{reason.title}</h3>
                 </div>
-                <p className="text-sm">{reason.text}</p>
+                <p className="text-sm text-muted-foreground leading-relaxed">{reason.text}</p>
               </div>
             ))}
           </div>
@@ -139,60 +155,58 @@ const TrustCenter = () => {
       </section>
 
       {/* AI Governance */}
-      <section className="py-20 px-4">
-        <div className="container mx-auto max-w-4xl">
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-4">
-              <Brain className="h-4 w-4 text-primary" />
-              <span className="text-sm font-medium text-primary">AI Governance</span>
-            </div>
-            <h2 className="text-3xl font-bold mb-4">Controlled automation, not autonomous AI</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">AI-assisted features in Recouply.ai are designed with guardrails, oversight, and traceability at every step.</p>
-          </div>
-          <div className="grid sm:grid-cols-2 gap-4">
-            {[
-              "Pre-approved workflow steps define when and how AI generates content",
-              "Approval-based messaging ensures human review before outreach is sent",
-              "Human oversight is maintained for all sensitive communications",
-              "Every draft, edit, and outreach action is logged and traceable",
-              "Reduced manual errors through consistent, template-driven workflows",
-              "AI suggestions can be accepted, edited, or rejected at any point",
-            ].map((item) => (
-              <div key={item} className="flex items-start gap-3 p-3">
-                <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                <p className="text-sm">{item}</p>
+      <section className="py-24 px-4">
+        <div className="container mx-auto max-w-5xl">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-5">
+                <Brain className="h-3.5 w-3.5 text-primary" />
+                <span className="text-xs font-semibold tracking-wide uppercase text-primary">AI Governance</span>
               </div>
-            ))}
+              <h2 className="text-3xl font-bold mb-4">Controlled automation,<br />not autonomous AI</h2>
+              <p className="text-muted-foreground leading-relaxed">
+                AI in Recouply.ai operates within pre-defined guardrails. Every generated draft, suggested action, and automated step is traceable, reviewable, and subject to human approval.
+              </p>
+            </div>
+            <div className="space-y-3">
+              {[
+                "Workflow steps define exactly when and how AI generates content",
+                "Every draft requires human approval before it can be sent",
+                "Sensitive communications always route through manual review",
+                "All AI-generated content is logged with full audit context",
+                "Template-driven workflows reduce manual error and improve consistency",
+                "Any AI suggestion can be edited, rejected, or escalated",
+              ].map((item) => (
+                <div key={item} className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
+                  <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                  <p className="text-sm leading-relaxed">{item}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Security Policies Quick Links */}
-      <section className="py-20 px-4 bg-muted/30">
+      {/* Security Policies */}
+      <section className="py-24 px-4 bg-muted/40 border-y">
         <div className="container mx-auto max-w-6xl">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Security policies</h2>
-            <p className="text-muted-foreground">Review our security practices and policies in detail.</p>
+          <div className="max-w-2xl mb-14">
+            <h2 className="text-3xl font-bold mb-3">Security policies & documentation</h2>
+            <p className="text-muted-foreground">Detailed documentation covering every aspect of our security program.</p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[
-              { title: "Security Overview", path: "/trust/security-overview", icon: Shield },
-              { title: "Access Control", path: "/trust/access-control", icon: Lock },
-              { title: "Data Protection", path: "/trust/data-protection", icon: Server },
-              { title: "Incident Response", path: "/trust/incident-response", icon: Activity },
-              { title: "Business Continuity", path: "/trust/business-continuity", icon: RefreshCw },
-              { title: "Application Security", path: "/trust/application-security", icon: Shield },
-              { title: "Vendor Security", path: "/trust/vendor-security", icon: Users },
-              { title: "Privacy & Data Handling", path: "/trust/privacy-data-handling", icon: FileText },
-            ].map((policy) => (
+            {policyLinks.map((policy) => (
               <button
                 key={policy.path}
                 onClick={() => navigate(policy.path)}
-                className="flex items-center gap-3 p-4 rounded-xl border bg-card hover:bg-muted/50 transition-colors text-left group"
+                className="flex flex-col gap-3 p-5 rounded-xl border bg-card hover:border-primary/30 hover:shadow-md transition-all text-left group"
               >
-                <policy.icon className="h-4 w-4 text-primary shrink-0" />
-                <span className="text-sm font-medium group-hover:text-primary transition-colors">{policy.title}</span>
-                <ArrowRight className="h-3 w-3 text-muted-foreground ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+                <policy.icon className="h-5 w-5 text-primary" />
+                <div>
+                  <span className="text-sm font-semibold group-hover:text-primary transition-colors block mb-0.5">{policy.title}</span>
+                  <span className="text-xs text-muted-foreground">{policy.desc}</span>
+                </div>
+                <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/40 group-hover:text-primary group-hover:translate-x-0.5 transition-all mt-auto" />
               </button>
             ))}
           </div>
@@ -200,16 +214,17 @@ const TrustCenter = () => {
       </section>
 
       {/* FAQ */}
-      <section className="py-20 px-4">
+      <section className="py-24 px-4">
         <div className="container mx-auto max-w-3xl">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Frequently asked questions</h2>
+          <div className="max-w-xl mb-14">
+            <h2 className="text-3xl font-bold mb-3">Security FAQ</h2>
+            <p className="text-muted-foreground">Quick answers to common questions from security and procurement teams.</p>
           </div>
           <Accordion type="single" collapsible className="space-y-2">
             {faqItems.map((item, i) => (
-              <AccordionItem key={i} value={`faq-${i}`} className="border rounded-lg px-4">
-                <AccordionTrigger className="text-left text-sm font-medium">{item.q}</AccordionTrigger>
-                <AccordionContent className="text-sm text-muted-foreground">{item.a}</AccordionContent>
+              <AccordionItem key={i} value={`faq-${i}`} className="border rounded-xl px-5 data-[state=open]:bg-muted/30 transition-colors">
+                <AccordionTrigger className="text-left text-sm font-semibold py-4 hover:no-underline">{item.q}</AccordionTrigger>
+                <AccordionContent className="text-sm text-muted-foreground leading-relaxed pb-5">{item.a}</AccordionContent>
               </AccordionItem>
             ))}
           </Accordion>
@@ -217,15 +232,17 @@ const TrustCenter = () => {
       </section>
 
       {/* CTA Footer */}
-      <section className="py-20 px-4 bg-primary/5">
-        <div className="container mx-auto max-w-3xl text-center">
+      <section className="py-24 px-4 bg-gradient-to-br from-primary/8 via-primary/4 to-background border-t">
+        <div className="container mx-auto max-w-2xl text-center">
+          <ShieldCheck className="h-10 w-10 text-primary mx-auto mb-6" />
           <h2 className="text-3xl font-bold mb-4">Need help with a security review?</h2>
-          <p className="text-muted-foreground mb-8 max-w-xl mx-auto">
-            Our team can help you navigate security questionnaires, architecture questions, and procurement diligence.
+          <p className="text-muted-foreground mb-8 leading-relaxed">
+            We support procurement and security teams with architecture documentation, control summaries, and responsive diligence support.
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             <Button size="lg" onClick={() => navigate("/trust/security-review-resources")}>
-              Request Security Information
+              Request Security Pack
+              <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
             <Button size="lg" variant="outline" onClick={() => navigate("/contact")}>
               Talk to Sales
