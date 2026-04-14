@@ -228,9 +228,7 @@ export function AlertNotifications() {
       markAlertRead(alert.id);
     }
     setOpen(false);
-    if (alert.action_url) {
-      navigate(alert.action_url);
-    } else if (alert.invoice_id) {
+    if (alert.invoice_id) {
       navigate(`/tasks?invoiceId=${alert.invoice_id}`);
     } else if (alert.debtor_id) {
       navigate(`/tasks?debtorId=${alert.debtor_id}`);
