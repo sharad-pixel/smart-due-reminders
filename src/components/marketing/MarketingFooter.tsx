@@ -136,14 +136,23 @@
                    Privacy Policy
                  </Link>
                </li>
-                <li>
-                  <button 
-                    onClick={() => navigate("/security-public")}
-                    className="text-muted-foreground hover:text-primary"
-                  >
-                    Security
-                  </button>
-                </li>
+                 <li>
+                   <button 
+                     onClick={() => navigate("/trust")}
+                     className="text-muted-foreground hover:text-primary flex items-center gap-1"
+                   >
+                     <ShieldCheck className="h-3 w-3" />
+                     Trust Center
+                   </button>
+                 </li>
+                 <li>
+                   <button 
+                     onClick={() => navigate("/security-public")}
+                     className="text-muted-foreground hover:text-primary"
+                   >
+                     Security
+                   </button>
+                 </li>
                 <li>
                   <button 
                     onClick={() => navigate("/knowledge-base")}
