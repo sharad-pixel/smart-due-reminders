@@ -3,25 +3,35 @@ import TrustPolicyPage from "./TrustPolicyPage";
 const SecurityOverview = () => (
   <TrustPolicyPage
     title="Security Overview"
-    metaDescription="Recouply.ai's security overview covering our commitment to data protection, secure-by-design architecture, and operational safeguards."
+    metaDescription="Recouply.ai's security overview: data protection commitment, secure-by-design architecture, and layered administrative, technical, and operational safeguards."
     canonicalPath="/trust/security-overview"
     lastUpdated="April 2026"
+    intro="Security is foundational to Recouply.ai. We take a secure-by-design approach — building protections into every layer of the platform rather than treating security as an add-on."
     sections={[
-      { title: "Our Commitment", content: [
-        "Recouply.ai is committed to protecting the data our customers entrust to us. Security is foundational to our platform and is considered at every stage of design, development, and operations.",
-        "We take a secure-by-design approach, building security controls into the platform rather than adding them as an afterthought."
+      { title: "Commitment to Data Protection", bullets: [
+        "Customer data protection is a core operating principle, not a compliance checkbox.",
+        "We maintain documented security policies that are reviewed and updated on a regular cadence.",
+        "Security considerations are embedded into product design, development, and operational decisions.",
       ]},
-      { title: "Administrative Safeguards", content: [
-        "We maintain documented security policies covering access control, incident response, data handling, and vendor management. These policies are reviewed and updated regularly to reflect evolving requirements and best practices.",
-        "Team members receive security awareness guidance and are expected to follow established procedures for handling customer data."
+      { title: "Administrative Safeguards", bullets: [
+        "Documented policies cover access control, incident response, data handling, and vendor management.",
+        "Team members follow established procedures for handling customer data.",
+        "Security awareness is reinforced through onboarding and ongoing guidance.",
       ]},
-      { title: "Technical Safeguards", content: [
-        "Technical controls include encryption of data in transit and at rest, role-based access controls, audit logging, secure authentication mechanisms, and infrastructure monitoring.",
-        "We use established cloud infrastructure providers with strong security track records and maintain environment separation between development, staging, and production systems."
+      { title: "Technical Safeguards", bullets: [
+        "Encryption in transit (TLS 1.2+) and at rest (AES-256).",
+        "Role-based access controls, audit logging, and secure authentication mechanisms.",
+        "Infrastructure monitoring, network isolation, and environment separation.",
       ]},
-      { title: "Operational Safeguards", content: [
-        "We follow structured change management processes, conduct code reviews, and maintain incident response procedures. Our approach emphasizes continuous improvement based on operational experience and security developments.",
-        "Security controls are aligned to enterprise expectations, and we actively support customer security reviews and due diligence processes."
+      { title: "Operational Safeguards", bullets: [
+        "Structured change management with peer review and automated testing.",
+        "Incident response procedures with defined escalation paths.",
+        "Continuous improvement driven by operational experience and security developments.",
+      ]},
+      { title: "Enterprise Readiness", bullets: [
+        "Security controls are aligned to enterprise expectations.",
+        "We actively support customer security reviews and vendor due diligence processes.",
+        "SOC 2 readiness roadmap in place to formalize our security program.",
       ]},
     ]}
   />

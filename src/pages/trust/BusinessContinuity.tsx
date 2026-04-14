@@ -3,29 +3,35 @@ import TrustPolicyPage from "./TrustPolicyPage";
 const BusinessContinuity = () => (
   <TrustPolicyPage
     title="Backup & Business Continuity"
-    metaDescription="Recouply.ai's business continuity policy covering routine backups, recovery planning, and service availability commitments."
+    metaDescription="Recouply.ai's business continuity policy: automated backups, geo-redundancy, recovery targets, and continuity planning."
     canonicalPath="/trust/business-continuity"
     lastUpdated="April 2026"
+    intro="Collections operations are time-sensitive. Our continuity strategy prioritizes minimal downtime, fast recovery, and transparent communication during disruptions."
     sections={[
-      { title: "Routine Backups", content: [
-        "Customer data is backed up on a regular schedule using automated processes. Backups are encrypted and stored in geographically separated locations to protect against regional disruptions.",
-        "Backup integrity is verified through regular testing and restoration exercises."
+      { title: "Automated Backups", bullets: [
+        "Customer data is backed up on defined schedules with automated, encrypted processes.",
+        "Backups are stored in geographically separated locations.",
+        "Backup integrity is verified through regular restoration testing.",
       ]},
-      { title: "Recovery Planning", content: [
-        "We maintain recovery procedures designed to restore service within defined recovery objectives. Recovery plans are documented and tested periodically.",
-        "Recovery time and recovery point objectives are aligned with the operational requirements of finance and collections workflows."
+      { title: "Recovery Objectives", bullets: [
+        "Documented RPO and RTO targets aligned with the operational needs of finance workflows.",
+        "Recovery procedures are tested periodically and updated based on findings.",
+        "Priority restoration covers customer-facing services and data access.",
       ]},
-      { title: "Continuity Considerations", content: [
-        "Our platform architecture is designed to minimize single points of failure. We leverage cloud infrastructure capabilities including automatic scaling, load balancing, and multi-availability zone deployment.",
-        "Continuity planning considers scenarios including infrastructure failures, security incidents, and third-party service disruptions."
+      { title: "Architecture Resilience", bullets: [
+        "Multi-availability zone deployment minimizes single points of failure.",
+        "Automatic scaling and load balancing maintain performance during demand spikes.",
+        "Rolling deployments reduce downtime during application updates.",
       ]},
-      { title: "Minimizing Customer Disruption", content: [
-        "We prioritize minimal disruption to customer operations during maintenance, updates, and incident recovery. Planned maintenance is communicated in advance when possible.",
-        "Our infrastructure supports rolling deployments to reduce downtime during application updates."
+      { title: "Disruption Minimization", bullets: [
+        "Planned maintenance is communicated in advance when possible.",
+        "Infrastructure and application monitoring provide early warning of degradation.",
+        "Incident communication includes estimated impact and recovery timelines.",
       ]},
-      { title: "Infrastructure Provider Awareness", content: [
-        "We evaluate and monitor the availability and resilience capabilities of our infrastructure providers. Provider selection considers security certifications, uptime commitments, and disaster recovery capabilities.",
-        "Dependencies on critical infrastructure providers are documented and reviewed as part of our continuity planning."
+      { title: "Provider Dependencies", bullets: [
+        "Infrastructure providers are evaluated for uptime commitments, certifications, and disaster recovery capabilities.",
+        "Critical dependencies are documented and reviewed as part of continuity planning.",
+        "Fallback strategies are considered for key vendor dependencies.",
       ]},
     ]}
   />
