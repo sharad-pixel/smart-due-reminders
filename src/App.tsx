@@ -98,6 +98,18 @@ const Privacy = lazy(() => import("./pages/legal/Privacy"));
 const Cookies = lazy(() => import("./pages/legal/Cookies"));
 const Security = lazy(() => import("./pages/Security"));
 
+// Trust Center Pages
+const TrustCenter = lazy(() => import("./pages/trust/TrustCenter"));
+const TrustSecurityOverview = lazy(() => import("./pages/trust/SecurityOverview"));
+const TrustAccessControl = lazy(() => import("./pages/trust/AccessControl"));
+const TrustDataProtection = lazy(() => import("./pages/trust/DataProtection"));
+const TrustIncidentResponse = lazy(() => import("./pages/trust/IncidentResponse"));
+const TrustBusinessContinuity = lazy(() => import("./pages/trust/BusinessContinuity"));
+const TrustApplicationSecurity = lazy(() => import("./pages/trust/ApplicationSecurity"));
+const TrustVendorSecurity = lazy(() => import("./pages/trust/VendorSecurity"));
+const TrustPrivacyDataHandling = lazy(() => import("./pages/trust/PrivacyDataHandling"));
+const TrustSecurityReviewResources = lazy(() => import("./pages/trust/SecurityReviewResources"));
+
 // Auth Pages
 const Signup = lazy(() => import("./pages/Signup"));
 const Login = lazy(() => import("./pages/Login"));
@@ -259,6 +271,18 @@ const App = () => (
             <Route path="/legal/privacy" element={<Privacy />} />
             <Route path="/legal/cookies" element={<Cookies />} />
             <Route path="/security-public" element={<Security />} />
+
+            {/* Trust Center */}
+            <Route path="/trust" element={<TrustCenter />} />
+            <Route path="/trust/security-overview" element={<TrustSecurityOverview />} />
+            <Route path="/trust/access-control" element={<TrustAccessControl />} />
+            <Route path="/trust/data-protection" element={<TrustDataProtection />} />
+            <Route path="/trust/incident-response" element={<TrustIncidentResponse />} />
+            <Route path="/trust/business-continuity" element={<TrustBusinessContinuity />} />
+            <Route path="/trust/application-security" element={<TrustApplicationSecurity />} />
+            <Route path="/trust/vendor-security" element={<TrustVendorSecurity />} />
+            <Route path="/trust/privacy-data-handling" element={<TrustPrivacyDataHandling />} />
+            <Route path="/trust/security-review-resources" element={<TrustSecurityReviewResources />} />
 
             {/* Auth Pages */}
             <Route path="/signup" element={<Signup />} />
