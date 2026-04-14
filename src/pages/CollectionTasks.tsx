@@ -83,6 +83,8 @@ export default function CollectionTasks() {
   const [searchParams, setSearchParams] = useSearchParams();
   const debtorIdFromUrl = searchParams.get('debtor');
   const taskIdFromUrl = searchParams.get('taskId');
+  const invoiceIdFromUrl = searchParams.get('invoiceId');
+  const debtorIdForTask = searchParams.get('debtorId');
   const { permissions, loading: _roleLoading } = useRoleAccess();
   const { getPreference, setPreference, isLoaded: prefsLoaded } = useUserPreferences('/tasks');
   
@@ -133,21 +135,31 @@ export default function CollectionTasks() {
     }
   }, [statusFilter, priorityFilter, taskTypeFilter, assignedFilter, debtorIdFromUrl, showArchived, prefsLoaded]);
 
-  // Open task modal if taskId is in URL (from notification click)
+  // Open task modal if taskId, invoiceId, or debtorId is in URL (from alert/notification click)
   useEffect(() => {
-    if (taskIdFromUrl && tasks.length > 0 && !isLoading) {
-      const task = tasks.find(t => t.id === taskIdFromUrl);
-      if (task) {
-        handleViewDetails(task);
-        // Clear the taskId from URL after opening
+    if (tasks.length > 0 && !isLoading) {
+      let matchedTask: TaskWithRelations | undefined;
+
+      if (taskIdFromUrl) {
+        matchedTask = tasks.find(t => t.id === taskIdFromUrl);
+      } else if (invoiceIdFromUrl) {
+        matchedTask = tasks.find(t => t.invoice_id === invoiceIdFromUrl);
+      } else if (debtorIdForTask) {
+        matchedTask = tasks.find(t => t.debtor_id === debtorIdForTask);
+      }
+
+      if (matchedTask) {
+        handleViewDetails(matchedTask);
         setSearchParams(prev => {
           const newParams = new URLSearchParams(prev);
           newParams.delete('taskId');
+          newParams.delete('invoiceId');
+          newParams.delete('debtorId');
           return newParams;
         });
       }
     }
-  }, [taskIdFromUrl, tasks, isLoading]);
+  }, [taskIdFromUrl, invoiceIdFromUrl, debtorIdForTask, tasks, isLoading]);
 
   // Clear selection and reset page when filters change
   useEffect(() => {
