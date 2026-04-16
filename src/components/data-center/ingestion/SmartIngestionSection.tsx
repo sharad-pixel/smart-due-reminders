@@ -37,11 +37,11 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { openFolderPicker } from "@/lib/googlePicker";
 
 export function SmartIngestionSection() {
   const queryClient = useQueryClient();
-  const [folderBrowserOpen, setFolderBrowserOpen] = useState(false);
-  const [folderPath, setFolderPath] = useState<Array<{ id: string; name: string }>>([{ id: "root", name: "My Drive" }]);
+  const [pickerOpening, setPickerOpening] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [disconnectOpen, setDisconnectOpen] = useState(false);
 
