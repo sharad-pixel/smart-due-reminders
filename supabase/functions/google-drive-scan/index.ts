@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json().catch(() => ({}));
-    const action = body.action || 'scan'; // scan, list_folders, set_folder
+    const action = body.action || 'scan'; // scan, get_picker_token, set_folder
 
     const supabase = createClient(supabaseUrl, serviceKey);
 
@@ -94,26 +94,19 @@ Deno.serve(async (req) => {
       accessToken = await refreshAccessToken(supabase, connection, clientId, clientSecret);
     }
 
-    if (action === 'list_folders') {
-      const folderId = body.parentId || 'root';
-      logStep('Listing folders', { parentId: folderId });
-      const params = new URLSearchParams({
-        q: `'${folderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
-        fields: 'files(id,name)',
-        pageSize: '100',
-        orderBy: 'name',
-        supportsAllDrives: 'true',
-        includeItemsFromAllDrives: 'true',
-      });
-      const res = await fetch(
-        `https://www.googleapis.com/drive/v3/files?${params}`,
-        { headers: { Authorization: `Bearer ${accessToken}` } }
-      );
-      const data = await res.json();
-      if (!res.ok) throw new Error(`Drive API error: ${JSON.stringify(data)}`);
-      logStep('Folders found', { count: (data.files || []).length });
+    if (action === 'get_picker_token') {
+      // Returns a fresh OAuth access token + Picker config so the browser can launch
+      // the Google Picker. Picker grants per-folder/file access under drive.file scope.
+      const apiKey = Deno.env.get('GOOGLE_API_KEY') || null;
+      // App ID = Google Cloud project number, derived from the OAuth client ID prefix
+      const appId = clientId.split('-')[0] || null;
+      logStep('Issuing picker token', { hasApiKey: !!apiKey });
 
-      return new Response(JSON.stringify({ folders: data.files || [] }), {
+      return new Response(JSON.stringify({
+        access_token: accessToken,
+        api_key: apiKey,
+        app_id: appId,
+      }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
