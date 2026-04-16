@@ -410,8 +410,8 @@ export function SmartIngestionSection() {
                   Reconnect
                 </Button>
               )}
-              <Button variant="outline" size="sm" onClick={() => setFolderBrowserOpen(true)}>
-                <FolderOpen className="h-4 w-4 mr-1" />
+              <Button variant="outline" size="sm" onClick={handleOpenPicker} disabled={pickerOpening}>
+                {pickerOpening ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FolderOpen className="h-4 w-4 mr-1" />}
                 {connection.folder_id ? "Change Folder" : "Select Folder"}
               </Button>
               {connection.folder_id && (
