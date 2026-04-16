@@ -12,7 +12,6 @@ import {
   CheckCircle2,
   XCircle,
   Loader2,
-  ChevronRight,
   FileText,
   Scan,
   Eye,
@@ -37,11 +36,11 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { openFolderPicker } from "@/lib/googlePicker";
 
 export function SmartIngestionSection() {
   const queryClient = useQueryClient();
-  const [folderBrowserOpen, setFolderBrowserOpen] = useState(false);
-  const [folderPath, setFolderPath] = useState<Array<{ id: string; name: string }>>([{ id: "root", name: "My Drive" }]);
+  const [pickerOpening, setPickerOpening] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [disconnectOpen, setDisconnectOpen] = useState(false);
 
@@ -178,23 +177,7 @@ export function SmartIngestionSection() {
     onError: (err: any) => toast.error("Scan failed", { description: err.message }),
   });
 
-  // List folders
-  const { data: folderList, isLoading: foldersLoading, refetch: _refetchFolders } = useQuery({
-    queryKey: ["drive-folders", folderPath[folderPath.length - 1]?.id],
-    queryFn: async () => {
-      const parentId = folderPath[folderPath.length - 1]?.id || "root";
-      const { data, error } = await supabase.functions.invoke("google-drive-scan", {
-        body: { action: "list_folders", parentId },
-      });
-      if (error) throw error;
-      return data?.folders || [];
-    },
-    enabled: folderBrowserOpen && !!connection,
-    staleTime: 0,
-    gcTime: 0,
-  });
-
-  // Set folder
+  // Set folder (called after Google Picker returns a selection)
   const setFolderMutation = useMutation({
     mutationFn: async ({ folderId, folderName }: { folderId: string; folderName: string }) => {
       const { data, error } = await supabase.functions.invoke("google-drive-scan", {
@@ -205,11 +188,40 @@ export function SmartIngestionSection() {
     },
     onSuccess: () => {
       toast.success("Folder selected");
-      setFolderBrowserOpen(false);
       queryClient.invalidateQueries({ queryKey: ["drive-connection"] });
     },
     onError: (err: any) => toast.error("Failed to set folder", { description: err.message }),
   });
+
+  // Open the Google Picker so the user can grant per-folder access (drive.file scope)
+  const handleOpenPicker = useCallback(async () => {
+    setPickerOpening(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("google-drive-scan", {
+        body: { action: "get_picker_token" },
+      });
+      if (error) throw error;
+      if (!data?.access_token) throw new Error("Could not get a Google access token");
+      if (!data?.api_key) {
+        throw new Error(
+          "Google Picker is not configured. Please contact support to enable folder selection."
+        );
+      }
+
+      await openFolderPicker({
+        accessToken: data.access_token,
+        apiKey: data.api_key,
+        appId: data.app_id,
+        onPicked: (folder) => {
+          setFolderMutation.mutate({ folderId: folder.id, folderName: folder.name });
+        },
+      });
+    } catch (err: any) {
+      toast.error("Could not open folder picker", { description: err.message });
+    } finally {
+      setPickerOpening(false);
+    }
+  }, [setFolderMutation]);
 
   // Extract single file
   const extractMutation = useMutation({
@@ -307,13 +319,7 @@ export function SmartIngestionSection() {
     queryClient.invalidateQueries({ queryKey: ["ingestion-review-queue"] });
   }, [queryClient]);
 
-  const navigateFolder = (folderId: string, folderName: string) => {
-    setFolderPath(prev => [...prev, { id: folderId, name: folderName }]);
-  };
-
-  const navigateBack = (index: number) => {
-    setFolderPath(prev => prev.slice(0, index + 1));
-  };
+  // Folder browsing has been replaced by the Google Picker (drive.file scope).
 
   if (connectionLoading) {
     return (
@@ -403,8 +409,8 @@ export function SmartIngestionSection() {
                   Reconnect
                 </Button>
               )}
-              <Button variant="outline" size="sm" onClick={() => setFolderBrowserOpen(true)}>
-                <FolderOpen className="h-4 w-4 mr-1" />
+              <Button variant="outline" size="sm" onClick={handleOpenPicker} disabled={pickerOpening}>
+                {pickerOpening ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FolderOpen className="h-4 w-4 mr-1" />}
                 {connection.folder_id ? "Change Folder" : "Select Folder"}
               </Button>
               {connection.folder_id && (
@@ -579,83 +585,6 @@ export function SmartIngestionSection() {
 
       {/* Best Practices & Schema Guide — always visible */}
       <SheetBestPractices />
-
-      {/* Folder Browser Dialog */}
-      <Dialog open={folderBrowserOpen} onOpenChange={setFolderBrowserOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Select Google Drive Folder</DialogTitle>
-            <DialogDescription>Choose a folder containing your invoice PDFs</DialogDescription>
-          </DialogHeader>
-
-          {/* Breadcrumb */}
-          <div className="flex items-center gap-1 text-sm overflow-x-auto">
-            {folderPath.map((f, i) => (
-              <span key={f.id} className="flex items-center gap-1">
-                {i > 0 && <ChevronRight className="h-3 w-3 text-muted-foreground" />}
-                <button
-                  className="text-primary hover:underline text-sm"
-                  onClick={() => navigateBack(i)}
-                >
-                  {f.name}
-                </button>
-              </span>
-            ))}
-          </div>
-
-          <div className="border rounded-lg max-h-64 overflow-y-auto">
-            {foldersLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-5 w-5 animate-spin" />
-              </div>
-            ) : !folderList || folderList.length === 0 ? (
-              <div className="text-center py-8 text-sm text-muted-foreground">
-                No subfolders found
-              </div>
-            ) : (
-              folderList.map((folder: any) => (
-                <div
-                  key={folder.id}
-                  className="flex items-center justify-between px-3 py-2 hover:bg-muted/50 border-b last:border-b-0 cursor-pointer"
-                  onClick={() => navigateFolder(folder.id, folder.name)}
-                >
-                  <div className="flex items-center gap-2">
-                    <FolderOpen className="h-4 w-4 text-primary" />
-                    <span className="text-sm">{folder.name}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setFolderMutation.mutate({ folderId: folder.id, folderName: folder.name });
-                      }}
-                    >
-                      Select
-                    </Button>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-
-          {/* Select current folder */}
-          {folderPath.length > 1 && (
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => {
-                const current = folderPath[folderPath.length - 1];
-                setFolderMutation.mutate({ folderId: current.id, folderName: current.name });
-              }}
-            >
-              Select "{folderPath[folderPath.length - 1].name}" as ingestion folder
-            </Button>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
