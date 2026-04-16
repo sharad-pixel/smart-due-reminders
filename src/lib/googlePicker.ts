@@ -85,9 +85,7 @@ export async function openFolderPicker(opts: OpenFolderPickerOptions): Promise<v
   const builder = new google.picker.PickerBuilder()
     .addView(view)
     .setOAuthToken(opts.accessToken)
-    .setTitle("Select a folder containing your invoice PDFs");
-
-  if (opts.apiKey) builder.setDeveloperKey(opts.apiKey);
+    .setTitle("Select a folder containing your invoice PDFs")
     .setCallback((data: any) => {
       const action = data[google.picker.Response.ACTION];
       if (action === google.picker.Action.PICKED) {
@@ -103,6 +101,7 @@ export async function openFolderPicker(opts: OpenFolderPickerOptions): Promise<v
       }
     });
 
+  if (opts.apiKey) builder.setDeveloperKey(opts.apiKey);
   if (opts.appId) builder.setAppId(opts.appId);
 
   builder.build().setVisible(true);
