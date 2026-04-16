@@ -178,23 +178,7 @@ export function SmartIngestionSection() {
     onError: (err: any) => toast.error("Scan failed", { description: err.message }),
   });
 
-  // List folders
-  const { data: folderList, isLoading: foldersLoading, refetch: _refetchFolders } = useQuery({
-    queryKey: ["drive-folders", folderPath[folderPath.length - 1]?.id],
-    queryFn: async () => {
-      const parentId = folderPath[folderPath.length - 1]?.id || "root";
-      const { data, error } = await supabase.functions.invoke("google-drive-scan", {
-        body: { action: "list_folders", parentId },
-      });
-      if (error) throw error;
-      return data?.folders || [];
-    },
-    enabled: folderBrowserOpen && !!connection,
-    staleTime: 0,
-    gcTime: 0,
-  });
-
-  // Set folder
+  // Set folder (called after Google Picker returns a selection)
   const setFolderMutation = useMutation({
     mutationFn: async ({ folderId, folderName }: { folderId: string; folderName: string }) => {
       const { data, error } = await supabase.functions.invoke("google-drive-scan", {
@@ -205,11 +189,40 @@ export function SmartIngestionSection() {
     },
     onSuccess: () => {
       toast.success("Folder selected");
-      setFolderBrowserOpen(false);
       queryClient.invalidateQueries({ queryKey: ["drive-connection"] });
     },
     onError: (err: any) => toast.error("Failed to set folder", { description: err.message }),
   });
+
+  // Open the Google Picker so the user can grant per-folder access (drive.file scope)
+  const handleOpenPicker = useCallback(async () => {
+    setPickerOpening(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("google-drive-scan", {
+        body: { action: "get_picker_token" },
+      });
+      if (error) throw error;
+      if (!data?.access_token) throw new Error("Could not get a Google access token");
+      if (!data?.api_key) {
+        throw new Error(
+          "Google Picker is not configured. Please contact support to enable folder selection."
+        );
+      }
+
+      await openFolderPicker({
+        accessToken: data.access_token,
+        apiKey: data.api_key,
+        appId: data.app_id,
+        onPicked: (folder) => {
+          setFolderMutation.mutate({ folderId: folder.id, folderName: folder.name });
+        },
+      });
+    } catch (err: any) {
+      toast.error("Could not open folder picker", { description: err.message });
+    } finally {
+      setPickerOpening(false);
+    }
+  }, [setFolderMutation]);
 
   // Extract single file
   const extractMutation = useMutation({
