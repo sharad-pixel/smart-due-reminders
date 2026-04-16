@@ -127,14 +127,28 @@ export default function Alerts() {
 
   const groupedAlerts = groupAlertsByDate(filteredAlerts.slice(0, visibleCount));
 
+  const TASK_ALERT_TYPES = ['email_bounced', 'email_invalid', 'email_rejected', 'email_complained', 'outreach_paused'];
+
   const handleAlertClick = async (alert: UserAlert) => {
     if (!alert.is_read) {
       await markAlertRead(alert.id);
     }
-    if (alert.invoice_id) {
-      navigate(`/tasks?invoiceId=${alert.invoice_id}`);
+
+    // Task-related alerts → deep-link to the matching task
+    if (TASK_ALERT_TYPES.includes(alert.alert_type)) {
+      if (alert.invoice_id) {
+        navigate(`/tasks?invoiceId=${alert.invoice_id}`);
+      } else if (alert.debtor_id) {
+        navigate(`/tasks?debtorId=${alert.debtor_id}`);
+      } else {
+        navigate('/tasks');
+      }
+    } else if (alert.action_url) {
+      navigate(alert.action_url);
+    } else if (alert.invoice_id) {
+      navigate(`/invoices/${alert.invoice_id}`);
     } else if (alert.debtor_id) {
-      navigate(`/tasks?debtorId=${alert.debtor_id}`);
+      navigate(`/debtors/${alert.debtor_id}`);
     } else {
       navigate('/tasks');
     }

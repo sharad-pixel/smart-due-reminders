@@ -223,15 +223,29 @@ export function AlertNotifications() {
 
   const totalUnreadCount = alertUnreadCount + notificationUnreadCount;
 
+  const TASK_ALERT_TYPES = ['email_bounced', 'email_invalid', 'email_rejected', 'email_complained', 'outreach_paused'];
+
   const handleAlertClick = (alert: UserAlert) => {
     if (!alert.is_read) {
       markAlertRead(alert.id);
     }
     setOpen(false);
-    if (alert.invoice_id) {
-      navigate(`/tasks?invoiceId=${alert.invoice_id}`);
+
+    // Task-related alerts → deep-link to the matching task
+    if (TASK_ALERT_TYPES.includes(alert.alert_type)) {
+      if (alert.invoice_id) {
+        navigate(`/tasks?invoiceId=${alert.invoice_id}`);
+      } else if (alert.debtor_id) {
+        navigate(`/tasks?debtorId=${alert.debtor_id}`);
+      } else {
+        navigate('/tasks');
+      }
+    } else if (alert.action_url) {
+      navigate(alert.action_url);
+    } else if (alert.invoice_id) {
+      navigate(`/invoices/${alert.invoice_id}`);
     } else if (alert.debtor_id) {
-      navigate(`/tasks?debtorId=${alert.debtor_id}`);
+      navigate(`/debtors/${alert.debtor_id}`);
     } else {
       navigate('/tasks');
     }
