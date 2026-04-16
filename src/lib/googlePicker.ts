@@ -58,7 +58,7 @@ export interface PickedFolder {
 
 interface OpenFolderPickerOptions {
   accessToken: string;
-  apiKey: string;
+  apiKey?: string | null;
   appId?: string | null;
   onPicked: (folder: PickedFolder) => void;
   onCancel?: () => void;
@@ -85,8 +85,9 @@ export async function openFolderPicker(opts: OpenFolderPickerOptions): Promise<v
   const builder = new google.picker.PickerBuilder()
     .addView(view)
     .setOAuthToken(opts.accessToken)
-    .setDeveloperKey(opts.apiKey)
-    .setTitle("Select a folder containing your invoice PDFs")
+    .setTitle("Select a folder containing your invoice PDFs");
+
+  if (opts.apiKey) builder.setDeveloperKey(opts.apiKey);
     .setCallback((data: any) => {
       const action = data[google.picker.Response.ACTION];
       if (action === google.picker.Action.PICKED) {
