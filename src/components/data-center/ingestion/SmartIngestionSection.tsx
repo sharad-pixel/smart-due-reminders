@@ -320,13 +320,7 @@ export function SmartIngestionSection() {
     queryClient.invalidateQueries({ queryKey: ["ingestion-review-queue"] });
   }, [queryClient]);
 
-  const navigateFolder = (folderId: string, folderName: string) => {
-    setFolderPath(prev => [...prev, { id: folderId, name: folderName }]);
-  };
-
-  const navigateBack = (index: number) => {
-    setFolderPath(prev => prev.slice(0, index + 1));
-  };
+  // Folder browsing has been replaced by the Google Picker (drive.file scope).
 
   if (connectionLoading) {
     return (
