@@ -1,9 +1,9 @@
 import { useDemoContext } from "@/contexts/DemoContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Zap, ArrowRight, TrendingDown, DollarSign, ShieldAlert } from "lucide-react";
+import { CheckCircle2, Zap, ArrowRight, TrendingDown, DollarSign, ShieldAlert, PlayCircle } from "lucide-react";
 import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link as RouterLink } from "react-router-dom";
 
 export const DemoResults = () => {
   const { stats, recoveredAmount, sentCount, drafts, exitDemo } = useDemoContext();
@@ -132,6 +132,14 @@ export const DemoResults = () => {
           >
             Run Free Cash Audit
           </Button>
+        </div>
+        <div className="pt-2">
+          <RouterLink to="/onboarding?step=training">
+            <Button variant="ghost" size="sm" className="text-muted-foreground gap-2">
+              <PlayCircle className="h-4 w-4" />
+              Watch Training Videos First
+            </Button>
+          </RouterLink>
         </div>
         <p className="text-sm text-muted-foreground">
           No credit card required. Set up in under 2 minutes.

@@ -2,8 +2,9 @@ import { useDemoContext } from "@/contexts/DemoContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion } from "framer-motion";
-import { ArrowRight, Users, FileText, Brain, Send, DollarSign, BarChart3, Database, Link, CalendarRange, History, Download, Sparkles, BrainCircuit } from "lucide-react";
+import { ArrowRight, Users, FileText, Brain, Send, DollarSign, BarChart3, Database, Link, CalendarRange, History, Download, Sparkles, BrainCircuit, PlayCircle } from "lucide-react";
 import { DemoTutorialCallout } from "./DemoTutorialCallout";
+import { Link as RouterLink } from "react-router-dom";
 
 const FEATURE_STEPS = [
   { icon: Users, label: "Account Setup", desc: "25 customer accounts loaded", step: "setup_accounts" as const },
@@ -87,11 +88,19 @@ export const DemoWelcome = () => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.8 }}
-        className="text-center pt-4"
+        className="text-center pt-4 space-y-3"
       >
         <Button size="lg" onClick={nextStep} className="text-lg px-8 py-6">
           Let's Start — Set Up Accounts <ArrowRight className="ml-2 h-5 w-5" />
         </Button>
+        <div>
+          <RouterLink to="/onboarding?step=training">
+            <Button variant="ghost" size="sm" className="text-muted-foreground gap-2">
+              <PlayCircle className="h-4 w-4" />
+              Watch Training Videos
+            </Button>
+          </RouterLink>
+        </div>
       </motion.div>
     </div>
   );
