@@ -40,7 +40,11 @@ Deno.serve(async (req) => {
     }
 
     const redirectUri = `${supabaseUrl}/functions/v1/google-drive-callback`;
-    const scope = 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file';
+    // Use only drive.file (non-sensitive, per-file access). This covers:
+    // - Files the app creates (Sheets created via the API)
+    // - Files the user explicitly opens via the Google Picker
+    // Avoids the sensitive `spreadsheets` and `drive.readonly` scopes that require Google verification.
+    const scope = 'https://www.googleapis.com/auth/drive.file';
     // Pass the origin so callback redirects back to the correct environment
     const body = await req.json().catch(() => ({}));
     const origin = body.origin || supabaseUrl;
