@@ -21,17 +21,18 @@ const PHASE_DURATIONS: Record<Phase, number> = {
   stable: 4200,
 };
 
-const HEADLINES = [
-  ["Turn Revenue Risk Into ", "Predictable Cash Flow"],
-  ["Your Collections & Risk CRM — ", "Powered by AI"],
-  ["Centralized Receivables. ", "Prioritized by Risk."],
-  ["AI-Powered Workflows ", "That Recover Cash"],
-  ["Six AI Agents. ", "Zero Gaps."],
-  ["From Overdue to Recovered — ", "With Full Visibility"],
-  ["Manage Risk. Recover Revenue. ", "One Platform."],
-  ["Stop Chasing. ", "Start Recovering."],
-  ["Turn Receivables Into ", "Predictable Revenue"],
-  ["Know the Risk ", "Before You Grow"],
+const HEADLINES: string[] = [
+  "Turn Revenue Risk Into Predictable Cash Flow",
+  "Your Collections & Risk CRM — Powered by AI",
+  "Centralized Receivables. Prioritized by Risk.",
+  "AI-Powered Collections Workflows That Recover Cash",
+  "Six AI Agents. Full Audit Trail. Zero Gaps.",
+  "Risk-Based Prioritization. Predictable Cash Flow.",
+  "From Overdue to Recovered — With Full Visibility",
+  "Manage Risk. Recover Revenue. One Platform.",
+  "Stop Chasing. Start Managing. Recover More.",
+  "Turn Receivables Into Revenue — Systematically",
+  "Know the Risk Before You Grow the Account",
 ];
 
 // Map each account node to a persona by aging bucket
@@ -120,7 +121,7 @@ const CinematicHero = () => {
             AI-Powered Collections & Risk Command Center
           </motion.div>
 
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.05] tracking-tight text-foreground mb-5 min-h-[2.4em]">
+          <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-[1.1] tracking-tight text-foreground mb-5 min-h-[3.6em]">
             <AnimatePresence mode="wait">
               <motion.span
                 key={headlineIdx}
@@ -128,12 +129,9 @@ const CinematicHero = () => {
                 animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                 exit={{ opacity: 0, y: -14, filter: "blur(6px)" }}
                 transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-                className="block"
+                className="block bg-gradient-to-r from-foreground via-foreground to-primary bg-clip-text text-transparent"
               >
-                {HEADLINES[headlineIdx][0]}
-                <span className="bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
-                  {HEADLINES[headlineIdx][1]}
-                </span>
+                {HEADLINES[headlineIdx]}
               </motion.span>
             </AnimatePresence>
           </h1>
