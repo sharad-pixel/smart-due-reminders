@@ -34,7 +34,7 @@ const AdminSubscriptions = () => {
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from("profiles")
+        .from("profiles_admin_safe")
         .select("id, email, name, company_name, plan_type, stripe_customer_id, stripe_subscription_id, trial_ends_at, created_at")
         .order("created_at", { ascending: false });
 

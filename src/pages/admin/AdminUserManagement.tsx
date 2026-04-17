@@ -145,16 +145,16 @@ const AdminUserManagement = () => {
         { count: recent7d },
         { count: recent30d },
       ] = await Promise.all([
-        supabase.from("profiles").select("*", { count: "exact", head: true }),
-        supabase.from("profiles").select("*", { count: "exact", head: true }).eq("is_suspended", true),
-        supabase.from("profiles").select("*", { count: "exact", head: true }).eq("is_admin", true),
-        supabase.from("profiles").select("*", { count: "exact", head: true }).gte("created_at", sevenDaysAgo.toISOString()),
-        supabase.from("profiles").select("*", { count: "exact", head: true }).gte("created_at", thirtyDaysAgo.toISOString()),
+        supabase.from("profiles_admin_safe").select("*", { count: "exact", head: true }),
+        supabase.from("profiles_admin_safe").select("*", { count: "exact", head: true }).eq("is_suspended", true),
+        supabase.from("profiles_admin_safe").select("*", { count: "exact", head: true }).eq("is_admin", true),
+        supabase.from("profiles_admin_safe").select("*", { count: "exact", head: true }).gte("created_at", sevenDaysAgo.toISOString()),
+        supabase.from("profiles_admin_safe").select("*", { count: "exact", head: true }).gte("created_at", thirtyDaysAgo.toISOString()),
       ]);
 
       // Count paid vs free (based on stripe_subscription_id presence)
       const { count: paid } = await supabase
-        .from("profiles")
+        .from("profiles_admin_safe")
         .select("*", { count: "exact", head: true })
         .not("stripe_subscription_id", "is", null);
 

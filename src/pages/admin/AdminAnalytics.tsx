@@ -59,9 +59,9 @@ const AdminAnalytics = () => {
         { count: totalActivitiesCount },
         { count: riskSnapshotsCount },
       ] = await Promise.all([
-        supabase.from("profiles").select("created_at").gte("created_at", thirtyDaysAgo.toISOString()),
+        supabase.from("profiles_admin_safe").select("created_at").gte("created_at", thirtyDaysAgo.toISOString()),
         supabase.from("invoices").select("status"),
-        supabase.from("profiles").select("plan_type"),
+        supabase.from("profiles_admin_safe").select("plan_type"),
         supabase.from("ai_drafts").select("created_at, status").gte("created_at", thirtyDaysAgo.toISOString()),
         supabase.from("outreach_logs").select("created_at").gte("created_at", thirtyDaysAgo.toISOString()),
         supabase.from("collection_activities").select("created_at, activity_type").gte("created_at", thirtyDaysAgo.toISOString()),
