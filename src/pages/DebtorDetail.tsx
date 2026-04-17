@@ -92,7 +92,11 @@ interface Debtor {
   email_status_updated_at: string | null;
   email_bounce_count: number | null;
   last_bounce_reason: string | null;
-}
+  // Internal sales rep fields
+  sales_rep_user_id: string | null;
+  sales_rep_name: string | null;
+  sales_rep_email: string | null;
+  sales_rep_alerts_enabled: boolean | null;
 
 interface DebtorContact {
   id: string;
