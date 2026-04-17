@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
- import { ArrowRight, Play, Sparkles } from "lucide-react";
+ import { ArrowRight, Play, Sparkles, Mail, ShieldAlert, FileSearch, Inbox, Workflow, Wallet } from "lucide-react";
 
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from "framer-motion";
 import RollingAgentIntro from "./RollingAgentIntro";
@@ -28,6 +28,15 @@ const headlines = [
   "Expansion Risk Assessment — Before You Extend Credit",
   "Know the Risk Before You Grow the Account",
   "AI-Driven Credit Risk Intelligence for Every Customer",
+];
+
+const useCases = [
+  { icon: Mail, label: "Send AI-personalized payment reminders" },
+  { icon: ShieldAlert, label: "Score every account for credit & default risk" },
+  { icon: Inbox, label: "Auto-triage debtor replies & disputes" },
+  { icon: Workflow, label: "Run risk-aware collection workflows" },
+  { icon: FileSearch, label: "Track every invoice, message & outcome" },
+  { icon: Wallet, label: "Recover cash with a self-serve payment portal" },
 ];
 
 const subheadlines = [
@@ -253,6 +262,27 @@ const AnimatedHero = () => {
                {subheadlines[currentSubheadline]}
              </motion.p>
            </AnimatePresence>
+
+          {/* Use cases — what Recouply.ai does */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: isTypingComplete ? 1 : 0, y: isTypingComplete ? 0 : 10 }}
+            transition={{ delay: 0.15, duration: 0.5 }}
+            className="flex flex-wrap justify-center gap-2 mb-8 max-w-3xl mx-auto"
+          >
+            {useCases.map(({ icon: Icon, label }, i) => (
+              <motion.div
+                key={label}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2 + i * 0.06, duration: 0.4 }}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-card/60 backdrop-blur-sm border border-border/50 text-xs md:text-sm text-foreground/80 hover:border-primary/40 hover:text-foreground transition-colors"
+              >
+                <Icon className="h-3.5 w-3.5 text-primary shrink-0" />
+                <span>{label}</span>
+              </motion.div>
+            ))}
+          </motion.div>
 
           {/* Rolling AI Agent Introductions */}
           <motion.div
