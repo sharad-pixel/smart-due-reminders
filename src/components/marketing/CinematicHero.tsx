@@ -115,10 +115,13 @@ const CinematicHero = () => {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-primary/30 bg-primary/10 text-primary text-xs font-semibold mb-6 backdrop-blur"
+            whileHover={{ scale: 1.04, y: -2 }}
+            className="group inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-primary/30 bg-primary/10 text-primary text-xs font-semibold mb-6 backdrop-blur cursor-default transition-all duration-300 hover:border-primary/70 hover:bg-primary/20 hover:shadow-[0_0_24px_-2px_hsl(var(--primary)/0.5)]"
           >
-            <Sparkles className="w-3.5 h-3.5" />
-            AI-Powered Collections & Risk Command Center
+            <Sparkles className="w-3.5 h-3.5 transition-transform duration-500 group-hover:rotate-12 group-hover:scale-110" />
+            <span className="transition-colors duration-300 group-hover:text-accent">
+              AI-Powered Collections & Risk Command Center
+            </span>
           </motion.div>
 
           {(() => {
