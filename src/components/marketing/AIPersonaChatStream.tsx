@@ -141,16 +141,16 @@ const AIPersonaChatStream = () => {
         {/* Header bar */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-border/60 bg-muted/30">
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-rose-500/70" />
-            <span className="w-2.5 h-2.5 rounded-full bg-amber-500/70" />
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/70" />
+            <span className="w-2.5 h-2.5 rounded-full bg-destructive/70" />
+            <span className="w-2.5 h-2.5 rounded-full bg-primary/50" />
+            <span className="w-2.5 h-2.5 rounded-full bg-accent/70" />
             <span className="ml-3 text-xs font-mono text-muted-foreground">
               recouply.ai · live outreach console
             </span>
           </div>
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <motion.span
-              className="w-1.5 h-1.5 rounded-full bg-emerald-500"
+              className="w-1.5 h-1.5 rounded-full bg-accent"
               animate={{ opacity: [1, 0.3, 1], scale: [1, 1.4, 1] }}
               transition={{ duration: 1.5, repeat: Infinity }}
             />
