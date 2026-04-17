@@ -164,14 +164,9 @@ const AnimatedHero = () => {
            </AnimatePresence>
 
           {/* Invoice Lifecycle Animation */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: isTypingComplete ? 1 : 0, y: isTypingComplete ? 0 : 20 }}
-            transition={{ delay: 0.2, duration: 0.6 }}
-            className="my-10"
-          >
+          <div className="my-10">
             <InvoiceLifecycleAnimation />
-          </motion.div>
+          </div>
 
           {/* 24/7 Badge */}
            <motion.p 
