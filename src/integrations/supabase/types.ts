@@ -7123,7 +7123,6 @@ export type Database = {
           is_suspended: boolean | null
           name: string | null
           overage_rate: number | null
-          password_hash: string | null
           payment_failure_count: number | null
           payment_failure_notice_sent_at: string | null
           phone: string | null
@@ -7193,7 +7192,6 @@ export type Database = {
           is_suspended?: boolean | null
           name?: string | null
           overage_rate?: number | null
-          password_hash?: string | null
           payment_failure_count?: number | null
           payment_failure_notice_sent_at?: string | null
           phone?: string | null
@@ -7263,7 +7261,6 @@ export type Database = {
           is_suspended?: boolean | null
           name?: string | null
           overage_rate?: number | null
-          password_hash?: string | null
           payment_failure_count?: number | null
           payment_failure_notice_sent_at?: string | null
           phone?: string | null

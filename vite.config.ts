@@ -10,6 +10,11 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
+  // Strip non-essential console output from production bundles.
+  // console.error and console.warn are preserved for production debugging.
+  esbuild: mode === "production"
+    ? { drop: ["debugger"], pure: ["console.log", "console.info", "console.debug", "console.trace"] }
+    : undefined,
   resolve: {
     alias: [
       {
