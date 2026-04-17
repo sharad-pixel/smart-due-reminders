@@ -82,7 +82,8 @@ function buildEmailHtml(args: {
     })
     .join("");
 
-  const subject = `Weekly Account Summary — ${accounts.length} account${accounts.length === 1 ? "" : "s"}, ${fmtCurrency(totalBalance)} outstanding`;
+  const subjectPrefix = isOnDemand ? "Account Notice" : "Weekly Account Summary";
+  const subject = `${subjectPrefix} — ${accounts.length} account${accounts.length === 1 ? "" : "s"}, ${fmtCurrency(totalBalance)} outstanding`;
 
   const html = `<!DOCTYPE html>
 <html><body style="margin:0;padding:0;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
