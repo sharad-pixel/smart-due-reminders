@@ -30,15 +30,6 @@ const headlines = [
   "AI-Driven Credit Risk Intelligence for Every Customer",
 ];
 
-const useCases = [
-  { icon: Mail, label: "Send AI-personalized payment reminders" },
-  { icon: ShieldAlert, label: "Score every account for credit & default risk" },
-  { icon: Inbox, label: "Auto-triage debtor replies & disputes" },
-  { icon: Workflow, label: "Run risk-aware collection workflows" },
-  { icon: FileSearch, label: "Track every invoice, message & outcome" },
-  { icon: Wallet, label: "Recover cash with a self-serve payment portal" },
-];
-
 const subheadlines = [
   "Recouply.ai is the AI-powered collections CRM that centralizes every receivable, prioritizes by risk, and maintains a complete audit trail of every interaction.",
   "AI-powered collections workflows replace manual follow-ups with consistent, risk-aware outreach — all tracked in one system of record.",
