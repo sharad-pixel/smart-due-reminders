@@ -2810,6 +2810,10 @@ export type Database = {
           risk_status_note: string | null
           risk_tier: string | null
           risk_tier_detailed: string | null
+          sales_rep_alerts_enabled: boolean
+          sales_rep_email: string | null
+          sales_rep_name: string | null
+          sales_rep_user_id: string | null
           score_components: Json | null
           sheet_sync_enabled: boolean
           source_system: string | null
@@ -2922,6 +2926,10 @@ export type Database = {
           risk_status_note?: string | null
           risk_tier?: string | null
           risk_tier_detailed?: string | null
+          sales_rep_alerts_enabled?: boolean
+          sales_rep_email?: string | null
+          sales_rep_name?: string | null
+          sales_rep_user_id?: string | null
           score_components?: Json | null
           sheet_sync_enabled?: boolean
           source_system?: string | null
@@ -3034,6 +3042,10 @@ export type Database = {
           risk_status_note?: string | null
           risk_tier?: string | null
           risk_tier_detailed?: string | null
+          sales_rep_alerts_enabled?: boolean
+          sales_rep_email?: string | null
+          sales_rep_name?: string | null
+          sales_rep_user_id?: string | null
           score_components?: Json | null
           sheet_sync_enabled?: boolean
           source_system?: string | null
@@ -3066,6 +3078,27 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "debtors_sales_rep_user_id_fkey"
+            columns: ["sales_rep_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "debtors_sales_rep_user_id_fkey"
+            columns: ["sales_rep_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_admin_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "debtors_sales_rep_user_id_fkey"
+            columns: ["sales_rep_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_team_safe"
             referencedColumns: ["id"]
           },
         ]

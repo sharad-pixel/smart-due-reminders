@@ -31,6 +31,7 @@ import { AccountIntelligencePanel } from "@/components/accounts/AccountIntellige
 import { CustomerAIContext } from "@/components/accounts/CustomerAIContext";
 import { ExpansionRiskAdvisor } from "@/components/accounts/ExpansionRiskAdvisor";
 import { AccountOutreachSettings } from "@/components/outreach/AccountOutreachSettings";
+import { SalesRepCard } from "@/components/accounts/SalesRepCard";
 import { OutreachDetailModal, OutreachRecord } from "@/components/outreach/OutreachDetailModal";
 import { OutreachSummaryRow } from "@/components/outreach/OutreachSummaryRow";
 import { EmailDeliveryWarning } from "@/components/alerts/EmailDeliveryWarning";
@@ -91,6 +92,11 @@ interface Debtor {
   email_status_updated_at: string | null;
   email_bounce_count: number | null;
   last_bounce_reason: string | null;
+  // Internal sales rep fields
+  sales_rep_user_id: string | null;
+  sales_rep_name: string | null;
+  sales_rep_email: string | null;
+  sales_rep_alerts_enabled: boolean | null;
 }
 
 interface DebtorContact {
@@ -1095,6 +1101,19 @@ const DebtorDetail = () => {
             account_outreach_tone: debtor.account_outreach_tone,
           }}
           onSettingsChange={fetchDebtor}
+        />
+
+        {/* Internal Account Owner (Sales Rep) */}
+        <SalesRepCard
+          debtorId={debtor.id}
+          debtorName={debtor.company_name || debtor.name}
+          initial={{
+            sales_rep_user_id: debtor.sales_rep_user_id,
+            sales_rep_name: debtor.sales_rep_name,
+            sales_rep_email: debtor.sales_rep_email,
+            sales_rep_alerts_enabled: !!debtor.sales_rep_alerts_enabled,
+          }}
+          onSaved={fetchDebtor}
         />
 
         {/* Risk Assessment Card */}
