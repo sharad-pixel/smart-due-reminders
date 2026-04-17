@@ -1,5 +1,5 @@
 import MarketingLayout from "@/components/layout/MarketingLayout";
-import AnimatedHero from "@/components/marketing/AnimatedHero";
+import CinematicHero from "@/components/marketing/CinematicHero";
 import ScrollPipeline from "@/components/marketing/ScrollPipeline";
 import AnimatedMetrics from "@/components/marketing/AnimatedMetrics";
 import CollectionIntelligenceShowcase from "@/components/marketing/CollectionIntelligenceShowcase";
@@ -36,7 +36,7 @@ const Home = () => {
         canonical="https://recouply.ai"
         structuredData={generateFAQSchema(homeFaqs)}
       />
-      <AnimatedHero />
+      <CinematicHero />
       <AssessmentCTA />
       <ScrollPipeline />
       <CollectionIntelligenceShowcase />
