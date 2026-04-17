@@ -164,11 +164,21 @@ const AnimatedHero = () => {
              </motion.p>
            </AnimatePresence>
 
+          {/* Cinematic AI Persona Chat Stream */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: isTypingComplete ? 1 : 0, y: isTypingComplete ? 0 : 30 }}
+            transition={{ delay: 0.2, duration: 0.7, ease: "easeOut" }}
+            className="my-10"
+          >
+            <AIPersonaChatStream />
+          </motion.div>
+
           {/* Rolling AI Agent Introductions */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: isTypingComplete ? 1 : 0, y: isTypingComplete ? 0 : 20 }}
-            transition={{ delay: 0.2, duration: 0.6 }}
+            transition={{ delay: 0.4, duration: 0.6 }}
             className="my-8"
           >
             <RollingAgentIntro />
