@@ -1103,6 +1103,19 @@ const DebtorDetail = () => {
           onSettingsChange={fetchDebtor}
         />
 
+        {/* Internal Account Owner (Sales Rep) */}
+        <SalesRepCard
+          debtorId={debtor.id}
+          debtorName={debtor.company_name || debtor.name}
+          initial={{
+            sales_rep_user_id: debtor.sales_rep_user_id,
+            sales_rep_name: debtor.sales_rep_name,
+            sales_rep_email: debtor.sales_rep_email,
+            sales_rep_alerts_enabled: !!debtor.sales_rep_alerts_enabled,
+          }}
+          onSaved={fetchDebtor}
+        />
+
         {/* Risk Assessment Card */}
         <RiskEngineCard
           debtorId={debtor.id}
