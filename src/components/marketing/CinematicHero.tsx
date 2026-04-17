@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, useMemo } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Brain, TrendingUp, ShieldCheck, Sparkles } from "lucide-react";
+import { personaConfig } from "@/lib/personaConfig";
 
 /**
  * CinematicHero
@@ -20,13 +21,27 @@ const PHASE_DURATIONS: Record<Phase, number> = {
   stable: 4200,
 };
 
+const HEADLINES = [
+  ["Turn Revenue Risk Into ", "Predictable Cash Flow"],
+  ["Your Collections & Risk CRM — ", "Powered by AI"],
+  ["Centralized Receivables. ", "Prioritized by Risk."],
+  ["AI-Powered Workflows ", "That Recover Cash"],
+  ["Six AI Agents. ", "Zero Gaps."],
+  ["From Overdue to Recovered — ", "With Full Visibility"],
+  ["Manage Risk. Recover Revenue. ", "One Platform."],
+  ["Stop Chasing. ", "Start Recovering."],
+  ["Turn Receivables Into ", "Predictable Revenue"],
+  ["Know the Risk ", "Before You Grow"],
+];
+
+// Map each account node to a persona by aging bucket
 const ACCOUNTS = [
-  { id: "a1", x: 120, y: 120, label: "Acme Co", invoices: 3 },
-  { id: "a2", x: 520, y: 90, label: "Globex", invoices: 4 },
-  { id: "a3", x: 760, y: 200, label: "Initech", invoices: 2 },
-  { id: "a4", x: 140, y: 320, label: "Umbrella", invoices: 5 },
-  { id: "a5", x: 620, y: 360, label: "Wayne Ent", invoices: 3 },
-  { id: "a6", x: 320, y: 240, label: "Soylent", invoices: 4 },
+  { id: "a1", x: 120, y: 120, label: "Acme Co", invoices: 3, daysPastDue: 12, persona: "sam" },
+  { id: "a2", x: 520, y: 90, label: "Globex", invoices: 4, daysPastDue: 45, persona: "james" },
+  { id: "a3", x: 760, y: 200, label: "Initech", invoices: 2, daysPastDue: 78, persona: "katy" },
+  { id: "a4", x: 140, y: 320, label: "Umbrella", invoices: 5, daysPastDue: 105, persona: "troy" },
+  { id: "a5", x: 620, y: 360, label: "Wayne Ent", invoices: 3, daysPastDue: 140, persona: "jimmy" },
+  { id: "a6", x: 320, y: 240, label: "Soylent", invoices: 4, daysPastDue: 22, persona: "sam" },
 ];
 
 const CENTER = { x: 450, y: 230 };
@@ -54,6 +69,16 @@ const CinematicHero = () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, [phase, prefersReduced]);
+
+  // Headline cycler — independent of phase loop
+  const [headlineIdx, setHeadlineIdx] = useState(0);
+  useEffect(() => {
+    if (prefersReduced) return;
+    const id = setInterval(() => {
+      setHeadlineIdx((i) => (i + 1) % HEADLINES.length);
+    }, 4200);
+    return () => clearInterval(id);
+  }, [prefersReduced]);
 
   // Animated metrics
   const metrics = useMemo(() => {
@@ -95,17 +120,23 @@ const CinematicHero = () => {
             AI-Powered Collections & Risk Command Center
           </motion.div>
 
-          <motion.h1
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.05 }}
-            className="text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.05] tracking-tight text-foreground mb-5"
-          >
-            Turn Revenue Risk Into{" "}
-            <span className="bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
-              Predictable Cash Flow
-            </span>
-          </motion.h1>
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.05] tracking-tight text-foreground mb-5 min-h-[2.4em]">
+            <AnimatePresence mode="wait">
+              <motion.span
+                key={headlineIdx}
+                initial={{ opacity: 0, y: 14, filter: "blur(6px)" }}
+                animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                exit={{ opacity: 0, y: -14, filter: "blur(6px)" }}
+                transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+                className="block"
+              >
+                {HEADLINES[headlineIdx][0]}
+                <span className="bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
+                  {HEADLINES[headlineIdx][1]}
+                </span>
+              </motion.span>
+            </AnimatePresence>
+          </h1>
 
           <motion.p
             initial={{ opacity: 0, y: 12 }}
@@ -406,9 +437,19 @@ const Stage = ({
         </text>
       </g>
 
+      {/* Persona avatar clip paths (defined once per account) */}
+      <defs>
+        {ACCOUNTS.map((a) => (
+          <clipPath key={`clip-${a.id}`} id={`avatar-clip-${a.id}`}>
+            <circle r={11} cx={a.x + 22} cy={a.y - 22} />
+          </clipPath>
+        ))}
+      </defs>
+
       {/* Account nodes */}
       {ACCOUNTS.map((a, i) => {
         const isHovered = hovered === a.id;
+        const persona = personaConfig[a.persona];
         const tone =
           phase === "chaos"
             ? "hsl(var(--destructive))"
@@ -464,6 +505,53 @@ const Stage = ({
                 }}
               />
             ))}
+
+            {/* AI Persona avatar — appears during orchestration & stable */}
+            {persona && (
+              <motion.g
+                initial={false}
+                animate={{
+                  opacity: phase === "chaos" ? 0 : 1,
+                  scale: phase === "chaos" ? 0.6 : isHovered ? 1.15 : 1,
+                }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+                style={{ transformOrigin: `22px -22px`, transformBox: "fill-box" } as React.CSSProperties}
+              >
+                {/* Outreach pulse ring (orchestration) */}
+                {phase === "orchestration" && (
+                  <motion.circle
+                    cx={22}
+                    cy={-22}
+                    r={12}
+                    fill="none"
+                    stroke={persona.color}
+                    strokeWidth={1.2}
+                    initial={{ r: 12, opacity: 0.8 }}
+                    animate={{ r: [12, 22, 12], opacity: [0.8, 0, 0.8] }}
+                    transition={{ duration: 1.8, repeat: Infinity, delay: i * 0.2 }}
+                  />
+                )}
+                {/* Avatar background ring */}
+                <circle
+                  cx={22}
+                  cy={-22}
+                  r={12}
+                  fill="hsl(222 47% 9%)"
+                  stroke={persona.color}
+                  strokeWidth={1.5}
+                />
+                <image
+                  href={persona.avatar}
+                  x={22 - 11}
+                  y={-22 - 11}
+                  width={22}
+                  height={22}
+                  clipPath={`url(#avatar-clip-${a.id})`}
+                  preserveAspectRatio="xMidYMid slice"
+                />
+              </motion.g>
+            )}
+
             {/* Aging label (chaos only) */}
             {phase === "chaos" && (
               <motion.text
@@ -476,12 +564,30 @@ const Stage = ({
                 animate={{ opacity: [0.4, 1, 0.4] }}
                 transition={{ duration: 1.6, repeat: Infinity, delay: i * 0.15 }}
               >
-                {[30, 60, 90, 60, 90, 30][i]}d
+                {a.daysPastDue}d
               </motion.text>
             )}
+
+            {/* Persona tag (orchestration & stable) */}
+            {phase !== "chaos" && persona && (
+              <motion.text
+                y={26}
+                textAnchor="middle"
+                fontSize={8.5}
+                fontFamily="ui-monospace, monospace"
+                fill={persona.color}
+                fontWeight={600}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, delay: i * 0.05 }}
+              >
+                {persona.name.toUpperCase()}
+              </motion.text>
+            )}
+
             {/* Account label */}
             <text
-              y={42}
+              y={40}
               textAnchor="middle"
               fontSize={9.5}
               fontFamily="ui-sans-serif, system-ui"
@@ -631,15 +737,36 @@ const HoverPanel = ({ hovered, phase }: { hovered: string | null; phase: Phase }
       </div>
     );
   }
+  const persona = personaConfig[account.persona];
   return (
     <motion.div
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-lg border border-primary/30 bg-[hsl(222_47%_6%)]/90 backdrop-blur px-3 py-2 min-w-[180px]"
+      className="rounded-lg border border-primary/30 bg-[hsl(222_47%_6%)]/90 backdrop-blur px-3 py-2 min-w-[200px]"
     >
-      <div className="text-[10px] uppercase tracking-widest text-primary font-medium">{account.label}</div>
-      <div className="text-xs font-mono mt-0.5 text-foreground">
-        {account.invoices} invoices · {phase === "stable" ? "↓ 64% risk" : phase === "chaos" ? "↑ high risk" : "AI engaged"}
+      <div className="flex items-center gap-2">
+        {persona && (
+          <img
+            src={persona.avatar}
+            alt={persona.name}
+            className="w-6 h-6 rounded-full ring-1"
+            style={{ borderColor: persona.color, boxShadow: `0 0 0 1px ${persona.color}` }}
+          />
+        )}
+        <div>
+          <div className="text-[10px] uppercase tracking-widest text-primary font-medium leading-tight">
+            {account.label}
+          </div>
+          {persona && (
+            <div className="text-[9px] font-mono leading-tight" style={{ color: persona.color }}>
+              {persona.name} · {account.daysPastDue}d past due
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="text-xs font-mono mt-1.5 text-foreground">
+        {account.invoices} invoices ·{" "}
+        {phase === "stable" ? "↓ 64% risk" : phase === "chaos" ? "↑ high risk" : "AI engaged"}
       </div>
     </motion.div>
   );
