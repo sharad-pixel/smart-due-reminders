@@ -121,20 +121,30 @@ const CinematicHero = () => {
             AI-Powered Collections & Risk Command Center
           </motion.div>
 
-          <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-[1.15] tracking-tight text-primary-foreground mb-5 min-h-[3.8em]">
-            <AnimatePresence mode="wait">
-              <motion.span
-                key={headlineIdx}
-                initial={{ opacity: 0, y: 14, filter: "blur(6px)" }}
-                animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                exit={{ opacity: 0, y: -14, filter: "blur(6px)" }}
-                transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-                className="block text-primary-foreground px-1"
-              >
-                {HEADLINES[headlineIdx]}
-              </motion.span>
-            </AnimatePresence>
-          </h1>
+          {(() => {
+            const phaseGradient =
+              phase === "chaos"
+                ? "from-rose-200 via-rose-300 to-destructive"
+                : phase === "orchestration"
+                  ? "from-amber-100 via-amber-200 to-primary"
+                  : "from-emerald-100 via-emerald-200 to-emerald-400";
+            return (
+              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-[1.15] tracking-tight mb-5 min-h-[3.8em]">
+                <AnimatePresence mode="wait">
+                  <motion.span
+                    key={headlineIdx}
+                    initial={{ opacity: 0, y: 14, filter: "blur(6px)" }}
+                    animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                    exit={{ opacity: 0, y: -14, filter: "blur(6px)" }}
+                    transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+                    className={`block px-1 bg-gradient-to-r ${phaseGradient} bg-clip-text text-transparent transition-colors duration-700`}
+                  >
+                    {HEADLINES[headlineIdx]}
+                  </motion.span>
+                </AnimatePresence>
+              </h1>
+            );
+          })()}
 
           <motion.p
             initial={{ opacity: 0, y: 12 }}
