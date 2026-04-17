@@ -148,6 +148,33 @@ export const SalesRepCard = ({ debtorId, debtorName, initial, onSaved }: SalesRe
       setSaving(false);
     }
   }
+  async function handleSendNoticeNow() {
+    const targetEmail = (initial.sales_rep_email || email).trim();
+    if (!targetEmail) {
+      toast.error("Save a rep email before sending a notice");
+      return;
+    }
+    if (initial.sales_rep_email !== email.trim() || initial.sales_rep_name !== (name.trim() || null)) {
+      toast.error("Save your changes before sending a notice");
+      return;
+    }
+    setSendingNotice(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-rep-weekly-summary", {
+        body: { debtorId },
+      });
+      if (error) throw error;
+      if ((data as any)?.errors?.length) {
+        throw new Error((data as any).errors.join("; "));
+      }
+      toast.success(`Notice sent to ${targetEmail}`);
+    } catch (err: any) {
+      console.error("Failed to send notice", err);
+      toast.error(err.message || "Failed to send notice");
+    } finally {
+      setSendingNotice(false);
+    }
+  }
 
   return (
     <Card>
