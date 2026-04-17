@@ -46,12 +46,12 @@ const AdminDashboard = () => {
         { data: recentUsersData },
         { data: activityData },
       ] = await Promise.all([
-        supabase.from("profiles").select("*", { count: "exact", head: true }),
+        supabase.from("profiles_admin_safe").select("*", { count: "exact", head: true }),
         supabase.from("invoices").select("*", { count: "exact", head: true }),
         supabase.from("debtors").select("*", { count: "exact", head: true }),
         supabase.from("waitlist_signups").select("*", { count: "exact", head: true }),
-        supabase.from("profiles").select("*", { count: "exact", head: true }).eq("is_suspended", true),
-        supabase.from("profiles").select("id, email, name, company_name, created_at").order("created_at", { ascending: false }).limit(5),
+        supabase.from("profiles_admin_safe").select("*", { count: "exact", head: true }).eq("is_suspended", true),
+        supabase.from("profiles_admin_safe").select("id, email, name, company_name, created_at").order("created_at", { ascending: false }).limit(5),
         supabase.from("admin_user_actions").select("*").order("created_at", { ascending: false }).limit(10),
       ]);
 
@@ -59,7 +59,7 @@ const AdminDashboard = () => {
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
       const { count: recentSignups } = await supabase
-        .from("profiles")
+        .from("profiles_admin_safe")
         .select("*", { count: "exact", head: true })
         .gte("created_at", sevenDaysAgo.toISOString());
 

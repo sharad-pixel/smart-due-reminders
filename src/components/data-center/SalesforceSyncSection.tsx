@@ -43,7 +43,7 @@ export const SalesforceSyncSection = () => {
 
       const { data, error } = await supabase
         .from("crm_connections")
-        .select("*")
+        .select("id, user_id, crm_type, instance_url, connected_at, last_sync_at, created_at, updated_at")
         .eq("user_id", user.id)
         .eq("crm_type", "salesforce")
         .maybeSingle();

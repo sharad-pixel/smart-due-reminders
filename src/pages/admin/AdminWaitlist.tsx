@@ -55,7 +55,7 @@ const AdminWaitlist = () => {
       const [{ data: waitlistData }, { data: whitelistData }, { data: profilesData }] = await Promise.all([
         supabase.from("waitlist_signups").select("*").order("created_at", { ascending: false }),
         supabase.from("early_access_whitelist").select("*").order("invited_at", { ascending: false }),
-        supabase.from("profiles").select("email"),
+        supabase.from("profiles_admin_safe").select("email"),
       ]);
 
       // Create a set of signed-up emails for quick lookup

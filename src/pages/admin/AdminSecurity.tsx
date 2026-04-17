@@ -32,7 +32,7 @@ const AdminSecurity = () => {
           .order("created_at", { ascending: false })
           .limit(50),
         supabase
-          .from("profiles")
+          .from("profiles_admin_safe")
           .select("id, email, name, suspended_at, suspended_reason")
           .eq("is_suspended", true),
       ]);
