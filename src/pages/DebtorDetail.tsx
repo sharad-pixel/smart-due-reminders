@@ -32,6 +32,7 @@ import { CustomerAIContext } from "@/components/accounts/CustomerAIContext";
 import { ExpansionRiskAdvisor } from "@/components/accounts/ExpansionRiskAdvisor";
 import { AccountOutreachSettings } from "@/components/outreach/AccountOutreachSettings";
 import { SalesRepCard } from "@/components/accounts/SalesRepCard";
+import { InternalAccountOwnerBadge } from "@/components/accounts/InternalAccountOwnerBadge";
 import { OutreachDetailModal, OutreachRecord } from "@/components/outreach/OutreachDetailModal";
 import { OutreachSummaryRow } from "@/components/outreach/OutreachSummaryRow";
 import { EmailDeliveryWarning } from "@/components/alerts/EmailDeliveryWarning";
@@ -765,6 +766,14 @@ const DebtorDetail = () => {
                     <Copy className="h-3 w-3" />
                   )}
                 </Button>
+              </div>
+              <div className="mt-3">
+                <InternalAccountOwnerBadge
+                  debtorId={debtor.id}
+                  salesRepName={debtor.sales_rep_name}
+                  salesRepEmail={debtor.sales_rep_email}
+                  alertsEnabled={!!debtor.sales_rep_alerts_enabled}
+                />
               </div>
             </div>
           </div>
