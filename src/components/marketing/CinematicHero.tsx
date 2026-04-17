@@ -437,9 +437,19 @@ const Stage = ({
         </text>
       </g>
 
+      {/* Persona avatar clip paths (defined once per account) */}
+      <defs>
+        {ACCOUNTS.map((a) => (
+          <clipPath key={`clip-${a.id}`} id={`avatar-clip-${a.id}`}>
+            <circle r={11} cx={a.x + 22} cy={a.y - 22} />
+          </clipPath>
+        ))}
+      </defs>
+
       {/* Account nodes */}
       {ACCOUNTS.map((a, i) => {
         const isHovered = hovered === a.id;
+        const persona = personaConfig[a.persona];
         const tone =
           phase === "chaos"
             ? "hsl(var(--destructive))"
@@ -495,6 +505,53 @@ const Stage = ({
                 }}
               />
             ))}
+
+            {/* AI Persona avatar — appears during orchestration & stable */}
+            {persona && (
+              <motion.g
+                initial={false}
+                animate={{
+                  opacity: phase === "chaos" ? 0 : 1,
+                  scale: phase === "chaos" ? 0.6 : isHovered ? 1.15 : 1,
+                }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+                style={{ transformOrigin: `22px -22px`, transformBox: "fill-box" } as React.CSSProperties}
+              >
+                {/* Outreach pulse ring (orchestration) */}
+                {phase === "orchestration" && (
+                  <motion.circle
+                    cx={22}
+                    cy={-22}
+                    r={12}
+                    fill="none"
+                    stroke={persona.color}
+                    strokeWidth={1.2}
+                    initial={{ r: 12, opacity: 0.8 }}
+                    animate={{ r: [12, 22, 12], opacity: [0.8, 0, 0.8] }}
+                    transition={{ duration: 1.8, repeat: Infinity, delay: i * 0.2 }}
+                  />
+                )}
+                {/* Avatar background ring */}
+                <circle
+                  cx={22}
+                  cy={-22}
+                  r={12}
+                  fill="hsl(222 47% 9%)"
+                  stroke={persona.color}
+                  strokeWidth={1.5}
+                />
+                <image
+                  href={persona.avatar}
+                  x={22 - 11}
+                  y={-22 - 11}
+                  width={22}
+                  height={22}
+                  clipPath={`url(#avatar-clip-${a.id})`}
+                  preserveAspectRatio="xMidYMid slice"
+                />
+              </motion.g>
+            )}
+
             {/* Aging label (chaos only) */}
             {phase === "chaos" && (
               <motion.text
@@ -507,12 +564,30 @@ const Stage = ({
                 animate={{ opacity: [0.4, 1, 0.4] }}
                 transition={{ duration: 1.6, repeat: Infinity, delay: i * 0.15 }}
               >
-                {[30, 60, 90, 60, 90, 30][i]}d
+                {a.daysPastDue}d
               </motion.text>
             )}
+
+            {/* Persona tag (orchestration & stable) */}
+            {phase !== "chaos" && persona && (
+              <motion.text
+                y={26}
+                textAnchor="middle"
+                fontSize={8.5}
+                fontFamily="ui-monospace, monospace"
+                fill={persona.color}
+                fontWeight={600}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, delay: i * 0.05 }}
+              >
+                {persona.name.toUpperCase()}
+              </motion.text>
+            )}
+
             {/* Account label */}
             <text
-              y={42}
+              y={40}
               textAnchor="middle"
               fontSize={9.5}
               fontFamily="ui-sans-serif, system-ui"
