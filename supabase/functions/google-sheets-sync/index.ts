@@ -187,7 +187,7 @@ async function incrementalPush(
 async function pushAccounts(supabase: any, accessToken: string, template: any, userId: string) {
   const { data: debtors } = await supabase
     .from('debtors')
-    .select('reference_id, company_name, type, name, email, phone, address_line1, address_line2, city, state, postal_code, country, industry, external_customer_id, crm_account_id_external, payment_terms_default, notes, current_balance, integration_source, source_system, payment_score, payment_risk_tier')
+    .select('reference_id, company_name, type, name, email, phone, address_line1, address_line2, city, state, postal_code, country, industry, external_customer_id, crm_account_id_external, payment_terms_default, notes, current_balance, integration_source, source_system, payment_score, payment_risk_tier, sales_rep_name, sales_rep_email, sales_rep_alerts_enabled')
     .eq('user_id', userId)
     .eq('is_archived', false)
     .order('company_name', { ascending: true });
@@ -196,7 +196,8 @@ async function pushAccounts(supabase: any, accessToken: string, template: any, u
     'RAID', 'Company Name', 'Type (B2B/B2C)', 'Contact Name', 'Contact Email', 'Contact Phone',
     'Address Line 1', 'Address Line 2', 'City', 'State', 'Postal Code', 'Country',
     'Industry', 'Source System ID', 'CRM ID', 'Default Payment Terms',
-    'Notes', 'Current Balance', 'Source', 'Risk Score', 'Risk Tier'
+    'Notes', 'Current Balance', 'Source', 'Risk Score', 'Risk Tier',
+    'Internal Owner Name', 'Internal Owner Email', 'Weekly Alerts Enabled'
   ];
   const dataRows = (debtors || []).map((d: any) => [
     d.reference_id || '', d.company_name || '', d.type || 'B2B',
@@ -207,9 +208,11 @@ async function pushAccounts(supabase: any, accessToken: string, template: any, u
     d.payment_terms_default || '', d.notes || '', d.current_balance || 0,
     d.integration_source || d.source_system || 'recouply',
     d.payment_score ?? '', d.payment_risk_tier || '',
+    d.sales_rep_name || '', d.sales_rep_email || '',
+    d.sales_rep_alerts_enabled ? 'Yes' : 'No',
   ]);
 
-  return await incrementalPush(accessToken, template.sheet_id, 'Accounts', 'A:U', headers, dataRows, 0);
+  return await incrementalPush(accessToken, template.sheet_id, 'Accounts', 'A:X', headers, dataRows, 0);
 }
 
 async function pushInvoices(supabase: any, accessToken: string, template: any, userId: string) {
