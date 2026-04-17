@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
- import { ArrowRight, Play, Sparkles, Mail, ShieldAlert, FileSearch, Inbox, Workflow, Wallet } from "lucide-react";
+import { ArrowRight, Play, Sparkles } from "lucide-react";
 
-import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import RollingAgentIntro from "./RollingAgentIntro";
 
 const headlines = [
@@ -30,15 +30,6 @@ const headlines = [
   "AI-Driven Credit Risk Intelligence for Every Customer",
 ];
 
-const useCases = [
-  { icon: Mail, label: "Send AI-personalized payment reminders" },
-  { icon: ShieldAlert, label: "Score every account for credit & default risk" },
-  { icon: Inbox, label: "Auto-triage debtor replies & disputes" },
-  { icon: Workflow, label: "Run risk-aware collection workflows" },
-  { icon: FileSearch, label: "Track every invoice, message & outcome" },
-  { icon: Wallet, label: "Recover cash with a self-serve payment portal" },
-];
-
 const subheadlines = [
   "Recouply.ai is the AI-powered collections CRM that centralizes every receivable, prioritizes by risk, and maintains a complete audit trail of every interaction.",
   "AI-powered collections workflows replace manual follow-ups with consistent, risk-aware outreach — all tracked in one system of record.",
@@ -54,36 +45,12 @@ const subheadlines = [
 
 const AnimatedHero = () => {
   const navigate = useNavigate();
-   const containerRef = useRef<HTMLElement>(null);
   const [displayText, setDisplayText] = useState("");
   const [isTypingComplete, setIsTypingComplete] = useState(false);
   const [headlineIndex, setHeadlineIndex] = useState(0);
   const [currentSubheadline, setCurrentSubheadline] = useState(() => 
     Math.floor(Math.random() * subheadlines.length)
   );
- 
-   // Mouse parallax
-   const mouseX = useMotionValue(0);
-   const mouseY = useMotionValue(0);
-   const springX = useSpring(mouseX, { stiffness: 50, damping: 20 });
-   const springY = useSpring(mouseY, { stiffness: 50, damping: 20 });
-   
-   const orbX1 = useTransform(springX, [-500, 500], [-30, 30]);
-   const orbY1 = useTransform(springY, [-500, 500], [-30, 30]);
-   const orbX2 = useTransform(springX, [-500, 500], [20, -20]);
-   const orbY2 = useTransform(springY, [-500, 500], [20, -20]);
- 
-   useEffect(() => {
-     const handleMouseMove = (e: MouseEvent) => {
-       const rect = containerRef.current?.getBoundingClientRect();
-       if (rect) {
-         mouseX.set(e.clientX - rect.left - rect.width / 2);
-         mouseY.set(e.clientY - rect.top - rect.height / 2);
-       }
-     };
-     window.addEventListener('mousemove', handleMouseMove);
-     return () => window.removeEventListener('mousemove', handleMouseMove);
-   }, [mouseX, mouseY]);
 
   // Rotate headlines every 5 seconds
   useEffect(() => {
@@ -116,80 +83,13 @@ const AnimatedHero = () => {
   }, [headlineIndex]);
 
   return (
-     <section ref={containerRef} className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
-      {/* Animated gradient background */}
+    <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
+      {/* Static gradient background */}
       <div className="absolute inset-0 bg-gradient-to-br from-background via-primary/5 to-accent/5">
         <div className="absolute inset-0 bg-grid-pattern opacity-20"></div>
-        
-        {/* Animated gradient orbs */}
-         <motion.div 
-           className="absolute top-20 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl"
-           style={{ x: orbX1, y: orbY1 }}
-           animate={{ scale: [1, 1.1, 1], opacity: [0.2, 0.3, 0.2] }}
-           transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-         />
-         <motion.div 
-           className="absolute bottom-20 right-1/4 w-80 h-80 bg-accent/15 rounded-full blur-3xl"
-           style={{ x: orbX2, y: orbY2 }}
-           animate={{ scale: [1, 1.15, 1], opacity: [0.15, 0.25, 0.15] }}
-           transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-         />
-         <motion.div 
-           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[100px]"
-           animate={{ rotate: 360 }}
-           transition={{ duration: 60, repeat: Infinity, ease: "linear" }}
-         />
-         
-         {/* Floating particles */}
-         {[...Array(15)].map((_, i) => (
-           <motion.div
-             key={`particle-${i}`}
-             className="absolute w-1 h-1 bg-primary/40 rounded-full"
-             style={{
-               left: `${10 + Math.random() * 80}%`,
-               top: `${10 + Math.random() * 80}%`,
-             }}
-             animate={{
-               y: [0, -30, 0],
-               opacity: [0.2, 0.6, 0.2],
-               scale: [1, 1.5, 1],
-             }}
-             transition={{
-               duration: 3 + Math.random() * 2,
-               repeat: Infinity,
-               delay: Math.random() * 2,
-               ease: "easeInOut",
-             }}
-           />
-         ))}
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[100px]" />
       </div>
 
-      {/* Floating invoice cards */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(6)].map((_, i) => (
-           <motion.div
-            key={i}
-             className="absolute opacity-20"
-             initial={{ y: "100vh", rotate: -5 + Math.random() * 10 }}
-             animate={{ 
-               y: "-100vh",
-               rotate: [-5, 5, -5],
-            }}
-             transition={{
-               y: { duration: 12 + i * 2, repeat: Infinity, ease: "linear", delay: i * 1.5 },
-               rotate: { duration: 4, repeat: Infinity, ease: "easeInOut" }
-             }}
-             style={{ left: `${8 + i * 15}%` }}
-          >
-            <div className="w-24 h-32 bg-card/50 backdrop-blur-sm rounded-lg border border-border/30 shadow-lg p-3">
-              <div className="w-full h-2 bg-primary/30 rounded mb-2"></div>
-              <div className="w-3/4 h-2 bg-muted-foreground/20 rounded mb-2"></div>
-              <div className="w-1/2 h-2 bg-muted-foreground/20 rounded"></div>
-              <div className="mt-4 text-xs text-primary/50 font-mono">$1,250</div>
-            </div>
-           </motion.div>
-        ))}
-      </div>
 
       <div className="container mx-auto px-4 relative z-10">
         <div className="text-center max-w-5xl mx-auto">
@@ -262,27 +162,6 @@ const AnimatedHero = () => {
                {subheadlines[currentSubheadline]}
              </motion.p>
            </AnimatePresence>
-
-          {/* Use cases — what Recouply.ai does (persistent, animate in once) */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15, duration: 0.5 }}
-            className="flex flex-wrap justify-center gap-2 mb-8 max-w-3xl mx-auto"
-          >
-            {useCases.map(({ icon: Icon, label }, i) => (
-              <motion.div
-                key={label}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.2 + i * 0.06, duration: 0.4 }}
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-card/60 backdrop-blur-sm border border-border/50 text-xs md:text-sm text-foreground/80 hover:border-primary/40 hover:text-foreground transition-colors"
-              >
-                <Icon className="h-3.5 w-3.5 text-primary shrink-0" />
-                <span>{label}</span>
-              </motion.div>
-            ))}
-          </motion.div>
 
           {/* Rolling AI Agent Introductions */}
           <motion.div
