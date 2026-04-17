@@ -5,6 +5,7 @@ import { ArrowRight, Play, Sparkles } from "lucide-react";
 
 import { motion, AnimatePresence } from "framer-motion";
 import RollingAgentIntro from "./RollingAgentIntro";
+import AIPersonaChatStream from "./AIPersonaChatStream";
 
 const headlines = [
   "Your Collections & Risk CRM — Powered by AI",
