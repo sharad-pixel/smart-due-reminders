@@ -268,7 +268,7 @@ const AIPersonaChatStream = () => {
                         initial={{ opacity: 0, scale: 0.6 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0 }}
-                        className="absolute -bottom-2.5 right-3 flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500 text-white text-[10px] font-semibold shadow-lg"
+                        className="absolute -bottom-2.5 right-3 flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent text-accent-foreground text-[10px] font-semibold shadow-lg"
                       >
                         <CheckCircle2 className="w-3 h-3" />
                         Sent
