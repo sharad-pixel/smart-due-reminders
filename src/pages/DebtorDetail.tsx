@@ -97,6 +97,7 @@ interface Debtor {
   sales_rep_name: string | null;
   sales_rep_email: string | null;
   sales_rep_alerts_enabled: boolean | null;
+}
 
 interface DebtorContact {
   id: string;
