@@ -430,19 +430,33 @@ const Stage = ({
             strokeDasharray="1 6"
           />
         </motion.g>
-        {/* Brain glyph */}
-        <text
-          textAnchor="middle"
-          dominantBaseline="central"
-          y={1}
-          fontSize={11}
-          fontFamily="ui-monospace, SFMono-Regular, monospace"
-          fill="hsl(var(--primary))"
-          fontWeight={700}
-          letterSpacing={1.5}
+        {/* Recouply.ai brain logo */}
+        <motion.g
+          animate={{
+            scale: phase === "orchestration" ? [1, 1.08, 1] : [1, 1.03, 1],
+          }}
+          transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
         >
-          AI
-        </text>
+          {/* Lucide Brain icon path, centered at 0,0 — original 24x24 viewBox, scaled ~1.5x */}
+          <g
+            transform="translate(-18, -18) scale(1.5)"
+            fill="none"
+            stroke="hsl(var(--primary))"
+            strokeWidth={1.6}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z" />
+            <path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z" />
+            <path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4" />
+            <path d="M17.599 6.5a3 3 0 0 0 .399-1.375" />
+            <path d="M6.003 5.125A3 3 0 0 0 6.401 6.5" />
+            <path d="M3.477 10.896a4 4 0 0 1 .585-.396" />
+            <path d="M19.938 10.5a4 4 0 0 1 .585.396" />
+            <path d="M6 18a4 4 0 0 1-1.967-.516" />
+            <path d="M19.967 17.484A4 4 0 0 1 18 18" />
+          </g>
+        </motion.g>
       </g>
 
       {/* Persona avatar clip paths (defined once per account) */}
