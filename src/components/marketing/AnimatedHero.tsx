@@ -45,36 +45,12 @@ const subheadlines = [
 
 const AnimatedHero = () => {
   const navigate = useNavigate();
-   const containerRef = useRef<HTMLElement>(null);
   const [displayText, setDisplayText] = useState("");
   const [isTypingComplete, setIsTypingComplete] = useState(false);
   const [headlineIndex, setHeadlineIndex] = useState(0);
   const [currentSubheadline, setCurrentSubheadline] = useState(() => 
     Math.floor(Math.random() * subheadlines.length)
   );
- 
-   // Mouse parallax
-   const mouseX = useMotionValue(0);
-   const mouseY = useMotionValue(0);
-   const springX = useSpring(mouseX, { stiffness: 50, damping: 20 });
-   const springY = useSpring(mouseY, { stiffness: 50, damping: 20 });
-   
-   const orbX1 = useTransform(springX, [-500, 500], [-30, 30]);
-   const orbY1 = useTransform(springY, [-500, 500], [-30, 30]);
-   const orbX2 = useTransform(springX, [-500, 500], [20, -20]);
-   const orbY2 = useTransform(springY, [-500, 500], [20, -20]);
- 
-   useEffect(() => {
-     const handleMouseMove = (e: MouseEvent) => {
-       const rect = containerRef.current?.getBoundingClientRect();
-       if (rect) {
-         mouseX.set(e.clientX - rect.left - rect.width / 2);
-         mouseY.set(e.clientY - rect.top - rect.height / 2);
-       }
-     };
-     window.addEventListener('mousemove', handleMouseMove);
-     return () => window.removeEventListener('mousemove', handleMouseMove);
-   }, [mouseX, mouseY]);
 
   // Rotate headlines every 5 seconds
   useEffect(() => {
