@@ -237,6 +237,7 @@ serve(async (req) => {
         repName,
         fromBusinessName,
         accounts,
+        mode: debtorId ? "on_demand" : "weekly",
       });
 
       try {
