@@ -167,12 +167,30 @@ serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    // Fetch all debtors that have alerts enabled and a sales_rep_email
-    const { data: debtors, error } = await supabase
+    // Optional payload: { debtorId } to send an immediate notice for a single account
+    let debtorId: string | null = null;
+    if (req.method === "POST") {
+      try {
+        const body = await req.json();
+        if (body && typeof body.debtorId === "string") debtorId = body.debtorId;
+      } catch (_) {
+        // no body, fall back to scheduled mode
+      }
+    }
+
+    let query = supabase
       .from("debtors")
-      .select("id, reference_id, company_name, name, current_balance, open_invoices_count, payment_score, payment_risk_tier, user_id, sales_rep_user_id, sales_rep_name, sales_rep_email")
-      .eq("sales_rep_alerts_enabled", true)
-      .not("sales_rep_email", "is", null);
+      .select("id, reference_id, company_name, name, current_balance, open_invoices_count, payment_score, payment_risk_tier, user_id, sales_rep_user_id, sales_rep_name, sales_rep_email");
+
+    if (debtorId) {
+      // Immediate single-account notice — require sales_rep_email but ignore alerts toggle
+      query = query.eq("id", debtorId).not("sales_rep_email", "is", null);
+    } else {
+      // Scheduled weekly run — only opted-in accounts
+      query = query.eq("sales_rep_alerts_enabled", true).not("sales_rep_email", "is", null);
+    }
+
+    const { data: debtors, error } = await query;
 
     if (error) throw error;
 
