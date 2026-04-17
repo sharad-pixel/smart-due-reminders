@@ -263,10 +263,10 @@ const AnimatedHero = () => {
              </motion.p>
            </AnimatePresence>
 
-          {/* Use cases — what Recouply.ai does */}
+          {/* Use cases — what Recouply.ai does (persistent, animate in once) */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: isTypingComplete ? 1 : 0, y: isTypingComplete ? 0 : 10 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15, duration: 0.5 }}
             className="flex flex-wrap justify-center gap-2 mb-8 max-w-3xl mx-auto"
           >
