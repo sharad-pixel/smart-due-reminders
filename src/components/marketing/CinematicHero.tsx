@@ -737,15 +737,36 @@ const HoverPanel = ({ hovered, phase }: { hovered: string | null; phase: Phase }
       </div>
     );
   }
+  const persona = personaConfig[account.persona];
   return (
     <motion.div
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-lg border border-primary/30 bg-[hsl(222_47%_6%)]/90 backdrop-blur px-3 py-2 min-w-[180px]"
+      className="rounded-lg border border-primary/30 bg-[hsl(222_47%_6%)]/90 backdrop-blur px-3 py-2 min-w-[200px]"
     >
-      <div className="text-[10px] uppercase tracking-widest text-primary font-medium">{account.label}</div>
-      <div className="text-xs font-mono mt-0.5 text-foreground">
-        {account.invoices} invoices · {phase === "stable" ? "↓ 64% risk" : phase === "chaos" ? "↑ high risk" : "AI engaged"}
+      <div className="flex items-center gap-2">
+        {persona && (
+          <img
+            src={persona.avatar}
+            alt={persona.name}
+            className="w-6 h-6 rounded-full ring-1"
+            style={{ borderColor: persona.color, boxShadow: `0 0 0 1px ${persona.color}` }}
+          />
+        )}
+        <div>
+          <div className="text-[10px] uppercase tracking-widest text-primary font-medium leading-tight">
+            {account.label}
+          </div>
+          {persona && (
+            <div className="text-[9px] font-mono leading-tight" style={{ color: persona.color }}>
+              {persona.name} · {account.daysPastDue}d past due
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="text-xs font-mono mt-1.5 text-foreground">
+        {account.invoices} invoices ·{" "}
+        {phase === "stable" ? "↓ 64% risk" : phase === "chaos" ? "↑ high risk" : "AI engaged"}
       </div>
     </motion.div>
   );
