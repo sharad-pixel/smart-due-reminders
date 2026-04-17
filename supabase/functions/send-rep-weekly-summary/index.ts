@@ -47,8 +47,10 @@ function buildEmailHtml(args: {
   repName: string;
   fromBusinessName: string;
   accounts: DebtorRow[];
+  mode?: "weekly" | "on_demand";
 }): { subject: string; html: string; text: string } {
-  const { repName, fromBusinessName, accounts } = args;
+  const { repName, fromBusinessName, accounts, mode = "weekly" } = args;
+  const isOnDemand = mode === "on_demand";
   const totalBalance = accounts.reduce((s, a) => s + Number(a.current_balance || 0), 0);
   const totalInvoices = accounts.reduce((s, a) => s + (a.open_invoices_count || 0), 0);
 
@@ -80,7 +82,8 @@ function buildEmailHtml(args: {
     })
     .join("");
 
-  const subject = `Weekly Account Summary — ${accounts.length} account${accounts.length === 1 ? "" : "s"}, ${fmtCurrency(totalBalance)} outstanding`;
+  const subjectPrefix = isOnDemand ? "Account Notice" : "Weekly Account Summary";
+  const subject = `${subjectPrefix} — ${accounts.length} account${accounts.length === 1 ? "" : "s"}, ${fmtCurrency(totalBalance)} outstanding`;
 
   const html = `<!DOCTYPE html>
 <html><body style="margin:0;padding:0;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
@@ -88,7 +91,7 @@ function buildEmailHtml(args: {
     <tr><td align="center">
       <table role="presentation" width="640" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;">
         <tr><td style="padding:24px 28px;border-bottom:1px solid #e2e8f0;">
-          <div style="font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">Weekly Account Summary</div>
+          <div style="font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">${isOnDemand ? "Account Notice" : "Weekly Account Summary"}</div>
           <div style="font-size:20px;color:#1e293b;font-weight:600;margin-top:4px;">Hi ${repName},</div>
           <div style="font-size:14px;color:#475569;margin-top:8px;line-height:1.5;">
             Here is your weekly snapshot of accounts you own at <strong>${fromBusinessName}</strong>.
@@ -167,12 +170,30 @@ serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    // Fetch all debtors that have alerts enabled and a sales_rep_email
-    const { data: debtors, error } = await supabase
+    // Optional payload: { debtorId } to send an immediate notice for a single account
+    let debtorId: string | null = null;
+    if (req.method === "POST") {
+      try {
+        const body = await req.json();
+        if (body && typeof body.debtorId === "string") debtorId = body.debtorId;
+      } catch (_) {
+        // no body, fall back to scheduled mode
+      }
+    }
+
+    let query = supabase
       .from("debtors")
-      .select("id, reference_id, company_name, name, current_balance, open_invoices_count, payment_score, payment_risk_tier, user_id, sales_rep_user_id, sales_rep_name, sales_rep_email")
-      .eq("sales_rep_alerts_enabled", true)
-      .not("sales_rep_email", "is", null);
+      .select("id, reference_id, company_name, name, current_balance, open_invoices_count, payment_score, payment_risk_tier, user_id, sales_rep_user_id, sales_rep_name, sales_rep_email");
+
+    if (debtorId) {
+      // Immediate single-account notice — require sales_rep_email but ignore alerts toggle
+      query = query.eq("id", debtorId).not("sales_rep_email", "is", null);
+    } else {
+      // Scheduled weekly run — only opted-in accounts
+      query = query.eq("sales_rep_alerts_enabled", true).not("sales_rep_email", "is", null);
+    }
+
+    const { data: debtors, error } = await query;
 
     if (error) throw error;
 
@@ -216,6 +237,7 @@ serve(async (req) => {
         repName,
         fromBusinessName,
         accounts,
+        mode: debtorId ? "on_demand" : "weekly",
       });
 
       try {
