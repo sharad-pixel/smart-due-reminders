@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { UserCog, Mail, BellRing } from "lucide-react";
+import { UserCog, Mail, BellRing, Send } from "lucide-react";
 
 interface SalesRepCardProps {
   debtorId: string;
@@ -37,6 +37,7 @@ export const SalesRepCard = ({ debtorId, debtorName, initial, onSaved }: SalesRe
   const [email, setEmail] = useState(initial.sales_rep_email || "");
   const [alertsEnabled, setAlertsEnabled] = useState(!!initial.sales_rep_alerts_enabled);
   const [saving, setSaving] = useState(false);
+  const [sendingNotice, setSendingNotice] = useState(false);
   const [loadingMembers, setLoadingMembers] = useState(true);
 
   useEffect(() => {
@@ -228,7 +229,18 @@ export const SalesRepCard = ({ debtorId, debtorName, initial, onSaved }: SalesRe
           <Switch id="rep-alerts" checked={alertsEnabled} onCheckedChange={setAlertsEnabled} />
         </div>
 
-        <div className="flex justify-end gap-2 pt-2">
+        <div className="flex flex-wrap justify-end gap-2 pt-2">
+          {initial.sales_rep_email && (
+            <Button
+              variant="outline"
+              onClick={handleSendNoticeNow}
+              disabled={saving || sendingNotice}
+              className="mr-auto"
+            >
+              <Send className="h-4 w-4 mr-2" />
+              {sendingNotice ? "Sending…" : "Send Notice to Account Owner Now"}
+            </Button>
+          )}
           <Button variant="ghost" onClick={handleClear} disabled={saving}>
             Clear
           </Button>
