@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowRight, Play, Sparkles } from "lucide-react";
 
 import { motion, AnimatePresence } from "framer-motion";
-import InvoiceLifecycleAnimation from "./InvoiceLifecycleAnimation";
+import RollingAgentIntro from "./RollingAgentIntro";
 
 const headlines = [
   "Your Collections & Risk CRM — Powered by AI",
@@ -163,10 +163,15 @@ const AnimatedHero = () => {
              </motion.p>
            </AnimatePresence>
 
-          {/* Invoice Lifecycle Animation */}
-          <div className="my-10">
-            <InvoiceLifecycleAnimation />
-          </div>
+          {/* Rolling AI Agent Introductions */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: isTypingComplete ? 1 : 0, y: isTypingComplete ? 0 : 20 }}
+            transition={{ delay: 0.2, duration: 0.6 }}
+            className="my-8"
+          >
+            <RollingAgentIntro />
+          </motion.div>
 
           {/* 24/7 Badge */}
            <motion.p 
