@@ -31,6 +31,7 @@ import { AccountIntelligencePanel } from "@/components/accounts/AccountIntellige
 import { CustomerAIContext } from "@/components/accounts/CustomerAIContext";
 import { ExpansionRiskAdvisor } from "@/components/accounts/ExpansionRiskAdvisor";
 import { AccountOutreachSettings } from "@/components/outreach/AccountOutreachSettings";
+import { SalesRepCard } from "@/components/accounts/SalesRepCard";
 import { OutreachDetailModal, OutreachRecord } from "@/components/outreach/OutreachDetailModal";
 import { OutreachSummaryRow } from "@/components/outreach/OutreachSummaryRow";
 import { EmailDeliveryWarning } from "@/components/alerts/EmailDeliveryWarning";
