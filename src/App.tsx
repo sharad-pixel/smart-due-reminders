@@ -9,6 +9,7 @@ import { AccessProvider } from "./contexts/AccessContext";
 import { DemoProvider } from "./contexts/DemoContext";
 import { MaintenanceGuard } from "./components/layout/MaintenanceGuard";
 import { SessionSecurityProvider } from "./components/security/SessionSecurityProvider";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 // Handle chunk load errors (stale deployments) by reloading
 const handleChunkError = () => {
@@ -194,181 +195,183 @@ const queryClient = new QueryClient({
 });
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <BrowserRouter>
-      <AccessProvider>
-        <DemoProvider>
-        <SessionSecurityProvider>
-        <CookieConsentProvider>
-          <MaintenanceGuard>
-            <ScrollToTop />
-            <Toaster />
-            <Sonner />
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
-            {/* Main app entry point */}
-            <Route path="/" element={<Index />} />
-            <Route path="/coming-soon" element={<ComingSoon />} />
-            <Route path="/demo" element={<DemoMode />} />
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <AccessProvider>
+          <DemoProvider>
+          <SessionSecurityProvider>
+          <CookieConsentProvider>
+            <MaintenanceGuard>
+              <ScrollToTop />
+              <Toaster />
+              <Sonner />
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
+              {/* Main app entry point */}
+              <Route path="/" element={<Index />} />
+              <Route path="/coming-soon" element={<ComingSoon />} />
+              <Route path="/demo" element={<DemoMode />} />
 
-            {/* Marketing & Info Pages */}
-            <Route path="/design-partners" element={<DesignPartners />} />
-            <Route path="/features" element={<Features />} />
-            <Route path="/collection-intelligence" element={<CollectionIntelligence />} />
-            <Route path="/collections-assessment" element={<CollectionsAssessment />} />
-            <Route path="/pricing" element={<Pricing />} />
-            <Route path="/personas" element={<Personas />} />
-            <Route path="/ai-command-center" element={<AICommandCenter />} />
-            <Route path="/why-collections-matter" element={<WhyCollectionsMatter />} />
-            <Route path="/solutions" element={<Solutions />} />
-            <Route path="/solutions/solo-pro" element={<SoloPro />} />
-            <Route path="/solutions/small-businesses" element={<SmallBusinesses />} />
-            <Route path="/solutions/saas" element={<SaaS />} />
-            <Route path="/solutions/professional-services" element={<ProfessionalServices />} />
-            <Route path="/professional-services" element={<ProfessionalServicesData />} />
-            <Route path="/startups" element={<Startups />} />
-            <Route path="/smb" element={<SMB />} />
-            <Route path="/enterprise" element={<Enterprise />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/integrations" element={<Integrations />} />
-            <Route path="/integrations/stripe-sync" element={<StripeSyncDiagnostics />} />
-            <Route path="/investors" element={<Investors />} />
-            <Route path="/careers" element={<Careers />} />
-            <Route path="/knowledge-base" element={<KnowledgeBase />} />
-            <Route path="/faq" element={<KnowledgeBase />} />
-            <Route path="/help" element={<KnowledgeBase />} />
-            <Route path="/features/revenue-risk" element={<RevenueRiskFeature />} />
-            <Route path="/automation" element={<AutomationPage />} />
-            <Route path="/analytics" element={<AnalyticsPage />} />
+              {/* Marketing & Info Pages */}
+              <Route path="/design-partners" element={<DesignPartners />} />
+              <Route path="/features" element={<Features />} />
+              <Route path="/collection-intelligence" element={<CollectionIntelligence />} />
+              <Route path="/collections-assessment" element={<CollectionsAssessment />} />
+              <Route path="/pricing" element={<Pricing />} />
+              <Route path="/personas" element={<Personas />} />
+              <Route path="/ai-command-center" element={<AICommandCenter />} />
+              <Route path="/why-collections-matter" element={<WhyCollectionsMatter />} />
+              <Route path="/solutions" element={<Solutions />} />
+              <Route path="/solutions/solo-pro" element={<SoloPro />} />
+              <Route path="/solutions/small-businesses" element={<SmallBusinesses />} />
+              <Route path="/solutions/saas" element={<SaaS />} />
+              <Route path="/solutions/professional-services" element={<ProfessionalServices />} />
+              <Route path="/professional-services" element={<ProfessionalServicesData />} />
+              <Route path="/startups" element={<Startups />} />
+              <Route path="/smb" element={<SMB />} />
+              <Route path="/enterprise" element={<Enterprise />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/integrations" element={<Integrations />} />
+              <Route path="/integrations/stripe-sync" element={<StripeSyncDiagnostics />} />
+              <Route path="/investors" element={<Investors />} />
+              <Route path="/careers" element={<Careers />} />
+              <Route path="/knowledge-base" element={<KnowledgeBase />} />
+              <Route path="/faq" element={<KnowledgeBase />} />
+              <Route path="/help" element={<KnowledgeBase />} />
+              <Route path="/features/revenue-risk" element={<RevenueRiskFeature />} />
+              <Route path="/automation" element={<AutomationPage />} />
+              <Route path="/analytics" element={<AnalyticsPage />} />
 
-            {/* Pillar Pages */}
-            <Route path="/collections-crm" element={<CollectionsCRM />} />
-            <Route path="/ai-collections-platform" element={<AICollectionsPlatform />} />
-            <Route path="/revenue-risk-intelligence" element={<RevenueRiskIntelligence />} />
+              {/* Pillar Pages */}
+              <Route path="/collections-crm" element={<CollectionsCRM />} />
+              <Route path="/ai-collections-platform" element={<AICollectionsPlatform />} />
+              <Route path="/revenue-risk-intelligence" element={<RevenueRiskIntelligence />} />
 
-            {/* Blog Pages */}
-            <Route path="/blog" element={<BlogIndex />} />
-            <Route path="/blog/celebrate-cash" element={<CelebrateCash />} />
-            <Route path="/blog/power-of-outreach" element={<PowerOfOutreach />} />
-            <Route path="/blog/cash-leakage" element={<CashLeakage />} />
-            <Route path="/blog/future-of-ai-in-collections" element={<FutureOfAiInCollections />} />
-            <Route path="/blog/revenue-does-not-equal-cash-flow" element={<RevenueNotCashFlow />} />
-            <Route path="/blog/rise-of-collections-intelligence" element={<RiseOfCollectionsIntelligence />} />
-            <Route path="/blog/timing-matters-more-than-tone" element={<TimingMattersMoreThanTone />} />
-            <Route path="/blog/engagement-as-credit-signal" element={<EngagementAsCreditSignal />} />
-            <Route path="/blog/hidden-cost-of-delayed-payments" element={<HiddenCostDelayedPayments />} />
-            <Route path="/blog/data-trust-in-ar-automation" element={<DataTrustInArAutomation />} />
-            <Route path="/blog/spreadsheets-to-systems-of-record" element={<SpreadsheetsToSystems />} />
-            <Route path="/blog/predictive-collections-revenue-risk" element={<PredictiveCollections />} />
-            <Route path="/blog/next-generation-ar-teams" element={<NextGenerationArTeams />} />
-            <Route path="/blog/death-of-traditional-collections" element={<DeathOfTraditionalCollections />} />
-            <Route path="/blog/set-it-and-forget-it-automation" element={<SetItAndForgetItAutomation />} />
-            <Route path="/blog/risk-as-a-real-time-operational-system" element={<RiskAsRealtimeSystem />} />
-            <Route path="/blog/why-collections-needs-a-crm" element={<WhyCollectionsNeedsCrm />} />
+              {/* Blog Pages */}
+              <Route path="/blog" element={<BlogIndex />} />
+              <Route path="/blog/celebrate-cash" element={<CelebrateCash />} />
+              <Route path="/blog/power-of-outreach" element={<PowerOfOutreach />} />
+              <Route path="/blog/cash-leakage" element={<CashLeakage />} />
+              <Route path="/blog/future-of-ai-in-collections" element={<FutureOfAiInCollections />} />
+              <Route path="/blog/revenue-does-not-equal-cash-flow" element={<RevenueNotCashFlow />} />
+              <Route path="/blog/rise-of-collections-intelligence" element={<RiseOfCollectionsIntelligence />} />
+              <Route path="/blog/timing-matters-more-than-tone" element={<TimingMattersMoreThanTone />} />
+              <Route path="/blog/engagement-as-credit-signal" element={<EngagementAsCreditSignal />} />
+              <Route path="/blog/hidden-cost-of-delayed-payments" element={<HiddenCostDelayedPayments />} />
+              <Route path="/blog/data-trust-in-ar-automation" element={<DataTrustInArAutomation />} />
+              <Route path="/blog/spreadsheets-to-systems-of-record" element={<SpreadsheetsToSystems />} />
+              <Route path="/blog/predictive-collections-revenue-risk" element={<PredictiveCollections />} />
+              <Route path="/blog/next-generation-ar-teams" element={<NextGenerationArTeams />} />
+              <Route path="/blog/death-of-traditional-collections" element={<DeathOfTraditionalCollections />} />
+              <Route path="/blog/set-it-and-forget-it-automation" element={<SetItAndForgetItAutomation />} />
+              <Route path="/blog/risk-as-a-real-time-operational-system" element={<RiskAsRealtimeSystem />} />
+              <Route path="/blog/why-collections-needs-a-crm" element={<WhyCollectionsNeedsCrm />} />
 
-            {/* Legal Pages */}
-            <Route path="/legal/terms" element={<Terms />} />
-            <Route path="/legal/privacy" element={<Privacy />} />
-            <Route path="/legal/cookies" element={<Cookies />} />
-            <Route path="/security-public" element={<Security />} />
+              {/* Legal Pages */}
+              <Route path="/legal/terms" element={<Terms />} />
+              <Route path="/legal/privacy" element={<Privacy />} />
+              <Route path="/legal/cookies" element={<Cookies />} />
+              <Route path="/security-public" element={<Security />} />
 
-            {/* Trust Center */}
-            <Route path="/trust" element={<TrustCenter />} />
-            <Route path="/trust/security-overview" element={<TrustSecurityOverview />} />
-            <Route path="/trust/access-control" element={<TrustAccessControl />} />
-            <Route path="/trust/data-protection" element={<TrustDataProtection />} />
-            <Route path="/trust/incident-response" element={<TrustIncidentResponse />} />
-            <Route path="/trust/business-continuity" element={<TrustBusinessContinuity />} />
-            <Route path="/trust/application-security" element={<TrustApplicationSecurity />} />
-            <Route path="/trust/vendor-security" element={<TrustVendorSecurity />} />
-            <Route path="/trust/privacy-data-handling" element={<TrustPrivacyDataHandling />} />
-            <Route path="/trust/security-review-resources" element={<TrustSecurityReviewResources />} />
+              {/* Trust Center */}
+              <Route path="/trust" element={<TrustCenter />} />
+              <Route path="/trust/security-overview" element={<TrustSecurityOverview />} />
+              <Route path="/trust/access-control" element={<TrustAccessControl />} />
+              <Route path="/trust/data-protection" element={<TrustDataProtection />} />
+              <Route path="/trust/incident-response" element={<TrustIncidentResponse />} />
+              <Route path="/trust/business-continuity" element={<TrustBusinessContinuity />} />
+              <Route path="/trust/application-security" element={<TrustApplicationSecurity />} />
+              <Route path="/trust/vendor-security" element={<TrustVendorSecurity />} />
+              <Route path="/trust/privacy-data-handling" element={<TrustPrivacyDataHandling />} />
+              <Route path="/trust/security-review-resources" element={<TrustSecurityReviewResources />} />
 
-            {/* Auth Pages */}
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/auth/reset-password" element={<ResetPassword />} />
-            <Route path="/verify-email" element={<VerifyEmail />} />
-            <Route path="/email-verification-required" element={<EmailVerificationRequired />} />
+              {/* Auth Pages */}
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/auth/reset-password" element={<ResetPassword />} />
+              <Route path="/verify-email" element={<VerifyEmail />} />
+              <Route path="/email-verification-required" element={<EmailVerificationRequired />} />
 
-            {/* Payment & Contact */}
-            <Route path="/checkout" element={<Checkout />} />
-            <Route path="/contact-us" element={<ContactUs />} />
-            <Route path="/contact" element={<ContactUs />} />
-            <Route path="/upgrade" element={<Upgrade />} />
-            <Route path="/billing" element={<Billing />} />
+              {/* Payment & Contact */}
+              <Route path="/checkout" element={<Checkout />} />
+              <Route path="/contact-us" element={<ContactUs />} />
+              <Route path="/contact" element={<ContactUs />} />
+              <Route path="/upgrade" element={<Upgrade />} />
+              <Route path="/billing" element={<Billing />} />
 
-            {/* Onboarding */}
-            <Route path="/onboarding" element={<Onboarding />} />
+              {/* Onboarding */}
+              <Route path="/onboarding" element={<Onboarding />} />
 
-            {/* Dashboard & Core App */}
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/payments" element={<PaymentsActivity />} />
-            {/* Legacy route support (older alerts/emails) */}
-            <Route path="/accounts" element={<LegacyAccountsRedirect />} />
-            <Route path="/accounts/:id" element={<LegacyAccountsRedirect />} />
+              {/* Dashboard & Core App */}
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/payments" element={<PaymentsActivity />} />
+              {/* Legacy route support (older alerts/emails) */}
+              <Route path="/accounts" element={<LegacyAccountsRedirect />} />
+              <Route path="/accounts/:id" element={<LegacyAccountsRedirect />} />
 
-            <Route path="/debtors" element={<Debtors />} />
-            <Route path="/debtors/:id" element={<DebtorDetail />} />
-            <Route path="/invoices" element={<Invoices />} />
-            <Route path="/invoices/:id" element={<InvoiceDetail />} />
-            <Route path="/settings" element={<Settings />} />
+              <Route path="/debtors" element={<Debtors />} />
+              <Route path="/debtors/:id" element={<DebtorDetail />} />
+              <Route path="/invoices" element={<Invoices />} />
+              <Route path="/invoices/:id" element={<InvoiceDetail />} />
+              <Route path="/settings" element={<Settings />} />
 
-            {/* Feature Pages */}
-            <Route path="/ai-workflows" element={<AIWorkflows />} />
-            <Route path="/settings/ai-workflows" element={<AIWorkflows />} />
-            <Route path="/tasks" element={<CollectionTasks />} />
-            <Route path="/inbound" element={<InboundCommandCenter />} />
-            <Route path="/team" element={<Team />} />
-            <Route path="/accept-invite" element={<AcceptInvite />} />
-            <Route path="/security" element={<SecurityDashboard />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/documents" element={<Documents />} />
-            <Route path="/branding" element={<Branding />} />
-            <Route path="/ar/:token" element={<PublicARPage />} />
-            <Route path="/invoice/:token" element={<PublicInvoicePage />} />
-            <Route path="/payment-plan/:token" element={<PublicPaymentPlanPage />} />
-            <Route path="/debtor-portal" element={<DebtorPortalPage />} />
-            <Route path="/ar-upload" element={<ARDataUpload />} />
-            <Route path="/ar-introduction" element={<ARIntroduction />} />
-            <Route path="/reconciliation" element={<Reconciliation />} />
-            <Route path="/ar-aging" element={<ARAging />} />
-            <Route path="/data-center" element={<DataCenter />} />
-            <Route path="/data-center/review/:uploadId" element={<DataCenterReview />} />
-            <Route path="/daily-digest" element={<DailyDigest />} />
-            <Route path="/outreach" element={<Outreach />} />
-            <Route path="/outreach-history" element={<OutreachHistory />} />
-            <Route path="/alerts" element={<Alerts />} />
-            <Route path="/revenue-risk" element={<RevenueRisk />} />
-            <Route path="/reports/email-delivery" element={<EmailDeliveryReport />} />
+              {/* Feature Pages */}
+              <Route path="/ai-workflows" element={<AIWorkflows />} />
+              <Route path="/settings/ai-workflows" element={<AIWorkflows />} />
+              <Route path="/tasks" element={<CollectionTasks />} />
+              <Route path="/inbound" element={<InboundCommandCenter />} />
+              <Route path="/team" element={<Team />} />
+              <Route path="/accept-invite" element={<AcceptInvite />} />
+              <Route path="/security" element={<SecurityDashboard />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/documents" element={<Documents />} />
+              <Route path="/branding" element={<Branding />} />
+              <Route path="/ar/:token" element={<PublicARPage />} />
+              <Route path="/invoice/:token" element={<PublicInvoicePage />} />
+              <Route path="/payment-plan/:token" element={<PublicPaymentPlanPage />} />
+              <Route path="/debtor-portal" element={<DebtorPortalPage />} />
+              <Route path="/ar-upload" element={<ARDataUpload />} />
+              <Route path="/ar-introduction" element={<ARIntroduction />} />
+              <Route path="/reconciliation" element={<Reconciliation />} />
+              <Route path="/ar-aging" element={<ARAging />} />
+              <Route path="/data-center" element={<DataCenter />} />
+              <Route path="/data-center/review/:uploadId" element={<DataCenterReview />} />
+              <Route path="/daily-digest" element={<DailyDigest />} />
+              <Route path="/outreach" element={<Outreach />} />
+              <Route path="/outreach-history" element={<OutreachHistory />} />
+              <Route path="/alerts" element={<Alerts />} />
+              <Route path="/revenue-risk" element={<RevenueRisk />} />
+              <Route path="/reports/email-delivery" element={<EmailDeliveryReport />} />
 
-            {/* Admin Pages */}
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/admin/user-management" element={<AdminUserManagement />} />
-            <Route path="/admin/users/:userId" element={<AdminUserDetail />} />
-            <Route path="/admin/activity" element={<AdminActivityLogs />} />
-            <Route path="/admin/analytics" element={<AdminAnalytics />} />
-            <Route path="/admin/waitlist" element={<AdminWaitlist />} />
-            <Route path="/admin/subscriptions" element={<AdminSubscriptions />} />
-            <Route path="/admin/edge-functions" element={<AdminEdgeFunctions />} />
-            <Route path="/admin/database" element={<AdminDatabase />} />
-            <Route path="/admin/security" element={<AdminSecurity />} />
-            <Route path="/admin/system" element={<AdminSystem />} />
-            <Route path="/admin/email-templates" element={<AdminEmailTemplates />} />
-            <Route path="/admin/leads" element={<AdminLeadOutreach />} />
-            <Route path="/admin/stale-users" element={<AdminStaleUsers />} />
+              {/* Admin Pages */}
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin/user-management" element={<AdminUserManagement />} />
+              <Route path="/admin/users/:userId" element={<AdminUserDetail />} />
+              <Route path="/admin/activity" element={<AdminActivityLogs />} />
+              <Route path="/admin/analytics" element={<AdminAnalytics />} />
+              <Route path="/admin/waitlist" element={<AdminWaitlist />} />
+              <Route path="/admin/subscriptions" element={<AdminSubscriptions />} />
+              <Route path="/admin/edge-functions" element={<AdminEdgeFunctions />} />
+              <Route path="/admin/database" element={<AdminDatabase />} />
+              <Route path="/admin/security" element={<AdminSecurity />} />
+              <Route path="/admin/system" element={<AdminSystem />} />
+              <Route path="/admin/email-templates" element={<AdminEmailTemplates />} />
+              <Route path="/admin/leads" element={<AdminLeadOutreach />} />
+              <Route path="/admin/stale-users" element={<AdminStaleUsers />} />
 
-              {/* 404 - Keep at bottom */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
-          </MaintenanceGuard>
-        </CookieConsentProvider>
-        </SessionSecurityProvider>
-        </DemoProvider>
-      </AccessProvider>
-    </BrowserRouter>
-  </QueryClientProvider>
+                {/* 404 - Keep at bottom */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+            </MaintenanceGuard>
+          </CookieConsentProvider>
+          </SessionSecurityProvider>
+          </DemoProvider>
+        </AccessProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;
