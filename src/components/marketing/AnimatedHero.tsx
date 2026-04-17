@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
- import { ArrowRight, Play, Sparkles, Mail, ShieldAlert, FileSearch, Inbox, Workflow, Wallet } from "lucide-react";
+import { ArrowRight, Play, Sparkles } from "lucide-react";
 
-import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import RollingAgentIntro from "./RollingAgentIntro";
 
 const headlines = [
