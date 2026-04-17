@@ -36,7 +36,7 @@ const CinematicHero = () => {
   const prefersReduced = useReducedMotion();
   const [phase, setPhase] = useState<Phase>("chaos");
   const [hoveredAccount, setHoveredAccount] = useState<string | null>(null);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Phase loop
   useEffect(() => {
