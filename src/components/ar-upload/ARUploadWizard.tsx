@@ -73,6 +73,8 @@ const getOptionalFields = (uploadType: UploadType): string[] => {
         "line_description",
         "line_qty",
         "line_unit_price",
+        "internal_owner_name",
+        "internal_owner_email",
       ];
     case "payments":
       return ["currency", "reference", "invoice_number", "notes"];
@@ -415,6 +417,23 @@ export const ARUploadWizard = ({ open, onClose, uploadType }: ARUploadWizardProp
         }
         if (customerRow && columnMapping.contact_name && customerRow[columnMapping.contact_name]) {
           contactName = String(customerRow[columnMapping.contact_name]);
+        }
+
+        // Internal owner (sales rep) — resolve user_id by email lookup against profiles
+        if (customerRow && columnMapping.internal_owner_name && customerRow[columnMapping.internal_owner_name]) {
+          debtorData.sales_rep_name = String(customerRow[columnMapping.internal_owner_name]).trim();
+        }
+        if (customerRow && columnMapping.internal_owner_email && customerRow[columnMapping.internal_owner_email]) {
+          const ownerEmail = String(customerRow[columnMapping.internal_owner_email]).trim().toLowerCase();
+          if (ownerEmail) {
+            debtorData.sales_rep_email = ownerEmail;
+            const { data: ownerProfile } = await supabase
+              .from("profiles")
+              .select("id")
+              .ilike("email", ownerEmail)
+              .maybeSingle();
+            if (ownerProfile?.id) debtorData.sales_rep_user_id = ownerProfile.id;
+          }
         }
 
         const { data: newDebtor, error } = await supabase

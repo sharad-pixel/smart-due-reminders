@@ -32,6 +32,9 @@ const FIELD_DEFINITIONS = {
     { key: "payment_terms_default", label: "Default Payment Terms", aliases: ["payment terms", "default payment terms", "terms", "net terms", "net 30", "net 60"] },
     { key: "account_notes", label: "Notes", aliases: ["notes", "comments", "remarks", "account notes"] },
     { key: "recouply_account_id", label: "Recouply Account ID (RAID)", aliases: ["raid", "recouply id", "recouply account id", "account raid"] },
+    { key: "sales_rep_name", label: "Internal Owner Name", aliases: ["internal owner", "internal owner name", "account owner", "account owner name", "sales rep", "sales rep name", "owner", "owner name", "rep", "csm", "account manager"] },
+    { key: "sales_rep_email", label: "Internal Owner Email", aliases: ["internal owner email", "account owner email", "sales rep email", "owner email", "rep email", "csm email", "account manager email"] },
+    { key: "sales_rep_alerts_enabled", label: "Weekly Alerts Enabled", aliases: ["weekly alerts", "weekly alerts enabled", "owner alerts", "alerts enabled", "send weekly alerts"] },
   ],
   invoice: [
     { key: "invoice_number", label: "Invoice Number", aliases: ["invoice", "inv", "invoice no", "invoice number", "inv no", "inv #", "invoice #", "document number", "doc no"] },
