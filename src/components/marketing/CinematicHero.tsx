@@ -70,6 +70,16 @@ const CinematicHero = () => {
     };
   }, [phase, prefersReduced]);
 
+  // Headline cycler — independent of phase loop
+  const [headlineIdx, setHeadlineIdx] = useState(0);
+  useEffect(() => {
+    if (prefersReduced) return;
+    const id = setInterval(() => {
+      setHeadlineIdx((i) => (i + 1) % HEADLINES.length);
+    }, 4200);
+    return () => clearInterval(id);
+  }, [prefersReduced]);
+
   // Animated metrics
   const metrics = useMemo(() => {
     if (phase === "chaos") {
@@ -110,17 +120,23 @@ const CinematicHero = () => {
             AI-Powered Collections & Risk Command Center
           </motion.div>
 
-          <motion.h1
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.05 }}
-            className="text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.05] tracking-tight text-foreground mb-5"
-          >
-            Turn Revenue Risk Into{" "}
-            <span className="bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
-              Predictable Cash Flow
-            </span>
-          </motion.h1>
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.05] tracking-tight text-foreground mb-5 min-h-[2.4em]">
+            <AnimatePresence mode="wait">
+              <motion.span
+                key={headlineIdx}
+                initial={{ opacity: 0, y: 14, filter: "blur(6px)" }}
+                animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                exit={{ opacity: 0, y: -14, filter: "blur(6px)" }}
+                transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+                className="block"
+              >
+                {HEADLINES[headlineIdx][0]}
+                <span className="bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
+                  {HEADLINES[headlineIdx][1]}
+                </span>
+              </motion.span>
+            </AnimatePresence>
+          </h1>
 
           <motion.p
             initial={{ opacity: 0, y: 12 }}
