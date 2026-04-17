@@ -163,27 +163,6 @@ const AnimatedHero = () => {
              </motion.p>
            </AnimatePresence>
 
-          {/* Use cases — what Recouply.ai does (persistent, animate in once) */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15, duration: 0.5 }}
-            className="flex flex-wrap justify-center gap-2 mb-8 max-w-3xl mx-auto"
-          >
-            {useCases.map(({ icon: Icon, label }, i) => (
-              <motion.div
-                key={label}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.2 + i * 0.06, duration: 0.4 }}
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-card/60 backdrop-blur-sm border border-border/50 text-xs md:text-sm text-foreground/80 hover:border-primary/40 hover:text-foreground transition-colors"
-              >
-                <Icon className="h-3.5 w-3.5 text-primary shrink-0" />
-                <span>{label}</span>
-              </motion.div>
-            ))}
-          </motion.div>
-
           {/* Rolling AI Agent Introductions */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
