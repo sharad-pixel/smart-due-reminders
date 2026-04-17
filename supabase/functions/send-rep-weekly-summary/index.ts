@@ -47,8 +47,10 @@ function buildEmailHtml(args: {
   repName: string;
   fromBusinessName: string;
   accounts: DebtorRow[];
+  mode?: "weekly" | "on_demand";
 }): { subject: string; html: string; text: string } {
-  const { repName, fromBusinessName, accounts } = args;
+  const { repName, fromBusinessName, accounts, mode = "weekly" } = args;
+  const isOnDemand = mode === "on_demand";
   const totalBalance = accounts.reduce((s, a) => s + Number(a.current_balance || 0), 0);
   const totalInvoices = accounts.reduce((s, a) => s + (a.open_invoices_count || 0), 0);
 
