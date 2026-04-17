@@ -119,7 +119,7 @@ const DataCenter = () => {
 
       const { data: accounts, error } = await supabase
         .from("debtors")
-        .select("reference_id, company_name, name, email, phone, type, external_customer_id, crm_account_id_external, industry, address_line1, address_line2, city, state, postal_code, country")
+        .select("reference_id, company_name, name, email, phone, type, external_customer_id, crm_account_id_external, industry, address_line1, address_line2, city, state, postal_code, country, sales_rep_name, sales_rep_email, sales_rep_alerts_enabled")
         .eq("user_id", user.id)
         .order("company_name");
 
@@ -144,7 +144,10 @@ const DataCenter = () => {
         "City": acc.city || "",
         "State": acc.state || "",
         "Postal Code": acc.postal_code || "",
-        "Country": acc.country || ""
+        "Country": acc.country || "",
+        "Internal Owner Name": acc.sales_rep_name || "",
+        "Internal Owner Email": acc.sales_rep_email || "",
+        "Weekly Alerts Enabled": acc.sales_rep_alerts_enabled ? "Yes" : "No"
       }));
 
       const ws = XLSX.utils.json_to_sheet(exportData);
