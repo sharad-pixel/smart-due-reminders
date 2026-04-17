@@ -151,12 +151,16 @@ export const SalesRepCard = ({ debtorId, debtorName, initial, onSaved }: SalesRe
   async function handleSendNoticeNow() {
     const targetEmail = (initial.sales_rep_email || email).trim();
     if (!targetEmail) {
-      toast.error("Save a rep email before sending a notice");
+      toast.error("Add and save a rep email before sending a health score card");
       return;
     }
-    if (initial.sales_rep_email !== email.trim() || initial.sales_rep_name !== (name.trim() || null)) {
-      toast.error("Save your changes before sending a notice");
-      return;
+    // If user has unsaved changes, save them first so the notice goes to the right place
+    const hasUnsavedChanges =
+      initial.sales_rep_email !== (email.trim() || null) ||
+      initial.sales_rep_name !== (name.trim() || null);
+    if (hasUnsavedChanges) {
+      toast.info("Saving your changes first…");
+      await handleSave();
     }
     setSendingNotice(true);
     try {
@@ -167,10 +171,10 @@ export const SalesRepCard = ({ debtorId, debtorName, initial, onSaved }: SalesRe
       if ((data as any)?.errors?.length) {
         throw new Error((data as any).errors.join("; "));
       }
-      toast.success(`Notice sent to ${targetEmail}`);
+      toast.success(`Account Health Score Card sent to ${targetEmail}`);
     } catch (err: any) {
-      console.error("Failed to send notice", err);
-      toast.error(err.message || "Failed to send notice");
+      console.error("Failed to send health score card", err);
+      toast.error(err.message || "Failed to send");
     } finally {
       setSendingNotice(false);
     }
@@ -257,17 +261,20 @@ export const SalesRepCard = ({ debtorId, debtorName, initial, onSaved }: SalesRe
         </div>
 
         <div className="flex flex-wrap justify-end gap-2 pt-2">
-          {initial.sales_rep_email && (
-            <Button
-              variant="outline"
-              onClick={handleSendNoticeNow}
-              disabled={saving || sendingNotice}
-              className="mr-auto"
-            >
-              <Send className="h-4 w-4 mr-2" />
-              {sendingNotice ? "Sending…" : "Send Notice to Account Owner Now"}
-            </Button>
-          )}
+          <Button
+            variant="outline"
+            onClick={handleSendNoticeNow}
+            disabled={saving || sendingNotice || !(initial.sales_rep_email || email.trim())}
+            className="mr-auto"
+            title={
+              !(initial.sales_rep_email || email.trim())
+                ? "Add a rep email to enable sending"
+                : "Send the current Account Health Score Card to this rep"
+            }
+          >
+            <Send className="h-4 w-4 mr-2" />
+            {sendingNotice ? "Sending…" : "Send Account Health Score Card to Rep"}
+          </Button>
           <Button variant="ghost" onClick={handleClear} disabled={saving}>
             Clear
           </Button>
