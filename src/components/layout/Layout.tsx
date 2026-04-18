@@ -4,11 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { User } from "@supabase/supabase-js";
 import { toast } from "sonner";
-import { 
-  LayoutDashboard, 
-  Users, 
-  FileText, 
-  Settings, 
+import {
+  LayoutDashboard,
+  Users,
+  FileText,
+  Settings,
   LogOut,
   User as UserIcon,
   Workflow,
@@ -49,6 +49,7 @@ import NicolasChat from "@/components/nicolas/NicolasChat";
 import { NicolasPageTip } from "@/components/nicolas/NicolasPageTip";
 import { OnboardingWelcome } from "@/components/layout/OnboardingWelcome";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
+import { useSubscription } from "@/hooks/useSubscription";
 import { NavProfileAvatar } from "@/components/layout/NavProfileAvatar";
 import { OnboardingProgressRing } from "@/components/layout/OnboardingProgressRing";
 import { useOnboardingCompletion } from "@/hooks/useOnboardingCompletion";
