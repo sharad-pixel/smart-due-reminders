@@ -223,11 +223,10 @@ const CinematicHero = () => {
           >
             <span className="text-muted-foreground">Built for:</span>
             {[
-              { label: "Solo Pros", path: "/solutions/solo-pro" },
-              { label: "Small Businesses", path: "/solutions/small-businesses" },
-              { label: "SaaS", path: "/solutions/saas" },
-              { label: "Professional Services", path: "/solutions/professional-services" },
+              { label: "Solo Pro", path: "/solutions/solo-pro" },
               { label: "Startups", path: "/startups" },
+              { label: "SMB", path: "/smb" },
+              { label: "Enterprise", path: "/enterprise" },
             ].map((s, i, arr) => (
               <span key={s.path} className="flex items-center gap-2">
                 <button
