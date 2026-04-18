@@ -170,7 +170,7 @@ export const TaskDetailModal = ({
       // Exclude viewers - they cannot be assigned tasks
       const { data, error } = await supabase
         .from('account_users')
-        .select(`id, user_id, role, status`)
+        .select('id, user_id, role, status, email')
         .eq('account_id', effectiveAccountId)
         .eq('status', 'active')
         .neq('role', 'viewer')
@@ -183,41 +183,39 @@ export const TaskDetailModal = ({
       }
 
       if (data) {
-        // Deduplicate by user_id - keep only one entry per user
         const uniqueByUserId = new Map<string, typeof data[0]>();
-        data.forEach(au => {
+        data.forEach((au) => {
           if (au.user_id && !uniqueByUserId.has(au.user_id)) {
             uniqueByUserId.set(au.user_id, au);
           }
         });
 
-        // Fetch profile info for each unique user
         const usersWithProfiles = await Promise.all(
           Array.from(uniqueByUserId.values()).map(async (au) => {
             const { data: profile } = await supabase
-              .from('profiles')
+              .from('profiles_team_safe')
               .select('name, email')
               .eq('id', au.user_id)
-              .single();
-            
+              .maybeSingle();
+
             return {
               id: au.id,
               user_id: au.user_id,
               role: au.role,
               status: au.status,
               profile_name: profile?.name || null,
-              profile_email: profile?.email || null
+              profile_email: profile?.email || au.email || null,
             };
           })
         );
+
         setAccountUsers(usersWithProfiles);
-        
-        // Build mention users list from account users
-        const mentionableUsers: MentionUser[] = usersWithProfiles.map(u => ({
+
+        const mentionableUsers: MentionUser[] = usersWithProfiles.map((u) => ({
           id: u.id,
           user_id: u.user_id,
           name: u.profile_name || u.profile_email || 'Unknown',
-          email: u.profile_email || ''
+          email: u.profile_email || '',
         }));
         setMentionUsers(mentionableUsers);
       }

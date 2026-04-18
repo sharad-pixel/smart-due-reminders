@@ -182,46 +182,44 @@ export default function CollectionTasks() {
       // Exclude viewers - they cannot be assigned tasks
       const { data, error } = await supabase
         .from('account_users')
-        .select('id, user_id, role, status')
+        .select('id, user_id, role, status, email')
         .eq('account_id', effectiveAccountId)
         .eq('status', 'active')
         .neq('role', 'viewer')
         .order('is_owner', { ascending: false })
         .order('role');
-      
+
       if (error) {
         console.error('Error fetching account users:', error);
         return;
       }
 
       if (data) {
-        // Deduplicate by user_id - keep only one entry per user
         const uniqueByUserId = new Map<string, typeof data[0]>();
-        data.forEach(au => {
+        data.forEach((au) => {
           if (au.user_id && !uniqueByUserId.has(au.user_id)) {
             uniqueByUserId.set(au.user_id, au);
           }
         });
 
-        // Fetch profile info for each unique user
         const usersWithProfiles = await Promise.all(
           Array.from(uniqueByUserId.values()).map(async (au) => {
             const { data: profile } = await supabase
-              .from('profiles')
+              .from('profiles_team_safe')
               .select('name, email')
               .eq('id', au.user_id)
-              .single();
-            
+              .maybeSingle();
+
             return {
               id: au.id,
               user_id: au.user_id,
-              name: profile?.name || profile?.email || 'Unknown',
-              email: profile?.email || '',
-              role: au.role
+              name: profile?.name || profile?.email || au.email || 'Unknown',
+              email: profile?.email || au.email || '',
+              role: au.role,
             };
           })
         );
-        setAccountUsers(usersWithProfiles.filter(u => u.id && u.id.trim() !== ''));
+        setAccountUsers(usersWithProfiles.filter((u) => u.id && u.id.trim() !== ''));
       }
     } catch (error) {
       console.error('Error fetching account users:', error);
@@ -268,15 +266,15 @@ export default function CollectionTasks() {
       const tasksWithUserNames = await Promise.all(
         (data || []).map(async (task: any) => {
           if (task.assigned_to) {
-            // assigned_to now stores user_id from account_users
             const { data: profile } = await supabase
-              .from('profiles')
+              .from('profiles_team_safe')
               .select('name, email')
               .eq('id', task.assigned_to)
-              .single();
+              .maybeSingle();
+
             return {
               ...task,
-              assigned_user_name: profile?.name || profile?.email || null
+              assigned_user_name: profile?.name || profile?.email || null,
             } as TaskWithRelations;
           }
           return { ...task, assigned_user_name: null } as TaskWithRelations;
