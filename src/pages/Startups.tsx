@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { PersonaAvatar } from "@/components/ai/PersonaAvatar";
 import { PLAN_CONFIGS, formatPrice } from "@/lib/subscriptionConfig";
 import SEO from "@/components/seo/SEO";
+import RiskAndPayLinksSection from "@/components/marketing/RiskAndPayLinksSection";
 
 const Startups = () => {
   const navigate = useNavigate();
@@ -167,6 +168,12 @@ const Startups = () => {
           </div>
         </div>
       </section>
+
+      {/* Risk Assessment + Payment Links */}
+      <RiskAndPayLinksSection
+        audienceLabel="For startup founders protecting runway with every invoice"
+        ctaHref="/signup"
+      />
 
       {/* Stats */}
       <section className="py-20 px-4 bg-muted/30">
