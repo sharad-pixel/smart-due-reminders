@@ -253,20 +253,22 @@ const CinematicHero = () => {
             <div className="relative aspect-[16/10] w-full">
               <Stage phase={phase} hovered={hoveredAccount} setHovered={setHoveredAccount} />
 
-              {/* Top overlay: Risk score + metric chips */}
-              <div className="absolute top-3 left-3 right-3 flex flex-wrap items-start justify-between gap-3 pointer-events-none">
-                <div className="pointer-events-auto"><RiskScoreMeter score={metrics.score} phase={phase} /></div>
-                <div className="flex flex-wrap gap-2 justify-end">
-                  <MetricChip label="Recovered" value={`$${formatNum(metrics.recovered)}`} tone="emerald" />
-                  <MetricChip label="At-Risk Accts" value={`${metrics.atRisk}`} tone={metrics.atRisk > 10 ? "red" : "amber"} />
-                  <MetricChip label="AI Actions" value={`${metrics.actions}`} tone="primary" />
-                </div>
+              {/* Top-left: Risk score */}
+              <div className="absolute top-3 left-3 pointer-events-auto max-w-[45%]">
+                <RiskScoreMeter score={metrics.score} phase={phase} />
               </div>
 
-              {/* Bottom overlay: hover panel */}
-              <div className="absolute bottom-3 right-3 flex items-end justify-end">
-                <HoverPanel hovered={hoveredAccount} phase={phase} />
+              {/* Top-right: metric chips (stacked vertically to avoid overlap) */}
+              <div className="absolute top-3 right-3 flex flex-col items-end gap-1.5 pointer-events-none">
+                <MetricChip label="Recovered" value={`$${formatNum(metrics.recovered)}`} tone="emerald" />
+                <MetricChip label="At-Risk Accts" value={`${metrics.atRisk}`} tone={metrics.atRisk > 10 ? "red" : "amber"} />
+                <MetricChip label="AI Actions" value={`${metrics.actions}`} tone="primary" />
               </div>
+            </div>
+
+            {/* Hover panel — outside the stage so it never overlaps nodes */}
+            <div className="border-t border-primary/10 bg-[hsl(222_47%_6%)]/60 px-4 py-3">
+              <HoverPanel hovered={hoveredAccount} phase={phase} />
             </div>
           </div>
 
@@ -791,41 +793,43 @@ const HoverPanel = ({ hovered, phase }: { hovered: string | null; phase: Phase }
   const account = ACCOUNTS.find((a) => a.id === hovered);
   if (!account) {
     return (
-      <div className="hidden md:block rounded-lg border border-primary/10 bg-[hsl(222_47%_6%)]/60 backdrop-blur px-3 py-2 text-[10px] text-muted-foreground font-mono max-w-[200px]">
-        hover an account node to inspect
+      <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-mono">
+        <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary/50 animate-pulse" />
+        hover any account node above to inspect persona, aging & AI status
       </div>
     );
   }
   const persona = personaConfig[account.persona];
   return (
     <motion.div
-      initial={{ opacity: 0, y: 6 }}
+      initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-lg border border-primary/30 bg-[hsl(222_47%_6%)]/90 backdrop-blur px-3 py-2 min-w-[200px]"
+      className="flex items-center gap-3 flex-wrap"
     >
-      <div className="flex items-center gap-2">
+      {persona && (
+        <img
+          src={persona.avatar}
+          alt={persona.name}
+          className="w-7 h-7 rounded-full ring-1 flex-shrink-0"
+          style={{ borderColor: persona.color, boxShadow: `0 0 0 1px ${persona.color}` }}
+        />
+      )}
+      <div className="flex flex-col min-w-0">
+        <span className="text-[10px] uppercase tracking-widest text-primary font-semibold leading-tight">
+          {account.label}
+        </span>
         {persona && (
-          <img
-            src={persona.avatar}
-            alt={persona.name}
-            className="w-6 h-6 rounded-full ring-1"
-            style={{ borderColor: persona.color, boxShadow: `0 0 0 1px ${persona.color}` }}
-          />
+          <span className="text-[10px] font-mono leading-tight" style={{ color: persona.color }}>
+            {persona.name} · {account.daysPastDue}d past due
+          </span>
         )}
-        <div>
-          <div className="text-[10px] uppercase tracking-widest text-primary font-medium leading-tight">
-            {account.label}
-          </div>
-          {persona && (
-            <div className="text-[9px] font-mono leading-tight" style={{ color: persona.color }}>
-              {persona.name} · {account.daysPastDue}d past due
-            </div>
-          )}
-        </div>
       </div>
-      <div className="text-xs font-mono mt-1.5 text-foreground">
+      <div className="h-6 w-px bg-primary/15 hidden sm:block" />
+      <div className="text-[11px] font-mono text-foreground">
         {account.invoices} invoices ·{" "}
-        {phase === "stable" ? "↓ 64% risk" : phase === "chaos" ? "↑ high risk" : "AI engaged"}
+        <span className={phase === "stable" ? "text-emerald-400" : phase === "chaos" ? "text-destructive" : "text-amber-400"}>
+          {phase === "stable" ? "↓ 64% risk" : phase === "chaos" ? "↑ high risk" : "AI engaged"}
+        </span>
       </div>
     </motion.div>
   );
