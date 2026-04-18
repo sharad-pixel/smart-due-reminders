@@ -19,42 +19,43 @@ export const useOnboardingStatus = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // Check accounts count
-      const { count: accountsCount } = await supabase
-        .from("debtors")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id);
+      const { data: effectiveAccountId } = await supabase
+        .rpc("get_effective_account_id", { p_user_id: user.id });
+      const accountId = effectiveAccountId || user.id;
 
-      // Check invoices count
-      const { count: invoicesCount } = await supabase
-        .from("invoices")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id);
-
-      // Check QuickBooks integration
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("quickbooks_realm_id")
-        .eq("id", user.id)
-        .single();
-
-      // Check workflows configured
-      const { count: workflowsCount } = await supabase
-        .from("collection_workflows")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .eq("is_active", true);
-
-      // Check branding configured — includes logo, payment link, and payment methods
-      const { data: branding } = await supabase
-        .from("branding_settings")
-        .select("logo_url, business_name, stripe_payment_link, supported_payment_methods")
-        .eq("user_id", user.id)
-        .maybeSingle();
+      const [
+        { count: accountsCount },
+        { count: invoicesCount },
+        { count: workflowsCount },
+        { data: profile },
+        { data: branding },
+      ] = await Promise.all([
+        supabase
+          .from("debtors")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", accountId),
+        supabase
+          .from("invoices")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", accountId),
+        supabase
+          .from("collection_workflows")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", accountId)
+          .eq("is_active", true),
+        supabase
+          .from("profiles_admin_safe")
+          .select("quickbooks_realm_id")
+          .eq("id", accountId)
+          .maybeSingle(),
+        supabase
+          .from("branding_settings")
+          .select("logo_url, business_name, stripe_payment_link, supported_payment_methods")
+          .eq("user_id", accountId)
+          .maybeSingle(),
+      ]);
 
       const hasLogo = !!branding?.logo_url;
-
-      // Payment is considered configured if there's a stripe payment link OR supported payment methods with at least one entry
       const hasPaymentLink = !!branding?.stripe_payment_link;
       const paymentMethods = branding?.supported_payment_methods;
       const hasPaymentMethods = Array.isArray(paymentMethods)

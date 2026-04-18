@@ -60,27 +60,33 @@ export const useEffectiveAccount = () => {
   });
 
   useEffect(() => {
+    let mounted = true;
+
     const fetchEffectiveAccount = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { session } } = await supabase.auth.getSession();
+        const user = session?.user ?? null;
+
         if (!user) {
-          setAccountInfo(prev => ({ ...prev, loading: false }));
+          if (mounted) {
+            setAccountInfo(prev => ({ ...prev, loading: false }));
+          }
           return;
         }
 
-        // Get effective account ID using the database function
         const { data: effectiveData, error: effectiveError } = await supabase
           .rpc('get_effective_account_id', { p_user_id: user.id });
 
         if (effectiveError) {
           console.error("Error getting effective account:", effectiveError);
-          // Fallback to user's own ID
-          setAccountInfo(prev => ({
-            ...prev,
-            effectiveAccountId: user.id,
-            isTeamMember: false,
-            loading: false,
-          }));
+          if (mounted) {
+            setAccountInfo(prev => ({
+              ...prev,
+              effectiveAccountId: user.id,
+              isTeamMember: false,
+              loading: false,
+            }));
+          }
           return;
         }
 
@@ -88,87 +94,94 @@ export const useEffectiveAccount = () => {
         const isTeamMember = effectiveAccountId !== user.id;
 
         if (isTeamMember) {
-          // Get owner's non-sensitive profile info via SECURITY DEFINER RPC.
-          // Direct SELECT on profiles is blocked by RLS for team members; this
-          // RPC ensures team members inherit the owner's plan/subscription
-          // status (including admin overrides) and business profile.
-          const { data: ownerInfoRows } = await supabase
-            .rpc('get_owner_account_info', { p_account_id: effectiveAccountId });
-          const ownerProfile = Array.isArray(ownerInfoRows) ? ownerInfoRows[0] : null;
-          
-          // Get owner's branding settings
-          const { data: brandingSettings } = await supabase
-            .from('branding_settings')
-            .select('logo_url, from_name, from_email, reply_to_email, email_signature, email_footer')
-            .eq('user_id', effectiveAccountId)
-            .single();
-          
-          // Get user's role in the team
-          const { data: memberData } = await supabase
-            .from('account_users')
-            .select('role')
-            .eq('user_id', user.id)
-            .eq('account_id', effectiveAccountId)
-            .eq('status', 'active')
-            .single();
+          const [{ data: ownerInfoRows }, { data: brandingSettings }, { data: memberData }] = await Promise.all([
+            supabase.rpc('get_owner_account_info', { p_account_id: effectiveAccountId }),
+            supabase
+              .from('branding_settings')
+              .select('logo_url, from_name, from_email, reply_to_email, email_signature, email_footer')
+              .eq('user_id', effectiveAccountId)
+              .maybeSingle(),
+            supabase
+              .from('account_users')
+              .select('role')
+              .eq('user_id', user.id)
+              .eq('account_id', effectiveAccountId)
+              .eq('status', 'active')
+              .maybeSingle(),
+          ]);
 
-          setAccountInfo({
-            effectiveAccountId,
-            isTeamMember: true,
-            ownerName: ownerProfile?.name || null,
-            ownerEmail: ownerProfile?.email || null,
-            ownerCompanyName: ownerProfile?.company_name || null,
-            ownerPlanType: ownerProfile?.plan_type || null,
-            ownerSubscriptionStatus: ownerProfile?.subscription_status || null,
-            ownerAvatarUrl: ownerProfile?.avatar_url || null,
-            memberRole: memberData?.role || null,
-            loading: false,
-            // Business profile from parent
-            ownerBusinessName: ownerProfile?.business_name || null,
-            ownerBusinessPhone: ownerProfile?.business_phone || null,
-            ownerBusinessAddressLine1: ownerProfile?.business_address_line1 || null,
-            ownerBusinessAddressLine2: ownerProfile?.business_address_line2 || null,
-            ownerBusinessCity: ownerProfile?.business_city || null,
-            ownerBusinessState: ownerProfile?.business_state || null,
-            ownerBusinessPostalCode: ownerProfile?.business_postal_code || null,
-            ownerBusinessCountry: ownerProfile?.business_country || null,
-            ownerStripePaymentLinkUrl: ownerProfile?.stripe_payment_link_url || null,
-            ownerLogoUrl: brandingSettings?.logo_url || null,
-            ownerFromName: brandingSettings?.from_name || null,
-            ownerFromEmail: brandingSettings?.from_email || null,
-            ownerReplyToEmail: brandingSettings?.reply_to_email || null,
-            ownerEmailSignature: brandingSettings?.email_signature || null,
-            ownerEmailFooter: brandingSettings?.email_footer || null,
-          });
+          const ownerProfile = Array.isArray(ownerInfoRows) ? ownerInfoRows[0] : null;
+
+          if (mounted) {
+            setAccountInfo({
+              effectiveAccountId,
+              isTeamMember: true,
+              ownerName: ownerProfile?.name || null,
+              ownerEmail: ownerProfile?.email || null,
+              ownerCompanyName: ownerProfile?.company_name || null,
+              ownerPlanType: ownerProfile?.plan_type || null,
+              ownerSubscriptionStatus: ownerProfile?.subscription_status || null,
+              ownerAvatarUrl: ownerProfile?.avatar_url || null,
+              memberRole: memberData?.role || null,
+              loading: false,
+              ownerBusinessName: ownerProfile?.business_name || null,
+              ownerBusinessPhone: ownerProfile?.business_phone || null,
+              ownerBusinessAddressLine1: ownerProfile?.business_address_line1 || null,
+              ownerBusinessAddressLine2: ownerProfile?.business_address_line2 || null,
+              ownerBusinessCity: ownerProfile?.business_city || null,
+              ownerBusinessState: ownerProfile?.business_state || null,
+              ownerBusinessPostalCode: ownerProfile?.business_postal_code || null,
+              ownerBusinessCountry: ownerProfile?.business_country || null,
+              ownerStripePaymentLinkUrl: ownerProfile?.stripe_payment_link_url || null,
+              ownerLogoUrl: brandingSettings?.logo_url || null,
+              ownerFromName: brandingSettings?.from_name || null,
+              ownerFromEmail: brandingSettings?.from_email || null,
+              ownerReplyToEmail: brandingSettings?.reply_to_email || null,
+              ownerEmailSignature: brandingSettings?.email_signature || null,
+              ownerEmailFooter: brandingSettings?.email_footer || null,
+            });
+          }
         } else {
-          // Non-team member (account owner) - fetch their own branding
           const { data: ownBranding } = await supabase
             .from('branding_settings')
             .select('logo_url, from_name, from_email, reply_to_email, email_signature, email_footer')
             .eq('user_id', effectiveAccountId)
-            .single();
+            .maybeSingle();
 
-          setAccountInfo(prev => ({
-            ...prev,
-            effectiveAccountId,
-            isTeamMember: false,
-            ownerAvatarUrl: null,
-            ownerLogoUrl: ownBranding?.logo_url || null,
-            ownerFromName: ownBranding?.from_name || null,
-            ownerFromEmail: ownBranding?.from_email || null,
-            ownerReplyToEmail: ownBranding?.reply_to_email || null,
-            ownerEmailSignature: ownBranding?.email_signature || null,
-            ownerEmailFooter: ownBranding?.email_footer || null,
-            loading: false,
-          }));
+          if (mounted) {
+            setAccountInfo(prev => ({
+              ...prev,
+              effectiveAccountId,
+              isTeamMember: false,
+              ownerAvatarUrl: null,
+              ownerLogoUrl: ownBranding?.logo_url || null,
+              ownerFromName: ownBranding?.from_name || null,
+              ownerFromEmail: ownBranding?.from_email || null,
+              ownerReplyToEmail: ownBranding?.reply_to_email || null,
+              ownerEmailSignature: ownBranding?.email_signature || null,
+              ownerEmailFooter: ownBranding?.email_footer || null,
+              loading: false,
+            }));
+          }
         }
       } catch (error) {
         console.error("Error in useEffectiveAccount:", error);
-        setAccountInfo(prev => ({ ...prev, loading: false }));
+        if (mounted) {
+          setAccountInfo(prev => ({ ...prev, loading: false }));
+        }
       }
     };
 
     fetchEffectiveAccount();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      fetchEffectiveAccount();
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   return accountInfo;
