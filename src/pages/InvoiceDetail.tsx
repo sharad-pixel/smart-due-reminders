@@ -342,13 +342,21 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
         const agingBucket = getAgingBucket(daysPastDue);
 
         const { data: { user } } = await supabase.auth.getUser();
+
+        const { data: _eff } = user
+
+          ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+
+          : { data: null };
+
+        const accountId = (_eff as string | null) || user?.id;
         if (user) {
           const { data: workflowData } = await supabase
             .from("collection_workflows")
             .select("*")
             .eq("aging_bucket", agingBucket)
             .eq("is_active", true)
-            .or(`user_id.eq.${user.id},user_id.is.null`)
+            .or(`user_id.eq.${accountId},user_id.is.null`)
             .order("user_id", { ascending: false, nullsFirst: false })
             .limit(1)
             .single();
@@ -422,6 +430,10 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
     const performStatusChange = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
+        const { data: _eff } = user
+          ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+          : { data: null };
+        const accountId = (_eff as string | null) || user?.id;
         
         // Log override if integrated invoice
         if (isIntegratedInvoice && user) {
@@ -707,6 +719,10 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
     const performSave = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
+        const { data: _eff } = user
+          ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+          : { data: null };
+        const accountId = (_eff as string | null) || user?.id;
         if (!user) throw new Error("Not authenticated");
 
         // Get payment terms days from the selected option
@@ -823,6 +839,10 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
       setApplyingPayment(true);
       try {
         const { data: { user } } = await supabase.auth.getUser();
+        const { data: _eff } = user
+          ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+          : { data: null };
+        const accountId = (_eff as string | null) || user?.id;
         if (!user) throw new Error("Not authenticated");
 
         // Check if this is an integrated invoice
@@ -833,7 +853,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
         const { data: newPayment, error: paymentError } = await supabase
           .from("payments")
           .insert({
-            user_id: user.id,
+            user_id: accountId,
             debtor_id: invoice.debtor_id,
             payment_date: paymentDate,
             amount: amount,
@@ -908,7 +928,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
         await supabase
           .from("collection_activities")
           .insert({
-            user_id: user.id,
+            user_id: accountId,
             debtor_id: invoice.debtor_id,
             invoice_id: invoice.id,
             activity_type: "payment_received",
@@ -934,7 +954,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
           .from("invoice_transactions")
           .insert({
             invoice_id: invoice.id,
-            user_id: user.id,
+            user_id: accountId,
             transaction_type: "payment",
             amount: amount,
             balance_after: newOutstanding,
@@ -1000,6 +1020,10 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
       setApplyingCreditWriteOff(true);
       try {
         const { data: { user } } = await supabase.auth.getUser();
+        const { data: _eff } = user
+          ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+          : { data: null };
+        const accountId = (_eff as string | null) || user?.id;
         if (!user) throw new Error("Not authenticated");
 
         // Check if this is an integrated invoice
@@ -1034,7 +1058,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
           .from("invoice_transactions")
           .insert({
             invoice_id: invoice.id,
-            user_id: user.id,
+            user_id: accountId,
             transaction_type: creditWriteOffType,
             amount: amount,
             balance_after: newOutstanding,
@@ -1062,7 +1086,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
         await supabase
           .from("collection_activities")
           .insert({
-            user_id: user.id,
+            user_id: accountId,
             debtor_id: invoice.debtor_id,
             invoice_id: invoice.id,
             activity_type: creditWriteOffType === 'credit' ? 'credit_applied' : 'write_off_applied',

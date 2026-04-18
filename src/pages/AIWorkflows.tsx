@@ -141,6 +141,10 @@ const AIWorkflows = () => {
     retry: 1,
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) return [];
 
       const { data, error } = await supabase
@@ -248,13 +252,17 @@ const AIWorkflows = () => {
   const fetchInvoiceCounts = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) return;
 
       // Fetch invoices grouped by days past due
       const { data: invoices, error } = await supabase
         .from('invoices')
         .select('id, due_date')
-        .eq('user_id', user.id)
+        .eq('user_id', accountId)
         .in('status', ['Open', 'InPaymentPlan']);
 
       if (error) throw error;
@@ -287,13 +295,17 @@ const AIWorkflows = () => {
   const fetchStepInvoiceCounts = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) return;
 
       // Fetch all open invoices with bucket_entered_at
       const { data: invoices, error } = await supabase
         .from('invoices')
         .select('id, due_date, aging_bucket, bucket_entered_at, created_at')
-        .eq('user_id', user.id)
+        .eq('user_id', accountId)
         .in('status', ['Open', 'InPaymentPlan']);
 
       if (error) throw error;
@@ -344,6 +356,10 @@ const AIWorkflows = () => {
   const fetchStepDraftCounts = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) return;
 
       // Fetch approved templates with workflow info
@@ -356,7 +372,7 @@ const AIWorkflows = () => {
           status,
           collection_workflow_steps!inner(workflow_id)
         `)
-        .eq('user_id', user.id)
+        .eq('user_id', accountId)
         .eq('channel', 'email')
         .eq('status', 'approved');
 
@@ -387,6 +403,10 @@ const AIWorkflows = () => {
   const fetchInvoicesForStep = async (stepId: string, dayOffset: number) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) return;
 
       const { data: invoices, error } = await supabase
@@ -400,7 +420,7 @@ const AIWorkflows = () => {
           created_at,
           debtors(company_name, email)
         `)
-        .eq('user_id', user.id)
+        .eq('user_id', accountId)
         .eq('aging_bucket', selectedBucket)
         .in('status', ['Open', 'InPaymentPlan']);
 
@@ -451,6 +471,10 @@ const AIWorkflows = () => {
     setLoadingDrafts(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) {
         setLoadingDrafts(false);
         return;
@@ -463,7 +487,7 @@ const AIWorkflows = () => {
           ai_agent_personas(id, name, persona_summary, bucket_min, bucket_max),
           collection_workflow_steps!inner(label, step_order, day_offset, workflow_id)
         `)
-        .eq('user_id', user.id)
+        .eq('user_id', accountId)
         .eq('channel', 'email')
         .in('status', ['pending_approval', 'approved'])
         .order('created_at', { ascending: false });
@@ -499,6 +523,10 @@ const AIWorkflows = () => {
   const fetchWorkflows = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) throw new Error("Not authenticated");
 
       const { data: workflowsData, error } = await supabase
@@ -508,7 +536,7 @@ const AIWorkflows = () => {
           steps:collection_workflow_steps(*),
           persona:ai_agent_personas(id, name, persona_summary)
         `)
-        .or(`user_id.eq.${user.id},user_id.is.null`)
+        .or(`user_id.eq.${accountId},user_id.is.null`)
         .order("aging_bucket");
 
       if (error) throw error;
@@ -712,6 +740,10 @@ const AIWorkflows = () => {
   const _handleCreateCustomWorkflow = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) throw new Error("Not authenticated");
 
       const bucketInfo = agingBuckets.find(b => b.value === selectedBucket);
@@ -721,7 +753,7 @@ const AIWorkflows = () => {
       const { data: newWorkflow, error: createError } = await supabase
         .from("collection_workflows")
         .insert({
-          user_id: user.id,
+          user_id: accountId,
           aging_bucket: selectedBucket,
           name: `${bucketInfo.label} - Custom`,
           description: "Custom workflow for this aging bucket",
@@ -1116,6 +1148,10 @@ const AIWorkflows = () => {
   const _handleApplyTemplate = async (personaKey: string) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) throw new Error("Not authenticated");
 
       const persona = personaConfig[personaKey];
@@ -1131,7 +1167,7 @@ const AIWorkflows = () => {
         const { data: newWorkflow, error: createError } = await supabase
           .from("collection_workflows")
           .insert({
-            user_id: user.id,
+            user_id: accountId,
             aging_bucket: agingBucket,
             name: `${persona.name}'s Workflow - ${persona.description}`,
             description: `AI-powered collection workflow managed by ${persona.name}`,
@@ -1234,11 +1270,15 @@ const AIWorkflows = () => {
               // If replace scheduled is checked, cancel all pending/scheduled drafts first
               if (replaceScheduled) {
                 const { data: { user } } = await supabase.auth.getUser();
+                const { data: _eff } = user
+                  ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+                  : { data: null };
+                const accountId = (_eff as string | null) || user?.id;
                 if (user) {
                   const { error: cancelError } = await supabase
                     .from("ai_drafts")
                     .update({ status: "rejected" as any })
-                    .eq("user_id", user.id)
+                    .eq("user_id", accountId)
                     .in("status", ["pending_approval", "approved"]);
                   if (cancelError) {
                     console.error("Failed to cancel scheduled drafts:", cancelError);

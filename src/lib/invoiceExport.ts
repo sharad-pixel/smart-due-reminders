@@ -3,13 +3,17 @@ import * as XLSX from "xlsx";
 
 export async function exportInvoicesAsCSV() {
   const { data: { user } } = await supabase.auth.getUser();
+  const { data: _eff } = user
+    ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+    : { data: null };
+  const accountId = (_eff as string | null) || user?.id;
   if (!user) throw new Error("Not authenticated");
 
   // Fetch invoices with debtor info
   const { data: invoices, error } = await supabase
     .from("invoices")
     .select("id, invoice_number, amount, amount_original, amount_outstanding, currency, issue_date, due_date, status, po_number, product_description, payment_terms, notes, reference_id, debtors(company_name, reference_id)")
-    .eq("user_id", user.id)
+    .eq("user_id", accountId)
     .order("due_date", { ascending: false });
 
   if (error) throw error;

@@ -102,7 +102,7 @@ export function IngestionReviewQueue() {
       let query = supabase
         .from("ingestion_review_queue")
         .select("*, ingestion_scanned_files(file_name, file_id)")
-        .eq("user_id", user.id)
+        .eq("user_id", accountId)
         .order("created_at", { ascending: false })
         .limit(100);
 
@@ -221,7 +221,7 @@ export function IngestionReviewQueue() {
         const { data: newDebtor, error: debtorErr } = await supabase
           .from("debtors")
           .insert({
-            user_id: user.id,
+            user_id: accountId,
             organization_id: orgId,
             company_name: inv.extracted_company_name || inv.extracted_debtor_name || "Unknown",
             name: inv.extracted_debtor_name || inv.extracted_company_name || "Unknown",
@@ -240,7 +240,7 @@ export function IngestionReviewQueue() {
       const { data: existing } = await supabase
         .from("invoices")
         .select("id")
-        .eq("user_id", user.id)
+        .eq("user_id", accountId)
         .eq("invoice_number", invoiceNumber)
         .limit(1);
       if (existing && existing.length > 0) {
@@ -251,7 +251,7 @@ export function IngestionReviewQueue() {
       const { data: newInvoice, error: invErr } = await supabase
         .from("invoices")
         .insert({
-          user_id: user.id,
+          user_id: accountId,
           organization_id: orgId,
           debtor_id: debtorId,
           invoice_number: invoiceNumber,
@@ -290,7 +290,7 @@ export function IngestionReviewQueue() {
       const now = new Date();
       const billingPeriod = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
       await supabase.from("ingestion_usage_charges").insert({
-        user_id: user.id,
+        user_id: accountId,
         organization_id: orgId,
         review_item_id: item.id,
         scanned_file_id: item.scanned_file_id,
@@ -300,7 +300,7 @@ export function IngestionReviewQueue() {
       } as any);
 
       await supabase.from("ingestion_audit_log").insert({
-        user_id: user.id,
+        user_id: accountId,
         organization_id: orgId,
         scanned_file_id: item.scanned_file_id,
         review_item_id: item.id,
@@ -341,7 +341,7 @@ export function IngestionReviewQueue() {
         .eq("id", itemId);
       const { data: orgId } = await supabase.rpc("get_user_organization_id" as any, { p_user_id: user.id });
       await supabase.from("ingestion_audit_log").insert({
-        user_id: user.id,
+        user_id: accountId,
         organization_id: orgId,
         review_item_id: itemId,
         event_type: "invoice_rejected",
@@ -404,7 +404,7 @@ export function IngestionReviewQueue() {
             const { data: newDebtor, error: dErr } = await supabase
               .from("debtors")
               .insert({
-                user_id: user.id,
+                user_id: accountId,
                 organization_id: orgId,
                 company_name: item.extracted_company_name || item.extracted_debtor_name || "Unknown",
                 name: item.extracted_debtor_name || item.extracted_company_name || "Unknown",
@@ -421,7 +421,7 @@ export function IngestionReviewQueue() {
           const { data: existingInv } = await supabase
             .from("invoices")
             .select("id")
-            .eq("user_id", user.id)
+            .eq("user_id", accountId)
             .eq("invoice_number", invoiceNumber)
             .limit(1);
           if (existingInv && existingInv.length > 0) {
@@ -432,7 +432,7 @@ export function IngestionReviewQueue() {
           const { data: newInvoice, error: iErr } = await supabase
             .from("invoices")
             .insert({
-              user_id: user.id,
+              user_id: accountId,
               organization_id: orgId,
               debtor_id: debtorId,
               invoice_number: invoiceNumber,
@@ -464,7 +464,7 @@ export function IngestionReviewQueue() {
           const now = new Date();
           const billingPeriod = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
           await supabase.from("ingestion_usage_charges").insert({
-            user_id: user.id,
+            user_id: accountId,
             organization_id: orgId,
             review_item_id: item.id,
             scanned_file_id: item.scanned_file_id,
@@ -934,7 +934,7 @@ export function IngestionReviewQueue() {
                                 const { data: newDebtor, error: dErr } = await supabase
                                   .from("debtors")
                                   .insert({
-                                    user_id: user.id,
+                                    user_id: accountId,
                                     organization_id: orgId,
                                     company_name: selectedItem.extracted_company_name || selectedItem.extracted_debtor_name || "Unknown",
                                     name: selectedItem.extracted_debtor_name || selectedItem.extracted_company_name || "Unknown",

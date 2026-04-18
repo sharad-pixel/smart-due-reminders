@@ -8,13 +8,17 @@ import * as XLSX from "xlsx";
  */
 export async function exportPaymentTemplate() {
   const { data: { user } } = await supabase.auth.getUser();
+  const { data: _eff } = user
+    ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+    : { data: null };
+  const accountId = (_eff as string | null) || user?.id;
   if (!user) throw new Error("Not authenticated");
 
   // Fetch open/partially-paid invoices with debtor info
   const { data: invoices, error } = await supabase
     .from("invoices")
     .select("id, invoice_number, amount, amount_outstanding, currency, due_date, status, reference_id, integration_source, debtors(company_name, reference_id)")
-    .eq("user_id", user.id)
+    .eq("user_id", accountId)
     .in("status", ["Open", "PartiallyPaid", "InPaymentPlan", "Disputed"])
     .order("due_date", { ascending: true });
 
@@ -121,6 +125,10 @@ export async function exportPaymentTemplate() {
  */
 export async function importPaymentTemplate(file: File): Promise<{ created: number; skipped: number; errors: string[] }> {
   const { data: { user } } = await supabase.auth.getUser();
+  const { data: _eff } = user
+    ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+    : { data: null };
+  const accountId = (_eff as string | null) || user?.id;
   if (!user) throw new Error("Not authenticated");
 
   const ab = await file.arrayBuffer();
@@ -151,7 +159,7 @@ export async function importPaymentTemplate(file: File): Promise<{ created: numb
   const { data: invoices } = await supabase
     .from("invoices")
     .select("id, invoice_number, reference_id, debtor_id, amount_outstanding, amount, status")
-    .eq("user_id", user.id);
+    .eq("user_id", accountId);
 
   const invByRef = new Map<string, any>();
   const invByNum = new Map<string, any>();
@@ -210,7 +218,7 @@ export async function importPaymentTemplate(file: File): Promise<{ created: numb
     const parsedDate = parsePaymentDate(date);
 
     const { error: insertErr } = await supabase.from("payments").insert({
-      user_id: user.id,
+      user_id: accountId,
       organization_id: orgId,
       debtor_id: invoice.debtor_id,
       invoice_id: invoice.id,

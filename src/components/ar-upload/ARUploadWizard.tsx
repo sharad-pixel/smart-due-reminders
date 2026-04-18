@@ -144,12 +144,16 @@ export const ARUploadWizard = ({ open, onClose, uploadType }: ARUploadWizardProp
 
       // Create upload batch
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) throw new Error("Not authenticated");
 
       const { data: batch, error: batchError } = await supabase
         .from("upload_batches")
         .insert({
-          user_id: user.id,
+          user_id: accountId,
           upload_type: uploadType,
           file_name: selectedFile.name,
           processed_status: "preview",
@@ -214,6 +218,10 @@ export const ARUploadWizard = ({ open, onClose, uploadType }: ARUploadWizardProp
     type: UploadType
   ): Promise<ValidationResult> => {
     const { data: { user } } = await supabase.auth.getUser();
+    const { data: _eff } = user
+      ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+      : { data: null };
+    const accountId = (_eff as string | null) || user?.id;
     if (!user) throw new Error("Not authenticated");
 
     // Fetch ALL existing customers via pagination (bypass 1000-row limit)
@@ -224,7 +232,7 @@ export const ARUploadWizard = ({ open, onClose, uploadType }: ARUploadWizardProp
       const { data: page } = await supabase
         .from("debtors")
         .select("id, company_name, name")
-        .eq("user_id", user.id)
+        .eq("user_id", accountId)
         .range(debtorFrom, debtorFrom + PAGE_SIZE - 1);
       if (!page || page.length === 0) break;
       allDebtors.push(...page);
@@ -248,7 +256,7 @@ export const ARUploadWizard = ({ open, onClose, uploadType }: ARUploadWizardProp
         const { data: page } = await supabase
           .from("invoices")
           .select("id, invoice_number, debtor_id, external_invoice_id")
-          .eq("user_id", user.id)
+          .eq("user_id", accountId)
           .range(invFrom, invFrom + PAGE_SIZE - 1);
         if (!page || page.length === 0) break;
         page.forEach((inv) => {
@@ -367,6 +375,10 @@ export const ARUploadWizard = ({ open, onClose, uploadType }: ARUploadWizardProp
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) throw new Error("Not authenticated");
 
       let successCount = 0;
@@ -380,7 +392,7 @@ export const ARUploadWizard = ({ open, onClose, uploadType }: ARUploadWizardProp
         const { data: page } = await supabase
           .from("debtors")
           .select("id, company_name, name")
-          .eq("user_id", user.id)
+          .eq("user_id", accountId)
           .range(from, from + PAGE_SIZE - 1);
         if (!page || page.length === 0) break;
         page.forEach((d) => {
@@ -399,7 +411,7 @@ export const ARUploadWizard = ({ open, onClose, uploadType }: ARUploadWizardProp
         });
 
         const debtorData: Record<string, any> = {
-          user_id: user.id,
+          user_id: accountId,
           company_name: customerName,
           name: customerName,
           email: "",
@@ -451,7 +463,7 @@ export const ARUploadWizard = ({ open, onClose, uploadType }: ARUploadWizardProp
               .from("debtor_contacts")
               .insert({
                 debtor_id: newDebtor.id,
-                user_id: user.id,
+                user_id: accountId,
                 name: contactName,
                 email: contactEmail,
                 phone: contactPhone || null,
@@ -512,7 +524,7 @@ export const ARUploadWizard = ({ open, onClose, uploadType }: ARUploadWizardProp
 
             const status = columnMapping.status ? mapStatus(firstRow[columnMapping.status]) : "Open";
             const record: Record<string, any> = {
-              user_id: user.id,
+              user_id: accountId,
               debtor_id: debtorId,
               invoice_number: String(firstRow[columnMapping.invoice_number!] || ""),
               invoice_date: parseDate(firstRow[columnMapping.invoice_date!]),
@@ -540,7 +552,7 @@ export const ARUploadWizard = ({ open, onClose, uploadType }: ARUploadWizardProp
             if (inserted) {
               const lineItemRecords = lineItems.map(li => ({
                 invoice_id: inserted.id,
-                user_id: user.id,
+                user_id: accountId,
                 description: li.description,
                 quantity: li.quantity,
                 unit_price: li.unit_price,
@@ -564,7 +576,7 @@ export const ARUploadWizard = ({ open, onClose, uploadType }: ARUploadWizardProp
             const amount = parseFloat(row[columnMapping.amount!]) || 0;
             const status = columnMapping.status ? mapStatus(row[columnMapping.status]) : "Open";
             const record: Record<string, any> = {
-              user_id: user.id,
+              user_id: accountId,
               debtor_id: debtorId,
               invoice_number: String(row[columnMapping.invoice_number!] || ""),
               invoice_date: parseDate(row[columnMapping.invoice_date!]),
@@ -607,7 +619,7 @@ export const ARUploadWizard = ({ open, onClose, uploadType }: ARUploadWizardProp
           if (!debtorId) { errorCount++; continue; }
 
           paymentRecords.push({
-            user_id: user.id,
+            user_id: accountId,
             debtor_id: debtorId,
             payment_date: parseDate(row[columnMapping.payment_date!]),
             amount: parseFloat(row[columnMapping.amount!]) || 0,

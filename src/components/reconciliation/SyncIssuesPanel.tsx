@@ -109,12 +109,16 @@ export function SyncIssuesPanel(props: {
     queryFn: async () => {
       if (qbInvoiceIds.length === 0) return new Map<string, { id: string; invoice_number: string | null }>();
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) throw new Error("Not authenticated");
 
       const { data, error } = await supabase
         .from("invoices")
         .select("id, invoice_number, quickbooks_invoice_id")
-        .eq("user_id", user.id)
+        .eq("user_id", accountId)
         .in("quickbooks_invoice_id", qbInvoiceIds);
 
       if (error) throw error;
@@ -135,13 +139,17 @@ export function SyncIssuesPanel(props: {
     queryFn: async () => {
       if (qbPaymentIds.length === 0) return new Map<string, { id: string; reference: string | null }>();
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) throw new Error("Not authenticated");
 
       // Use explicit any cast to avoid TS2589 deep instantiation error
       const { data, error } = await (supabase
         .from("payments")
         .select("id, quickbooks_payment_id, reference")
-        .eq("user_id", user.id) as any)
+        .eq("user_id", accountId) as any)
         .in("quickbooks_payment_id", qbPaymentIds);
 
       if (error) throw error;
@@ -162,12 +170,16 @@ export function SyncIssuesPanel(props: {
     queryFn: async () => {
       if (qbCustomerIds.length === 0) return new Map<string, { id: string; name: string | null }>();
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) throw new Error("Not authenticated");
 
       const { data, error } = await supabase
         .from("debtors")
         .select("id, name, company_name, quickbooks_customer_id")
-        .eq("user_id", user.id)
+        .eq("user_id", accountId)
         .in("quickbooks_customer_id", qbCustomerIds);
 
       if (error) throw error;

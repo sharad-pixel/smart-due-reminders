@@ -41,13 +41,17 @@ export const IntegrationSyncDashboard = () => {
     queryKey: ["integration-sync-stats"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) throw new Error("Not authenticated");
 
       // Fetch invoice counts grouped by integration_source
       const { data: invoices, error: invoicesError } = await supabase
         .from("invoices")
         .select("integration_source, last_synced_at")
-        .eq("user_id", user.id);
+        .eq("user_id", accountId);
 
       if (invoicesError) throw invoicesError;
 
@@ -55,7 +59,7 @@ export const IntegrationSyncDashboard = () => {
       const { data: transactions, error: txError } = await supabase
         .from("invoice_transactions")
         .select("source_system")
-        .eq("user_id", user.id);
+        .eq("user_id", accountId);
 
       if (txError) throw txError;
 
@@ -63,7 +67,7 @@ export const IntegrationSyncDashboard = () => {
       const { data: stripeIntegration } = await supabase
         .from("stripe_integrations")
         .select("is_connected, sync_status, last_sync_at")
-        .eq("user_id", user.id)
+        .eq("user_id", accountId)
         .maybeSingle();
 
       // Count invoices by source

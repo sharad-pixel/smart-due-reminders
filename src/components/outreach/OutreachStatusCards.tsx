@@ -21,6 +21,10 @@ export function OutreachStatusCards({ onRefresh }: OutreachStatusCardsProps) {
     refetchOnWindowFocus: false,
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) return null;
 
       const today = new Date();
@@ -30,7 +34,7 @@ export function OutreachStatusCards({ onRefresh }: OutreachStatusCardsProps) {
       const { count: pastDueCount } = await supabase
         .from("invoices")
         .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id)
+        .eq("user_id", accountId)
         .in("status", ["Open", "InPaymentPlan", "PartiallyPaid"])
         .neq("aging_bucket", "current")
         .lt("due_date", today.toISOString().split("T")[0]);
@@ -39,7 +43,7 @@ export function OutreachStatusCards({ onRefresh }: OutreachStatusCardsProps) {
       const { data: openInvoices } = await supabase
         .from("invoices")
         .select("id")
-        .eq("user_id", user.id)
+        .eq("user_id", accountId)
         .in("status", ["Open", "InPaymentPlan", "PartiallyPaid"]);
       
       const openInvoiceIds = openInvoices?.map(i => i.id) || [];
@@ -48,7 +52,7 @@ export function OutreachStatusCards({ onRefresh }: OutreachStatusCardsProps) {
       const { data: workflows } = await supabase
         .from("ai_workflows")
         .select("invoice_id")
-        .eq("user_id", user.id)
+        .eq("user_id", accountId)
         .eq("is_active", true)
         .in("invoice_id", openInvoiceIds.length > 0 ? openInvoiceIds : ['00000000-0000-0000-0000-000000000000']);
 
@@ -60,7 +64,7 @@ export function OutreachStatusCards({ onRefresh }: OutreachStatusCardsProps) {
         const { count } = await supabase
           .from("ai_drafts")
           .select("id", { count: "exact", head: true })
-          .eq("user_id", user.id)
+          .eq("user_id", accountId)
           .eq("status", "pending_approval")
           .is("sent_at", null)
           .in("invoice_id", openInvoiceIds);
@@ -73,7 +77,7 @@ export function OutreachStatusCards({ onRefresh }: OutreachStatusCardsProps) {
         const { count } = await supabase
           .from("ai_drafts")
           .select("id", { count: "exact", head: true })
-          .eq("user_id", user.id)
+          .eq("user_id", accountId)
           .eq("status", "approved")
           .is("sent_at", null)
           .in("invoice_id", openInvoiceIds);
@@ -86,7 +90,7 @@ export function OutreachStatusCards({ onRefresh }: OutreachStatusCardsProps) {
       const { count: sentTodayCount } = await supabase
         .from("ai_drafts")
         .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id)
+        .eq("user_id", accountId)
         .gte("sent_at", todayStart.toISOString());
 
       // Get error count (last 24 hours)
@@ -94,7 +98,7 @@ export function OutreachStatusCards({ onRefresh }: OutreachStatusCardsProps) {
       const { count: errorCount } = await supabase
         .from("outreach_errors")
         .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id)
+        .eq("user_id", accountId)
         .is("resolved_at", null)
         .gte("created_at", yesterday.toISOString());
 
@@ -116,6 +120,10 @@ export function OutreachStatusCards({ onRefresh }: OutreachStatusCardsProps) {
       
       // Get current user for batch run logging
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       
       const { data, error } = await supabase.functions.invoke("scheduled-outreach-engine", {
         body: { trigger_type: "manual", user_id: user?.id },

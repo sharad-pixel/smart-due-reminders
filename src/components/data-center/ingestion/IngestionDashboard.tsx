@@ -8,6 +8,10 @@ export function IngestionDashboard() {
     queryKey: ["ingestion-dashboard-stats"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) return null;
 
       const [
@@ -22,16 +26,16 @@ export function IngestionDashboard() {
         lowConfidence,
         auditEvents,
       ] = await Promise.all([
-        supabase.from("ingestion_scanned_files").select("id", { count: "exact" }).eq("user_id", user.id),
-        supabase.from("ingestion_scanned_files").select("id", { count: "exact" }).eq("user_id", user.id).eq("processing_status", "pending"),
-        supabase.from("ingestion_scanned_files").select("id", { count: "exact" }).eq("user_id", user.id).eq("processing_status", "processed"),
-        supabase.from("ingestion_scanned_files").select("id", { count: "exact" }).eq("user_id", user.id).eq("processing_status", "error"),
-        supabase.from("ingestion_review_queue").select("id", { count: "exact" }).eq("user_id", user.id).eq("review_status", "pending"),
-        supabase.from("ingestion_review_queue").select("id", { count: "exact" }).eq("user_id", user.id).eq("review_status", "approved"),
-        supabase.from("ingestion_review_queue").select("id", { count: "exact" }).eq("user_id", user.id).eq("review_status", "rejected"),
-        supabase.from("ingestion_review_queue").select("id", { count: "exact" }).eq("user_id", user.id).eq("is_duplicate", true),
-        supabase.from("ingestion_review_queue").select("id", { count: "exact" }).eq("user_id", user.id).lt("confidence_score", 50),
-        supabase.from("ingestion_audit_log").select("id", { count: "exact" }).eq("user_id", user.id),
+        supabase.from("ingestion_scanned_files").select("id", { count: "exact" }).eq("user_id", accountId),
+        supabase.from("ingestion_scanned_files").select("id", { count: "exact" }).eq("user_id", accountId).eq("processing_status", "pending"),
+        supabase.from("ingestion_scanned_files").select("id", { count: "exact" }).eq("user_id", accountId).eq("processing_status", "processed"),
+        supabase.from("ingestion_scanned_files").select("id", { count: "exact" }).eq("user_id", accountId).eq("processing_status", "error"),
+        supabase.from("ingestion_review_queue").select("id", { count: "exact" }).eq("user_id", accountId).eq("review_status", "pending"),
+        supabase.from("ingestion_review_queue").select("id", { count: "exact" }).eq("user_id", accountId).eq("review_status", "approved"),
+        supabase.from("ingestion_review_queue").select("id", { count: "exact" }).eq("user_id", accountId).eq("review_status", "rejected"),
+        supabase.from("ingestion_review_queue").select("id", { count: "exact" }).eq("user_id", accountId).eq("is_duplicate", true),
+        supabase.from("ingestion_review_queue").select("id", { count: "exact" }).eq("user_id", accountId).lt("confidence_score", 50),
+        supabase.from("ingestion_audit_log").select("id", { count: "exact" }).eq("user_id", accountId),
       ]);
 
       return {
@@ -54,11 +58,15 @@ export function IngestionDashboard() {
     queryKey: ["ingestion-recent-audit"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) return [];
       const { data } = await supabase
         .from("ingestion_audit_log")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", accountId)
         .order("created_at", { ascending: false })
         .limit(20);
       return data || [];

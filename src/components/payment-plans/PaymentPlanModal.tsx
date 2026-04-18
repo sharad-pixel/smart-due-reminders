@@ -198,6 +198,10 @@ export function PaymentPlanModal({
     setSending(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) throw new Error("Not authenticated");
 
       // Get selected contact emails
@@ -215,7 +219,7 @@ export function PaymentPlanModal({
       const { data: _branding } = await supabase
         .from("branding_settings")
         .select("from_name, from_email, business_name")
-        .eq("user_id", user.id)
+        .eq("user_id", accountId)
         .single();
 
       const fromAddress = getPlatformFromAddress();
@@ -247,7 +251,7 @@ export function PaymentPlanModal({
 
       // Log the outreach activity
       await supabase.from("collection_activities").insert({
-        user_id: user.id,
+        user_id: accountId,
         debtor_id: debtorId,
         activity_type: "payment_plan_proposal",
         channel: "email",

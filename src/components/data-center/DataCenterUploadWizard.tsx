@@ -180,12 +180,16 @@ export const DataCenterUploadWizard = ({ open, onClose, fileType: initialFileTyp
     queryKey: ["data-center-sources"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) return [];
 
       const { data, error } = await supabase
         .from("data_center_sources")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", accountId)
         .order("source_name");
 
       if (error) throw error;
@@ -310,6 +314,10 @@ export const DataCenterUploadWizard = ({ open, onClose, fileType: initialFileTyp
   const processUpload = useMutation({
     mutationFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) throw new Error("Not authenticated");
       if (!parsedData || !file) throw new Error("No file data");
 
@@ -317,7 +325,7 @@ export const DataCenterUploadWizard = ({ open, onClose, fileType: initialFileTyp
       const { data: upload, error: uploadError } = await supabase
         .from("data_center_uploads")
         .insert({
-          user_id: user.id,
+          user_id: accountId,
           source_id: selectedSourceId,
           file_name: file.name,
           file_type: fileType,

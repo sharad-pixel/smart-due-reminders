@@ -160,7 +160,7 @@ const StripeSyncDiagnostics = () => {
       const { data, error } = await supabase
         .from("stripe_sync_log")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", accountId)
         .order("started_at", { ascending: false })
         .limit(20);
 

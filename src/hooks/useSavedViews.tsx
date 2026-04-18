@@ -27,6 +27,10 @@ export function useSavedViews(pagePath: string) {
   const fetchSavedViews = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) return;
 
       const { data, error } = await supabase
@@ -59,6 +63,10 @@ export function useSavedViews(pagePath: string) {
   const saveView = async (name: string, config: ViewConfig, setAsDefault = false) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) {
         toast.error('You must be logged in to save views');
         return null;
@@ -70,13 +78,13 @@ export function useSavedViews(pagePath: string) {
           .from('saved_views')
           .update({ is_default: false })
           .eq('page_path', pagePath)
-          .eq('user_id', user.id);
+          .eq('user_id', accountId);
       }
 
       const { data, error } = await supabase
         .from('saved_views')
         .insert({
-          user_id: user.id,
+          user_id: accountId,
           name,
           page_path: pagePath,
           view_config: config as any,
@@ -145,6 +153,10 @@ export function useSavedViews(pagePath: string) {
   const setDefaultView = async (viewId: string) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) return;
 
       // Unset all defaults
@@ -152,7 +164,7 @@ export function useSavedViews(pagePath: string) {
         .from('saved_views')
         .update({ is_default: false })
         .eq('page_path', pagePath)
-        .eq('user_id', user.id);
+        .eq('user_id', accountId);
 
       // Set new default
       await supabase

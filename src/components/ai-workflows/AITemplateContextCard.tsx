@@ -11,12 +11,16 @@ export function AITemplateContextCard() {
     staleTime: 60_000,
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) return null;
 
       const { data, error } = await supabase
         .from("branding_settings")
         .select("industry, business_description, business_name")
-        .eq("user_id", user.id)
+        .eq("user_id", accountId)
         .single();
 
       if (error && error.code !== "PGRST116") throw error;

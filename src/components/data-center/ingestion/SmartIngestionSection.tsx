@@ -49,6 +49,10 @@ export function SmartIngestionSection() {
     queryKey: ["pending-sheet-imports-count"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) return 0;
       const { count } = await supabase
         .from("pending_sheet_imports")
@@ -63,6 +67,10 @@ export function SmartIngestionSection() {
     queryKey: ["auth-provider"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) return null;
       return user.app_metadata?.provider || user.app_metadata?.providers?.[0] || null;
     },
@@ -73,11 +81,15 @@ export function SmartIngestionSection() {
     queryKey: ["drive-connection"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) return null;
       const { data } = await supabase
         .from("drive_connections")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", accountId)
         .eq("is_active", true)
         .maybeSingle();
       return data;
@@ -89,12 +101,16 @@ export function SmartIngestionSection() {
     queryKey: ["ingestion-scan-stats"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) return null;
       const [pending, processed, errors, reviewPending] = await Promise.all([
-        supabase.from("ingestion_scanned_files").select("id", { count: "exact" }).eq("user_id", user.id).eq("processing_status", "pending"),
-        supabase.from("ingestion_scanned_files").select("id", { count: "exact" }).eq("user_id", user.id).eq("processing_status", "processed"),
-        supabase.from("ingestion_scanned_files").select("id", { count: "exact" }).eq("user_id", user.id).eq("processing_status", "error"),
-        supabase.from("ingestion_review_queue").select("id", { count: "exact" }).eq("user_id", user.id).eq("review_status", "pending"),
+        supabase.from("ingestion_scanned_files").select("id", { count: "exact" }).eq("user_id", accountId).eq("processing_status", "pending"),
+        supabase.from("ingestion_scanned_files").select("id", { count: "exact" }).eq("user_id", accountId).eq("processing_status", "processed"),
+        supabase.from("ingestion_scanned_files").select("id", { count: "exact" }).eq("user_id", accountId).eq("processing_status", "error"),
+        supabase.from("ingestion_review_queue").select("id", { count: "exact" }).eq("user_id", accountId).eq("review_status", "pending"),
       ]);
       return {
         pending: pending.count || 0,
@@ -111,11 +127,15 @@ export function SmartIngestionSection() {
     queryKey: ["ingestion-pending-files"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) return [];
       const { data } = await supabase
         .from("ingestion_scanned_files")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", accountId)
         .eq("processing_status", "pending")
         .order("created_at", { ascending: true })
         .limit(50);
@@ -142,11 +162,15 @@ export function SmartIngestionSection() {
   const disconnectMutation = useMutation({
     mutationFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) throw new Error("Not authenticated");
       const { error } = await supabase
         .from("drive_connections")
         .update({ is_active: false, updated_at: new Date().toISOString() })
-        .eq("user_id", user.id);
+        .eq("user_id", accountId);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -268,6 +292,10 @@ export function SmartIngestionSection() {
 
     // Re-fetch the latest pending files after scan
     const { data: { user } } = await supabase.auth.getUser();
+    const { data: _eff } = user
+      ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+      : { data: null };
+    const accountId = (_eff as string | null) || user?.id;
     const { data: freshPending } = await supabase
       .from("ingestion_scanned_files")
       .select("*")
@@ -600,11 +628,15 @@ function ScannedFilesTable({ onExtract, extracting }: { onExtract: (id: string) 
     queryKey: ["ingestion-scanned-files-list"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) return [];
       const { data } = await supabase
         .from("ingestion_scanned_files")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", accountId)
         .or("is_archived.is.null,is_archived.eq.false")
         .order("created_at", { ascending: false });
       return data || [];
@@ -617,13 +649,17 @@ function ScannedFilesTable({ onExtract, extracting }: { onExtract: (id: string) 
     setArchiving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) throw new Error("Not authenticated");
 
       const now = new Date().toISOString();
 
       // Create audit log entries for each file being archived
       const auditEntries = files.map((file: any) => ({
-        user_id: user.id,
+        user_id: accountId,
         scanned_file_id: file.id,
         event_type: "file_archived",
         event_details: {
@@ -796,11 +832,15 @@ function ScanHistoryLog() {
     queryKey: ["ingestion-scan-history"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) return [];
       const { data } = await supabase
         .from("ingestion_audit_log")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", accountId)
         .order("created_at", { ascending: false });
       return data || [];
     },
@@ -811,19 +851,23 @@ function ScanHistoryLog() {
     setClearing(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) throw new Error("Not authenticated");
 
       // Delete audit logs
       await supabase
         .from("ingestion_audit_log")
         .delete()
-        .eq("user_id", user.id);
+        .eq("user_id", accountId);
 
       // Delete pending/skipped scanned files (keep processed ones tied to approved invoices)
       await supabase
         .from("ingestion_scanned_files")
         .delete()
-        .eq("user_id", user.id)
+        .eq("user_id", accountId)
         .in("processing_status", ["pending", "skipped_duplicate", "error"]);
 
       toast.success("Scan history and pending files cleared");

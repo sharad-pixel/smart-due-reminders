@@ -50,7 +50,7 @@ export const QuickBooksSyncSection = () => {
       const { data, error } = await supabase
         .from('quickbooks_sync_log')
         .select('*, dismissed_errors')
-        .eq('user_id', user.id)
+        .eq('user_id', accountId)
         .order('started_at', { ascending: false })
         .limit(10);
 

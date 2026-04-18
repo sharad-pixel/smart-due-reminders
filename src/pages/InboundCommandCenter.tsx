@@ -421,6 +421,10 @@ const InboundCommandCenter = () => {
   const createPendingResponseTask = async (email: InboundEmail) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user || !email.debtor_id) return;
       
       // Check if a pending response task already exists for this email
@@ -439,7 +443,7 @@ const InboundCommandCenter = () => {
       const { data: newTask, error: insertError } = await supabase
         .from("collection_tasks")
         .insert({
-          user_id: user.id,
+          user_id: accountId,
           debtor_id: email.debtor_id,
           invoice_id: email.invoice_id,
           inbound_email_id: email.id,
@@ -1803,13 +1807,17 @@ const InboundCommandCenter = () => {
                     setIsSendingResponse(true);
                     try {
                       const { data: { user } } = await supabase.auth.getUser();
+                      const { data: _eff } = user
+                        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+                        : { data: null };
+                      const accountId = (_eff as string | null) || user?.id;
                       if (!user) throw new Error("Not authenticated");
                       
                       // Fetch branding settings
                       const { data: brandingData } = await supabase
                         .from("branding_settings")
                         .select("*")
-                        .eq("user_id", user.id)
+                        .eq("user_id", accountId)
                         .single();
                       
                       const branding: BrandingSettings = brandingData || {};
@@ -1883,10 +1891,14 @@ const InboundCommandCenter = () => {
                     await createPendingResponseTask(selectedEmail);
                     try {
                       const { data: { user } } = await supabase.auth.getUser();
+                      const { data: _eff } = user
+                        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+                        : { data: null };
+                      const accountId = (_eff as string | null) || user?.id;
                       if (!user) throw new Error("Not authenticated");
                       
                       const { error } = await supabase.from("ai_drafts").insert({
-                        user_id: user.id,
+                        user_id: accountId,
                         invoice_id: selectedEmail.invoice_id || contextInvoiceId,
                         channel: "email",
                         subject: generatedResponse.subject,
@@ -1986,10 +1998,14 @@ const InboundCommandCenter = () => {
                     await createPendingResponseTask(selectedEmail);
                     try {
                       const { data: { user } } = await supabase.auth.getUser();
+                      const { data: _eff } = user
+                        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+                        : { data: null };
+                      const accountId = (_eff as string | null) || user?.id;
                       if (!user) throw new Error("Not authenticated");
                       
                       const { error } = await supabase.from("ai_drafts").insert({
-                        user_id: user.id,
+                        user_id: accountId,
                         invoice_id: selectedEmail.invoice_id || contextInvoiceId,
                         channel: "email",
                         subject: generatedResponse.subject,
@@ -2016,13 +2032,17 @@ const InboundCommandCenter = () => {
                     setIsSendingResponse(true);
                     try {
                       const { data: { user } } = await supabase.auth.getUser();
+                      const { data: _eff } = user
+                        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+                        : { data: null };
+                      const accountId = (_eff as string | null) || user?.id;
                       if (!user) throw new Error("Not authenticated");
                       
                       // Fetch branding settings
                       const { data: brandingData } = await supabase
                         .from("branding_settings")
                         .select("*")
-                        .eq("user_id", user.id)
+                        .eq("user_id", accountId)
                         .single();
                       
                       const branding: BrandingSettings = brandingData || {};
