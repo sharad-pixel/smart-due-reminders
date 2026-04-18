@@ -50,6 +50,35 @@ export function useSubscription(): SubscriptionState {
   const [trialInvoiceLimit] = useState(TRIAL_INVOICE_LIMIT);
   const { accountId, userId, isTeamMember, isLoading: accountIdLoading } = useAccountId();
 
+  const getFallbackOwnerProfile = useCallback(async (isOwner: boolean, effectiveAccountId: string) => {
+    if (isOwner) {
+      const { data } = await supabase
+        .from('profiles')
+        .select('plan_type, subscription_status, invoice_limit, trial_ends_at, current_period_end, billing_interval, trial_used_at, created_at')
+        .eq('id', effectiveAccountId)
+        .maybeSingle();
+
+      return data;
+    }
+
+    const { data: rows } = await supabase
+      .rpc('get_owner_account_info', { p_account_id: effectiveAccountId });
+
+    const row = Array.isArray(rows) ? rows[0] : null;
+    if (!row) return null;
+
+    return {
+      plan_type: row.plan_type,
+      subscription_status: row.subscription_status,
+      invoice_limit: null,
+      trial_ends_at: row.trial_ends_at,
+      current_period_end: row.current_period_end,
+      billing_interval: row.billing_interval,
+      trial_used_at: null,
+      created_at: null,
+    };
+  }, []);
+
   const fetchSubscription = useCallback(async () => {
     try {
       if (accountIdLoading) return;
@@ -65,48 +94,39 @@ export function useSubscription(): SubscriptionState {
       setIsAccountOwner(isOwner);
       setCanUpgrade(isOwner);
 
-      // Always fetch the effective account owner's subscription info.
-      // For team members, RLS blocks direct SELECT on the owner's profile,
-      // so we use a SECURITY DEFINER RPC that returns only non-sensitive fields.
-      let ownerProfile: any = null;
-      if (isOwner) {
-        const { data } = await supabase
-          .from('profiles')
-          .select('plan_type, subscription_status, invoice_limit, trial_ends_at, current_period_end, billing_interval, trial_used_at, created_at')
-          .eq('id', accountId)
-          .maybeSingle();
-        ownerProfile = data;
-      } else {
-        const { data: rows } = await supabase
-          .rpc('get_owner_account_info', { p_account_id: accountId });
-        const row = Array.isArray(rows) ? rows[0] : null;
-        if (row) {
-          ownerProfile = {
-            plan_type: row.plan_type,
-            subscription_status: row.subscription_status,
-            invoice_limit: null, // not exposed; PLAN_CONFIGS fallback applies
-            trial_ends_at: row.trial_ends_at,
-            current_period_end: row.current_period_end,
-            billing_interval: row.billing_interval,
-            trial_used_at: null,
-            created_at: null,
-          };
-        }
+      const [fallbackOwnerProfile, syncedSubscriptionResponse] = await Promise.all([
+        getFallbackOwnerProfile(isOwner, accountId),
+        supabase.functions.invoke('sync-subscription'),
+      ]);
+
+      if (syncedSubscriptionResponse.error) {
+        console.warn('sync-subscription fallback in useSubscription:', syncedSubscriptionResponse.error);
       }
 
-      if (ownerProfile) {
+      const syncedSubscription = syncedSubscriptionResponse.data;
+
+      const ownerProfile = {
+        ...(fallbackOwnerProfile || {}),
+        ...(syncedSubscription ? {
+          plan_type: syncedSubscription.plan_type ?? fallbackOwnerProfile?.plan_type ?? null,
+          subscription_status: syncedSubscription.subscription_status ?? fallbackOwnerProfile?.subscription_status ?? null,
+          invoice_limit: syncedSubscription.invoice_limit ?? fallbackOwnerProfile?.invoice_limit ?? null,
+          trial_ends_at: syncedSubscription.trial_ends_at ?? fallbackOwnerProfile?.trial_ends_at ?? null,
+          current_period_end: syncedSubscription.current_period_end ?? fallbackOwnerProfile?.current_period_end ?? null,
+          billing_interval: syncedSubscription.billing_interval ?? fallbackOwnerProfile?.billing_interval ?? null,
+        } : {}),
+      };
+
+      if (ownerProfile && (ownerProfile.plan_type || ownerProfile.subscription_status || ownerProfile.current_period_end)) {
         applySubscriptionData(ownerProfile);
-        // Only set hasUsedTrial for the owner's own trial status
-        if (isOwner) {
-          setHasUsedTrial(!!ownerProfile.trial_used_at);
-        }
+        setHasUsedTrial(isOwner ? !!fallbackOwnerProfile?.trial_used_at : false);
       }
     } catch (error) {
       console.error('Error fetching subscription:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [accountId, userId, isTeamMember, accountIdLoading]);
+  }, [accountId, userId, isTeamMember, accountIdLoading, getFallbackOwnerProfile]);
 
   const applySubscriptionData = (profile: any) => {
     const planType = (profile.plan_type as PlanType) || 'free';
