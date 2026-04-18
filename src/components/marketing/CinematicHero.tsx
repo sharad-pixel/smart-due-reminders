@@ -857,7 +857,7 @@ const FloatingStat = ({
 
   return (
     <div
-      className={`group flex items-center gap-2.5 rounded-xl border bg-[hsl(222_47%_8%)]/90 backdrop-blur px-3 py-2 shadow-lg w-[230px] overflow-hidden ${accentClass}`}
+      className={`group flex items-center gap-2.5 rounded-xl border bg-[hsl(222_47%_8%)]/90 backdrop-blur px-3 py-2 shadow-lg w-full overflow-hidden ${accentClass}`}
     >
       <div className={`flex-shrink-0 rounded-md bg-background/40 p-1.5 ${iconClass}`}>
         <Icon className="w-3.5 h-3.5" />
