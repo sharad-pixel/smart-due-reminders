@@ -928,4 +928,102 @@ const formatNum = (n: number) => {
   return n.toString();
 };
 
+type PlanCyclerProps = { navigate: (path: string) => void };
+
+const PLANS = [
+  { name: "Solo Pro", tagline: "Independents who bill on credit", path: "/solutions/solo-pro" },
+  { name: "Startups", tagline: "Scale collections from day one", path: "/startups" },
+  { name: "SMB", tagline: "Right-sized for growing finance teams", path: "/smb" },
+  { name: "Enterprise", tagline: "Full-scale AR & risk deployment", path: "/enterprise" },
+];
+
+const PlanCycler = ({ navigate }: PlanCyclerProps) => {
+  const [planIdx, setPlanIdx] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => setPlanIdx((i) => (i + 1) % PLANS.length), 3200);
+    return () => clearInterval(id);
+  }, []);
+
+  const current = PLANS[planIdx];
+
+  return (
+    <>
+      <motion.h2
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.2 }}
+        className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-3 leading-tight tracking-tight"
+      >
+        Plans for{" "}
+        <span className="relative inline-block min-w-[10ch] align-baseline">
+          <AnimatePresence mode="wait">
+            <motion.button
+              key={current.name}
+              onClick={() => navigate(current.path)}
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -14 }}
+              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              className="bg-gradient-to-r from-primary via-primary-glow to-accent bg-clip-text text-transparent hover:opacity-80 transition-opacity"
+            >
+              {current.name}
+            </motion.button>
+          </AnimatePresence>
+        </span>
+      </motion.h2>
+
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.22 }}
+        className="flex items-center gap-3 mb-6 min-h-[1.75rem]"
+      >
+        <AnimatePresence mode="wait">
+          <motion.p
+            key={current.tagline}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.45 }}
+            className="text-base md:text-lg text-muted-foreground"
+          >
+            {current.tagline}
+          </motion.p>
+        </AnimatePresence>
+        <button
+          onClick={() => navigate("/pricing")}
+          className="text-sm md:text-base font-semibold text-primary hover:underline underline-offset-4 whitespace-nowrap"
+        >
+          See pricing →
+        </button>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.24 }}
+        className="flex flex-wrap items-center gap-2 mb-8"
+      >
+        {PLANS.map((p, i) => (
+          <button
+            key={p.path}
+            onClick={() => {
+              setPlanIdx(i);
+              navigate(p.path);
+            }}
+            className={`text-xs md:text-sm px-3 py-1.5 rounded-full border transition-all ${
+              i === planIdx
+                ? "bg-primary/15 border-primary/40 text-primary"
+                : "bg-background/40 border-border/50 text-muted-foreground hover:text-foreground hover:border-primary/30"
+            }`}
+          >
+            {p.name}
+          </button>
+        ))}
+      </motion.div>
+    </>
+  );
+};
+
 export default CinematicHero;
