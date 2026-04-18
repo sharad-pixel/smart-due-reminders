@@ -829,12 +829,66 @@ const HoverPanel = ({ hovered, phase }: { hovered: string | null; phase: Phase }
   );
 };
 
-const FloatingStat = ({ icon: Icon, label }: { icon: typeof Brain; label: string }) => (
-  <div className="flex items-center gap-2 rounded-full border border-primary/20 bg-[hsl(222_47%_8%)]/90 backdrop-blur px-3 py-1.5 shadow-lg shadow-primary/10">
-    <Icon className="w-3.5 h-3.5 text-primary" />
-    <span className="text-xs font-medium text-foreground whitespace-nowrap">{label}</span>
-  </div>
-);
+const FloatingStat = ({
+  icon: Icon,
+  label,
+  items,
+  accent = "primary",
+}: {
+  icon: typeof Brain;
+  label: string;
+  items: { primary: string; secondary: string }[];
+  accent?: "primary" | "emerald";
+}) => {
+  const [idx, setIdx] = useState(0);
+  const prefersReduced = useReducedMotion();
+  useEffect(() => {
+    if (prefersReduced) return;
+    const id = setInterval(() => setIdx((i) => (i + 1) % items.length), 2400);
+    return () => clearInterval(id);
+  }, [items.length, prefersReduced]);
+
+  const accentClass =
+    accent === "emerald"
+      ? "border-emerald-500/30 shadow-emerald-500/10"
+      : "border-primary/20 shadow-primary/10";
+  const iconClass = accent === "emerald" ? "text-emerald-400" : "text-primary";
+  const item = items[idx];
+
+  return (
+    <div
+      className={`group flex items-center gap-2.5 rounded-xl border bg-[hsl(222_47%_8%)]/90 backdrop-blur px-3 py-2 shadow-lg w-[230px] overflow-hidden ${accentClass}`}
+    >
+      <div className={`flex-shrink-0 rounded-md bg-background/40 p-1.5 ${iconClass}`}>
+        <Icon className="w-3.5 h-3.5" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="text-[9px] uppercase tracking-widest text-muted-foreground font-medium leading-tight mb-0.5 truncate">
+          {label}
+        </div>
+        <div className="relative h-[28px] overflow-hidden">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={idx}
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -14 }}
+              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+              className="absolute inset-0"
+            >
+              <div className="text-xs font-semibold text-foreground truncate leading-tight">
+                {item.primary}
+              </div>
+              <div className={`text-[10px] font-mono truncate leading-tight ${iconClass}`}>
+                {item.secondary}
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const PhaseDot = ({ phase, target, label }: { phase: Phase; target: Phase; label: string }) => {
   const active = phase === target;
