@@ -28,6 +28,7 @@ import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { Json } from "@/integrations/supabase/types";
 import { useAIAnalytics, TrendAnalysis, Recommendation, RiskAlert } from "@/hooks/useAIAnalytics";
+import { useAccountId } from "@/hooks/useAccountId";
 import { cn } from "@/lib/utils";
 
 interface IntelligenceReport {
@@ -49,6 +50,7 @@ interface AccountWithIntelligence {
 
 export function CollectionIntelligenceCard() {
   const navigate = useNavigate();
+  const { accountId, isLoading: accountLoading } = useAccountId();
   const [activeTab, setActiveTab] = useState("overview");
   
   // Intelligence data state
@@ -68,6 +70,11 @@ export function CollectionIntelligenceCard() {
   } = useAIAnalytics({ scope: "dashboard" });
 
   const fetchAccountsWithIntelligence = useCallback(async (): Promise<AccountWithIntelligence[]> => {
+    if (!accountId) {
+      setAccounts([]);
+      return [];
+    }
+
     setLoading(true);
     setLoadError(null);
 
@@ -85,6 +92,7 @@ export function CollectionIntelligenceCard() {
         .select(
           "id, company_name, name, total_open_balance, intelligence_report, intelligence_report_generated_at",
         )
+        .eq("user_id", accountId)
         .neq("is_archived", true)
         .gt("total_open_balance", 0) // Only show accounts with open balance
         .order("updated_at", { ascending: false })
@@ -119,16 +127,16 @@ export function CollectionIntelligenceCard() {
       if (timeoutId) clearTimeout(timeoutId);
       setLoading(false);
     }
-  }, []);
+  }, [accountId]);
 
   // Check manual refresh status on mount
   useEffect(() => {
+    if (accountLoading || !accountId) return;
+
     void fetchAccountsWithIntelligence();
     // Check cached_reports for collection_intelligence manual refresh status
     (async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
         const { data: cached } = await supabase
           .from("cached_reports")
           .select("last_manual_refresh_at")
@@ -140,7 +148,7 @@ export function CollectionIntelligenceCard() {
         }
       } catch {}
     })();
-  }, [fetchAccountsWithIntelligence]);
+  }, [accountId, accountLoading, fetchAccountsWithIntelligence]);
 
   const canRefresh = !hasRefreshedToday;
 

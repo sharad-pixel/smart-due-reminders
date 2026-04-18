@@ -32,6 +32,7 @@ import {
   
 } from "@/components/data-center/sync/syncErrorParser";
 import type { SyncLogEntry } from "@/components/data-center/sync";
+import { useAccountId } from "@/hooks/useAccountId";
 
 // Issue explanations with actionable guidance
 const ISSUE_EXPLANATIONS: Record<
@@ -119,6 +120,7 @@ interface StripeIntegration {
 
 
 const StripeSyncDiagnostics = () => {
+  const { accountId } = useAccountId();
   const [syncing, setSyncing] = useState(false);
   const queryClient = useQueryClient();
 
@@ -150,12 +152,9 @@ const StripeSyncDiagnostics = () => {
 
   // Fetch sync logs
   const { data: syncLogs, isLoading: _logsLoading } = useQuery({
-    queryKey: ["stripe-sync-logs-diagnostic"],
+    queryKey: ["stripe-sync-logs-diagnostic", accountId],
     queryFn: async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
+      if (!accountId) throw new Error("No effective account");
 
       const { data, error } = await supabase
         .from("stripe_sync_log")

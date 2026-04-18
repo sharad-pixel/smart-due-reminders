@@ -70,7 +70,7 @@ export function useSubscription(): SubscriptionState {
         return;
       }
 
-      const accountId = effectiveAccountId as string;
+      const accountId = (effectiveAccountId as string | null) || userId;
       const isOwner = accountId === userId;
 
       setIsAccountOwner(isOwner);

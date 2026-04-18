@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { formatTaskType } from "@/lib/taskHelpers";
+import { useAccountId } from "@/hooks/useAccountId";
 
 interface CreateTaskModalProps {
   open: boolean;
@@ -42,6 +43,7 @@ const CreateTaskModal = ({
   level,
   onTaskCreated,
 }: CreateTaskModalProps) => {
+  const { accountId } = useAccountId();
   const [creating, setCreating] = useState(false);
   const [taskType, setTaskType] = useState("MANUAL_REVIEW");
   const [summary, setSummary] = useState("");
@@ -60,17 +62,7 @@ const CreateTaskModal = ({
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-
-      // Get effective account ID for the current user
-      const { data: accountUser } = await supabase
-        .from("account_users")
-        .select("account_id")
-        .eq("user_id", accountId)
-        .eq("status", "active")
-        .limit(1)
-        .single();
-
-      const accountId = accountUser?.account_id || user.id;
+      const workspaceAccountId = accountId || user.id;
 
       // Fetch all active team members under this account
       const { data: members, error } = await supabase
@@ -85,7 +77,7 @@ const CreateTaskModal = ({
             email
           )
         `)
-        .eq("account_id", accountId)
+        .eq("account_id", workspaceAccountId)
         .eq("status", "active");
 
       if (error) throw error;
@@ -116,6 +108,7 @@ const CreateTaskModal = ({
       const { data: { user } } = await supabase.auth.getUser();
       const { data: { session } } = await supabase.auth.getSession();
       if (!user) throw new Error("Not authenticated");
+      const workspaceAccountId = accountId || user.id;
 
       const authHeaders = session?.access_token
         ? { Authorization: `Bearer ${session.access_token}` }
@@ -126,7 +119,7 @@ const CreateTaskModal = ({
         .insert({
           debtor_id: debtorId,
           invoice_id: invoiceId || null,
-          user_id: accountId,
+          user_id: workspaceAccountId,
           task_type: taskType,
           level: level,
           summary: summary,
