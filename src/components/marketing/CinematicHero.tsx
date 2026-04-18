@@ -46,6 +46,12 @@ const ACCOUNTS = [
   { id: "a7", x: 800, y: 340, label: "Stark Ind", invoices: 6, daysPastDue: 165, persona: "rocco" },
   { id: "a8", x: 200, y: 400, label: "Hooli", invoices: 3, daysPastDue: 58, persona: "james" },
   { id: "a9", x: 460, y: 410, label: "Pied Piper", invoices: 2, daysPastDue: 95, persona: "troy" },
+  { id: "a10", x: 360, y: 130, label: "Massive Dyn", invoices: 5, daysPastDue: 8, persona: "nicolas" },
+  { id: "a11", x: 680, y: 230, label: "Tyrell Corp", invoices: 4, daysPastDue: 72, persona: "katy" },
+  { id: "a12", x: 180, y: 170, label: "Cyberdyne", invoices: 3, daysPastDue: 38, persona: "james" },
+  { id: "a13", x: 860, y: 50, label: "Aperture Sci", invoices: 2, daysPastDue: 18, persona: "sam" },
+  { id: "a14", x: 440, y: 290, label: "Oscorp", invoices: 6, daysPastDue: 118, persona: "troy" },
+  { id: "a15", x: 860, y: 430, label: "Weyland", invoices: 4, daysPastDue: 195, persona: "rocco" },
 ];
 
 const CENTER = { x: 450, y: 230 };
