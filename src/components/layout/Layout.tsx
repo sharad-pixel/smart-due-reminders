@@ -85,8 +85,8 @@ const Layout = ({ children }: LayoutProps) => {
     ownerPlanType,
     ownerSubscriptionStatus,
     memberRole,
-    ownerUserId,
-    organizationId,
+    ownerUserId: _ownerUserId,
+    organizationId: _organizationId,
     organizationName,
     loading: accountLoading,
   } = useEffectiveAccount();
