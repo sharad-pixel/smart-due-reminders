@@ -46,6 +46,8 @@ import {
   Mail,
   Hash,
 } from "lucide-react";
+import { useAccountId } from "@/hooks/useAccountId";
+import { getUserOrganizationId } from "@/lib/supabase/auth";
 
 interface ReviewItem {
   id: string;
@@ -74,6 +76,7 @@ interface ReviewItem {
 
 export function IngestionReviewQueue() {
   const queryClient = useQueryClient();
+  const { accountId, isLoading: accountLoading } = useAccountId();
   const [selectedItem, setSelectedItem] = useState<ReviewItem | null>(null);
   const [statusFilter, setStatusFilter] = useState("pending");
   const [searchTerm, setSearchTerm] = useState("");
@@ -95,10 +98,10 @@ export function IngestionReviewQueue() {
 
   // Fetch review queue
   const { data: reviewItems, isLoading } = useQuery({
-    queryKey: ["ingestion-review-queue", statusFilter, searchTerm],
+    queryKey: ["ingestion-review-queue", accountId, statusFilter, searchTerm],
+    enabled: !!accountId && !accountLoading,
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
+      if (!accountId) return [];
       let query = supabase
         .from("ingestion_review_queue")
         .select("*, ingestion_scanned_files(file_name, file_id)")
@@ -129,13 +132,10 @@ export function IngestionReviewQueue() {
 
   // Fetch debtors for matching
   const { data: debtors } = useQuery({
-    queryKey: ["debtors-for-matching"],
+    queryKey: ["debtors-for-matching", accountId],
+    enabled: !!accountId && !accountLoading,
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
-      // Use effective account ID so team members see parent's debtors
-      const { data: effectiveId } = await supabase.rpc("get_effective_account_id" as any, { p_user_id: user.id });
-      const accountId = effectiveId || user.id;
+      if (!accountId) return [];
       const { data } = await supabase
         .from("debtors")
         .select("id, company_name, name, email, reference_id")
@@ -217,7 +217,7 @@ export function IngestionReviewQueue() {
 
       let debtorId = inv.matched_debtor_id;
       if (!debtorId) {
-        const { data: orgId } = await supabase.rpc("get_user_organization_id" as any, { p_user_id: user.id });
+        const orgId = await getUserOrganizationId(accountId);
         const { data: newDebtor, error: debtorErr } = await supabase
           .from("debtors")
           .insert({
@@ -233,7 +233,7 @@ export function IngestionReviewQueue() {
         debtorId = newDebtor.id;
       }
 
-      const { data: orgId } = await supabase.rpc("get_user_organization_id" as any, { p_user_id: user.id });
+      const orgId = await getUserOrganizationId(accountId);
       
       // Check for duplicate invoice number and make unique if needed
       let invoiceNumber = inv.extracted_invoice_number;
@@ -339,7 +339,8 @@ export function IngestionReviewQueue() {
         .from("ingestion_review_queue")
         .update({ review_status: "rejected", reviewed_by: user.id, reviewed_at: new Date().toISOString() })
         .eq("id", itemId);
-      const { data: orgId } = await supabase.rpc("get_user_organization_id" as any, { p_user_id: user.id });
+      if (!accountId) throw new Error("No effective account");
+      const orgId = await getUserOrganizationId(accountId);
       await supabase.from("ingestion_audit_log").insert({
         user_id: accountId,
         organization_id: orgId,
@@ -380,7 +381,8 @@ export function IngestionReviewQueue() {
     mutationFn: async (rowIds: string[]) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
-      const { data: orgId } = await supabase.rpc("get_user_organization_id" as any, { p_user_id: user.id });
+      if (!accountId) throw new Error("No effective account");
+      const orgId = await getUserOrganizationId(accountId);
 
       const items = reviewItems?.filter(i => rowIds.includes(i.id)) || [];
       let successCount = 0;
@@ -928,9 +930,10 @@ export function IngestionReviewQueue() {
                               try {
                                 const { data: { user } } = await supabase.auth.getUser();
                                 if (!user) { toast.error("Not authenticated"); return; }
+                                if (!accountId) { toast.error("No effective account available"); return; }
                                 const companyName = selectedItem.extracted_company_name || selectedItem.extracted_debtor_name;
                                 if (!companyName) { toast.error("No debtor name available to create account"); return; }
-                                const { data: orgId } = await supabase.rpc("get_user_organization_id" as any, { p_user_id: user.id });
+                                const orgId = await getUserOrganizationId(accountId);
                                 const { data: newDebtor, error: dErr } = await supabase
                                   .from("debtors")
                                   .insert({
