@@ -253,16 +253,18 @@ const CinematicHero = () => {
             <div className="relative aspect-[16/10] w-full">
               <Stage phase={phase} hovered={hoveredAccount} setHovered={setHoveredAccount} />
 
-              {/* Metrics overlay */}
-              <div className="absolute top-3 left-3 right-3 flex flex-wrap gap-2 pointer-events-none">
-                <MetricChip label="Recovered" value={`$${formatNum(metrics.recovered)}`} tone="emerald" />
-                <MetricChip label="At-Risk Accts" value={`${metrics.atRisk}`} tone={metrics.atRisk > 10 ? "red" : "amber"} />
-                <MetricChip label="AI Actions" value={`${metrics.actions}`} tone="primary" />
+              {/* Top overlay: Risk score + metric chips */}
+              <div className="absolute top-3 left-3 right-3 flex flex-wrap items-start justify-between gap-3 pointer-events-none">
+                <RiskScoreMeter score={metrics.score} phase={phase} />
+                <div className="flex flex-wrap gap-2 justify-end">
+                  <MetricChip label="Recovered" value={`$${formatNum(metrics.recovered)}`} tone="emerald" />
+                  <MetricChip label="At-Risk Accts" value={`${metrics.atRisk}`} tone={metrics.atRisk > 10 ? "red" : "amber"} />
+                  <MetricChip label="AI Actions" value={`${metrics.actions}`} tone="primary" />
+                </div>
               </div>
 
-              {/* Risk score meter */}
-              <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between gap-3">
-                <RiskScoreMeter score={metrics.score} phase={phase} />
+              {/* Bottom overlay: hover panel */}
+              <div className="absolute bottom-3 right-3 flex items-end justify-end">
                 <HoverPanel hovered={hoveredAccount} phase={phase} />
               </div>
             </div>
