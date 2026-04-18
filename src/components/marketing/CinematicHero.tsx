@@ -216,6 +216,32 @@ const CinematicHero = () => {
           </motion.h2>
 
           <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.22 }}
+            className="flex flex-wrap items-center gap-x-2 gap-y-2 mb-8 text-sm md:text-base"
+          >
+            <span className="text-muted-foreground">Built for:</span>
+            {[
+              { label: "Solo Pros", path: "/solutions/solo-pro" },
+              { label: "Small Businesses", path: "/solutions/small-businesses" },
+              { label: "SaaS", path: "/solutions/saas" },
+              { label: "Professional Services", path: "/solutions/professional-services" },
+              { label: "Startups", path: "/startups" },
+            ].map((s, i, arr) => (
+              <span key={s.path} className="flex items-center gap-2">
+                <button
+                  onClick={() => navigate(s.path)}
+                  className="font-medium text-primary hover:text-primary-glow hover:underline underline-offset-4 transition-colors"
+                >
+                  {s.label}
+                </button>
+                {i < arr.length - 1 && <span className="text-muted-foreground/40">•</span>}
+              </span>
+            ))}
+          </motion.div>
+
+          <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.25 }}
