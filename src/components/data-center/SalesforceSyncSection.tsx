@@ -49,7 +49,7 @@ export const SalesforceSyncSection = () => {
         .maybeSingle();
 
       if (error) throw error;
-      return data as { id: string; user_id: string; crm_type: string; instance_url: string | null; connected_at: string | null; last_sync_at: string | null; created_at: string; updated_at: string } | null;
+      return data as unknown as { id: string; user_id: string; crm_type: string; instance_url: string | null; connected_at: string | null; last_sync_at: string | null; created_at: string; updated_at: string } | null;
     },
     enabled: isEnterprise,
   });
