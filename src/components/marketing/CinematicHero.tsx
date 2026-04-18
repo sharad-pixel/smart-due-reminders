@@ -249,6 +249,11 @@ const CinematicHero = () => {
               </div>
             </div>
 
+            {/* Hover panel — ABOVE the stage, fixed height to prevent layout shift */}
+            <div className="border-b border-primary/10 bg-[hsl(222_47%_6%)]/60 px-4 py-3 min-h-[60px] flex items-center">
+              <HoverPanel hovered={hoveredAccount} phase={phase} />
+            </div>
+
             {/* Stage */}
             <div className="relative aspect-[16/10] w-full">
               <Stage phase={phase} hovered={hoveredAccount} setHovered={setHoveredAccount} />
@@ -264,11 +269,6 @@ const CinematicHero = () => {
                 <MetricChip label="At-Risk Accts" value={`${metrics.atRisk}`} tone={metrics.atRisk > 10 ? "red" : "amber"} />
                 <MetricChip label="AI Actions" value={`${metrics.actions}`} tone="primary" />
               </div>
-            </div>
-
-            {/* Hover panel — outside the stage so it never overlaps nodes */}
-            <div className="border-t border-primary/10 bg-[hsl(222_47%_6%)]/60 px-4 py-3">
-              <HoverPanel hovered={hoveredAccount} phase={phase} />
             </div>
           </div>
 
@@ -524,12 +524,13 @@ const Stage = ({
             style={{ cursor: "pointer" }}
             onMouseEnter={() => setHovered(a.id)}
             onMouseLeave={() => setHovered(null)}
+            onClick={() => setHovered(isHovered ? null : a.id)}
           >
             {/* Halo */}
             <motion.circle
-              r={isHovered ? 26 : 18}
+              r={18}
               fill={tone}
-              fillOpacity={0.12}
+              fillOpacity={isHovered ? 0.22 : 0.12}
               animate={{
                 r: phase === "stable" ? [18, 22, 18] : 18,
               }}
