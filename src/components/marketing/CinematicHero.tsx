@@ -37,12 +37,15 @@ const HEADLINES: string[] = [
 
 // Map each account node to a persona by aging bucket
 const ACCOUNTS = [
-  { id: "a1", x: 120, y: 120, label: "Acme Co", invoices: 3, daysPastDue: 12, persona: "sam" },
-  { id: "a2", x: 520, y: 90, label: "Globex", invoices: 4, daysPastDue: 45, persona: "james" },
-  { id: "a3", x: 760, y: 200, label: "Initech", invoices: 2, daysPastDue: 78, persona: "katy" },
-  { id: "a4", x: 140, y: 320, label: "Umbrella", invoices: 5, daysPastDue: 105, persona: "troy" },
-  { id: "a5", x: 620, y: 360, label: "Wayne Ent", invoices: 3, daysPastDue: 140, persona: "jimmy" },
-  { id: "a6", x: 320, y: 240, label: "Soylent", invoices: 4, daysPastDue: 22, persona: "sam" },
+  { id: "a1", x: 110, y: 90, label: "Acme Co", invoices: 3, daysPastDue: 12, persona: "sam" },
+  { id: "a2", x: 520, y: 70, label: "Globex", invoices: 4, daysPastDue: 45, persona: "james" },
+  { id: "a3", x: 780, y: 150, label: "Initech", invoices: 2, daysPastDue: 78, persona: "katy" },
+  { id: "a4", x: 80, y: 260, label: "Umbrella", invoices: 5, daysPastDue: 105, persona: "troy" },
+  { id: "a5", x: 640, y: 380, label: "Wayne Ent", invoices: 3, daysPastDue: 140, persona: "jimmy" },
+  { id: "a6", x: 290, y: 220, label: "Soylent", invoices: 4, daysPastDue: 22, persona: "sam" },
+  { id: "a7", x: 800, y: 340, label: "Stark Ind", invoices: 6, daysPastDue: 165, persona: "rocco" },
+  { id: "a8", x: 200, y: 400, label: "Hooli", invoices: 3, daysPastDue: 58, persona: "james" },
+  { id: "a9", x: 460, y: 410, label: "Pied Piper", invoices: 2, daysPastDue: 95, persona: "troy" },
 ];
 
 const CENTER = { x: 450, y: 230 };
