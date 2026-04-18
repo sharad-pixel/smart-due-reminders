@@ -14,7 +14,7 @@ const SoloPro = () => {
   const navigate = useNavigate();
 
   const features = [
-    "All 6 AI collection agents working 24/7",
+    "All 7 AI collection agents working 24/7",
     "Stripe & QuickBooks integrations included",
     "Email campaigns with embedded payment links",
     "Full automation suite—no feature limits",
