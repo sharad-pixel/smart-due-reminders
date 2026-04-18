@@ -588,8 +588,6 @@ const Layout = ({ children }: LayoutProps) => {
             </div>
             <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
               {organizationName && <span>Org: <span className="font-medium text-foreground">{organizationName}</span></span>}
-              {organizationId && <span>Org ID: <span className="font-medium text-foreground">{organizationId}</span></span>}
-              {ownerUserId && <span>Owner ID: <span className="font-medium text-foreground">{ownerUserId}</span></span>}
             </div>
           </div>
         </div>
