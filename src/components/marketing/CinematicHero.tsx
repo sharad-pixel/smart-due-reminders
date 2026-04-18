@@ -202,10 +202,17 @@ const CinematicHero = () => {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-8 leading-tight tracking-tight"
           >
-            Get paid faster.{" "}
+            Plans to suit{" "}
             <span className="bg-gradient-to-r from-primary via-primary-glow to-accent bg-clip-text text-transparent">
-              Stop chasing invoices.
+              any size business
             </span>
+            .{" "}
+            <button
+              onClick={() => navigate("/pricing")}
+              className="text-base md:text-lg font-semibold text-primary hover:underline underline-offset-4 align-middle"
+            >
+              See pricing →
+            </button>
           </motion.h2>
 
           <motion.div
