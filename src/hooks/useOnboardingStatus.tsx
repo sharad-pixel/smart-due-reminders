@@ -40,8 +40,7 @@ export const useOnboardingStatus = () => {
         supabase
           .from("collection_workflows")
           .select("id", { count: "exact", head: true })
-          .eq("user_id", accountId)
-          .eq("is_active", true),
+          .eq("user_id", accountId),
         supabase
           .from("profiles_admin_safe")
           .select("quickbooks_realm_id")

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAccountId } from '@/hooks/useAccountId';
 import { type PlanType, PLAN_CONFIGS, TRIAL_CONFIG } from '@/lib/subscriptionConfig';
 
 interface SubscriptionState {
@@ -47,31 +48,19 @@ export function useSubscription(): SubscriptionState {
   const [isAccountOwner, setIsAccountOwner] = useState(true);
   const [canUpgrade, setCanUpgrade] = useState(true);
   const [trialInvoiceLimit] = useState(TRIAL_INVOICE_LIMIT);
+  const { accountId, userId, isTeamMember, isLoading: accountIdLoading } = useAccountId();
 
   const fetchSubscription = useCallback(async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session?.user) {
+      if (accountIdLoading) return;
+
+      if (!userId || !accountId) {
         setIsLoading(false);
         return;
       }
 
-      const userId = session.user.id;
-
-      // Use the database function to get effective account ID
-      // This properly handles team member → parent account relationships
-      const { data: effectiveAccountId, error: effectiveError } = await supabase
-        .rpc('get_effective_account_id', { p_user_id: userId });
-
-      if (effectiveError) {
-        console.error('Error getting effective account:', effectiveError);
-        setIsLoading(false);
-        return;
-      }
-
-      const accountId = (effectiveAccountId as string | null) || userId;
-      const isOwner = accountId === userId;
+      setIsLoading(true);
+      const isOwner = !isTeamMember;
 
       setIsAccountOwner(isOwner);
       setCanUpgrade(isOwner);
@@ -117,7 +106,7 @@ export function useSubscription(): SubscriptionState {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [accountId, userId, isTeamMember, accountIdLoading]);
 
   const applySubscriptionData = (profile: any) => {
     const planType = (profile.plan_type as PlanType) || 'free';
@@ -166,6 +155,8 @@ export function useSubscription(): SubscriptionState {
   };
 
   useEffect(() => {
+    if (accountIdLoading) return;
+
     fetchSubscription();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
@@ -175,7 +166,7 @@ export function useSubscription(): SubscriptionState {
     return () => {
       subscription.unsubscribe();
     };
-  }, [fetchSubscription]);
+  }, [fetchSubscription, accountIdLoading]);
 
   const isSubscribed = subscriptionStatus === 'active' || subscriptionStatus === 'trialing';
   const isPastDue = subscriptionStatus === 'past_due';
