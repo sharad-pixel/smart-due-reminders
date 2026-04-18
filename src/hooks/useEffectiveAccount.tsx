@@ -88,17 +88,13 @@ export const useEffectiveAccount = () => {
         const isTeamMember = effectiveAccountId !== user.id;
 
         if (isTeamMember) {
-          // Get owner's profile info including company, plan, business profile, and avatar
-          const { data: ownerProfile } = await supabase
-            .from('profiles')
-            .select(`
-              name, email, company_name, plan_type, subscription_status, avatar_url,
-              business_name, business_phone, business_address_line1, business_address_line2,
-              business_city, business_state, business_postal_code, business_country,
-              stripe_payment_link_url
-            `)
-            .eq('id', effectiveAccountId)
-            .single();
+          // Get owner's non-sensitive profile info via SECURITY DEFINER RPC.
+          // Direct SELECT on profiles is blocked by RLS for team members; this
+          // RPC ensures team members inherit the owner's plan/subscription
+          // status (including admin overrides) and business profile.
+          const { data: ownerInfoRows } = await supabase
+            .rpc('get_owner_account_info', { p_account_id: effectiveAccountId });
+          const ownerProfile = Array.isArray(ownerInfoRows) ? ownerInfoRows[0] : null;
           
           // Get owner's branding settings
           const { data: brandingSettings } = await supabase
