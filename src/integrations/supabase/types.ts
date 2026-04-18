@@ -8714,6 +8714,8 @@ export type Database = {
       profiles_admin_safe: {
         Row: {
           account_locked_at: string | null
+          address_autocomplete_enabled: boolean | null
+          address_autocomplete_provider: string | null
           admin_override: boolean | null
           admin_override_at: string | null
           admin_override_by: string | null
@@ -8753,7 +8755,6 @@ export type Database = {
           quickbooks_last_sync_at: string | null
           quickbooks_realm_id: string | null
           quickbooks_sync_enabled: boolean | null
-          quickbooks_token_expires_at: string | null
           receive_collection_alerts: boolean | null
           receive_daily_digest: boolean | null
           receive_product_updates: boolean | null
@@ -8766,11 +8767,14 @@ export type Database = {
           suspended_reason: string | null
           trial_ends_at: string | null
           trial_used_at: string | null
+          twilio_from_number: string | null
           updated_at: string | null
           welcome_email_sent_at: string | null
         }
         Insert: {
           account_locked_at?: string | null
+          address_autocomplete_enabled?: boolean | null
+          address_autocomplete_provider?: string | null
           admin_override?: boolean | null
           admin_override_at?: string | null
           admin_override_by?: string | null
@@ -8810,7 +8814,6 @@ export type Database = {
           quickbooks_last_sync_at?: string | null
           quickbooks_realm_id?: string | null
           quickbooks_sync_enabled?: boolean | null
-          quickbooks_token_expires_at?: string | null
           receive_collection_alerts?: boolean | null
           receive_daily_digest?: boolean | null
           receive_product_updates?: boolean | null
@@ -8823,11 +8826,14 @@ export type Database = {
           suspended_reason?: string | null
           trial_ends_at?: string | null
           trial_used_at?: string | null
+          twilio_from_number?: string | null
           updated_at?: string | null
           welcome_email_sent_at?: string | null
         }
         Update: {
           account_locked_at?: string | null
+          address_autocomplete_enabled?: boolean | null
+          address_autocomplete_provider?: string | null
           admin_override?: boolean | null
           admin_override_at?: string | null
           admin_override_by?: string | null
@@ -8867,7 +8873,6 @@ export type Database = {
           quickbooks_last_sync_at?: string | null
           quickbooks_realm_id?: string | null
           quickbooks_sync_enabled?: boolean | null
-          quickbooks_token_expires_at?: string | null
           receive_collection_alerts?: boolean | null
           receive_daily_digest?: boolean | null
           receive_product_updates?: boolean | null
@@ -8880,6 +8885,7 @@ export type Database = {
           suspended_reason?: string | null
           trial_ends_at?: string | null
           trial_used_at?: string | null
+          twilio_from_number?: string | null
           updated_at?: string | null
           welcome_email_sent_at?: string | null
         }
