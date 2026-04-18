@@ -222,6 +222,130 @@ const SoloPro = () => {
         </div>
       </section>
 
+      {/* Invoices & Payment Plans for Credit Terms */}
+      <section className="py-16 px-4 bg-muted/30">
+        <div className="container mx-auto max-w-5xl">
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-full mb-4">
+              <HandCoins className="w-4 h-4 text-primary" />
+              <span className="text-sm font-medium">Sell on Credit. Get Paid on Time.</span>
+            </div>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Create Invoices & Payment Plans That Keep Cash Flowing
+            </h2>
+            <p className="text-muted-foreground max-w-3xl mx-auto text-lg">
+              When you offer Net 15, Net 30, or longer credit terms, you take on real revenue risk.
+              Recouply lets solo operators issue branded invoices and structured payment plans in minutes —
+              so customers can pay on terms that work for them, while you protect cash flow and stop losing revenue to delays.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6 mb-10">
+            <Card className="border-primary/20">
+              <CardContent className="pt-6">
+                <div className="p-3 bg-primary/10 rounded-lg w-fit mb-4">
+                  <FileText className="w-6 h-6 text-primary" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Branded Invoices in Seconds</h3>
+                <p className="text-muted-foreground text-sm">
+                  Generate professional invoices with your logo, payment links, and QR codes —
+                  ready for Net 15, Net 30, or custom terms. Send via email or share a secure link.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-primary/20">
+              <CardContent className="pt-6">
+                <div className="p-3 bg-primary/10 rounded-lg w-fit mb-4">
+                  <CalendarClock className="w-6 h-6 text-primary" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Flexible Payment Plans</h3>
+                <p className="text-muted-foreground text-sm">
+                  Break large balances into structured installments at the account level.
+                  Set milestone amounts, due dates, and auto-reminders so customers stay on track —
+                  without you chasing every payment.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-primary/20">
+              <CardContent className="pt-6">
+                <div className="p-3 bg-primary/10 rounded-lg w-fit mb-4">
+                  <Brain className="w-6 h-6 text-primary" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Risk-Aware Credit Decisions</h3>
+                <p className="text-muted-foreground text-sm">
+                  Every account gets a Collectability Score and Expected Credit Loss estimate,
+                  so you know which customers can safely buy on credit — and which need
+                  upfront payment or shorter terms.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card className="bg-gradient-to-br from-primary/5 to-secondary/5">
+            <CardContent className="pt-6">
+              <div className="grid md:grid-cols-2 gap-8 items-center">
+                <div>
+                  <h3 className="text-2xl font-bold mb-3">Don't Lose Revenue to Slow-Paying Customers</h3>
+                  <p className="text-muted-foreground mb-4">
+                    A single unpaid Net 30 invoice can stall your operation. With Recouply, you can confidently
+                    extend credit terms knowing every invoice is monitored, every payment plan is tracked, and
+                    every overdue account is automatically worked by your AI agents — so revenue keeps moving
+                    while you focus on the work.
+                  </p>
+                  <ul className="space-y-2 mb-6">
+                    {[
+                      "Issue invoices with embedded pay-now buttons",
+                      "Offer payment plans without spreadsheets",
+                      "AI follow-ups the moment terms are missed",
+                      "Real-time visibility into outstanding credit exposure",
+                    ].map((item) => (
+                      <li key={item} className="flex items-start gap-2 text-sm">
+                        <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <Button onClick={() => navigate("/signup?plan=solo_pro")} className="group">
+                    Start Issuing Invoices Today
+                    <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                  </Button>
+                </div>
+                <div className="rounded-xl border bg-background/60 p-6 shadow-sm">
+                  <div className="flex items-center justify-between mb-4 pb-4 border-b">
+                    <div>
+                      <div className="text-xs text-muted-foreground">Invoice #INV-2041</div>
+                      <div className="font-semibold">Acme Studio · Net 30</div>
+                    </div>
+                    <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary font-medium">On Plan</span>
+                  </div>
+                  <div className="space-y-3 text-sm">
+                    {[
+                      { label: "Installment 1 of 3", amount: "$1,200.00", status: "Paid", color: "text-primary" },
+                      { label: "Installment 2 of 3", amount: "$1,200.00", status: "Due May 15", color: "text-foreground" },
+                      { label: "Installment 3 of 3", amount: "$1,200.00", status: "Due Jun 15", color: "text-muted-foreground" },
+                    ].map((row) => (
+                      <div key={row.label} className="flex items-center justify-between">
+                        <div>
+                          <div className="font-medium">{row.label}</div>
+                          <div className={`text-xs ${row.color}`}>{row.status}</div>
+                        </div>
+                        <div className="font-semibold">{row.amount}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-4 pt-4 border-t flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Total Balance</span>
+                    <span className="font-bold">$3,600.00</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
       {/* Pricing Details */}
       <section className="py-16 px-4">
         <div className="container mx-auto max-w-4xl">
