@@ -888,7 +888,7 @@ const FloatingStat = ({
               transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
               className="absolute inset-0"
             >
-              <div className="text-xs font-semibold text-foreground truncate leading-tight">
+              <div className="text-xs font-semibold text-white truncate leading-tight">
                 {item.primary}
               </div>
               <div className={`text-[10px] font-mono truncate leading-tight ${iconClass}`}>
