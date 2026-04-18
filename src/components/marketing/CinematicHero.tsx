@@ -249,19 +249,18 @@ const CinematicHero = () => {
               </div>
             </div>
 
-            {/* Hover panel — ABOVE the stage, fixed height to prevent layout shift */}
-            <div className="border-b border-primary/10 bg-[hsl(222_47%_6%)]/60 px-4 py-3 min-h-[60px] flex items-center">
-              <HoverPanel hovered={hoveredAccount} phase={phase} />
+            {/* Top bar — Risk score + Hover panel ABOVE the stage (fixed height to prevent layout shift) */}
+            <div className="border-b border-primary/10 bg-[hsl(222_47%_6%)]/60 px-4 py-3 min-h-[72px] flex items-center gap-4 flex-wrap">
+              <RiskScoreMeter score={metrics.score} phase={phase} />
+              <div className="h-10 w-px bg-primary/15 hidden md:block" />
+              <div className="flex-1 min-w-0">
+                <HoverPanel hovered={hoveredAccount} phase={phase} />
+              </div>
             </div>
 
             {/* Stage */}
             <div className="relative aspect-[16/10] w-full">
               <Stage phase={phase} hovered={hoveredAccount} setHovered={setHoveredAccount} />
-
-              {/* Top-left: Risk score */}
-              <div className="absolute top-3 left-3 pointer-events-auto max-w-[45%]">
-                <RiskScoreMeter score={metrics.score} phase={phase} />
-              </div>
 
               {/* Top-right: metric chips (stacked vertically to avoid overlap) */}
               <div className="absolute top-3 right-3 flex flex-col items-end gap-1.5 pointer-events-none">
