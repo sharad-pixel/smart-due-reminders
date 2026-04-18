@@ -8670,6 +8670,39 @@ export type Database = {
       }
     }
     Views: {
+      crm_connections_safe: {
+        Row: {
+          connected_at: string | null
+          created_at: string | null
+          crm_type: string | null
+          id: string | null
+          instance_url: string | null
+          last_sync_at: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          connected_at?: string | null
+          created_at?: string | null
+          crm_type?: string | null
+          id?: string | null
+          instance_url?: string | null
+          last_sync_at?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          connected_at?: string | null
+          created_at?: string | null
+          crm_type?: string | null
+          id?: string | null
+          instance_url?: string | null
+          last_sync_at?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       debtor_contact_emails: {
         Row: {
           debtor_id: string | null
