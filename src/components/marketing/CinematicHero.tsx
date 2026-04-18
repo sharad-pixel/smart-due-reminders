@@ -37,15 +37,47 @@ const HEADLINES: string[] = [
 
 // Map each account node to a persona by aging bucket
 const ACCOUNTS = [
-  { id: "a1", x: 120, y: 120, label: "Acme Co", invoices: 3, daysPastDue: 12, persona: "sam" },
-  { id: "a2", x: 520, y: 90, label: "Globex", invoices: 4, daysPastDue: 45, persona: "james" },
-  { id: "a3", x: 760, y: 200, label: "Initech", invoices: 2, daysPastDue: 78, persona: "katy" },
-  { id: "a4", x: 140, y: 320, label: "Umbrella", invoices: 5, daysPastDue: 105, persona: "troy" },
-  { id: "a5", x: 620, y: 360, label: "Wayne Ent", invoices: 3, daysPastDue: 140, persona: "jimmy" },
-  { id: "a6", x: 320, y: 240, label: "Soylent", invoices: 4, daysPastDue: 22, persona: "sam" },
+  { id: "a1", x: 110, y: 90, label: "Acme Co", invoices: 3, daysPastDue: 12, persona: "sam" },
+  { id: "a2", x: 520, y: 70, label: "Globex", invoices: 4, daysPastDue: 45, persona: "james" },
+  { id: "a3", x: 780, y: 150, label: "Initech", invoices: 2, daysPastDue: 78, persona: "katy" },
+  { id: "a4", x: 80, y: 260, label: "Umbrella", invoices: 5, daysPastDue: 105, persona: "troy" },
+  { id: "a5", x: 640, y: 380, label: "Wayne Ent", invoices: 3, daysPastDue: 140, persona: "jimmy" },
+  { id: "a6", x: 290, y: 220, label: "Soylent", invoices: 4, daysPastDue: 22, persona: "sam" },
+  { id: "a7", x: 800, y: 340, label: "Stark Ind", invoices: 6, daysPastDue: 165, persona: "rocco" },
+  { id: "a8", x: 200, y: 400, label: "Hooli", invoices: 3, daysPastDue: 58, persona: "james" },
+  { id: "a9", x: 460, y: 410, label: "Pied Piper", invoices: 2, daysPastDue: 95, persona: "troy" },
 ];
 
 const CENTER = { x: 450, y: 230 };
+
+// Auto-scrolling content for the floating activity cards
+const AGENT_ITEMS = [
+  { primary: "Sam · 0–30d", secondary: "Sent 24 reminders" },
+  { primary: "James · 31–60d", secondary: "Negotiating 8 plans" },
+  { primary: "Katy · 61–90d", secondary: "Escalated 5 accts" },
+  { primary: "Troy · 91–120d", secondary: "Final notice ×3" },
+  { primary: "Jimmy · 121–150d", secondary: "Legal review queue" },
+  { primary: "Rocco · 151+", secondary: "Internal collections" },
+  { primary: "Nicolas · Account", secondary: "Strategic outreach" },
+];
+
+const EXPANSION_ITEMS = [
+  { primary: "Stark Ind", secondary: "Credit hold · $48k saved" },
+  { primary: "Hooli", secondary: "Term tightened to NET15" },
+  { primary: "Pied Piper", secondary: "Expansion paused" },
+  { primary: "Wayne Ent", secondary: "Risk tier · High → Medium" },
+  { primary: "Globex", secondary: "Limit reduced 30%" },
+  { primary: "Initech", secondary: "Pre-bill review enabled" },
+];
+
+const PERFORMANCE_ITEMS = [
+  { primary: "DSO", secondary: "↓ 42% in 90 days" },
+  { primary: "Recovery Rate", secondary: "↑ 68%" },
+  { primary: "Avg Days to Pay", secondary: "23d (was 41d)" },
+  { primary: "Audit Trail", secondary: "100% documented" },
+  { primary: "Auto-Sent", secondary: "1,284 messages / mo" },
+  { primary: "Disputes Resolved", secondary: "94% within SLA" },
+];
 
 const CinematicHero = () => {
   const navigate = useNavigate();
@@ -236,16 +268,16 @@ const CinematicHero = () => {
             </div>
           </div>
 
-          {/* Floating quick stats */}
+          {/* Floating quick stats — auto-scrolling activity cards */}
           <motion.div
-            className="hidden md:flex absolute -left-6 top-1/3 -translate-y-1/2 flex-col gap-2"
+            className="hidden md:flex absolute -left-6 top-1/4 -translate-y-1/4 flex-col gap-2 z-20"
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.5, duration: 0.6 }}
           >
-            <FloatingStat icon={Brain} label="6 AI Agents" />
-            <FloatingStat icon={ShieldCheck} label="Audit-Ready" />
-            <FloatingStat icon={TrendingUp} label="↓ 42% DSO" />
+            <FloatingStat icon={Brain} label="AI Agents" items={AGENT_ITEMS} accent="primary" />
+            <FloatingStat icon={ShieldCheck} label="Expansion Risk Mitigated" items={EXPANSION_ITEMS} accent="emerald" />
+            <FloatingStat icon={TrendingUp} label="Performance" items={PERFORMANCE_ITEMS} accent="primary" />
           </motion.div>
         </div>
       </div>
@@ -797,12 +829,66 @@ const HoverPanel = ({ hovered, phase }: { hovered: string | null; phase: Phase }
   );
 };
 
-const FloatingStat = ({ icon: Icon, label }: { icon: typeof Brain; label: string }) => (
-  <div className="flex items-center gap-2 rounded-full border border-primary/20 bg-[hsl(222_47%_8%)]/90 backdrop-blur px-3 py-1.5 shadow-lg shadow-primary/10">
-    <Icon className="w-3.5 h-3.5 text-primary" />
-    <span className="text-xs font-medium text-foreground whitespace-nowrap">{label}</span>
-  </div>
-);
+const FloatingStat = ({
+  icon: Icon,
+  label,
+  items,
+  accent = "primary",
+}: {
+  icon: typeof Brain;
+  label: string;
+  items: { primary: string; secondary: string }[];
+  accent?: "primary" | "emerald";
+}) => {
+  const [idx, setIdx] = useState(0);
+  const prefersReduced = useReducedMotion();
+  useEffect(() => {
+    if (prefersReduced) return;
+    const id = setInterval(() => setIdx((i) => (i + 1) % items.length), 2400);
+    return () => clearInterval(id);
+  }, [items.length, prefersReduced]);
+
+  const accentClass =
+    accent === "emerald"
+      ? "border-emerald-500/30 shadow-emerald-500/10"
+      : "border-primary/20 shadow-primary/10";
+  const iconClass = accent === "emerald" ? "text-emerald-400" : "text-primary";
+  const item = items[idx];
+
+  return (
+    <div
+      className={`group flex items-center gap-2.5 rounded-xl border bg-[hsl(222_47%_8%)]/90 backdrop-blur px-3 py-2 shadow-lg w-[230px] overflow-hidden ${accentClass}`}
+    >
+      <div className={`flex-shrink-0 rounded-md bg-background/40 p-1.5 ${iconClass}`}>
+        <Icon className="w-3.5 h-3.5" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="text-[9px] uppercase tracking-widest text-muted-foreground font-medium leading-tight mb-0.5 truncate">
+          {label}
+        </div>
+        <div className="relative h-[28px] overflow-hidden">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={idx}
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -14 }}
+              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+              className="absolute inset-0"
+            >
+              <div className="text-xs font-semibold text-foreground truncate leading-tight">
+                {item.primary}
+              </div>
+              <div className={`text-[10px] font-mono truncate leading-tight ${iconClass}`}>
+                {item.secondary}
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const PhaseDot = ({ phase, target, label }: { phase: Phase; target: Phase; label: string }) => {
   const active = phase === target;
