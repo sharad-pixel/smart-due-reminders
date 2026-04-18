@@ -8,6 +8,7 @@ import { CheckCircle2, Store, Brain } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
+import RiskAndPayLinksSection from "@/components/marketing/RiskAndPayLinksSection";
 
 const SmallBusinesses = () => {
   const navigate = useNavigate();
@@ -190,6 +191,12 @@ You review and approve every message before it goes out, maintaining complete co
           </Card>
         </div>
       </section>
+
+      {/* Risk Assessment + Payment Links */}
+      <RiskAndPayLinksSection
+        audienceLabel="For small business owners who can't afford to chase every invoice"
+        ctaHref="/signup?icp=small-businesses"
+      />
 
       {/* Results Section */}
       <section className="py-16 px-4">

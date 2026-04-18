@@ -8,6 +8,7 @@ import { CheckCircle2, Briefcase, Brain } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
+import RiskAndPayLinksSection from "@/components/marketing/RiskAndPayLinksSection";
 
 const ProfessionalServices = () => {
   const navigate = useNavigate();
@@ -188,6 +189,12 @@ You maintain complete control. Review and approve every message before it's sent
           </Card>
         </div>
       </section>
+
+      {/* Risk Assessment + Payment Links */}
+      <RiskAndPayLinksSection
+        audienceLabel="For agencies, consultants, and firms protecting client relationships"
+        ctaHref="/signup?icp=professional-services"
+      />
 
       {/* Results Section */}
       <section className="py-16 px-4">

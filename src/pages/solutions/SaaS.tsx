@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import SaaSBenefits from "@/components/SaaSBenefits";
+import RiskAndPayLinksSection from "@/components/marketing/RiskAndPayLinksSection";
 
 const SaaS = () => {
   const navigate = useNavigate();
@@ -199,6 +200,12 @@ Communications come directly from YOUR company, ensuring continuity in customer 
           </Card>
         </div>
       </section>
+
+      {/* Risk Assessment + Payment Links */}
+      <RiskAndPayLinksSection
+        audienceLabel="For SaaS finance teams managing thousands of invoices"
+        ctaHref="/signup?icp=saas"
+      />
 
       {/* Industry Examples */}
       <section className="py-16 px-4">
