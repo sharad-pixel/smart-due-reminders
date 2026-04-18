@@ -83,6 +83,9 @@ const Layout = ({ children }: LayoutProps) => {
     ownerEmail,
     ownerCompanyName,
     memberRole,
+    ownerUserId,
+    organizationId,
+    organizationName,
     loading: accountLoading,
   } = useEffectiveAccount();
   const {
@@ -570,11 +573,18 @@ const Layout = ({ children }: LayoutProps) => {
       {/* Team Member Banner */}
       {isTeamMember && !accountLoading && (
         <div className="bg-primary/10 border-b border-primary/20 px-4 py-2">
-          <div className="max-w-7xl mx-auto flex items-center justify-center gap-2 text-sm">
-            <Building2 className="h-4 w-4 text-primary" />
-            <span className="text-muted-foreground">
-              Viewing account of <span className="font-medium text-foreground">{ownerName || ownerEmail}</span>
-            </span>
+          <div className="max-w-7xl mx-auto flex flex-col items-center justify-center gap-1 text-sm sm:flex-row sm:flex-wrap sm:gap-2">
+            <div className="flex items-center justify-center gap-2 text-center">
+              <Building2 className="h-4 w-4 text-primary" />
+              <span className="text-muted-foreground">
+                Viewing account of <span className="font-medium text-foreground">{ownerName || ownerEmail}</span>
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+              {organizationName && <span>Org: <span className="font-medium text-foreground">{organizationName}</span></span>}
+              {organizationId && <span>Org ID: <span className="font-medium text-foreground">{organizationId}</span></span>}
+              {ownerUserId && <span>Owner ID: <span className="font-medium text-foreground">{ownerUserId}</span></span>}
+            </div>
           </div>
         </div>
       )}

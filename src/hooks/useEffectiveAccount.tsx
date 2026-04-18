@@ -11,6 +11,9 @@ interface EffectiveAccountInfo {
   ownerSubscriptionStatus: string | null;
   ownerAvatarUrl: string | null;
   memberRole: string | null;
+  ownerUserId: string | null;
+  organizationId: string | null;
+  organizationName: string | null;
   loading: boolean;
   // Business profile fields from parent account
   ownerBusinessName: string | null;
@@ -41,6 +44,9 @@ export const useEffectiveAccount = () => {
     ownerSubscriptionStatus: null,
     ownerAvatarUrl: null,
     memberRole: null,
+    ownerUserId: null,
+    organizationId: null,
+    organizationName: null,
     loading: true,
     ownerBusinessName: null,
     ownerBusinessPhone: null,
@@ -92,6 +98,17 @@ export const useEffectiveAccount = () => {
 
         const effectiveAccountId = effectiveData as string;
         const isTeamMember = effectiveAccountId !== user.id;
+        const { data: organizationId } = await supabase.rpc('get_user_organization_id', { p_user_id: effectiveAccountId || user.id });
+
+        let organizationName: string | null = null;
+        if (organizationId) {
+          const { data: organization } = await supabase
+            .from('organizations')
+            .select('name')
+            .eq('id', organizationId)
+            .maybeSingle();
+          organizationName = organization?.name || null;
+        }
 
         if (isTeamMember) {
           const [{ data: ownerInfoRows }, { data: brandingSettings }, { data: memberData }] = await Promise.all([
@@ -123,6 +140,9 @@ export const useEffectiveAccount = () => {
               ownerSubscriptionStatus: ownerProfile?.subscription_status || null,
               ownerAvatarUrl: ownerProfile?.avatar_url || null,
               memberRole: memberData?.role || null,
+              ownerUserId: ownerProfile?.id || effectiveAccountId,
+              organizationId: organizationId || null,
+              organizationName,
               loading: false,
               ownerBusinessName: ownerProfile?.business_name || null,
               ownerBusinessPhone: ownerProfile?.business_phone || null,
@@ -153,6 +173,9 @@ export const useEffectiveAccount = () => {
               ...prev,
               effectiveAccountId,
               isTeamMember: false,
+              ownerUserId: effectiveAccountId,
+              organizationId: organizationId || null,
+              organizationName,
               ownerAvatarUrl: null,
               ownerLogoUrl: ownBranding?.logo_url || null,
               ownerFromName: ownBranding?.from_name || null,
