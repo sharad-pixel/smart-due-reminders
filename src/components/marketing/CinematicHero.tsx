@@ -268,11 +268,11 @@ const CinematicHero = () => {
             </div>
           </div>
 
-          {/* Floating quick stats — auto-scrolling activity cards */}
+          {/* Auto-scrolling activity cards — below the live stage */}
           <motion.div
-            className="hidden md:flex absolute -left-6 top-1/4 -translate-y-1/4 flex-col gap-2 z-20"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
+            className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.6 }}
           >
             <FloatingStat icon={Brain} label="AI Agents" items={AGENT_ITEMS} accent="primary" />
