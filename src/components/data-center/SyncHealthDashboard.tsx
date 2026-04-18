@@ -28,6 +28,10 @@ export const SyncHealthDashboard = () => {
     queryKey: ["sync-health-stats"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) throw new Error("Not authenticated");
 
       // Fetch last 24h sync logs from both sources
@@ -38,13 +42,13 @@ export const SyncHealthDashboard = () => {
         supabase
           .from("stripe_sync_log")
           .select("id, status, started_at, completed_at, records_synced, records_failed")
-          .eq("user_id", user.id)
+          .eq("user_id", accountId)
           .gte("started_at", yesterday.toISOString())
           .order("started_at", { ascending: false }),
         supabase
           .from("quickbooks_sync_log")
           .select("id, status, started_at, completed_at, records_synced, records_failed")
-          .eq("user_id", user.id)
+          .eq("user_id", accountId)
           .gte("started_at", yesterday.toISOString())
           .order("started_at", { ascending: false })
       ]);

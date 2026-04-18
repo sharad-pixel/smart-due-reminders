@@ -104,6 +104,10 @@ const Reconciliation = () => {
     queryKey: ["all-reconciliation-payments"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) throw new Error("Not authenticated");
 
       const { data, error } = await supabase
@@ -112,7 +116,7 @@ const Reconciliation = () => {
           *,
           debtors (company_name, name)
         `)
-        .eq("user_id", user.id)
+        .eq("user_id", accountId)
         .order("created_at", { ascending: false });
 
       if (error) throw error;

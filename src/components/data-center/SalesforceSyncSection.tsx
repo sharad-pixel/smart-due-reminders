@@ -23,6 +23,10 @@ export const SalesforceSyncSection = () => {
     queryKey: ["user-profile-plan"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) return null;
       const { data } = await supabase
         .from("profiles")
@@ -39,12 +43,16 @@ export const SalesforceSyncSection = () => {
     queryKey: ["salesforce-connection"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) return null;
 
       const { data, error } = await supabase
         .from("crm_connections_safe" as any)
         .select("id, user_id, crm_type, instance_url, connected_at, last_sync_at, created_at, updated_at")
-        .eq("user_id", user.id)
+        .eq("user_id", accountId)
         .eq("crm_type", "salesforce")
         .maybeSingle();
 
@@ -58,12 +66,16 @@ export const SalesforceSyncSection = () => {
     queryKey: ["salesforce-case-stats"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) return null;
 
       const { count, error } = await supabase
         .from("cs_cases")
         .select("id", { count: "exact" })
-        .eq("user_id", user.id)
+        .eq("user_id", accountId)
         .eq("source_system", "salesforce");
 
       if (error) throw error;

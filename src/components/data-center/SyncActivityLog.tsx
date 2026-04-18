@@ -39,6 +39,10 @@ export const SyncActivityLog = () => {
     queryKey: ["sync-activity-log", filter, limit],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) throw new Error("Not authenticated");
 
       const results: SyncLogEntry[] = [];
@@ -48,7 +52,7 @@ export const SyncActivityLog = () => {
         const { data: stripeLogs } = await supabase
           .from("stripe_sync_log")
           .select("id, status, started_at, completed_at, records_synced, records_failed, errors")
-          .eq("user_id", user.id)
+          .eq("user_id", accountId)
           .order("started_at", { ascending: false })
           .limit(filter === "stripe" ? limit : Math.ceil(limit / 2));
 
@@ -65,7 +69,7 @@ export const SyncActivityLog = () => {
         const { data: qbLogs } = await supabase
           .from("quickbooks_sync_log")
           .select("id, status, started_at, completed_at, records_synced, records_failed, errors")
-          .eq("user_id", user.id)
+          .eq("user_id", accountId)
           .order("started_at", { ascending: false })
           .limit(filter === "quickbooks" ? limit : Math.ceil(limit / 2));
 

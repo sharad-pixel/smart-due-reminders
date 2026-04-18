@@ -74,11 +74,15 @@ const PaymentsActivity = () => {
     queryKey: ["payment-uploads"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) return [];
       const { data } = await supabase
         .from("data_center_uploads")
         .select("id, file_name, file_type, status, row_count, processed_count, matched_count, created_at, processed_at")
-        .eq("user_id", user.id)
+        .eq("user_id", accountId)
         .eq("file_type", "payments")
         .order("created_at", { ascending: false })
         .limit(20);

@@ -66,6 +66,10 @@ export function LogoUpload({ currentLogoUrl, onLogoChange }: LogoUploadProps) {
       // Compress image before uploading
       const file = await compressImage(fileToUpload);
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) throw new Error("Not authenticated");
 
       const fileExt = file.name.split(".").pop()?.toLowerCase() || "png";
@@ -97,7 +101,7 @@ export function LogoUpload({ currentLogoUrl, onLogoChange }: LogoUploadProps) {
       const { error: updateError } = await supabase
         .from("branding_settings")
         .upsert({
-          user_id: user.id,
+          user_id: accountId,
           logo_url: result.publicUrl,
           business_name: "",
         }, { onConflict: "user_id" });
@@ -121,6 +125,10 @@ export function LogoUpload({ currentLogoUrl, onLogoChange }: LogoUploadProps) {
     setRemoving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) throw new Error("Not authenticated");
 
       const path = currentLogoUrl.split("/org-logos/")[1]?.split("?")[0];
@@ -131,7 +139,7 @@ export function LogoUpload({ currentLogoUrl, onLogoChange }: LogoUploadProps) {
       const { error } = await supabase
         .from("branding_settings")
         .update({ logo_url: null })
-        .eq("user_id", user.id);
+        .eq("user_id", accountId);
 
       if (error) throw error;
 

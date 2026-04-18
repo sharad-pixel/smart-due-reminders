@@ -132,7 +132,7 @@ export function CollectionIntelligenceCard() {
         const { data: cached } = await supabase
           .from("cached_reports")
           .select("last_manual_refresh_at")
-          .eq("user_id", user.id)
+          .eq("user_id", accountId)
           .eq("report_type", "collection_intelligence")
           .maybeSingle();
         if (cached?.last_manual_refresh_at) {

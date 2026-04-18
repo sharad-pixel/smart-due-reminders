@@ -65,7 +65,7 @@ const CreateTaskModal = ({
       const { data: accountUser } = await supabase
         .from("account_users")
         .select("account_id")
-        .eq("user_id", user.id)
+        .eq("user_id", accountId)
         .eq("status", "active")
         .limit(1)
         .single();
@@ -126,7 +126,7 @@ const CreateTaskModal = ({
         .insert({
           debtor_id: debtorId,
           invoice_id: invoiceId || null,
-          user_id: user.id,
+          user_id: accountId,
           task_type: taskType,
           level: level,
           summary: summary,

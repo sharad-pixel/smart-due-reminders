@@ -58,11 +58,15 @@ export function SheetTemplatesSection() {
     queryKey: ["sheet-templates"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) return [];
       const { data } = await supabase
         .from("google_sheet_templates")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", accountId)
         .eq("status", "active")
         .order("created_at", { ascending: false });
       return data || [];
@@ -100,6 +104,10 @@ export function SheetTemplatesSection() {
     const interval = setInterval(async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
+        const { data: _eff } = user
+          ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+          : { data: null };
+        const accountId = (_eff as string | null) || user?.id;
         if (!user) return;
 
         const { data } = await supabase
@@ -196,11 +204,15 @@ export function SheetTemplatesSection() {
     queryKey: ["drive-connection-check"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) return false;
       const { data } = await supabase
         .from("drive_connections")
         .select("id")
-        .eq("user_id", user.id)
+        .eq("user_id", accountId)
         .eq("is_active", true)
         .maybeSingle();
       return !!data;

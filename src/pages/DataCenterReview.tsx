@@ -140,12 +140,16 @@ const DataCenterReview = () => {
     queryKey: ["debtors-for-matching"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) throw new Error("Not authenticated");
 
       const { data, error } = await supabase
         .from("debtors")
         .select("id, name, company_name, email")
-        .eq("user_id", user.id)
+        .eq("user_id", accountId)
         .order("name", { ascending: true })
         .limit(500);
 
@@ -253,6 +257,10 @@ const DataCenterReview = () => {
   const createAndMatch = useMutation({
     mutationFn: async ({ rowId, rawJson }: { rowId: string; rawJson: any }) => {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) throw new Error("Not authenticated");
 
       const contactName = rawJson.contact_name || rawJson.customer_name || "Primary Contact";
@@ -261,7 +269,7 @@ const DataCenterReview = () => {
       const { data: newDebtor, error: debtorError } = await supabase
         .from("debtors")
         .insert({
-          user_id: user.id,
+          user_id: accountId,
           name: rawJson.customer_name || rawJson.company_name || "Unknown Customer",
           company_name: rawJson.company_name || rawJson.customer_name || "Unknown Company",
           email: contactEmail,
@@ -278,7 +286,7 @@ const DataCenterReview = () => {
           .from("debtor_contacts")
           .insert({
             debtor_id: newDebtor.id,
-            user_id: user.id,
+            user_id: accountId,
             name: contactName,
             email: contactEmail,
             is_primary: true,

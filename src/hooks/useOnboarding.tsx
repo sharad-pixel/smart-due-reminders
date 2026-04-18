@@ -20,12 +20,16 @@ export function useOnboarding() {
   const fetchProgress = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) { setLoading(false); return; }
 
       const { data, error } = await supabase
         .from('onboarding_progress')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', accountId)
         .maybeSingle();
 
       if (error) {
@@ -38,7 +42,7 @@ export function useOnboarding() {
         // Create record if missing (for existing users)
         const { data: newRecord } = await supabase
           .from('onboarding_progress')
-          .insert({ user_id: user.id })
+          .insert({ user_id: accountId })
           .select()
           .single();
         setProgress(newRecord as OnboardingProgress | null);

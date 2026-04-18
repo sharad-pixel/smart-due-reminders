@@ -17,12 +17,16 @@ export async function getCachedReport<T = any>(
   reportType: string
 ): Promise<CachedReport<T> | null> {
   const { data: { user } } = await supabase.auth.getUser();
+  const { data: _eff } = user
+    ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+    : { data: null };
+  const accountId = (_eff as string | null) || user?.id;
   if (!user) return null;
 
   const { data, error } = await supabase
     .from("cached_reports")
     .select("report_data, generated_at, last_manual_refresh_at")
-    .eq("user_id", user.id)
+    .eq("user_id", accountId)
     .eq("report_type", reportType)
     .maybeSingle();
 
@@ -47,13 +51,17 @@ export async function setCachedReport(
   reportData: any
 ): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser();
+  const { data: _eff } = user
+    ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+    : { data: null };
+  const accountId = (_eff as string | null) || user?.id;
   if (!user) return;
 
   await supabase
     .from("cached_reports")
     .upsert(
       {
-        user_id: user.id,
+        user_id: accountId,
         report_type: reportType,
         report_data: reportData,
         generated_at: new Date().toISOString(),
@@ -79,11 +87,15 @@ export function canManualRefreshToday(lastManualRefreshAt: string | null): boole
  */
 export async function markManualRefresh(reportType: string): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser();
+  const { data: _eff } = user
+    ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+    : { data: null };
+  const accountId = (_eff as string | null) || user?.id;
   if (!user) return;
 
   await supabase
     .from("cached_reports")
     .update({ last_manual_refresh_at: new Date().toISOString() })
-    .eq("user_id", user.id)
+    .eq("user_id", accountId)
     .eq("report_type", reportType);
 }

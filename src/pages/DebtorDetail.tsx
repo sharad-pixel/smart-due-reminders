@@ -298,6 +298,10 @@ const DebtorDetail = () => {
     }
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) throw new Error("Not authenticated");
 
       // Get effective account ID for team member support
@@ -398,9 +402,13 @@ const DebtorDetail = () => {
 
       // 3. Create a success alert
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (user) {
         await supabase.from("user_alerts").insert([{
-          user_id: user.id,
+          user_id: accountId,
           alert_type: 'outreach_resumed',
           severity: 'success',
           title: 'Outreach Resumed',
@@ -647,12 +655,16 @@ const DebtorDetail = () => {
   const fetchCrmAccounts = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) return;
 
       const { data, error } = await supabase
         .from("crm_accounts")
         .select("id, name, account_number, segment")
-        .eq("user_id", user.id)
+        .eq("user_id", accountId)
         .order("name");
 
       if (error) throw error;
@@ -925,6 +937,10 @@ const DebtorDetail = () => {
                     onClick={async () => {
                       try {
                         const { data: { user } } = await supabase.auth.getUser();
+                        const { data: _eff } = user
+                          ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+                          : { data: null };
+                        const accountId = (_eff as string | null) || user?.id;
                         if (!user) throw new Error("Not authenticated");
                         
                         const { data: effectiveAccountId } = await supabase.rpc('get_effective_account_id', {

@@ -83,11 +83,15 @@ export const PaymentReconciliationTable = ({ uploadId }: { uploadId?: string }) 
     queryKey: ["payment-currencies"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) return [];
       const { data } = await supabase
         .from("payments")
         .select("currency")
-        .eq("user_id", user.id)
+        .eq("user_id", accountId)
         .not("currency", "is", null);
       const unique = [...new Set((data || []).map(r => r.currency).filter(Boolean))] as string[];
       return unique.sort();
@@ -99,11 +103,15 @@ export const PaymentReconciliationTable = ({ uploadId }: { uploadId?: string }) 
     queryKey: ["invoices-for-rematch"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) return [];
       const { data } = await supabase
         .from("invoices")
         .select("id, invoice_number, amount, amount_outstanding, status, reference_id, debtors(name, company_name)")
-        .eq("user_id", user.id)
+        .eq("user_id", accountId)
         .in("status", ["Open", "PartiallyPaid", "InPaymentPlan"])
         .order("due_date", { ascending: false })
         .limit(200);

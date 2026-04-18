@@ -38,13 +38,17 @@ const ARIntroduction = () => {
   const loadStats = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) return;
 
       // Fetch branding
       const { data: branding } = await supabase
         .from("branding_settings")
         .select("business_name, logo_url, primary_color, accent_color")
-        .eq("user_id", user.id)
+        .eq("user_id", accountId)
         .single();
       if (branding?.business_name) setBusinessName(branding.business_name);
       if (branding?.logo_url) setLogoUrl(branding.logo_url);
@@ -55,7 +59,7 @@ const ARIntroduction = () => {
       const { data: template } = await supabase
         .from("invoice_templates")
         .select("company_address, company_phone, company_website")
-        .eq("user_id", user.id)
+        .eq("user_id", accountId)
         .single();
       if (template?.company_address) setCompanyAddress(template.company_address);
       if (template?.company_phone) setCompanyPhone(template.company_phone);
@@ -65,7 +69,7 @@ const ARIntroduction = () => {
       const { count: totalDebtors } = await supabase
         .from("debtors")
         .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id)
+        .eq("user_id", accountId)
         .eq("is_archived", false);
       setDebtorCount(totalDebtors || 0);
 
@@ -81,7 +85,7 @@ const ARIntroduction = () => {
       const { count: sentCount } = await supabase
         .from("ar_introduction_emails")
         .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id);
+        .eq("user_id", accountId);
       setAlreadySentCount(sentCount || 0);
     } catch (err) {
       console.error("Error loading stats:", err);
@@ -104,12 +108,16 @@ const ARIntroduction = () => {
     setSending(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) throw new Error("Not authenticated");
 
       const { data: debtors } = await supabase
         .from("debtors")
         .select("id")
-        .eq("user_id", user.id)
+        .eq("user_id", accountId)
         .eq("is_archived", false);
 
       if (!debtors?.length) {

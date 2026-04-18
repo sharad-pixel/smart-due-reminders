@@ -29,6 +29,10 @@ const ARAging = () => {
     queryKey: ["ar-aging-dashboard"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) throw new Error("Not authenticated");
 
       // Fetch all open/partial invoices with debtor info
@@ -44,7 +48,7 @@ const ARAging = () => {
             name
           )
         `)
-        .eq("user_id", user.id)
+        .eq("user_id", accountId)
         .in("status", ["Open", "InPaymentPlan"])
         .gt("amount_outstanding", 0);
 

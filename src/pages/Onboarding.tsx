@@ -135,6 +135,10 @@ export default function Onboarding() {
   useEffect(() => {
     const fetchUserData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) return;
 
       const { data: profile } = await supabase.from("profiles").select("name, business_name, company_name").eq("id", user.id).maybeSingle();
@@ -145,14 +149,14 @@ export default function Onboarding() {
       const { count } = await supabase
         .from("debtors")
         .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id);
+        .eq("user_id", accountId);
       setDebtorCount(count || 0);
 
       // Fetch already sent count
       const { count: sentCount } = await supabase
         .from("ar_introduction_emails")
         .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id);
+        .eq("user_id", accountId);
       setAlreadySentCount(sentCount || 0);
     };
     fetchUserData();
@@ -207,13 +211,17 @@ export default function Onboarding() {
     setSendingIntro(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) throw new Error("Not authenticated");
 
       // Fetch all debtor IDs for this user
       const { data: debtors } = await supabase
         .from("debtors")
         .select("id")
-        .eq("user_id", user.id);
+        .eq("user_id", accountId);
 
       if (!debtors?.length) {
         toast.error("No accounts found.");

@@ -58,11 +58,15 @@ export function IndustryOutreachDialog({ open, onOpenChange, onGenerate }: Indus
     if (open && !loaded) {
       (async () => {
         const { data: { user } } = await supabase.auth.getUser();
+        const { data: _eff } = user
+          ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+          : { data: null };
+        const accountId = (_eff as string | null) || user?.id;
         if (!user) return;
         const { data } = await supabase
           .from("branding_settings")
           .select("industry, business_description")
-          .eq("user_id", user.id)
+          .eq("user_id", accountId)
           .single();
         if (data) {
           setIndustry((data as any).industry || "");
@@ -87,6 +91,10 @@ export function IndustryOutreachDialog({ open, onOpenChange, onGenerate }: Indus
     try {
       // Save to branding_settings
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (user) {
         const { error: saveError } = await supabase
           .from("branding_settings")
@@ -94,7 +102,7 @@ export function IndustryOutreachDialog({ open, onOpenChange, onGenerate }: Indus
             industry: industry, 
             business_description: businessDescription 
           } as any)
-          .eq("user_id", user.id);
+          .eq("user_id", accountId);
         if (saveError) {
           console.error("Failed to save industry context:", saveError);
           toast.error("Failed to save industry context");

@@ -84,12 +84,16 @@ const DataCenter = () => {
     queryKey: ["data-center-stats"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) throw new Error("Not authenticated");
 
       const [sourcesRes, uploadsRes, pendingRes] = await Promise.all([
-        supabase.from("data_center_sources").select("id", { count: "exact" }).eq("user_id", user.id),
-        supabase.from("data_center_uploads").select("id", { count: "exact" }).eq("user_id", user.id),
-        supabase.from("data_center_uploads").select("id", { count: "exact" }).eq("user_id", user.id).eq("status", "needs_review"),
+        supabase.from("data_center_sources").select("id", { count: "exact" }).eq("user_id", accountId),
+        supabase.from("data_center_uploads").select("id", { count: "exact" }).eq("user_id", accountId),
+        supabase.from("data_center_uploads").select("id", { count: "exact" }).eq("user_id", accountId).eq("status", "needs_review"),
       ]);
 
       return {
@@ -115,12 +119,16 @@ const DataCenter = () => {
   const handleExportAccounts = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) { toast.error("Not authenticated"); return; }
 
       const { data: accounts, error } = await supabase
         .from("debtors")
         .select("reference_id, company_name, name, email, phone, type, external_customer_id, crm_account_id_external, industry, address_line1, address_line2, city, state, postal_code, country, sales_rep_name, sales_rep_email, sales_rep_alerts_enabled")
-        .eq("user_id", user.id)
+        .eq("user_id", accountId)
         .order("company_name");
 
       if (error) throw error;
@@ -164,6 +172,10 @@ const DataCenter = () => {
   const handleExportInvoices = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: _eff } = user
+        ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        : { data: null };
+      const accountId = (_eff as string | null) || user?.id;
       if (!user) { toast.error("Not authenticated"); return; }
 
       const PAGE_SIZE = 1000;
@@ -175,7 +187,7 @@ const DataCenter = () => {
         const { data: page, error } = await supabase
           .from("invoices")
           .select("reference_id, external_invoice_id, invoice_number, amount, currency, issue_date, due_date, status, source_system, product_description, payment_terms, notes, debtors(name, email, reference_id)")
-          .eq("user_id", user.id)
+          .eq("user_id", accountId)
           .eq("is_archived", false)
           .order("due_date", { ascending: false })
           .range(offset, offset + PAGE_SIZE - 1);
