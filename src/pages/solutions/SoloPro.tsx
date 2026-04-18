@@ -14,7 +14,7 @@ const SoloPro = () => {
   const navigate = useNavigate();
 
   const features = [
-    "All 6 AI collection agents working 24/7",
+    "All 7 AI collection agents working 24/7",
     "Stripe & QuickBooks integrations included",
     "Email campaigns with embedded payment links",
     "Full automation suite—no feature limits",
@@ -144,6 +144,90 @@ const SoloPro = () => {
               </div>
             </CardContent>
           </Card>
+        </div>
+      </section>
+
+      {/* Invoice Templates + 7 Agents 24/7 */}
+      <section className="py-16 px-4">
+        <div className="container mx-auto max-w-5xl">
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-full mb-4">
+              <FileText className="w-4 h-4 text-primary" />
+              <span className="text-sm font-medium">Templates + Always-On Agents</span>
+            </div>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Create Invoice Templates. Never Miss a Payment Owed.
+            </h2>
+            <p className="text-muted-foreground max-w-3xl mx-auto text-lg">
+              Build reusable, branded invoice templates once — then let{" "}
+              <span className="font-semibold text-foreground">7 AI agents work 24/7</span> to track,
+              follow up, and recover every dollar owed to you. No invoice slips through the cracks.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6 mb-8">
+            <Card className="border-primary/20">
+              <CardContent className="pt-6">
+                <div className="p-3 bg-primary/10 rounded-lg w-fit mb-4">
+                  <FileText className="w-6 h-6 text-primary" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Reusable Invoice Templates</h3>
+                <p className="text-muted-foreground text-sm mb-4">
+                  Design branded invoice templates with your logo, colors, line items, payment terms,
+                  and embedded pay-now links. Reuse them for every client — no manual rebuilds.
+                </p>
+                <ul className="space-y-2 text-sm">
+                  {[
+                    "Drag-and-drop template builder",
+                    "Pre-set Net 15 / Net 30 / custom terms",
+                    "Auto-fill from saved customer profiles",
+                    "Send recurring invoices on schedule",
+                  ].map((i) => (
+                    <li key={i} className="flex items-start gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                      <span>{i}</span>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+
+            <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-secondary/5">
+              <CardContent className="pt-6">
+                <div className="p-3 bg-primary/10 rounded-lg w-fit mb-4">
+                  <Brain className="w-6 h-6 text-primary" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">7 AI Agents Working 24/7</h3>
+                <p className="text-muted-foreground text-sm mb-4">
+                  Your always-on collections team — monitoring every invoice, scoring every account,
+                  and reaching out the moment a payment is at risk. You sleep, they work.
+                </p>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  {[
+                    "Risk Scoring Agent",
+                    "Outreach Agent",
+                    "Inbox Triage Agent",
+                    "Payment Plan Agent",
+                    "Escalation Agent",
+                    "Reconciliation Agent",
+                    "Intelligence Agent",
+                  ].map((agent) => (
+                    <div key={agent} className="flex items-center gap-2">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                      <span className="text-xs">{agent}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="text-center">
+            <Button onClick={() => navigate("/signup?plan=solo_pro")} size="lg" className="group">
+              Build Your First Template
+              <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+            </Button>
+          </div>
         </div>
       </section>
 
