@@ -196,49 +196,7 @@ const CinematicHero = () => {
             AI-powered collections, risk intelligence, and automated outreach — all in one system of record.
           </motion.p>
 
-          <motion.h2
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-8 leading-tight tracking-tight"
-          >
-            Plans to suit{" "}
-            <span className="bg-gradient-to-r from-primary via-primary-glow to-accent bg-clip-text text-transparent">
-              any size business
-            </span>
-            .{" "}
-            <button
-              onClick={() => navigate("/pricing")}
-              className="text-base md:text-lg font-semibold text-primary hover:underline underline-offset-4 align-middle"
-            >
-              See pricing →
-            </button>
-          </motion.h2>
-
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.22 }}
-            className="flex flex-wrap items-center gap-x-2 gap-y-2 mb-8 text-sm md:text-base"
-          >
-            <span className="text-muted-foreground">Built for:</span>
-            {[
-              { label: "Solo Pro", path: "/solutions/solo-pro" },
-              { label: "Startups", path: "/startups" },
-              { label: "SMB", path: "/smb" },
-              { label: "Enterprise", path: "/enterprise" },
-            ].map((s, i, arr) => (
-              <span key={s.path} className="flex items-center gap-2">
-                <button
-                  onClick={() => navigate(s.path)}
-                  className="font-medium text-primary hover:text-primary-glow hover:underline underline-offset-4 transition-colors"
-                >
-                  {s.label}
-                </button>
-                {i < arr.length - 1 && <span className="text-muted-foreground/40">•</span>}
-              </span>
-            ))}
-          </motion.div>
+          <PlanCycler navigate={navigate} />
 
           <motion.div
             initial={{ opacity: 0, y: 12 }}
