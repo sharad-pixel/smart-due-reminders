@@ -50,7 +50,7 @@ const ACCOUNTS = [
   { id: "a11", x: 680, y: 230, label: "Tyrell Corp", invoices: 4, daysPastDue: 72, persona: "katy" },
   { id: "a12", x: 180, y: 170, label: "Cyberdyne", invoices: 3, daysPastDue: 38, persona: "james" },
   { id: "a13", x: 860, y: 50, label: "Aperture Sci", invoices: 2, daysPastDue: 18, persona: "sam" },
-  { id: "a14", x: 440, y: 290, label: "Oscorp", invoices: 6, daysPastDue: 118, persona: "troy" },
+  { id: "a14", x: 380, y: 360, label: "Oscorp", invoices: 6, daysPastDue: 118, persona: "troy" },
   { id: "a15", x: 860, y: 430, label: "Weyland", invoices: 4, daysPastDue: 195, persona: "rocco" },
 ];
 
