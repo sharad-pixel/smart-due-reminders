@@ -76,13 +76,34 @@ export function useSubscription(): SubscriptionState {
       setIsAccountOwner(isOwner);
       setCanUpgrade(isOwner);
 
-      // Always fetch the effective account owner's profile for subscription info
-      // This ensures team members inherit parent's subscription
-      const { data: ownerProfile } = await supabase
-        .from('profiles')
-        .select('plan_type, subscription_status, invoice_limit, trial_ends_at, current_period_end, billing_interval, trial_used_at, created_at')
-        .eq('id', accountId)
-        .maybeSingle();
+      // Always fetch the effective account owner's subscription info.
+      // For team members, RLS blocks direct SELECT on the owner's profile,
+      // so we use a SECURITY DEFINER RPC that returns only non-sensitive fields.
+      let ownerProfile: any = null;
+      if (isOwner) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('plan_type, subscription_status, invoice_limit, trial_ends_at, current_period_end, billing_interval, trial_used_at, created_at')
+          .eq('id', accountId)
+          .maybeSingle();
+        ownerProfile = data;
+      } else {
+        const { data: rows } = await supabase
+          .rpc('get_owner_account_info', { p_account_id: accountId });
+        const row = Array.isArray(rows) ? rows[0] : null;
+        if (row) {
+          ownerProfile = {
+            plan_type: row.plan_type,
+            subscription_status: row.subscription_status,
+            invoice_limit: null, // not exposed; PLAN_CONFIGS fallback applies
+            trial_ends_at: row.trial_ends_at,
+            current_period_end: row.current_period_end,
+            billing_interval: row.billing_interval,
+            trial_used_at: null,
+            created_at: null,
+          };
+        }
+      }
 
       if (ownerProfile) {
         applySubscriptionData(ownerProfile);
