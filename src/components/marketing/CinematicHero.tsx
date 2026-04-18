@@ -50,6 +50,35 @@ const ACCOUNTS = [
 
 const CENTER = { x: 450, y: 230 };
 
+// Auto-scrolling content for the floating activity cards
+const AGENT_ITEMS = [
+  { primary: "Sam · 0–30d", secondary: "Sent 24 reminders" },
+  { primary: "James · 31–60d", secondary: "Negotiating 8 plans" },
+  { primary: "Katy · 61–90d", secondary: "Escalated 5 accts" },
+  { primary: "Troy · 91–120d", secondary: "Final notice ×3" },
+  { primary: "Jimmy · 121–150d", secondary: "Legal review queue" },
+  { primary: "Rocco · 151+", secondary: "Internal collections" },
+  { primary: "Nicolas · Account", secondary: "Strategic outreach" },
+];
+
+const EXPANSION_ITEMS = [
+  { primary: "Stark Ind", secondary: "Credit hold · $48k saved" },
+  { primary: "Hooli", secondary: "Term tightened to NET15" },
+  { primary: "Pied Piper", secondary: "Expansion paused" },
+  { primary: "Wayne Ent", secondary: "Risk tier · High → Medium" },
+  { primary: "Globex", secondary: "Limit reduced 30%" },
+  { primary: "Initech", secondary: "Pre-bill review enabled" },
+];
+
+const PERFORMANCE_ITEMS = [
+  { primary: "DSO", secondary: "↓ 42% in 90 days" },
+  { primary: "Recovery Rate", secondary: "↑ 68%" },
+  { primary: "Avg Days to Pay", secondary: "23d (was 41d)" },
+  { primary: "Audit Trail", secondary: "100% documented" },
+  { primary: "Auto-Sent", secondary: "1,284 messages / mo" },
+  { primary: "Disputes Resolved", secondary: "94% within SLA" },
+];
+
 const CinematicHero = () => {
   const navigate = useNavigate();
   const prefersReduced = useReducedMotion();
