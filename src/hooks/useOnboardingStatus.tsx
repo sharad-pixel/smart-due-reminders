@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAccountId } from "@/hooks/useAccountId";
 
 export interface OnboardingStatus {
   hasAccounts: boolean;
@@ -13,15 +14,13 @@ export interface OnboardingStatus {
 }
 
 export const useOnboardingStatus = () => {
-  const { data, isLoading } = useQuery({
-    queryKey: ["onboarding-status"],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
+  const { accountId, isLoading: accountIdLoading } = useAccountId();
 
-      const { data: effectiveAccountId } = await supabase
-        .rpc("get_effective_account_id", { p_user_id: user.id });
-      const accountId = effectiveAccountId || user.id;
+  const { data, isLoading } = useQuery({
+    queryKey: ["onboarding-status", accountId],
+    enabled: !!accountId && !accountIdLoading,
+    queryFn: async () => {
+      if (!accountId) throw new Error("No effective account available");
 
       const [
         { count: accountsCount },
@@ -83,6 +82,6 @@ export const useOnboardingStatus = () => {
     quickbooksConnected: data?.quickbooksConnected ?? false,
     workflowsConfigured: data?.workflowsConfigured ?? false,
     brandingConfigured: data?.brandingConfigured ?? false,
-    isLoading,
+    isLoading: accountIdLoading || isLoading,
   };
 };
