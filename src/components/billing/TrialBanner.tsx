@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { AlertTriangle, X, Zap, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useAccountId } from '@/hooks/useAccountId';
 import { supabase } from '@/integrations/supabase/client';
 
 interface TrialUsage {
@@ -20,6 +21,7 @@ interface TrialUsage {
 export function TrialBanner({ onVisibilityChange }: { onVisibilityChange?: (visible: boolean) => void } = {}) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { accountId, isLoading: accountLoading } = useAccountId();
   const { isTrial, trialEndsAt, subscriptionStatus, plan, isLoading } = useSubscription();
   const [usage, setUsage] = useState<TrialUsage | null>(null);
   const [dismissed, setDismissed] = useState(false);
@@ -32,17 +34,16 @@ export function TrialBanner({ onVisibilityChange }: { onVisibilityChange?: (visi
   useEffect(() => {
     const checkAdminOverride = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user?.id) {
+        if (!accountId) {
           setCheckingOverride(false);
           return;
         }
 
         const { data: profile } = await supabase
-          .from('profiles')
+          .from('profiles_admin_safe')
           .select('admin_override')
-          .eq('id', session.user.id)
-          .single();
+          .eq('id', accountId)
+          .maybeSingle();
 
         setHasAdminOverride(profile?.admin_override === true);
       } catch (error) {
@@ -53,7 +54,7 @@ export function TrialBanner({ onVisibilityChange }: { onVisibilityChange?: (visi
     };
 
     checkAdminOverride();
-  }, []);
+  }, [accountId]);
 
   // Calculate days and hours remaining
   useEffect(() => {
@@ -110,7 +111,7 @@ export function TrialBanner({ onVisibilityChange }: { onVisibilityChange?: (visi
   // Determine if banner should be visible
   const isTrialUser = isTrial || subscriptionStatus === 'trialing';
   const isFreePlan = plan === 'free' && (!subscriptionStatus || subscriptionStatus === 'inactive');
-  const shouldHide = isLoading || checkingOverride || dismissed || hasAdminOverride || (!isTrialUser && !isFreePlan);
+  const shouldHide = isLoading || accountLoading || checkingOverride || dismissed || hasAdminOverride || (!isTrialUser && !isFreePlan);
 
   // Report visibility to parent
   useEffect(() => {
