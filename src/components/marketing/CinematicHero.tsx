@@ -196,6 +196,18 @@ const CinematicHero = () => {
             AI-powered collections, risk intelligence, and automated outreach — all in one system of record.
           </motion.p>
 
+          <motion.h2
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-8 leading-tight tracking-tight"
+          >
+            Get paid faster.{" "}
+            <span className="bg-gradient-to-r from-primary via-primary-glow to-accent bg-clip-text text-transparent">
+              Stop chasing invoices.
+            </span>
+          </motion.h2>
+
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
