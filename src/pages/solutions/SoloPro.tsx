@@ -2,7 +2,7 @@ import MarketingLayout from "@/components/layout/MarketingLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
-import { CheckCircle2, User, Brain, Zap, DollarSign, Clock, QrCode } from "lucide-react";
+import { CheckCircle2, User, Brain, Zap, DollarSign, Clock, QrCode, FileText, CalendarClock, HandCoins, ArrowRight } from "lucide-react";
 import SEOHead from "@/components/seo/SEOHead";
 import { PLAN_CONFIGS, INVOICE_PRICING } from "@/lib/subscriptionConfig";
 import venmoLogo from "@/assets/venmo-logo.png";
