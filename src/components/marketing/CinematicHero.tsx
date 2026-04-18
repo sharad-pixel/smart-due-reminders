@@ -524,12 +524,13 @@ const Stage = ({
             style={{ cursor: "pointer" }}
             onMouseEnter={() => setHovered(a.id)}
             onMouseLeave={() => setHovered(null)}
+            onClick={() => setHovered(isHovered ? null : a.id)}
           >
             {/* Halo */}
             <motion.circle
-              r={isHovered ? 26 : 18}
+              r={18}
               fill={tone}
-              fillOpacity={0.12}
+              fillOpacity={isHovered ? 0.22 : 0.12}
               animate={{
                 r: phase === "stable" ? [18, 22, 18] : 18,
               }}
