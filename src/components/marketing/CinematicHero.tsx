@@ -271,7 +271,6 @@ const CinematicHero = () => {
               <HoverPanel hovered={hoveredAccount} phase={phase} />
             </div>
           </div>
-          </div>
 
           {/* Auto-scrolling activity cards — below the live stage */}
           <motion.div
