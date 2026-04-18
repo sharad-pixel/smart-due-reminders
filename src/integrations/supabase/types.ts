@@ -8947,6 +8947,10 @@ export type Database = {
         Args: { p_org_id: string; p_user_id: string }
         Returns: boolean
       }
+      can_write_as_account: {
+        Args: { p_account_id: string; p_user_id: string }
+        Returns: boolean
+      }
       check_action_rate_limit: {
         Args: {
           p_action_type: string
