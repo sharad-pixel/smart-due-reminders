@@ -28,8 +28,10 @@ import {
   type SyncLogEntry 
 } from './sync';
 import quickbooksLogo from "@/assets/quickbooks-logo.png";
+import { useAccountId } from '@/hooks/useAccountId';
 
 export const QuickBooksSyncSection = () => {
+  const { accountId, isLoading: accountLoading } = useAccountId();
   const [isConnected, setIsConnected] = useState(false);
   const [companyName, setCompanyName] = useState('');
   const [connectedAt, setConnectedAt] = useState<string | null>(null);
@@ -42,10 +44,9 @@ export const QuickBooksSyncSection = () => {
 
   // Fetch sync logs
   const { data: syncLogs, isLoading: logsLoading, refetch: refetchLogs } = useQuery({
-    queryKey: ['quickbooks-sync-logs'],
+    queryKey: ['quickbooks-sync-logs', accountId],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+      if (!accountId) throw new Error('No effective account');
 
       const { data, error } = await supabase
         .from('quickbooks_sync_log')
@@ -57,28 +58,29 @@ export const QuickBooksSyncSection = () => {
       if (error) throw error;
       return data as (SyncLogEntry & { dismissed_errors?: string[] })[];
     },
-    enabled: isConnected,
+    enabled: isConnected && !!accountId,
   });
 
   const latestSync = syncLogs?.[0] || null;
   const isSyncRunning = latestSync?.status === 'running' || isSyncing;
 
   useEffect(() => {
+    if (accountLoading || !accountId) return;
+
     checkConnectionStatus();
     handleOAuthCallback();
     loadSyncStats();
-  }, []);
+  }, [accountId, accountLoading]);
 
   const checkConnectionStatus = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!accountId) return;
 
       const { data: profile } = await supabase
-        .from('profiles')
+        .from('profiles_admin_safe')
         .select('quickbooks_realm_id, quickbooks_company_name, quickbooks_connected_at, quickbooks_last_sync_at')
-        .eq('id', user.id)
-        .single();
+        .eq('id', accountId)
+        .maybeSingle();
 
       if (profile?.quickbooks_realm_id) {
         setIsConnected(true);
@@ -96,14 +98,13 @@ export const QuickBooksSyncSection = () => {
 
   const loadSyncStats = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!accountId) return;
 
       const [customersResult, invoicesResult, paymentsResult, contactsResult] = await Promise.all([
-        supabase.from('debtors').select('id', { count: 'exact' }).not('quickbooks_customer_id', 'is', null),
-        supabase.from('invoices').select('id', { count: 'exact' }).eq('integration_source', 'quickbooks'),
-        supabase.from('quickbooks_payments').select('id', { count: 'exact' }),
-        supabase.from('contacts').select('id', { count: 'exact' }).eq('source', 'quickbooks')
+        supabase.from('debtors').select('id', { count: 'exact' }).eq('user_id', accountId).not('quickbooks_customer_id', 'is', null),
+        supabase.from('invoices').select('id', { count: 'exact' }).eq('user_id', accountId).eq('integration_source', 'quickbooks'),
+        supabase.from('quickbooks_payments').select('id', { count: 'exact' }).eq('user_id', accountId),
+        supabase.from('contacts').select('id', { count: 'exact' }).eq('user_id', accountId).eq('source', 'quickbooks')
       ]);
 
       setSyncStats({

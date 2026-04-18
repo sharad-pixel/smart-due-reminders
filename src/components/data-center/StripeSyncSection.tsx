@@ -25,6 +25,7 @@ import {
   type SyncLogEntry 
 } from './sync';
 import stripeLogo from "@/assets/stripe-logo.png";
+import { useAccountId } from '@/hooks/useAccountId';
 
 interface StripeIntegration {
   id: string;
@@ -57,22 +58,20 @@ interface InvoiceTransaction {
 }
 
 export const StripeSyncSection = () => {
+  const { accountId, isLoading: accountLoading } = useAccountId();
   const [syncing, setSyncing] = useState(false);
   const [integration, setIntegration] = useState<StripeIntegration | null>(null);
   const [loading, setLoading] = useState(true);
   const [historyOpen, setHistoryOpen] = useState(false);
 
   useEffect(() => {
+    if (accountLoading || !accountId) return;
     fetchIntegration();
-  }, []);
+  }, [accountId, accountLoading]);
 
   const fetchIntegration = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: effectiveAccountId } = await supabase.rpc('get_effective_account_id', { p_user_id: user.id });
-      const accountId = effectiveAccountId || user.id;
+      if (!accountId) return;
 
       const { data, error } = await supabase
         .from('stripe_integrations')
@@ -91,10 +90,9 @@ export const StripeSyncSection = () => {
 
   // Fetch sync logs
   const { data: syncLogs, isLoading: logsLoading, refetch: refetchLogs } = useQuery({
-    queryKey: ['stripe-sync-logs'],
+    queryKey: ['stripe-sync-logs', accountId],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+      if (!accountId) throw new Error('No effective account');
 
       const { data, error } = await supabase
         .from('stripe_sync_log')
@@ -106,17 +104,16 @@ export const StripeSyncSection = () => {
       if (error) throw error;
       return data as SyncLogEntry[];
     },
-    enabled: !!integration?.stripe_secret_key_encrypted,
+    enabled: !!integration?.stripe_secret_key_encrypted && !!accountId,
   });
 
   const latestSync = syncLogs?.[0] || null;
   const isSyncRunning = latestSync?.status === 'running' || syncing;
 
   const { data: transactions, isLoading: _transactionsLoading, refetch: refetchTransactions } = useQuery({
-    queryKey: ["stripe-synced-transactions"],
+    queryKey: ["stripe-synced-transactions", accountId],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
+      if (!accountId) throw new Error("No effective account");
 
       const { data, error } = await supabase
         .from("invoice_transactions")
@@ -127,6 +124,7 @@ export const StripeSyncSection = () => {
             debtor:debtors(company_name)
           )
         `)
+        .eq("user_id", accountId)
         .contains('metadata', { source: 'stripe_sync' })
         .order("created_at", { ascending: false })
         .limit(50);
@@ -134,16 +132,18 @@ export const StripeSyncSection = () => {
       if (error) throw error;
       return data as InvoiceTransaction[];
     },
-    enabled: !!integration?.stripe_secret_key_encrypted,
+    enabled: !!integration?.stripe_secret_key_encrypted && !!accountId,
   });
 
   // Fetch total counts
   const { data: syncStats } = useQuery({
-    queryKey: ['stripe-sync-stats'],
+    queryKey: ['stripe-sync-stats', accountId],
     queryFn: async () => {
+      if (!accountId) return { invoices: 0, customers: 0, transactions: 0 };
+
       const [invoicesResult, customersResult] = await Promise.all([
-        supabase.from('invoices').select('id', { count: 'exact' }).eq('integration_source', 'stripe'),
-        supabase.from('debtors').select('id', { count: 'exact' }).not('stripe_customer_id', 'is', null)
+        supabase.from('invoices').select('id', { count: 'exact' }).eq('user_id', accountId).eq('integration_source', 'stripe'),
+        supabase.from('debtors').select('id', { count: 'exact' }).eq('user_id', accountId).not('stripe_customer_id', 'is', null)
       ]);
 
       return {
@@ -152,7 +152,7 @@ export const StripeSyncSection = () => {
         transactions: transactions?.length || 0
       };
     },
-    enabled: !!integration?.stripe_secret_key_encrypted,
+    enabled: !!integration?.stripe_secret_key_encrypted && !!accountId,
   });
 
   const handleSync = async () => {
