@@ -9002,6 +9002,31 @@ export type Database = {
         Returns: number
       }
       get_effective_account_id: { Args: { p_user_id: string }; Returns: string }
+      get_owner_account_info: {
+        Args: { p_account_id: string }
+        Returns: {
+          avatar_url: string
+          billing_interval: string
+          business_address_line1: string
+          business_address_line2: string
+          business_city: string
+          business_country: string
+          business_name: string
+          business_phone: string
+          business_postal_code: string
+          business_state: string
+          company_name: string
+          current_period_end: string
+          email: string
+          id: string
+          is_account_locked: boolean
+          name: string
+          plan_type: string
+          stripe_payment_link_url: string
+          subscription_status: string
+          trial_ends_at: string
+        }[]
+      }
       get_payment_plan_by_token: { Args: { p_token: string }; Returns: Json }
       get_public_ar_page: { Args: { p_token: string }; Returns: Json }
       get_public_invoice: { Args: { p_token: string }; Returns: Json }
