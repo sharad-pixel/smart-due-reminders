@@ -42,7 +42,7 @@ export const SalesforceSyncSection = () => {
       if (!user) return null;
 
       const { data, error } = await supabase
-        .from("crm_connections")
+        .from("crm_connections_safe" as any)
         .select("id, user_id, crm_type, instance_url, connected_at, last_sync_at, created_at, updated_at")
         .eq("user_id", user.id)
         .eq("crm_type", "salesforce")
