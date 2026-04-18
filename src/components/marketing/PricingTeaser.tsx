@@ -50,7 +50,13 @@ const PricingTeaser = () => {
             AI-Powered Collections CRM for Less Than One Employee
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-            Starts at ${PLAN_CONFIGS.solo_pro.monthlyPrice}/mo for independents. Business plans from ${PLAN_CONFIGS.starter.monthlyPrice}/mo.
+            Recouply.ai has a plan to suit businesses of any size — starts at ${PLAN_CONFIGS.solo_pro.monthlyPrice}/mo for independents, with business plans from ${PLAN_CONFIGS.starter.monthlyPrice}/mo.{" "}
+            <button
+              onClick={() => navigate("/pricing")}
+              className="text-primary font-semibold hover:underline underline-offset-4"
+            >
+              See all plans →
+            </button>
           </p>
         </div>
 
