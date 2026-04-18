@@ -72,28 +72,33 @@ const Layout = ({ children }: LayoutProps) => {
   const [authChecked, setAuthChecked] = useState(false);
   const [userName, setUserName] = useState<string>("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
-  const [planType, setPlanType] = useState<string>("free");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [trialBannerVisible, setTrialBannerVisible] = useState(false);
   const [isFounder, setIsFounder] = useState(false);
   const { unreadCount: alertUnreadCount } = useUserAlerts();
-  const { percentage: onboardingPct, showRing, missingItems } = useOnboardingCompletion();
-  const { 
-    isTeamMember, 
-    ownerName, 
-    ownerEmail, 
+  const {
+    isTeamMember,
+    ownerName,
+    ownerEmail,
     ownerCompanyName,
-    ownerPlanType, 
-    ownerSubscriptionStatus,
     memberRole,
-    loading: accountLoading 
+    loading: accountLoading,
   } = useEffectiveAccount();
-  
-  // Use owner's plan for team members, with proper fallback
-  const displayPlanType = isTeamMember ? (ownerPlanType || 'free') : planType;
-  const displaySubscriptionStatus = isTeamMember ? (ownerSubscriptionStatus || 'inactive') : subscriptionStatus;
-  const canUpgrade = !isTeamMember; // Only account owners can upgrade
+  const {
+    plan: effectivePlan,
+    subscriptionStatus: effectiveSubscriptionStatus,
+    isLoading: subscriptionLoading,
+  } = useSubscription();
+  const {
+    percentage: onboardingPct,
+    showRing,
+    missingItems,
+    loading: onboardingLoading,
+  } = useOnboardingCompletion();
+
+  const displayPlanType = effectivePlan || 'free';
+  const displaySubscriptionStatus = effectiveSubscriptionStatus || 'inactive';
+  const canUpgrade = !isTeamMember;
 
   const FOUNDER_EMAIL = "sharad@recouply.ai";
 
@@ -148,11 +153,11 @@ const Layout = ({ children }: LayoutProps) => {
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (!user) return;
-      
+
       try {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("name, email, avatar_url, plan_type, subscription_status, is_admin")
+          .select("name, email, avatar_url, is_admin")
           .eq("id", user.id)
           .single();
 
@@ -168,24 +173,11 @@ const Layout = ({ children }: LayoutProps) => {
           setAvatarUrl(profile.avatar_url);
         }
 
-        // Use subscription_status from profile (set by sync-subscription)
-        if (profile?.subscription_status && profile.subscription_status !== 'inactive') {
-          setSubscriptionStatus(profile.subscription_status);
-        } else {
-          setSubscriptionStatus(null);
-        }
-
-        if (profile?.plan_type) {
-          setPlanType(profile.plan_type);
-        }
-
-        // Check if user is founder (email match + is_admin flag)
         if (user.email?.toLowerCase() === FOUNDER_EMAIL.toLowerCase() && profile?.is_admin) {
           setIsFounder(true);
         }
       } catch (error) {
         console.error("Error fetching profile:", error);
-        // Fallback to email username
         if (user.email) {
           setUserName(user.email.split('@')[0]);
         }
@@ -270,24 +262,16 @@ const Layout = ({ children }: LayoutProps) => {
 
 
   // Check if lockout banner should be shown (for degraded subscription states)
-  // This runs after accountLoading is complete to ensure proper status checking
   const getLockoutReason = (): 'past_due' | 'expired' | 'canceled' | 'locked' | null => {
-    // Don't show banner while still loading account info
-    if (accountLoading) return null;
-    
+    if (accountLoading || subscriptionLoading) return null;
+
     const status = displaySubscriptionStatus;
-    
-    // Check for explicit degraded states
+
     if (status === 'past_due') return 'past_due';
     if (status === 'canceled') return 'canceled';
     if (status === 'expired') return 'expired';
-    
-    // For team members, check if owner's subscription is inactive/missing
-    if (isTeamMember && (!status || status === 'inactive')) return 'expired';
-    
-    // For account owners, check for inactive subscription (excluding free trial users)
-    if (!isTeamMember && subscriptionStatus === 'inactive' && planType !== 'free') return 'expired';
-    
+    if (status === 'inactive' && displayPlanType !== 'free') return 'expired';
+
     return null;
   };
   
@@ -455,7 +439,7 @@ const Layout = ({ children }: LayoutProps) => {
                     )}
                   </div>
 
-                  {missingItems.length > 0 && (
+                  {!onboardingLoading && missingItems.length > 0 && (
                     <>
                       <DropdownMenuSeparator />
                       <div className="px-2 py-2">
