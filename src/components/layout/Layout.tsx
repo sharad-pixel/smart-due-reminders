@@ -82,6 +82,8 @@ const Layout = ({ children }: LayoutProps) => {
     ownerName,
     ownerEmail,
     ownerCompanyName,
+    ownerPlanType,
+    ownerSubscriptionStatus,
     memberRole,
     ownerUserId,
     organizationId,
@@ -100,8 +102,12 @@ const Layout = ({ children }: LayoutProps) => {
     loading: onboardingLoading,
   } = useOnboardingCompletion();
 
-  const displayPlanType = effectivePlan || 'free';
-  const displaySubscriptionStatus = effectiveSubscriptionStatus || 'inactive';
+  const displayPlanType = isTeamMember
+    ? (ownerPlanType || effectivePlan || 'free')
+    : (effectivePlan || 'free');
+  const displaySubscriptionStatus = isTeamMember
+    ? (ownerSubscriptionStatus || effectiveSubscriptionStatus || 'inactive')
+    : (effectiveSubscriptionStatus || 'inactive');
   const canUpgrade = !isTeamMember;
 
   const FOUNDER_EMAIL = "sharad@recouply.ai";
