@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useMemo } from "react";
 import { motion, useReducedMotion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Brain, TrendingUp, ShieldCheck, Sparkles, Gauge } from "lucide-react";
+import { ArrowRight, Brain, TrendingUp, ShieldCheck, Sparkles } from "lucide-react";
 import { personaConfig } from "@/lib/personaConfig";
 
 /**
