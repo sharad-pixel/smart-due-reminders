@@ -110,6 +110,8 @@ export const useEffectiveAccount = () => {
           organizationName = organization?.name || null;
         }
 
+        const { data: syncedSubscription } = await supabase.functions.invoke('sync-subscription');
+
         if (isTeamMember) {
           const [{ data: ownerInfoRows }, { data: brandingSettings }, { data: memberData }] = await Promise.all([
             supabase.rpc('get_owner_account_info', { p_account_id: effectiveAccountId }),
@@ -128,6 +130,8 @@ export const useEffectiveAccount = () => {
           ]);
 
           const ownerProfile = Array.isArray(ownerInfoRows) ? ownerInfoRows[0] : null;
+          const resolvedPlanType = syncedSubscription?.plan_type || ownerProfile?.plan_type || null;
+          const resolvedSubscriptionStatus = syncedSubscription?.subscription_status || ownerProfile?.subscription_status || null;
 
           if (mounted) {
             setAccountInfo({
@@ -136,8 +140,8 @@ export const useEffectiveAccount = () => {
               ownerName: ownerProfile?.name || null,
               ownerEmail: ownerProfile?.email || null,
               ownerCompanyName: ownerProfile?.company_name || null,
-              ownerPlanType: ownerProfile?.plan_type || null,
-              ownerSubscriptionStatus: ownerProfile?.subscription_status || null,
+              ownerPlanType: resolvedPlanType,
+              ownerSubscriptionStatus: resolvedSubscriptionStatus,
               ownerAvatarUrl: ownerProfile?.avatar_url || null,
               memberRole: memberData?.role || null,
               ownerUserId: ownerProfile?.id || effectiveAccountId,
@@ -168,11 +172,16 @@ export const useEffectiveAccount = () => {
             .eq('user_id', effectiveAccountId)
             .maybeSingle();
 
+          const resolvedPlanType = syncedSubscription?.plan_type || null;
+          const resolvedSubscriptionStatus = syncedSubscription?.subscription_status || null;
+
           if (mounted) {
             setAccountInfo(prev => ({
               ...prev,
               effectiveAccountId,
               isTeamMember: false,
+              ownerPlanType: resolvedPlanType,
+              ownerSubscriptionStatus: resolvedSubscriptionStatus,
               ownerUserId: effectiveAccountId,
               organizationId: organizationId || null,
               organizationName,
