@@ -253,21 +253,24 @@ const CinematicHero = () => {
             <div className="relative aspect-[16/10] w-full">
               <Stage phase={phase} hovered={hoveredAccount} setHovered={setHoveredAccount} />
 
-              {/* Top overlay: Risk score + metric chips */}
-              <div className="absolute top-3 left-3 right-3 flex flex-wrap items-start justify-between gap-3 pointer-events-none">
-                <div className="pointer-events-auto"><RiskScoreMeter score={metrics.score} phase={phase} /></div>
-                <div className="flex flex-wrap gap-2 justify-end">
-                  <MetricChip label="Recovered" value={`$${formatNum(metrics.recovered)}`} tone="emerald" />
-                  <MetricChip label="At-Risk Accts" value={`${metrics.atRisk}`} tone={metrics.atRisk > 10 ? "red" : "amber"} />
-                  <MetricChip label="AI Actions" value={`${metrics.actions}`} tone="primary" />
-                </div>
+              {/* Top-left: Risk score */}
+              <div className="absolute top-3 left-3 pointer-events-auto max-w-[45%]">
+                <RiskScoreMeter score={metrics.score} phase={phase} />
               </div>
 
-              {/* Bottom overlay: hover panel */}
-              <div className="absolute bottom-3 right-3 flex items-end justify-end">
-                <HoverPanel hovered={hoveredAccount} phase={phase} />
+              {/* Top-right: metric chips (stacked vertically to avoid overlap) */}
+              <div className="absolute top-3 right-3 flex flex-col items-end gap-1.5 pointer-events-none">
+                <MetricChip label="Recovered" value={`$${formatNum(metrics.recovered)}`} tone="emerald" />
+                <MetricChip label="At-Risk Accts" value={`${metrics.atRisk}`} tone={metrics.atRisk > 10 ? "red" : "amber"} />
+                <MetricChip label="AI Actions" value={`${metrics.actions}`} tone="primary" />
               </div>
             </div>
+
+            {/* Hover panel — outside the stage so it never overlaps nodes */}
+            <div className="border-t border-primary/10 bg-[hsl(222_47%_6%)]/60 px-4 py-3">
+              <HoverPanel hovered={hoveredAccount} phase={phase} />
+            </div>
+          </div>
           </div>
 
           {/* Auto-scrolling activity cards — below the live stage */}
