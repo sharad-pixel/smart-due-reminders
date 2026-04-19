@@ -284,8 +284,8 @@ export const knowledgeBaseData: FAQCategory[] = [
       },
       {
         question: "What are the different team roles?",
-        answer: "Three roles are available: 1) Owner - full access including billing and team management, 2) Admin - can manage invoices, workflows, and settings but not billing, 3) Member - can work with invoices and tasks but cannot change settings, 4) Viewer - read-only access to data.",
-        keywords: ["roles", "permissions", "admin", "owner", "member"]
+        answer: "Four roles are available: 1) Owner — full access including billing, team management, settings, and ownership transfer; 2) Admin — same access as Owner including billing and team management (cannot transfer ownership); 3) Member — can create/edit invoices, debtors, AI workflows, and tasks, but cannot manage team, billing, or settings; 4) Viewer — read-only access to all data, can be assigned tasks and view reports.",
+        keywords: ["roles", "permissions", "admin", "owner", "member", "viewer"]
       },
       {
         question: "How does billing work for team members?",

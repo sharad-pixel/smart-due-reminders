@@ -30,9 +30,10 @@ export const useRoleAccess = () => {
       canManageBilling,
       canViewBilling: isOwnerOrAdmin,
       
-      // Tasks - Viewers can view but not be assigned or create
+      // Tasks - per /team Role Permissions Matrix:
+      // All roles (including Viewer) can be assigned tasks. Only Member+ can create/assign.
       canAssignTasks: canEdit,
-      canBeAssignedTasks: !isViewer, // Viewers cannot be assigned tasks
+      canBeAssignedTasks: true, // All roles can be assigned tasks (matches /team matrix)
       canCreateTasks: canEdit,
       canEditTasks: canEdit,
       canDeleteTasks: isOwnerOrAdmin,
