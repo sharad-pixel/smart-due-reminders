@@ -48,6 +48,10 @@ serve(async (req) => {
     console.log(`Processing admin alert for ${type}: ${email}`);
 
     const adminEmail = "support@recouply.ai";
+    // Always CC the founder on signup-related alerts so engagement is never missed
+    const ccEmails = (type === "signup" || type === "waitlist" || type === "design_partner_application")
+      ? ["sharad@recouply.ai"]
+      : [];
     let subject = "";
     let bodyContent = "";
 
@@ -387,6 +391,7 @@ serve(async (req) => {
       body: JSON.stringify({
         from: "RecouplyAI Inc. <notifications@send.inbound.services.recouply.ai>",
         to: [adminEmail],
+        cc: ccEmails.length > 0 ? ccEmails : undefined,
         reply_to: "support@recouply.ai",
         subject,
         html: htmlContent,
