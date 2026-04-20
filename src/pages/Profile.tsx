@@ -124,16 +124,33 @@ const OnboardingAssistantCard = () => {
 
         {/* Step checklist */}
         <div className="space-y-2">
-          {items.map((item) => (
-            <div key={item.label} className="flex items-center gap-2 text-sm">
-              {item.completed ? (
-                <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
-              ) : (
-                <XCircle className="h-4 w-4 text-muted-foreground/50 shrink-0" />
-              )}
-              <span className={item.completed ? "text-muted-foreground line-through" : ""}>{item.label}</span>
-            </div>
-          ))}
+          {items.map((item) => {
+            const hasMissing = !item.completed && item.missingFields && item.missingFields.length > 0;
+            return (
+              <button
+                key={item.label}
+                type="button"
+                onClick={() => navigate(item.route)}
+                className="w-full flex items-start gap-2 text-sm text-left rounded-md p-2 -mx-2 hover:bg-muted/50 transition-colors"
+              >
+                {item.completed ? (
+                  <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                ) : (
+                  <XCircle className="h-4 w-4 text-muted-foreground/50 shrink-0 mt-0.5" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <span className={item.completed ? "text-muted-foreground line-through" : ""}>
+                    {item.label}
+                  </span>
+                  {hasMissing && (
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Missing: {item.missingFields!.join(", ")}
+                    </p>
+                  )}
+                </div>
+              </button>
+            );
+          })}
         </div>
 
         {!isComplete && (
