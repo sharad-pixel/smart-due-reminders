@@ -741,6 +741,22 @@ export default function Branding() {
           </div>
         </div>
       </div>
+
+      {/* Sticky Save Bar - always visible while there are unsaved changes */}
+      {hasChanges && (
+        <div className="fixed bottom-0 inset-x-0 z-40 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 shadow-lg">
+          <div className="container max-w-6xl py-3 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2 text-sm">
+              <AlertCircle className="h-4 w-4 text-amber-500" />
+              <span className="text-muted-foreground">You have unsaved branding changes</span>
+            </div>
+            <Button onClick={handleSave} disabled={updateMutation.isPending}>
+              <Save className="h-4 w-4 mr-2" />
+              {updateMutation.isPending ? "Saving..." : "Save Changes"}
+            </Button>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }
