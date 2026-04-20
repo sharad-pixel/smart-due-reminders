@@ -122,9 +122,7 @@ export default function Branding() {
       const {
         id: _id,
         user_id: _userId,
-        // @ts-expect-error - created_at exists on the row but not the type
         created_at: _createdAt,
-        // @ts-expect-error - updated_at exists on the row but not the type
         updated_at: _updatedAt,
         ar_page_last_updated_at: _arUpdated,
         ...sanitized
