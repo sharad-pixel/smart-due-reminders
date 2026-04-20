@@ -105,17 +105,31 @@ export default function Branding() {
   });
 
   useEffect(() => {
-    if (branding) {
+    // Only sync server data into the form when the user has no pending edits,
+    // otherwise refetches (e.g. after another query invalidation) would clobber
+    // in-progress changes like the From Name field.
+    if (branding && !hasChanges) {
       setFormData(branding);
     }
-  }, [branding]);
+  }, [branding, hasChanges]);
 
   const updateMutation = useMutation({
     mutationFn: async (updates: Partial<BrandingSettings>) => {
       if (!effectiveAccountId) throw new Error("No account");
 
+      // Strip read-only / system-managed fields so we never accidentally send
+      // values that conflict with RLS or column defaults.
+      const {
+        id: _id,
+        user_id: _userId,
+        created_at: _createdAt,
+        updated_at: _updatedAt,
+        ar_page_last_updated_at: _arUpdated,
+        ...sanitized
+      } = updates as any;
+
       const updateData = {
-        ...updates,
+        ...sanitized,
         ar_page_last_updated_at: new Date().toISOString(),
       };
 
@@ -131,14 +145,14 @@ export default function Branding() {
           .insert({
             ...updateData,
             user_id: effectiveAccountId,
-            business_name: updates.business_name || "My Company",
+            business_name: updateData.business_name || "My Company",
           });
         if (error) throw error;
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["branding-settings"] });
       setHasChanges(false);
+      queryClient.invalidateQueries({ queryKey: ["branding-settings"] });
       toast.success("Branding settings saved");
     },
     onError: (error: Error) => {
@@ -727,6 +741,22 @@ export default function Branding() {
           </div>
         </div>
       </div>
+
+      {/* Sticky Save Bar - always visible while there are unsaved changes */}
+      {hasChanges && (
+        <div className="fixed bottom-0 inset-x-0 z-40 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 shadow-lg">
+          <div className="container max-w-6xl py-3 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2 text-sm">
+              <AlertCircle className="h-4 w-4 text-amber-500" />
+              <span className="text-muted-foreground">You have unsaved branding changes</span>
+            </div>
+            <Button onClick={handleSave} disabled={updateMutation.isPending}>
+              <Save className="h-4 w-4 mr-2" />
+              {updateMutation.isPending ? "Saving..." : "Save Changes"}
+            </Button>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }
