@@ -40,6 +40,8 @@ interface BrandingSettings {
   id: string;
   user_id: string;
   business_name: string;
+  industry: string | null;
+  business_description: string | null;
   logo_url: string | null;
   primary_color: string | null;
   accent_color: string | null;
