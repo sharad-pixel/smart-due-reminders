@@ -168,7 +168,10 @@ export function SenderIdentitySection({ formData, onChange, missingFromName, mis
 
         {/* From Name */}
         <div className="space-y-2">
-          <Label htmlFor="from_name">From Name</Label>
+          <Label htmlFor="from_name" className="flex items-center gap-2">
+            From Name
+            <SetupRequiredBadge show={!!missingFromName} label="Required" />
+          </Label>
           <Input
             id="from_name"
             value={formData.from_name || ""}
