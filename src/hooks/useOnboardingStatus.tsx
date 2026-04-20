@@ -10,6 +10,8 @@ export interface OnboardingStatus {
   quickbooksConnected: boolean;
   workflowsConfigured: boolean;
   brandingConfigured: boolean;
+  brandingMissingFields: string[];
+  paymentMissingFields: string[];
   isLoading: boolean;
 }
 
@@ -48,7 +50,7 @@ export const useOnboardingStatus = () => {
           .maybeSingle(),
         supabase
           .from("branding_settings")
-          .select("logo_url, business_name, stripe_payment_link, supported_payment_methods")
+          .select("logo_url, business_name, industry, business_description, from_email, from_name, stripe_payment_link, supported_payment_methods")
           .eq("user_id", accountId)
           .maybeSingle(),
       ]);
@@ -60,6 +62,18 @@ export const useOnboardingStatus = () => {
         ? paymentMethods.length > 0
         : !!paymentMethods && typeof paymentMethods === "object" && Object.keys(paymentMethods).length > 0;
 
+      // Track which business profile fields are missing
+      const brandingMissingFields: string[] = [];
+      if (!branding?.business_name) brandingMissingFields.push("Business Name");
+      if (!branding?.industry) brandingMissingFields.push("Industry");
+      if (!branding?.business_description) brandingMissingFields.push("Business Description");
+      if (!branding?.from_email) brandingMissingFields.push("From Email");
+      if (!branding?.from_name) brandingMissingFields.push("From Name");
+
+      const paymentMissingFields: string[] = [];
+      if (!hasPaymentLink) paymentMissingFields.push("Stripe Payment Link");
+      if (!hasPaymentMethods) paymentMissingFields.push("Supported Payment Methods");
+
       return {
         hasAccounts: (accountsCount || 0) > 0,
         hasInvoices: (invoicesCount || 0) > 0,
@@ -67,7 +81,9 @@ export const useOnboardingStatus = () => {
         hasLogo,
         quickbooksConnected: !!profile?.quickbooks_realm_id,
         workflowsConfigured: (workflowsCount || 0) > 0,
-        brandingConfigured: !!branding?.business_name,
+        brandingConfigured: brandingMissingFields.length === 0,
+        brandingMissingFields,
+        paymentMissingFields,
       };
     },
     staleTime: 1000 * 60 * 5,
@@ -81,6 +97,8 @@ export const useOnboardingStatus = () => {
     quickbooksConnected: data?.quickbooksConnected ?? false,
     workflowsConfigured: data?.workflowsConfigured ?? false,
     brandingConfigured: data?.brandingConfigured ?? false,
+    brandingMissingFields: data?.brandingMissingFields ?? [],
+    paymentMissingFields: data?.paymentMissingFields ?? [],
     isLoading: accountIdLoading || isLoading,
   };
 };
