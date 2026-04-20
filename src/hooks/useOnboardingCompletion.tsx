@@ -5,6 +5,7 @@ export interface SetupItem {
   label: string;
   completed: boolean;
   route: string;
+  missingFields?: string[];
 }
 
 export function useOnboardingCompletion() {
@@ -12,11 +13,21 @@ export function useOnboardingCompletion() {
 
   const { percentage, completedSteps, totalSteps, items } = useMemo(() => {
     const allItems: SetupItem[] = [
-      { label: "Business Profile", completed: status.brandingConfigured, route: "/branding" },
+      {
+        label: "Business Profile",
+        completed: status.brandingConfigured,
+        route: "/branding",
+        missingFields: status.brandingMissingFields,
+      },
       { label: "Company Logo", completed: status.hasLogo, route: "/branding" },
       { label: "Customer Accounts", completed: status.hasAccounts, route: "/accounts" },
       { label: "Invoices Uploaded", completed: status.hasInvoices, route: "/invoices" },
-      { label: "Payment Instructions", completed: status.hasPaymentInstructions, route: "/branding" },
+      {
+        label: "Payment Instructions",
+        completed: status.hasPaymentInstructions,
+        route: "/branding",
+        missingFields: status.paymentMissingFields,
+      },
       { label: "Collection Workflows", completed: status.workflowsConfigured, route: "/ai-workflows" },
     ];
 
