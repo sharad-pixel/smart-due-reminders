@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { SetupRequiredBadge } from "@/components/onboarding/SetupRequiredBadge";
 
 interface SenderIdentitySectionProps {
   formData: {
@@ -37,9 +38,11 @@ interface SenderIdentitySectionProps {
     business_name?: string | null;
   };
   onChange: (field: string, value: any) => void;
+  missingFromName?: boolean;
+  missingFromEmail?: boolean;
 }
 
-export function SenderIdentitySection({ formData, onChange }: SenderIdentitySectionProps) {
+export function SenderIdentitySection({ formData, onChange, missingFromName, missingFromEmail }: SenderIdentitySectionProps) {
   const [isSendingTest, setIsSendingTest] = useState(false);
 
   const sendingMode = formData.sending_mode || 'recouply_default';
@@ -165,7 +168,10 @@ export function SenderIdentitySection({ formData, onChange }: SenderIdentitySect
 
         {/* From Name */}
         <div className="space-y-2">
-          <Label htmlFor="from_name">From Name</Label>
+          <Label htmlFor="from_name" className="flex items-center gap-2">
+            From Name
+            <SetupRequiredBadge show={!!missingFromName} label="Required" />
+          </Label>
           <Input
             id="from_name"
             value={formData.from_name || ""}
@@ -182,7 +188,10 @@ export function SenderIdentitySection({ formData, onChange }: SenderIdentitySect
           <>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="from_email">From Email</Label>
+                <Label htmlFor="from_email" className="flex items-center gap-2">
+                  From Email
+                  <SetupRequiredBadge show={!!missingFromEmail} label="Required" />
+                </Label>
                 {getVerificationBadge()}
               </div>
               <Input

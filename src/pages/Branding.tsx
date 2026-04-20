@@ -40,6 +40,8 @@ interface BrandingSettings {
   id: string;
   user_id: string;
   business_name: string;
+  industry: string | null;
+  business_description: string | null;
   logo_url: string | null;
   primary_color: string | null;
   accent_color: string | null;
@@ -215,10 +217,72 @@ export default function Branding() {
         <div className="grid gap-8 lg:grid-cols-[1fr,400px]">
           {/* Left Column - Settings */}
           <div className="space-y-8">
+            {/* Business Profile - core fields required for setup */}
+            <SetupRequiredWrapper show={!onboardingStatus.brandingConfigured}>
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Business Profile
+                  </CardTitle>
+                  <SetupRequiredBadge show={!onboardingStatus.brandingConfigured} />
+                </div>
+                <CardDescription>
+                  Core information used across emails, invoices, and AI-generated outreach
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="business_name" className="flex items-center gap-2">
+                    Business Name
+                    <SetupRequiredBadge show={!formData.business_name} label="Required" />
+                  </Label>
+                  <Input
+                    id="business_name"
+                    value={formData.business_name || ""}
+                    onChange={(e) => handleChange("business_name", e.target.value)}
+                    placeholder="Acme Inc."
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="industry" className="flex items-center gap-2">
+                    Industry
+                    <SetupRequiredBadge show={!formData.industry} label="Required" />
+                  </Label>
+                  <Input
+                    id="industry"
+                    value={formData.industry || ""}
+                    onChange={(e) => handleChange("industry", e.target.value)}
+                    placeholder="e.g. SaaS, Construction, Professional Services"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="business_description" className="flex items-center gap-2">
+                    Business Description
+                    <SetupRequiredBadge show={!formData.business_description} label="Required" />
+                  </Label>
+                  <Textarea
+                    id="business_description"
+                    value={formData.business_description || ""}
+                    onChange={(e) => handleChange("business_description", e.target.value)}
+                    placeholder="Briefly describe what your business does. AI uses this to personalize outreach."
+                    rows={3}
+                    className="mt-1"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+            </SetupRequiredWrapper>
+
             {/* Sender Identity - NEW SECTION */}
             <SenderIdentitySection 
               formData={formData} 
-              onChange={handleChange} 
+              onChange={handleChange}
+              missingFromName={!formData.from_name}
+              missingFromEmail={!formData.from_email}
             />
 
             {/* Logo & Brand Colors */}
@@ -485,7 +549,10 @@ export default function Branding() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="stripe_payment_link">Stripe Payment Link</Label>
+                    <Label htmlFor="stripe_payment_link" className="flex items-center gap-2">
+                      Stripe Payment Link
+                      <SetupRequiredBadge show={!formData.stripe_payment_link} label="Required" />
+                    </Label>
                     <Input
                       id="stripe_payment_link"
                       value={formData.stripe_payment_link || ""}
