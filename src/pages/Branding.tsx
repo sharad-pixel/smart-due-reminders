@@ -105,17 +105,33 @@ export default function Branding() {
   });
 
   useEffect(() => {
-    if (branding) {
+    // Only sync server data into the form when the user has no pending edits,
+    // otherwise refetches (e.g. after another query invalidation) would clobber
+    // in-progress changes like the From Name field.
+    if (branding && !hasChanges) {
       setFormData(branding);
     }
-  }, [branding]);
+  }, [branding, hasChanges]);
 
   const updateMutation = useMutation({
     mutationFn: async (updates: Partial<BrandingSettings>) => {
       if (!effectiveAccountId) throw new Error("No account");
 
+      // Strip read-only / system-managed fields so we never accidentally send
+      // values that conflict with RLS or column defaults.
+      const {
+        id: _id,
+        user_id: _userId,
+        // @ts-expect-error - created_at exists on the row but not the type
+        created_at: _createdAt,
+        // @ts-expect-error - updated_at exists on the row but not the type
+        updated_at: _updatedAt,
+        ar_page_last_updated_at: _arUpdated,
+        ...sanitized
+      } = updates as any;
+
       const updateData = {
-        ...updates,
+        ...sanitized,
         ar_page_last_updated_at: new Date().toISOString(),
       };
 
@@ -131,14 +147,14 @@ export default function Branding() {
           .insert({
             ...updateData,
             user_id: effectiveAccountId,
-            business_name: updates.business_name || "My Company",
+            business_name: updateData.business_name || "My Company",
           });
         if (error) throw error;
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["branding-settings"] });
       setHasChanges(false);
+      queryClient.invalidateQueries({ queryKey: ["branding-settings"] });
       toast.success("Branding settings saved");
     },
     onError: (error: Error) => {
