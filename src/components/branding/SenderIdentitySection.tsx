@@ -188,7 +188,10 @@ export function SenderIdentitySection({ formData, onChange, missingFromName, mis
           <>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="from_email">From Email</Label>
+                <Label htmlFor="from_email" className="flex items-center gap-2">
+                  From Email
+                  <SetupRequiredBadge show={!!missingFromEmail} label="Required" />
+                </Label>
                 {getVerificationBadge()}
               </div>
               <Input
