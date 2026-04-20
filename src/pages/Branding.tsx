@@ -549,7 +549,10 @@ export default function Branding() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="stripe_payment_link">Stripe Payment Link</Label>
+                    <Label htmlFor="stripe_payment_link" className="flex items-center gap-2">
+                      Stripe Payment Link
+                      <SetupRequiredBadge show={!formData.stripe_payment_link} label="Required" />
+                    </Label>
                     <Input
                       id="stripe_payment_link"
                       value={formData.stripe_payment_link || ""}
