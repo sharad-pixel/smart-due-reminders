@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { SetupRequiredBadge } from "@/components/onboarding/SetupRequiredBadge";
 
 interface SenderIdentitySectionProps {
   formData: {
@@ -37,9 +38,11 @@ interface SenderIdentitySectionProps {
     business_name?: string | null;
   };
   onChange: (field: string, value: any) => void;
+  missingFromName?: boolean;
+  missingFromEmail?: boolean;
 }
 
-export function SenderIdentitySection({ formData, onChange }: SenderIdentitySectionProps) {
+export function SenderIdentitySection({ formData, onChange, missingFromName, missingFromEmail }: SenderIdentitySectionProps) {
   const [isSendingTest, setIsSendingTest] = useState(false);
 
   const sendingMode = formData.sending_mode || 'recouply_default';
