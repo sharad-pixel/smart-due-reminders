@@ -125,16 +125,16 @@ serve(async (req) => {
         });
     }
 
-    // Update outreach_log record
-    const { error: updateError } = await supabase
-      .from('outreach_logs')
-      .update(updateData)
+    // Update outreach_log record (singular - this is the table that stores resend_id)
+    const { error: updateError, count: updateCount } = await supabase
+      .from('outreach_log')
+      .update(updateData, { count: 'exact' })
       .eq('resend_id', emailId);
 
     if (updateError) {
-      console.error('[RESEND-WEBHOOK] Failed to update outreach_logs:', updateError);
+      console.error('[RESEND-WEBHOOK] Failed to update outreach_log:', updateError);
     } else {
-      console.log(`[RESEND-WEBHOOK] Updated outreach_logs for ${emailId}`);
+      console.log(`[RESEND-WEBHOOK] Updated outreach_log for ${emailId} (rows: ${updateCount ?? 0})`);
     }
 
     // Also update email_activity_log if exists
