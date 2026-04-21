@@ -14,7 +14,7 @@ serve(async (req) => {
   try {
     const { email } = await req.json();
 
-    if (!email) {
+    if (!email || typeof email !== "string") {
       return new Response(
         JSON.stringify({ error: "Email is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -27,46 +27,38 @@ serve(async (req) => {
 
     const normalizedEmail = email.toLowerCase().trim();
 
-    // Check if email is in manual whitelist table
+    // Check ONLY the whitelist table. The sync_auth_user_to_whitelist trigger
+    // automatically inserts any Cloud-UI-invited user into this table, so it is
+    // the single source of truth. We deliberately DO NOT call auth.admin.listUsers()
+    // here, which would enable unauthenticated account enumeration of all users.
     const { data: whitelistEntry, error: whitelistError } = await supabase
       .from("early_access_whitelist")
-      .select("id, email, used_at")
+      .select("id, used_at")
       .eq("email", normalizedEmail)
       .maybeSingle();
 
     if (whitelistError) {
       console.error("Whitelist check error:", whitelistError);
+      // Fail closed — return generic negative response, do not leak DB errors.
       return new Response(
-        JSON.stringify({ error: "Failed to check whitelist" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ isWhitelisted: false, alreadyUsed: false }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    // Also check if user was invited via Supabase Auth (Cloud UI invites)
-    const { data: authUser, error: authError } = await supabase.auth.admin.listUsers();
-    
-    let invitedViaAuth = false;
-    if (!authError && authUser?.users) {
-      // Check if user exists in auth.users (invited via Cloud UI)
-      invitedViaAuth = authUser.users.some(
-        (u) => u.email?.toLowerCase() === normalizedEmail
-      );
-    }
-
-    const isWhitelisted = !!whitelistEntry || invitedViaAuth;
 
     return new Response(
-      JSON.stringify({ 
-        isWhitelisted,
-        alreadyUsed: whitelistEntry?.used_at ? true : false
+      JSON.stringify({
+        isWhitelisted: !!whitelistEntry,
+        alreadyUsed: whitelistEntry?.used_at ? true : false,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
     console.error("Error:", error);
+    // Generic response to avoid distinguishing failure modes.
     return new Response(
-      JSON.stringify({ error: "Internal server error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ isWhitelisted: false, alreadyUsed: false }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
