@@ -391,6 +391,9 @@ export default function EmailDeliveryReport() {
                   <SelectItem value="7">Last 7 Days</SelectItem>
                   <SelectItem value="30">Last 30 Days</SelectItem>
                   <SelectItem value="90">Last 90 Days</SelectItem>
+                  <SelectItem value="180">Last 180 Days</SelectItem>
+                  <SelectItem value="365">Last Year</SelectItem>
+                  <SelectItem value="3650">All Time</SelectItem>
                 </SelectContent>
               </Select>
             </div>
