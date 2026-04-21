@@ -216,7 +216,75 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { debtor_id, recalculate_all, user_id, use_ai = true } = await req.json();
+    // ===== AUTHENTICATION =====
+    // Require either a valid user JWT, or an internal shared secret for cron callers.
+    const internalSecret = Deno.env.get('INTERNAL_FUNCTION_SECRET');
+    const providedSecret = req.headers.get('X-Internal-Secret');
+    const isInternalCall = !!internalSecret && providedSecret === internalSecret;
+
+    let authenticatedUserId: string | null = null;
+    let authenticatedIsAdmin = false;
+
+    if (!isInternalCall) {
+      const authHeader = req.headers.get('Authorization');
+      if (!authHeader?.startsWith('Bearer ')) {
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      const token = authHeader.replace('Bearer ', '');
+      const { data: userData, error: userErr } = await supabase.auth.getUser(token);
+      if (userErr || !userData?.user) {
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      authenticatedUserId = userData.user.id;
+
+      // Check admin status for cross-account recalc
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', authenticatedUserId)
+        .maybeSingle();
+      authenticatedIsAdmin = !!profile?.is_admin;
+    }
+
+    const body = await req.json().catch(() => ({}));
+    const { debtor_id, recalculate_all, use_ai = true } = body;
+    let { user_id } = body;
+
+    // Scope user_id to the authenticated caller unless they are an internal/admin caller.
+    if (!isInternalCall && !authenticatedIsAdmin) {
+      // Force user_id to authenticated user — prevents cross-tenant access.
+      user_id = authenticatedUserId;
+    }
+
+    // Block unscoped recalculate_all for non-internal/non-admin callers.
+    if (recalculate_all && !user_id && !isInternalCall && !authenticatedIsAdmin) {
+      return new Response(
+        JSON.stringify({ error: 'Forbidden: recalculate_all requires a user_id scope' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // If a specific debtor_id is requested, ensure it belongs to the caller (unless admin/internal).
+    if (debtor_id && !isInternalCall && !authenticatedIsAdmin) {
+      const { data: ownDebtor } = await supabase
+        .from('debtors')
+        .select('id')
+        .eq('id', debtor_id)
+        .eq('user_id', authenticatedUserId!)
+        .maybeSingle();
+      if (!ownDebtor) {
+        return new Response(
+          JSON.stringify({ error: 'Forbidden' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
 
     // Load sentiment configuration
     const { data: sentimentConfigs } = await supabase
