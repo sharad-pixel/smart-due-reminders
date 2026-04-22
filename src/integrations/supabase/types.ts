@@ -7089,7 +7089,6 @@ export type Database = {
       profiles: {
         Row: {
           account_locked_at: string | null
-          address_autocomplete_api_key: string | null
           address_autocomplete_enabled: boolean | null
           address_autocomplete_provider: string | null
           admin_override: boolean | null
@@ -7113,7 +7112,6 @@ export type Database = {
           current_period_end: string | null
           daily_digest_email_enabled: boolean | null
           email: string | null
-          email_verification_token: string | null
           email_verification_token_expires_at: string | null
           email_verified: boolean | null
           id: string
@@ -7128,18 +7126,14 @@ export type Database = {
           phone: string | null
           plan_id: string | null
           plan_type: Database["public"]["Enums"]["plan_type"] | null
-          quickbooks_access_token: string | null
           quickbooks_company_name: string | null
           quickbooks_connected_at: string | null
           quickbooks_last_sync_at: string | null
           quickbooks_realm_id: string | null
-          quickbooks_refresh_token: string | null
           quickbooks_sync_enabled: boolean | null
-          quickbooks_token_expires_at: string | null
           receive_collection_alerts: boolean
           receive_daily_digest: boolean
           receive_product_updates: boolean
-          sendgrid_api_key: string | null
           smtp_settings: Json | null
           stripe_customer_id: string | null
           stripe_payment_link_url: string | null
@@ -7150,15 +7144,12 @@ export type Database = {
           suspended_reason: string | null
           trial_ends_at: string | null
           trial_used_at: string | null
-          twilio_account_sid: string | null
-          twilio_auth_token: string | null
           twilio_from_number: string | null
           updated_at: string | null
           welcome_email_sent_at: string | null
         }
         Insert: {
           account_locked_at?: string | null
-          address_autocomplete_api_key?: string | null
           address_autocomplete_enabled?: boolean | null
           address_autocomplete_provider?: string | null
           admin_override?: boolean | null
@@ -7182,7 +7173,6 @@ export type Database = {
           current_period_end?: string | null
           daily_digest_email_enabled?: boolean | null
           email?: string | null
-          email_verification_token?: string | null
           email_verification_token_expires_at?: string | null
           email_verified?: boolean | null
           id: string
@@ -7197,18 +7187,14 @@ export type Database = {
           phone?: string | null
           plan_id?: string | null
           plan_type?: Database["public"]["Enums"]["plan_type"] | null
-          quickbooks_access_token?: string | null
           quickbooks_company_name?: string | null
           quickbooks_connected_at?: string | null
           quickbooks_last_sync_at?: string | null
           quickbooks_realm_id?: string | null
-          quickbooks_refresh_token?: string | null
           quickbooks_sync_enabled?: boolean | null
-          quickbooks_token_expires_at?: string | null
           receive_collection_alerts?: boolean
           receive_daily_digest?: boolean
           receive_product_updates?: boolean
-          sendgrid_api_key?: string | null
           smtp_settings?: Json | null
           stripe_customer_id?: string | null
           stripe_payment_link_url?: string | null
@@ -7219,15 +7205,12 @@ export type Database = {
           suspended_reason?: string | null
           trial_ends_at?: string | null
           trial_used_at?: string | null
-          twilio_account_sid?: string | null
-          twilio_auth_token?: string | null
           twilio_from_number?: string | null
           updated_at?: string | null
           welcome_email_sent_at?: string | null
         }
         Update: {
           account_locked_at?: string | null
-          address_autocomplete_api_key?: string | null
           address_autocomplete_enabled?: boolean | null
           address_autocomplete_provider?: string | null
           admin_override?: boolean | null
@@ -7251,7 +7234,6 @@ export type Database = {
           current_period_end?: string | null
           daily_digest_email_enabled?: boolean | null
           email?: string | null
-          email_verification_token?: string | null
           email_verification_token_expires_at?: string | null
           email_verified?: boolean | null
           id?: string
@@ -7266,18 +7248,14 @@ export type Database = {
           phone?: string | null
           plan_id?: string | null
           plan_type?: Database["public"]["Enums"]["plan_type"] | null
-          quickbooks_access_token?: string | null
           quickbooks_company_name?: string | null
           quickbooks_connected_at?: string | null
           quickbooks_last_sync_at?: string | null
           quickbooks_realm_id?: string | null
-          quickbooks_refresh_token?: string | null
           quickbooks_sync_enabled?: boolean | null
-          quickbooks_token_expires_at?: string | null
           receive_collection_alerts?: boolean
           receive_daily_digest?: boolean
           receive_product_updates?: boolean
-          sendgrid_api_key?: string | null
           smtp_settings?: Json | null
           stripe_customer_id?: string | null
           stripe_payment_link_url?: string | null
@@ -7288,8 +7266,6 @@ export type Database = {
           suspended_reason?: string | null
           trial_ends_at?: string | null
           trial_used_at?: string | null
-          twilio_account_sid?: string | null
-          twilio_auth_token?: string | null
           twilio_from_number?: string | null
           updated_at?: string | null
           welcome_email_sent_at?: string | null
@@ -8601,6 +8577,70 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_secrets: {
+        Row: {
+          address_autocomplete_api_key: string | null
+          created_at: string
+          email_verification_token: string | null
+          quickbooks_access_token: string | null
+          quickbooks_refresh_token: string | null
+          quickbooks_token_expires_at: string | null
+          sendgrid_api_key: string | null
+          twilio_account_sid: string | null
+          twilio_auth_token: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address_autocomplete_api_key?: string | null
+          created_at?: string
+          email_verification_token?: string | null
+          quickbooks_access_token?: string | null
+          quickbooks_refresh_token?: string | null
+          quickbooks_token_expires_at?: string | null
+          sendgrid_api_key?: string | null
+          twilio_account_sid?: string | null
+          twilio_auth_token?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address_autocomplete_api_key?: string | null
+          created_at?: string
+          email_verification_token?: string | null
+          quickbooks_access_token?: string | null
+          quickbooks_refresh_token?: string | null
+          quickbooks_token_expires_at?: string | null
+          sendgrid_api_key?: string | null
+          twilio_account_sid?: string | null
+          twilio_auth_token?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_secrets_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_secrets_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles_admin_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_secrets_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles_team_safe"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_sessions: {
         Row: {
