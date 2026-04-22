@@ -165,21 +165,32 @@ serve(async (req) => {
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     } else {
-      // Legacy: Use SendGrid from profile
+      // Legacy: Use SendGrid - business_name lives on profiles, API key in user_secrets (service-role only)
+      const supabaseAdmin = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+      );
+
       const { data: profile, error: profileError } = await supabaseClient
         .from("profiles")
-        .select("sendgrid_api_key, business_name")
+        .select("business_name")
         .eq("id", user.id)
         .single();
 
-      if (profileError || !profile?.sendgrid_api_key) {
+      const { data: secrets, error: secretsError } = await supabaseAdmin
+        .from("user_secrets")
+        .select("sendgrid_api_key")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (profileError || secretsError || !secrets?.sendgrid_api_key) {
         throw new Error("SendGrid API key not configured");
       }
 
       // Decrypt SendGrid API key
       let sendgridApiKey: string;
       try {
-        sendgridApiKey = await decryptValue(profile.sendgrid_api_key);
+        sendgridApiKey = await decryptValue(secrets.sendgrid_api_key);
       } catch (decryptError) {
         console.error("Decryption error:", decryptError);
         throw new Error("Failed to decrypt SendGrid API key. Please reconfigure your SendGrid settings.");

@@ -29,15 +29,29 @@ serve(async (req: Request): Promise<Response> => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Find the profile with this token
+    // Find the secret with this token, then load the corresponding profile
+    const { data: secretRow, error: secretError } = await supabase
+      .from("user_secrets")
+      .select("user_id")
+      .eq("email_verification_token", token)
+      .maybeSingle();
+
+    if (secretError || !secretRow) {
+      console.error("Token not found:", secretError);
+      return new Response(
+        JSON.stringify({ error: "Invalid or expired verification token" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
     const { data: profile, error: findError } = await supabase
       .from("profiles")
       .select("id, email_verification_token_expires_at")
-      .eq("email_verification_token", token)
+      .eq("id", secretRow.user_id)
       .single();
 
     if (findError || !profile) {
-      console.error("Token not found:", findError);
+      console.error("Profile not found for verification token:", findError);
       return new Response(
         JSON.stringify({ error: "Invalid or expired verification token" }),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
@@ -54,14 +68,20 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     // Mark email as verified and clear the token
-    const { error: updateError } = await supabase
+    const { error: profileUpdateError } = await supabase
       .from("profiles")
       .update({
         email_verified: true,
-        email_verification_token: null,
         email_verification_token_expires_at: null,
       })
       .eq("id", profile.id);
+
+    const { error: updateError } = profileUpdateError
+      ? { error: profileUpdateError }
+      : await supabase
+          .from("user_secrets")
+          .update({ email_verification_token: null })
+          .eq("user_id", profile.id);
 
     if (updateError) {
       console.error("Error updating profile:", updateError);

@@ -32,13 +32,11 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    // Clear non-secret QB metadata on profiles
     const { error: updateError } = await supabaseAdmin
       .from('profiles')
       .update({
         quickbooks_realm_id: null,
-        quickbooks_access_token: null,
-        quickbooks_refresh_token: null,
-        quickbooks_token_expires_at: null,
         quickbooks_company_name: null,
         quickbooks_connected_at: null,
         quickbooks_sync_enabled: false
@@ -46,6 +44,20 @@ serve(async (req) => {
       .eq('id', user.id);
 
     if (updateError) throw updateError;
+
+    // Clear OAuth tokens from the secure user_secrets table
+    const { error: secretsError } = await supabaseAdmin
+      .from('user_secrets')
+      .update({
+        quickbooks_access_token: null,
+        quickbooks_refresh_token: null,
+        quickbooks_token_expires_at: null,
+      })
+      .eq('user_id', user.id);
+
+    if (secretsError) {
+      console.warn('Failed to clear QB tokens from user_secrets:', secretsError);
+    }
 
     console.log(`QuickBooks disconnected for user ${user.id}`);
 
