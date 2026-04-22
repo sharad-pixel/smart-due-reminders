@@ -79,14 +79,20 @@ Deno.serve(async (req) => {
       console.error('QB_SYNCLOG_INSERT_FAILED', e);
     }
 
-    // Get user's QuickBooks connection
+    // Get user's QuickBooks connection - realm_id stays on profiles, tokens are in user_secrets
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
-      .select('quickbooks_realm_id, quickbooks_access_token, quickbooks_refresh_token, quickbooks_token_expires_at')
+      .select('quickbooks_realm_id')
       .eq('id', userId)
       .single();
 
-    if (profileError || !profile?.quickbooks_realm_id) {
+    const { data: secrets, error: secretsError } = await supabaseAdmin
+      .from('user_secrets')
+      .select('quickbooks_access_token, quickbooks_refresh_token, quickbooks_token_expires_at')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (profileError || !profile?.quickbooks_realm_id || secretsError || !secrets?.quickbooks_access_token) {
       // Update sync log with error
       if (syncLogId) {
         await supabaseAdmin.from('quickbooks_sync_log').update({
@@ -101,13 +107,13 @@ Deno.serve(async (req) => {
       });
     }
 
-    let accessToken = profile.quickbooks_access_token;
-    let currentRefreshToken = profile.quickbooks_refresh_token;
+    let accessToken = secrets.quickbooks_access_token;
+    let currentRefreshToken = secrets.quickbooks_refresh_token;
     const realmId = profile.quickbooks_realm_id;
 
     // Check if token is expired (with 2-minute buffer) and refresh if needed
-    if (profile.quickbooks_token_expires_at) {
-      const expiresAt = new Date(profile.quickbooks_token_expires_at);
+    if (secrets.quickbooks_token_expires_at) {
+      const expiresAt = new Date(secrets.quickbooks_token_expires_at);
       const refreshThreshold = new Date(Date.now() + TOKEN_REFRESH_BUFFER_MS);
       
       if (expiresAt <= refreshThreshold) {
@@ -1010,19 +1016,17 @@ async function refreshTokenCAS(
     const tokens = await response.json();
     const expiresAt = new Date(Date.now() + (tokens.expires_in * 1000));
 
-    // CAS update: only update if refresh_token still matches what we used
-    // Use .maybeSingle() to distinguish "no match" from "real error"
-    // Only select 'id' to avoid exposing sensitive columns
+    // CAS update on user_secrets: only update if refresh_token still matches what we used
     const { data: updateResult, error: updateError } = await supabaseAdmin
-      .from('profiles')
+      .from('user_secrets')
       .update({
         quickbooks_access_token: tokens.access_token,
         quickbooks_refresh_token: tokens.refresh_token,
         quickbooks_token_expires_at: expiresAt.toISOString()
       })
-      .eq('id', userId)
+      .eq('user_id', userId)
       .eq('quickbooks_refresh_token', oldRefreshToken)
-      .select('id')
+      .select('user_id')
       .maybeSingle();
 
     // Real database error
@@ -1032,7 +1036,7 @@ async function refreshTokenCAS(
     }
 
     // CAS succeeded - we updated the row, return tokens from Intuit response
-    if (updateResult?.id) {
+    if (updateResult?.user_id) {
       console.log('Token refreshed successfully with CAS');
       return {
         accessToken: tokens.access_token,
@@ -1041,23 +1045,22 @@ async function refreshTokenCAS(
     }
 
     // No row updated - another process already refreshed the token
-    // Re-fetch the profile to get the current tokens and validate not expired
     console.log('CAS: no row matched, another process may have refreshed. Fetching current token...');
-    
-    const { data: currentProfile, error: fetchError } = await supabaseAdmin
-      .from('profiles')
-      .select('quickbooks_access_token, quickbooks_refresh_token, quickbooks_token_expires_at')
-      .eq('id', userId)
-      .single();
 
-    if (fetchError || !currentProfile?.quickbooks_access_token) {
+    const { data: currentSecrets, error: fetchError } = await supabaseAdmin
+      .from('user_secrets')
+      .select('quickbooks_access_token, quickbooks_refresh_token, quickbooks_token_expires_at')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (fetchError || !currentSecrets?.quickbooks_access_token) {
       console.error('Failed to fetch current token after CAS miss:', fetchError);
       return null;
     }
 
     // Validate the fetched token is not expired
-    if (currentProfile.quickbooks_token_expires_at) {
-      const currentExpiry = new Date(currentProfile.quickbooks_token_expires_at);
+    if (currentSecrets.quickbooks_token_expires_at) {
+      const currentExpiry = new Date(currentSecrets.quickbooks_token_expires_at);
       if (currentExpiry <= new Date()) {
         console.error('Fetched token is already expired - refresh race condition failed');
         return null;
@@ -1066,8 +1069,8 @@ async function refreshTokenCAS(
 
     console.log('Using token refreshed by another process');
     return {
-      accessToken: currentProfile.quickbooks_access_token,
-      refreshToken: currentProfile.quickbooks_refresh_token
+      accessToken: currentSecrets.quickbooks_access_token,
+      refreshToken: currentSecrets.quickbooks_refresh_token
     };
 
   } catch (e: unknown) {

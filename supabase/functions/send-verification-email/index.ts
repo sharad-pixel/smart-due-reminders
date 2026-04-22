@@ -35,13 +35,22 @@ serve(async (req: Request): Promise<Response> => {
     const token = crypto.randomUUID() + "-" + crypto.randomUUID();
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-    const { error: updateError } = await supabase
+    // Store the expiration timestamp on profiles (non-secret) and the token in user_secrets (private)
+    const { error: profileUpdateError } = await supabase
       .from("profiles")
       .update({
-        email_verification_token: token,
         email_verification_token_expires_at: expiresAt.toISOString(),
       })
       .eq("id", userId);
+
+    const { error: updateError } = profileUpdateError
+      ? { error: profileUpdateError }
+      : await supabase
+          .from("user_secrets")
+          .upsert({
+            user_id: userId,
+            email_verification_token: token,
+          }, { onConflict: "user_id" });
 
     if (updateError) {
       console.error("Error storing verification token:", updateError);

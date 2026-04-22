@@ -129,16 +129,13 @@ Deno.serve(async (req) => {
       console.warn('Error fetching company name:', e);
     }
 
-    // Store tokens in THIS USER's profile
+    // Store realm/company metadata on profiles, tokens in user_secrets
     const expiresAt = new Date(Date.now() + (tokens.expires_in * 1000));
 
     const { error: updateError } = await supabaseAdmin
       .from('profiles')
       .update({
         quickbooks_realm_id: realmId,
-        quickbooks_access_token: tokens.access_token,
-        quickbooks_refresh_token: tokens.refresh_token,
-        quickbooks_token_expires_at: expiresAt.toISOString(),
         quickbooks_company_name: companyName,
         quickbooks_connected_at: new Date().toISOString(),
         quickbooks_sync_enabled: true
@@ -146,7 +143,21 @@ Deno.serve(async (req) => {
       .eq('id', userId);
 
     if (updateError) {
-      console.error('Failed to store tokens:', updateError);
+      console.error('Failed to store QB metadata:', updateError);
+      return Response.redirect(`${baseRedirect}/data-center?qb_error=storage_failed`);
+    }
+
+    const { error: secretsError } = await supabaseAdmin
+      .from('user_secrets')
+      .upsert({
+        user_id: userId,
+        quickbooks_access_token: tokens.access_token,
+        quickbooks_refresh_token: tokens.refresh_token,
+        quickbooks_token_expires_at: expiresAt.toISOString(),
+      }, { onConflict: 'user_id' });
+
+    if (secretsError) {
+      console.error('Failed to store QB tokens in user_secrets:', secretsError);
       return Response.redirect(`${baseRedirect}/data-center?qb_error=storage_failed`);
     }
 

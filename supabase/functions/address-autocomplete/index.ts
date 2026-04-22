@@ -128,10 +128,15 @@ serve(async (req) => {
       throw new Error('Not authenticated');
     }
 
-    // Get user's address autocomplete settings
+    // Get user's address autocomplete settings - non-secret prefs on profiles, key in user_secrets
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
     const { data: profile, error: profileError } = await supabaseClient
       .from('profiles')
-      .select('address_autocomplete_enabled, address_autocomplete_provider, address_autocomplete_api_key')
+      .select('address_autocomplete_enabled, address_autocomplete_provider')
       .eq('id', user.id)
       .single();
 
@@ -149,7 +154,13 @@ serve(async (req) => {
       );
     }
 
-    if (!profile.address_autocomplete_api_key) {
+    const { data: secrets, error: secretsError } = await supabaseAdmin
+      .from('user_secrets')
+      .select('address_autocomplete_api_key')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (secretsError || !secrets?.address_autocomplete_api_key) {
       return new Response(
         JSON.stringify({ error: 'Address autocomplete API key not configured' }),
         {
@@ -172,7 +183,7 @@ serve(async (req) => {
     }
 
     const provider = profile.address_autocomplete_provider;
-    const apiKey = profile.address_autocomplete_api_key;
+    const apiKey = secrets.address_autocomplete_api_key;
 
     let suggestions: any[] = [];
     let parsedAddress: ParsedAddress | null = null;
