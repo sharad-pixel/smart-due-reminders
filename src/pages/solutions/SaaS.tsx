@@ -109,7 +109,7 @@ const SaaS = () => {
               size="lg"
               className="gap-2"
             >
-              Set & Forget for <StripeLogo className="h-4 w-auto text-[#635BFF]" />
+              Set it and forget it with <StripeLogo className="h-4 w-auto text-[#635BFF]" /> billing
             </Button>
           </div>
         </div>
