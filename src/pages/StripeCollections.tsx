@@ -117,8 +117,8 @@ const Hero = () => (
             <div className="flex flex-col md:flex-row items-center justify-between gap-6">
               {/* Stripe input */}
               <div className="flex flex-col items-center gap-2 min-w-[120px]">
-                <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-                  <RefreshCw className="h-7 w-7 text-primary" />
+                <div className="w-16 h-16 rounded-2xl bg-[#635BFF]/10 border border-[#635BFF]/20 flex items-center justify-center">
+                  <StripeLogo className="h-6 w-auto text-[#635BFF]" />
                 </div>
                 <span className="text-xs font-semibold text-foreground">Stripe</span>
                 <span className="text-[10px] text-muted-foreground">Invoices in</span>
