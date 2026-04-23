@@ -215,10 +215,10 @@ const CinematicHero = () => {
             <Button
               size="lg"
               variant="outline"
-              onClick={() => navigate("/demo")}
+              onClick={() => navigate("/stripe-collections")}
               className="text-base px-6 py-6 border-primary/30 hover:bg-primary/5"
             >
-              See Live Demo
+              Set & Forget for Stripe
             </Button>
           </motion.div>
 

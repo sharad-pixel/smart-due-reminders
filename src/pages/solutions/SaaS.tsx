@@ -103,11 +103,11 @@ const SaaS = () => {
               Start Free Trial
             </Button>
             <Button 
-              onClick={() => window.open("https://calendly.com/sharad-recouply/30min", "_blank")}
+              onClick={() => navigate("/stripe-collections")}
               variant="outline"
               size="lg"
             >
-              Book a Demo
+              Set & Forget for Stripe
             </Button>
           </div>
         </div>
