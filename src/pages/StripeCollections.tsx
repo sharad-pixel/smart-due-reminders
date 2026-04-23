@@ -94,7 +94,7 @@ const Hero = () => (
               </Link>
             </Button>
             <Button asChild variant="outline" size="lg" className="text-base px-8 h-12">
-              <Link to="/auth">
+              <Link to="/signup">
                 <Plug className="mr-1 h-4 w-4" /> Connect Stripe
               </Link>
             </Button>
@@ -458,7 +458,7 @@ const FinalCTA = () => (
                 variant="outline"
                 className="text-base px-8 h-12 bg-transparent border-primary-foreground/40 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
               >
-                <Link to="/auth">
+                <Link to="/signup">
                   <Plug className="mr-1 h-4 w-4" /> Connect Stripe
                 </Link>
               </Button>
