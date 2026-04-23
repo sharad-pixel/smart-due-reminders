@@ -203,35 +203,46 @@ const CinematicHero = () => {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.25 }}
-            className="flex flex-wrap items-end gap-4"
+            className="flex flex-col items-start gap-3"
           >
-            <Button
-              size="lg"
-              onClick={() => navigate("/collections-assessment")}
-              className="text-base px-6 py-6 shadow-lg shadow-primary/30 group"
-            >
-              Start Your Risk Assessment
-              <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-            </Button>
-
             <button
               type="button"
               onClick={() => navigate("/stripe-collections")}
-              className="group flex flex-col items-center gap-2 text-left"
+              className="group relative flex items-center gap-4 rounded-2xl border border-primary/20 bg-[hsl(222_47%_8%)]/80 px-5 py-4 shadow-lg shadow-primary/10 backdrop-blur transition-all hover:border-primary/50 hover:shadow-[0_0_36px_-6px_hsl(var(--primary)/0.45)]"
               aria-label="Set it and forget it with Stripe"
             >
-              <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center h-14 w-20 rounded-xl border border-primary/20 bg-[hsl(222_47%_8%)] shadow-md transition-all group-hover:border-[#635BFF]/60 group-hover:shadow-[0_0_24px_-4px_#635BFF80]">
-                  <StripeLogo className="h-5 w-auto text-[#635BFF]" />
-                </div>
-                <ArrowRight className="h-4 w-4 text-muted-foreground transition-all group-hover:text-primary group-hover:translate-x-0.5" />
-                <div className="flex items-center justify-center h-14 w-14 rounded-xl border border-primary/20 bg-[hsl(222_47%_8%)] shadow-md transition-all group-hover:border-primary/60 group-hover:shadow-[0_0_24px_-4px_hsl(var(--primary)/0.6)]">
-                  <Brain className="h-6 w-6 text-primary" />
-                </div>
+              {/* Stripe tile */}
+              <div className="flex items-center justify-center h-14 w-20 rounded-xl border border-[#635BFF]/30 bg-gradient-to-br from-[#635BFF]/15 to-[#635BFF]/5 transition-all group-hover:border-[#635BFF]/70 group-hover:shadow-[0_0_24px_-4px_#635BFF80]">
+                <StripeLogo className="h-5 w-auto text-[#635BFF]" />
               </div>
-              <span className="text-xs text-muted-foreground underline underline-offset-4 decoration-primary/40 transition-colors group-hover:text-foreground group-hover:decoration-primary">
-                Set it and forget it with Stripe →
-              </span>
+
+              {/* Animated connector */}
+              <div className="relative flex items-center w-10 h-px bg-gradient-to-r from-[#635BFF]/40 via-primary/60 to-primary/40">
+                <motion.span
+                  className="absolute -top-[3px] h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_8px_hsl(var(--primary))]"
+                  animate={{ left: ["0%", "100%"] }}
+                  transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+                />
+              </div>
+
+              {/* Recouply tile */}
+              <div className="flex items-center justify-center h-14 w-14 rounded-xl border border-primary/30 bg-gradient-to-br from-primary/15 to-accent/5 transition-all group-hover:border-primary/70 group-hover:shadow-[0_0_24px_-4px_hsl(var(--primary)/0.6)]">
+                <Brain className="h-6 w-6 text-primary" />
+              </div>
+
+              {/* Right-side label */}
+              <div className="flex flex-col pl-1 pr-2">
+                <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-mono">
+                  Stripe × Recouply.ai
+                </span>
+                <span className="text-base font-semibold text-foreground leading-tight">
+                  Set it and forget it
+                </span>
+                <span className="inline-flex items-center gap-1 text-xs text-primary mt-0.5 group-hover:gap-1.5 transition-all">
+                  See how it works
+                  <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+                </span>
+              </div>
             </button>
           </motion.div>
 
