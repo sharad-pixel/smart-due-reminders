@@ -217,9 +217,18 @@ const CinematicHero = () => {
               size="lg"
               variant="outline"
               onClick={() => navigate("/stripe-collections")}
-              className="text-base px-6 py-6 border-primary/30 hover:bg-primary/5 gap-2"
+              className="text-base px-6 py-6 border-primary/30 hover:bg-primary/5 gap-3 group"
             >
-              Set it and forget it with <StripeLogo className="h-4 w-auto text-[#635BFF]" /> billing
+              <StripeLogo className="h-4 w-auto text-[#635BFF]" />
+              <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
+              <span className="inline-flex items-center gap-1.5">
+                <Brain className="h-4 w-4 text-primary" />
+                <span className="font-semibold">Recouply.ai</span>
+              </span>
+              <span className="hidden sm:inline text-muted-foreground">·</span>
+              <span className="hidden sm:inline underline underline-offset-4 decoration-primary/40 group-hover:decoration-primary">
+                Set it &amp; forget it
+              </span>
             </Button>
           </motion.div>
 
