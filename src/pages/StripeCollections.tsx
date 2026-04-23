@@ -106,9 +106,9 @@ const Hero = () => (
                 Run Free Assessment <ArrowRight className="ml-1 h-4 w-4" />
               </Link>
             </Button>
-            <Button asChild variant="outline" size="lg" className="text-base px-8 h-12">
+            <Button asChild variant="outline" size="lg" className="text-base px-8 h-12 gap-2">
               <Link to="/signup">
-                <Plug className="mr-1 h-4 w-4" /> Connect Stripe
+                Connect <StripeLogo className="h-4 w-auto text-[#635BFF]" />
               </Link>
             </Button>
           </div>
