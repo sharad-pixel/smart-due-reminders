@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Brain, TrendingUp, ShieldCheck, Sparkles } from "lucide-react";
 import { personaConfig } from "@/lib/personaConfig";
+import StripeLogo from "@/components/brand/StripeLogo";
 
 /**
  * CinematicHero
@@ -216,9 +217,9 @@ const CinematicHero = () => {
               size="lg"
               variant="outline"
               onClick={() => navigate("/stripe-collections")}
-              className="text-base px-6 py-6 border-primary/30 hover:bg-primary/5"
+              className="text-base px-6 py-6 border-primary/30 hover:bg-primary/5 gap-2"
             >
-              Set & Forget for Stripe
+              Set & Forget for <StripeLogo className="h-4 w-auto text-[#635BFF]" />
             </Button>
           </motion.div>
 

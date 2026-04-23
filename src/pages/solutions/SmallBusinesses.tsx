@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { CheckCircle2, Store, Brain } from "lucide-react";
+import StripeLogo from "@/components/brand/StripeLogo";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -100,8 +101,9 @@ const SmallBusinesses = () => {
               onClick={() => navigate("/stripe-collections")}
               variant="outline"
               size="lg"
+              className="gap-2"
             >
-              Set & Forget for Stripe
+              Set & Forget for <StripeLogo className="h-4 w-auto text-[#635BFF]" />
             </Button>
           </div>
         </div>
