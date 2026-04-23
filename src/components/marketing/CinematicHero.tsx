@@ -219,7 +219,7 @@ const CinematicHero = () => {
               onClick={() => navigate("/stripe-collections")}
               className="text-base px-6 py-6 border-primary/30 hover:bg-primary/5 gap-2"
             >
-              Set & Forget for <StripeLogo className="h-4 w-auto text-[#635BFF]" />
+              Set it and forget it with <StripeLogo className="h-4 w-auto text-[#635BFF]" /> billing
             </Button>
           </motion.div>
 
