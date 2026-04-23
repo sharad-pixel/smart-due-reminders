@@ -469,10 +469,10 @@ const FinalCTA = () => (
                 asChild
                 size="lg"
                 variant="outline"
-                className="text-base px-8 h-12 bg-transparent border-primary-foreground/40 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
+                className="text-base px-8 h-12 gap-2 bg-transparent border-primary-foreground/40 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
               >
                 <Link to="/signup">
-                  <Plug className="mr-1 h-4 w-4" /> Connect Stripe
+                  Connect <StripeLogo className="h-4 w-auto" />
                 </Link>
               </Button>
             </div>
