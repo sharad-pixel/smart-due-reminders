@@ -908,7 +908,7 @@ const FloatingStat = ({
 const PhaseDot = ({ phase, target, label }: { phase: Phase; target: Phase; label: string }) => {
   const active = phase === target;
   return (
-    <span className={`inline-flex items-center gap-1.5 transition-opacity ${active ? "opacity-100" : "opacity-40"}`}>
+    <span className={`inline-flex items-center gap-1.5 transition-opacity ${active ? "opacity-100" : "opacity-80"}`}>
       <motion.span
         className="w-1.5 h-1.5 rounded-full"
         animate={{
@@ -917,7 +917,7 @@ const PhaseDot = ({ phase, target, label }: { phase: Phase; target: Phase; label
         }}
         transition={{ duration: 1.4, repeat: active ? Infinity : 0 }}
       />
-      <span className={active ? "text-foreground font-medium" : ""}>{label}</span>
+      <span className={active ? "text-foreground font-medium" : "text-slate-300"}>{label}</span>
     </span>
   );
 };
