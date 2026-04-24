@@ -3,8 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { Building, Shield, Brain, CheckCircle, ArrowRight, Database, AlertTriangle, FileText, Users, Lock, Globe } from "lucide-react";
 import MarketingLayout from "@/components/layout/MarketingLayout";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { PersonaAvatar } from "@/components/ai/PersonaAvatar";
 import { personaConfig } from "@/lib/personaConfig";
+import { NetSuiteIcon, SageIcon, OracleIcon, DnBIcon } from "@/components/icons/ERPIcons";
 import SEO from "@/components/seo/SEO";
 
 const Enterprise = () => {
@@ -35,11 +37,41 @@ const Enterprise = () => {
 
   const integrations = [
     "Salesforce Revenue Cloud / RCA",
-    "NetSuite AR",
-    "SAP",
+    "HubSpot Enterprise CRM",
+    "Oracle NetSuite (Sandbox + Production)",
+    "Oracle Fusion Cloud ERP / E-Business Suite",
+    "Sage Intacct",
+    "Dun & Bradstreet (D&B) Credit Intelligence",
     "QuickBooks Enterprise",
     "Zendesk / Intercom (CS Cases)",
-    "Custom API integrations"
+    "Custom API integrations",
+  ];
+
+  const enterpriseConnectors = [
+    {
+      Icon: NetSuiteIcon,
+      name: "Oracle NetSuite",
+      tag: "ERP",
+      desc: "Bi-directional sync of customers, invoices, line items, payments, and credits. Sandbox + production with scheduled or webhook-based syncs.",
+    },
+    {
+      Icon: OracleIcon,
+      name: "Oracle Fusion ERP",
+      tag: "ERP",
+      desc: "Connect Oracle Fusion Cloud ERP & E-Business Suite via REST APIs. Sync customers, transactions, receipts, and adjustments at enterprise scale.",
+    },
+    {
+      Icon: SageIcon,
+      name: "Sage Intacct",
+      tag: "ERP",
+      desc: "Full AR sync with granular object mapping — customers, invoices, payments, and journal entries — purpose-built for mid-market and enterprise finance teams.",
+    },
+    {
+      Icon: DnBIcon,
+      name: "Dun & Bradstreet",
+      tag: "Credit Intelligence",
+      desc: "Enrich every account with D-U-N-S numbers, PAYDEX scores, Failure Score, Delinquency Score, firmographics, and corporate hierarchies to power credit decisions.",
+    },
   ];
 
   const securityFeatures = [
