@@ -34,3 +34,44 @@ export function SageIcon({ className = "h-5 w-5" }: { className?: string }) {
     </svg>
   );
 }
+
+export function OracleIcon({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+      {/* Oracle brand red background */}
+      <rect width="48" height="48" rx="8" fill="#F80000" />
+      {/* Stylized "O" mark — Oracle's signature oval ring */}
+      <ellipse
+        cx="24"
+        cy="24"
+        rx="13"
+        ry="8"
+        fill="none"
+        stroke="white"
+        strokeWidth="3.2"
+      />
+    </svg>
+  );
+}
+
+export function DnBIcon({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+      {/* D&B brand navy */}
+      <rect width="48" height="48" rx="8" fill="#003E7E" />
+      {/* "D&B" wordmark */}
+      <text
+        x="24"
+        y="30"
+        textAnchor="middle"
+        fill="white"
+        fontSize="16"
+        fontWeight="bold"
+        fontFamily="Arial, Helvetica, sans-serif"
+        letterSpacing="-0.5"
+      >
+        D&amp;B
+      </text>
+    </svg>
+  );
+}
