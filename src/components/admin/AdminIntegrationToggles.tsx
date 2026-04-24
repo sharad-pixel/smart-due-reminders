@@ -14,7 +14,9 @@ const INTEGRATION_DESCRIPTIONS: Record<IntegrationKey, string> = {
   salesforce: "Sync CRM accounts & support cases from Salesforce",
   hubspot: "Sync contacts, companies, deals & tickets from HubSpot",
   erp_netsuite: "Connect Oracle NetSuite for full ERP synchronization",
+  erp_oracle: "Connect Oracle Fusion Cloud ERP / EBS for enterprise AR sync",
   erp_sage: "Connect Sage Intacct for full ERP synchronization",
+  dnb: "Enrich accounts with D&B credit intelligence (D-U-N-S, PAYDEX, risk scores)",
 };
 
 interface Props {
