@@ -162,6 +162,55 @@ const Enterprise = () => {
         </div>
       </section>
 
+      {/* Enterprise Connectors Showcase */}
+      <section className="py-20 px-4 bg-gradient-to-b from-background to-muted/20">
+        <div className="container mx-auto max-w-6xl">
+          <div className="text-center mb-12">
+            <Badge variant="outline" className="mb-4 border-primary/30 text-primary">
+              Enterprise Plan
+            </Badge>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Enterprise ERP & Credit Intelligence Connectors
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Plug Recouply into the systems your finance org already runs on — and enrich every account with the credit data trusted by lenders worldwide.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            {enterpriseConnectors.map(({ Icon, name, tag, desc }) => (
+              <Card key={name} className="bg-card hover:border-primary/40 transition-colors">
+                <CardContent className="p-6">
+                  <div className="flex items-start gap-4">
+                    <Icon className="h-12 w-12 flex-shrink-0 rounded-lg" />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
+                        <h3 className="text-lg font-bold">{name}</h3>
+                        <Badge variant="secondary" className="text-[10px]">{tag}</Badge>
+                        <Badge className="text-[10px] bg-primary/10 text-primary border-primary/20" variant="outline">
+                          Enterprise
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{desc}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          <div className="mt-8 text-center">
+            <p className="text-sm text-muted-foreground mb-4">
+              All enterprise connectors include sandbox environments, scheduled syncs, audit logs, and dedicated implementation support.
+            </p>
+            <Button variant="outline" onClick={() => navigate("/contact-us")}>
+              Request Connector Access
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </section>
+
       {/* Integration Section */}
       <section className="py-20 px-4 bg-muted/30">
         <div className="container mx-auto max-w-6xl">
