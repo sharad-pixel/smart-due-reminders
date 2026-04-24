@@ -5,7 +5,7 @@ import { Mail } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useIntegrationToggles, ALL_INTEGRATION_KEYS, INTEGRATION_LABELS, INTEGRATION_DESCRIPTIONS } from "@/hooks/useIntegrationToggles";
 import type { IntegrationKey } from "@/hooks/useIntegrationToggles";
-import { NetSuiteIcon, SageIcon } from "@/components/icons/ERPIcons";
+import { NetSuiteIcon, SageIcon, OracleIcon, DnBIcon } from "@/components/icons/ERPIcons";
 
 // Inline SVG logos for each integration
 const StripeLogo = ({ className = "h-8 w-8" }: { className?: string }) => (
@@ -73,7 +73,9 @@ const INTEGRATION_ICONS: Record<IntegrationKey, React.FC<{ className?: string }>
   salesforce: SalesforceLogo,
   hubspot: HubSpotLogo,
   erp_netsuite: NetSuiteIcon,
+  erp_oracle: OracleIcon,
   erp_sage: SageIcon,
+  dnb: DnBIcon,
   ai_ingestion: AIIngestionLogo,
 };
 
