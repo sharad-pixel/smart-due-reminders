@@ -799,16 +799,23 @@ Deno.serve(async (req) => {
 
            let paymentLoggedViaIntent = false;
 
-           if (stripeInvoice.payment_intent) {
+           // PERF: Skip per-invoice refund/payment_intent fetches for open invoices (they have neither)
+           const shouldFetchPaymentDetails =
+             stripeInvoice.status === 'paid' ||
+             stripeInvoice.status === 'uncollectible' ||
+             (stripeInvoice.amount_paid || 0) > 0;
+
+           if (shouldFetchPaymentDetails && stripeInvoice.payment_intent) {
+             // PERF: payment_intent is already expanded inline from the list call (when it's an object).
+             // Only fall back to a per-invoice GET if Stripe gave us just the ID string.
              const paymentIntentId = typeof stripeInvoice.payment_intent === 'string'
                ? stripeInvoice.payment_intent
                : stripeInvoice.payment_intent.id;
 
              try {
-               const paymentIntent = await stripeGetJson<StripePaymentIntent>(
-                 stripeKey,
-                 `/v1/payment_intents/${paymentIntentId}`
-               );
+               const paymentIntent: StripePaymentIntent = typeof stripeInvoice.payment_intent === 'string'
+                 ? await stripeGetJson<StripePaymentIntent>(stripeKey, `/v1/payment_intents/${paymentIntentId}`)
+                 : stripeInvoice.payment_intent;
 
                if (paymentIntent.status === 'succeeded' && (paymentIntent.amount_received || 0) > 0) {
                  const paymentRef = `stripe_pi_${paymentIntentId}`;
