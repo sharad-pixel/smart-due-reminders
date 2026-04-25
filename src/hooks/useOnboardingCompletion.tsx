@@ -15,9 +15,15 @@ export function useOnboardingCompletion() {
     const allItems: SetupItem[] = [
       {
         label: "Business Profile",
-        completed: status.brandingConfigured,
+        completed: status.businessProfileConfigured,
         route: "/branding",
-        missingFields: status.brandingMissingFields,
+        missingFields: status.businessProfileMissingFields,
+      },
+      {
+        label: "Sender Identity",
+        completed: status.senderIdentityConfigured,
+        route: "/branding",
+        missingFields: status.senderIdentityMissingFields,
       },
       { label: "Company Logo", completed: status.hasLogo, route: "/branding" },
       { label: "Customer Accounts", completed: status.hasAccounts, route: "/accounts" },
