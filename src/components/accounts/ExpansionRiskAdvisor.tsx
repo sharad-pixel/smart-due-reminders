@@ -8,8 +8,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { TrendingUp, ShieldCheck, AlertTriangle, DollarSign, Loader2, Lightbulb, FileText, ArrowUpRight, Mail } from "lucide-react";
+import { TrendingUp, ShieldCheck, AlertTriangle, DollarSign, Loader2, Lightbulb, FileText, ArrowUpRight, Mail, Info, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { Link } from "react-router-dom";
 import { ExpansionOutreachDraft } from "./ExpansionOutreachDraft";
 
 interface ExpansionRiskAdvisorProps {
@@ -130,6 +131,23 @@ export function ExpansionRiskAdvisor({ debtorId, debtorName, currentBalance, pay
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Methodology disclosure */}
+        <div className="flex items-start gap-2 text-[11px] bg-muted/40 border border-border/50 rounded-md px-3 py-2">
+          <Info className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
+          <div className="space-y-1.5">
+            <p className="text-muted-foreground leading-relaxed">
+              Risk intelligence is calculated from <strong className="text-foreground">payment history on record</strong> (DPD, payment score, exposure, prior disputes). It does <strong className="text-foreground">not</strong> include Dun &amp; Bradstreet (D&amp;B) third-party credit data.
+            </p>
+            <Link
+              to="/enterprise"
+              className="inline-flex items-center gap-1 text-primary hover:underline font-medium"
+            >
+              <Sparkles className="h-3 w-3" />
+              Add D&amp;B credit assessments — Enterprise plan
+            </Link>
+          </div>
+        </div>
+
         {/* Current snapshot */}
         <div className="flex items-center gap-4 text-xs text-muted-foreground bg-muted/40 rounded-md px-3 py-2">
           <span>Open Balance: <strong className="text-foreground">${(currentBalance || 0).toLocaleString()}</strong></span>
