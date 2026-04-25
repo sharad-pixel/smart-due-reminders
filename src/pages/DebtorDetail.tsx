@@ -200,6 +200,7 @@ const DebtorDetail = () => {
     postal_code: "",
     country: "",
     notes: "",
+    duns_number: "",
   });
 
   const OPEN_STATUSES = ["Open", "Overdue", "InPaymentPlan", "PartiallyPaid"];
