@@ -578,49 +578,13 @@ Deno.serve(async (req) => {
           paidDate = paidAt;
         }
 
-        // Check if invoice already exists
-        let existingInvoice: { 
-          id: string; 
-          status: string; 
-          amount?: number;
-          due_date?: string;
-          has_local_overrides?: boolean;
-          override_count?: number;
-        } | null = null;
-        
-        const { data: byStripeId } = await supabaseClient
-          .from('invoices')
-          .select('id, status, amount, due_date, has_local_overrides, override_count')
-          .eq('stripe_invoice_id', stripeInvoice.id)
-          .eq('user_id', effectiveAccountId)
-          .maybeSingle();
-        
-        if (byStripeId) {
-          existingInvoice = byStripeId;
-        } else {
-          const invoiceNumber = stripeInvoice.number || stripeInvoice.id;
-          const { data: byInvoiceNumber } = await supabaseClient
-            .from('invoices')
-            .select('id, status, amount, due_date, has_local_overrides, override_count')
-            .eq('invoice_number', invoiceNumber)
-            .eq('user_id', effectiveAccountId)
-            .maybeSingle();
-          
-          if (byInvoiceNumber) {
-            existingInvoice = byInvoiceNumber;
-          } else {
-            const { data: byExternalId } = await supabaseClient
-              .from('invoices')
-              .select('id, status, amount, due_date, has_local_overrides, override_count')
-              .eq('external_invoice_id', stripeInvoice.id)
-              .eq('user_id', effectiveAccountId)
-              .maybeSingle();
-            
-            if (byExternalId) {
-              existingInvoice = byExternalId;
-            }
-          }
-        }
+        // PERF: use prefetched invoice maps (was up to 3 sequential queries)
+        const invoiceNumber = stripeInvoice.number || stripeInvoice.id;
+        let existingInvoice: ExistingInvRow | null =
+          invoiceByStripeId.get(stripeInvoice.id) ||
+          invoiceByNumber.get(invoiceNumber) ||
+          invoiceByExternalId.get(stripeInvoice.id) ||
+          null;
 
         const stripeAmount = (stripeInvoice.amount_due || 0) / 100;
         const stripeDueDate = stripeInvoice.due_date 
