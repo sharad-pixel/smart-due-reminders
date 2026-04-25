@@ -767,7 +767,7 @@ const DebtorDetail = () => {
                   </Badge>
                 )}
               </div>
-              <div className="flex items-center gap-2 mt-2">
+              <div className="flex items-center gap-2 mt-2 flex-wrap">
                 <span className="text-sm font-mono text-muted-foreground">{debtor.reference_id}</span>
                 <Button
                   variant="ghost"
@@ -781,6 +781,11 @@ const DebtorDetail = () => {
                     <Copy className="h-3 w-3" />
                   )}
                 </Button>
+                {debtor.duns_number && (
+                  <Badge variant="outline" className="text-[10px] font-mono">
+                    DUNS: {debtor.duns_number}
+                  </Badge>
+                )}
               </div>
               <div className="mt-3">
                 <InternalAccountOwnerBadge
