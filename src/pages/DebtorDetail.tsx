@@ -1692,6 +1692,26 @@ const DebtorDetail = () => {
                 </div>
               </div>
               <div className="space-y-2">
+                <Label htmlFor="edit-duns_number">
+                  D-U-N-S Number
+                  <span className="ml-2 text-xs font-normal text-muted-foreground">(Dun &amp; Bradstreet)</span>
+                </Label>
+                <Input
+                  id="edit-duns_number"
+                  placeholder="9-digit identifier (e.g., 804735132)"
+                  inputMode="numeric"
+                  maxLength={11}
+                  value={formData.duns_number}
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/\D/g, "").slice(0, 9);
+                    setFormData({ ...formData, duns_number: digits });
+                  }}
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Used for D&amp;B credit enrichment (PAYDEX, Failure Score, firmographics) — available on Enterprise plans.
+                </p>
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="edit-notes">Notes</Label>
                 <Textarea
                   id="edit-notes"
