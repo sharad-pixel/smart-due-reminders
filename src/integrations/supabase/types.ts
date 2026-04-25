@@ -2753,6 +2753,7 @@ export type Database = {
           crm_system: string | null
           current_balance: number | null
           disputed_invoices_count: number | null
+          duns_number: string | null
           email: string
           email_bounce_count: number | null
           email_status: string | null
@@ -2869,6 +2870,7 @@ export type Database = {
           crm_system?: string | null
           current_balance?: number | null
           disputed_invoices_count?: number | null
+          duns_number?: string | null
           email: string
           email_bounce_count?: number | null
           email_status?: string | null
@@ -2985,6 +2987,7 @@ export type Database = {
           crm_system?: string | null
           current_balance?: number | null
           disputed_invoices_count?: number | null
+          duns_number?: string | null
           email?: string
           email_bounce_count?: number | null
           email_status?: string | null
