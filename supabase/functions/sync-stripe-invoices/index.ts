@@ -379,15 +379,90 @@ Deno.serve(async (req) => {
       }
     };
 
-    for (const stripeInvoice of invoices) {
+    // ============================================================
+    // PERF: Batch upfront lookups to eliminate N+1 query patterns
+    // ============================================================
+    const customerIds = new Set<string>();
+    const stripeInvoiceIds = new Set<string>();
+    const invoiceNumbers = new Set<string>();
+    for (const inv of invoices) {
+      const cust = typeof inv.customer === 'string' ? null : inv.customer;
+      if (cust?.id) customerIds.add(cust.id);
+      if (inv.id) stripeInvoiceIds.add(inv.id);
+      const num = inv.number || inv.id;
+      if (num) invoiceNumbers.add(num);
+    }
+
+    // Build legacy + scoped reference IDs in one pass for IN-list lookup
+    const allReferenceIds: string[] = [];
+    for (const cid of customerIds) {
+      allReferenceIds.push(`STRIPE-${cid.slice(-8).toUpperCase()}`);
+      allReferenceIds.push(`STRIPE-${effectiveAccountId.slice(0, 8).toUpperCase()}-${cid}`);
+    }
+
+    // Bulk fetch existing debtors (by external_customer_id OR reference_id)
+    const debtorByCustomerId = new Map<string, string>(); // customer_id -> debtor.id
+    const debtorByReferenceId = new Map<string, string>();
+    if (customerIds.size > 0) {
+      const { data: debtorRows } = await supabaseClient
+        .from('debtors')
+        .select('id, external_customer_id, reference_id')
+        .eq('user_id', effectiveAccountId)
+        .or(
+          `external_customer_id.in.(${Array.from(customerIds).join(',')}),reference_id.in.(${allReferenceIds.map(r => `"${r}"`).join(',')})`
+        );
+      for (const d of debtorRows || []) {
+        if (d.external_customer_id) debtorByCustomerId.set(d.external_customer_id, d.id);
+        if (d.reference_id) debtorByReferenceId.set(d.reference_id, d.id);
+      }
+      logStep("Bulk debtor lookup complete", { found: debtorRows?.length || 0 });
+    }
+
+    // Bulk fetch existing invoices (by stripe_invoice_id, invoice_number, external_invoice_id)
+    type ExistingInvRow = {
+      id: string;
+      status: string;
+      amount?: number;
+      due_date?: string;
+      has_local_overrides?: boolean;
+      override_count?: number;
+      stripe_invoice_id?: string;
+      invoice_number?: string;
+      external_invoice_id?: string;
+    };
+    const invoiceByStripeId = new Map<string, ExistingInvRow>();
+    const invoiceByNumber = new Map<string, ExistingInvRow>();
+    const invoiceByExternalId = new Map<string, ExistingInvRow>();
+    if (stripeInvoiceIds.size > 0) {
+      const idList = Array.from(stripeInvoiceIds);
+      const numList = Array.from(invoiceNumbers);
+      const { data: invRows } = await supabaseClient
+        .from('invoices')
+        .select('id, status, amount, due_date, has_local_overrides, override_count, stripe_invoice_id, invoice_number, external_invoice_id')
+        .eq('user_id', effectiveAccountId)
+        .or(
+          `stripe_invoice_id.in.(${idList.join(',')}),external_invoice_id.in.(${idList.join(',')}),invoice_number.in.(${numList.map(n => `"${n}"`).join(',')})`
+        );
+      for (const r of (invRows || []) as ExistingInvRow[]) {
+        if (r.stripe_invoice_id) invoiceByStripeId.set(r.stripe_invoice_id, r);
+        if (r.invoice_number) invoiceByNumber.set(r.invoice_number, r);
+        if (r.external_invoice_id) invoiceByExternalId.set(r.external_invoice_id, r);
+      }
+      logStep("Bulk invoice lookup complete", { found: invRows?.length || 0 });
+    }
+
+    // PERF: Process invoices in parallel chunks instead of strictly sequentially.
+    // Each chunk runs concurrently; chunks run sequentially to bound DB connections.
+    const PARALLEL_CHUNK_SIZE = 10;
+    const processInvoice = async (stripeInvoice: StripeInvoice) => {
       try {
-        if (!stripeInvoice.customer) continue;
+        if (!stripeInvoice.customer) return;
 
         const customer = typeof stripeInvoice.customer === 'string'
           ? null
           : (stripeInvoice.customer as StripeCustomer);
-        
-        if (!customer) continue;
+
+        if (!customer) return;
 
         const customerEmail = customer.email || `${customer.id}@stripe-customer.local`;
         const customerName = customer.name || customer.id;
