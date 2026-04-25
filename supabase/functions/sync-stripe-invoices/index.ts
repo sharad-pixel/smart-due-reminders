@@ -198,30 +198,36 @@ Deno.serve(async (req) => {
         ["status", status],
         ["limit", "100"],
         ["expand[]", "data.customer"],
+        // PERF: expand payment_intent + discounts inline so we don't need a per-invoice GET later
+        ["expand[]", "data.payment_intent"],
+        ["expand[]", "data.discounts"],
       ]);
       return resp.data || [];
     };
 
-    // Get open invoices (unpaid)
-    const openInvoices = await listInvoices("open");
+    // PERF: fetch all 4 status lists in parallel instead of sequentially
+    const [openInvoices, paidInvoices, voidInvoices, uncollectibleInvoices] = await Promise.all([
+      listInvoices("open"),
+      listInvoices("paid"),
+      listInvoices("void"),
+      listInvoices("uncollectible"),
+    ]);
+
     for (const inv of openInvoices) invoiceMap.set(inv.id, inv);
     logStep("Fetched open invoices", { count: openInvoices.length });
 
-    // Get paid invoices to capture settlements - PRIORITY: paid status overwrites others
-    const paidInvoices = await listInvoices("paid");
+    // Paid takes priority - overwrites any prior entry
     for (const inv of paidInvoices) invoiceMap.set(inv.id, inv);
     logStep("Fetched paid invoices", { count: paidInvoices.length });
 
-    // Get void invoices (cancelled/credited) - only add if not already paid
-    const voidInvoices = await listInvoices("void");
+    // Void: only add if not already paid
     for (const inv of voidInvoices) {
       const existing = invoiceMap.get(inv.id);
       if (!existing || existing.status !== "paid") invoiceMap.set(inv.id, inv);
     }
     logStep("Fetched void invoices", { count: voidInvoices.length });
 
-    // Get uncollectible invoices (written off) - only add if not already paid/void
-    const uncollectibleInvoices = await listInvoices("uncollectible");
+    // Uncollectible: only add if not already paid/void
     for (const inv of uncollectibleInvoices) {
       const existing = invoiceMap.get(inv.id);
       if (!existing || (existing.status !== "paid" && existing.status !== "void")) {
