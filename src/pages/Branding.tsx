@@ -153,6 +153,7 @@ export default function Branding() {
     onSuccess: () => {
       setHasChanges(false);
       queryClient.invalidateQueries({ queryKey: ["branding-settings"] });
+      queryClient.invalidateQueries({ queryKey: ["onboarding-status"] });
       toast.success("Branding settings saved");
     },
     onError: (error: Error) => {
@@ -295,8 +296,8 @@ export default function Branding() {
             <SenderIdentitySection 
               formData={formData} 
               onChange={handleChange}
-              missingFromName={!formData.from_name}
-              missingFromEmail={!formData.from_email}
+              missingFromName={!formData.from_name?.trim()}
+              missingFromEmail={(formData.sending_mode || "recouply_default") === "customer_domain" && !formData.from_email?.trim()}
             />
 
             {/* Logo & Brand Colors */}

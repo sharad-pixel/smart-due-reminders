@@ -54,7 +54,7 @@ export const useOnboardingStatus = () => {
           .maybeSingle(),
         supabase
           .from("branding_settings")
-          .select("logo_url, business_name, industry, business_description, from_email, from_name, stripe_payment_link, supported_payment_methods")
+          .select("logo_url, business_name, industry, business_description, from_email, from_name, sending_mode, stripe_payment_link, supported_payment_methods")
           .eq("user_id", accountId)
           .maybeSingle(),
       ]);
@@ -68,14 +68,17 @@ export const useOnboardingStatus = () => {
 
       // Business Profile fields (Business Profile card on /branding)
       const businessProfileMissingFields: string[] = [];
-      if (!branding?.business_name) businessProfileMissingFields.push("Business Name");
-      if (!branding?.industry) businessProfileMissingFields.push("Industry");
-      if (!branding?.business_description) businessProfileMissingFields.push("Business Description");
+      if (!branding?.business_name?.trim()) businessProfileMissingFields.push("Business Name");
+      if (!branding?.industry?.trim()) businessProfileMissingFields.push("Industry");
+      if (!branding?.business_description?.trim()) businessProfileMissingFields.push("Business Description");
 
       // Sender Identity fields (Sender Identity card on /branding)
       const senderIdentityMissingFields: string[] = [];
-      if (!branding?.from_email) senderIdentityMissingFields.push("From Email");
-      if (!branding?.from_name) senderIdentityMissingFields.push("From Name");
+      const sendingMode = branding?.sending_mode || "recouply_default";
+      if (!branding?.from_name?.trim()) senderIdentityMissingFields.push("From Name");
+      if (sendingMode === "customer_domain" && !branding?.from_email?.trim()) {
+        senderIdentityMissingFields.push("From Email");
+      }
 
       // Combined for backward compatibility
       const brandingMissingFields = [
