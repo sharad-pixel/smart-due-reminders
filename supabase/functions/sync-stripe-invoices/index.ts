@@ -528,7 +528,7 @@ Deno.serve(async (req) => {
           createdDebtors++;
           logStep('Created new debtor with contact', { debtorId, customerEmail });
         } else {
-          debtorId = existingDebtor.id;
+          debtorId = prefetchedDebtorId;
           
           // Only update primary contact email if different in Stripe
           if (customerEmail) {
