@@ -473,14 +473,11 @@ Deno.serve(async (req) => {
         const legacyReferenceId = `STRIPE-${customer.id.slice(-8).toUpperCase()}`;
         const referenceId = `STRIPE-${effectiveAccountId.slice(0, 8).toUpperCase()}-${customer.id}`;
 
-        const { data: debtorRows, error: debtorLookupError } = await supabaseClient
-          .from('debtors')
-          .select('id')
-          .eq('user_id', effectiveAccountId)
-          .or(
-            `external_customer_id.eq.${customer.id},reference_id.eq.${referenceId},reference_id.eq.${legacyReferenceId}`
-          )
-          .limit(1);
+        // PERF: use prefetched debtor map (was N+1 lookup)
+        let prefetchedDebtorId: string | undefined =
+          debtorByCustomerId.get(customer.id) ||
+          debtorByReferenceId.get(referenceId) ||
+          debtorByReferenceId.get(legacyReferenceId);
 
         if (debtorLookupError) {
           logStep('Debtor lookup error', { error: debtorLookupError.message, customerId: customer.id });
