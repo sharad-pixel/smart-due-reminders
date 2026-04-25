@@ -1107,6 +1107,13 @@ Deno.serve(async (req) => {
         errors.push(`Error processing invoice ${stripeInvoice.id}: ${errorMsg}`);
         logStep("Error processing invoice", { invoiceId: stripeInvoice.id, error: errorMsg });
       }
+    };
+
+    // PERF: process invoices in parallel chunks (10 concurrent) instead of strictly sequential.
+    // This is the single biggest win — most time was spent waiting on serial DB/Stripe round trips.
+    for (let i = 0; i < invoices.length; i += PARALLEL_CHUNK_SIZE) {
+      const chunk = invoices.slice(i, i + PARALLEL_CHUNK_SIZE);
+      await Promise.all(chunk.map(processInvoice));
     }
 
     logStep("Status breakdown", statusUpdates);
