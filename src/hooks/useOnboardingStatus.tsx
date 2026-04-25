@@ -10,7 +10,11 @@ export interface OnboardingStatus {
   quickbooksConnected: boolean;
   workflowsConfigured: boolean;
   brandingConfigured: boolean;
+  businessProfileConfigured: boolean;
+  senderIdentityConfigured: boolean;
   brandingMissingFields: string[];
+  businessProfileMissingFields: string[];
+  senderIdentityMissingFields: string[];
   paymentMissingFields: string[];
   isLoading: boolean;
 }
