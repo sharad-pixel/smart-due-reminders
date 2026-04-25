@@ -479,14 +479,9 @@ Deno.serve(async (req) => {
           debtorByReferenceId.get(referenceId) ||
           debtorByReferenceId.get(legacyReferenceId);
 
-        if (debtorLookupError) {
-          logStep('Debtor lookup error', { error: debtorLookupError.message, customerId: customer.id });
-        }
-
-        const existingDebtor = debtorRows?.[0] ?? null;
         let debtorId: string;
 
-        if (!existingDebtor) {
+        if (!prefetchedDebtorId) {
           const { data: newDebtor, error: debtorError } = await supabaseClient
             .from('debtors')
             .insert({
@@ -506,9 +501,12 @@ Deno.serve(async (req) => {
             // Treat duplicate reference_id as a warning and skip this invoice (we don't want sync to hard-fail).
             logStep('Error creating debtor', { error: debtorError.message, customerId: customer.id });
             warnings.push(`Debtor already exists or could not be created for ${customerEmail}: ${debtorError.message}`);
-            continue;
+            return;
           }
           debtorId = newDebtor.id;
+          // Cache so other invoices in this run reuse it
+          debtorByCustomerId.set(customer.id, debtorId);
+          debtorByReferenceId.set(referenceId, debtorId);
 
           // Create a proper contact entry for outreach
           const { error: contactError } = await supabaseClient
