@@ -232,7 +232,7 @@ export default function Branding() {
           {/* Left Column - Settings */}
           <div className="space-y-8">
             {/* Business Profile - core fields required for setup */}
-            <SetupRequiredWrapper show={!onboardingStatus.brandingConfigured}>
+            <SetupRequiredWrapper show={!onboardingStatus.businessProfileConfigured}>
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -240,7 +240,7 @@ export default function Branding() {
                     <FileText className="h-5 w-5" />
                     Business Profile
                   </CardTitle>
-                  <SetupRequiredBadge show={!onboardingStatus.brandingConfigured} />
+                  <SetupRequiredBadge show={!onboardingStatus.businessProfileConfigured} />
                 </div>
                 <CardDescription>
                   Core information used across emails, invoices, and AI-generated outreach
@@ -300,7 +300,7 @@ export default function Branding() {
             />
 
             {/* Logo & Brand Colors */}
-            <SetupRequiredWrapper show={!onboardingStatus.hasLogo || !onboardingStatus.brandingConfigured}>
+            <SetupRequiredWrapper show={!onboardingStatus.hasLogo}>
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -308,7 +308,7 @@ export default function Branding() {
                     <Palette className="h-5 w-5" />
                     Brand Identity
                   </CardTitle>
-                  <SetupRequiredBadge show={!onboardingStatus.hasLogo || !onboardingStatus.brandingConfigured} />
+                  <SetupRequiredBadge show={!onboardingStatus.hasLogo} />
                 </div>
                 <CardDescription>
                   Your logo and colors appear on emails and the public AR page
