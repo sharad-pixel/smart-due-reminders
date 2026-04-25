@@ -198,30 +198,36 @@ Deno.serve(async (req) => {
         ["status", status],
         ["limit", "100"],
         ["expand[]", "data.customer"],
+        // PERF: expand payment_intent + discounts inline so we don't need a per-invoice GET later
+        ["expand[]", "data.payment_intent"],
+        ["expand[]", "data.discounts"],
       ]);
       return resp.data || [];
     };
 
-    // Get open invoices (unpaid)
-    const openInvoices = await listInvoices("open");
+    // PERF: fetch all 4 status lists in parallel instead of sequentially
+    const [openInvoices, paidInvoices, voidInvoices, uncollectibleInvoices] = await Promise.all([
+      listInvoices("open"),
+      listInvoices("paid"),
+      listInvoices("void"),
+      listInvoices("uncollectible"),
+    ]);
+
     for (const inv of openInvoices) invoiceMap.set(inv.id, inv);
     logStep("Fetched open invoices", { count: openInvoices.length });
 
-    // Get paid invoices to capture settlements - PRIORITY: paid status overwrites others
-    const paidInvoices = await listInvoices("paid");
+    // Paid takes priority - overwrites any prior entry
     for (const inv of paidInvoices) invoiceMap.set(inv.id, inv);
     logStep("Fetched paid invoices", { count: paidInvoices.length });
 
-    // Get void invoices (cancelled/credited) - only add if not already paid
-    const voidInvoices = await listInvoices("void");
+    // Void: only add if not already paid
     for (const inv of voidInvoices) {
       const existing = invoiceMap.get(inv.id);
       if (!existing || existing.status !== "paid") invoiceMap.set(inv.id, inv);
     }
     logStep("Fetched void invoices", { count: voidInvoices.length });
 
-    // Get uncollectible invoices (written off) - only add if not already paid/void
-    const uncollectibleInvoices = await listInvoices("uncollectible");
+    // Uncollectible: only add if not already paid/void
     for (const inv of uncollectibleInvoices) {
       const existing = invoiceMap.get(inv.id);
       if (!existing || (existing.status !== "paid" && existing.status !== "void")) {
@@ -373,15 +379,90 @@ Deno.serve(async (req) => {
       }
     };
 
-    for (const stripeInvoice of invoices) {
+    // ============================================================
+    // PERF: Batch upfront lookups to eliminate N+1 query patterns
+    // ============================================================
+    const customerIds = new Set<string>();
+    const stripeInvoiceIds = new Set<string>();
+    const invoiceNumbers = new Set<string>();
+    for (const inv of invoices) {
+      const cust = typeof inv.customer === 'string' ? null : inv.customer;
+      if (cust?.id) customerIds.add(cust.id);
+      if (inv.id) stripeInvoiceIds.add(inv.id);
+      const num = inv.number || inv.id;
+      if (num) invoiceNumbers.add(num);
+    }
+
+    // Build legacy + scoped reference IDs in one pass for IN-list lookup
+    const allReferenceIds: string[] = [];
+    for (const cid of customerIds) {
+      allReferenceIds.push(`STRIPE-${cid.slice(-8).toUpperCase()}`);
+      allReferenceIds.push(`STRIPE-${effectiveAccountId.slice(0, 8).toUpperCase()}-${cid}`);
+    }
+
+    // Bulk fetch existing debtors (by external_customer_id OR reference_id)
+    const debtorByCustomerId = new Map<string, string>(); // customer_id -> debtor.id
+    const debtorByReferenceId = new Map<string, string>();
+    if (customerIds.size > 0) {
+      const { data: debtorRows } = await supabaseClient
+        .from('debtors')
+        .select('id, external_customer_id, reference_id')
+        .eq('user_id', effectiveAccountId)
+        .or(
+          `external_customer_id.in.(${Array.from(customerIds).join(',')}),reference_id.in.(${allReferenceIds.map(r => `"${r}"`).join(',')})`
+        );
+      for (const d of debtorRows || []) {
+        if (d.external_customer_id) debtorByCustomerId.set(d.external_customer_id, d.id);
+        if (d.reference_id) debtorByReferenceId.set(d.reference_id, d.id);
+      }
+      logStep("Bulk debtor lookup complete", { found: debtorRows?.length || 0 });
+    }
+
+    // Bulk fetch existing invoices (by stripe_invoice_id, invoice_number, external_invoice_id)
+    type ExistingInvRow = {
+      id: string;
+      status: string;
+      amount?: number;
+      due_date?: string;
+      has_local_overrides?: boolean;
+      override_count?: number;
+      stripe_invoice_id?: string;
+      invoice_number?: string;
+      external_invoice_id?: string;
+    };
+    const invoiceByStripeId = new Map<string, ExistingInvRow>();
+    const invoiceByNumber = new Map<string, ExistingInvRow>();
+    const invoiceByExternalId = new Map<string, ExistingInvRow>();
+    if (stripeInvoiceIds.size > 0) {
+      const idList = Array.from(stripeInvoiceIds);
+      const numList = Array.from(invoiceNumbers);
+      const { data: invRows } = await supabaseClient
+        .from('invoices')
+        .select('id, status, amount, due_date, has_local_overrides, override_count, stripe_invoice_id, invoice_number, external_invoice_id')
+        .eq('user_id', effectiveAccountId)
+        .or(
+          `stripe_invoice_id.in.(${idList.join(',')}),external_invoice_id.in.(${idList.join(',')}),invoice_number.in.(${numList.map(n => `"${n}"`).join(',')})`
+        );
+      for (const r of (invRows || []) as ExistingInvRow[]) {
+        if (r.stripe_invoice_id) invoiceByStripeId.set(r.stripe_invoice_id, r);
+        if (r.invoice_number) invoiceByNumber.set(r.invoice_number, r);
+        if (r.external_invoice_id) invoiceByExternalId.set(r.external_invoice_id, r);
+      }
+      logStep("Bulk invoice lookup complete", { found: invRows?.length || 0 });
+    }
+
+    // PERF: Process invoices in parallel chunks instead of strictly sequentially.
+    // Each chunk runs concurrently; chunks run sequentially to bound DB connections.
+    const PARALLEL_CHUNK_SIZE = 10;
+    const processInvoice = async (stripeInvoice: StripeInvoice) => {
       try {
-        if (!stripeInvoice.customer) continue;
+        if (!stripeInvoice.customer) return;
 
         const customer = typeof stripeInvoice.customer === 'string'
           ? null
           : (stripeInvoice.customer as StripeCustomer);
-        
-        if (!customer) continue;
+
+        if (!customer) return;
 
         const customerEmail = customer.email || `${customer.id}@stripe-customer.local`;
         const customerName = customer.name || customer.id;
@@ -392,23 +473,15 @@ Deno.serve(async (req) => {
         const legacyReferenceId = `STRIPE-${customer.id.slice(-8).toUpperCase()}`;
         const referenceId = `STRIPE-${effectiveAccountId.slice(0, 8).toUpperCase()}-${customer.id}`;
 
-        const { data: debtorRows, error: debtorLookupError } = await supabaseClient
-          .from('debtors')
-          .select('id')
-          .eq('user_id', effectiveAccountId)
-          .or(
-            `external_customer_id.eq.${customer.id},reference_id.eq.${referenceId},reference_id.eq.${legacyReferenceId}`
-          )
-          .limit(1);
+        // PERF: use prefetched debtor map (was N+1 lookup)
+        let prefetchedDebtorId: string | undefined =
+          debtorByCustomerId.get(customer.id) ||
+          debtorByReferenceId.get(referenceId) ||
+          debtorByReferenceId.get(legacyReferenceId);
 
-        if (debtorLookupError) {
-          logStep('Debtor lookup error', { error: debtorLookupError.message, customerId: customer.id });
-        }
-
-        const existingDebtor = debtorRows?.[0] ?? null;
         let debtorId: string;
 
-        if (!existingDebtor) {
+        if (!prefetchedDebtorId) {
           const { data: newDebtor, error: debtorError } = await supabaseClient
             .from('debtors')
             .insert({
@@ -428,9 +501,12 @@ Deno.serve(async (req) => {
             // Treat duplicate reference_id as a warning and skip this invoice (we don't want sync to hard-fail).
             logStep('Error creating debtor', { error: debtorError.message, customerId: customer.id });
             warnings.push(`Debtor already exists or could not be created for ${customerEmail}: ${debtorError.message}`);
-            continue;
+            return;
           }
           debtorId = newDebtor.id;
+          // Cache so other invoices in this run reuse it
+          debtorByCustomerId.set(customer.id, debtorId);
+          debtorByReferenceId.set(referenceId, debtorId);
 
           // Create a proper contact entry for outreach
           const { error: contactError } = await supabaseClient
@@ -452,7 +528,7 @@ Deno.serve(async (req) => {
           createdDebtors++;
           logStep('Created new debtor with contact', { debtorId, customerEmail });
         } else {
-          debtorId = existingDebtor.id;
+          debtorId = prefetchedDebtorId;
           
           // Only update primary contact email if different in Stripe
           if (customerEmail) {
@@ -502,49 +578,13 @@ Deno.serve(async (req) => {
           paidDate = paidAt;
         }
 
-        // Check if invoice already exists
-        let existingInvoice: { 
-          id: string; 
-          status: string; 
-          amount?: number;
-          due_date?: string;
-          has_local_overrides?: boolean;
-          override_count?: number;
-        } | null = null;
-        
-        const { data: byStripeId } = await supabaseClient
-          .from('invoices')
-          .select('id, status, amount, due_date, has_local_overrides, override_count')
-          .eq('stripe_invoice_id', stripeInvoice.id)
-          .eq('user_id', effectiveAccountId)
-          .maybeSingle();
-        
-        if (byStripeId) {
-          existingInvoice = byStripeId;
-        } else {
-          const invoiceNumber = stripeInvoice.number || stripeInvoice.id;
-          const { data: byInvoiceNumber } = await supabaseClient
-            .from('invoices')
-            .select('id, status, amount, due_date, has_local_overrides, override_count')
-            .eq('invoice_number', invoiceNumber)
-            .eq('user_id', effectiveAccountId)
-            .maybeSingle();
-          
-          if (byInvoiceNumber) {
-            existingInvoice = byInvoiceNumber;
-          } else {
-            const { data: byExternalId } = await supabaseClient
-              .from('invoices')
-              .select('id, status, amount, due_date, has_local_overrides, override_count')
-              .eq('external_invoice_id', stripeInvoice.id)
-              .eq('user_id', effectiveAccountId)
-              .maybeSingle();
-            
-            if (byExternalId) {
-              existingInvoice = byExternalId;
-            }
-          }
-        }
+        // PERF: use prefetched invoice maps (was up to 3 sequential queries)
+        const invoiceNumber = stripeInvoice.number || stripeInvoice.id;
+        let existingInvoice: ExistingInvRow | null =
+          invoiceByStripeId.get(stripeInvoice.id) ||
+          invoiceByNumber.get(invoiceNumber) ||
+          invoiceByExternalId.get(stripeInvoice.id) ||
+          null;
 
         const stripeAmount = (stripeInvoice.amount_due || 0) / 100;
         const stripeDueDate = stripeInvoice.due_date 
@@ -683,7 +723,7 @@ Deno.serve(async (req) => {
 
           if (updateError) {
             errors.push(`Failed to update invoice ${stripeInvoice.id}: ${updateError.message}`);
-            continue;
+            return;
           }
           
           invoiceRecordId = existingInvoice.id;
@@ -731,15 +771,15 @@ Deno.serve(async (req) => {
                   isNewInvoice = false;
                 } else {
                   errors.push(`Failed to update existing duplicate invoice ${stripeInvoice.id}: ${dupUpdateError.message}`);
-                  continue;
+                  return;
                 }
               } else {
                 errors.push(`Failed to locate duplicate invoice ${stripeInvoice.id} after insert conflict`);
-                continue;
+                return;
               }
             } else {
               errors.push(`Failed to create invoice ${stripeInvoice.id}: ${insertError.message}`);
-              continue;
+              return;
             }
           } else {
             invoiceRecordId = newInvoice.id;
@@ -759,16 +799,23 @@ Deno.serve(async (req) => {
 
            let paymentLoggedViaIntent = false;
 
-           if (stripeInvoice.payment_intent) {
+           // PERF: Skip per-invoice refund/payment_intent fetches for open invoices (they have neither)
+           const shouldFetchPaymentDetails =
+             stripeInvoice.status === 'paid' ||
+             stripeInvoice.status === 'uncollectible' ||
+             (stripeInvoice.amount_paid || 0) > 0;
+
+           if (shouldFetchPaymentDetails && stripeInvoice.payment_intent) {
+             // PERF: payment_intent is already expanded inline from the list call (when it's an object).
+             // Only fall back to a per-invoice GET if Stripe gave us just the ID string.
              const paymentIntentId = typeof stripeInvoice.payment_intent === 'string'
                ? stripeInvoice.payment_intent
                : stripeInvoice.payment_intent.id;
 
              try {
-               const paymentIntent = await stripeGetJson<StripePaymentIntent>(
-                 stripeKey,
-                 `/v1/payment_intents/${paymentIntentId}`
-               );
+               const paymentIntent: StripePaymentIntent = typeof stripeInvoice.payment_intent === 'string'
+                 ? await stripeGetJson<StripePaymentIntent>(stripeKey, `/v1/payment_intents/${paymentIntentId}`)
+                 : stripeInvoice.payment_intent;
 
                if (paymentIntent.status === 'succeeded' && (paymentIntent.amount_received || 0) > 0) {
                  const paymentRef = `stripe_pi_${paymentIntentId}`;
@@ -1060,6 +1107,13 @@ Deno.serve(async (req) => {
         errors.push(`Error processing invoice ${stripeInvoice.id}: ${errorMsg}`);
         logStep("Error processing invoice", { invoiceId: stripeInvoice.id, error: errorMsg });
       }
+    };
+
+    // PERF: process invoices in parallel chunks (10 concurrent) instead of strictly sequential.
+    // This is the single biggest win — most time was spent waiting on serial DB/Stripe round trips.
+    for (let i = 0; i < invoices.length; i += PARALLEL_CHUNK_SIZE) {
+      const chunk = invoices.slice(i, i + PARALLEL_CHUNK_SIZE);
+      await Promise.all(chunk.map(processInvoice));
     }
 
     logStep("Status breakdown", statusUpdates);
