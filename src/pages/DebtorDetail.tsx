@@ -496,6 +496,7 @@ const DebtorDetail = () => {
         postal_code: data.postal_code || "",
         country: data.country || "",
         notes: data.notes || "",
+        duns_number: data.duns_number || "",
       });
     } catch (_error: any) {
       toast.error("Failed to load account details");
