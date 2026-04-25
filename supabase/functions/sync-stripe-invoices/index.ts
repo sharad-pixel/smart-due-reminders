@@ -723,7 +723,7 @@ Deno.serve(async (req) => {
 
           if (updateError) {
             errors.push(`Failed to update invoice ${stripeInvoice.id}: ${updateError.message}`);
-            continue;
+            return;
           }
           
           invoiceRecordId = existingInvoice.id;
@@ -771,15 +771,15 @@ Deno.serve(async (req) => {
                   isNewInvoice = false;
                 } else {
                   errors.push(`Failed to update existing duplicate invoice ${stripeInvoice.id}: ${dupUpdateError.message}`);
-                  continue;
+                  return;
                 }
               } else {
                 errors.push(`Failed to locate duplicate invoice ${stripeInvoice.id} after insert conflict`);
-                continue;
+                return;
               }
             } else {
               errors.push(`Failed to create invoice ${stripeInvoice.id}: ${insertError.message}`);
-              continue;
+              return;
             }
           } else {
             invoiceRecordId = newInvoice.id;
