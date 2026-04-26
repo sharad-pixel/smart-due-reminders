@@ -434,6 +434,35 @@ serve(async (req) => {
         }
 
         // ==========================================
+        // RUN RISK ENGINE (refresh credit intelligence daily)
+        // Invokes the risk-engine for this account so the digest's
+        // Credit Intelligence section always reflects current scores.
+        // ==========================================
+        if (!riskEngineRanForAccounts.has(accountId)) {
+          riskEngineRanForAccounts.add(accountId);
+          try {
+            const riskRes = await fetch(`${supabaseUrl}/functions/v1/risk-engine`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                ...(internalSecret ? { 'X-Internal-Secret': internalSecret } : {}),
+              },
+              body: JSON.stringify({ user_id: accountId, recalculate_all: true, use_ai: false }),
+            });
+            logStep('Risk engine ran for account', {
+              accountId,
+              ok: riskRes.ok,
+              status: riskRes.status,
+            });
+          } catch (riskErr) {
+            logStep('Risk engine invocation failed (non-fatal)', {
+              accountId,
+              error: (riskErr as Error).message,
+            });
+          }
+        }
+
+        // ==========================================
         // CREDIT INTELLIGENCE SCORING
         // Prefers D&B PAYDEX when available; falls back to the platform's
         // native payment_score (risk-engine) so the section always renders
