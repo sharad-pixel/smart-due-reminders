@@ -46,19 +46,21 @@ Deno.serve(async (req) => {
     errors: [],
   };
 
+  let batchRunId: string | null = null;
+  const supabaseAdmin = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    }
+  );
+
   try {
     console.log('[OUTREACH-ENGINE] Starting scheduled outreach engine...');
 
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    );
 
     const now = new Date();
     const today = new Date(now);
@@ -80,7 +82,7 @@ Deno.serve(async (req) => {
     } catch { /* no body */ }
 
     // Log batch run start
-    let batchRunId: string | null = null;
+    // batchRunId declared in outer scope
     if (userId) {
       const { data: batchRun } = await supabaseAdmin
         .from('outreach_batch_runs')

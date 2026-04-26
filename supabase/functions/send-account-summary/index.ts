@@ -20,6 +20,7 @@ interface Invoice {
   due_date: string;
   issue_date: string;
   status: string;
+  currency?: string;
 }
 
 interface Task {
