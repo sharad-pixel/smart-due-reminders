@@ -63,10 +63,14 @@ serve(async (req) => {
     const today = new Date().toISOString().split('T')[0];
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
-    
+
+    // Prior day window (yesterday 00:00 → today 00:00)
+    const yesterdayStart = new Date(todayStart);
+    yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+
     const last7DaysStart = new Date(todayStart);
     last7DaysStart.setDate(last7DaysStart.getDate() - 7);
-    
+
     const prev7DaysStart = new Date(last7DaysStart);
     prev7DaysStart.setDate(prev7DaysStart.getDate() - 7);
 
