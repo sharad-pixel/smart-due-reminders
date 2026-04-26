@@ -111,6 +111,8 @@ Recouply.ai is the Collections & Risk Intelligence Platform that plugs straight 
 ✅ Scores customer credit & payment risk before it hurts cash flow
 ✅ Gives clients a secure payment portal to pay in one click
 
+💼 Pricing built for everyone — from solo operators to enterprise finance teams.
+
 Truly set it and forget it AR. Try it here 👇
 ${link}
 
