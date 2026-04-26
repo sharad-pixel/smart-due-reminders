@@ -250,9 +250,20 @@ serve(async (req) => {
           .select('amount')
           .eq('user_id', accountId)
           .in('transaction_type', ['payment', 'credit'])
-          .gte('transaction_date', today);
+          .gte('transaction_date', todayStart.toISOString());
 
         const paymentsCollectedToday = paymentsToday?.reduce((sum, p) => sum + Number(p.amount || 0), 0) || 0;
+
+        // Prior day (yesterday 00:00 → today 00:00)
+        const { data: paymentsYesterday } = await supabase
+          .from('invoice_transactions')
+          .select('amount')
+          .eq('user_id', accountId)
+          .in('transaction_type', ['payment', 'credit'])
+          .gte('transaction_date', yesterdayStart.toISOString())
+          .lt('transaction_date', todayStart.toISOString());
+
+        const paymentsCollectedYesterday = paymentsYesterday?.reduce((sum, p) => sum + Number(p.amount || 0), 0) || 0;
 
         const { data: paymentsLast7 } = await supabase
           .from('invoice_transactions')
