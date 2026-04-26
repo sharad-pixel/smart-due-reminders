@@ -81,7 +81,6 @@ serve(async (req) => {
     // Track accounts already scored this run so team members don't re-trigger the engine
     const riskEngineRanForAccounts = new Set<string>();
     const internalSecret = Deno.env.get('INTERNAL_FUNCTION_SECRET');
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 
     for (const user of users || []) {
       try {
