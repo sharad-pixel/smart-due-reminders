@@ -329,13 +329,13 @@ serve(async (req) => {
         let collectionAlertsSummary: any = null;
 
         if (collectAlerts) {
-          const yesterdayStart = new Date(todayStart);
-          yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+          // yesterdayStart is defined at outer scope
 
-          // 1. Payments received in last 24h (with debtor info)
+          // 1. Payments received since yesterday 00:00 (covers prior day + any from today)
+          // Use LEFT joins so payments without a linked invoice/debtor still appear
           const { data: recentPayments } = await supabase
             .from('invoice_transactions')
-            .select('amount, transaction_date, invoices!inner(invoice_number, debtor_id, debtors!inner(company_name))')
+            .select('amount, transaction_date, invoices(invoice_number, debtor_id, debtors(company_name))')
             .eq('user_id', accountId)
             .in('transaction_type', ['payment', 'credit'])
             .gte('transaction_date', yesterdayStart.toISOString())
