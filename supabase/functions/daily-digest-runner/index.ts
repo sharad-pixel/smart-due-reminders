@@ -820,6 +820,7 @@ serve(async (req) => {
           ar_91_120: ar91_120,
           ar_120_plus: ar120Plus,
           payments_collected_today: paymentsCollectedToday,
+          payments_collected_yesterday: paymentsCollectedYesterday,
           payments_collected_last_7_days: paymentsCollectedLast7Days,
           payments_collected_prev_7_days: paymentsCollectedPrev7Days,
           collection_trend: collectionTrend,
@@ -926,6 +927,7 @@ serve(async (req) => {
               highPriorityTasks: enrichedHighPriorityTasks,
               totalArOutstanding,
               paymentsCollectedToday,
+              paymentsCollectedYesterday,
               highRiskArOutstanding,
               highRiskCustomersCount,
               healthScore,
@@ -1109,6 +1111,7 @@ function generateEmailHtml(data: {
   }>;
   totalArOutstanding: number;
   paymentsCollectedToday: number;
+  paymentsCollectedYesterday?: number;
   highRiskArOutstanding: number;
   highRiskCustomersCount: number;
   healthScore: number;
@@ -1449,6 +1452,7 @@ function generateEmailHtml(data: {
               <p style="margin: 0; color: ${BRAND.muted}; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
                 Collected Today
               </p>
+              ${typeof data.paymentsCollectedYesterday === 'number' ? `<p style="margin: 4px 0 0; color: ${BRAND.muted}; font-size: 10px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Yesterday: <span style="color: ${BRAND.foreground}; font-weight: 600;">${formatCurrency(data.paymentsCollectedYesterday)}</span></p>` : ''}
             </div>
           </td>
         </tr>
