@@ -425,7 +425,7 @@ export function processDraftContent(input: DraftContentInput): DraftContentOutpu
     daysPastDue,
     includeInvoiceLink = true,
     includePaymentLink = true,
-    _includeArPortal = true,
+    includeArPortal: _includeArPortal = true,
     includeSignature = true,
   } = input;
 
