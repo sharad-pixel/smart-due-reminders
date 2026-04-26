@@ -78,6 +78,10 @@ serve(async (req) => {
     const emailsSent: string[] = [];
     const welcomeEmailsSent: string[] = [];
 
+    // Track accounts already scored this run so team members don't re-trigger the engine
+    const riskEngineRanForAccounts = new Set<string>();
+    const internalSecret = Deno.env.get('INTERNAL_FUNCTION_SECRET');
+
     for (const user of users || []) {
       try {
         logStep('Processing user', { userId: user.id, email: user.email });
@@ -427,6 +431,35 @@ serve(async (req) => {
             responses: debtorResponses.length,
             riskChanges: riskTierChanges.length,
           });
+        }
+
+        // ==========================================
+        // RUN RISK ENGINE (refresh credit intelligence daily)
+        // Invokes the risk-engine for this account so the digest's
+        // Credit Intelligence section always reflects current scores.
+        // ==========================================
+        if (!riskEngineRanForAccounts.has(accountId)) {
+          riskEngineRanForAccounts.add(accountId);
+          try {
+            const riskRes = await fetch(`${supabaseUrl}/functions/v1/risk-engine`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                ...(internalSecret ? { 'X-Internal-Secret': internalSecret } : {}),
+              },
+              body: JSON.stringify({ user_id: accountId, recalculate_all: true, use_ai: false }),
+            });
+            logStep('Risk engine ran for account', {
+              accountId,
+              ok: riskRes.ok,
+              status: riskRes.status,
+            });
+          } catch (riskErr) {
+            logStep('Risk engine invocation failed (non-fatal)', {
+              accountId,
+              error: (riskErr as Error).message,
+            });
+          }
         }
 
         // ==========================================
