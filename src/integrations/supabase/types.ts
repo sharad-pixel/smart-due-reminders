@@ -1911,6 +1911,7 @@ export type Database = {
           payments_collected_last_7_days: number | null
           payments_collected_prev_7_days: number | null
           payments_collected_today: number | null
+          payments_collected_yesterday: number
           plan_type: string | null
           portfolio_risk_summary: Json | null
           remaining_quota: number | null
@@ -1960,6 +1961,7 @@ export type Database = {
           payments_collected_last_7_days?: number | null
           payments_collected_prev_7_days?: number | null
           payments_collected_today?: number | null
+          payments_collected_yesterday?: number
           plan_type?: string | null
           portfolio_risk_summary?: Json | null
           remaining_quota?: number | null
@@ -2009,6 +2011,7 @@ export type Database = {
           payments_collected_last_7_days?: number | null
           payments_collected_prev_7_days?: number | null
           payments_collected_today?: number | null
+          payments_collected_yesterday?: number
           plan_type?: string | null
           portfolio_risk_summary?: Json | null
           remaining_quota?: number | null

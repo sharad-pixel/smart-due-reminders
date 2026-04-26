@@ -1,0 +1,1 @@
+ALTER TABLE public.daily_digests ADD COLUMN IF NOT EXISTS payments_collected_yesterday numeric NOT NULL DEFAULT 0;
