@@ -241,10 +241,10 @@ serve(async (req) => {
       subject: processedSubject,
       bodyHtml: formattedBody,
       cta: paymentUrl ? {
-        label: `Pay Now${invoiceAmount ? ` - ${new Intl.NumberFormat('en-US', { style: 'currency', currency: invoiceData?.currency || 'USD' }).format(Number(invoiceAmount))}` : ''}`,
+        label: `Pay Now${invoiceAmount ? ` - ${new Intl.NumberFormat('en-US', { style: 'currency', currency: invoice?.currency || 'USD' }).format(Number(invoiceAmount))}` : ''}`,
         url: paymentUrl,
       } : branding?.stripe_payment_link ? {
-        label: `Pay Invoice${invoiceAmount ? ` - ${new Intl.NumberFormat('en-US', { style: 'currency', currency: invoiceData?.currency || 'USD' }).format(Number(invoiceAmount))}` : ''}`,
+        label: `Pay Invoice${invoiceAmount ? ` - ${new Intl.NumberFormat('en-US', { style: 'currency', currency: invoice?.currency || 'USD' }).format(Number(invoiceAmount))}` : ''}`,
         url: branding.stripe_payment_link,
       } : undefined,
       meta: {
