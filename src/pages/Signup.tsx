@@ -386,9 +386,10 @@ const Signup = () => {
   return (
     <>
       <SEOHead
-        title="Sign Up | Start Free Trial | Recouply.ai"
-        description="Create your Recouply.ai account and start automating invoice collection with AI-powered collection intelligence. 7-day free trial with full platform access."
+        title="Stripe + Recouply.ai — Set It and Forget It Collections"
+        description="AI-powered collections that plug straight into Stripe. Auto-sync invoices, send branded follow-ups, score customer credit risk, and get paid faster. Start free."
         canonical="https://recouply.ai/signup"
+        ogImage="https://recouply.ai/og-image-referral.jpg"
         noindex={false}
       />
       <div className="min-h-screen bg-background flex flex-col">
