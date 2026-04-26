@@ -63,10 +63,14 @@ serve(async (req) => {
     const today = new Date().toISOString().split('T')[0];
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
-    
+
+    // Prior day window (yesterday 00:00 → today 00:00)
+    const yesterdayStart = new Date(todayStart);
+    yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+
     const last7DaysStart = new Date(todayStart);
     last7DaysStart.setDate(last7DaysStart.getDate() - 7);
-    
+
     const prev7DaysStart = new Date(last7DaysStart);
     prev7DaysStart.setDate(prev7DaysStart.getDate() - 7);
 
@@ -246,9 +250,20 @@ serve(async (req) => {
           .select('amount')
           .eq('user_id', accountId)
           .in('transaction_type', ['payment', 'credit'])
-          .gte('transaction_date', today);
+          .gte('transaction_date', todayStart.toISOString());
 
         const paymentsCollectedToday = paymentsToday?.reduce((sum, p) => sum + Number(p.amount || 0), 0) || 0;
+
+        // Prior day (yesterday 00:00 → today 00:00)
+        const { data: paymentsYesterday } = await supabase
+          .from('invoice_transactions')
+          .select('amount')
+          .eq('user_id', accountId)
+          .in('transaction_type', ['payment', 'credit'])
+          .gte('transaction_date', yesterdayStart.toISOString())
+          .lt('transaction_date', todayStart.toISOString());
+
+        const paymentsCollectedYesterday = paymentsYesterday?.reduce((sum, p) => sum + Number(p.amount || 0), 0) || 0;
 
         const { data: paymentsLast7 } = await supabase
           .from('invoice_transactions')
@@ -314,13 +329,13 @@ serve(async (req) => {
         let collectionAlertsSummary: any = null;
 
         if (collectAlerts) {
-          const yesterdayStart = new Date(todayStart);
-          yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+          // yesterdayStart is defined at outer scope
 
-          // 1. Payments received in last 24h (with debtor info)
+          // 1. Payments received since yesterday 00:00 (covers prior day + any from today)
+          // Use LEFT joins so payments without a linked invoice/debtor still appear
           const { data: recentPayments } = await supabase
             .from('invoice_transactions')
-            .select('amount, transaction_date, invoices!inner(invoice_number, debtor_id, debtors!inner(company_name))')
+            .select('amount, transaction_date, invoices(invoice_number, debtor_id, debtors(company_name))')
             .eq('user_id', accountId)
             .in('transaction_type', ['payment', 'credit'])
             .gte('transaction_date', yesterdayStart.toISOString())
@@ -415,16 +430,17 @@ serve(async (req) => {
         }
 
         // ==========================================
-        // PAYDEX / CREDIT INTELLIGENCE SCORING
+        // CREDIT INTELLIGENCE SCORING
+        // Prefers D&B PAYDEX when available; falls back to the platform's
+        // native payment_score (risk-engine) so the section always renders
+        // for users without D&B integration.
         // ==========================================
-        // Fetch all debtors with PAYDEX scores for this account
         const { data: debtorsWithPaydex } = await supabase
           .from('debtors')
           .select('id, company_name, paydex_score, paydex_rating, payment_trend, credit_limit_recommendation, total_open_balance')
           .eq('user_id', accountId)
           .not('paydex_score', 'is', null);
 
-        // Calculate portfolio-level PAYDEX metrics
         let avgPaydexScore: number | null = null;
         let avgPaydexRating = 'N/A';
         let accountsPromptPayers = 0;
@@ -434,82 +450,102 @@ serve(async (req) => {
         let totalCreditLimitRecommended = 0;
         let portfolioRiskSummary: any = null;
 
-        if (debtorsWithPaydex && debtorsWithPaydex.length > 0) {
-          // Calculate average PAYDEX score
-          const totalPaydex = debtorsWithPaydex.reduce((sum, d) => sum + (d.paydex_score || 0), 0);
-          avgPaydexScore = Math.round(totalPaydex / debtorsWithPaydex.length);
+        // Helper: rating label by score bucket (D&B PAYDEX scale)
+        const ratingFor = (score: number) => {
+          if (score >= 80) return 'Prompt';
+          if (score >= 70) return 'Slow 1-15';
+          if (score >= 60) return 'Slow 16-30';
+          if (score >= 50) return 'Slow 31-60';
+          if (score >= 40) return 'Slow 61-90';
+          if (score >= 20) return 'Slow 91+';
+          return 'Severely Delinquent';
+        };
 
-          // Determine overall portfolio rating based on avg PAYDEX
-          if (avgPaydexScore >= 80) {
-            avgPaydexRating = 'Prompt';
-          } else if (avgPaydexScore >= 70) {
-            avgPaydexRating = 'Slow 1-15';
-          } else if (avgPaydexScore >= 60) {
-            avgPaydexRating = 'Slow 16-30';
-          } else if (avgPaydexScore >= 50) {
-            avgPaydexRating = 'Slow 31-60';
-          } else if (avgPaydexScore >= 40) {
-            avgPaydexRating = 'Slow 61-90';
-          } else if (avgPaydexScore >= 20) {
-            avgPaydexRating = 'Slow 91+';
-          } else {
-            avgPaydexRating = 'Severely Delinquent';
-          }
+        const usePaydex = debtorsWithPaydex && debtorsWithPaydex.length > 0;
 
-          // Count accounts by payment behavior
-          for (const debtor of debtorsWithPaydex) {
+        if (usePaydex) {
+          const totalPaydex = debtorsWithPaydex!.reduce((sum, d) => sum + (d.paydex_score || 0), 0);
+          avgPaydexScore = Math.round(totalPaydex / debtorsWithPaydex!.length);
+          avgPaydexRating = ratingFor(avgPaydexScore);
+
+          for (const debtor of debtorsWithPaydex!) {
             const score = debtor.paydex_score || 0;
-            if (score >= 80) {
-              accountsPromptPayers++;
-            } else if (score >= 50) {
-              accountsSlowPayers++;
-            } else {
-              accountsDelinquent++;
-            }
-
-            // Sum credit limit recommendations
+            if (score >= 80) accountsPromptPayers++;
+            else if (score >= 50) accountsSlowPayers++;
+            else accountsDelinquent++;
             totalCreditLimitRecommended += Number(debtor.credit_limit_recommendation || 0);
           }
 
-          // Determine overall payment trend
           const trendCounts = { Improving: 0, Stable: 0, Declining: 0 };
-          for (const debtor of debtorsWithPaydex) {
+          for (const debtor of debtorsWithPaydex!) {
             if (debtor.payment_trend && trendCounts[debtor.payment_trend as keyof typeof trendCounts] !== undefined) {
               trendCounts[debtor.payment_trend as keyof typeof trendCounts]++;
             }
           }
-          
-          if (trendCounts.Declining > trendCounts.Improving && trendCounts.Declining > trendCounts.Stable) {
-            avgPaymentTrend = 'Declining';
-          } else if (trendCounts.Improving > trendCounts.Declining && trendCounts.Improving > trendCounts.Stable) {
-            avgPaymentTrend = 'Improving';
-          } else {
-            avgPaymentTrend = 'Stable';
-          }
+          if (trendCounts.Declining > trendCounts.Improving && trendCounts.Declining > trendCounts.Stable) avgPaymentTrend = 'Declining';
+          else if (trendCounts.Improving > trendCounts.Declining && trendCounts.Improving > trendCounts.Stable) avgPaymentTrend = 'Improving';
+          else avgPaymentTrend = 'Stable';
 
-          // Build portfolio risk summary
           portfolioRiskSummary = {
-            total_accounts_scored: debtorsWithPaydex.length,
-            prompt_payers_pct: Math.round((accountsPromptPayers / debtorsWithPaydex.length) * 100),
-            slow_payers_pct: Math.round((accountsSlowPayers / debtorsWithPaydex.length) * 100),
-            delinquent_pct: Math.round((accountsDelinquent / debtorsWithPaydex.length) * 100),
+            total_accounts_scored: debtorsWithPaydex!.length,
+            prompt_payers_pct: Math.round((accountsPromptPayers / debtorsWithPaydex!.length) * 100),
+            slow_payers_pct: Math.round((accountsSlowPayers / debtorsWithPaydex!.length) * 100),
+            delinquent_pct: Math.round((accountsDelinquent / debtorsWithPaydex!.length) * 100),
             avg_score: avgPaydexScore,
             rating: avgPaydexRating,
             trend: avgPaymentTrend,
-            total_ar_at_risk: debtorsWithPaydex
+            source: 'paydex',
+            total_ar_at_risk: debtorsWithPaydex!
               .filter(d => (d.paydex_score || 0) < 50)
               .reduce((sum, d) => sum + Number(d.total_open_balance || 0), 0),
           };
 
           logStep('PAYDEX portfolio metrics calculated', {
-            avgPaydexScore,
-            avgPaydexRating,
-            accountsPromptPayers,
-            accountsSlowPayers,
-            accountsDelinquent,
-            avgPaymentTrend,
-            totalCreditLimitRecommended
+            avgPaydexScore, avgPaydexRating, accountsPromptPayers,
+            accountsSlowPayers, accountsDelinquent, avgPaymentTrend, totalCreditLimitRecommended,
           });
+        } else {
+          // Fallback: native risk-engine payment_score (0-100, same scale)
+          const { data: debtorsWithNativeScore } = await supabase
+            .from('debtors')
+            .select('id, company_name, payment_score, payment_risk_tier, credit_limit_recommendation, total_open_balance')
+            .eq('user_id', accountId)
+            .not('payment_score', 'is', null);
+
+          if (debtorsWithNativeScore && debtorsWithNativeScore.length > 0) {
+            const totalScore = debtorsWithNativeScore.reduce((sum, d) => sum + Number(d.payment_score || 0), 0);
+            avgPaydexScore = Math.round(totalScore / debtorsWithNativeScore.length);
+            avgPaydexRating = ratingFor(avgPaydexScore);
+
+            for (const debtor of debtorsWithNativeScore) {
+              const score = Number(debtor.payment_score || 0);
+              if (score >= 80) accountsPromptPayers++;
+              else if (score >= 50) accountsSlowPayers++;
+              else accountsDelinquent++;
+              totalCreditLimitRecommended += Number(debtor.credit_limit_recommendation || 0);
+            }
+
+            avgPaymentTrend = 'Stable';
+
+            portfolioRiskSummary = {
+              total_accounts_scored: debtorsWithNativeScore.length,
+              prompt_payers_pct: Math.round((accountsPromptPayers / debtorsWithNativeScore.length) * 100),
+              slow_payers_pct: Math.round((accountsSlowPayers / debtorsWithNativeScore.length) * 100),
+              delinquent_pct: Math.round((accountsDelinquent / debtorsWithNativeScore.length) * 100),
+              avg_score: avgPaydexScore,
+              rating: avgPaydexRating,
+              trend: avgPaymentTrend,
+              source: 'native_payment_score',
+              total_ar_at_risk: debtorsWithNativeScore
+                .filter(d => Number(d.payment_score || 0) < 50)
+                .reduce((sum, d) => sum + Number(d.total_open_balance || 0), 0),
+            };
+
+            logStep('Native payment_score portfolio metrics calculated (PAYDEX unavailable)', {
+              avgPaydexScore, accountsPromptPayers, accountsSlowPayers,
+              accountsDelinquent, totalCreditLimitRecommended,
+            });
+          }
         }
 
         // ==========================================
@@ -784,6 +820,7 @@ serve(async (req) => {
           ar_91_120: ar91_120,
           ar_120_plus: ar120Plus,
           payments_collected_today: paymentsCollectedToday,
+          payments_collected_yesterday: paymentsCollectedYesterday,
           payments_collected_last_7_days: paymentsCollectedLast7Days,
           payments_collected_prev_7_days: paymentsCollectedPrev7Days,
           collection_trend: collectionTrend,
@@ -890,6 +927,7 @@ serve(async (req) => {
               highPriorityTasks: enrichedHighPriorityTasks,
               totalArOutstanding,
               paymentsCollectedToday,
+              paymentsCollectedYesterday,
               highRiskArOutstanding,
               highRiskCustomersCount,
               healthScore,
@@ -1073,6 +1111,7 @@ function generateEmailHtml(data: {
   }>;
   totalArOutstanding: number;
   paymentsCollectedToday: number;
+  paymentsCollectedYesterday?: number;
   highRiskArOutstanding: number;
   highRiskCustomersCount: number;
   healthScore: number;
@@ -1413,6 +1452,7 @@ function generateEmailHtml(data: {
               <p style="margin: 0; color: ${BRAND.muted}; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
                 Collected Today
               </p>
+              ${typeof data.paymentsCollectedYesterday === 'number' ? `<p style="margin: 4px 0 0; color: ${BRAND.muted}; font-size: 10px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Yesterday: <span style="color: ${BRAND.foreground}; font-weight: 600;">${formatCurrency(data.paymentsCollectedYesterday)}</span></p>` : ''}
             </div>
           </td>
         </tr>
