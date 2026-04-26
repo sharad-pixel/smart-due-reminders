@@ -64,9 +64,21 @@ export function ReferralInviteCard() {
 
   const handleLinkedInShare = () => {
     const link = generateShareLink();
-    const title = "Stop chasing payments — let AI do it for you";
-    const summary = `I've been using Recouply.ai to streamline our accounts receivable and collections process — AI-powered outreach, risk intelligence, and a secure payment portal that makes it effortless for clients to pay on time.\n\nIf you're tired of manual follow-ups and overdue invoices, check it out. We both earn bonus credits when you sign up! 🚀`;
-    const linkedInUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(link)}&title=${encodeURIComponent(title)}&summary=${encodeURIComponent(summary)}`;
+    const shareText = `💸 Stripe + Recouply.ai = set it and forget it collections.
+
+If you run on Stripe, you already know invoices go out automatically — but chasing the unpaid ones still eats your week.
+
+Recouply.ai is the Collections & Risk Intelligence Platform that plugs straight into Stripe and:
+✅ Auto-syncs every invoice & payment in real time
+✅ Sends AI-powered, on-brand follow-ups so nothing slips
+✅ Scores customer credit & payment risk before it hurts cash flow
+✅ Gives clients a secure payment portal to pay in one click
+
+Truly set it and forget it AR. Try it here 👇
+${link}
+
+(We both earn bonus credits when you sign up 🚀) #AccountsReceivable #Stripe #Fintech #AI`;
+    const linkedInUrl = `https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(shareText)}`;
     window.open(linkedInUrl, "_blank", "noopener,noreferrer");
   };
 
