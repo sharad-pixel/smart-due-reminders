@@ -16,6 +16,9 @@ export function IngestionDashboard() {
       const accountId = (_eff as string | null) || user?.id;
       if (!user) return null;
 
+      const now = new Date();
+      const billingPeriod = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
       const [
         totalScanned,
         pendingExtraction,
@@ -27,6 +30,8 @@ export function IngestionDashboard() {
         duplicates,
         lowConfidence,
         auditEvents,
+        currentPeriodCharges,
+        allTimeCharges,
       ] = await Promise.all([
         supabase.from("ingestion_scanned_files").select("id", { count: "exact" }).eq("user_id", accountId),
         supabase.from("ingestion_scanned_files").select("id", { count: "exact" }).eq("user_id", accountId).eq("processing_status", "pending"),
@@ -38,7 +43,15 @@ export function IngestionDashboard() {
         supabase.from("ingestion_review_queue").select("id", { count: "exact" }).eq("user_id", accountId).eq("is_duplicate", true),
         supabase.from("ingestion_review_queue").select("id", { count: "exact" }).eq("user_id", accountId).lt("confidence_score", 50),
         supabase.from("ingestion_audit_log").select("id", { count: "exact" }).eq("user_id", accountId),
+        supabase.from("ingestion_usage_charges").select("charge_amount").eq("user_id", accountId).eq("billing_period", billingPeriod),
+        supabase.from("ingestion_usage_charges").select("charge_amount").eq("user_id", accountId),
       ]);
+
+      const sum = (rows: any) => (rows?.data || []).reduce((s: number, r: any) => s + Number(r.charge_amount || 0), 0);
+      const periodScanCount = (currentPeriodCharges?.data || []).length;
+      const periodTotal = sum(currentPeriodCharges);
+      const allTimeScanCount = (allTimeCharges?.data || []).length;
+      const allTimeTotal = sum(allTimeCharges);
 
       return {
         totalScanned: totalScanned.count || 0,
