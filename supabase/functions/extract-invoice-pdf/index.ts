@@ -151,12 +151,25 @@ Deno.serve(async (req) => {
 
     logStep('Downloaded PDF', { size: pdfBuffer.byteLength });
 
-    // Use Lovable AI with vision to extract invoice data
-    const extractionPrompt = `You are an expert invoice data extraction system. Analyze this PDF invoice image and extract the following fields precisely:
+    // Use Lovable AI with vision + OCR to extract invoice data.
+    // Gemini 2.5 Flash natively performs OCR on scanned/image-based PDFs as well as
+    // digital PDFs, so we explicitly instruct it to read all visible text including
+    // handwritten notes, stamps, and low-quality scans.
+    const extractionPrompt = `You are an expert invoice data extraction system with built-in OCR (Optical Character Recognition).
+
+The attached file may be:
+- A digital/text-based PDF
+- A scanned paper invoice (image-based PDF)
+- A photo of an invoice
+- A low-resolution or skewed scan
+
+Use OCR to read ALL visible text in the document — including printed text, stamps, handwritten notes, and low-quality scans. If the document is rotated or skewed, mentally rotate it before reading.
+
+Extract the following fields precisely:
 
 1. invoice_number - The invoice number or reference
 2. invoice_date - The invoice/issue date (YYYY-MM-DD format)
-3. due_date - The payment due date (YYYY-MM-DD format)  
+3. due_date - The payment due date (YYYY-MM-DD format)
 4. debtor_name - The customer/client name (individual)
 5. company_name - The customer/client company name
 6. amount - The total invoice amount (number only, no currency symbols)

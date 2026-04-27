@@ -582,7 +582,7 @@ const Pricing = () => {
                   </div>
                   <div>
                     <h3 className="text-lg font-bold">AI Smart Ingestion</h3>
-                    <p className="text-sm text-muted-foreground">Google Drive PDF extraction — available on all plans</p>
+                    <p className="text-sm text-muted-foreground">Google Drive PDF extraction with built-in OCR — available on all plans</p>
                   </div>
                   <Badge className="ml-auto bg-primary/10 text-primary border-primary/20 hover:bg-primary/15">Add-on</Badge>
                 </div>
@@ -593,7 +593,7 @@ const Pricing = () => {
                 <ul className="space-y-2 text-sm text-muted-foreground mb-4">
                   <li className="flex items-center gap-2">
                     <Check className="h-4 w-4 text-primary shrink-0" />
-                    AI extracts invoice data from PDF files in your Google Drive
+                    AI + OCR reads any PDF — digital, scanned paper invoices, or photos
                   </li>
                   <li className="flex items-center gap-2">
                     <Check className="h-4 w-4 text-primary shrink-0" />

@@ -355,9 +355,14 @@ const DataCenter = () => {
                 <Zap className="h-4 w-4 text-primary" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold">AI Smart Data Ingestion</h2>
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  AI Smart Data Ingestion
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-accent/10 text-accent border border-accent/20">
+                    OCR Built-In
+                  </span>
+                </h2>
                 <p className="text-xs text-muted-foreground">
-                  Connect Google Drive to scan invoices, import accounts from Sheets, and manage data with AI-powered review
+                  Connect Google Drive to scan any invoice PDF — digital, scanned paper, or photos — with built-in OCR, AI extraction, and human-in-the-loop review
                 </p>
               </div>
             </div>
