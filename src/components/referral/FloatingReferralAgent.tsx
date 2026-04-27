@@ -10,6 +10,7 @@ import { Gift, Mail, Linkedin, Copy, Check, Sparkles, Send, X, ChevronDown } fro
 import { useReferrals } from "@/hooks/useReferrals";
 import { useSubscription } from "@/hooks/useSubscription";
 import { motion, AnimatePresence } from "framer-motion";
+import { buildLinkedInShareUrl } from "@/lib/linkedinShareMessages";
 
 import jamesAvatar from "@/assets/personas/james.png";
 import katyAvatar from "@/assets/personas/katy.png";
@@ -101,24 +102,10 @@ export function FloatingReferralAgent() {
 
   const handleLinkedInShare = () => {
     const link = generateShareLink();
-    const shareText = `💸 Stripe + Recouply.ai = set it and forget it collections.
-
-If you run on Stripe, you already know invoices go out automatically — but chasing the unpaid ones still eats your week.
-
-Recouply.ai is the Collections & Risk Intelligence Platform that plugs straight into Stripe and:
-✅ Auto-syncs every invoice & payment in real time
-✅ Sends AI-powered, on-brand follow-ups so nothing slips
-✅ Scores customer credit & payment risk before it hurts cash flow
-✅ Gives clients a secure payment portal to pay in one click
-
-💼 Pricing built for everyone — from solo operators to enterprise finance teams.
-
-Truly set it and forget it AR. Try it here 👇
-${link}
-
-(We both earn bonus credits when you sign up 🚀) #AccountsReceivable #Stripe #Fintech #AI`;
-    // LinkedIn's feed composer reliably pre-populates text via shareActive
-    const linkedInUrl = `https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(shareText)}`;
+    // Randomized message (1 of 12) signed by a Recouply agent.
+    // Note: LinkedIn's share URL only carries text — image previews come
+    // from Open Graph meta tags on the destination page.
+    const linkedInUrl = buildLinkedInShareUrl(link);
     window.open(linkedInUrl, "_blank", "noopener,noreferrer");
   };
 
