@@ -145,16 +145,19 @@ const ConsumptionTracker = () => {
           const currentPeriod = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
           const { data: ingestionData, count } = await supabase
             .from("ingestion_usage_charges")
-            .select("charge_amount", { count: "exact" })
+            .select("charge_amount, page_count", { count: "exact" })
             .eq("user_id", user.id)
             .eq("billing_period", currentPeriod);
           
           const fileCount = count || 0;
           const totalCharges = (ingestionData || []).reduce((sum: number, row: any) => sum + (row.charge_amount || 0), 0);
+          const pageCount = (ingestionData || []).reduce((sum: number, row: any) => sum + Number(row.page_count || 1), 0);
           setIngestionCharges({
             fileCount,
+            pageCount,
             totalCharges,
             ratePerFile: 0.75,
+            ratePerPage: 0.75,
             period: currentPeriod,
           });
         }

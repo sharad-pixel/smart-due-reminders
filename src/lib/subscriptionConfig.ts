@@ -97,10 +97,13 @@ export const SEAT_PRICING = {
 } as const;
 
 /**
- * AI Smart Ingestion pricing (per-file, usage-based)
+ * AI Smart Ingestion pricing (per-page, usage-based).
+ * `perFile` is kept as an alias for backwards compatibility — it represents
+ * the per-page rate. Total charge per approved scan = perPage × page_count.
  */
 export const SMART_INGESTION_PRICING = {
-  perFile: 0.75,
+  perPage: 0.75,
+  perFile: 0.75, // legacy alias — same value, now applied per page
   currency: 'USD',
   billingCadence: 'monthly',
   chargeOnApprovalOnly: true,
