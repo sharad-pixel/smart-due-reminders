@@ -71,7 +71,7 @@ interface ReviewItem {
   duplicate_invoice_id: string | null;
   validation_errors: string[] | null;
   created_at: string;
-  ingestion_scanned_files?: { file_name: string; file_id: string };
+  ingestion_scanned_files?: { file_name: string; file_id: string; page_count?: number | null };
 }
 
 export function IngestionReviewQueue() {
@@ -104,7 +104,7 @@ export function IngestionReviewQueue() {
       if (!accountId) return [];
       let query = supabase
         .from("ingestion_review_queue")
-        .select("*, ingestion_scanned_files(file_name, file_id)")
+        .select("*, ingestion_scanned_files(file_name, file_id, page_count)")
         .eq("user_id", accountId)
         .order("created_at", { ascending: false })
         .limit(100);
@@ -289,13 +289,17 @@ export function IngestionReviewQueue() {
 
       const now = new Date();
       const billingPeriod = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+      const pageCount = Math.max(1, Number((item.ingestion_scanned_files as any)?.page_count || 1));
+      const PER_PAGE_RATE = 0.75;
+      const chargeAmount = Number((PER_PAGE_RATE * pageCount).toFixed(2));
       await supabase.from("ingestion_usage_charges").insert({
         user_id: accountId,
         organization_id: orgId,
         review_item_id: item.id,
         scanned_file_id: item.scanned_file_id,
         file_name: item.ingestion_scanned_files?.file_name || item.extracted_invoice_number || "Unknown",
-        charge_amount: 0.75,
+        charge_amount: chargeAmount,
+        page_count: pageCount,
         billing_period: billingPeriod,
       } as any);
 
@@ -309,12 +313,14 @@ export function IngestionReviewQueue() {
           invoice_id: newInvoice.id,
           debtor_id: debtorId,
           edits_made: !!edits,
-          ingestion_charge: 0.75,
+          ingestion_charge: chargeAmount,
+          page_count: pageCount,
+          rate_per_page: PER_PAGE_RATE,
         },
       });
 
-      // Report usage to Stripe (non-blocking)
-      supabase.functions.invoke("report-ingestion-usage").catch((err) =>
+      // Report usage to Stripe (non-blocking) — bill 1 unit per page
+      supabase.functions.invoke("report-ingestion-usage", { body: { quantity: pageCount } }).catch((err) =>
         console.warn("[Ingestion] Stripe usage report failed:", err)
       );
 
@@ -465,18 +471,21 @@ export function IngestionReviewQueue() {
 
           const now = new Date();
           const billingPeriod = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+          const pageCount = Math.max(1, Number((item.ingestion_scanned_files as any)?.page_count || 1));
+          const chargeAmount = Number((0.75 * pageCount).toFixed(2));
           await supabase.from("ingestion_usage_charges").insert({
             user_id: accountId,
             organization_id: orgId,
             review_item_id: item.id,
             scanned_file_id: item.scanned_file_id,
             file_name: item.ingestion_scanned_files?.file_name || item.extracted_invoice_number || "Unknown",
-            charge_amount: 0.75,
+            charge_amount: chargeAmount,
+            page_count: pageCount,
             billing_period: billingPeriod,
           } as any);
 
-          // Report each file usage to Stripe (non-blocking)
-          supabase.functions.invoke("report-ingestion-usage").catch(() => {});
+          // Report each file usage to Stripe (non-blocking) — bill 1 unit per page
+          supabase.functions.invoke("report-ingestion-usage", { body: { quantity: pageCount } }).catch(() => {});
 
           successCount++;
         } catch {

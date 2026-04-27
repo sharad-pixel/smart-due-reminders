@@ -147,9 +147,39 @@ Deno.serve(async (req) => {
     }
 
     const pdfBuffer = await pdfRes.arrayBuffer();
-    const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfBuffer)));
+    const pdfBytes = new Uint8Array(pdfBuffer);
+    const pdfBase64 = btoa(String.fromCharCode(...pdfBytes));
 
-    logStep('Downloaded PDF', { size: pdfBuffer.byteLength });
+    // Detect PDF page count by scanning the raw PDF for page objects.
+    // Supports standard PDFs; defaults to 1 if detection fails.
+    let pageCount = 1;
+    try {
+      const decoder = new TextDecoder('latin1');
+      const pdfText = decoder.decode(pdfBytes);
+      // Try /N (page tree count) first — most reliable
+      const nMatches = [...pdfText.matchAll(/\/Type\s*\/Pages[\s\S]*?\/Count\s+(\d+)/g)]
+        .map((m) => parseInt(m[1], 10))
+        .filter((n) => Number.isFinite(n) && n > 0);
+      if (nMatches.length > 0) {
+        pageCount = Math.max(...nMatches);
+      } else {
+        // Fallback: count /Type /Page (not /Pages) occurrences
+        const pageMatches = pdfText.match(/\/Type\s*\/Page(?!s)/g);
+        if (pageMatches && pageMatches.length > 0) {
+          pageCount = pageMatches.length;
+        }
+      }
+    } catch (e) {
+      logStep('Page count detection failed, defaulting to 1', { error: String(e) });
+    }
+    pageCount = Math.max(1, pageCount);
+
+    // Persist page count for billing
+    await supabase.from('ingestion_scanned_files').update({
+      page_count: pageCount,
+    }).eq('id', scannedFileId);
+
+    logStep('Downloaded PDF', { size: pdfBuffer.byteLength, pageCount });
 
     // Use Lovable AI with vision + OCR to extract invoice data.
     // Gemini 2.5 Flash natively performs OCR on scanned/image-based PDFs as well as

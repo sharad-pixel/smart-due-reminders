@@ -26,8 +26,10 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 
 interface IngestionChargesData {
   fileCount: number;
+  pageCount: number;
   totalCharges: number;
   ratePerFile: number;
+  ratePerPage: number;
   period: string;
 }
 
@@ -145,16 +147,19 @@ const ConsumptionTracker = () => {
           const currentPeriod = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
           const { data: ingestionData, count } = await supabase
             .from("ingestion_usage_charges")
-            .select("charge_amount", { count: "exact" })
+            .select("charge_amount, page_count", { count: "exact" })
             .eq("user_id", user.id)
             .eq("billing_period", currentPeriod);
           
           const fileCount = count || 0;
           const totalCharges = (ingestionData || []).reduce((sum: number, row: any) => sum + (row.charge_amount || 0), 0);
+          const pageCount = (ingestionData || []).reduce((sum: number, row: any) => sum + Number(row.page_count || 1), 0);
           setIngestionCharges({
             fileCount,
+            pageCount,
             totalCharges,
             ratePerFile: 0.75,
+            ratePerPage: 0.75,
             period: currentPeriod,
           });
         }
@@ -470,10 +475,14 @@ const ConsumptionTracker = () => {
                     <FileText className="h-5 w-5 text-primary" />
                     <h4 className="font-semibold">Smart Ingestion Charges</h4>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-3 gap-3">
                     <div className="text-center p-3 bg-primary/10 rounded-lg">
                       <p className="text-3xl font-bold text-primary">{ingestionCharges.fileCount}</p>
-                      <p className="text-xs text-muted-foreground">Files Processed</p>
+                      <p className="text-xs text-muted-foreground">Files Approved</p>
+                    </div>
+                    <div className="text-center p-3 bg-primary/10 rounded-lg">
+                      <p className="text-3xl font-bold text-primary">{ingestionCharges.pageCount}</p>
+                      <p className="text-xs text-muted-foreground">Pages Billed</p>
                     </div>
                     <div className="text-center p-3 bg-primary/10 rounded-lg">
                       <p className="text-3xl font-bold text-primary">
@@ -483,8 +492,8 @@ const ConsumptionTracker = () => {
                     </div>
                   </div>
                   <div className="mt-3 text-sm text-muted-foreground text-center">
-                    <span className="font-medium">{ingestionCharges.fileCount} files</span> × 
-                    <span className="font-medium ml-1">${ingestionCharges.ratePerFile.toFixed(2)}/file</span> = 
+                    <span className="font-medium">{ingestionCharges.pageCount} pages</span> × 
+                    <span className="font-medium ml-1">${ingestionCharges.ratePerPage.toFixed(2)}/page</span> = 
                     <span className="font-bold ml-1 text-foreground">{formatPrice(ingestionCharges.totalCharges)}</span>
                   </div>
                 </div>

@@ -4563,6 +4563,7 @@ export type Database = {
           is_duplicate: boolean | null
           mime_type: string | null
           organization_id: string | null
+          page_count: number
           processing_completed_at: string | null
           processing_started_at: string | null
           processing_status: string | null
@@ -4587,6 +4588,7 @@ export type Database = {
           is_duplicate?: boolean | null
           mime_type?: string | null
           organization_id?: string | null
+          page_count?: number
           processing_completed_at?: string | null
           processing_started_at?: string | null
           processing_status?: string | null
@@ -4611,6 +4613,7 @@ export type Database = {
           is_duplicate?: boolean | null
           mime_type?: string | null
           organization_id?: string | null
+          page_count?: number
           processing_completed_at?: string | null
           processing_started_at?: string | null
           processing_status?: string | null
@@ -4644,6 +4647,7 @@ export type Database = {
           file_name: string | null
           id: string
           organization_id: string | null
+          page_count: number
           review_item_id: string | null
           scanned_file_id: string | null
           stripe_invoice_item_id: string | null
@@ -4657,6 +4661,7 @@ export type Database = {
           file_name?: string | null
           id?: string
           organization_id?: string | null
+          page_count?: number
           review_item_id?: string | null
           scanned_file_id?: string | null
           stripe_invoice_item_id?: string | null
@@ -4670,6 +4675,7 @@ export type Database = {
           file_name?: string | null
           id?: string
           organization_id?: string | null
+          page_count?: number
           review_item_id?: string | null
           scanned_file_id?: string | null
           stripe_invoice_item_id?: string | null

@@ -587,8 +587,8 @@ const Pricing = () => {
                   <Badge className="ml-auto bg-primary/10 text-primary border-primary/20 hover:bg-primary/15">Add-on</Badge>
                 </div>
                 <div className="flex items-baseline gap-1 mb-3">
-                  <span className="text-4xl font-bold text-primary">{formatPrice(SMART_INGESTION_PRICING.perFile, { showCents: true })}</span>
-                  <span className="text-muted-foreground">per approved file</span>
+                  <span className="text-4xl font-bold text-primary">{formatPrice(SMART_INGESTION_PRICING.perPage, { showCents: true })}</span>
+                  <span className="text-muted-foreground">per page</span>
                 </div>
                 <ul className="space-y-2 text-sm text-muted-foreground mb-4">
                   <li className="flex items-center gap-2">
@@ -597,11 +597,11 @@ const Pricing = () => {
                   </li>
                   <li className="flex items-center gap-2">
                     <Check className="h-4 w-4 text-primary shrink-0" />
-                    Only charged when you approve — rejected & duplicate files are free
+                    Billed per page (e.g. a 3-page invoice = $2.25) — only on approval
                   </li>
                   <li className="flex items-center gap-2">
                     <Check className="h-4 w-4 text-primary shrink-0" />
-                    Charges aggregated monthly on your existing billing cycle
+                    Rejected & duplicate files are free • aggregated monthly on your billing cycle
                   </li>
                 </ul>
                 <Button variant="outline" className="w-full gap-2" onClick={() => navigate("/signup")}>

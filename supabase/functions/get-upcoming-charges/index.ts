@@ -437,16 +437,20 @@ Deno.serve(async (req) => {
       .eq("status", "active")
       .eq("is_owner", false);
 
-    // Fetch ingestion usage charges for current period
+    // Fetch ingestion usage charges for current period (per-page billing)
     const { data: ingestionData, count: ingestionCount } = await supabaseClient
       .from("ingestion_usage_charges")
-      .select("charge_amount", { count: "exact" })
+      .select("charge_amount, page_count", { count: "exact" })
       .eq("user_id", accountId)
       .eq("billing_period", currentMonth);
 
     const ingestionFileCount = ingestionCount || 0;
+    const ingestionPageCount = (ingestionData || []).reduce(
+      (sum: number, row: any) => sum + Number(row.page_count || 1),
+      0
+    );
     const ingestionTotal = (ingestionData || []).reduce((sum: number, row: any) => sum + (row.charge_amount || 0), 0);
-    logStep("Ingestion charges", { fileCount: ingestionFileCount, total: ingestionTotal });
+    logStep("Ingestion charges", { fileCount: ingestionFileCount, pageCount: ingestionPageCount, total: ingestionTotal });
 
     // Fetch recent Stripe invoices
     let recentInvoices: any[] = [];
@@ -518,14 +522,15 @@ Deno.serve(async (req) => {
           invoice_overages: usageData?.overage_invoices || 0,
         },
         ingestion_charges: {
-          items: ingestionFileCount > 0 ? [{
-            description: `Smart Ingestion (${ingestionFileCount} files × $0.75)`,
+          items: ingestionPageCount > 0 ? [{
+            description: `Smart Ingestion (${ingestionPageCount} pages × $0.75 across ${ingestionFileCount} file${ingestionFileCount === 1 ? "" : "s"})`,
             amount: ingestionTotal,
-            quantity: ingestionFileCount,
+            quantity: ingestionPageCount,
           }] : [],
           total: ingestionTotal,
           file_count: ingestionFileCount,
-          rate_per_file: 0.75,
+          page_count: ingestionPageCount,
+          rate_per_page: 0.75,
         },
         prorations: {
           items: prorations,
@@ -540,8 +545,9 @@ Deno.serve(async (req) => {
         },
         ingestion: {
           file_count: ingestionFileCount,
+          page_count: ingestionPageCount,
           total_charges: ingestionTotal,
-          rate_per_file: 0.75,
+          rate_per_page: 0.75,
         },
         seats: {
           billable: seatCount || 0,

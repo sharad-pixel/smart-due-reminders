@@ -110,19 +110,33 @@ serve(async (req) => {
       });
     }
 
-    // Report 1 unit of usage for this approved file
+    // Parse optional quantity from request body (defaults to 1 page)
+    let quantity = 1;
+    try {
+      if (req.headers.get("content-type")?.includes("application/json")) {
+        const body = await req.json();
+        const q = Number(body?.quantity);
+        if (Number.isFinite(q) && q >= 1) {
+          quantity = Math.floor(q);
+        }
+      }
+    } catch (_e) {
+      // No body or invalid JSON — keep default of 1
+    }
+
+    // Report N units of usage (1 unit per page) for this approved file
     await stripe.subscriptionItems.createUsageRecord(
       meteredItem.id,
       {
-        quantity: 1,
+        quantity,
         action: "increment",
         timestamp: Math.floor(Date.now() / 1000),
       }
     );
 
-    logStep("Reported 1 ingestion file usage to Stripe", { itemId: meteredItem.id });
+    logStep("Reported ingestion page usage to Stripe", { itemId: meteredItem.id, quantity });
 
-    return new Response(JSON.stringify({ success: true, reported: true }), {
+    return new Response(JSON.stringify({ success: true, reported: true, quantity }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: unknown) {
