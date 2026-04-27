@@ -10,6 +10,7 @@ import { Gift, Mail, Linkedin, Copy, Check, Sparkles, Send, X, ChevronDown } fro
 import { useReferrals } from "@/hooks/useReferrals";
 import { useSubscription } from "@/hooks/useSubscription";
 import { motion, AnimatePresence } from "framer-motion";
+import { buildLinkedInShareUrl } from "@/lib/linkedinShareMessages";
 
 import jamesAvatar from "@/assets/personas/james.png";
 import katyAvatar from "@/assets/personas/katy.png";
