@@ -1,7 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, FileText, CheckCircle2, XCircle, Eye, Scan, BarChart3 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, FileText, CheckCircle2, XCircle, Eye, Scan, BarChart3, DollarSign } from "lucide-react";
+import { SMART_INGESTION_PRICING } from "@/lib/subscriptionConfig";
 
 export function IngestionDashboard() {
   const { data: stats, isLoading } = useQuery({
@@ -14,6 +16,9 @@ export function IngestionDashboard() {
       const accountId = (_eff as string | null) || user?.id;
       if (!user) return null;
 
+      const now = new Date();
+      const billingPeriod = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
       const [
         totalScanned,
         pendingExtraction,
@@ -25,6 +30,8 @@ export function IngestionDashboard() {
         duplicates,
         lowConfidence,
         auditEvents,
+        currentPeriodCharges,
+        allTimeCharges,
       ] = await Promise.all([
         supabase.from("ingestion_scanned_files").select("id", { count: "exact" }).eq("user_id", accountId),
         supabase.from("ingestion_scanned_files").select("id", { count: "exact" }).eq("user_id", accountId).eq("processing_status", "pending"),
@@ -36,7 +43,15 @@ export function IngestionDashboard() {
         supabase.from("ingestion_review_queue").select("id", { count: "exact" }).eq("user_id", accountId).eq("is_duplicate", true),
         supabase.from("ingestion_review_queue").select("id", { count: "exact" }).eq("user_id", accountId).lt("confidence_score", 50),
         supabase.from("ingestion_audit_log").select("id", { count: "exact" }).eq("user_id", accountId),
+        supabase.from("ingestion_usage_charges").select("charge_amount").eq("user_id", accountId).eq("billing_period", billingPeriod),
+        supabase.from("ingestion_usage_charges").select("charge_amount").eq("user_id", accountId),
       ]);
+
+      const sum = (rows: any) => (rows?.data || []).reduce((s: number, r: any) => s + Number(r.charge_amount || 0), 0);
+      const periodScanCount = (currentPeriodCharges?.data || []).length;
+      const periodTotal = sum(currentPeriodCharges);
+      const allTimeScanCount = (allTimeCharges?.data || []).length;
+      const allTimeTotal = sum(allTimeCharges);
 
       return {
         totalScanned: totalScanned.count || 0,
@@ -49,6 +64,11 @@ export function IngestionDashboard() {
         duplicates: duplicates.count || 0,
         lowConfidence: lowConfidence.count || 0,
         auditEvents: auditEvents.count || 0,
+        periodScanCount,
+        periodTotal,
+        allTimeScanCount,
+        allTimeTotal,
+        billingPeriod,
       };
     },
   });
@@ -146,6 +166,50 @@ export function IngestionDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* OCR Billing Counter */}
+      <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <CardTitle className="text-base flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-primary" /> AI Smart Ingestion — OCR Usage & Billing
+              </CardTitle>
+              <CardDescription>
+                Each approved OCR scan is billed at ${SMART_INGESTION_PRICING.perFile.toFixed(2)} via Stripe metered usage. Rejected and duplicate scans are never charged.
+              </CardDescription>
+            </div>
+            <Badge variant="outline" className="text-xs">Period: {stats.billingPeriod}</Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="rounded-lg border bg-background/60 p-3">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground flex items-center gap-1">
+                <Scan className="h-3 w-3" /> OCR Scans (This Period)
+              </p>
+              <p className="text-2xl font-bold text-primary mt-1">{stats.periodScanCount}</p>
+              <p className="text-xs text-muted-foreground mt-1">Billable approved files</p>
+            </div>
+            <div className="rounded-lg border bg-background/60 p-3">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground flex items-center gap-1">
+                <DollarSign className="h-3 w-3" /> Current Period Billed
+              </p>
+              <p className="text-2xl font-bold text-green-600 mt-1">${stats.periodTotal.toFixed(2)}</p>
+              <p className="text-xs text-muted-foreground mt-1">Reported to Stripe metered usage</p>
+            </div>
+            <div className="rounded-lg border bg-background/60 p-3">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground flex items-center gap-1">
+                <BarChart3 className="h-3 w-3" /> All-Time Totals
+              </p>
+              <p className="text-2xl font-bold mt-1">
+                {stats.allTimeScanCount} <span className="text-sm text-muted-foreground font-normal">scans</span>
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">${stats.allTimeTotal.toFixed(2)} total billed</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Audit Trail */}
       <Card>
