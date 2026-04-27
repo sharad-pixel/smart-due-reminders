@@ -17,8 +17,10 @@ export const SHARE_AGENTS: ShareAgent[] = [
   { name: "Nicolas", emoji: "🧑‍🏫", role: "Collections Advisor" },
 ];
 
+const RECOUPLY_LINKEDIN = "https://www.linkedin.com/company/recouplyai-inc";
+
 const signature = (agent: ShareAgent) =>
-  `\n\n— Shared by ${agent.emoji} ${agent.name}, your ${agent.role} on Recouply.ai`;
+  `\n\n— Shared by ${agent.emoji} ${agent.name}, your ${agent.role} on Recouply.ai\n👉 Follow Recouply.ai on LinkedIn: ${RECOUPLY_LINKEDIN}`;
 
 const HASHTAGS = "#AccountsReceivable #Stripe #Fintech #AI #CashFlow #Collections";
 
