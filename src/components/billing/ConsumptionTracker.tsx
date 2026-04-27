@@ -26,8 +26,10 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 
 interface IngestionChargesData {
   fileCount: number;
+  pageCount: number;
   totalCharges: number;
   ratePerFile: number;
+  ratePerPage: number;
   period: string;
 }
 
@@ -473,10 +475,14 @@ const ConsumptionTracker = () => {
                     <FileText className="h-5 w-5 text-primary" />
                     <h4 className="font-semibold">Smart Ingestion Charges</h4>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-3 gap-3">
                     <div className="text-center p-3 bg-primary/10 rounded-lg">
                       <p className="text-3xl font-bold text-primary">{ingestionCharges.fileCount}</p>
-                      <p className="text-xs text-muted-foreground">Files Processed</p>
+                      <p className="text-xs text-muted-foreground">Files Approved</p>
+                    </div>
+                    <div className="text-center p-3 bg-primary/10 rounded-lg">
+                      <p className="text-3xl font-bold text-primary">{ingestionCharges.pageCount}</p>
+                      <p className="text-xs text-muted-foreground">Pages Billed</p>
                     </div>
                     <div className="text-center p-3 bg-primary/10 rounded-lg">
                       <p className="text-3xl font-bold text-primary">
@@ -486,8 +492,8 @@ const ConsumptionTracker = () => {
                     </div>
                   </div>
                   <div className="mt-3 text-sm text-muted-foreground text-center">
-                    <span className="font-medium">{ingestionCharges.fileCount} files</span> × 
-                    <span className="font-medium ml-1">${ingestionCharges.ratePerFile.toFixed(2)}/file</span> = 
+                    <span className="font-medium">{ingestionCharges.pageCount} pages</span> × 
+                    <span className="font-medium ml-1">${ingestionCharges.ratePerPage.toFixed(2)}/page</span> = 
                     <span className="font-bold ml-1 text-foreground">{formatPrice(ingestionCharges.totalCharges)}</span>
                   </div>
                 </div>
