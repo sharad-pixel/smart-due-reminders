@@ -64,6 +64,11 @@ export function IngestionDashboard() {
         duplicates: duplicates.count || 0,
         lowConfidence: lowConfidence.count || 0,
         auditEvents: auditEvents.count || 0,
+        periodScanCount,
+        periodTotal,
+        allTimeScanCount,
+        allTimeTotal,
+        billingPeriod,
       };
     },
   });
