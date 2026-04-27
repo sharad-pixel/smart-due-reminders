@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Gift, Mail, Linkedin, Copy, Check, Sparkles, Send } from "lucide-react";
 import { useReferrals } from "@/hooks/useReferrals";
 import { useSubscription } from "@/hooks/useSubscription";
+import { buildLinkedInShareUrl } from "@/lib/linkedinShareMessages";
 
 const PLAN_CREDITS: Record<string, number> = {
   solo_pro: 20,
