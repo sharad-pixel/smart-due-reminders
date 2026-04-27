@@ -24,7 +24,7 @@ const faqs = [
   },
   {
     question: "Do you integrate with my existing tools?",
-    answer: "Yes! Recouply.ai integrates with Stripe and QuickBooks for real-time invoice syncing. We also offer AI Smart Ingestion — connect your Google Drive folder and our AI extracts invoice data from PDFs automatically. Additional integrations with NetSuite, Salesforce, and more are coming soon."
+    answer: "Yes! Recouply.ai integrates with Stripe and QuickBooks for real-time invoice syncing. We also offer AI Smart Ingestion with built-in OCR — connect your Google Drive folder and our AI reads any invoice PDF (digital exports, scanned paper invoices, or even phone photos) and extracts the data automatically. Additional integrations with NetSuite, Salesforce, and more are coming soon."
   },
 ];
 

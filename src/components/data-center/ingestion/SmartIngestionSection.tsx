@@ -373,8 +373,7 @@ export function SmartIngestionSection() {
           </div>
           <h3 className="text-lg font-semibold mb-2">Connect Google Drive</h3>
           <p className="text-sm text-muted-foreground max-w-md mb-6">
-            Connect your Google Drive to automatically scan invoice PDFs, extract data using AI, 
-            and import clean records into Recouply with full review control.
+            Connect your Google Drive to automatically scan any invoice PDF — digital exports, scanned paper invoices, or even phone photos — extract data with built-in OCR + AI, and import clean records into Recouply with full review control.
           </p>
           {isGoogleUser && (
             <div className="mb-4 p-3 rounded-lg bg-primary/5 border border-primary/20 max-w-md">
@@ -386,6 +385,7 @@ export function SmartIngestionSection() {
           )}
           <div className="flex flex-wrap justify-center gap-3 mb-6 text-xs text-muted-foreground">
             <span className="flex items-center gap-1"><Shield className="h-3 w-3" /> Read-only access</span>
+            <span className="flex items-center gap-1"><Scan className="h-3 w-3" /> OCR for scanned PDFs</span>
             <span className="flex items-center gap-1"><Eye className="h-3 w-3" /> Review before import</span>
             <span className="flex items-center gap-1"><Zap className="h-3 w-3" /> AI-powered extraction</span>
           </div>
