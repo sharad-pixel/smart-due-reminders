@@ -71,7 +71,7 @@ interface ReviewItem {
   duplicate_invoice_id: string | null;
   validation_errors: string[] | null;
   created_at: string;
-  ingestion_scanned_files?: { file_name: string; file_id: string };
+  ingestion_scanned_files?: { file_name: string; file_id: string; page_count?: number | null };
 }
 
 export function IngestionReviewQueue() {
@@ -104,7 +104,7 @@ export function IngestionReviewQueue() {
       if (!accountId) return [];
       let query = supabase
         .from("ingestion_review_queue")
-        .select("*, ingestion_scanned_files(file_name, file_id)")
+        .select("*, ingestion_scanned_files(file_name, file_id, page_count)")
         .eq("user_id", accountId)
         .order("created_at", { ascending: false })
         .limit(100);
