@@ -1,7 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, FileText, CheckCircle2, XCircle, Eye, Scan, BarChart3 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, FileText, CheckCircle2, XCircle, Eye, Scan, BarChart3, DollarSign } from "lucide-react";
+import { SMART_INGESTION_PRICING } from "@/lib/subscriptionConfig";
 
 export function IngestionDashboard() {
   const { data: stats, isLoading } = useQuery({
