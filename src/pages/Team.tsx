@@ -19,6 +19,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { SEAT_PRICING } from "@/lib/subscriptionConfig";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
+import { SupportAccessCard } from "@/components/team/SupportAccessCard";
 type AppRole = "owner" | "admin" | "member" | "viewer";
 
 interface TeamMember {
