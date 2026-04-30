@@ -22,6 +22,7 @@ import {
   ChevronDown,
   LogOut,
   ExternalLink,
+  LifeBuoy,
 } from "lucide-react";
 import { useFounderAuth } from "@/hooks/useFounderAuth";
 import { Skeleton } from "@/components/ui/skeleton";
