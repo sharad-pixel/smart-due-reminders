@@ -741,6 +741,9 @@ const Team = () => {
         )}
 
         <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <div className="space-y-1.5">
+              <CardTitle>Team Members</CardTitle>
               <CardDescription>
                 {teamMembers.length} member{teamMembers.length !== 1 ? "s" : ""} in your team
               </CardDescription>
