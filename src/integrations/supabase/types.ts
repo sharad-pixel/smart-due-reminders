@@ -8178,6 +8178,86 @@ export type Database = {
         }
         Relationships: []
       }
+      support_access_grants: {
+        Row: {
+          account_id: string
+          created_at: string
+          expires_at: string
+          granted_by: string
+          id: string
+          reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          scope: string
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          expires_at: string
+          granted_by: string
+          id?: string
+          reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          scope?: string
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          expires_at?: string
+          granted_by?: string
+          id?: string
+          reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          scope?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      support_access_log: {
+        Row: {
+          account_id: string
+          action: string
+          created_at: string
+          details: Json | null
+          grant_id: string | null
+          id: string
+          route: string | null
+          support_user_id: string
+        }
+        Insert: {
+          account_id: string
+          action: string
+          created_at?: string
+          details?: Json | null
+          grant_id?: string | null
+          id?: string
+          route?: string | null
+          support_user_id: string
+        }
+        Update: {
+          account_id?: string
+          action?: string
+          created_at?: string
+          details?: Json | null
+          grant_id?: string | null
+          id?: string
+          route?: string | null
+          support_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_access_log_grant_id_fkey"
+            columns: ["grant_id"]
+            isOneToOne: false
+            referencedRelation: "support_access_grants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suspicious_activity_log: {
         Row: {
           action_type: string
@@ -9035,6 +9115,7 @@ export type Database = {
       cleanup_dismissed_user_alerts: { Args: never; Returns: undefined }
       cleanup_expired_oauth_states: { Args: never; Returns: undefined }
       cleanup_rate_limits: { Args: never; Returns: undefined }
+      cleanup_support_access_log: { Args: never; Returns: undefined }
       create_default_outreach_templates: {
         Args: { p_user_id: string }
         Returns: undefined
@@ -9104,6 +9185,10 @@ export type Database = {
         }[]
       }
       get_user_organization_id: { Args: { p_user_id: string }; Returns: string }
+      has_active_support_access: {
+        Args: { p_account_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -9118,6 +9203,10 @@ export type Database = {
       is_email_blocked: { Args: { check_email: string }; Returns: boolean }
       is_email_whitelisted: { Args: { check_email: string }; Returns: boolean }
       is_recouply_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_support_with_access: {
+        Args: { p_account_id: string; p_user_id: string }
+        Returns: boolean
+      }
       is_team_member_of_account: {
         Args: { p_account_id: string; p_user_id: string }
         Returns: boolean
