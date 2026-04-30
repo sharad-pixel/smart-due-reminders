@@ -182,6 +182,7 @@ const AdminEmailTemplates = lazy(() => import("./pages/admin/AdminEmailTemplates
 const AdminUserDetail = lazy(() => import("./pages/admin/AdminUserDetail"));
 const AdminLeadOutreach = lazy(() => import("./pages/admin/AdminLeadOutreach"));
 const AdminStaleUsers = lazy(() => import("./pages/admin/AdminStaleUsers"));
+const AdminSupportAccess = lazy(() => import("./pages/admin/AdminSupportAccess"));
 const DemoMode = lazy(() => import("./pages/DemoMode"));
 
 // Optimized QueryClient configuration
