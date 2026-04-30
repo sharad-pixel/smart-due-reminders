@@ -22,6 +22,7 @@ import {
   ChevronDown,
   LogOut,
   ExternalLink,
+  LifeBuoy,
 } from "lucide-react";
 import { useFounderAuth } from "@/hooks/useFounderAuth";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -57,6 +58,7 @@ const adminNavItems = [
   { path: "/admin/database", label: "Database Health", icon: Database },
   { path: "/admin/security", label: "Security Center", icon: Shield },
   { path: "/admin/system", label: "System Config", icon: Settings },
+  { path: "/admin/support-access", label: "Support Access", icon: LifeBuoy },
 ];
 
 export const AdminLayout = ({ children, title, description }: AdminLayoutProps) => {

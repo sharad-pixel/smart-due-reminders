@@ -19,6 +19,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { SEAT_PRICING } from "@/lib/subscriptionConfig";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
+import { SupportAccessCard } from "@/components/team/SupportAccessCard";
 type AppRole = "owner" | "admin" | "member" | "viewer";
 
 interface TeamMember {
@@ -73,7 +74,7 @@ const Team = () => {
   const [isTransferringOwnership, setIsTransferringOwnership] = useState(false);
   
   // Get effective account info for team members
-  const { isTeamMember, ownerName, ownerEmail, ownerCompanyName, ownerPlanType, ownerSubscriptionStatus, memberRole, loading: accountLoading } = useEffectiveAccount();
+  const { isTeamMember, ownerName, ownerEmail, ownerCompanyName, ownerPlanType, ownerSubscriptionStatus, memberRole, effectiveAccountId, loading: accountLoading } = useEffectiveAccount();
   useEffect(() => {
     const checkout = searchParams.get('checkout');
     const seatsAdded = searchParams.get('seats_added');
@@ -730,6 +731,13 @@ const Team = () => {
               </div>
             </CardContent>
           </Card>
+        )}
+
+        {effectiveAccountId && (
+          <SupportAccessCard
+            accountId={effectiveAccountId}
+            canManage={!isTeamMember || memberRole === "owner" || memberRole === "admin"}
+          />
         )}
 
         <Card>
