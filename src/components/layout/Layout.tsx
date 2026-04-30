@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { UsageIndicator } from "@/components/billing/UsageIndicator";
 import { SecurityAlert } from "@/components/security/SecurityAlert";
+import { SupportAccessBanner } from "@/components/security/SupportAccessBanner";
 import { logAuditEvent } from "@/lib/auditLog";
 import { RecouplyLogo } from "@/components/layout/RecouplyLogo";
 import NicolasChat from "@/components/nicolas/NicolasChat";
