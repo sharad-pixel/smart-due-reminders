@@ -58,6 +58,7 @@ const adminNavItems = [
   { path: "/admin/database", label: "Database Health", icon: Database },
   { path: "/admin/security", label: "Security Center", icon: Shield },
   { path: "/admin/system", label: "System Config", icon: Settings },
+  { path: "/admin/support-access", label: "Support Access", icon: LifeBuoy },
 ];
 
 export const AdminLayout = ({ children, title, description }: AdminLayoutProps) => {
