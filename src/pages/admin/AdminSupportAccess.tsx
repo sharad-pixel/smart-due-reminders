@@ -73,7 +73,7 @@ const AdminSupportAccess = () => {
   }, []);
 
   return (
-    <AdminLayout>
+    <AdminLayout title="Support Access">
       <div className="space-y-6">
         <div className="flex items-center gap-3">
           <div className="rounded-lg bg-primary/10 p-2">
