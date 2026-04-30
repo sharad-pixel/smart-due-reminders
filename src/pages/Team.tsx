@@ -74,7 +74,7 @@ const Team = () => {
   const [isTransferringOwnership, setIsTransferringOwnership] = useState(false);
   
   // Get effective account info for team members
-  const { isTeamMember, ownerName, ownerEmail, ownerCompanyName, ownerPlanType, ownerSubscriptionStatus, memberRole, loading: accountLoading } = useEffectiveAccount();
+  const { isTeamMember, ownerName, ownerEmail, ownerCompanyName, ownerPlanType, ownerSubscriptionStatus, memberRole, effectiveAccountId, loading: accountLoading } = useEffectiveAccount();
   useEffect(() => {
     const checkout = searchParams.get('checkout');
     const seatsAdded = searchParams.get('seats_added');
