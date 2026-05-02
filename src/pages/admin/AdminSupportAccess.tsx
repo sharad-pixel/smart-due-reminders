@@ -5,10 +5,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { LifeBuoy, ExternalLink, Clock, ShieldCheck, ShieldAlert } from "lucide-react";
+import { LifeBuoy, ExternalLink, Clock, ShieldCheck, ShieldAlert, LogIn } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
+import { setImpersonatedAccountId } from "@/lib/supportImpersonation";
 
 interface GrantRow {
   id: string;
