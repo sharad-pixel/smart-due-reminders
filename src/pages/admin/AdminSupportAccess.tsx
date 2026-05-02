@@ -80,6 +80,14 @@ const AdminSupportAccess = () => {
     load();
   }, []);
 
+  // Auto-open workspace when arriving from email button (?account=...&open=1)
+  useEffect(() => {
+    const accountParam = searchParams.get("account");
+    const openParam = searchParams.get("open");
+    if (!accountParam || openParam !== "1" || loading) return;
+    const grant = grants.find((g) => g.account_id === accountParam);
+    if (grant) openWorkspace(accountParam);
+  }, [searchParams, grants, loading]);
   return (
     <AdminLayout title="Support Access">
       <div className="space-y-6">
