@@ -134,7 +134,9 @@ const AdminSupportAccess = () => {
                   {grants.map((g) => (
                     <TableRow key={g.id}>
                       <TableCell>
-                        <div className="font-medium">{g.account_company || g.account_name || "—"}</div>
+                        <div className="font-medium">
+                          {g.account_company || g.account_name || g.account_email || `Account ${g.account_id.slice(0, 8)}…`}
+                        </div>
                         <div className="text-xs text-muted-foreground">{g.account_email}</div>
                       </TableCell>
                       <TableCell>
