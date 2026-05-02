@@ -565,6 +565,7 @@ const Layout = ({ children }: LayoutProps) => {
       <div className={trialBannerVisible ? "h-[104px] sm:h-[120px]" : "h-16 sm:h-20"}></div>
       
       {/* Banners - placed after nav spacer so they flow with content */}
+      <SupportImpersonationBanner />
       <SupportAccessBanner />
       <SecurityAlert />
       
