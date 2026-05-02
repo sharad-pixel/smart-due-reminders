@@ -154,13 +154,21 @@ const AdminSupportAccess = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => navigate(`/admin/users/${g.account_id}`)}
-                        >
-                          <ExternalLink className="h-3 w-3 mr-1" /> Open Account
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() => openWorkspace(g.account_id)}
+                          >
+                            <LogIn className="h-3 w-3 mr-1" /> Open Workspace
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => navigate(`/admin/users/${g.account_id}`)}
+                          >
+                            <ExternalLink className="h-3 w-3 mr-1" /> Account
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
