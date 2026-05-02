@@ -98,7 +98,8 @@ serve(async (req) => {
                 <tr><td style="padding:8px; border-bottom:1px solid #e2e8f0;"><strong>Expires</strong></td><td style="padding:8px; border-bottom:1px solid #e2e8f0;">${new Date(expiresAt).toUTCString()}</td></tr>
                 ${reason ? `<tr><td style="padding:8px; border-bottom:1px solid #e2e8f0;"><strong>Reason</strong></td><td style="padding:8px; border-bottom:1px solid #e2e8f0;">${reason}</td></tr>` : ""}
               </table>
-              <a href="https://recouply.ai/admin/support-access?account=${accountId}" style="display:inline-block; background:#3b82f6; color:#fff; padding:10px 18px; border-radius:6px; text-decoration:none;">Open in Admin Console</a>
+              <a href="https://recouply.ai/admin/support-access?account=${accountId}&open=1" style="display:inline-block; background:#3b82f6; color:#fff; padding:10px 18px; border-radius:6px; text-decoration:none;">Open Customer Workspace</a>
+              <p style="margin-top:12px; font-size:12px; color:#64748b;">Clicking the button signs you into the customer's workspace as Recouply Support. All actions are logged.</p>
             </div>`,
         });
       } catch (e) {
