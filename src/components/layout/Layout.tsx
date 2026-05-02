@@ -44,6 +44,7 @@ import {
 import { UsageIndicator } from "@/components/billing/UsageIndicator";
 import { SecurityAlert } from "@/components/security/SecurityAlert";
 import { SupportAccessBanner } from "@/components/security/SupportAccessBanner";
+import { SupportImpersonationBanner } from "@/components/security/SupportImpersonationBanner";
 import { logAuditEvent } from "@/lib/auditLog";
 import { RecouplyLogo } from "@/components/layout/RecouplyLogo";
 import NicolasChat from "@/components/nicolas/NicolasChat";
@@ -564,6 +565,7 @@ const Layout = ({ children }: LayoutProps) => {
       <div className={trialBannerVisible ? "h-[104px] sm:h-[120px]" : "h-16 sm:h-20"}></div>
       
       {/* Banners - placed after nav spacer so they flow with content */}
+      <SupportImpersonationBanner />
       <SupportAccessBanner />
       <SecurityAlert />
       

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { validateImpersonation } from "@/lib/supportImpersonation";
 
 interface EffectiveAccountInfo {
   effectiveAccountId: string | null;
@@ -80,8 +81,13 @@ export const useEffectiveAccount = () => {
           return;
         }
 
-        const { data: effectiveData, error: effectiveError } = await supabase
-          .rpc('get_effective_account_id', { p_user_id: user.id });
+        // Support impersonation: a Recouply admin viewing a customer workspace
+        // via an active support_access_grant.
+        const impersonatedId = await validateImpersonation();
+
+        const { data: effectiveData, error: effectiveError } = impersonatedId
+          ? { data: impersonatedId, error: null as any }
+          : await supabase.rpc('get_effective_account_id', { p_user_id: user.id });
 
         if (effectiveError) {
           console.error("Error getting effective account:", effectiveError);
@@ -210,9 +216,13 @@ export const useEffectiveAccount = () => {
       fetchEffectiveAccount();
     });
 
+    const onImpersonationChange = () => fetchEffectiveAccount();
+    window.addEventListener("support-impersonation-change", onImpersonationChange);
+
     return () => {
       mounted = false;
       subscription.unsubscribe();
+      window.removeEventListener("support-impersonation-change", onImpersonationChange);
     };
   }, []);
 

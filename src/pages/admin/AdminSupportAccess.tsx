@@ -5,10 +5,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { LifeBuoy, ExternalLink, Clock, ShieldCheck, ShieldAlert } from "lucide-react";
+import { LifeBuoy, ExternalLink, Clock, ShieldCheck, ShieldAlert, LogIn } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
+import { setImpersonatedAccountId } from "@/lib/supportImpersonation";
 
 interface GrantRow {
   id: string;
@@ -28,6 +29,13 @@ const AdminSupportAccess = () => {
   const [grants, setGrants] = useState<GrantRow[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  const openWorkspace = (accountId: string) => {
+    setImpersonatedAccountId(accountId);
+    toast.success("Opening customer workspace…");
+    navigate("/dashboard");
+  };
 
   const load = async () => {
     setLoading(true);
@@ -72,6 +80,14 @@ const AdminSupportAccess = () => {
     load();
   }, []);
 
+  // Auto-open workspace when arriving from email button (?account=...&open=1)
+  useEffect(() => {
+    const accountParam = searchParams.get("account");
+    const openParam = searchParams.get("open");
+    if (!accountParam || openParam !== "1" || loading) return;
+    const grant = grants.find((g) => g.account_id === accountParam);
+    if (grant) openWorkspace(accountParam);
+  }, [searchParams, grants, loading]);
   return (
     <AdminLayout title="Support Access">
       <div className="space-y-6">
@@ -138,13 +154,21 @@ const AdminSupportAccess = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => navigate(`/admin/users/${g.account_id}`)}
-                        >
-                          <ExternalLink className="h-3 w-3 mr-1" /> Open Account
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() => openWorkspace(g.account_id)}
+                          >
+                            <LogIn className="h-3 w-3 mr-1" /> Open Workspace
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => navigate(`/admin/users/${g.account_id}`)}
+                          >
+                            <ExternalLink className="h-3 w-3 mr-1" /> Account
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
