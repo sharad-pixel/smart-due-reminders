@@ -52,24 +52,28 @@ const AdminSupportAccess = () => {
       return;
     }
 
-    const accountIds = Array.from(new Set((rows || []).map((g) => g.account_id)));
+    const userIds = Array.from(
+      new Set((rows || []).flatMap((g) => [g.account_id, g.granted_by]).filter(Boolean))
+    );
     let profileMap = new Map<string, any>();
-    if (accountIds.length) {
-      const { data: profiles } = await supabase
+    if (userIds.length) {
+      const { data: profiles, error: profErr } = await supabase
         .from("profiles")
         .select("id, name, email, company_name, business_name")
-        .in("id", accountIds);
+        .in("id", userIds);
+      if (profErr) console.error("profiles fetch error", profErr);
       profileMap = new Map((profiles || []).map((p: any) => [p.id, p]));
     }
 
     setGrants(
       (rows || []).map((g: any) => {
-        const p = profileMap.get(g.account_id);
+        // Prefer the account owner's profile; fall back to the granter's profile
+        const p = profileMap.get(g.account_id) || profileMap.get(g.granted_by);
         return {
           ...g,
-          account_email: p?.email,
-          account_name: p?.name,
-          account_company: p?.business_name || p?.company_name,
+          account_email: p?.email || `(account ${g.account_id.slice(0, 8)}…)`,
+          account_name: p?.name || null,
+          account_company: p?.business_name || p?.company_name || null,
         };
       })
     );
@@ -130,7 +134,9 @@ const AdminSupportAccess = () => {
                   {grants.map((g) => (
                     <TableRow key={g.id}>
                       <TableCell>
-                        <div className="font-medium">{g.account_company || g.account_name || "—"}</div>
+                        <div className="font-medium">
+                          {g.account_company || g.account_name || g.account_email || `Account ${g.account_id.slice(0, 8)}…`}
+                        </div>
                         <div className="text-xs text-muted-foreground">{g.account_email}</div>
                       </TableCell>
                       <TableCell>
