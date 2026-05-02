@@ -42,7 +42,7 @@ export const validateImpersonation = async (): Promise<string | null> => {
     return null;
   }
 
-  const { data: isAdmin } = await supabase.rpc("is_recouply_admin", { p_user_id: user.id });
+  const { data: isAdmin } = await supabase.rpc("is_recouply_admin", { _user_id: user.id });
   if (!isAdmin) {
     setImpersonatedAccountId(null);
     return null;
