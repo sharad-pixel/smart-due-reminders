@@ -29,6 +29,13 @@ const AdminSupportAccess = () => {
   const [grants, setGrants] = useState<GrantRow[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  const openWorkspace = (accountId: string) => {
+    setImpersonatedAccountId(accountId);
+    toast.success("Opening customer workspace…");
+    navigate("/dashboard");
+  };
 
   const load = async () => {
     setLoading(true);
