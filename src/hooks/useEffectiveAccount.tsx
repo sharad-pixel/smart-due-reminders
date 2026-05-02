@@ -216,9 +216,13 @@ export const useEffectiveAccount = () => {
       fetchEffectiveAccount();
     });
 
+    const onImpersonationChange = () => fetchEffectiveAccount();
+    window.addEventListener("support-impersonation-change", onImpersonationChange);
+
     return () => {
       mounted = false;
       subscription.unsubscribe();
+      window.removeEventListener("support-impersonation-change", onImpersonationChange);
     };
   }, []);
 
