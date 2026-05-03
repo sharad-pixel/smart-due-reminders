@@ -112,5 +112,5 @@ Deno.serve(async (req) => {
     console.warn("RESEND_API_KEY not set; code for", email, "=", code);
   }
 
-  return json(generic);
+  return json({ success: true, message: "A 6-digit code has been sent to your email." });
 });
