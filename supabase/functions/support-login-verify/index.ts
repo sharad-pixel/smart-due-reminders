@@ -39,13 +39,28 @@ Deno.serve(async (req) => {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ error: "Invalid email" }, 400);
   if (!/^\d{6}$/.test(code)) return json({ error: "Invalid code format" }, 400);
 
-  // Confirm support user is active
+  // Confirm support user OR Recouply admin
   const { data: su } = await admin
     .from("support_users")
     .select("id, auth_user_id, is_active")
     .ilike("email", email)
     .maybeSingle();
-  if (!su || !su.is_active) return json({ error: "Invalid email or code" }, 401);
+
+  let authUserId: string | null = su?.is_active ? su.auth_user_id : null;
+  let supportUserRow: any = su?.is_active ? su : null;
+
+  if (!supportUserRow) {
+    const { data: prof } = await admin
+      .from("profiles")
+      .select("id, is_admin")
+      .ilike("email", email)
+      .maybeSingle();
+    if (prof?.is_admin) {
+      authUserId = prof.id;
+    } else {
+      return json({ error: "Invalid email or code" }, 401);
+    }
+  }
 
   // Latest unused, non-expired code for this email
   const { data: row } = await admin
