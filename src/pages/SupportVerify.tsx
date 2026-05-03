@@ -27,7 +27,7 @@ const SupportVerify = () => {
       body: {
         email,
         code,
-        redirectTo: `${window.location.origin}/admin/support-access`,
+        redirectTo: `${window.location.origin}${sessionStorage.getItem("recouply.support_login_next") || "/admin/support-access"}`,
       },
     });
     setSubmitting(false);
@@ -36,6 +36,7 @@ const SupportVerify = () => {
       return;
     }
     sessionStorage.removeItem("recouply.support_login_email");
+    sessionStorage.removeItem("recouply.support_login_next");
     // Navigate to the magic link — Supabase will set the session and bounce to redirectTo.
     window.location.href = data.action_link;
   };

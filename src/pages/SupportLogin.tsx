@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ const SupportLogin = () => {
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,6 +23,8 @@ const SupportLogin = () => {
     setSubmitting(false);
     if (error) { toast.error("Could not send code"); return; }
     sessionStorage.setItem("recouply.support_login_email", email.trim().toLowerCase());
+    const next = searchParams.get("next");
+    if (next?.startsWith("/")) sessionStorage.setItem("recouply.support_login_next", next);
     toast.success("If your email is authorized, a 6-digit code is on its way.");
     navigate("/support/verify");
   };
