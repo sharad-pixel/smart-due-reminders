@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -6,10 +6,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Mail, Loader2, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 import { RecouplyLogo } from '@/components/layout/RecouplyLogo';
+import { isImpersonating } from '@/lib/supportImpersonation';
 
 export default function EmailVerificationRequired() {
   const navigate = useNavigate();
   const [isResending, setIsResending] = useState(false);
+
+  // Support impersonation must never be gated by the customer's email
+  // verification state — bounce straight into the workspace.
+  useEffect(() => {
+    if (isImpersonating()) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [navigate]);
 
   const handleResendVerification = async () => {
     setIsResending(true);
