@@ -23,6 +23,7 @@ import {
 import { CreditCard, CheckCircle2, AlertTriangle, ExternalLink, Loader2, RefreshCw, Crown, ArrowRight, TrendingUp } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { PLAN_CONFIGS, STRIPE_PRICES, formatPrice, SEAT_PRICING, type PlanType } from "@/lib/subscriptionConfig";
+import { isImpersonating } from "@/lib/supportImpersonation";
 
 interface BillingSectionProps {
   profile: {
@@ -124,6 +125,10 @@ const BillingSection = ({ profile, canManageBilling, onRefresh, isTeamMember = f
   };
 
   const handleUpgrade = async (planType: Exclude<PlanType, 'free' | 'enterprise'>) => {
+    if (isImpersonating()) {
+      toast({ title: "Read-only", description: "Billing changes are disabled in Support Mode.", variant: "destructive" });
+      return;
+    }
     setProcessing(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -170,6 +175,10 @@ const BillingSection = ({ profile, canManageBilling, onRefresh, isTeamMember = f
   };
 
   const handleManageBilling = async () => {
+    if (isImpersonating()) {
+      toast({ title: "Read-only", description: "Stripe portal is disabled in Support Mode.", variant: "destructive" });
+      return;
+    }
     setProcessing(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -206,6 +215,10 @@ const BillingSection = ({ profile, canManageBilling, onRefresh, isTeamMember = f
   };
 
   const handleCancelSubscription = async () => {
+    if (isImpersonating()) {
+      toast({ title: "Read-only", description: "Cancellation is disabled in Support Mode.", variant: "destructive" });
+      return;
+    }
     setCanceling(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
