@@ -162,7 +162,7 @@ const AdminSupportAccess = () => {
                   <TableRow>
                     <TableHead>Customer</TableHead>
                     <TableHead>Scope</TableHead>
-                    <TableHead>Reason</TableHead>
+                    <TableHead>Assigned support</TableHead>
                     <TableHead>Expires</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
