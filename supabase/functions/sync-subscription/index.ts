@@ -142,10 +142,10 @@ serve(async (req) => {
       existingPlan: ownerProfile.plan_type 
     });
 
-    // If this is a team member, just return the owner's existing subscription data
-    // without querying Stripe (only owners should sync their own subscription)
-    if (isTeamMember) {
-      logStep('Team member requesting subscription data, returning owner data');
+    // If this is a team member OR a support agent impersonating, return owner's
+    // existing subscription data without mutating Stripe state.
+    if (isTeamMember || isSupportImpersonating) {
+      logStep('Read-only request — returning owner data', { isSupportImpersonating });
       
       // Return owner's subscription data
       return new Response(
