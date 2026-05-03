@@ -1,7 +1,7 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { invokeFunction } from '@/lib/supportImpersonation';
+import { invokeFunction, isImpersonating } from '@/lib/supportImpersonation';
 import { Loader2 } from 'lucide-react';
 import { TeamMemberLockoutModal } from '@/components/security/TeamMemberLockoutModal';
 import { useAccess } from '@/contexts/AccessContext';
@@ -84,6 +84,16 @@ export function RequireSubscription({ children }: RequireSubscriptionProps) {
 
     // No user - let Layout handle redirect
     if (!user) {
+      setPathChecked(true);
+      setShouldRender(true);
+      return;
+    }
+
+    // Support impersonation: bypass subscription/trial/email-verification gates.
+    // Support agents need to see the customer's workspace exactly as the customer
+    // would, including when the customer's own subscription is blocked. Billing
+    // actions are still enforced read-only at the action layer.
+    if (isImpersonating()) {
       setPathChecked(true);
       setShouldRender(true);
       return;
