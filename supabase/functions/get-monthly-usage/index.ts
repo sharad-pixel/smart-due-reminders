@@ -2,7 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-support-impersonate-account",
 };
 
 const logStep = (step: string, details?: unknown) => {
@@ -35,18 +35,36 @@ Deno.serve(async (req) => {
 
     logStep("User authenticated", { userId: user.id });
 
-    // Get effective account ID for team members
-    const { data: effectiveAccountId, error: effectiveError } = await supabaseClient
-      .rpc('get_effective_account_id', { p_user_id: user.id });
-    
-    if (effectiveError) {
-      logStep("Error getting effective account, using user ID", { error: effectiveError.message });
+    // Resolve effective account ID — honor support impersonation header
+    // when the caller is a verified Recouply admin with an active grant.
+    const impersonateHeader = req.headers.get("x-support-impersonate-account");
+    let accountId: string | null = null;
+    let isTeamMember = false;
+    let isSupportImpersonating = false;
+
+    if (impersonateHeader) {
+      const { data: validated } = await supabaseClient
+        .rpc('validate_support_impersonation', { p_target_account_id: impersonateHeader });
+      if (validated) {
+        accountId = validated as string;
+        isSupportImpersonating = true;
+        logStep("Support impersonation validated", { accountId });
+      } else {
+        logStep("Support impersonation rejected", { requested: impersonateHeader });
+      }
     }
-    
-    const accountId = effectiveAccountId || user.id;
-    const isTeamMember = accountId !== user.id;
-    
-    logStep("Effective account determined", { accountId, isTeamMember });
+
+    if (!accountId) {
+      const { data: effectiveAccountId, error: effectiveError } = await supabaseClient
+        .rpc('get_effective_account_id', { p_user_id: user.id });
+      if (effectiveError) {
+        logStep("Error getting effective account, using user ID", { error: effectiveError.message });
+      }
+      accountId = (effectiveAccountId as string) || user.id;
+      isTeamMember = accountId !== user.id;
+    }
+
+    logStep("Effective account determined", { accountId, isTeamMember, isSupportImpersonating });
 
     // Get current month in YYYY-MM format
     const now = new Date();
