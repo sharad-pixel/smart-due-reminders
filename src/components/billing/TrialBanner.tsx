@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useAccountId } from '@/hooks/useAccountId';
 import { supabase } from '@/integrations/supabase/client';
-import { invokeFunction } from '@/lib/supportImpersonation';
+import { invokeFunction, isImpersonating } from '@/lib/supportImpersonation';
 
 interface TrialUsage {
   includedInvoicesUsed: number;
@@ -112,7 +112,7 @@ export function TrialBanner({ onVisibilityChange }: { onVisibilityChange?: (visi
   // Determine if banner should be visible
   const isTrialUser = isTrial || subscriptionStatus === 'trialing';
   const isFreePlan = plan === 'free' && (!subscriptionStatus || subscriptionStatus === 'inactive');
-  const shouldHide = isLoading || accountLoading || checkingOverride || dismissed || hasAdminOverride || (!isTrialUser && !isFreePlan);
+  const shouldHide = isLoading || accountLoading || checkingOverride || dismissed || hasAdminOverride || isImpersonating() || (!isTrialUser && !isFreePlan);
 
   // Report visibility to parent
   useEffect(() => {
