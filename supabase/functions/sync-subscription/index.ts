@@ -14,7 +14,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-support-impersonate-account',
 };
 
 const logStep = (step: string, details?: any) => {
@@ -94,18 +94,36 @@ serve(async (req) => {
 
     logStep('User authenticated', { email: user.email, userId: user.id });
 
-    // Get effective account ID for team members
-    const { data: effectiveAccountId, error: effectiveError } = await supabase
-      .rpc('get_effective_account_id', { p_user_id: user.id });
-    
-    if (effectiveError) {
-      logStep('Error getting effective account', { error: effectiveError.message });
+    // Resolve effective account — honor support impersonation header when
+    // the caller is a verified Recouply admin with an active grant.
+    const impersonateHeader = req.headers.get('x-support-impersonate-account');
+    let accountId: string | null = null;
+    let isTeamMember = false;
+    let isSupportImpersonating = false;
+
+    if (impersonateHeader) {
+      const { data: validated } = await supabase
+        .rpc('validate_support_impersonation', { p_target_account_id: impersonateHeader });
+      if (validated) {
+        accountId = validated as string;
+        isSupportImpersonating = true;
+        logStep('Support impersonation validated', { accountId });
+      } else {
+        logStep('Support impersonation rejected', { requested: impersonateHeader });
+      }
     }
-    
-    const accountId = effectiveAccountId || user.id;
-    const isTeamMember = accountId !== user.id;
-    
-    logStep('Effective account determined', { accountId, isTeamMember });
+
+    if (!accountId) {
+      const { data: effectiveAccountId, error: effectiveError } = await supabase
+        .rpc('get_effective_account_id', { p_user_id: user.id });
+      if (effectiveError) {
+        logStep('Error getting effective account', { error: effectiveError.message });
+      }
+      accountId = (effectiveAccountId as string) || user.id;
+      isTeamMember = accountId !== user.id;
+    }
+
+    logStep('Effective account determined', { accountId, isTeamMember, isSupportImpersonating });
 
     // Get account owner's profile to find their email for Stripe lookup
     const { data: ownerProfile, error: ownerError } = await supabase
@@ -124,10 +142,10 @@ serve(async (req) => {
       existingPlan: ownerProfile.plan_type 
     });
 
-    // If this is a team member, just return the owner's existing subscription data
-    // without querying Stripe (only owners should sync their own subscription)
-    if (isTeamMember) {
-      logStep('Team member requesting subscription data, returning owner data');
+    // If this is a team member OR a support agent impersonating, return owner's
+    // existing subscription data without mutating Stripe state.
+    if (isTeamMember || isSupportImpersonating) {
+      logStep('Read-only request — returning owner data', { isSupportImpersonating });
       
       // Return owner's subscription data
       return new Response(

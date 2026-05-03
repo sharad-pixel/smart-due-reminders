@@ -1,6 +1,7 @@
 import { createContext, useContext, ReactNode, useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
+import { validateImpersonation } from '@/lib/supportImpersonation';
 
 interface AccessState {
   isLoading: boolean;
@@ -128,19 +129,26 @@ export function AccessProvider({ children }: { children: ReactNode }) {
         }
       }
 
+      // Support impersonation: a Recouply admin viewing a customer workspace.
+      // When impersonating, the entire access verification mirrors the target
+      // account so the admin sees the customer's true subscription/trial state.
+      const impersonatedAccountId = await validateImpersonation();
+
       // Fetch profile and effective account ID in parallel
       const [profileResult, effectiveAccountResult] = await Promise.all([
         supabase
           .from('profiles')
           .select('plan_type, subscription_status, is_admin, stripe_customer_id, trial_ends_at, created_at, admin_override, email_verified')
-          .eq('id', user.id)
+          .eq('id', impersonatedAccountId || user.id)
           .single(),
-        supabase.rpc('get_effective_account_id', { p_user_id: user.id })
+        impersonatedAccountId
+          ? Promise.resolve({ data: impersonatedAccountId, error: null as any })
+          : supabase.rpc('get_effective_account_id', { p_user_id: user.id })
       ]);
 
       const profile = profileResult.data as ProfileData | null;
       const effectiveAccountId = effectiveAccountResult.data as string | null;
-      const isTeamMember = !!(effectiveAccountId && effectiveAccountId !== user.id);
+      const isTeamMember = !impersonatedAccountId && !!(effectiveAccountId && effectiveAccountId !== user.id);
 
       let ownerProfile: OwnerProfile | null = null;
       let teamMemberLockout: TeamMemberLockoutState | null = null;
@@ -277,6 +285,13 @@ export function AccessProvider({ children }: { children: ReactNode }) {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Re-verify whenever support impersonation toggles
+  useEffect(() => {
+    const onImpersonationChange = () => verifyAccess(true);
+    window.addEventListener('support-impersonation-change', onImpersonationChange);
+    return () => window.removeEventListener('support-impersonation-change', onImpersonationChange);
+  }, [verifyAccess]);
 
   return (
     <AccessContext.Provider value={{ ...state, refreshAccess, clearAccess }}>

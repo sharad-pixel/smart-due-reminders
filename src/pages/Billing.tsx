@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CreditCard, ExternalLink, AlertTriangle, CheckCircle, Clock, Calendar, TrendingUp, Users } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeFunction, isImpersonating } from "@/lib/supportImpersonation";
 import { toast } from "sonner";
 import { PLAN_CONFIGS, SEAT_PRICING, ANNUAL_DISCOUNT_RATE, formatPrice } from "@/lib/subscriptionConfig";
 import { AccountHierarchy } from "@/components/accounts/AccountHierarchy";
@@ -152,11 +153,9 @@ const Billing = () => {
         return;
       }
 
-      // Get effective account ID for team members
-      const { data: effectiveAccountId } = await supabase.rpc('get_effective_account_id', { 
-        p_user_id: session.user.id 
-      });
-      const accountId = effectiveAccountId || session.user.id;
+      // Use effective account ID (already accounts for support impersonation
+      // via useAccountHierarchy → which now reads from the impersonated id).
+      const accountId = accountHierarchy.effectiveAccountId || session.user.id;
 
       // Fetch profile data
       const { data: profileData } = await supabase
@@ -169,16 +168,14 @@ const Billing = () => {
         setProfile(profileData as ProfileData);
       }
 
-      // Team member data is now fetched via useAccountHierarchy hook
-
-      // Fetch usage
-      const { data: usageData, error: usageError } = await supabase.functions.invoke('get-monthly-usage');
+      // Fetch usage (impersonation-aware)
+      const { data: usageData, error: usageError } = await invokeFunction('get-monthly-usage');
       if (!usageError && usageData) {
         setUsage(usageData);
       }
 
-      // Sync subscription data from Stripe to get accurate term dates
-      const { data: syncData, error: syncError } = await supabase.functions.invoke('sync-subscription');
+      // Sync subscription data from Stripe (impersonation-aware: returns owner's data read-only)
+      const { data: syncData, error: syncError } = await invokeFunction('sync-subscription');
       
       if (!syncError && syncData) {
         setStripeData(syncData);
@@ -192,6 +189,10 @@ const Billing = () => {
   };
 
   const openCustomerPortal = async () => {
+    if (isImpersonating()) {
+      toast.error('Billing portal is read-only in Support Mode.');
+      return;
+    }
     setPortalLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('customer-portal');
