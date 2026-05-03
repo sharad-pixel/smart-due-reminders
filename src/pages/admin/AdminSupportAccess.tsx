@@ -245,6 +245,39 @@ const AdminSupportAccess = () => {
             )}
           </CardContent>
         </Card>
+
+        <Dialog open={!!assignFor} onOpenChange={(o) => !o && setAssignFor(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Assign support member</DialogTitle>
+              <DialogDescription>
+                Choose a support team member to handle{" "}
+                <strong>
+                  {assignFor?.account_company || assignFor?.account_name || assignFor?.account_email}
+                </strong>
+                . Only assigned members can open this workspace.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
+              <Select value={selectedSupportUser} onValueChange={setSelectedSupportUser}>
+                <SelectTrigger><SelectValue placeholder="Select support member…" /></SelectTrigger>
+                <SelectContent>
+                  {supportUsers
+                    .filter((su) => !assignFor?.assignments?.some((a) => a.support_user_id === su.id))
+                    .map((su) => (
+                      <SelectItem key={su.id} value={su.id}>
+                        {su.name ? `${su.name} — ${su.email}` : su.email}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              <div className="flex justify-end gap-2">
+                <Button variant="ghost" onClick={() => setAssignFor(null)}>Cancel</Button>
+                <Button onClick={assign} disabled={!selectedSupportUser}>Assign</Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </AdminLayout>
   );
