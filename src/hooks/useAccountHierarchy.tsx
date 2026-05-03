@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { validateImpersonation } from "@/lib/supportImpersonation";
 import { 
   AccountHierarchyData, 
   AccountMember, 
@@ -46,17 +47,31 @@ export const useAccountHierarchy = (): UseAccountHierarchyReturn => {
         return;
       }
 
-      // Get effective account ID using the database function
-      const { data: effectiveAccountId, error: effectiveError } = await supabase
-        .rpc('get_effective_account_id', { p_user_id: user.id });
+      // Support impersonation: a Recouply admin viewing a customer workspace
+      const impersonatedAccountId = await validateImpersonation();
 
-      if (effectiveError) {
-        console.error("Error getting effective account:", effectiveError);
-        throw effectiveError;
+      let accountId: string;
+      let isOwner: boolean;
+
+      if (impersonatedAccountId) {
+        accountId = impersonatedAccountId;
+        // Treat impersonator as if they ARE the owner so the UI mirrors the
+        // customer's billing/hierarchy exactly. Mutating actions are gated
+        // separately by isImpersonating() in BillingSection/Billing.
+        isOwner = true;
+      } else {
+        // Get effective account ID using the database function
+        const { data: effectiveAccountId, error: effectiveError } = await supabase
+          .rpc('get_effective_account_id', { p_user_id: user.id });
+
+        if (effectiveError) {
+          console.error("Error getting effective account:", effectiveError);
+          throw effectiveError;
+        }
+
+        accountId = effectiveAccountId as string;
+        isOwner = accountId === user.id;
       }
-
-      const accountId = effectiveAccountId as string;
-      const isOwner = accountId === user.id;
 
       // Fetch all data in parallel for performance
       const [
@@ -184,6 +199,9 @@ export const useAccountHierarchy = (): UseAccountHierarchyReturn => {
 
   useEffect(() => {
     fetchHierarchy();
+    const onChange = () => fetchHierarchy();
+    window.addEventListener('support-impersonation-change', onChange);
+    return () => window.removeEventListener('support-impersonation-change', onChange);
   }, [fetchHierarchy]);
 
   return {
