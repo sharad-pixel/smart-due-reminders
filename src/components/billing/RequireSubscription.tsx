@@ -89,6 +89,16 @@ export function RequireSubscription({ children }: RequireSubscriptionProps) {
       return;
     }
 
+    // Support impersonation: bypass subscription/trial/email-verification gates.
+    // Support agents need to see the customer's workspace exactly as the customer
+    // would, including when the customer's own subscription is blocked. Billing
+    // actions are still enforced read-only at the action layer.
+    if (isImpersonating()) {
+      setPathChecked(true);
+      setShouldRender(true);
+      return;
+    }
+
     // Check email verification for non-OAuth users
     const isOAuthUser = user.app_metadata?.provider && user.app_metadata.provider !== 'email';
     if (!isOAuthUser && profile?.email_verified === false) {
