@@ -35,7 +35,7 @@ export const useFounderAuth = () => {
         .single();
 
       const isFounderEmail = user.email?.toLowerCase() === FOUNDER_EMAIL.toLowerCase();
-      const { data: activeSupportUser } = await supabase.rpc("is_active_support_user", { p_user_id: user.id });
+      const { data: activeSupportUser } = await (supabase as any).rpc("is_active_support_user", { p_user_id: user.id });
 
       if ((!isFounderEmail || !profile?.is_admin) && !activeSupportUser) {
         console.warn("Unauthorized admin/support access attempt:", user.email);
