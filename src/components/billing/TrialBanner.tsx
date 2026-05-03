@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useAccountId } from '@/hooks/useAccountId';
 import { supabase } from '@/integrations/supabase/client';
-import { invokeFunction } from '@/lib/supportImpersonation';
+import { invokeFunction, isImpersonating } from '@/lib/supportImpersonation';
 
 interface TrialUsage {
   includedInvoicesUsed: number;
