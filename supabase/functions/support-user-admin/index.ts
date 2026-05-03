@@ -161,6 +161,75 @@ Deno.serve(async (req) => {
         .select()
         .single();
       if (error && (error as any).code !== "23505") throw error;
+
+      // Notify the assigned support user with a 6-digit access code + login link
+      try {
+        const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+        const { data: su } = await admin
+          .from("support_users")
+          .select("email, name")
+          .eq("id", supportUserId)
+          .maybeSingle();
+        const { data: grant } = await admin
+          .from("support_access_grants")
+          .select("account_id, scope, expires_at")
+          .eq("id", grantId)
+          .maybeSingle();
+
+        let companyLabel = "a customer account";
+        if (grant?.account_id) {
+          const { data: ownerInfo } = await admin.rpc("get_owner_account_info", {
+            p_account_id: grant.account_id,
+          });
+          const p = Array.isArray(ownerInfo) ? ownerInfo[0] : null;
+          companyLabel = p?.business_name || p?.company_name || p?.name || p?.email || companyLabel;
+        }
+
+        if (su?.email && RESEND_API_KEY) {
+          // Generate a 6-digit access code valid 30 minutes
+          const code = String(Math.floor(100000 + Math.random() * 900000));
+          const enc = new TextEncoder().encode(code);
+          const buf = await crypto.subtle.digest("SHA-256", enc);
+          const codeHash = Array.from(new Uint8Array(buf))
+            .map((b) => b.toString(16).padStart(2, "0")).join("");
+          await admin.from("support_login_codes").insert({
+            email: su.email.toLowerCase(),
+            code_hash: codeHash,
+            expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+          });
+
+          const loginUrl = `https://recouply.ai/support/login`;
+          const html = `
+            <div style="font-family:-apple-system,Segoe UI,Inter,sans-serif;max-width:520px;margin:0 auto;padding:24px;border:1px solid #e5e7eb;border-radius:8px">
+              <h2 style="color:#1e293b;margin:0 0 8px">New Support Assignment</h2>
+              <p style="color:#475569;margin:0 0 12px">Hi ${su.name || "there"}, you've been assigned to support <strong>${companyLabel}</strong> (${grant?.scope || "read"} access).</p>
+              <p style="color:#475569;margin:0 0 8px">Use this access code to sign in (valid 30 minutes):</p>
+              <div style="font-size:30px;letter-spacing:6px;font-weight:700;color:#3B82F6;background:#f1f5f9;padding:14px;text-align:center;border-radius:6px">${code}</div>
+              <p style="margin:16px 0 0">
+                <a href="${loginUrl}" style="background:#3B82F6;color:#fff;text-decoration:none;padding:10px 16px;border-radius:6px;display:inline-block">Open Support Login</a>
+              </p>
+              <p style="color:#94a3b8;font-size:12px;margin-top:16px">Grant expires ${grant?.expires_at ? new Date(grant.expires_at).toUTCString() : "soon"}.</p>
+            </div>`;
+          const r = await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${RESEND_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              from: "Recouply Support <notifications@send.inbound.services.recouply.ai>",
+              to: [su.email],
+              reply_to: "support@recouply.ai",
+              subject: `You've been assigned to ${companyLabel} — Code ${code}`,
+              html,
+            }),
+          });
+          if (!r.ok) console.error("Assignment email failed", await r.text());
+        }
+      } catch (e) {
+        console.error("Assignment notification error", e);
+      }
+
       return json({ success: true, assignment: data });
     }
 

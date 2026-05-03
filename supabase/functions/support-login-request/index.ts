@@ -42,14 +42,25 @@ Deno.serve(async (req) => {
   // Generic response we always return at the end
   const generic = { success: true, message: "If your email is authorized, a code has been sent." };
 
-  // Lookup support user
+  // Authorize the email: must be an active support user OR a Recouply admin
   const { data: su } = await admin
     .from("support_users")
     .select("id, email, is_active")
     .ilike("email", email)
     .maybeSingle();
 
-  if (!su || !su.is_active) {
+  let authorized = !!(su && su.is_active);
+
+  if (!authorized) {
+    const { data: prof } = await admin
+      .from("profiles")
+      .select("id, is_admin")
+      .ilike("email", email)
+      .maybeSingle();
+    if (prof?.is_admin) authorized = true;
+  }
+
+  if (!authorized) {
     // Still respond generically. Small delay to mask timing.
     await new Promise((r) => setTimeout(r, 250));
     return json(generic);
