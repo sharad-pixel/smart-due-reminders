@@ -82,8 +82,13 @@ Deno.serve(async (req) => {
       // Mark profile as admin + support_user
       await admin
         .from("profiles")
-        .update({ is_admin: true, is_support_user: true, name: name ?? undefined })
-        .eq("id", authUserId);
+        .upsert({
+          id: authUserId,
+          email,
+          name,
+          is_admin: true,
+          is_support_user: true,
+        }, { onConflict: "id" });
 
       const { data: row, error: insErr } = await admin
         .from("support_users")
