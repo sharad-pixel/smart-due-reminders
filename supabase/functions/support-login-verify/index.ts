@@ -100,15 +100,17 @@ Deno.serve(async (req) => {
     return json({ error: "Could not issue session link" }, 500);
   }
 
-  await admin.from("support_users").update({ last_login_at: new Date().toISOString() }).eq("id", su.id);
+  if (supportUserRow) {
+    await admin.from("support_users").update({ last_login_at: new Date().toISOString() }).eq("id", supportUserRow.id);
+  }
 
   // Audit
   try {
     await admin.from("audit_logs").insert({
-      user_id: su.auth_user_id,
+      user_id: authUserId,
       action_type: "login",
       resource_type: "settings",
-      metadata: { kind: "support_user_login", email },
+      metadata: { kind: supportUserRow ? "support_user_login" : "admin_login", email },
     });
   } catch { /* ignore */ }
 
