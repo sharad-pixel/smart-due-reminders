@@ -187,8 +187,26 @@ const AdminSupportAccess = () => {
                           </Badge>
                         )}
                       </TableCell>
-                      <TableCell className="max-w-xs truncate text-sm text-muted-foreground">
-                        {g.reason || "—"}
+                      <TableCell>
+                        {g.assignments && g.assignments.length > 0 ? (
+                          <div className="flex flex-wrap gap-1 max-w-xs">
+                            {g.assignments.map((a) => (
+                              <Badge key={a.id} variant="secondary" className="gap-1 pr-1">
+                                <Users className="h-3 w-3" />
+                                {a.support_users?.name || a.support_users?.email || "Unknown"}
+                                <button
+                                  onClick={() => unassign(a.id)}
+                                  className="ml-1 rounded-full hover:bg-background/50 p-0.5"
+                                  aria-label="Remove"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </Badge>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground italic">Unassigned</span>
+                        )}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1 text-sm">
@@ -198,6 +216,13 @@ const AdminSupportAccess = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => { setAssignFor(g); setSelectedSupportUser(""); }}
+                          >
+                            <UserPlus className="h-3 w-3 mr-1" /> Assign
+                          </Button>
                           <Button
                             size="sm"
                             onClick={() => openWorkspace(g.account_id)}
