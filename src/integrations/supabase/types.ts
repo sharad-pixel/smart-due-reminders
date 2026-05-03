@@ -8181,6 +8181,48 @@ export type Database = {
         }
         Relationships: []
       }
+      support_access_assignments: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          grant_id: string
+          id: string
+          notes: string | null
+          support_user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          grant_id: string
+          id?: string
+          notes?: string | null
+          support_user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          grant_id?: string
+          id?: string
+          notes?: string | null
+          support_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_access_assignments_grant_id_fkey"
+            columns: ["grant_id"]
+            isOneToOne: false
+            referencedRelation: "support_access_grants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_access_assignments_support_user_id_fkey"
+            columns: ["support_user_id"]
+            isOneToOne: false
+            referencedRelation: "support_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       support_access_grants: {
         Row: {
           account_id: string
@@ -9277,6 +9319,10 @@ export type Database = {
         Returns: boolean
       }
       is_active_support_user: { Args: { p_user_id: string }; Returns: boolean }
+      is_assigned_support_for_account: {
+        Args: { p_account_id: string; p_user_id: string }
+        Returns: boolean
+      }
       is_email_blocked: { Args: { check_email: string }; Returns: boolean }
       is_email_whitelisted: { Args: { check_email: string }; Returns: boolean }
       is_recouply_admin: { Args: { _user_id: string }; Returns: boolean }
