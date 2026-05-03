@@ -161,6 +161,14 @@
                     Knowledge Base
                   </button>
                 </li>
+                <li>
+                  <button 
+                    onClick={() => navigate("/support/login")}
+                    className="text-muted-foreground hover:text-primary"
+                  >
+                    Support Login
+                  </button>
+                </li>
               </ul>
             </div>
            <div>
