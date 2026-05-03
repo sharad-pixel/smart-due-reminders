@@ -5,7 +5,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-support-impersonate-account',
 };
 
 const logStep = (step: string, details?: any) => {
@@ -35,6 +35,19 @@ serve(async (req) => {
     }
 
     logStep('User authenticated', { email: user.email, userId: user.id });
+
+    // Block billing-portal access when in support impersonation — read-only mode.
+    const impersonateHeader = req.headers.get('x-support-impersonate-account');
+    if (impersonateHeader) {
+      const { data: validated } = await supabase
+        .rpc('validate_support_impersonation', { p_target_account_id: impersonateHeader });
+      if (validated) {
+        return new Response(
+          JSON.stringify({ error: 'Billing portal is read-only during support sessions.' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
 
     // First check if user already has a stripe_customer_id in their profile
     const { data: profile, error: profileError } = await supabase
