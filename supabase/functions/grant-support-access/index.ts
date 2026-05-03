@@ -83,6 +83,8 @@ serve(async (req) => {
       try {
         const resend = new Resend(resendKey);
         const company = profile?.business_name || profile?.company_name || profile?.name || "Customer";
+        const supportPath = `/admin/support-access?account=${accountId}&open=1`;
+        const supportUrl = `https://recouply.ai/support/login?next=${encodeURIComponent(supportPath)}`;
         await resend.emails.send({
           from: "Recouply.ai <notifications@send.inbound.services.recouply.ai>",
           to: ["support@recouply.ai"],
@@ -98,7 +100,7 @@ serve(async (req) => {
                 <tr><td style="padding:8px; border-bottom:1px solid #e2e8f0;"><strong>Expires</strong></td><td style="padding:8px; border-bottom:1px solid #e2e8f0;">${new Date(expiresAt).toUTCString()}</td></tr>
                 ${reason ? `<tr><td style="padding:8px; border-bottom:1px solid #e2e8f0;"><strong>Reason</strong></td><td style="padding:8px; border-bottom:1px solid #e2e8f0;">${reason}</td></tr>` : ""}
               </table>
-              <a href="https://recouply.ai/admin/support-access?account=${accountId}&open=1" style="display:inline-block; background:#3b82f6; color:#fff; padding:10px 18px; border-radius:6px; text-decoration:none;">Open Customer Workspace</a>
+              <a href="${supportUrl}" style="display:inline-block; background:#3b82f6; color:#fff; padding:10px 18px; border-radius:6px; text-decoration:none;">Open Customer Workspace</a>
               <p style="margin-top:12px; font-size:12px; color:#64748b;">Clicking the button signs you into the customer's workspace as Recouply Support. All actions are logged.</p>
             </div>`,
         });
