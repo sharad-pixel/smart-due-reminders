@@ -6,6 +6,7 @@ const FOUNDER_EMAIL = "sharad@recouply.ai";
 
 export const useFounderAuth = () => {
   const [isFounder, setIsFounder] = useState(false);
+  const [isSupportUser, setIsSupportUser] = useState(false);
   const [loading, setLoading] = useState(true);
   const [founderProfile, setFounderProfile] = useState<{
     id: string;
@@ -27,22 +28,17 @@ export const useFounderAuth = () => {
         return;
       }
 
-      // Strict check: only founder email has access
-      if (user.email?.toLowerCase() !== FOUNDER_EMAIL.toLowerCase()) {
-        console.warn("Unauthorized admin access attempt:", user.email);
-        navigate("/dashboard");
-        return;
-      }
-
-      // Verify is_admin flag in database as secondary check
       const { data: profile } = await supabase
         .from("profiles")
-        .select("id, email, name, is_admin")
+        .select("id, email, name, is_admin, is_support_user")
         .eq("id", user.id)
         .single();
 
-      if (!profile?.is_admin) {
-        console.warn("Admin flag not set for founder");
+      const isFounderEmail = user.email?.toLowerCase() === FOUNDER_EMAIL.toLowerCase();
+      const { data: activeSupportUser } = await supabase.rpc("is_active_support_user", { p_user_id: user.id });
+
+      if ((!isFounderEmail || !profile?.is_admin) && !activeSupportUser) {
+        console.warn("Unauthorized admin/support access attempt:", user.email);
         navigate("/dashboard");
         return;
       }
@@ -52,7 +48,8 @@ export const useFounderAuth = () => {
         email: profile.email,
         name: profile.name,
       });
-      setIsFounder(true);
+      setIsFounder(isFounderEmail && !!profile?.is_admin);
+      setIsSupportUser(!!activeSupportUser || !!profile?.is_support_user);
     } catch (error) {
       console.error("Error checking founder access:", error);
       navigate("/dashboard");
@@ -61,5 +58,5 @@ export const useFounderAuth = () => {
     }
   };
 
-  return { isFounder, loading, founderProfile, refetch: checkFounderAccess };
+  return { isFounder, isSupportUser, loading, founderProfile, refetch: checkFounderAccess };
 };
