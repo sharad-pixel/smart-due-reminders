@@ -183,6 +183,9 @@ const AdminUserDetail = lazy(() => import("./pages/admin/AdminUserDetail"));
 const AdminLeadOutreach = lazy(() => import("./pages/admin/AdminLeadOutreach"));
 const AdminStaleUsers = lazy(() => import("./pages/admin/AdminStaleUsers"));
 const AdminSupportAccess = lazy(() => import("./pages/admin/AdminSupportAccess"));
+const AdminSupportUsers = lazy(() => import("./pages/admin/AdminSupportUsers"));
+const SupportLogin = lazy(() => import("./pages/SupportLogin"));
+const SupportVerify = lazy(() => import("./pages/SupportVerify"));
 const DemoMode = lazy(() => import("./pages/DemoMode"));
 
 // Optimized QueryClient configuration
@@ -365,6 +368,9 @@ const App = () => (
               <Route path="/admin/leads" element={<AdminLeadOutreach />} />
               <Route path="/admin/stale-users" element={<AdminStaleUsers />} />
               <Route path="/admin/support-access" element={<AdminSupportAccess />} />
+              <Route path="/admin/support-users" element={<AdminSupportUsers />} />
+              <Route path="/support/login" element={<SupportLogin />} />
+              <Route path="/support/verify" element={<SupportVerify />} />
 
                 {/* 404 - Keep at bottom */}
                 <Route path="*" element={<NotFound />} />
