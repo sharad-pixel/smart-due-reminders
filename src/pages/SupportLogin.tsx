@@ -16,17 +16,25 @@ const SupportLogin = () => {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) return;
+    const normalized = email.trim().toLowerCase();
+    if (!normalized) return;
+    if (!normalized.endsWith("@recouply.ai")) {
+      toast.error("Only @recouply.ai email addresses may use support login.");
+      return;
+    }
     setSubmitting(true);
-    const { error } = await supabase.functions.invoke("support-login-request", {
-      body: { email: email.trim().toLowerCase() },
+    const { data, error } = await supabase.functions.invoke("support-login-request", {
+      body: { email: normalized },
     });
     setSubmitting(false);
-    if (error) { toast.error("Could not send code"); return; }
-    sessionStorage.setItem("recouply.support_login_email", email.trim().toLowerCase());
+    if (error || (data && (data as any).error)) {
+      toast.error((data as any)?.error || "Could not send code. Make sure your email has been granted support access.");
+      return;
+    }
+    sessionStorage.setItem("recouply.support_login_email", normalized);
     const next = searchParams.get("next");
     if (next?.startsWith("/")) sessionStorage.setItem("recouply.support_login_next", next);
-    toast.success("If your email is authorized, a 6-digit code is on its way.");
+    toast.success("A 6-digit code has been sent to your email.");
     navigate("/support/verify");
   };
 
