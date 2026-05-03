@@ -9365,6 +9365,10 @@ export type Database = {
       }
       rotate_ar_page_token: { Args: { p_user_id: string }; Returns: string }
       validate_invite_token: { Args: { p_token: string }; Returns: Json }
+      validate_support_impersonation: {
+        Args: { p_target_account_id: string }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "owner" | "admin" | "member" | "viewer"
