@@ -85,16 +85,3 @@ export async function getEffectiveAccountId(): Promise<string | null> {
   return (data as string | null) || user.id;
 }
 
-/**
- * Imperative variant for non-React contexts (utils, edge function callers).
- * Returns the effective account id (owner's user id) for the current session.
- */
-export async function getEffectiveAccountId(): Promise<string | null> {
-  const { data: { session } } = await supabase.auth.getSession();
-  const user = session?.user;
-  if (!user) return null;
-  const { data } = await supabase.rpc("get_effective_account_id", {
-    p_user_id: user.id,
-  });
-  return (data as string | null) || user.id;
-}
