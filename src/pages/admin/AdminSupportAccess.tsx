@@ -13,6 +13,13 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { setImpersonatedAccountId } from "@/lib/supportImpersonation";
 
+interface AssignmentRow {
+  id: string;
+  support_user_id: string;
+  notes: string | null;
+  support_users: { email: string; name: string | null } | null;
+}
+
 interface GrantRow {
   id: string;
   account_id: string;
@@ -25,11 +32,17 @@ interface GrantRow {
   account_email?: string | null;
   account_name?: string | null;
   account_company?: string | null;
+  assignments?: AssignmentRow[];
 }
+
+interface SupportUser { id: string; email: string; name: string | null; is_active: boolean }
 
 const AdminSupportAccess = () => {
   const [grants, setGrants] = useState<GrantRow[]>([]);
+  const [supportUsers, setSupportUsers] = useState<SupportUser[]>([]);
   const [loading, setLoading] = useState(true);
+  const [assignFor, setAssignFor] = useState<GrantRow | null>(null);
+  const [selectedSupportUser, setSelectedSupportUser] = useState<string>("");
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
