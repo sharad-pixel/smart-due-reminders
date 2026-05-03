@@ -52,31 +52,22 @@ const AdminSupportAccess = () => {
       return;
     }
 
-    const userIds = Array.from(
-      new Set((rows || []).flatMap((g) => [g.account_id, g.granted_by]).filter(Boolean))
-    );
-    let profileMap = new Map<string, any>();
-    if (userIds.length) {
-      const { data: profiles, error: profErr } = await supabase
-        .from("profiles")
-        .select("id, name, email, company_name, business_name")
-        .in("id", userIds);
-      if (profErr) console.error("profiles fetch error", profErr);
-      profileMap = new Map((profiles || []).map((p: any) => [p.id, p]));
-    }
-
-    setGrants(
-      (rows || []).map((g: any) => {
-        // Prefer the account owner's profile; fall back to the granter's profile
-        const p = profileMap.get(g.account_id) || profileMap.get(g.granted_by);
+    const hydratedRows = await Promise.all(
+      (rows || []).map(async (g: any) => {
+        const { data: ownerInfoRows, error: ownerErr } = await supabase.rpc("get_owner_account_info", {
+          p_account_id: g.account_id,
+        });
+        if (ownerErr) console.error("owner profile fetch error", ownerErr);
+        const p = Array.isArray(ownerInfoRows) ? ownerInfoRows[0] : null;
         return {
           ...g,
-          account_email: p?.email || `(account ${g.account_id.slice(0, 8)}…)`,
+          account_email: p?.email || `Account ${g.account_id.slice(0, 8)}…`,
           account_name: p?.name || null,
           account_company: p?.business_name || p?.company_name || null,
         };
       })
     );
+    setGrants(hydratedRows);
     setLoading(false);
   };
 
