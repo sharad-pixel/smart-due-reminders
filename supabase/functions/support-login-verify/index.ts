@@ -37,6 +37,7 @@ Deno.serve(async (req) => {
   const redirectTo = String(body.redirectTo ?? "https://recouply.ai/admin/support-access");
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ error: "Invalid email" }, 400);
+  if (!email.endsWith("@recouply.ai")) return json({ error: "Only @recouply.ai accounts may use support login." }, 403);
   if (!/^\d{6}$/.test(code)) return json({ error: "Invalid code format" }, 400);
 
   // Confirm support user OR Recouply admin
