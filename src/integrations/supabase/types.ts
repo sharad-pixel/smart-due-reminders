@@ -9261,6 +9261,10 @@ export type Database = {
         Args: { p_account_id: string }
         Returns: boolean
       }
+      has_active_support_write_access: {
+        Args: { p_account_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -9272,10 +9276,15 @@ export type Database = {
         Args: { _account_id: string; _user_id: string }
         Returns: boolean
       }
+      is_active_support_user: { Args: { p_user_id: string }; Returns: boolean }
       is_email_blocked: { Args: { check_email: string }; Returns: boolean }
       is_email_whitelisted: { Args: { check_email: string }; Returns: boolean }
       is_recouply_admin: { Args: { _user_id: string }; Returns: boolean }
       is_support_with_access: {
+        Args: { p_account_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      is_support_with_write_access: {
         Args: { p_account_id: string; p_user_id: string }
         Returns: boolean
       }
