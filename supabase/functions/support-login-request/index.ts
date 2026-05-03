@@ -37,10 +37,13 @@ Deno.serve(async (req) => {
     return json({ error: "Invalid email" }, 400);
   }
 
-  const ip = req.headers.get("x-forwarded-for") ?? req.headers.get("cf-connecting-ip") ?? null;
+  // HARD restriction: only @recouply.ai addresses may use support login.
+  if (!email.endsWith("@recouply.ai")) {
+    await new Promise((r) => setTimeout(r, 200));
+    return json({ error: "Only @recouply.ai accounts may use support login." }, 403);
+  }
 
-  // Generic response we always return at the end
-  const generic = { success: true, message: "If your email is authorized, a code has been sent." };
+  const ip = req.headers.get("x-forwarded-for") ?? req.headers.get("cf-connecting-ip") ?? null;
 
   // Authorize the email: must be an active support user OR a Recouply admin
   const { data: su } = await admin
@@ -61,9 +64,8 @@ Deno.serve(async (req) => {
   }
 
   if (!authorized) {
-    // Still respond generically. Small delay to mask timing.
     await new Promise((r) => setTimeout(r, 250));
-    return json(generic);
+    return json({ error: "This email is not on the support access list. Ask an admin to grant access." }, 403);
   }
 
   // Generate 6-digit code
