@@ -368,6 +368,9 @@ const App = () => (
               <Route path="/admin/leads" element={<AdminLeadOutreach />} />
               <Route path="/admin/stale-users" element={<AdminStaleUsers />} />
               <Route path="/admin/support-access" element={<AdminSupportAccess />} />
+              <Route path="/admin/support-users" element={<AdminSupportUsers />} />
+              <Route path="/support/login" element={<SupportLogin />} />
+              <Route path="/support/verify" element={<SupportVerify />} />
 
                 {/* 404 - Keep at bottom */}
                 <Route path="*" element={<NotFound />} />
