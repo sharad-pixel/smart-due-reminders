@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useAccountId } from '@/hooks/useAccountId';
 import { supabase } from '@/integrations/supabase/client';
+import { invokeFunction } from '@/lib/supportImpersonation';
 
 interface TrialUsage {
   includedInvoicesUsed: number;
@@ -73,7 +74,7 @@ export function TrialBanner({ onVisibilityChange }: { onVisibilityChange?: (visi
   useEffect(() => {
     const fetchUsage = async () => {
       try {
-        const { data } = await supabase.functions.invoke('get-monthly-usage');
+        const { data } = await invokeFunction('get-monthly-usage');
         if (data) {
           setUsage({
             includedInvoicesUsed: data.included_invoices_used || 0,

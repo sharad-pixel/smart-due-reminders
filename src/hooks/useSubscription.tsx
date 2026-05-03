@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAccountId } from '@/hooks/useAccountId';
+import { invokeFunction } from '@/lib/supportImpersonation';
 import { type PlanType, PLAN_CONFIGS, TRIAL_CONFIG } from '@/lib/subscriptionConfig';
 
 interface SubscriptionState {
@@ -96,7 +97,7 @@ export function useSubscription(): SubscriptionState {
 
       const [fallbackOwnerProfile, syncedSubscriptionResponse] = await Promise.all([
         getFallbackOwnerProfile(isOwner, accountId),
-        supabase.functions.invoke('sync-subscription'),
+        invokeFunction('sync-subscription'),
       ]);
 
       if (syncedSubscriptionResponse.error) {

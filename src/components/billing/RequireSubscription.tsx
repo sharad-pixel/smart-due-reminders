@@ -1,6 +1,7 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { invokeFunction } from '@/lib/supportImpersonation';
 import { Loader2 } from 'lucide-react';
 import { TeamMemberLockoutModal } from '@/components/security/TeamMemberLockoutModal';
 import { useAccess } from '@/contexts/AccessContext';
@@ -205,7 +206,7 @@ async function checkTrialValidity(
 
   // Check invoice usage limit (5 invoices during trial) - cached in React Query
   try {
-    const { data: usageData } = await supabase.functions.invoke('get-monthly-usage');
+    const { data: usageData } = await invokeFunction('get-monthly-usage');
     
     if (usageData) {
       const totalUsed = (usageData.includedInvoicesUsed || 0) + (usageData.overageInvoices || 0);
