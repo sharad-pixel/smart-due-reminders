@@ -372,6 +372,7 @@ const App = () => (
               <Route path="/admin/support-users" element={<AdminSupportUsers />} />
               <Route path="/support/login" element={<SupportLogin />} />
               <Route path="/support/verify" element={<SupportVerify />} />
+              <Route path="/support/callback" element={<SupportCallback />} />
 
                 {/* 404 - Keep at bottom */}
                 <Route path="*" element={<NotFound />} />
