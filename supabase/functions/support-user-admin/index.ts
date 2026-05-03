@@ -138,6 +138,40 @@ Deno.serve(async (req) => {
       return json({ success: true });
     }
 
+    if (action === "list_assignments") {
+      const grantId = String(body.grant_id ?? "");
+      if (!grantId) return json({ error: "grant_id required" }, 400);
+      const { data, error } = await admin
+        .from("support_access_assignments")
+        .select("id, support_user_id, assigned_at, notes, support_users(email, name)")
+        .eq("grant_id", grantId);
+      if (error) throw error;
+      return json({ assignments: data });
+    }
+
+    if (action === "assign") {
+      const grantId = String(body.grant_id ?? "");
+      const supportUserId = String(body.support_user_id ?? "");
+      const notes = body.notes ? String(body.notes) : null;
+      if (!grantId || !supportUserId) return json({ error: "grant_id and support_user_id required" }, 400);
+      const { data, error } = await admin
+        .from("support_access_assignments")
+        .upsert({ grant_id: grantId, support_user_id: supportUserId, assigned_by: user.id, notes },
+          { onConflict: "grant_id,support_user_id" })
+        .select()
+        .single();
+      if (error && (error as any).code !== "23505") throw error;
+      return json({ success: true, assignment: data });
+    }
+
+    if (action === "unassign") {
+      const id = String(body.id ?? "");
+      if (!id) return json({ error: "id required" }, 400);
+      const { error } = await admin.from("support_access_assignments").delete().eq("id", id);
+      if (error) throw error;
+      return json({ success: true });
+    }
+
     return json({ error: "Unknown action" }, 400);
   } catch (e: any) {
     console.error("support-user-admin error", e);

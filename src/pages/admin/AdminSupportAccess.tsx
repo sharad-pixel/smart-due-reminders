@@ -5,11 +5,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { LifeBuoy, ExternalLink, Clock, ShieldCheck, ShieldAlert, LogIn } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { LifeBuoy, ExternalLink, Clock, ShieldCheck, ShieldAlert, LogIn, UserPlus, X, Users } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { setImpersonatedAccountId } from "@/lib/supportImpersonation";
+
+interface AssignmentRow {
+  id: string;
+  support_user_id: string;
+  notes: string | null;
+  support_users: { email: string; name: string | null } | null;
+}
 
 interface GrantRow {
   id: string;
@@ -23,11 +32,17 @@ interface GrantRow {
   account_email?: string | null;
   account_name?: string | null;
   account_company?: string | null;
+  assignments?: AssignmentRow[];
 }
+
+interface SupportUser { id: string; email: string; name: string | null; is_active: boolean }
 
 const AdminSupportAccess = () => {
   const [grants, setGrants] = useState<GrantRow[]>([]);
+  const [supportUsers, setSupportUsers] = useState<SupportUser[]>([]);
   const [loading, setLoading] = useState(true);
+  const [assignFor, setAssignFor] = useState<GrantRow | null>(null);
+  const [selectedSupportUser, setSelectedSupportUser] = useState<string>("");
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -59,11 +74,15 @@ const AdminSupportAccess = () => {
         });
         if (ownerErr) console.error("owner profile fetch error", ownerErr);
         const p = Array.isArray(ownerInfoRows) ? ownerInfoRows[0] : null;
+        const { data: aData } = await supabase.functions.invoke("support-user-admin", {
+          body: { action: "list_assignments", grant_id: g.id },
+        });
         return {
           ...g,
           account_email: p?.email || `Account ${g.account_id.slice(0, 8)}…`,
           account_name: p?.name || null,
           account_company: p?.business_name || p?.company_name || null,
+          assignments: (aData?.assignments ?? []) as AssignmentRow[],
         };
       })
     );
@@ -71,8 +90,35 @@ const AdminSupportAccess = () => {
     setLoading(false);
   };
 
+  const loadSupportUsers = async () => {
+    const { data } = await supabase.functions.invoke("support-user-admin", { body: { action: "list" } });
+    setSupportUsers((data?.users ?? []).filter((u: SupportUser) => u.is_active));
+  };
+
+  const assign = async () => {
+    if (!assignFor || !selectedSupportUser) return;
+    const { error } = await supabase.functions.invoke("support-user-admin", {
+      body: { action: "assign", grant_id: assignFor.id, support_user_id: selectedSupportUser },
+    });
+    if (error) { toast.error("Failed to assign"); return; }
+    toast.success("Support member assigned");
+    setSelectedSupportUser("");
+    setAssignFor(null);
+    load();
+  };
+
+  const unassign = async (assignmentId: string) => {
+    const { error } = await supabase.functions.invoke("support-user-admin", {
+      body: { action: "unassign", id: assignmentId },
+    });
+    if (error) { toast.error("Failed to remove"); return; }
+    toast.success("Removed");
+    load();
+  };
+
   useEffect(() => {
     load();
+    loadSupportUsers();
   }, []);
 
   // Auto-open workspace when arriving from email button (?account=...&open=1)
@@ -116,7 +162,7 @@ const AdminSupportAccess = () => {
                   <TableRow>
                     <TableHead>Customer</TableHead>
                     <TableHead>Scope</TableHead>
-                    <TableHead>Reason</TableHead>
+                    <TableHead>Assigned support</TableHead>
                     <TableHead>Expires</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
@@ -141,8 +187,26 @@ const AdminSupportAccess = () => {
                           </Badge>
                         )}
                       </TableCell>
-                      <TableCell className="max-w-xs truncate text-sm text-muted-foreground">
-                        {g.reason || "—"}
+                      <TableCell>
+                        {g.assignments && g.assignments.length > 0 ? (
+                          <div className="flex flex-wrap gap-1 max-w-xs">
+                            {g.assignments.map((a) => (
+                              <Badge key={a.id} variant="secondary" className="gap-1 pr-1">
+                                <Users className="h-3 w-3" />
+                                {a.support_users?.name || a.support_users?.email || "Unknown"}
+                                <button
+                                  onClick={() => unassign(a.id)}
+                                  className="ml-1 rounded-full hover:bg-background/50 p-0.5"
+                                  aria-label="Remove"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </Badge>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground italic">Unassigned</span>
+                        )}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1 text-sm">
@@ -152,6 +216,13 @@ const AdminSupportAccess = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => { setAssignFor(g); setSelectedSupportUser(""); }}
+                          >
+                            <UserPlus className="h-3 w-3 mr-1" /> Assign
+                          </Button>
                           <Button
                             size="sm"
                             onClick={() => openWorkspace(g.account_id)}
@@ -174,6 +245,39 @@ const AdminSupportAccess = () => {
             )}
           </CardContent>
         </Card>
+
+        <Dialog open={!!assignFor} onOpenChange={(o) => !o && setAssignFor(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Assign support member</DialogTitle>
+              <DialogDescription>
+                Choose a support team member to handle{" "}
+                <strong>
+                  {assignFor?.account_company || assignFor?.account_name || assignFor?.account_email}
+                </strong>
+                . Only assigned members can open this workspace.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
+              <Select value={selectedSupportUser} onValueChange={setSelectedSupportUser}>
+                <SelectTrigger><SelectValue placeholder="Select support member…" /></SelectTrigger>
+                <SelectContent>
+                  {supportUsers
+                    .filter((su) => !assignFor?.assignments?.some((a) => a.support_user_id === su.id))
+                    .map((su) => (
+                      <SelectItem key={su.id} value={su.id}>
+                        {su.name ? `${su.name} — ${su.email}` : su.email}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              <div className="flex justify-end gap-2">
+                <Button variant="ghost" onClick={() => setAssignFor(null)}>Cancel</Button>
+                <Button onClick={assign} disabled={!selectedSupportUser}>Assign</Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </AdminLayout>
   );

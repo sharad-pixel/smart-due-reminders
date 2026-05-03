@@ -84,8 +84,9 @@ Deno.serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          from: "Recouply Support <support@recouply.ai>",
+          from: "Recouply Support <notifications@send.inbound.services.recouply.ai>",
           to: [email],
+          reply_to: "support@recouply.ai",
           subject: `Recouply Support Login Code: ${code}`,
           html,
         }),
