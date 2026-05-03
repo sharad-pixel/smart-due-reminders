@@ -74,11 +74,15 @@ const AdminSupportAccess = () => {
         });
         if (ownerErr) console.error("owner profile fetch error", ownerErr);
         const p = Array.isArray(ownerInfoRows) ? ownerInfoRows[0] : null;
+        const { data: aData } = await supabase.functions.invoke("support-user-admin", {
+          body: { action: "list_assignments", grant_id: g.id },
+        });
         return {
           ...g,
           account_email: p?.email || `Account ${g.account_id.slice(0, 8)}…`,
           account_name: p?.name || null,
           account_company: p?.business_name || p?.company_name || null,
+          assignments: (aData?.assignments ?? []) as AssignmentRow[],
         };
       })
     );
@@ -86,8 +90,35 @@ const AdminSupportAccess = () => {
     setLoading(false);
   };
 
+  const loadSupportUsers = async () => {
+    const { data } = await supabase.functions.invoke("support-user-admin", { body: { action: "list" } });
+    setSupportUsers((data?.users ?? []).filter((u: SupportUser) => u.is_active));
+  };
+
+  const assign = async () => {
+    if (!assignFor || !selectedSupportUser) return;
+    const { error } = await supabase.functions.invoke("support-user-admin", {
+      body: { action: "assign", grant_id: assignFor.id, support_user_id: selectedSupportUser },
+    });
+    if (error) { toast.error("Failed to assign"); return; }
+    toast.success("Support member assigned");
+    setSelectedSupportUser("");
+    setAssignFor(null);
+    load();
+  };
+
+  const unassign = async (assignmentId: string) => {
+    const { error } = await supabase.functions.invoke("support-user-admin", {
+      body: { action: "unassign", id: assignmentId },
+    });
+    if (error) { toast.error("Failed to remove"); return; }
+    toast.success("Removed");
+    load();
+  };
+
   useEffect(() => {
     load();
+    loadSupportUsers();
   }, []);
 
   // Auto-open workspace when arriving from email button (?account=...&open=1)
