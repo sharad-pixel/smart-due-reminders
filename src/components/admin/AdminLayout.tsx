@@ -63,11 +63,14 @@ const adminNavItems = [
 ];
 
 export const AdminLayout = ({ children, title, description }: AdminLayoutProps) => {
-  const { isFounder, loading, founderProfile } = useFounderAuth();
+  const { isFounder, isSupportUser, loading, founderProfile } = useFounderAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const visibleNavItems = isFounder
+    ? adminNavItems
+    : adminNavItems.filter((item) => item.path === "/admin/support-access");
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -92,7 +95,7 @@ export const AdminLayout = ({ children, title, description }: AdminLayoutProps) 
     );
   }
 
-  if (!isFounder) {
+  if (!isFounder && !isSupportUser) {
     return null;
   }
 
@@ -218,7 +221,7 @@ export const AdminLayout = ({ children, title, description }: AdminLayoutProps) 
           )}
         >
           <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
-            {adminNavItems.map((item) => {
+            {visibleNavItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path;
               return (
