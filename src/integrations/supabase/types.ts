@@ -7130,6 +7130,7 @@ export type Database = {
           invoice_limit: number | null
           is_account_locked: boolean | null
           is_admin: boolean | null
+          is_support_user: boolean
           is_suspended: boolean | null
           name: string | null
           overage_rate: number | null
@@ -7191,6 +7192,7 @@ export type Database = {
           invoice_limit?: number | null
           is_account_locked?: boolean | null
           is_admin?: boolean | null
+          is_support_user?: boolean
           is_suspended?: boolean | null
           name?: string | null
           overage_rate?: number | null
@@ -7252,6 +7254,7 @@ export type Database = {
           invoice_limit?: number | null
           is_account_locked?: boolean | null
           is_admin?: boolean | null
+          is_support_user?: boolean
           is_suspended?: boolean | null
           name?: string | null
           overage_rate?: number | null
@@ -8257,6 +8260,75 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      support_login_codes: {
+        Row: {
+          attempts: number
+          code_hash: string
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          ip_address: string | null
+          used_at: string | null
+        }
+        Insert: {
+          attempts?: number
+          code_hash: string
+          created_at?: string
+          email: string
+          expires_at: string
+          id?: string
+          ip_address?: string | null
+          used_at?: string | null
+        }
+        Update: {
+          attempts?: number
+          code_hash?: string
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          ip_address?: string | null
+          used_at?: string | null
+        }
+        Relationships: []
+      }
+      support_users: {
+        Row: {
+          auth_user_id: string | null
+          created_at: string
+          created_by: string | null
+          email: string
+          id: string
+          is_active: boolean
+          last_login_at: string | null
+          name: string | null
+          updated_at: string
+        }
+        Insert: {
+          auth_user_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          email: string
+          id?: string
+          is_active?: boolean
+          last_login_at?: string | null
+          name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          auth_user_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string
+          id?: string
+          is_active?: boolean
+          last_login_at?: string | null
+          name?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       suspicious_activity_log: {
         Row: {
