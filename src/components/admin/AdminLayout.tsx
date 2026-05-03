@@ -71,6 +71,7 @@ export const AdminLayout = ({ children, title, description }: AdminLayoutProps) 
   const visibleNavItems = isFounder
     ? adminNavItems
     : adminNavItems.filter((item) => item.path === "/admin/support-access");
+  const canViewRoute = isFounder || location.pathname === "/admin/support-access";
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -95,7 +96,7 @@ export const AdminLayout = ({ children, title, description }: AdminLayoutProps) 
     );
   }
 
-  if (!isFounder && !isSupportUser) {
+  if ((!isFounder && !isSupportUser) || !canViewRoute) {
     return null;
   }
 
