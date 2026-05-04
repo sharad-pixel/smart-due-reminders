@@ -199,19 +199,26 @@ export function useSessionTimeout(enabled = true): SessionTimeoutState {
   useEffect(() => {
     if (!enabled) return;
 
+    // Use a fast 1s tick so the countdown updates smoothly and logout fires promptly.
     const interval = setInterval(async () => {
       // Don't check until init has loaded localStorage values
       if (!initRef.current) return;
+
       const {
         data: { session },
       } = await supabase.auth.getSession();
-      if (!session) return;
+
+      // No active session — make sure any stale warning is hidden and skip checks.
+      if (!session) {
+        if (isWarningVisible) setIsWarningVisible(false);
+        return;
+      }
 
       const now = Date.now();
       const lastActivity = lastActivityRef.current;
       const sessionStart = sessionStartRef.current;
 
-      // Check absolute timeout (8 hours)
+      // Check absolute timeout (12 hours)
       if (sessionStart && now - sessionStart >= ABSOLUTE_TIMEOUT_MS) {
         forceLogout("absolute_timeout");
         return;
@@ -219,30 +226,26 @@ export function useSessionTimeout(enabled = true): SessionTimeoutState {
 
       const idleTime = now - lastActivity;
 
-      // Check idle timeout (15 minutes)
+      // Check idle timeout (30 minutes) — fires immediately when reached.
       if (idleTime >= IDLE_TIMEOUT_MS) {
         forceLogout("idle_timeout");
         return;
       }
 
-      // Show warning at 13 minutes (2 min before timeout)
+      // Show warning at 28 minutes (2 min before timeout)
       if (idleTime >= IDLE_WARNING_MS && !isWarningVisible) {
-        const remaining = Math.ceil(
-          (IDLE_TIMEOUT_MS - idleTime) / 1000,
-        );
-        setSecondsRemaining(remaining);
         setIsWarningVisible(true);
       }
 
-      // Update countdown if warning is visible
-      if (isWarningVisible) {
+      // Update countdown every tick while warning is visible
+      if (idleTime >= IDLE_WARNING_MS) {
         const remaining = Math.max(
           0,
           Math.ceil((IDLE_TIMEOUT_MS - idleTime) / 1000),
         );
         setSecondsRemaining(remaining);
       }
-    }, CHECK_INTERVAL_MS);
+    }, 1000);
 
     return () => clearInterval(interval);
   }, [enabled, forceLogout, isWarningVisible]);
