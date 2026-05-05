@@ -199,6 +199,33 @@ serve(async (req) => {
     );
   }
 
+  // Filter out unsubscribed recipients for marketing emails
+  let filteredAddresses = toAddresses;
+  if (payload.marketing) {
+    try {
+      const adminClient = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+      );
+      const lower = toAddresses.map(e => e.toLowerCase());
+      const { data: unsub } = await adminClient
+        .from("email_unsubscribes")
+        .select("email")
+        .in("email", lower);
+      const blocked = new Set((unsub || []).map((u: any) => String(u.email).toLowerCase()));
+      filteredAddresses = toAddresses.filter(e => !blocked.has(e.toLowerCase()));
+      if (filteredAddresses.length === 0) {
+        console.log("[SEND-EMAIL] All recipients are unsubscribed, skipping send", { toAddresses });
+        return new Response(
+          JSON.stringify({ status: "skipped", reason: "unsubscribed", skipped: toAddresses }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    } catch (err) {
+      console.error("[SEND-EMAIL] Unsubscribe filter error (proceeding):", err);
+    }
+  }
+
   // Sanitize subject - Resend doesn't allow newlines in subject
   const sanitizedSubject = payload.subject
     .replace(/[\r\n]+/g, ' ')  // Replace newlines with space
