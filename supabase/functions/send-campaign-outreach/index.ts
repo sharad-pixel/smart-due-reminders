@@ -245,6 +245,7 @@ serve(async (req) => {
                 subject: personalizedSubject,
                 html: personalizedHtml,
                 text: personalizedText,
+                marketing: true,
               }),
             });
 
