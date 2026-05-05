@@ -183,7 +183,7 @@ serve(async (req) => {
       // Fetch from marketing_leads table
       const { data: leads, error: leadsError } = await supabase
         .from("marketing_leads")
-        .select("email, name, unsubscribe_token")
+        .select("email, name, company, unsubscribe_token")
         .eq("status", "active");
 
       if (leadsError) {
