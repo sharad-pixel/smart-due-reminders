@@ -140,7 +140,7 @@ serve(async (req) => {
       const html = wrapMarketingEmailHtml({ subject: `[TEST] ${emailSubject}`, bodyHtml: formattedBody, unsubscribeUrl });
       const text = wrapMarketingEmailText({ bodyText: emailText || emailHtml, unsubscribeUrl });
       const { error: sendError } = await supabase.functions.invoke("send-email", {
-        body: { to: targetEmail, from: PLATFORM_FROM_EMAIL, subject: `[TEST] ${emailSubject}`, html, text },
+        body: { to: targetEmail, from: PLATFORM_FROM_EMAIL, subject: `[TEST] ${emailSubject}`, html, text, marketing: true },
       });
       if (sendError) {
         return new Response(JSON.stringify({ error: "Failed to send test email" }),
@@ -252,7 +252,25 @@ serve(async (req) => {
       .order("created_at", { ascending: true })
       .limit(PER_INVOCATION_MAX);
 
-    const toSend = pendingBatch || [];
+    // Mid-broadcast unsubscribe check: skip and mark any recipients that
+    // have unsubscribed since the broadcast was materialized.
+    let toSend = pendingBatch || [];
+    if (toSend.length > 0) {
+      const { data: unsubs } = await supabase
+        .from("email_unsubscribes")
+        .select("email")
+        .in("email", toSend.map((r: any) => r.email.toLowerCase()));
+      const blocked = new Set((unsubs || []).map((u: any) => String(u.email).toLowerCase()));
+      if (blocked.size > 0) {
+        const blockedIds = toSend.filter((r: any) => blocked.has(r.email.toLowerCase())).map((r: any) => r.id);
+        if (blockedIds.length > 0) {
+          await supabase.from("broadcast_recipients")
+            .update({ status: "skipped", last_error: "unsubscribed" })
+            .in("id", blockedIds);
+        }
+        toSend = toSend.filter((r: any) => !blocked.has(r.email.toLowerCase()));
+      }
+    }
     let sentThisRun = 0;
     let failedThisRun = 0;
 
@@ -269,7 +287,7 @@ serve(async (req) => {
 
       try {
         const { error: sendError } = await supabase.functions.invoke("send-email", {
-          body: { to: r.email, from: PLATFORM_FROM_EMAIL, subject: personalizedSubject, html, text },
+          body: { to: r.email, from: PLATFORM_FROM_EMAIL, subject: personalizedSubject, html, text, marketing: true },
         });
         if (!sendError) {
           await supabase.from("broadcast_recipients").update({
