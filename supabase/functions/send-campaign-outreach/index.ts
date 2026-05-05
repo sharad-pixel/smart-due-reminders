@@ -170,11 +170,14 @@ serve(async (req) => {
       console.log(`Test mode: Sending step ${targetStep} to ${testEmail}`);
 
       const unsubscribeUrl = `${supabaseUrl}/functions/v1/handle-unsubscribe?email=${encodeURIComponent(testEmail)}`;
-      const personalizedSubject = `[TEST] ${emailTemplate.subject?.replace(/\{\{user_name\}\}/g, "Test User") || "No Subject"}`;
-      const formattedBody = formatBodyAsHtml((emailTemplate.body_html || "").replace(/\{\{user_name\}\}/g, "Test User"));
-      const personalizedHtml = formattedBody + generateComplianceFooter(unsubscribeUrl);
-      const personalizedText = (emailTemplate.body_text || emailTemplate.body_html || "").replace(/\{\{user_name\}\}/g, "Test User") + 
-        generateComplianceFooterText(unsubscribeUrl);
+      const testVars = { name: "Test User", company: "Test Co" };
+      const personalizedSubject = `[TEST] ${hydrateMarketingTokens(emailTemplate.subject || "No Subject", testVars)}`;
+      const formattedBody = formatBodyAsHtml(hydrateMarketingTokens(emailTemplate.body_html || "", testVars));
+      const personalizedHtml = wrapMarketingEmailHtml({ subject: personalizedSubject, bodyHtml: formattedBody, unsubscribeUrl });
+      const personalizedText = wrapMarketingEmailText({
+        bodyText: hydrateMarketingTokens(emailTemplate.body_text || emailTemplate.body_html || "", testVars),
+        unsubscribeUrl,
+      });
 
       // Direct fetch for internal function-to-function calls
       const sendEmailResponse = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
