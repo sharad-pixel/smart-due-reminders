@@ -145,8 +145,8 @@ serve(async (req) => {
       // Generate test unsubscribe URL
       const unsubscribeUrl = `${supabaseUrl}/functions/v1/handle-unsubscribe?email=${encodeURIComponent(targetEmail!)}`;
       const formattedBody = formatBodyAsHtml(emailHtml!);
-      const htmlWithFooter = formattedBody + generateComplianceFooter(unsubscribeUrl, targetEmail!);
-      const textWithFooter = (emailText || emailHtml || "") + generateComplianceFooterText(unsubscribeUrl, targetEmail!);
+      const htmlWithFooter = wrapMarketingEmailHtml({ subject: `[TEST] ${emailSubject}`, bodyHtml: formattedBody, unsubscribeUrl });
+      const textWithFooter = wrapMarketingEmailText({ bodyText: emailText || emailHtml || "", unsubscribeUrl });
 
       const { error: sendError } = await supabase.functions.invoke("send-email", {
         body: {
