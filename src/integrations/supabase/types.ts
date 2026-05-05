@@ -830,6 +830,59 @@ export type Database = {
           },
         ]
       }
+      broadcast_recipients: {
+        Row: {
+          attempts: number
+          broadcast_id: string
+          company: string | null
+          created_at: string
+          email: string
+          id: string
+          last_error: string | null
+          name: string | null
+          sent_at: string | null
+          status: string
+          unsubscribe_token: string | null
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          broadcast_id: string
+          company?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          last_error?: string | null
+          name?: string | null
+          sent_at?: string | null
+          status?: string
+          unsubscribe_token?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          broadcast_id?: string
+          company?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          last_error?: string | null
+          name?: string | null
+          sent_at?: string | null
+          status?: string
+          unsubscribe_token?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "broadcast_recipients_broadcast_id_fkey"
+            columns: ["broadcast_id"]
+            isOneToOne: false
+            referencedRelation: "email_broadcasts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cached_reports: {
         Row: {
           created_at: string

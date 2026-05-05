@@ -64,6 +64,7 @@ interface BroadcastActionsCardProps {
   onResend: (broadcast: EmailBroadcast) => void;
   onDuplicate: (broadcast: EmailBroadcast) => void;
   onEdit?: (broadcast: EmailBroadcast) => void;
+  onRetryFailed?: (broadcast: EmailBroadcast) => void;
   isDeleting?: boolean;
 }
 
@@ -83,6 +84,7 @@ export const BroadcastActionsCard = ({
   onResend,
   onDuplicate,
   onEdit,
+  onRetryFailed,
   isDeleting,
 }: BroadcastActionsCardProps) => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -308,6 +310,25 @@ export const BroadcastActionsCard = ({
                             </TableCell>
                             <TableCell className="text-red-600">
                               {broadcast.failed_count || 0}
+                              {(() => {
+                                const total = broadcast.total_recipients || 0;
+                                const sent = broadcast.sent_count || 0;
+                                const failed = broadcast.failed_count || 0;
+                                const pending = Math.max(total - sent - failed, 0);
+                                if (total === 0) return null;
+                                const pct = Math.round(((sent + failed) / total) * 100);
+                                return (
+                                  <div className="mt-1 w-32">
+                                    <div className="h-1.5 w-full bg-muted rounded overflow-hidden flex">
+                                      <div className="bg-green-500 h-full" style={{ width: `${(sent / total) * 100}%` }} />
+                                      <div className="bg-red-500 h-full" style={{ width: `${(failed / total) * 100}%` }} />
+                                    </div>
+                                    <div className="text-[10px] text-muted-foreground mt-0.5">
+                                      {pct}% • {pending} pending
+                                    </div>
+                                  </div>
+                                );
+                              })()}
                             </TableCell>
                             <TableCell className="text-muted-foreground text-sm">
                               {broadcast.sent_at
@@ -326,13 +347,19 @@ export const BroadcastActionsCard = ({
                                     <Eye className="h-4 w-4 mr-2" />
                                     View Content
                                   </DropdownMenuItem>
+                                  {onRetryFailed && (broadcast.failed_count || 0) > 0 && (
+                                    <DropdownMenuItem onClick={() => onRetryFailed(broadcast)}>
+                                      <RefreshCw className="h-4 w-4 mr-2" />
+                                      Retry Failed ({broadcast.failed_count})
+                                    </DropdownMenuItem>
+                                  )}
                                   <DropdownMenuItem onClick={() => onDuplicate(broadcast)}>
                                     <Copy className="h-4 w-4 mr-2" />
                                     Duplicate
                                   </DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => onResend(broadcast)}>
                                     <RefreshCw className="h-4 w-4 mr-2" />
-                                    Resend
+                                    Resend (new broadcast)
                                   </DropdownMenuItem>
                                   <DropdownMenuSeparator />
                                   <DropdownMenuItem

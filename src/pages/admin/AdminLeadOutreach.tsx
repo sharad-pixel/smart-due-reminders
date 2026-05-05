@@ -689,6 +689,25 @@ export default function AdminLeadOutreach() {
     toast.info("Draft loaded for editing");
   };
 
+  // Retry only the failed recipients of a broadcast (uses tracked recipient state)
+  const handleRetryFailed = async (broadcast: EmailBroadcast) => {
+    try {
+      toast.info("Re-queueing failed recipients...");
+      const { data, error } = await supabase.functions.invoke("send-broadcast-email", {
+        body: { broadcast_id: broadcast.id, retry_failed: true },
+      });
+      if (error) throw error;
+      toast.success(
+        data?.complete
+          ? `Retry complete: ${data?.sent_this_run ?? 0} sent`
+          : `Retry started — ${data?.pending_remaining ?? 0} remaining (auto-resumes every minute)`
+      );
+      queryClient.invalidateQueries({ queryKey: ["email-broadcasts"] });
+    } catch (e: any) {
+      console.error(e);
+      toast.error("Failed to retry: " + (e?.message || "Unknown error"));
+    }
+  };
 
 
   // CSV Upload handler
@@ -1496,6 +1515,7 @@ export default function AdminLeadOutreach() {
               onResend={handleResendBroadcast}
               onDuplicate={handleDuplicateBroadcast}
               onEdit={handleEditDraft}
+              onRetryFailed={handleRetryFailed}
               isDeleting={deleteBroadcastsMutation.isPending}
             />
           </TabsContent>
