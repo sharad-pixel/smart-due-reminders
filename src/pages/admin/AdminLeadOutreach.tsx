@@ -1515,6 +1515,7 @@ export default function AdminLeadOutreach() {
               onResend={handleResendBroadcast}
               onDuplicate={handleDuplicateBroadcast}
               onEdit={handleEditDraft}
+              onRetryFailed={handleRetryFailed}
               isDeleting={deleteBroadcastsMutation.isPending}
             />
           </TabsContent>
