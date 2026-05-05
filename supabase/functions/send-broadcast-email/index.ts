@@ -18,13 +18,7 @@ interface BroadcastRequest {
   test_email?: string;
 }
 
-// Company info for CAN-SPAM compliance
-const COMPANY_INFO = {
-  legalName: "RecouplyAI Inc.",
-  address: "Delaware, USA",
-  email: "support@recouply.ai",
-  website: "https://recouply.ai",
-};
+import { wrapMarketingEmailHtml, wrapMarketingEmailText, hydrateMarketingTokens } from "../_shared/marketingEmailWrapper.ts";
 
 const PLATFORM_FROM_EMAIL = "Recouply.ai <notifications@send.inbound.services.recouply.ai>";
 
@@ -33,15 +27,8 @@ const PLATFORM_FROM_EMAIL = "Recouply.ai <notifications@send.inbound.services.re
  */
 function formatBodyAsHtml(body: string): string {
   if (!body) return "";
-  
-  // If already contains HTML tags, return as-is
-  if (/<[a-z][\s\S]*>/i.test(body)) {
-    return body;
-  }
-  
-  // Split by double newlines to create paragraphs
+  if (/<[a-z][\s\S]*>/i.test(body)) return body;
   const paragraphs = body.split(/\n\n+/);
-  
   return paragraphs
     .map(paragraph => {
       const lines = paragraph.trim().split(/\n/).map(line => line.trim()).filter(Boolean);
@@ -50,38 +37,6 @@ function formatBodyAsHtml(body: string): string {
     })
     .filter(Boolean)
     .join("\n");
-}
-
-/**
- * Generate CAN-SPAM compliant email footer with unsubscribe link
- */
-function generateComplianceFooter(unsubscribeUrl: string, email: string): string {
-  return `
-<!-- CAN-SPAM Compliant Footer -->
-<div style="margin-top: 40px; padding-top: 24px; border-top: 1px solid #e2e8f0; text-align: center;">
-  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-    <tr>
-      <td style="text-align: center; padding: 20px 0;">
-        <p style="margin: 0 0 12px; font-size: 12px; color: #64748b;">
-          ${COMPANY_INFO.legalName} • ${COMPANY_INFO.address}
-        </p>
-        <p style="margin: 0 0 8px;">
-          <a href="${unsubscribeUrl}" style="color: #3b82f6; font-size: 12px; text-decoration: underline;">
-            Unsubscribe
-          </a>
-        </p>
-      </td>
-    </tr>
-  </table>
-</div>`;
-}
-
-function generateComplianceFooterText(unsubscribeUrl: string, email: string): string {
-  return `
-
----
-${COMPANY_INFO.legalName} • ${COMPANY_INFO.address}
-Unsubscribe: ${unsubscribeUrl}`;
 }
 
 serve(async (req) => {
