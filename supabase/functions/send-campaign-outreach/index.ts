@@ -219,15 +219,18 @@ serve(async (req) => {
 
     for (const lead of eligibleLeads) {
       try {
-            const personalizedSubject = (emailTemplate.subject || "").replace(/\{\{user_name\}\}/g, lead.name || "there");
+            const vars = { name: lead.name, company: (lead as any).company };
+            const personalizedSubject = hydrateMarketingTokens(emailTemplate.subject || "", vars);
             const unsubscribeUrl = lead.unsubscribe_token
               ? `${supabaseUrl}/functions/v1/handle-unsubscribe?token=${lead.unsubscribe_token}`
               : `${supabaseUrl}/functions/v1/handle-unsubscribe?email=${encodeURIComponent(lead.email)}`;
 
-            const formattedBody = formatBodyAsHtml((emailTemplate.body_html || "").replace(/\{\{user_name\}\}/g, lead.name || "there"));
-            const personalizedHtml = formattedBody + generateComplianceFooter(unsubscribeUrl);
-            const personalizedText = (emailTemplate.body_text || emailTemplate.body_html || "").replace(/\{\{user_name\}\}/g, lead.name || "there") +
-              generateComplianceFooterText(unsubscribeUrl);
+            const formattedBody = formatBodyAsHtml(hydrateMarketingTokens(emailTemplate.body_html || "", vars));
+            const personalizedHtml = wrapMarketingEmailHtml({ subject: personalizedSubject, bodyHtml: formattedBody, unsubscribeUrl });
+            const personalizedText = wrapMarketingEmailText({
+              bodyText: hydrateMarketingTokens(emailTemplate.body_text || emailTemplate.body_html || "", vars),
+              unsubscribeUrl,
+            });
 
             const sendEmailResponse = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
               method: "POST",
