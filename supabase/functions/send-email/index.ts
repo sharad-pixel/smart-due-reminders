@@ -236,7 +236,7 @@ serve(async (req) => {
   // Build Resend API payload
   const resendPayload: Record<string, unknown> = {
     from: payload.from,
-    to: toAddresses,
+    to: filteredAddresses,
     subject: sanitizedSubject,
   };
 
