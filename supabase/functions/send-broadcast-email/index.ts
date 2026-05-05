@@ -252,7 +252,25 @@ serve(async (req) => {
       .order("created_at", { ascending: true })
       .limit(PER_INVOCATION_MAX);
 
-    const toSend = pendingBatch || [];
+    // Mid-broadcast unsubscribe check: skip and mark any recipients that
+    // have unsubscribed since the broadcast was materialized.
+    let toSend = pendingBatch || [];
+    if (toSend.length > 0) {
+      const { data: unsubs } = await supabase
+        .from("email_unsubscribes")
+        .select("email")
+        .in("email", toSend.map((r: any) => r.email.toLowerCase()));
+      const blocked = new Set((unsubs || []).map((u: any) => String(u.email).toLowerCase()));
+      if (blocked.size > 0) {
+        const blockedIds = toSend.filter((r: any) => blocked.has(r.email.toLowerCase())).map((r: any) => r.id);
+        if (blockedIds.length > 0) {
+          await supabase.from("broadcast_recipients")
+            .update({ status: "skipped", last_error: "unsubscribed" })
+            .in("id", blockedIds);
+        }
+        toSend = toSend.filter((r: any) => !blocked.has(r.email.toLowerCase()));
+      }
+    }
     let sentThisRun = 0;
     let failedThisRun = 0;
 
