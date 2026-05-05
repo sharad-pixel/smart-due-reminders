@@ -273,15 +273,6 @@ serve(async (req) => {
             const personalizedHtml = wrapMarketingEmailHtml({ subject: personalizedSubject, bodyHtml: formattedBody, unsubscribeUrl });
             const personalizedText = wrapMarketingEmailText({ bodyText: rawText, unsubscribeUrl });
 
-            // Generate personalized unsubscribe URL
-            const unsubscribeUrl = recipient.unsubscribe_token
-              ? `${supabaseUrl}/functions/v1/handle-unsubscribe?token=${recipient.unsubscribe_token}`
-              : `${supabaseUrl}/functions/v1/handle-unsubscribe?email=${encodeURIComponent(recipient.email)}`;
-
-            // Format body and add CAN-SPAM compliant footer
-            const formattedBody = formatBodyAsHtml(rawBody);
-            const personalizedHtml = formattedBody + generateComplianceFooter(unsubscribeUrl, recipient.email);
-            personalizedText = personalizedText + generateComplianceFooterText(unsubscribeUrl, recipient.email);
 
             const { error: sendError } = await supabase.functions.invoke("send-email", {
               body: {
