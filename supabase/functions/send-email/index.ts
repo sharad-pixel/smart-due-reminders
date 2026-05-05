@@ -24,6 +24,9 @@ interface SendEmailRequest {
   html?: string;
   text?: string;
   attachments?: EmailAttachment[];
+  // Marketing emails MUST honor the global unsubscribe list.
+  // Transactional emails (password reset, receipts, debtor portal) ignore it.
+  marketing?: boolean;
 }
 
 // Retry configuration for transient failures
