@@ -287,7 +287,7 @@ serve(async (req) => {
 
       try {
         const { error: sendError } = await supabase.functions.invoke("send-email", {
-          body: { to: r.email, from: PLATFORM_FROM_EMAIL, subject: personalizedSubject, html, text },
+          body: { to: r.email, from: PLATFORM_FROM_EMAIL, subject: personalizedSubject, html, text, marketing: true },
         });
         if (!sendError) {
           await supabase.from("broadcast_recipients").update({
