@@ -1111,6 +1111,7 @@ export default function AdminLeadOutreach() {
                     <FileSpreadsheet className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
                     <p className="text-sm font-medium">Drop CSV/Excel file here</p>
                     <p className="text-xs text-muted-foreground mt-1">or click to browse</p>
+                    <p className="text-[10px] text-muted-foreground mt-2">Apollo export ready — captures First Name, Last Name, Company, Title, Industry</p>
                   </div>
                 </CardContent>
               </Card>
