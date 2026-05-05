@@ -119,7 +119,7 @@ serve(async (req) => {
     // Get leads for this campaign
     let leadsQuery = supabase
       .from("marketing_leads")
-      .select("id, email, name, unsubscribe_token, status")
+      .select("id, email, name, company, unsubscribe_token, status")
       .eq("campaign_id", campaign_id)
       .neq("status", "unsubscribed");
 
