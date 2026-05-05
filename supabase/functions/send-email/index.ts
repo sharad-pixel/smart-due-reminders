@@ -260,7 +260,7 @@ serve(async (req) => {
   }
 
   console.log("Sending email via Resend", {
-    to: toAddresses,
+    to: filteredAddresses,
     from: payload.from,
     reply_to: payload.reply_to || '(not set)',
     subject: payload.subject,
