@@ -173,14 +173,22 @@ serve(async (req) => {
     }
 
     // Get recipient list based on audience
-    let recipients: { email: string; name: string | null; unsubscribe_token?: string | null }[] = [];
+    let recipients: { email: string; name: string | null; company?: string | null; unsubscribe_token?: string | null }[] = [];
 
     if (audience === "specific_emails" && specific_emails?.length) {
+      const lower = specific_emails.map(e => e.toLowerCase());
+      const { data: matched } = await supabase
+        .from("marketing_leads")
+        .select("email, name, company, unsubscribe_token")
+        .in("email", lower);
+      const byEmail = new Map((matched || []).map((l: any) => [l.email.toLowerCase(), l]));
       recipients = specific_emails
         .filter(e => !unsubscribedEmails.has(e.toLowerCase()))
-        .map((email) => ({ email, name: null }));
+        .map((email) => {
+          const l = byEmail.get(email.toLowerCase()) as any;
+          return { email, name: l?.name ?? null, company: l?.company ?? null, unsubscribe_token: l?.unsubscribe_token ?? null };
+        });
     } else if (audience === "all_leads") {
-      // Fetch from marketing_leads table
       const { data: leads, error: leadsError } = await supabase
         .from("marketing_leads")
         .select("email, name, company, unsubscribe_token")
@@ -195,8 +203,8 @@ serve(async (req) => {
       }
 
       recipients = (leads || [])
-        .filter((l) => l.email && !unsubscribedEmails.has(l.email.toLowerCase()))
-        .map((l) => ({ email: l.email!, name: l.name, unsubscribe_token: l.unsubscribe_token }));
+        .filter((l: any) => l.email && !unsubscribedEmails.has(l.email.toLowerCase()))
+        .map((l: any) => ({ email: l.email!, name: l.name, company: l.company, unsubscribe_token: l.unsubscribe_token }));
     } else {
       // Build query based on audience (existing user profiles)
       let query = supabase
