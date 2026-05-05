@@ -247,59 +247,76 @@ serve(async (req) => {
         .eq("id", broadcast_id);
     }
 
-    // Send emails in batches
+    // Send emails in small batches with retry-on-rate-limit
     let sentCount = 0;
     let failedCount = 0;
-    const batchSize = 10;
+    const batchSize = 4; // smaller concurrency to stay under edge fn rate limit
+    const interBatchDelayMs = 1100; // ~218 emails/min — safely under platform limits
+
+    const sendOne = async (recipient: typeof recipients[number]): Promise<boolean> => {
+      const vars = { name: recipient.name, company: (recipient as any).company };
+      const personalizedSubject = hydrateMarketingTokens(emailSubject!, vars);
+      const rawBody = hydrateMarketingTokens(emailHtml!, vars);
+      const rawText = hydrateMarketingTokens(emailText || emailHtml || "", vars);
+
+      const unsubscribeUrl = recipient.unsubscribe_token
+        ? `${supabaseUrl}/functions/v1/handle-unsubscribe?token=${recipient.unsubscribe_token}`
+        : `${supabaseUrl}/functions/v1/handle-unsubscribe?email=${encodeURIComponent(recipient.email)}`;
+
+      const formattedBody = formatBodyAsHtml(rawBody);
+      const personalizedHtml = wrapMarketingEmailHtml({ subject: personalizedSubject, bodyHtml: formattedBody, unsubscribeUrl });
+      const personalizedText = wrapMarketingEmailText({ bodyText: rawText, unsubscribeUrl });
+
+      const maxAttempts = 4;
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          const { error: sendError } = await supabase.functions.invoke("send-email", {
+            body: {
+              to: recipient.email,
+              from: PLATFORM_FROM_EMAIL,
+              subject: personalizedSubject,
+              html: personalizedHtml,
+              text: personalizedText,
+            },
+          });
+
+          if (!sendError) return true;
+
+          // Detect rate-limit / transient errors and back off
+          const ctx: any = (sendError as any)?.context;
+          const retryAfterMs: number | undefined = ctx?.retryAfterMs;
+          const isRateLimit = ctx?.name === "RateLimitError" || /rate limit/i.test(String(sendError?.message || ""));
+
+          if (isRateLimit && attempt < maxAttempts) {
+            const wait = Math.min(retryAfterMs ?? 5000 * attempt, 60_000);
+            console.warn(`Rate limited sending to ${recipient.email}, retrying in ${wait}ms (attempt ${attempt})`);
+            await new Promise((r) => setTimeout(r, wait));
+            continue;
+          }
+
+          console.error(`Failed to send to ${recipient.email}:`, sendError);
+          return false;
+        } catch (err) {
+          console.error(`Error sending to ${recipient.email} (attempt ${attempt}):`, err);
+          if (attempt < maxAttempts) {
+            await new Promise((r) => setTimeout(r, 2000 * attempt));
+            continue;
+          }
+          return false;
+        }
+      }
+      return false;
+    };
 
     for (let i = 0; i < recipients.length; i += batchSize) {
       const batch = recipients.slice(i, i + batchSize);
+      const results = await Promise.all(batch.map(sendOne));
+      for (const ok of results) {
+        if (ok) sentCount++; else failedCount++;
+      }
 
-      await Promise.all(
-        batch.map(async (recipient) => {
-          try {
-            // Replace user-specific variables
-            const vars = { name: recipient.name, company: (recipient as any).company };
-            const personalizedSubject = hydrateMarketingTokens(emailSubject!, vars);
-            const rawBody = hydrateMarketingTokens(emailHtml!, vars);
-            const rawText = hydrateMarketingTokens(emailText || emailHtml || "", vars);
-
-            // Generate personalized unsubscribe URL
-            const unsubscribeUrl = recipient.unsubscribe_token
-              ? `${supabaseUrl}/functions/v1/handle-unsubscribe?token=${recipient.unsubscribe_token}`
-              : `${supabaseUrl}/functions/v1/handle-unsubscribe?email=${encodeURIComponent(recipient.email)}`;
-
-            const formattedBody = formatBodyAsHtml(rawBody);
-            const personalizedHtml = wrapMarketingEmailHtml({ subject: personalizedSubject, bodyHtml: formattedBody, unsubscribeUrl });
-            const personalizedText = wrapMarketingEmailText({ bodyText: rawText, unsubscribeUrl });
-
-
-            const { error: sendError } = await supabase.functions.invoke("send-email", {
-              body: {
-                to: recipient.email,
-                from: PLATFORM_FROM_EMAIL,
-                subject: personalizedSubject,
-                html: personalizedHtml,
-                text: personalizedText,
-              },
-            });
-
-            if (sendError) {
-              console.error(`Failed to send to ${recipient.email}:`, sendError);
-              failedCount++;
-            } else {
-              sentCount++;
-            }
-          } catch (err) {
-            console.error(`Error sending to ${recipient.email}:`, err);
-            failedCount++;
-          }
-        })
-      );
-
-      // Small delay between batches to avoid rate limiting
       if (i + batchSize < recipients.length) {
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, interBatchDelayMs));
       }
     }
 
