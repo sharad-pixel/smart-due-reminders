@@ -140,7 +140,7 @@ serve(async (req) => {
       const html = wrapMarketingEmailHtml({ subject: `[TEST] ${emailSubject}`, bodyHtml: formattedBody, unsubscribeUrl });
       const text = wrapMarketingEmailText({ bodyText: emailText || emailHtml, unsubscribeUrl });
       const { error: sendError } = await supabase.functions.invoke("send-email", {
-        body: { to: targetEmail, from: PLATFORM_FROM_EMAIL, subject: `[TEST] ${emailSubject}`, html, text },
+        body: { to: targetEmail, from: PLATFORM_FROM_EMAIL, subject: `[TEST] ${emailSubject}`, html, text, marketing: true },
       });
       if (sendError) {
         return new Response(JSON.stringify({ error: "Failed to send test email" }),
