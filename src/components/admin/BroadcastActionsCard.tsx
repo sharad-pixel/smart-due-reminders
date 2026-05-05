@@ -64,6 +64,7 @@ interface BroadcastActionsCardProps {
   onResend: (broadcast: EmailBroadcast) => void;
   onDuplicate: (broadcast: EmailBroadcast) => void;
   onEdit?: (broadcast: EmailBroadcast) => void;
+  onRetryFailed?: (broadcast: EmailBroadcast) => void;
   isDeleting?: boolean;
 }
 
