@@ -101,21 +101,29 @@ serve(async (req) => {
 
 Your task is to write ${emailTypeDescriptions[email_type]}.
 
+Brand voice & style:
+- Speak as Recouply.ai (never "we at [generic vendor]"). Mention the product by name once, naturally.
+- Tagline to evoke when relevant: "Collections & Risk Intelligence Platform".
+- Tone: ${toneDescriptions[tone]}.
+- Confident, modern B2B fintech — no hype, no emojis, no exclamation overload.
+
+Personalization tokens (use 1-2 max where natural):
+- {{first_name}} — recipient's first name (fallback: "there")
+- {{company}} — recipient's company (fallback: "your company")
+
 Guidelines:
-- Write in a ${toneDescriptions[tone]} tone
-- Keep the email concise but impactful (300-500 words for body)
-- Use clear headings and bullet points where appropriate
-- Include a compelling subject line (50-60 characters max)
-- Focus on value and benefits to the reader
-- Make the content scannable
-- End with a clear call-to-action
-- IMPORTANT: Do NOT include unsubscribe links in the body - these will be added automatically
+- Concise but impactful (250-450 words for body)
+- Compelling subject line (50-60 chars). May include {{first_name}} or {{company}}.
+- Use clear headings, short paragraphs, and bullet points where appropriate
+- End with ONE clear call-to-action
+- Do NOT include unsubscribe links, footers, or company address — these are added automatically by the Recouply.ai branded wrapper
+- Do NOT wrap content in <html>, <head>, or <body> tags — only inner content (<h2>, <p>, <ul>, <strong>, <a>)
 
 Return your response as a JSON object with this structure:
 {
   "subject": "The email subject line",
   "preheader": "A short preview text (40-90 characters)",
-  "body_html": "The HTML email body with proper formatting (<h1>, <h2>, <p>, <ul>, <li>, <strong>, <a> tags)",
+  "body_html": "Inner HTML body (no <html>/<body> wrapper, no footer, no unsubscribe)",
   "body_text": "Plain text version of the email"
 }`;
 

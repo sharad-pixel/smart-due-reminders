@@ -13,62 +13,25 @@ interface SendCampaignOutreachRequest {
   test_mode?: boolean;
 }
 
+import { wrapMarketingEmailHtml, wrapMarketingEmailText, hydrateMarketingTokens } from "../_shared/marketingEmailWrapper.ts";
+
 const PLATFORM_FROM_EMAIL = "Recouply.ai <notifications@send.inbound.services.recouply.ai>";
 
 /**
- * Convert plain text with line breaks to proper HTML with paragraphs
- * Preserves the visual structure of the original text
+ * Convert plain text with line breaks to proper HTML with paragraphs.
  */
 function formatBodyAsHtml(body: string): string {
   if (!body) return "";
-  
-  // If already contains HTML tags, return as-is
-  if (/<[a-z][\s\S]*>/i.test(body)) {
-    return body;
-  }
-  
-  // Split by double newlines to create paragraphs
+  if (/<[a-z][\s\S]*>/i.test(body)) return body;
   const paragraphs = body.split(/\n\n+/);
-  
   return paragraphs
     .map(paragraph => {
-      // Convert single newlines within a paragraph to <br>
       const lines = paragraph.trim().split(/\n/).map(line => line.trim()).filter(Boolean);
       if (lines.length === 0) return "";
       return `<p style="margin: 0 0 16px 0; line-height: 1.6;">${lines.join("<br>")}</p>`;
     })
     .filter(Boolean)
     .join("\n");
-}
-
-// CAN-SPAM compliant footer
-function generateComplianceFooter(unsubscribeUrl: string): string {
-  return `
-<!-- CAN-SPAM Compliant Footer -->
-<div style="margin-top: 40px; padding-top: 24px; border-top: 1px solid #e2e8f0; text-align: center;">
-  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-    <tr>
-      <td style="text-align: center; padding: 20px 0;">
-        <p style="margin: 0 0 12px; font-size: 12px; color: #64748b;">
-          RecouplyAI Inc. • Delaware, USA
-        </p>
-        <p style="margin: 0 0 8px;">
-          <a href="${unsubscribeUrl}" style="color: #3b82f6; font-size: 12px; text-decoration: underline;">
-            Unsubscribe
-          </a>
-        </p>
-      </td>
-    </tr>
-  </table>
-</div>`;
-}
-
-function generateComplianceFooterText(unsubscribeUrl: string): string {
-  return `
-
----
-RecouplyAI Inc. • Delaware, USA
-Unsubscribe: ${unsubscribeUrl}`;
 }
 
 serve(async (req) => {
@@ -156,7 +119,7 @@ serve(async (req) => {
     // Get leads for this campaign
     let leadsQuery = supabase
       .from("marketing_leads")
-      .select("id, email, name, unsubscribe_token, status")
+      .select("id, email, name, company, unsubscribe_token, status")
       .eq("campaign_id", campaign_id)
       .neq("status", "unsubscribed");
 
@@ -207,11 +170,14 @@ serve(async (req) => {
       console.log(`Test mode: Sending step ${targetStep} to ${testEmail}`);
 
       const unsubscribeUrl = `${supabaseUrl}/functions/v1/handle-unsubscribe?email=${encodeURIComponent(testEmail)}`;
-      const personalizedSubject = `[TEST] ${emailTemplate.subject?.replace(/\{\{user_name\}\}/g, "Test User") || "No Subject"}`;
-      const formattedBody = formatBodyAsHtml((emailTemplate.body_html || "").replace(/\{\{user_name\}\}/g, "Test User"));
-      const personalizedHtml = formattedBody + generateComplianceFooter(unsubscribeUrl);
-      const personalizedText = (emailTemplate.body_text || emailTemplate.body_html || "").replace(/\{\{user_name\}\}/g, "Test User") + 
-        generateComplianceFooterText(unsubscribeUrl);
+      const testVars = { name: "Test User", company: "Test Co" };
+      const personalizedSubject = `[TEST] ${hydrateMarketingTokens(emailTemplate.subject || "No Subject", testVars)}`;
+      const formattedBody = formatBodyAsHtml(hydrateMarketingTokens(emailTemplate.body_html || "", testVars));
+      const personalizedHtml = wrapMarketingEmailHtml({ subject: personalizedSubject, bodyHtml: formattedBody, unsubscribeUrl });
+      const personalizedText = wrapMarketingEmailText({
+        bodyText: hydrateMarketingTokens(emailTemplate.body_text || emailTemplate.body_html || "", testVars),
+        unsubscribeUrl,
+      });
 
       // Direct fetch for internal function-to-function calls
       const sendEmailResponse = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
@@ -253,15 +219,18 @@ serve(async (req) => {
 
     for (const lead of eligibleLeads) {
       try {
-            const personalizedSubject = (emailTemplate.subject || "").replace(/\{\{user_name\}\}/g, lead.name || "there");
+            const vars = { name: lead.name, company: (lead as any).company };
+            const personalizedSubject = hydrateMarketingTokens(emailTemplate.subject || "", vars);
             const unsubscribeUrl = lead.unsubscribe_token
               ? `${supabaseUrl}/functions/v1/handle-unsubscribe?token=${lead.unsubscribe_token}`
               : `${supabaseUrl}/functions/v1/handle-unsubscribe?email=${encodeURIComponent(lead.email)}`;
 
-            const formattedBody = formatBodyAsHtml((emailTemplate.body_html || "").replace(/\{\{user_name\}\}/g, lead.name || "there"));
-            const personalizedHtml = formattedBody + generateComplianceFooter(unsubscribeUrl);
-            const personalizedText = (emailTemplate.body_text || emailTemplate.body_html || "").replace(/\{\{user_name\}\}/g, lead.name || "there") +
-              generateComplianceFooterText(unsubscribeUrl);
+            const formattedBody = formatBodyAsHtml(hydrateMarketingTokens(emailTemplate.body_html || "", vars));
+            const personalizedHtml = wrapMarketingEmailHtml({ subject: personalizedSubject, bodyHtml: formattedBody, unsubscribeUrl });
+            const personalizedText = wrapMarketingEmailText({
+              bodyText: hydrateMarketingTokens(emailTemplate.body_text || emailTemplate.body_html || "", vars),
+              unsubscribeUrl,
+            });
 
             const sendEmailResponse = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
               method: "POST",

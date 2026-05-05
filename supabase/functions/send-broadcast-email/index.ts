@@ -18,13 +18,7 @@ interface BroadcastRequest {
   test_email?: string;
 }
 
-// Company info for CAN-SPAM compliance
-const COMPANY_INFO = {
-  legalName: "RecouplyAI Inc.",
-  address: "Delaware, USA",
-  email: "support@recouply.ai",
-  website: "https://recouply.ai",
-};
+import { wrapMarketingEmailHtml, wrapMarketingEmailText, hydrateMarketingTokens } from "../_shared/marketingEmailWrapper.ts";
 
 const PLATFORM_FROM_EMAIL = "Recouply.ai <notifications@send.inbound.services.recouply.ai>";
 
@@ -33,15 +27,8 @@ const PLATFORM_FROM_EMAIL = "Recouply.ai <notifications@send.inbound.services.re
  */
 function formatBodyAsHtml(body: string): string {
   if (!body) return "";
-  
-  // If already contains HTML tags, return as-is
-  if (/<[a-z][\s\S]*>/i.test(body)) {
-    return body;
-  }
-  
-  // Split by double newlines to create paragraphs
+  if (/<[a-z][\s\S]*>/i.test(body)) return body;
   const paragraphs = body.split(/\n\n+/);
-  
   return paragraphs
     .map(paragraph => {
       const lines = paragraph.trim().split(/\n/).map(line => line.trim()).filter(Boolean);
@@ -50,38 +37,6 @@ function formatBodyAsHtml(body: string): string {
     })
     .filter(Boolean)
     .join("\n");
-}
-
-/**
- * Generate CAN-SPAM compliant email footer with unsubscribe link
- */
-function generateComplianceFooter(unsubscribeUrl: string, email: string): string {
-  return `
-<!-- CAN-SPAM Compliant Footer -->
-<div style="margin-top: 40px; padding-top: 24px; border-top: 1px solid #e2e8f0; text-align: center;">
-  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-    <tr>
-      <td style="text-align: center; padding: 20px 0;">
-        <p style="margin: 0 0 12px; font-size: 12px; color: #64748b;">
-          ${COMPANY_INFO.legalName} • ${COMPANY_INFO.address}
-        </p>
-        <p style="margin: 0 0 8px;">
-          <a href="${unsubscribeUrl}" style="color: #3b82f6; font-size: 12px; text-decoration: underline;">
-            Unsubscribe
-          </a>
-        </p>
-      </td>
-    </tr>
-  </table>
-</div>`;
-}
-
-function generateComplianceFooterText(unsubscribeUrl: string, email: string): string {
-  return `
-
----
-${COMPANY_INFO.legalName} • ${COMPANY_INFO.address}
-Unsubscribe: ${unsubscribeUrl}`;
 }
 
 serve(async (req) => {
@@ -190,8 +145,8 @@ serve(async (req) => {
       // Generate test unsubscribe URL
       const unsubscribeUrl = `${supabaseUrl}/functions/v1/handle-unsubscribe?email=${encodeURIComponent(targetEmail!)}`;
       const formattedBody = formatBodyAsHtml(emailHtml!);
-      const htmlWithFooter = formattedBody + generateComplianceFooter(unsubscribeUrl, targetEmail!);
-      const textWithFooter = (emailText || emailHtml || "") + generateComplianceFooterText(unsubscribeUrl, targetEmail!);
+      const htmlWithFooter = wrapMarketingEmailHtml({ subject: `[TEST] ${emailSubject}`, bodyHtml: formattedBody, unsubscribeUrl });
+      const textWithFooter = wrapMarketingEmailText({ bodyText: emailText || emailHtml || "", unsubscribeUrl });
 
       const { error: sendError } = await supabase.functions.invoke("send-email", {
         body: {
@@ -218,17 +173,25 @@ serve(async (req) => {
     }
 
     // Get recipient list based on audience
-    let recipients: { email: string; name: string | null; unsubscribe_token?: string | null }[] = [];
+    let recipients: { email: string; name: string | null; company?: string | null; unsubscribe_token?: string | null }[] = [];
 
     if (audience === "specific_emails" && specific_emails?.length) {
+      const lower = specific_emails.map(e => e.toLowerCase());
+      const { data: matched } = await supabase
+        .from("marketing_leads")
+        .select("email, name, company, unsubscribe_token")
+        .in("email", lower);
+      const byEmail = new Map((matched || []).map((l: any) => [l.email.toLowerCase(), l]));
       recipients = specific_emails
         .filter(e => !unsubscribedEmails.has(e.toLowerCase()))
-        .map((email) => ({ email, name: null }));
+        .map((email) => {
+          const l = byEmail.get(email.toLowerCase()) as any;
+          return { email, name: l?.name ?? null, company: l?.company ?? null, unsubscribe_token: l?.unsubscribe_token ?? null };
+        });
     } else if (audience === "all_leads") {
-      // Fetch from marketing_leads table
       const { data: leads, error: leadsError } = await supabase
         .from("marketing_leads")
-        .select("email, name, unsubscribe_token")
+        .select("email, name, company, unsubscribe_token")
         .eq("status", "active");
 
       if (leadsError) {
@@ -240,8 +203,8 @@ serve(async (req) => {
       }
 
       recipients = (leads || [])
-        .filter((l) => l.email && !unsubscribedEmails.has(l.email.toLowerCase()))
-        .map((l) => ({ email: l.email!, name: l.name, unsubscribe_token: l.unsubscribe_token }));
+        .filter((l: any) => l.email && !unsubscribedEmails.has(l.email.toLowerCase()))
+        .map((l: any) => ({ email: l.email!, name: l.name, company: l.company, unsubscribe_token: l.unsubscribe_token }));
     } else {
       // Build query based on audience (existing user profiles)
       let query = supabase
@@ -296,19 +259,20 @@ serve(async (req) => {
         batch.map(async (recipient) => {
           try {
             // Replace user-specific variables
-            const personalizedSubject = emailSubject!.replace(/\{\{user_name\}\}/g, recipient.name || "there");
-            const rawBody = emailHtml!.replace(/\{\{user_name\}\}/g, recipient.name || "there");
-            let personalizedText = (emailText || emailHtml || "").replace(/\{\{user_name\}\}/g, recipient.name || "there");
+            const vars = { name: recipient.name, company: (recipient as any).company };
+            const personalizedSubject = hydrateMarketingTokens(emailSubject!, vars);
+            const rawBody = hydrateMarketingTokens(emailHtml!, vars);
+            const rawText = hydrateMarketingTokens(emailText || emailHtml || "", vars);
 
             // Generate personalized unsubscribe URL
             const unsubscribeUrl = recipient.unsubscribe_token
               ? `${supabaseUrl}/functions/v1/handle-unsubscribe?token=${recipient.unsubscribe_token}`
               : `${supabaseUrl}/functions/v1/handle-unsubscribe?email=${encodeURIComponent(recipient.email)}`;
 
-            // Format body and add CAN-SPAM compliant footer
             const formattedBody = formatBodyAsHtml(rawBody);
-            const personalizedHtml = formattedBody + generateComplianceFooter(unsubscribeUrl, recipient.email);
-            personalizedText = personalizedText + generateComplianceFooterText(unsubscribeUrl, recipient.email);
+            const personalizedHtml = wrapMarketingEmailHtml({ subject: personalizedSubject, bodyHtml: formattedBody, unsubscribeUrl });
+            const personalizedText = wrapMarketingEmailText({ bodyText: rawText, unsubscribeUrl });
+
 
             const { error: sendError } = await supabase.functions.invoke("send-email", {
               body: {
