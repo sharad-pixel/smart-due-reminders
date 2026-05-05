@@ -707,16 +707,27 @@ export default function AdminLeadOutreach() {
 
         const leadsToInsert = jsonData
           .filter((row) => row.email || row.Email || row.EMAIL)
-          .map((row) => ({
-            email: (row.email || row.Email || row.EMAIL || "").toString().toLowerCase().trim(),
-            name: (row.name || row.Name || row.NAME || row["First Name"] || row["Full Name"] || null)?.toString() || null,
-            company: (row.company || row.Company || row.COMPANY || row.Organization || null)?.toString() || null,
-            industry: (row.industry || row.Industry || null)?.toString() || null,
-            company_size: (row.company_size || row["Company Size"] || null)?.toString() || null,
-            source: "csv_upload",
-            segment: "new",
-            lead_score: 10,
-          }));
+          .map((row) => {
+            const firstName = (row["First Name"] || row.first_name || row.FirstName || "").toString().trim();
+            const lastName = (row["Last Name"] || row.last_name || row.LastName || "").toString().trim();
+            const fullName = (row.name || row.Name || row.NAME || row["Full Name"] || "").toString().trim();
+            const composedName = fullName || [firstName, lastName].filter(Boolean).join(" ") || null;
+            const company = (
+              row.company || row.Company || row.COMPANY ||
+              row["Company Name"] || row["Company Name for Emails"] ||
+              row.Organization || null
+            )?.toString().trim() || null;
+            return {
+              email: (row.email || row.Email || row.EMAIL || "").toString().toLowerCase().trim(),
+              name: composedName,
+              company,
+              industry: (row.industry || row.Industry || null)?.toString() || null,
+              company_size: (row.company_size || row["Company Size"] || row["# Employees"] || null)?.toString() || null,
+              source: "csv_upload",
+              segment: "new",
+              lead_score: 10,
+            };
+          });
 
         if (leadsToInsert.length === 0) {
           toast.error("No valid emails found in file");
