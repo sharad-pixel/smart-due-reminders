@@ -84,6 +84,7 @@ export const BroadcastActionsCard = ({
   onResend,
   onDuplicate,
   onEdit,
+  onRetryFailed,
   isDeleting,
 }: BroadcastActionsCardProps) => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
