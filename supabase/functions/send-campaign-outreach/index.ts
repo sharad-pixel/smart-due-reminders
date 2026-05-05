@@ -13,62 +13,25 @@ interface SendCampaignOutreachRequest {
   test_mode?: boolean;
 }
 
+import { wrapMarketingEmailHtml, wrapMarketingEmailText, hydrateMarketingTokens } from "../_shared/marketingEmailWrapper.ts";
+
 const PLATFORM_FROM_EMAIL = "Recouply.ai <notifications@send.inbound.services.recouply.ai>";
 
 /**
- * Convert plain text with line breaks to proper HTML with paragraphs
- * Preserves the visual structure of the original text
+ * Convert plain text with line breaks to proper HTML with paragraphs.
  */
 function formatBodyAsHtml(body: string): string {
   if (!body) return "";
-  
-  // If already contains HTML tags, return as-is
-  if (/<[a-z][\s\S]*>/i.test(body)) {
-    return body;
-  }
-  
-  // Split by double newlines to create paragraphs
+  if (/<[a-z][\s\S]*>/i.test(body)) return body;
   const paragraphs = body.split(/\n\n+/);
-  
   return paragraphs
     .map(paragraph => {
-      // Convert single newlines within a paragraph to <br>
       const lines = paragraph.trim().split(/\n/).map(line => line.trim()).filter(Boolean);
       if (lines.length === 0) return "";
       return `<p style="margin: 0 0 16px 0; line-height: 1.6;">${lines.join("<br>")}</p>`;
     })
     .filter(Boolean)
     .join("\n");
-}
-
-// CAN-SPAM compliant footer
-function generateComplianceFooter(unsubscribeUrl: string): string {
-  return `
-<!-- CAN-SPAM Compliant Footer -->
-<div style="margin-top: 40px; padding-top: 24px; border-top: 1px solid #e2e8f0; text-align: center;">
-  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-    <tr>
-      <td style="text-align: center; padding: 20px 0;">
-        <p style="margin: 0 0 12px; font-size: 12px; color: #64748b;">
-          RecouplyAI Inc. • Delaware, USA
-        </p>
-        <p style="margin: 0 0 8px;">
-          <a href="${unsubscribeUrl}" style="color: #3b82f6; font-size: 12px; text-decoration: underline;">
-            Unsubscribe
-          </a>
-        </p>
-      </td>
-    </tr>
-  </table>
-</div>`;
-}
-
-function generateComplianceFooterText(unsubscribeUrl: string): string {
-  return `
-
----
-RecouplyAI Inc. • Delaware, USA
-Unsubscribe: ${unsubscribeUrl}`;
 }
 
 serve(async (req) => {
