@@ -177,16 +177,34 @@ Generate the email content now.`;
     // Parse the JSON response
     let emailContent;
     try {
-      // Extract JSON from potential markdown code blocks
-      const jsonMatch = content.match(/```json\n?([\s\S]*?)\n?```/) || content.match(/\{[\s\S]*\}/);
-      const jsonString = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : content;
+      // Strip markdown code fences if present
+      let jsonString = content.trim();
+      const fenceMatch = jsonString.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+      if (fenceMatch) jsonString = fenceMatch[1].trim();
       emailContent = JSON.parse(jsonString);
     } catch (parseError) {
-      console.error("Failed to parse AI response:", parseError, content);
-      return new Response(
-        JSON.stringify({ error: "Failed to parse generated content" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      console.error("Failed to parse AI response, attempting recovery:", parseError, content);
+      // Recovery: extract fields with regex from raw content
+      try {
+        const subj = content.match(/"subject"\s*:\s*"((?:[^"\\]|\\.)*)"/)?.[1] ?? "Recouply.ai update";
+        const pre = content.match(/"preheader"\s*:\s*"((?:[^"\\]|\\.)*)"/)?.[1] ?? "";
+        const html = content.match(/"body_html"\s*:\s*"((?:[^"\\]|\\.)*)"/s)?.[1] ?? "";
+        const text = content.match(/"body_text"\s*:\s*"((?:[^"\\]|\\.)*)"/s)?.[1] ?? "";
+        const unescape = (s: string) => s.replace(/\\n/g, "\n").replace(/\\"/g, '"').replace(/\\\\/g, "\\");
+        emailContent = {
+          subject: unescape(subj),
+          preheader: unescape(pre),
+          body_html: unescape(html),
+          body_text: unescape(text),
+        };
+        if (!emailContent.body_html) throw new Error("No body recovered");
+      } catch (recoveryError) {
+        console.error("Recovery failed:", recoveryError);
+        return new Response(
+          JSON.stringify({ error: "Failed to parse generated content. Please try again." }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     // Add CTA button if provided
