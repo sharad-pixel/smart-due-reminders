@@ -259,9 +259,19 @@ serve(async (req) => {
         batch.map(async (recipient) => {
           try {
             // Replace user-specific variables
-            const personalizedSubject = emailSubject!.replace(/\{\{user_name\}\}/g, recipient.name || "there");
-            const rawBody = emailHtml!.replace(/\{\{user_name\}\}/g, recipient.name || "there");
-            let personalizedText = (emailText || emailHtml || "").replace(/\{\{user_name\}\}/g, recipient.name || "there");
+            const vars = { name: recipient.name, company: (recipient as any).company };
+            const personalizedSubject = hydrateMarketingTokens(emailSubject!, vars);
+            const rawBody = hydrateMarketingTokens(emailHtml!, vars);
+            const rawText = hydrateMarketingTokens(emailText || emailHtml || "", vars);
+
+            // Generate personalized unsubscribe URL
+            const unsubscribeUrl = recipient.unsubscribe_token
+              ? `${supabaseUrl}/functions/v1/handle-unsubscribe?token=${recipient.unsubscribe_token}`
+              : `${supabaseUrl}/functions/v1/handle-unsubscribe?email=${encodeURIComponent(recipient.email)}`;
+
+            const formattedBody = formatBodyAsHtml(rawBody);
+            const personalizedHtml = wrapMarketingEmailHtml({ subject: personalizedSubject, bodyHtml: formattedBody, unsubscribeUrl });
+            const personalizedText = wrapMarketingEmailText({ bodyText: rawText, unsubscribeUrl });
 
             // Generate personalized unsubscribe URL
             const unsubscribeUrl = recipient.unsubscribe_token
