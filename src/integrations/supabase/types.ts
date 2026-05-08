@@ -1033,6 +1033,42 @@ export type Database = {
           },
         ]
       }
+      clm_entitlements: {
+        Row: {
+          account_id: string
+          created_at: string
+          disabled_at: string | null
+          enabled_at: string | null
+          enabled_by: string | null
+          notes: string | null
+          status: string
+          stripe_subscription_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          disabled_at?: string | null
+          enabled_at?: string | null
+          enabled_by?: string | null
+          notes?: string | null
+          status?: string
+          stripe_subscription_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          disabled_at?: string | null
+          enabled_at?: string | null
+          enabled_by?: string | null
+          notes?: string | null
+          status?: string
+          stripe_subscription_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       collection_activities: {
         Row: {
           activity_type: string
@@ -1732,6 +1768,72 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      contracts: {
+        Row: {
+          account_id: string
+          ai_extracted_terms: Json | null
+          ai_summary: string | null
+          contract_type: string | null
+          contract_value: number | null
+          counterparty_email: string | null
+          counterparty_name: string | null
+          created_at: string
+          created_by: string
+          currency: string | null
+          effective_date: string | null
+          expiry_date: string | null
+          id: string
+          metadata: Json | null
+          renewal_date: string | null
+          status: string
+          storage_path: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          ai_extracted_terms?: Json | null
+          ai_summary?: string | null
+          contract_type?: string | null
+          contract_value?: number | null
+          counterparty_email?: string | null
+          counterparty_name?: string | null
+          created_at?: string
+          created_by: string
+          currency?: string | null
+          effective_date?: string | null
+          expiry_date?: string | null
+          id?: string
+          metadata?: Json | null
+          renewal_date?: string | null
+          status?: string
+          storage_path?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          ai_extracted_terms?: Json | null
+          ai_summary?: string | null
+          contract_type?: string | null
+          contract_value?: number | null
+          counterparty_email?: string | null
+          counterparty_name?: string | null
+          created_at?: string
+          created_by?: string
+          currency?: string | null
+          effective_date?: string | null
+          expiry_date?: string | null
+          id?: string
+          metadata?: Json | null
+          renewal_date?: string | null
+          status?: string
+          storage_path?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       crm_accounts: {
         Row: {
@@ -9360,6 +9462,7 @@ export type Database = {
         Args: { p_account_id: string }
         Returns: boolean
       }
+      has_clm_access: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
