@@ -19,7 +19,13 @@ export const useClmInstances = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("clm_template_instances")
-        .select("*, clm_templates(name)")
+        .select(`
+          *,
+          clm_templates(name),
+          clm_instance_debtors(id, role, debtors(id, company_name, name, email)),
+          clm_instance_contacts(id, is_internal),
+          clm_section_revisions(id, approval_status)
+        `)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];

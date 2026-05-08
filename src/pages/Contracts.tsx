@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { FileSignature, Plus, Loader2, FileText, Upload, AlertCircle } from "lucide-react";
+import { FileSignature, Plus, Loader2, FileText, Upload, AlertCircle, Briefcase, Building2, Users, Clock, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useClmEntitlement } from "@/hooks/useClmEntitlement";
 import { useClmTemplates } from "@/hooks/useClmTemplates";
@@ -182,40 +182,133 @@ const TemplatesTab = () => {
   );
 };
 
-const InstancesTab = () => {
+const statusTone = (s: string) =>
+  s === "executed" ? "default" :
+  s === "approved" ? "default" :
+  s === "in_review" ? "secondary" :
+  s === "archived" ? "outline" : "secondary";
+
+const WorkspacesTab = () => {
   const { data: instances = [], isLoading } = useClmInstances();
+  const active = instances.filter((i: any) => !["executed", "archived"].includes(i.status));
+  const closed = instances.filter((i: any) => ["executed", "archived"].includes(i.status));
+
+  const totals = {
+    active: active.length,
+    pendingApprovals: instances.reduce(
+      (n: number, i: any) => n + (i.clm_section_revisions?.filter((r: any) => r.approval_status === "pending").length ?? 0),
+      0,
+    ),
+    accountsEngaged: new Set(
+      instances.flatMap((i: any) => (i.clm_instance_debtors ?? []).map((d: any) => d.debtors?.id).filter(Boolean)),
+    ).size,
+  };
+
+  const renderRow = (i: any) => {
+    const debtor = i.clm_instance_debtors?.[0]?.debtors;
+    const collaborators = i.clm_instance_contacts?.length ?? 0;
+    const pending = i.clm_section_revisions?.filter((r: any) => r.approval_status === "pending").length ?? 0;
+    return (
+      <TableRow key={i.id}>
+        <TableCell className="font-medium">
+          <Link to={`/contracts/instances/${i.id}`} className="hover:underline flex items-center gap-2">
+            <Briefcase className="h-4 w-4 text-primary shrink-0" /> {i.name}
+          </Link>
+          <p className="text-xs text-muted-foreground ml-6">Based on {i.clm_templates?.name ?? i.template_name_snapshot ?? "—"}</p>
+        </TableCell>
+        <TableCell>
+          {debtor ? (
+            <div className="flex items-center gap-1.5 text-sm">
+              <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="truncate">{debtor.company_name ?? debtor.name ?? "—"}</span>
+            </div>
+          ) : <span className="text-xs text-muted-foreground italic">Unassigned</span>}
+        </TableCell>
+        <TableCell>
+          <div className="flex items-center gap-1 text-sm">
+            <Users className="h-3.5 w-3.5 text-muted-foreground" />{collaborators}
+          </div>
+        </TableCell>
+        <TableCell>
+          {pending > 0 ? (
+            <Badge variant="secondary" className="gap-1"><Clock className="h-3 w-3" />{pending} pending</Badge>
+          ) : (
+            <span className="text-xs text-muted-foreground flex items-center gap-1"><CheckCircle2 className="h-3 w-3" /> none</span>
+          )}
+        </TableCell>
+        <TableCell><Badge variant={statusTone(i.status) as any} className="capitalize">{i.status.replace("_", " ")}</Badge></TableCell>
+        <TableCell className="text-xs text-muted-foreground">{new Date(i.created_at).toLocaleDateString()}</TableCell>
+      </TableRow>
+    );
+  };
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Active Collaborations</CardTitle>
-        <CardDescription>Contracts being negotiated with debtor accounts</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <div className="py-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
-        ) : instances.length === 0 ? (
-          <p className="py-12 text-center text-sm text-muted-foreground">
-            No active collaborations. Open a template and click "Use Template" to start one.
-          </p>
-        ) : (
-          <Table>
-            <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Template</TableHead><TableHead>Status</TableHead><TableHead>Created</TableHead></TableRow></TableHeader>
-            <TableBody>
-              {instances.map((i: any) => (
-                <TableRow key={i.id} className="cursor-pointer">
-                  <TableCell className="font-medium">
-                    <Link to={`/contracts/instances/${i.id}`} className="hover:underline">{i.name}</Link>
-                  </TableCell>
-                  <TableCell>{i.clm_templates?.name ?? "—"}</TableCell>
-                  <TableCell><Badge variant="outline" className="capitalize">{i.status.replace("_", " ")}</Badge></TableCell>
-                  <TableCell>{new Date(i.created_at).toLocaleDateString()}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </CardContent>
-    </Card>
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Card><CardContent className="pt-4">
+          <p className="text-xs text-muted-foreground uppercase tracking-wide">Active engagements</p>
+          <p className="text-2xl font-bold mt-1">{totals.active}</p>
+        </CardContent></Card>
+        <Card><CardContent className="pt-4">
+          <p className="text-xs text-muted-foreground uppercase tracking-wide">Accounts engaged</p>
+          <p className="text-2xl font-bold mt-1">{totals.accountsEngaged}</p>
+        </CardContent></Card>
+        <Card><CardContent className="pt-4">
+          <p className="text-xs text-muted-foreground uppercase tracking-wide">Pending approvals</p>
+          <p className="text-2xl font-bold mt-1 text-amber-600">{totals.pendingApprovals}</p>
+        </CardContent></Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Briefcase className="h-5 w-5 text-primary" /> Workspaces</CardTitle>
+          <CardDescription>Active negotiation engagements with debtor accounts</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="py-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+          ) : active.length === 0 ? (
+            <p className="py-12 text-center text-sm text-muted-foreground">
+              No active workspaces. Open a template and click "Use Template" to spin one up.
+            </p>
+          ) : (
+            <Table>
+              <TableHeader><TableRow>
+                <TableHead>Workspace</TableHead>
+                <TableHead>Account</TableHead>
+                <TableHead>Collaborators</TableHead>
+                <TableHead>Approvals</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Created</TableHead>
+              </TableRow></TableHeader>
+              <TableBody>{active.map(renderRow)}</TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {closed.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Closed engagements</CardTitle>
+            <CardDescription>Executed or archived workspaces</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader><TableRow>
+                <TableHead>Workspace</TableHead>
+                <TableHead>Account</TableHead>
+                <TableHead>Collaborators</TableHead>
+                <TableHead>Approvals</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Created</TableHead>
+              </TableRow></TableHeader>
+              <TableBody>{closed.map(renderRow)}</TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 };
 
@@ -232,14 +325,14 @@ const ContractsInner = () => {
         </p>
       </div>
 
-      <Tabs defaultValue="templates" className="space-y-4">
+      <Tabs defaultValue="workspaces" className="space-y-4">
         <TabsList>
+          <TabsTrigger value="workspaces">Workspaces</TabsTrigger>
           <TabsTrigger value="templates">Templates</TabsTrigger>
-          <TabsTrigger value="instances">Collaborations</TabsTrigger>
           <TabsTrigger value="contracts">Contracts</TabsTrigger>
         </TabsList>
+        <TabsContent value="workspaces"><WorkspacesTab /></TabsContent>
         <TabsContent value="templates"><TemplatesTab /></TabsContent>
-        <TabsContent value="instances"><InstancesTab /></TabsContent>
         <TabsContent value="contracts"><ContractsTab /></TabsContent>
       </Tabs>
     </div>
