@@ -90,8 +90,22 @@ export const TemplateUploadDialog = ({ open, onOpenChange }: { open: boolean; on
           </div>
 
           <div>
-            <Label>Template Name *</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Standard MSA v3" />
+            <Label>Template Type *</Label>
+            <Select value={templateType} onValueChange={setTemplateType}>
+              <SelectTrigger><SelectValue placeholder="Select contract type (MSA, BAA, SLA…)" /></SelectTrigger>
+              <SelectContent>
+                {TEMPLATE_TYPES.map((t) => (
+                  <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Template Name {templateType ? "(optional)" : "*"}</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Standard v3, Enterprise Tier" />
+            {templateType && (
+              <p className="text-xs text-muted-foreground mt-1">Will be saved as: <span className="font-medium">{composedName() || templateType}</span></p>
+            )}
           </div>
           <div>
             <Label>Description</Label>
@@ -101,7 +115,7 @@ export const TemplateUploadDialog = ({ open, onOpenChange }: { open: boolean; on
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={!file || !name.trim() || upload.isPending}>
+          <Button onClick={handleSubmit} disabled={!file || !composedName() || upload.isPending}>
             {upload.isPending ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" />Uploading…</> : "Upload & Sectionalize"}
           </Button>
         </DialogFooter>
