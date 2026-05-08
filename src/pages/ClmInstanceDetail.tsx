@@ -12,6 +12,8 @@ import { InstanceAccountPicker } from "@/components/clm/InstanceAccountPicker";
 import { InternalCollaboratorsPanel } from "@/components/clm/InternalCollaboratorsPanel";
 import { FileText } from "lucide-react";
 import { SectionCommentsPanel } from "@/components/clm/SectionCommentsPanel";
+import { SectionEditDialog } from "@/components/clm/SectionEditDialog";
+import { RevisionHistoryPanel } from "@/components/clm/RevisionHistoryPanel";
 import { ClmBrandedHeader } from "@/components/clm/ClmBrandedHeader";
 import SEO from "@/components/seo/SEO";
 
