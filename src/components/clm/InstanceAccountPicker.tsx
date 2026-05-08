@@ -6,10 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, X, Search, Building2, User, Mail, UserPlus } from "lucide-react";
+import { Plus, X, Search, Building2, User, Mail, UserPlus, Lock } from "lucide-react";
 import {
   useAddInstanceDebtor,
-  useRemoveInstanceDebtor,
   useAddInstanceContact,
   useRemoveInstanceContact,
 } from "@/hooks/useClmInstance";
