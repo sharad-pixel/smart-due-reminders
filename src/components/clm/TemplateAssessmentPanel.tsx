@@ -59,7 +59,7 @@ export const TemplateAssessmentPanel = ({ template }: { template: ClmTemplate })
         {status === "running" || (status === "pending" && canRun) ? (
           <div className="flex items-center gap-3 py-6">
             <Loader2 className="h-5 w-5 animate-spin text-primary" />
-            <p className="text-sm">GPT-5 is reading the contract — this typically takes 20–60 seconds…</p>
+            <p className="text-sm">AI counsel is reviewing the contract — usually 10–25 seconds…</p>
           </div>
         ) : status === "failed" ? (
           <div className="rounded border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive flex items-start gap-2">
