@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Upload, FileText, X, Loader2 } from "lucide-react";
 import { useUploadClmTemplate } from "@/hooks/useClmTemplates";
 import { toast } from "sonner";
@@ -11,13 +12,32 @@ import { toast } from "sonner";
 const MAX_SIZE = 15 * 1024 * 1024; // 15MB for contracts
 const ACCEPT = ".pdf,.docx,.doc,.txt,.md";
 
+const TEMPLATE_TYPES = [
+  { value: "MSA", label: "MSA — Master Services Agreement" },
+  { value: "BAA", label: "BAA — Business Associate Agreement" },
+  { value: "SLA", label: "SLA — Service Level Agreement" },
+  { value: "Order Form", label: "Order Form" },
+  { value: "NDA", label: "NDA — Non-Disclosure Agreement" },
+  { value: "DPA", label: "DPA — Data Processing Agreement" },
+  { value: "Other", label: "Other" },
+];
+
 export const TemplateUploadDialog = ({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) => {
   const [file, setFile] = useState<File | null>(null);
+  const [templateType, setTemplateType] = useState<string>("");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const upload = useUploadClmTemplate();
 
-  const reset = () => { setFile(null); setName(""); setDescription(""); };
+  const reset = () => { setFile(null); setTemplateType(""); setName(""); setDescription(""); };
+
+  const composedName = () => {
+    const trimmed = name.trim();
+    if (!templateType) return trimmed;
+    if (!trimmed) return templateType;
+    if (trimmed.toLowerCase().startsWith(templateType.toLowerCase())) return trimmed;
+    return `${templateType} — ${trimmed}`;
+  };
 
   const onPick = (f: File | null) => {
     if (!f) return;
