@@ -17,6 +17,8 @@ export interface ClmTemplate {
   assessment_error: string | null;
   assessed_at: string | null;
   assessment_model: string | null;
+  assessment_ignored_risks?: number[] | null;
+  raw_text?: string | null;
   created_at: string;
   updated_at: string;
 }
