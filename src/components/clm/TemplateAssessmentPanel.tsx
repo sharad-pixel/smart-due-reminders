@@ -28,8 +28,10 @@ const favorabilityLabel = (f?: string) =>
 
 export const TemplateAssessmentPanel = ({ template }: { template: ClmTemplate }) => {
   const reassess = useReassessTemplate();
+  const toggleIgnore = useToggleAssessmentRiskIgnored();
   const status = template.assessment_status;
   const a: Assessment | null = (template.assessment as Assessment) ?? null;
+  const ignored: number[] = Array.isArray(template.assessment_ignored_risks) ? template.assessment_ignored_risks : [];
 
   const canRun = template.status === "ready";
 
