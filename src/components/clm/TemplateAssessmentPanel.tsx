@@ -2,10 +2,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ShieldAlert, Sparkles, Loader2, RefreshCw, AlertTriangle, Lightbulb, FileWarning } from "lucide-react";
-import { useReassessTemplate, type ClmTemplate } from "@/hooks/useClmTemplates";
+import { ShieldAlert, Sparkles, Loader2, RefreshCw, AlertTriangle, Lightbulb, FileWarning, EyeOff, Eye } from "lucide-react";
+import { useReassessTemplate, useToggleAssessmentRiskIgnored, type ClmTemplate } from "@/hooks/useClmTemplates";
 
-interface KeyRisk { title: string; severity?: string; clause?: string; explanation?: string }
+interface KeyRisk { title: string; severity?: string; clause?: string; explanation?: string; evidence_quote?: string }
 interface Recommendation { title: string; priority?: string; rationale?: string }
 interface Assessment {
   overall_risk?: "low" | "medium" | "high";
