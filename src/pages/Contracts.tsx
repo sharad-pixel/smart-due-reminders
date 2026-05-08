@@ -325,6 +325,8 @@ const WorkspacesTab = () => {
           </CardContent>
         </Card>
       )}
+
+      <NewWorkspaceDialog open={newOpen} onOpenChange={setNewOpen} />
     </div>
   );
 };
