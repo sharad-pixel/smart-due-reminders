@@ -17,6 +17,8 @@ export interface ClmTemplate {
   assessment_error: string | null;
   assessed_at: string | null;
   assessment_model: string | null;
+  assessment_ignored_risks?: number[] | null;
+  raw_text?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -200,6 +202,27 @@ export const useDeleteClmTemplate = () => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["clm-templates"] });
       toast.success("Template deleted");
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed"),
+  });
+};
+
+export const useToggleAssessmentRiskIgnored = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ templateId, riskIndex, currentIgnored }: { templateId: string; riskIndex: number; currentIgnored: number[] }) => {
+      const next = currentIgnored.includes(riskIndex)
+        ? currentIgnored.filter((i) => i !== riskIndex)
+        : [...currentIgnored, riskIndex];
+      const { error } = await supabase
+        .from("clm_templates")
+        .update({ assessment_ignored_risks: next } as any)
+        .eq("id", templateId);
+      if (error) throw error;
+      return next;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["clm-template", vars.templateId] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Failed"),
   });

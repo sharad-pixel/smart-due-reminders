@@ -2,10 +2,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ShieldAlert, Sparkles, Loader2, RefreshCw, AlertTriangle, Lightbulb, FileWarning } from "lucide-react";
-import { useReassessTemplate, type ClmTemplate } from "@/hooks/useClmTemplates";
+import { ShieldAlert, Sparkles, Loader2, RefreshCw, AlertTriangle, Lightbulb, FileWarning, EyeOff, Eye } from "lucide-react";
+import { useReassessTemplate, useToggleAssessmentRiskIgnored, type ClmTemplate } from "@/hooks/useClmTemplates";
 
-interface KeyRisk { title: string; severity?: string; clause?: string; explanation?: string }
+interface KeyRisk { title: string; severity?: string; clause?: string; explanation?: string; evidence_quote?: string }
 interface Recommendation { title: string; priority?: string; rationale?: string }
 interface Assessment {
   overall_risk?: "low" | "medium" | "high";
@@ -28,8 +28,10 @@ const favorabilityLabel = (f?: string) =>
 
 export const TemplateAssessmentPanel = ({ template }: { template: ClmTemplate }) => {
   const reassess = useReassessTemplate();
+  const toggleIgnore = useToggleAssessmentRiskIgnored();
   const status = template.assessment_status;
   const a: Assessment | null = (template.assessment as Assessment) ?? null;
+  const ignored: number[] = Array.isArray(template.assessment_ignored_risks) ? template.assessment_ignored_risks : [];
 
   const canRun = template.status === "ready";
 
@@ -38,7 +40,7 @@ export const TemplateAssessmentPanel = ({ template }: { template: ClmTemplate })
       <CardHeader className="flex flex-row items-start justify-between gap-3">
         <div>
           <CardTitle className="flex items-center gap-2">
-            <ShieldAlert className="h-5 w-5 text-primary" /> GPT-5 Risk Assessment
+            <ShieldAlert className="h-5 w-5 text-primary" /> AI Risk Assessment
           </CardTitle>
           <CardDescription>
             Independent attorney-style review — runs alongside the AI sectionalization.
@@ -57,7 +59,7 @@ export const TemplateAssessmentPanel = ({ template }: { template: ClmTemplate })
         {status === "running" || (status === "pending" && canRun) ? (
           <div className="flex items-center gap-3 py-6">
             <Loader2 className="h-5 w-5 animate-spin text-primary" />
-            <p className="text-sm">GPT-5 is reading the contract — this typically takes 20–60 seconds…</p>
+            <p className="text-sm">AI counsel is reviewing the contract — usually 10–25 seconds…</p>
           </div>
         ) : status === "failed" ? (
           <div className="rounded border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive flex items-start gap-2">
@@ -103,18 +105,39 @@ export const TemplateAssessmentPanel = ({ template }: { template: ClmTemplate })
               <div>
                 <p className="text-sm font-semibold mb-2 flex items-center gap-1">
                   <AlertTriangle className="h-4 w-4 text-destructive" /> Key Risks
+                  {ignored.length > 0 && (
+                    <span className="text-xs font-normal text-muted-foreground ml-1">({ignored.length} ignored)</span>
+                  )}
                 </p>
                 <ul className="space-y-2">
-                  {a.key_risks.map((r, i) => (
-                    <li key={i} className="rounded border p-3">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Badge variant={sevColor(r.severity) as any} className="capitalize text-xs">{r.severity ?? "—"}</Badge>
-                        <span className="font-medium text-sm">{r.title}</span>
-                        {r.clause && <span className="text-xs text-muted-foreground">· {r.clause}</span>}
-                      </div>
-                      {r.explanation && <p className="text-sm text-muted-foreground">{r.explanation}</p>}
-                    </li>
-                  ))}
+                  {a.key_risks.map((r, i) => {
+                    const isIgnored = ignored.includes(i);
+                    return (
+                      <li key={i} className={`rounded border p-3 ${isIgnored ? "opacity-50 bg-muted/30" : ""}`}>
+                        <div className="flex items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Badge variant={sevColor(r.severity) as any} className="capitalize text-xs">{r.severity ?? "—"}</Badge>
+                            <span className={`font-medium text-sm ${isIgnored ? "line-through" : ""}`}>{r.title}</span>
+                            {r.clause && <span className="text-xs text-muted-foreground">· {r.clause}</span>}
+                            {isIgnored && <Badge variant="outline" className="text-[10px]">Ignored</Badge>}
+                          </div>
+                          <Button
+                            variant="ghost" size="sm" className="h-6 px-2 text-xs shrink-0"
+                            onClick={() => toggleIgnore.mutate({ templateId: template.id, riskIndex: i, currentIgnored: ignored })}
+                            title={isIgnored ? "Restore this risk" : "Mark as not applicable"}
+                          >
+                            {isIgnored ? <><Eye className="h-3 w-3 mr-1" />Restore</> : <><EyeOff className="h-3 w-3 mr-1" />Ignore</>}
+                          </Button>
+                        </div>
+                        {r.explanation && <p className="text-sm text-muted-foreground">{r.explanation}</p>}
+                        {r.evidence_quote && (
+                          <p className="text-xs text-muted-foreground mt-1.5 italic border-l-2 border-destructive/30 pl-2">
+                            "{r.evidence_quote}"
+                          </p>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             )}

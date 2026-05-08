@@ -5,8 +5,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const MAX_AI_CHARS = 35000;
-const MODEL = "openai/gpt-5";
+const MAX_AI_CHARS = 18000;
+const MODEL = "openai/gpt-5-mini";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
   "risk_score": 0-100,
   "executive_summary": "2-3 sentence plain-English summary aimed at a non-lawyer founder/CFO.",
   "key_risks": [
-    { "title": "Short risk title", "severity": "low" | "medium" | "high", "clause": "Section or clause name (e.g. 'Limitation of Liability')", "explanation": "1-2 sentences explaining why this is risky." }
+    { "title": "Short risk title", "severity": "low" | "medium" | "high", "clause": "Section or clause name (e.g. 'Limitation of Liability')", "explanation": "1-2 sentences explaining why this is risky.", "evidence_quote": "A short verbatim phrase (5-20 words) copied EXACTLY from the contract that triggered this risk. Must appear in the source text." }
   ],
   "recommendations": [
     { "title": "Short recommendation", "priority": "low" | "medium" | "high", "rationale": "1-2 sentences explaining the suggested change." }
@@ -86,7 +86,7 @@ Deno.serve(async (req) => {
   "missing_clauses": ["Standard clauses that appear absent (e.g. 'Force Majeure')"],
   "favorability": "favors_us" | "favors_counterparty" | "balanced"
 }
-Be specific and reference actual clause language when possible. Limit to the 5-8 most important risks and 3-5 highest-impact recommendations.`,
+The evidence_quote field is REQUIRED and MUST be a verbatim substring of the contract — the UI uses it to highlight the source text. Be specific. Limit to 5-7 most important risks and 3-5 highest-impact recommendations. Be concise.`,
           },
           { role: "user", content: `Contract: ${tmpl.name}\n\n${aiInput}` },
         ],
