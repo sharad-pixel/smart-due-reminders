@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Upload, FileText, X, Loader2 } from "lucide-react";
 import { useUploadClmTemplate } from "@/hooks/useClmTemplates";
 import { toast } from "sonner";
@@ -11,13 +12,32 @@ import { toast } from "sonner";
 const MAX_SIZE = 15 * 1024 * 1024; // 15MB for contracts
 const ACCEPT = ".pdf,.docx,.doc,.txt,.md";
 
+const TEMPLATE_TYPES = [
+  { value: "MSA", label: "MSA — Master Services Agreement" },
+  { value: "BAA", label: "BAA — Business Associate Agreement" },
+  { value: "SLA", label: "SLA — Service Level Agreement" },
+  { value: "Order Form", label: "Order Form" },
+  { value: "NDA", label: "NDA — Non-Disclosure Agreement" },
+  { value: "DPA", label: "DPA — Data Processing Agreement" },
+  { value: "Other", label: "Other" },
+];
+
 export const TemplateUploadDialog = ({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) => {
   const [file, setFile] = useState<File | null>(null);
+  const [templateType, setTemplateType] = useState<string>("");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const upload = useUploadClmTemplate();
 
-  const reset = () => { setFile(null); setName(""); setDescription(""); };
+  const reset = () => { setFile(null); setTemplateType(""); setName(""); setDescription(""); };
+
+  const composedName = () => {
+    const trimmed = name.trim();
+    if (!templateType) return trimmed;
+    if (!trimmed) return templateType;
+    if (trimmed.toLowerCase().startsWith(templateType.toLowerCase())) return trimmed;
+    return `${templateType} — ${trimmed}`;
+  };
 
   const onPick = (f: File | null) => {
     if (!f) return;
@@ -27,9 +47,10 @@ export const TemplateUploadDialog = ({ open, onOpenChange }: { open: boolean; on
   };
 
   const handleSubmit = async () => {
-    if (!file || !name.trim()) return;
+    const finalName = composedName();
+    if (!file || !finalName) return;
     try {
-      await upload.mutateAsync({ file, name: name.trim(), description });
+      await upload.mutateAsync({ file, name: finalName, description });
       reset();
       onOpenChange(false);
     } catch {/* toast handled */}
@@ -69,8 +90,22 @@ export const TemplateUploadDialog = ({ open, onOpenChange }: { open: boolean; on
           </div>
 
           <div>
-            <Label>Template Name *</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Standard MSA v3" />
+            <Label>Template Type *</Label>
+            <Select value={templateType} onValueChange={setTemplateType}>
+              <SelectTrigger><SelectValue placeholder="Select contract type (MSA, BAA, SLA…)" /></SelectTrigger>
+              <SelectContent>
+                {TEMPLATE_TYPES.map((t) => (
+                  <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Template Name {templateType ? "(optional)" : "*"}</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Standard v3, Enterprise Tier" />
+            {templateType && (
+              <p className="text-xs text-muted-foreground mt-1">Will be saved as: <span className="font-medium">{composedName() || templateType}</span></p>
+            )}
           </div>
           <div>
             <Label>Description</Label>
@@ -80,7 +115,7 @@ export const TemplateUploadDialog = ({ open, onOpenChange }: { open: boolean; on
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={!file || !name.trim() || upload.isPending}>
+          <Button onClick={handleSubmit} disabled={!file || !composedName() || upload.isPending}>
             {upload.isPending ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" />Uploading…</> : "Upload & Sectionalize"}
           </Button>
         </DialogFooter>
