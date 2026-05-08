@@ -9,11 +9,12 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Loader2, AlertTriangle, RefreshCw, FileText, Sparkles, Play } from "lucide-react";
+import { ArrowLeft, Loader2, AlertTriangle, RefreshCw, Sparkles, Play } from "lucide-react";
 import { useClmTemplate, useResectionalize } from "@/hooks/useClmTemplates";
 import { useCreateClmInstance } from "@/hooks/useClmInstance";
 import { TemplateActionsMenu } from "@/components/clm/TemplateActionsMenu";
 import { TemplateAssessmentPanel } from "@/components/clm/TemplateAssessmentPanel";
+import { ClmBrandedHeader } from "@/components/clm/ClmBrandedHeader";
 import SEO from "@/components/seo/SEO";
 
 const Inner = () => {
