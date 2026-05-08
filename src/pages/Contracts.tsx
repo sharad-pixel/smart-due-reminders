@@ -247,6 +247,9 @@ const WorkspacesTab = () => {
         </TableCell>
         <TableCell><Badge variant={statusTone(i.status) as any} className="capitalize">{i.status.replace("_", " ")}</Badge></TableCell>
         <TableCell className="text-xs text-muted-foreground">{new Date(i.created_at).toLocaleDateString()}</TableCell>
+        <TableCell className="text-right">
+          <WorkspaceActionsMenu instanceId={i.id} status={i.status} name={i.name} />
+        </TableCell>
       </TableRow>
     );
   };
