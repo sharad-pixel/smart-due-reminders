@@ -82,6 +82,7 @@ const Layout = ({ children }: LayoutProps) => {
   const [trialBannerVisible, setTrialBannerVisible] = useState(false);
   const [isFounder, setIsFounder] = useState(false);
   const { unreadCount: alertUnreadCount } = useUserAlerts();
+  const { isActive: clmActive } = useClmEntitlement();
   const {
     isTeamMember,
     ownerName,
