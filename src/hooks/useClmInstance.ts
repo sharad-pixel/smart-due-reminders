@@ -149,9 +149,10 @@ export const useAddInstanceDebtor = (instanceId: string) => {
   return useMutation({
     mutationFn: async ({ debtor_id, role }: { debtor_id: string; role: string }) => {
       const { data: { user } } = await supabase.auth.getUser();
-      const { error } = await supabase.from("clm_instance_debtors").insert({
-        instance_id: instanceId, debtor_id, added_by: user!.id, role,
-      } as any);
+      const { error } = await supabase.from("clm_instance_debtors").upsert(
+        { instance_id: instanceId, debtor_id, added_by: user!.id, role } as any,
+        { onConflict: "instance_id,debtor_id", ignoreDuplicates: true },
+      );
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["clm-instance", instanceId] }),
