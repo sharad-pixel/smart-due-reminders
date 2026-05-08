@@ -1,6 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 
+import { isAuthorizedCronRequest, unauthorizedResponse } from '../_shared/cronAuth.ts';
 /**
  * Process Expired Seat Billing
  * 
@@ -88,6 +89,10 @@ async function updateStripeSeatQuantity(
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  if (!(await isAuthorizedCronRequest(req))) {
+    return unauthorizedResponse(corsHeaders);
   }
 
   try {
