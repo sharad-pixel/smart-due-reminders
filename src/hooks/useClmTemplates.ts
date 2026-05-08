@@ -12,6 +12,11 @@ export interface ClmTemplate {
   source_storage_path: string | null;
   status: "uploading" | "parsing" | "ready" | "failed";
   parse_error: string | null;
+  assessment: any | null;
+  assessment_status: "pending" | "running" | "ready" | "failed";
+  assessment_error: string | null;
+  assessed_at: string | null;
+  assessment_model: string | null;
   created_at: string;
   updated_at: string;
 }
