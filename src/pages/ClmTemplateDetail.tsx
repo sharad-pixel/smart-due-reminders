@@ -143,24 +143,13 @@ const Inner = () => {
         </CardContent>
       </Card>
 
-      <Dialog open={useOpen} onOpenChange={setUseOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Use this template</DialogTitle></DialogHeader>
-          <div>
-            <Label>Workspace name</Label>
-            <Input value={instanceName} onChange={(e) => setInstanceName(e.target.value)} placeholder="MSA — Acme negotiation" />
-            <p className="text-xs text-muted-foreground mt-2">
-              Creates a collaboration workspace where you can attach debtor accounts and discuss each section.
-            </p>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setUseOpen(false)}>Cancel</Button>
-            <Button onClick={handleUse} disabled={!instanceName.trim() || createInstance.isPending}>
-              {createInstance.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create Workspace"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <UseTemplateDialog
+        open={useOpen}
+        onOpenChange={setUseOpen}
+        primaryTemplateId={template.id}
+        primaryTemplateName={template.name}
+        onCreated={(instanceId) => nav(`/contracts/instances/${instanceId}`)}
+      />
     </div>
   );
 };
