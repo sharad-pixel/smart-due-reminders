@@ -292,6 +292,7 @@ export const useAddInstanceContact = (instanceId: string) => {
     mutationFn: async (input: {
       contact_id?: string | null; debtor_id?: string | null; role: string;
       is_internal?: boolean; name?: string; email?: string; title?: string;
+      template_id?: string | null;
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
       const { error } = await (supabase.from("clm_instance_contacts" as any) as any).insert({
@@ -311,9 +312,9 @@ export const useAddInternalCollaborator = (instanceId: string) => {
   const add = useAddInstanceContact(instanceId);
   return {
     ...add,
-    mutateAsync: (input: { name: string; email?: string; title?: string; role: string }) =>
+    mutateAsync: (input: { name: string; email?: string; title?: string; role: string; template_id?: string | null }) =>
       add.mutateAsync({ ...input, is_internal: true }),
-    mutate: (input: { name: string; email?: string; title?: string; role: string }) =>
+    mutate: (input: { name: string; email?: string; title?: string; role: string; template_id?: string | null }) =>
       add.mutate({ ...input, is_internal: true }),
   };
 };
