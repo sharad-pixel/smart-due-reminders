@@ -105,7 +105,7 @@ export const useClmInstance = (id: string | undefined) => {
     queryKey: ["clm-instance", id],
     enabled: !!id,
     queryFn: async () => {
-      const [inst, sections, debtors, contacts, comments] = await Promise.all([
+      const [inst, sections, debtors, contacts, comments, extras] = await Promise.all([
         supabase.from("clm_template_instances").select("*, clm_templates(id, name)").eq("id", id!).single(),
         supabase.from("clm_instance_sections").select("*").eq("instance_id", id!).order("order_index"),
         supabase.from("clm_instance_debtors").select("*, debtors(id, company_name, name, email)").eq("instance_id", id!),
@@ -113,6 +113,9 @@ export const useClmInstance = (id: string | undefined) => {
           .select("*, debtor_contacts(id, name, email, title, is_primary)")
           .eq("instance_id", id!),
         supabase.from("clm_section_comments").select("*").eq("instance_id", id!).order("created_at"),
+        (supabase.from("clm_instance_extra_templates" as any) as any)
+          .select("*, clm_templates(id, name)")
+          .eq("instance_id", id!),
       ]);
       if (inst.error) throw inst.error;
       return {
@@ -121,6 +124,7 @@ export const useClmInstance = (id: string | undefined) => {
         debtors: debtors.data ?? [],
         contacts: (contacts as any).data ?? [],
         comments: comments.data ?? [],
+        extraTemplates: (extras as any).data ?? [],
       };
     },
   });
