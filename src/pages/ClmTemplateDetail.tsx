@@ -115,6 +115,9 @@ const Inner = () => {
                   </AccordionTrigger>
                   <AccordionContent>
                     <div className="space-y-3">
+                      <div className="flex justify-end">
+                        <TemplateSectionEditDialog templateId={template.id} section={s} />
+                      </div>
                       {s.ai_summary && (
                         <div className="rounded bg-primary/5 border border-primary/20 p-3">
                           <p className="text-xs font-semibold text-primary mb-1">AI Summary</p>
@@ -129,11 +132,13 @@ const Inner = () => {
                           </ul>
                         </div>
                       )}
-                      {s.body && (
+                      {s.body ? (
                         <div className="rounded border p-3 bg-muted/30">
                           <p className="text-xs font-semibold text-muted-foreground mb-1">Section Text</p>
                           <p className="text-sm whitespace-pre-wrap">{s.body}</p>
                         </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground italic">No body — click Edit section to add content.</p>
                       )}
                     </div>
                   </AccordionContent>
