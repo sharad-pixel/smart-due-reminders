@@ -19,6 +19,7 @@ import { useClmInstances } from "@/hooks/useClmInstance";
 import { TemplateUploadDialog } from "@/components/clm/TemplateUploadDialog";
 import { TemplateActionsMenu } from "@/components/clm/TemplateActionsMenu";
 import { NewWorkspaceDialog } from "@/components/clm/NewWorkspaceDialog";
+import { WorkspaceActionsMenu } from "@/components/clm/WorkspaceActionsMenu";
 import { toast } from "sonner";
 import SEO from "@/components/seo/SEO";
 import { useEffect } from "react";
@@ -246,6 +247,9 @@ const WorkspacesTab = () => {
         </TableCell>
         <TableCell><Badge variant={statusTone(i.status) as any} className="capitalize">{i.status.replace("_", " ")}</Badge></TableCell>
         <TableCell className="text-xs text-muted-foreground">{new Date(i.created_at).toLocaleDateString()}</TableCell>
+        <TableCell className="text-right">
+          <WorkspaceActionsMenu instanceId={i.id} status={i.status} name={i.name} />
+        </TableCell>
       </TableRow>
     );
   };
@@ -297,6 +301,7 @@ const WorkspacesTab = () => {
                 <TableHead>Approvals</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Created</TableHead>
+                <TableHead className="w-10"></TableHead>
               </TableRow></TableHeader>
               <TableBody>{active.map(renderRow)}</TableBody>
             </Table>
@@ -319,6 +324,7 @@ const WorkspacesTab = () => {
                 <TableHead>Approvals</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Created</TableHead>
+                <TableHead className="w-10"></TableHead>
               </TableRow></TableHeader>
               <TableBody>{closed.map(renderRow)}</TableBody>
             </Table>
