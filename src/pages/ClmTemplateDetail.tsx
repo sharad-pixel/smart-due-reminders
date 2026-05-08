@@ -90,6 +90,14 @@ const Inner = () => {
         <TemplateAssessmentPanel template={template} />
       </div>
 
+      <div className="mb-4">
+        <ContractDocumentViewer
+          rawText={(template as any).raw_text}
+          keyRisks={(template.assessment as any)?.key_risks ?? []}
+          ignoredIndices={Array.isArray(template.assessment_ignored_risks) ? template.assessment_ignored_risks : []}
+        />
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-primary" /> AI Sectionalization</CardTitle>
