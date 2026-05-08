@@ -1,13 +1,13 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { getPersonaToneByDaysPastDue } from '../_shared/personaTones.ts';
 import { 
-import { isAuthorizedCronRequest, unauthorizedResponse } from '../_shared/cronAuth.ts';
   processDraftContent, 
   calculateDaysPastDue,
   type InvoiceData,
   type DebtorData,
   type BrandingData
 } from '../_shared/draftContentEngine.ts';
+import { isAuthorizedCronRequest, unauthorizedResponse } from '../_shared/cronAuth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
