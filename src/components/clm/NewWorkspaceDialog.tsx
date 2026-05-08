@@ -166,7 +166,10 @@ export const NewWorkspaceDialog = ({ open, onOpenChange }: Props) => {
       for (const ext of externals) {
         const { data: created, error } = await supabase
           .from("debtor_contacts")
-          .insert({ debtor_id: debtorId, name: ext.name, email: ext.email, title: ext.title || null } as any)
+          .insert({
+            debtor_id: debtorId, name: ext.name, email: ext.email,
+            title: ext.title || null, outreach_enabled: false, source: "clm_legal",
+          } as any)
           .select("id").single();
         if (error || !created) continue;
         rows.push({
