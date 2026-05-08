@@ -5,8 +5,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const MAX_AI_CHARS = 35000;
-const MODEL = "openai/gpt-5";
+const MAX_AI_CHARS = 18000;
+const MODEL = "openai/gpt-5-mini";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
