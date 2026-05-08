@@ -7,6 +7,7 @@ import {
   type DebtorData,
   type BrandingData
 } from '../_shared/draftContentEngine.ts';
+import { isAuthorizedCronRequest, unauthorizedResponse } from '../_shared/cronAuth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -16,6 +17,10 @@ const corsHeaders = {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  if (!(await isAuthorizedCronRequest(req))) {
+    return unauthorizedResponse(corsHeaders);
   }
 
   try {

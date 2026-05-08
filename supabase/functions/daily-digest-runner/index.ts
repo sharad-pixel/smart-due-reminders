@@ -9,6 +9,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { VERIFIED_EMAIL_DOMAIN, INBOUND_EMAIL_DOMAIN } from "../_shared/emailConfig.ts";
 import { BRAND, logoImage, enterpriseFooter } from "../_shared/enterpriseEmailTemplate.ts";
 
+import { isAuthorizedCronRequest, unauthorizedResponse } from '../_shared/cronAuth.ts';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -22,6 +23,10 @@ const logStep = (step: string, details?: any) => {
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  if (!(await isAuthorizedCronRequest(req))) {
+    return unauthorizedResponse(corsHeaders);
   }
 
   try {

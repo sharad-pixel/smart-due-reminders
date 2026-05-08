@@ -110,24 +110,25 @@ serve(async (req) => {
 
     const body = await req.text();
     const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
-    
+
+    if (!webhookSecret) {
+      logStep("STRIPE_WEBHOOK_SECRET not configured - rejecting webhook");
+      return new Response(JSON.stringify({ error: 'Webhook secret not configured' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     let event: Stripe.Event;
-    
-    if (webhookSecret) {
-      try {
-        event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
-        logStep("Webhook signature verified", { type: event.type });
-      } catch (err) {
-        logStep("Webhook signature verification failed", { error: err });
-        return new Response(JSON.stringify({ error: 'Invalid signature' }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-    } else {
-      // For testing without webhook secret
-      event = JSON.parse(body);
-      logStep("Processing webhook without signature verification (dev mode)", { type: event.type });
+    try {
+      event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+      logStep("Webhook signature verified", { type: event.type });
+    } catch (err) {
+      logStep("Webhook signature verification failed", { error: err });
+      return new Response(JSON.stringify({ error: 'Invalid signature' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
     // Handle different event types

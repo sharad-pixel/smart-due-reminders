@@ -4,6 +4,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { Webhook } from "https://esm.sh/svix@1.15.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -39,7 +40,45 @@ serve(async (req) => {
   );
 
   try {
-    const payload = await req.json();
+    // Verify Svix signature (Resend uses Svix for webhook signing)
+    const webhookSecret = Deno.env.get('RESEND_WEBHOOK_SECRET');
+    if (!webhookSecret) {
+      console.error('[RESEND-WEBHOOK] RESEND_WEBHOOK_SECRET not configured');
+      return new Response(JSON.stringify({ error: 'Webhook secret not configured' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    const svixId = req.headers.get('svix-id');
+    const svixTimestamp = req.headers.get('svix-timestamp');
+    const svixSignature = req.headers.get('svix-signature');
+
+    if (!svixId || !svixTimestamp || !svixSignature) {
+      console.error('[RESEND-WEBHOOK] Missing svix headers');
+      return new Response(JSON.stringify({ error: 'Missing signature headers' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    const rawBody = await req.text();
+    let payload: any;
+    try {
+      const wh = new Webhook(webhookSecret);
+      payload = wh.verify(rawBody, {
+        'svix-id': svixId,
+        'svix-timestamp': svixTimestamp,
+        'svix-signature': svixSignature,
+      });
+    } catch (verifyErr) {
+      console.error('[RESEND-WEBHOOK] Signature verification failed:', verifyErr);
+      return new Response(JSON.stringify({ error: 'Invalid signature' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     const { type: eventType, data } = payload;
     const emailId = data?.email_id;
     const recipientEmail = Array.isArray(data?.to) ? data.to[0] : data?.to;

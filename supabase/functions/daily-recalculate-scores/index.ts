@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+import { isAuthorizedCronRequest, unauthorizedResponse } from '../_shared/cronAuth.ts';
 /**
  * ============================================================================
  * DAILY PAYMENT SCORE RECALCULATION CRON
@@ -60,6 +61,10 @@ interface RecalculationResult {
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  if (!(await isAuthorizedCronRequest(req))) {
+    return unauthorizedResponse(corsHeaders);
   }
 
   console.log("[daily-recalculate-scores] Starting daily payment score recalculation");
