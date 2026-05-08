@@ -6,12 +6,120 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, X, Search, Building2 } from "lucide-react";
-import { useAddInstanceDebtor, useRemoveInstanceDebtor } from "@/hooks/useClmInstance";
+import { Plus, X, Search, Building2, User, Mail, ChevronDown, ChevronRight } from "lucide-react";
+import {
+  useAddInstanceDebtor,
+  useRemoveInstanceDebtor,
+  useAddInstanceContact,
+  useRemoveInstanceContact,
+} from "@/hooks/useClmInstance";
+
+const DebtorContactsRow = ({
+  debtorId, instanceId, linkedContacts,
+}: { debtorId: string; instanceId: string; linkedContacts: any[] }) => {
+  const [open, setOpen] = useState(false);
+  const [role, setRole] = useState("reviewer");
+  const addContact = useAddInstanceContact(instanceId);
+  const removeContact = useRemoveInstanceContact(instanceId);
+
+  const { data: contacts = [] } = useQuery({
+    queryKey: ["clm-debtor-contacts", debtorId],
+    enabled: open,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("debtor_contacts")
+        .select("id, name, email, title, is_primary")
+        .eq("debtor_id", debtorId)
+        .order("is_primary", { ascending: false });
+      return data ?? [];
+    },
+  });
+
+  const linkedIds = new Set(linkedContacts.map((c: any) => c.contact_id));
+
+  return (
+    <div className="border-t pt-2 mt-2">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+      >
+        {open ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+        Contact collaborators ({linkedContacts.length})
+      </button>
+
+      {linkedContacts.length > 0 && (
+        <div className="mt-2 space-y-1">
+          {linkedContacts.map((lc: any) => (
+            <div key={lc.id} className="flex items-center justify-between rounded bg-muted/40 px-2 py-1">
+              <div className="flex items-center gap-2 min-w-0">
+                <User className="h-3 w-3 text-muted-foreground shrink-0" />
+                <span className="text-xs font-medium truncate">{lc.debtor_contacts?.name ?? "—"}</span>
+                {lc.debtor_contacts?.email && (
+                  <span className="text-xs text-muted-foreground truncate">· {lc.debtor_contacts.email}</span>
+                )}
+                <Badge variant="outline" className="text-[10px] px-1">{lc.role}</Badge>
+              </div>
+              <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => removeContact.mutate(lc.id)}>
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {open && (
+        <div className="mt-2 space-y-2">
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-muted-foreground">Add as:</span>
+            <Select value={role} onValueChange={setRole}>
+              <SelectTrigger className="h-7 w-[120px] text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="signer">Signer</SelectItem>
+                <SelectItem value="reviewer">Reviewer</SelectItem>
+                <SelectItem value="legal">Legal</SelectItem>
+                <SelectItem value="cc">CC</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {contacts.filter((c) => !linkedIds.has(c.id)).length === 0 ? (
+            <p className="text-[11px] text-muted-foreground italic">
+              {contacts.length === 0 ? "No contacts on this account yet." : "All contacts already added."}
+            </p>
+          ) : (
+            contacts.filter((c) => !linkedIds.has(c.id)).map((c) => (
+              <div key={c.id} className="flex items-center justify-between rounded p-1.5 hover:bg-muted/50">
+                <div className="flex items-center gap-2 min-w-0">
+                  <User className="h-3 w-3 text-muted-foreground shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium truncate">{c.name} {c.is_primary && <Badge variant="secondary" className="text-[10px] ml-1">Primary</Badge>}</p>
+                    {c.email && (
+                      <p className="text-[11px] text-muted-foreground truncate flex items-center gap-1">
+                        <Mail className="h-2.5 w-2.5" />{c.email}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-6 px-2 text-xs"
+                  onClick={() => addContact.mutate({ contact_id: c.id, debtor_id: debtorId, role })}
+                >
+                  <Plus className="h-3 w-3 mr-0.5" />Add
+                </Button>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const InstanceAccountPicker = ({
-  instanceId, linkedDebtors,
-}: { instanceId: string; linkedDebtors: any[] }) => {
+  instanceId, linkedDebtors, linkedContacts = [],
+}: { instanceId: string; linkedDebtors: any[]; linkedContacts?: any[] }) => {
   const [search, setSearch] = useState("");
   const [role, setRole] = useState("counterparty");
   const add = useAddInstanceDebtor(instanceId);
@@ -33,28 +141,38 @@ export const InstanceAccountPicker = ({
     <Card>
       <CardHeader>
         <CardTitle className="text-base flex items-center gap-2"><Building2 className="h-4 w-4" /> Collaborating Accounts</CardTitle>
-        <CardDescription>Add debtor accounts to collaborate on this contract</CardDescription>
+        <CardDescription>Add debtor accounts and pick contacts as collaborators</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {linkedDebtors.length > 0 && (
-          <div className="space-y-2">
-            {linkedDebtors.map((l: any) => (
-              <div key={l.id} className="flex items-center justify-between rounded border p-2">
-                <div className="flex items-center gap-2 min-w-0">
-                  <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <div className="truncate">
-                    <p className="text-sm font-medium truncate">{l.debtors?.company_name ?? l.debtors?.name ?? "—"}</p>
-                    <p className="text-xs text-muted-foreground truncate">{l.debtors?.email ?? ""}</p>
+          <div className="space-y-3">
+            {linkedDebtors.map((l: any) => {
+              const debtorContacts = linkedContacts.filter((c: any) => c.debtor_id === l.debtor_id);
+              return (
+                <div key={l.id} className="rounded border p-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <div className="truncate">
+                        <p className="text-sm font-medium truncate">{l.debtors?.company_name ?? l.debtors?.name ?? "—"}</p>
+                        <p className="text-xs text-muted-foreground truncate">{l.debtors?.email ?? ""}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs">{l.role}</Badge>
+                      <Button size="icon" variant="ghost" onClick={() => remove.mutate(l.id)}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
+                  <DebtorContactsRow
+                    debtorId={l.debtor_id}
+                    instanceId={instanceId}
+                    linkedContacts={debtorContacts}
+                  />
                 </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="text-xs">{l.role}</Badge>
-                  <Button size="icon" variant="ghost" onClick={() => remove.mutate(l.id)}>
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
