@@ -9,8 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ArrowLeft, Loader2, FileText, Users } from "lucide-react";
 import { useClmInstance, useUpdateInstanceStatus } from "@/hooks/useClmInstance";
-import { InstanceAccountPicker } from "@/components/clm/InstanceAccountPicker";
-import { InternalCollaboratorsPanel } from "@/components/clm/InternalCollaboratorsPanel";
+import { ContributorsPanel } from "@/components/clm/ContributorsPanel";
+import { WorkspaceOverviewCard } from "@/components/clm/WorkspaceOverviewCard";
 import { SectionCommentsPanel } from "@/components/clm/SectionCommentsPanel";
 import { SectionEditDialog } from "@/components/clm/SectionEditDialog";
 import { RevisionHistoryPanel } from "@/components/clm/RevisionHistoryPanel";
