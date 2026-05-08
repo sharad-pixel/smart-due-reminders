@@ -73,7 +73,7 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
     { icon: Bot, title: "AI Agents", description: "Autonomous collection personas", path: "/personas" },
     { icon: Zap, title: "Automation", description: "Workflow & outreach automation", path: "/automation" },
     { icon: BarChart3, title: "Analytics", description: "Real-time AR dashboards", path: "/analytics" },
-    { icon: FileSignature, title: "CLM Intelligence", description: "AI-native contract lifecycle (new)", path: "/clm" },
+    
   ];
 
   const solutionsItems = [
