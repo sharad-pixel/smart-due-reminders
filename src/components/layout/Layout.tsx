@@ -487,6 +487,12 @@ const Layout = ({ children }: LayoutProps) => {
                     <FolderOpen className="mr-2 h-4 w-4" />
                     Documents
                   </DropdownMenuItem>
+                  {clmActive && (
+                    <DropdownMenuItem onClick={() => navigate("/contracts")}>
+                      <FileSignature className="mr-2 h-4 w-4" />
+                      Contracts (CLM)
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem onClick={() => navigate("/settings")}>
                     <Settings className="mr-2 h-4 w-4" />
                     Settings
