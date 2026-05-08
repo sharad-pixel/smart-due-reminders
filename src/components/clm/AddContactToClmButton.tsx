@@ -19,11 +19,11 @@ export const AddContactToClmButton = ({ contactId, debtorId }: Props) => {
   const [role, setRole] = useState("reviewer");
   const [saving, setSaving] = useState(false);
   const qc = useQueryClient();
-  const { hasAccess } = useClmEntitlement();
+  const { isActive } = useClmEntitlement();
 
   const { data: instances = [], isLoading } = useQuery({
     queryKey: ["clm-instances-for-contact"],
-    enabled: open && hasAccess,
+    enabled: open && isActive,
     queryFn: async () => {
       const { data } = await supabase
         .from("clm_template_instances")
@@ -35,7 +35,7 @@ export const AddContactToClmButton = ({ contactId, debtorId }: Props) => {
 
   const { data: alreadyLinked = [] } = useQuery({
     queryKey: ["clm-contact-links", contactId],
-    enabled: open && hasAccess,
+    enabled: open && isActive,
     queryFn: async () => {
       const { data } = await (supabase.from("clm_instance_contacts" as any) as any)
         .select("instance_id")
@@ -44,7 +44,7 @@ export const AddContactToClmButton = ({ contactId, debtorId }: Props) => {
     },
   });
 
-  if (!hasAccess) return null;
+  if (!isActive) return null;
 
   const handleAdd = async () => {
     if (!instanceId) return;
