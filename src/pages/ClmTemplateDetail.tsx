@@ -16,6 +16,7 @@ import { TemplateAssessmentPanel } from "@/components/clm/TemplateAssessmentPane
 import { ContractDocumentViewer } from "@/components/clm/ContractDocumentViewer";
 import { ClmBrandedHeader } from "@/components/clm/ClmBrandedHeader";
 import { UseTemplateDialog } from "@/components/clm/UseTemplateDialog";
+import { TemplateSectionEditDialog } from "@/components/clm/TemplateSectionEditDialog";
 import SEO from "@/components/seo/SEO";
 
 const Inner = () => {
