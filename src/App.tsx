@@ -169,6 +169,7 @@ const ContactUs = lazy(() => import("./pages/ContactUs"));
 
 // Contract Intelligence (CLM) — sales-led marketing page
 const ContractIntelligence = lazy(() => import("./pages/ContractIntelligence"));
+const Contracts = lazy(() => import("./pages/Contracts"));
 
 // Admin Pages (heavy - definitely lazy load)
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
