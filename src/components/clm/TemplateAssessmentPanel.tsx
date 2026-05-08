@@ -40,7 +40,7 @@ export const TemplateAssessmentPanel = ({ template }: { template: ClmTemplate })
       <CardHeader className="flex flex-row items-start justify-between gap-3">
         <div>
           <CardTitle className="flex items-center gap-2">
-            <ShieldAlert className="h-5 w-5 text-primary" /> GPT-5 Risk Assessment
+            <ShieldAlert className="h-5 w-5 text-primary" /> AI Risk Assessment
           </CardTitle>
           <CardDescription>
             Independent attorney-style review — runs alongside the AI sectionalization.
