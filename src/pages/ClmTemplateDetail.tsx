@@ -23,22 +23,13 @@ const Inner = () => {
   const nav = useNavigate();
   const { data, isLoading } = useClmTemplate(id);
   const resect = useResectionalize();
-  const createInstance = useCreateClmInstance();
   const [useOpen, setUseOpen] = useState(false);
-  const [instanceName, setInstanceName] = useState("");
 
   if (isLoading || !data) {
     return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
   }
 
   const { template, sections } = data;
-
-  const handleUse = async () => {
-    if (!instanceName.trim() || !id) return;
-    const inst = await createInstance.mutateAsync({ template_id: id, name: instanceName.trim() });
-    setUseOpen(false);
-    nav(`/contracts/instances/${inst.id}`);
-  };
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
