@@ -46,29 +46,27 @@ const Inner = () => {
         <Link to="/contracts"><ArrowLeft className="h-4 w-4 mr-1" />Back to Contracts</Link>
       </Button>
 
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <FileText className="h-6 w-6 text-primary" /> {template.name}
-          </h1>
-          {template.description && <p className="text-sm text-muted-foreground mt-1">{template.description}</p>}
-          <p className="text-xs text-muted-foreground mt-1">{template.source_file_name}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge variant={template.status === "ready" ? "default" : template.status === "failed" ? "destructive" : "secondary"}>
-            {template.status === "parsing" ? "Sectionalizing…" : template.status}
-          </Badge>
-          {template.status === "ready" && (
-            <Button onClick={() => setUseOpen(true)}><Play className="h-4 w-4 mr-1" />Use Template</Button>
-          )}
-          {template.status === "failed" && (
-            <Button variant="outline" onClick={() => resect.mutate(template.id)}>
-              <RefreshCw className="h-4 w-4 mr-1" />Retry
-            </Button>
-          )}
-          <TemplateActionsMenu template={template} redirectOnDelete inline />
-        </div>
-      </div>
+      <ClmBrandedHeader
+        title={template.name}
+        subtitle={template.description ?? undefined}
+        meta={template.source_file_name ?? undefined}
+        rightSlot={
+          <>
+            <Badge variant={template.status === "ready" ? "default" : template.status === "failed" ? "destructive" : "secondary"}>
+              {template.status === "parsing" ? "Sectionalizing…" : template.status}
+            </Badge>
+            {template.status === "ready" && (
+              <Button onClick={() => setUseOpen(true)}><Play className="h-4 w-4 mr-1" />Use Template</Button>
+            )}
+            {template.status === "failed" && (
+              <Button variant="outline" onClick={() => resect.mutate(template.id)}>
+                <RefreshCw className="h-4 w-4 mr-1" />Retry
+              </Button>
+            )}
+            <TemplateActionsMenu template={template} redirectOnDelete inline />
+          </>
+        }
+      />
 
       {template.status === "parsing" && (
         <Card className="mb-4">
