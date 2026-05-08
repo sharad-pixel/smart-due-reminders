@@ -325,14 +325,14 @@ const ContractsInner = () => {
         </p>
       </div>
 
-      <Tabs defaultValue="templates" className="space-y-4">
+      <Tabs defaultValue="workspaces" className="space-y-4">
         <TabsList>
+          <TabsTrigger value="workspaces">Workspaces</TabsTrigger>
           <TabsTrigger value="templates">Templates</TabsTrigger>
-          <TabsTrigger value="instances">Collaborations</TabsTrigger>
           <TabsTrigger value="contracts">Contracts</TabsTrigger>
         </TabsList>
+        <TabsContent value="workspaces"><WorkspacesTab /></TabsContent>
         <TabsContent value="templates"><TemplatesTab /></TabsContent>
-        <TabsContent value="instances"><InstancesTab /></TabsContent>
         <TabsContent value="contracts"><ContractsTab /></TabsContent>
       </Tabs>
     </div>
