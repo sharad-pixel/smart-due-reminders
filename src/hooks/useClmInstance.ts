@@ -27,25 +27,37 @@ export const useClmInstances = () => {
   });
 };
 
+async function snapshotTemplateSections(templateId: string, instanceId: string, includeSourceMeta = false) {
+  const { data: tpl } = await supabase.from("clm_templates").select("name").eq("id", templateId).single();
+  const { data: tplSections, error: secErr } = await supabase
+    .from("clm_template_sections")
+    .select("section_key, title, body, order_index, ai_summary, risk_flags")
+    .eq("template_id", templateId)
+    .order("order_index");
+  if (secErr) throw secErr;
+  if (!tplSections?.length) return;
+  const rows = tplSections.map((s: any) => ({
+    ...s,
+    instance_id: instanceId,
+    ...(includeSourceMeta ? { source_template_id: templateId, source_template_name: tpl?.name } : {}),
+  }));
+  const { error: copyErr } = await supabase.from("clm_instance_sections").insert(rows as any);
+  if (copyErr) throw copyErr;
+}
+
 export const useCreateClmInstance = () => {
   const qc = useQueryClient();
   const { accountId } = useClmEntitlement();
   return useMutation({
-    mutationFn: async ({ template_id, name }: { template_id: string; name: string }) => {
+    mutationFn: async ({
+      template_id, name, debtor_id, extra_template_ids = [],
+    }: { template_id: string; name: string; debtor_id?: string | null; extra_template_ids?: string[] }) => {
       if (!accountId) throw new Error("No account");
       const { data: { user } } = await supabase.auth.getUser();
 
-      // Snapshot template name + sections so workspace is independent of source template
       const { data: tpl, error: tplErr } = await supabase
         .from("clm_templates").select("name").eq("id", template_id).single();
       if (tplErr) throw tplErr;
-
-      const { data: tplSections, error: secErr } = await supabase
-        .from("clm_template_sections")
-        .select("section_key, title, body, order_index, ai_summary, risk_flags")
-        .eq("template_id", template_id)
-        .order("order_index");
-      if (secErr) throw secErr;
 
       const { data, error } = await supabase
         .from("clm_template_instances")
@@ -57,10 +69,25 @@ export const useCreateClmInstance = () => {
         .single();
       if (error) throw error;
 
-      if (tplSections?.length) {
-        const rows = tplSections.map((s: any) => ({ ...s, instance_id: data.id }));
-        const { error: copyErr } = await supabase.from("clm_instance_sections").insert(rows as any);
-        if (copyErr) throw copyErr;
+      // Snapshot primary template (also tag with source meta for clarity)
+      await snapshotTemplateSections(template_id, data.id, true);
+
+      // Snapshot any additional templates and link them
+      for (const extraId of extra_template_ids) {
+        if (extraId === template_id) continue;
+        const { data: extraTpl } = await supabase.from("clm_templates").select("name").eq("id", extraId).single();
+        await (supabase.from("clm_instance_extra_templates" as any) as any).insert({
+          instance_id: data.id, template_id: extraId,
+          template_name_snapshot: extraTpl?.name, added_by: user!.id,
+        });
+        await snapshotTemplateSections(extraId, data.id, true);
+      }
+
+      // Link initial debtor account if provided
+      if (debtor_id) {
+        await supabase.from("clm_instance_debtors").insert({
+          instance_id: data.id, debtor_id, added_by: user!.id, role: "counterparty",
+        } as any);
       }
 
       return data as ClmInstance;
