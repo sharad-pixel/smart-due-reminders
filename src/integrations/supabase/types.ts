@@ -1177,6 +1177,20 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "clm_instance_debtors_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
+            referencedRelation: "debtor_contact_emails"
+            referencedColumns: ["debtor_id"]
+          },
+          {
+            foreignKeyName: "clm_instance_debtors_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
+            referencedRelation: "debtors"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "clm_instance_debtors_instance_id_fkey"
             columns: ["instance_id"]
             isOneToOne: false
