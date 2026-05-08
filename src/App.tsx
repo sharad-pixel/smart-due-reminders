@@ -259,6 +259,7 @@ const App = () => (
               {/* Contract Intelligence (CLM) marketing */}
               <Route path="/clm" element={<ContractIntelligence />} />
               <Route path="/contract-intelligence" element={<ContractIntelligence />} />
+              <Route path="/contracts" element={<Contracts />} />
 
               {/* Pillar Pages */}
               <Route path="/collections-crm" element={<CollectionsCRM />} />
