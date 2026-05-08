@@ -197,6 +197,7 @@ const statusTone = (s: string) =>
 
 const WorkspacesTab = () => {
   const { data: instances = [], isLoading } = useClmInstances();
+  const [newOpen, setNewOpen] = useState(false);
   const active = instances.filter((i: any) => !["executed", "archived"].includes(i.status));
   const closed = instances.filter((i: any) => ["executed", "archived"].includes(i.status));
 
