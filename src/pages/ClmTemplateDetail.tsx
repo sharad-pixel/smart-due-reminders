@@ -86,6 +86,10 @@ const Inner = () => {
         </Card>
       )}
 
+      <div className="mb-4">
+        <TemplateAssessmentPanel template={template} />
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-primary" /> AI Sectionalization</CardTitle>
