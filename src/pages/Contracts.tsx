@@ -17,6 +17,7 @@ import { useClmEntitlement } from "@/hooks/useClmEntitlement";
 import { useClmTemplates } from "@/hooks/useClmTemplates";
 import { useClmInstances } from "@/hooks/useClmInstance";
 import { TemplateUploadDialog } from "@/components/clm/TemplateUploadDialog";
+import { TemplateActionsMenu } from "@/components/clm/TemplateActionsMenu";
 import { toast } from "sonner";
 import SEO from "@/components/seo/SEO";
 import { useEffect } from "react";
@@ -150,23 +151,28 @@ const TemplatesTab = () => {
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {templates.map((t) => (
-              <Link key={t.id} to={`/contracts/templates/${t.id}`} className="block">
-                <Card className="hover:border-primary/50 transition-colors h-full">
-                  <CardContent className="pt-4">
-                    <div className="flex items-start justify-between mb-2">
-                      <FileText className="h-8 w-8 text-primary" />
-                      <StatusBadge status={t.status} />
-                    </div>
-                    <p className="font-medium truncate">{t.name}</p>
-                    <p className="text-xs text-muted-foreground truncate">{t.source_file_name}</p>
-                    {t.parse_error && (
-                      <p className="text-xs text-destructive mt-2 flex items-start gap-1">
-                        <AlertCircle className="h-3 w-3 mt-0.5 shrink-0" />{t.parse_error}
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
-              </Link>
+              <div key={t.id} className="relative">
+                <Link to={`/contracts/templates/${t.id}`} className="block">
+                  <Card className="hover:border-primary/50 transition-colors h-full">
+                    <CardContent className="pt-4">
+                      <div className="flex items-start justify-between mb-2">
+                        <FileText className="h-8 w-8 text-primary" />
+                        <StatusBadge status={t.status} />
+                      </div>
+                      <p className="font-medium truncate pr-8">{t.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">{t.source_file_name}</p>
+                      {t.parse_error && (
+                        <p className="text-xs text-destructive mt-2 flex items-start gap-1">
+                          <AlertCircle className="h-3 w-3 mt-0.5 shrink-0" />{t.parse_error}
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+                </Link>
+                <div className="absolute top-3 right-3">
+                  <TemplateActionsMenu template={t} />
+                </div>
+              </div>
             ))}
           </div>
         )}

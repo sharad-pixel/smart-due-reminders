@@ -1104,6 +1104,53 @@ export type Database = {
           },
         ]
       }
+      clm_instance_sections: {
+        Row: {
+          ai_summary: string | null
+          body: string | null
+          created_at: string
+          id: string
+          instance_id: string
+          order_index: number
+          risk_flags: Json | null
+          section_key: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          ai_summary?: string | null
+          body?: string | null
+          created_at?: string
+          id?: string
+          instance_id: string
+          order_index?: number
+          risk_flags?: Json | null
+          section_key: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          ai_summary?: string | null
+          body?: string | null
+          created_at?: string
+          id?: string
+          instance_id?: string
+          order_index?: number
+          risk_flags?: Json | null
+          section_key?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clm_instance_sections_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "clm_template_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clm_section_comments: {
         Row: {
           author_id: string
@@ -1154,7 +1201,8 @@ export type Database = {
           name: string
           notes: string | null
           status: string
-          template_id: string
+          template_id: string | null
+          template_name_snapshot: string | null
           updated_at: string
         }
         Insert: {
@@ -1165,7 +1213,8 @@ export type Database = {
           name: string
           notes?: string | null
           status?: string
-          template_id: string
+          template_id?: string | null
+          template_name_snapshot?: string | null
           updated_at?: string
         }
         Update: {
@@ -1176,7 +1225,8 @@ export type Database = {
           name?: string
           notes?: string | null
           status?: string
-          template_id?: string
+          template_id?: string | null
+          template_name_snapshot?: string | null
           updated_at?: string
         }
         Relationships: [

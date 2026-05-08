@@ -140,3 +140,41 @@ export const useResectionalize = () => {
     onError: (e: any) => toast.error(e?.message ?? "Failed"),
   });
 };
+
+export const useUpdateClmTemplate = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, name, description }: { id: string; name?: string; description?: string | null }) => {
+      const patch: any = {};
+      if (name !== undefined) patch.name = name;
+      if (description !== undefined) patch.description = description;
+      const { error } = await supabase.from("clm_templates").update(patch).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["clm-templates"] });
+      qc.invalidateQueries({ queryKey: ["clm-template", vars.id] });
+      toast.success("Template updated");
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed"),
+  });
+};
+
+export const useDeleteClmTemplate = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, storagePath }: { id: string; storagePath?: string | null }) => {
+      // Existing collaborations keep their snapshot copies (FK is ON DELETE SET NULL)
+      if (storagePath) {
+        await supabase.storage.from("clm-templates").remove([storagePath]);
+      }
+      const { error } = await supabase.from("clm_templates").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["clm-templates"] });
+      toast.success("Template deleted");
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed"),
+  });
+};

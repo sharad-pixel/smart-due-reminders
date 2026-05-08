@@ -8,7 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ArrowLeft, Loader2, FileSignature } from "lucide-react";
 import { useClmInstance, useUpdateInstanceStatus } from "@/hooks/useClmInstance";
-import { useClmTemplate } from "@/hooks/useClmTemplates";
 import { InstanceAccountPicker } from "@/components/clm/InstanceAccountPicker";
 import { SectionCommentsPanel } from "@/components/clm/SectionCommentsPanel";
 import SEO from "@/components/seo/SEO";
@@ -17,15 +16,16 @@ const Inner = () => {
   const { id } = useParams<{ id: string }>();
   const { data, isLoading } = useClmInstance(id);
   const updateStatus = useUpdateInstanceStatus(id ?? "");
-  const templateId = data?.instance?.template_id;
-  const { data: tplData } = useClmTemplate(templateId);
 
   if (isLoading || !data) {
     return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
   }
 
-  const { instance, debtors, comments } = data;
-  const sections = tplData?.sections ?? [];
+  const { instance, sections, debtors, comments } = data;
+  const sourceTemplateName = instance.clm_templates?.name ?? instance.template_name_snapshot ?? "template";
+  const sourceTemplateLink = instance.clm_templates?.id
+    ? `/contracts/templates/${instance.clm_templates.id}`
+    : null;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -41,9 +41,12 @@ const Inner = () => {
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             Based on{" "}
-            <Link className="underline" to={`/contracts/templates/${instance.template_id}`}>
-              {instance.clm_templates?.name ?? "template"}
-            </Link>
+            {sourceTemplateLink ? (
+              <Link className="underline" to={sourceTemplateLink}>{sourceTemplateName}</Link>
+            ) : (
+              <span>{sourceTemplateName}</span>
+            )}
+            {!sourceTemplateLink && <span className="ml-1 italic">(template removed — workspace uses its own copy)</span>}
           </p>
         </div>
         <div className="flex items-center gap-2">
