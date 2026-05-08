@@ -268,17 +268,26 @@ const WorkspacesTab = () => {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Briefcase className="h-5 w-5 text-primary" /> Workspaces</CardTitle>
-          <CardDescription>Active negotiation engagements with debtor accounts</CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+          <div>
+            <CardTitle className="flex items-center gap-2"><Briefcase className="h-5 w-5 text-primary" /> Workspaces</CardTitle>
+            <CardDescription>Active negotiation engagements with debtor accounts</CardDescription>
+          </div>
+          <Button size="sm" onClick={() => setNewOpen(true)}>
+            <Plus className="h-4 w-4 mr-1" />New Workspace
+          </Button>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <div className="py-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
           ) : active.length === 0 ? (
-            <p className="py-12 text-center text-sm text-muted-foreground">
-              No active workspaces. Open a template and click "Use Template" to spin one up.
-            </p>
+            <div className="py-12 text-center space-y-3">
+              <Briefcase className="h-10 w-10 mx-auto text-muted-foreground/40" />
+              <p className="text-sm text-muted-foreground">No active workspaces yet.</p>
+              <Button size="sm" onClick={() => setNewOpen(true)}>
+                <Plus className="h-4 w-4 mr-1" />Create your first workspace
+              </Button>
+            </div>
           ) : (
             <Table>
               <TableHeader><TableRow>
