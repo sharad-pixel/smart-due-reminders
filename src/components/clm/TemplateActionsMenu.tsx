@@ -81,8 +81,10 @@ export const TemplateActionsMenu = ({ template, redirectOnDelete, inline }: Prop
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent onClick={stop}>
           <DialogHeader>
-            <DialogTitle>Edit template</DialogTitle>
-            <DialogDescription>Active collaborations keep their own snapshot — edits only affect future workspaces.</DialogDescription>
+            <DialogTitle>Edit template details</DialogTitle>
+            <DialogDescription>
+              Updates the name and description. To edit the contract sections themselves, open the template and use <span className="font-medium">Edit section</span> on each section.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div>
