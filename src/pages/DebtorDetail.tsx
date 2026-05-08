@@ -33,6 +33,7 @@ import { ExpansionRiskAdvisor } from "@/components/accounts/ExpansionRiskAdvisor
 import { AccountOutreachSettings } from "@/components/outreach/AccountOutreachSettings";
 import { SalesRepCard } from "@/components/accounts/SalesRepCard";
 import { InternalAccountOwnerBadge } from "@/components/accounts/InternalAccountOwnerBadge";
+import { DebtorWorkspacesBadge } from "@/components/clm/DebtorWorkspacesBadge";
 import { OutreachDetailModal, OutreachRecord } from "@/components/outreach/OutreachDetailModal";
 import { OutreachSummaryRow } from "@/components/outreach/OutreachSummaryRow";
 import { EmailDeliveryWarning } from "@/components/alerts/EmailDeliveryWarning";
