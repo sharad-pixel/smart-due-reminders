@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import { RequireClmAccess } from "@/components/clm/RequireClmAccess";
@@ -6,16 +7,52 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, FileText, Users } from "lucide-react";
 import { useClmInstance, useUpdateInstanceStatus } from "@/hooks/useClmInstance";
 import { InstanceAccountPicker } from "@/components/clm/InstanceAccountPicker";
 import { InternalCollaboratorsPanel } from "@/components/clm/InternalCollaboratorsPanel";
-import { FileText } from "lucide-react";
 import { SectionCommentsPanel } from "@/components/clm/SectionCommentsPanel";
 import { SectionEditDialog } from "@/components/clm/SectionEditDialog";
 import { RevisionHistoryPanel } from "@/components/clm/RevisionHistoryPanel";
 import { ClmBrandedHeader } from "@/components/clm/ClmBrandedHeader";
+import { TemplateCollaboratorsDialog } from "@/components/clm/TemplateCollaboratorsDialog";
 import SEO from "@/components/seo/SEO";
+
+const WorkspaceTemplateRow = ({
+  instanceId, templateId, templateName, isPrimary, debtorId, contacts,
+}: {
+  instanceId: string; templateId: string; templateName: string;
+  isPrimary?: boolean; debtorId: string | null; contacts: any[];
+}) => {
+  const [open, setOpen] = useState(false);
+  const count = contacts.filter((c: any) => c.template_id === templateId).length;
+  return (
+    <>
+      <div className="flex items-center justify-between rounded border p-2 gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <FileText className="h-4 w-4 text-primary shrink-0" />
+          <span className="text-sm font-medium truncate">{templateName}</span>
+          {isPrimary
+            ? <Badge variant="default" className="text-[10px]">Primary</Badge>
+            : <Badge variant="outline" className="text-[10px]">Bundled</Badge>}
+        </div>
+        <Button size="sm" variant="outline" onClick={() => setOpen(true)} className="shrink-0">
+          <Users className="h-3.5 w-3.5 mr-1" />
+          {count > 0 ? `${count} collab.` : "Invite"}
+        </Button>
+      </div>
+      <TemplateCollaboratorsDialog
+        open={open}
+        onOpenChange={setOpen}
+        instanceId={instanceId}
+        templateId={templateId}
+        templateName={templateName}
+        debtorId={debtorId}
+        allLinkedContacts={contacts}
+      />
+    </>
+  );
+};
 
 const Inner = () => {
   const { id } = useParams<{ id: string }>();
@@ -112,22 +149,35 @@ const Inner = () => {
           <RevisionHistoryPanel instanceId={id!} />
           <InstanceAccountPicker instanceId={id!} linkedDebtors={debtors} linkedContacts={contacts.filter((c: any) => !c.is_internal)} />
           <InternalCollaboratorsPanel instanceId={id!} contacts={contacts} />
-          {extraTemplates.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2"><FileText className="h-4 w-4" /> Bundled Templates</CardTitle>
-                <CardDescription>Additional contracts included in this workspace</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-1">
-                {extraTemplates.map((t: any) => (
-                  <div key={t.id} className="flex items-center justify-between rounded border p-2">
-                    <span className="text-sm font-medium truncate">{t.template_name_snapshot ?? t.clm_templates?.name ?? "—"}</span>
-                    <Badge variant="outline" className="text-xs">bundled</Badge>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2"><FileText className="h-4 w-4" /> Templates in this workspace</CardTitle>
+              <CardDescription>Click a template to invite collaborators specific to that contract.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-1">
+              {/* Primary */}
+              {instance.template_id && (
+                <WorkspaceTemplateRow
+                  instanceId={id!}
+                  templateId={instance.template_id}
+                  templateName={instance.clm_templates?.name ?? instance.template_name_snapshot ?? "Primary template"}
+                  isPrimary
+                  debtorId={debtors[0]?.debtor_id ?? null}
+                  contacts={contacts.filter((c: any) => !c.is_internal)}
+                />
+              )}
+              {extraTemplates.map((t: any) => (
+                <WorkspaceTemplateRow
+                  key={t.id}
+                  instanceId={id!}
+                  templateId={t.template_id}
+                  templateName={t.template_name_snapshot ?? t.clm_templates?.name ?? "—"}
+                  debtorId={debtors[0]?.debtor_id ?? null}
+                  contacts={contacts.filter((c: any) => !c.is_internal)}
+                />
+              ))}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
