@@ -95,6 +95,9 @@ const Inner = () => {
                             <p className="text-sm whitespace-pre-wrap">{s.body}</p>
                           </div>
                         )}
+                        <div className="flex justify-end mb-2">
+                          <SectionEditDialog instanceId={id!} section={s} />
+                        </div>
                         <SectionCommentsPanel instanceId={id!} sectionKey={s.section_key} comments={comments} />
                       </AccordionContent>
                     </AccordionItem>
@@ -106,6 +109,7 @@ const Inner = () => {
         </Card>
 
         <div className="space-y-4">
+          <RevisionHistoryPanel instanceId={id!} />
           <InstanceAccountPicker instanceId={id!} linkedDebtors={debtors} linkedContacts={contacts.filter((c: any) => !c.is_internal)} />
           <InternalCollaboratorsPanel instanceId={id!} contacts={contacts} />
           {extraTemplates.length > 0 && (
