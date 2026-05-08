@@ -41,9 +41,12 @@ const Inner = () => {
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             Based on{" "}
-            <Link className="underline" to={`/contracts/templates/${instance.template_id}`}>
-              {instance.clm_templates?.name ?? "template"}
-            </Link>
+            {sourceTemplateLink ? (
+              <Link className="underline" to={sourceTemplateLink}>{sourceTemplateName}</Link>
+            ) : (
+              <span>{sourceTemplateName}</span>
+            )}
+            {!sourceTemplateLink && <span className="ml-1 italic">(template removed — workspace uses its own copy)</span>}
           </p>
         </div>
         <div className="flex items-center gap-2">
