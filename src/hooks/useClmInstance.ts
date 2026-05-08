@@ -18,27 +18,52 @@ export const useClmInstances = () => {
     queryKey: ["clm-instances"],
     refetchOnWindowFocus: true,
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Primary flat query — never blocked by missing relational embeds
+      const { data: instances, error } = await supabase
         .from("clm_template_instances")
-        .select(`
-          *,
-          clm_templates(name),
-          clm_instance_debtors(id, role, debtors(id, company_name, name, email)),
-          clm_instance_contacts(id, is_internal),
-          clm_section_revisions(id, approval_status)
-        `)
+        .select("*, clm_templates(name)")
         .order("created_at", { ascending: false });
       if (error) {
-        console.error("[useClmInstances] embed query failed, falling back to flat query", error);
-        // Fallback: load instances without embeds so the user still sees their workspaces
-        const flat = await supabase
-          .from("clm_template_instances")
-          .select("*, clm_templates(name)")
-          .order("created_at", { ascending: false });
-        if (flat.error) throw flat.error;
-        return flat.data ?? [];
+        console.error("[useClmInstances] flat query failed", error);
+        throw error;
       }
-      return data ?? [];
+      const list = instances ?? [];
+      const ids = list.map((i: any) => i.id);
+      if (ids.length === 0) return list;
+
+      // Load aux data separately so a single failing embed never hides the list
+      const [debtors, contacts, revisions] = await Promise.all([
+        supabase
+          .from("clm_instance_debtors")
+          .select("id, instance_id, role, debtor_id, debtors(id, company_name, name, email)")
+          .in("instance_id", ids),
+        (supabase.from("clm_instance_contacts" as any) as any)
+          .select("id, instance_id, is_internal")
+          .in("instance_id", ids),
+        (supabase.from("clm_section_revisions" as any) as any)
+          .select("id, instance_id, approval_status")
+          .in("instance_id", ids),
+      ]);
+
+      const byInstance = <T extends { instance_id: string }>(rows: T[] | null | undefined) => {
+        const map = new Map<string, T[]>();
+        (rows ?? []).forEach((r) => {
+          const arr = map.get(r.instance_id) ?? [];
+          arr.push(r);
+          map.set(r.instance_id, arr);
+        });
+        return map;
+      };
+      const dMap = byInstance((debtors.data as any) ?? []);
+      const cMap = byInstance(((contacts as any).data as any) ?? []);
+      const rMap = byInstance(((revisions as any).data as any) ?? []);
+
+      return list.map((i: any) => ({
+        ...i,
+        clm_instance_debtors: dMap.get(i.id) ?? [],
+        clm_instance_contacts: cMap.get(i.id) ?? [],
+        clm_section_revisions: rMap.get(i.id) ?? [],
+      }));
     },
   });
 };
