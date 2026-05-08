@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { User, Mail, Phone as PhoneIcon, Edit, Trash2 } from "lucide-react";
+import { AddContactToClmButton } from "@/components/clm/AddContactToClmButton";
 import { formatPhone } from "@/lib/formatPhone";
 import { toast } from "sonner";
 
