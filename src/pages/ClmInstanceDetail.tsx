@@ -112,22 +112,35 @@ const Inner = () => {
           <RevisionHistoryPanel instanceId={id!} />
           <InstanceAccountPicker instanceId={id!} linkedDebtors={debtors} linkedContacts={contacts.filter((c: any) => !c.is_internal)} />
           <InternalCollaboratorsPanel instanceId={id!} contacts={contacts} />
-          {extraTemplates.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2"><FileText className="h-4 w-4" /> Bundled Templates</CardTitle>
-                <CardDescription>Additional contracts included in this workspace</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-1">
-                {extraTemplates.map((t: any) => (
-                  <div key={t.id} className="flex items-center justify-between rounded border p-2">
-                    <span className="text-sm font-medium truncate">{t.template_name_snapshot ?? t.clm_templates?.name ?? "—"}</span>
-                    <Badge variant="outline" className="text-xs">bundled</Badge>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2"><FileText className="h-4 w-4" /> Templates in this workspace</CardTitle>
+              <CardDescription>Click a template to invite collaborators specific to that contract.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-1">
+              {/* Primary */}
+              {instance.template_id && (
+                <WorkspaceTemplateRow
+                  instanceId={id!}
+                  templateId={instance.template_id}
+                  templateName={instance.clm_templates?.name ?? instance.template_name_snapshot ?? "Primary template"}
+                  isPrimary
+                  debtorId={debtors[0]?.debtor_id ?? null}
+                  contacts={contacts.filter((c: any) => !c.is_internal)}
+                />
+              )}
+              {extraTemplates.map((t: any) => (
+                <WorkspaceTemplateRow
+                  key={t.id}
+                  instanceId={id!}
+                  templateId={t.template_id}
+                  templateName={t.template_name_snapshot ?? t.clm_templates?.name ?? "—"}
+                  debtorId={debtors[0]?.debtor_id ?? null}
+                  contacts={contacts.filter((c: any) => !c.is_internal)}
+                />
+              ))}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
