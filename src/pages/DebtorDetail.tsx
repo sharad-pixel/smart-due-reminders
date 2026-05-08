@@ -787,13 +787,14 @@ const DebtorDetail = () => {
                   </Badge>
                 )}
               </div>
-              <div className="mt-3">
+              <div className="mt-3 flex flex-wrap items-center gap-2">
                 <InternalAccountOwnerBadge
                   debtorId={debtor.id}
                   salesRepName={debtor.sales_rep_name}
                   salesRepEmail={debtor.sales_rep_email}
                   alertsEnabled={!!debtor.sales_rep_alerts_enabled}
                 />
+                <DebtorWorkspacesBadge debtorId={debtor.id} />
               </div>
             </div>
           </div>
