@@ -158,8 +158,98 @@ const ExternalCollaboratorsCard = ({
             </div>
           )}
         </div>
+
+        {/* Add brand-new contact (creates a debtor contact and links it) */}
+        <NewContactForm
+          debtorId={debtorId}
+          onCreated={(contact_id) =>
+            addContact.mutate({ contact_id, debtor_id: debtorId, role })
+          }
+        />
       </CardContent>
     </Card>
+  );
+};
+
+const NewContactForm = ({
+  debtorId, onCreated,
+}: { debtorId: string; onCreated: (contactId: string) => void }) => {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [title, setTitle] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const reset = () => { setName(""); setEmail(""); setTitle(""); };
+
+  const submit = async () => {
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      toast.error("Email is required");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      toast.error("Enter a valid email address");
+      return;
+    }
+    setSaving(true);
+    const { data, error } = await supabase
+      .from("debtor_contacts")
+      .insert({
+        debtor_id: debtorId,
+        name: trimmedName || trimmedEmail.split("@")[0],
+        email: trimmedEmail,
+        title: title.trim() || null,
+        is_primary: false,
+      } as any)
+      .select("id")
+      .single();
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    qc.invalidateQueries({ queryKey: ["clm-debtor-contacts", debtorId] });
+    onCreated(data.id);
+    reset();
+    setOpen(false);
+  };
+
+  if (!open) {
+    return (
+      <div className="border-t pt-3">
+        <Button variant="outline" size="sm" className="w-full" onClick={() => setOpen(true)}>
+          <UserPlus className="h-3.5 w-3.5 mr-1" /> Add new collaborator
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="border-t pt-3 space-y-2">
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+        New collaborator
+      </p>
+      <div className="grid grid-cols-2 gap-2">
+        <div className="space-y-1">
+          <Label className="text-xs">Name</Label>
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Jane Doe" className="h-8 text-sm" />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Email <span className="text-destructive">*</span></Label>
+          <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="jane@acme.com" className="h-8 text-sm" required />
+        </div>
+      </div>
+      <div className="space-y-1">
+        <Label className="text-xs">Title (optional)</Label>
+        <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Legal counsel" className="h-8 text-sm" />
+      </div>
+      <div className="flex items-center justify-end gap-2 pt-1">
+        <Button variant="ghost" size="sm" onClick={() => { reset(); setOpen(false); }} disabled={saving}>Cancel</Button>
+        <Button size="sm" onClick={submit} disabled={saving || !email.trim()}>
+          {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><Plus className="h-3.5 w-3.5 mr-1" />Add collaborator</>}
+        </Button>
+      </div>
+    </div>
   );
 };
 
