@@ -152,6 +152,9 @@ export const NewWorkspaceDialog = ({ open, onOpenChange }: Props) => {
     // Link collaborators / approvers (best-effort)
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: debtorRow } = await supabase
+        .from("debtors").select("user_id").eq("id", debtorId).maybeSingle();
+      const ownerUserId = debtorRow?.user_id ?? user?.id;
       const rows: any[] = [];
 
       // Selected existing account contacts
@@ -167,7 +170,8 @@ export const NewWorkspaceDialog = ({ open, onOpenChange }: Props) => {
         const { data: created, error } = await supabase
           .from("debtor_contacts")
           .insert({
-            debtor_id: debtorId, name: ext.name, email: ext.email,
+            debtor_id: debtorId, user_id: ownerUserId,
+            name: ext.name, email: ext.email,
             title: ext.title || null, outreach_enabled: false, source: "clm_legal",
           } as any)
           .select("id").single();
