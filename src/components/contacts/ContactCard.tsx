@@ -122,6 +122,7 @@ export const ContactCard = ({ contact, debtorId, onToggleOutreach, onDelete, onU
             >
               <Edit className="h-4 w-4 text-muted-foreground hover:text-primary" />
             </Button>
+            <AddContactToClmButton contactId={contact.id} debtorId={debtorId} />
             <div className="flex items-center gap-1">
               <span className="text-xs text-muted-foreground">Outreach</span>
               <Switch
