@@ -426,18 +426,26 @@ export const useDeleteInstance = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (instanceId: string) => {
-      // Best-effort cleanup of children that may not cascade
-      await supabase.from("clm_instance_contacts" as any).delete().eq("instance_id", instanceId);
-      await supabase.from("clm_instance_debtors").delete().eq("instance_id", instanceId);
-      await supabase.from("clm_section_revisions").delete().eq("instance_id", instanceId);
+      // Best-effort cleanup of children (FKs are ON DELETE CASCADE, but we
+      // also clean explicitly so any custom child tables without cascade are
+      // handled before the parent delete).
+      await Promise.allSettled([
+        (supabase.from("clm_instance_contacts" as any) as any).delete().eq("instance_id", instanceId),
+        supabase.from("clm_instance_debtors").delete().eq("instance_id", instanceId),
+        (supabase.from("clm_section_revisions" as any) as any).delete().eq("instance_id", instanceId),
+        (supabase.from("clm_instance_extra_templates" as any) as any).delete().eq("instance_id", instanceId),
+        supabase.from("clm_section_comments").delete().eq("instance_id", instanceId),
+        supabase.from("clm_instance_sections").delete().eq("instance_id", instanceId),
+      ]);
       const { error } = await supabase
         .from("clm_template_instances")
         .delete()
         .eq("id", instanceId);
       if (error) throw error;
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["clm-instances"] });
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["clm-instances"] });
+      await qc.refetchQueries({ queryKey: ["clm-instances"] });
       toast.success("Workspace deleted");
     },
     onError: (e: any) => toast.error(e.message ?? "Failed to delete workspace"),
