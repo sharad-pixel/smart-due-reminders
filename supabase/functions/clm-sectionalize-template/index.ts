@@ -188,6 +188,13 @@ Return all 12 keys in the listed order, even when body is empty. Keep each body 
     }
 
     await supabase.from("clm_templates").update({ status: "ready" }).eq("id", template_id);
+
+    // Fire-and-forget GPT-5 assessment
+    supabase.functions.invoke("clm-assess-template", {
+      body: { template_id },
+      headers: { Authorization: req.headers.get("Authorization") ?? "" },
+    }).catch((e) => console.error("assess invoke error", e));
+
     return json({ success: true, sections_count: rows.length });
   } catch (e: any) {
     console.error("clm-sectionalize-template error", e);

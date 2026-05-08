@@ -1289,6 +1289,11 @@ export type Database = {
       clm_templates: {
         Row: {
           account_id: string
+          assessed_at: string | null
+          assessment: Json | null
+          assessment_error: string | null
+          assessment_model: string | null
+          assessment_status: string
           created_at: string
           created_by: string
           description: string | null
@@ -1306,6 +1311,11 @@ export type Database = {
         }
         Insert: {
           account_id: string
+          assessed_at?: string | null
+          assessment?: Json | null
+          assessment_error?: string | null
+          assessment_model?: string | null
+          assessment_status?: string
           created_at?: string
           created_by: string
           description?: string | null
@@ -1323,6 +1333,11 @@ export type Database = {
         }
         Update: {
           account_id?: string
+          assessed_at?: string | null
+          assessment?: Json | null
+          assessment_error?: string | null
+          assessment_model?: string | null
+          assessment_status?: string
           created_at?: string
           created_by?: string
           description?: string | null

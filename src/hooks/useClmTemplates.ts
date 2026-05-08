@@ -12,6 +12,11 @@ export interface ClmTemplate {
   source_storage_path: string | null;
   status: "uploading" | "parsing" | "ready" | "failed";
   parse_error: string | null;
+  assessment: any | null;
+  assessment_status: "pending" | "running" | "ready" | "failed";
+  assessment_error: string | null;
+  assessed_at: string | null;
+  assessment_model: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -57,9 +62,30 @@ export const useClmTemplate = (id: string | undefined) => {
       };
     },
     refetchInterval: (q) => {
-      const status = (q.state.data as any)?.template?.status;
-      return status === "parsing" || status === "uploading" ? 3000 : false;
+      const t: any = (q.state.data as any)?.template;
+      if (!t) return false;
+      const stillParsing = t.status === "parsing" || t.status === "uploading";
+      const stillAssessing = t.assessment_status === "running" || (t.status === "ready" && t.assessment_status === "pending");
+      return stillParsing || stillAssessing ? 3000 : false;
     },
+  });
+};
+
+export const useReassessTemplate = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (templateId: string) => {
+      const { error } = await supabase.functions.invoke("clm-assess-template", {
+        body: { template_id: templateId },
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_d, id) => {
+      qc.invalidateQueries({ queryKey: ["clm-template", id] });
+      qc.invalidateQueries({ queryKey: ["clm-templates"] });
+      toast.success("Re-running GPT-5 assessment…");
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed"),
   });
 };
 

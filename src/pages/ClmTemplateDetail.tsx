@@ -13,6 +13,7 @@ import { ArrowLeft, Loader2, AlertTriangle, RefreshCw, FileText, Sparkles, Play 
 import { useClmTemplate, useResectionalize } from "@/hooks/useClmTemplates";
 import { useCreateClmInstance } from "@/hooks/useClmInstance";
 import { TemplateActionsMenu } from "@/components/clm/TemplateActionsMenu";
+import { TemplateAssessmentPanel } from "@/components/clm/TemplateAssessmentPanel";
 import SEO from "@/components/seo/SEO";
 
 const Inner = () => {
@@ -84,6 +85,10 @@ const Inner = () => {
           </CardContent>
         </Card>
       )}
+
+      <div className="mb-4">
+        <TemplateAssessmentPanel template={template} />
+      </div>
 
       <Card>
         <CardHeader>
