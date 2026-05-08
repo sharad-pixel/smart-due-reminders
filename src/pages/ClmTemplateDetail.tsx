@@ -64,6 +64,7 @@ const Inner = () => {
               <RefreshCw className="h-4 w-4 mr-1" />Retry
             </Button>
           )}
+          <TemplateActionsMenu template={template} redirectOnDelete inline />
         </div>
       </div>
 
