@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { FileSignature, Plus, Loader2, FileText, Upload, AlertCircle } from "lucide-react";
+import { FileSignature, Plus, Loader2, FileText, Upload, AlertCircle, Briefcase, Building2, Users, Clock, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useClmEntitlement } from "@/hooks/useClmEntitlement";
 import { useClmTemplates } from "@/hooks/useClmTemplates";
