@@ -1311,6 +1311,78 @@ export type Database = {
           },
         ]
       }
+      clm_section_revisions: {
+        Row: {
+          approval_status: string
+          change_summary: string | null
+          created_at: string
+          edited_by: string | null
+          edited_by_name: string | null
+          id: string
+          instance_id: string
+          new_body: string | null
+          previous_body: string | null
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          reviewed_by_name: string | null
+          section_id: string
+          section_key: string | null
+          section_title: string | null
+        }
+        Insert: {
+          approval_status?: string
+          change_summary?: string | null
+          created_at?: string
+          edited_by?: string | null
+          edited_by_name?: string | null
+          id?: string
+          instance_id: string
+          new_body?: string | null
+          previous_body?: string | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewed_by_name?: string | null
+          section_id: string
+          section_key?: string | null
+          section_title?: string | null
+        }
+        Update: {
+          approval_status?: string
+          change_summary?: string | null
+          created_at?: string
+          edited_by?: string | null
+          edited_by_name?: string | null
+          id?: string
+          instance_id?: string
+          new_body?: string | null
+          previous_body?: string | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewed_by_name?: string | null
+          section_id?: string
+          section_key?: string | null
+          section_title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clm_section_revisions_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "clm_template_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clm_section_revisions_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "clm_instance_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clm_template_instances: {
         Row: {
           account_id: string

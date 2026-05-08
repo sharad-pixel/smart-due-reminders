@@ -12,6 +12,8 @@ import { InstanceAccountPicker } from "@/components/clm/InstanceAccountPicker";
 import { InternalCollaboratorsPanel } from "@/components/clm/InternalCollaboratorsPanel";
 import { FileText } from "lucide-react";
 import { SectionCommentsPanel } from "@/components/clm/SectionCommentsPanel";
+import { SectionEditDialog } from "@/components/clm/SectionEditDialog";
+import { RevisionHistoryPanel } from "@/components/clm/RevisionHistoryPanel";
 import { ClmBrandedHeader } from "@/components/clm/ClmBrandedHeader";
 import SEO from "@/components/seo/SEO";
 
@@ -93,6 +95,9 @@ const Inner = () => {
                             <p className="text-sm whitespace-pre-wrap">{s.body}</p>
                           </div>
                         )}
+                        <div className="flex justify-end mb-2">
+                          <SectionEditDialog instanceId={id!} section={s} />
+                        </div>
                         <SectionCommentsPanel instanceId={id!} sectionKey={s.section_key} comments={comments} />
                       </AccordionContent>
                     </AccordionItem>
@@ -104,6 +109,7 @@ const Inner = () => {
         </Card>
 
         <div className="space-y-4">
+          <RevisionHistoryPanel instanceId={id!} />
           <InstanceAccountPicker instanceId={id!} linkedDebtors={debtors} linkedContacts={contacts.filter((c: any) => !c.is_internal)} />
           <InternalCollaboratorsPanel instanceId={id!} contacts={contacts} />
           {extraTemplates.length > 0 && (

@@ -136,12 +136,17 @@ export const InstanceAccountPicker = ({
   });
 
   const linkedIds = new Set(linkedDebtors.map((d) => d.debtor_id));
+  const accountLocked = linkedDebtors.length >= 1;
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base flex items-center gap-2"><Building2 className="h-4 w-4" /> Collaborating Accounts</CardTitle>
-        <CardDescription>Add debtor accounts and pick contacts as collaborators</CardDescription>
+        <CardTitle className="text-base flex items-center gap-2"><Building2 className="h-4 w-4" /> Collaborating Account</CardTitle>
+        <CardDescription>
+          {accountLocked
+            ? "Account locked to this workspace. Add contacts as collaborators below."
+            : "Pick the debtor account this contract is being negotiated with"}
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {linkedDebtors.length > 0 && (
@@ -160,7 +165,7 @@ export const InstanceAccountPicker = ({
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge variant="outline" className="text-xs">{l.role}</Badge>
-                      <Button size="icon" variant="ghost" onClick={() => remove.mutate(l.id)}>
+                      <Button size="icon" variant="ghost" onClick={() => remove.mutate(l.id)} title="Unlink account">
                         <X className="h-4 w-4" />
                       </Button>
                     </div>
@@ -176,35 +181,39 @@ export const InstanceAccountPicker = ({
           </div>
         )}
 
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input className="pl-8" placeholder="Search debtor accounts…" value={search} onChange={(e) => setSearch(e.target.value)} />
-          </div>
-          <Select value={role} onValueChange={setRole}>
-            <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="counterparty">Counterparty</SelectItem>
-              <SelectItem value="reviewer">Reviewer</SelectItem>
-              <SelectItem value="cc">CC</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="max-h-64 overflow-y-auto space-y-1">
-          {results.filter((r: any) => !linkedIds.has(r.id)).map((d: any) => (
-            <div key={d.id} className="flex items-center justify-between rounded p-2 hover:bg-muted/50">
-              <div className="min-w-0">
-                <p className="text-sm font-medium truncate">{d.company_name ?? d.name ?? "—"}</p>
-                <p className="text-xs text-muted-foreground truncate">{d.email ?? ""}</p>
+        {!accountLocked && (
+          <>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input className="pl-8" placeholder="Search debtor accounts…" value={search} onChange={(e) => setSearch(e.target.value)} />
               </div>
-              <Button size="sm" variant="outline" onClick={() => add.mutate({ debtor_id: d.id, role })}>
-                <Plus className="h-3.5 w-3.5 mr-1" /> Add
-              </Button>
+              <Select value={role} onValueChange={setRole}>
+                <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="counterparty">Counterparty</SelectItem>
+                  <SelectItem value="reviewer">Reviewer</SelectItem>
+                  <SelectItem value="cc">CC</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-          ))}
-          {results.length === 0 && <p className="text-xs text-muted-foreground text-center py-3">No accounts found</p>}
-        </div>
+
+            <div className="max-h-64 overflow-y-auto space-y-1">
+              {results.filter((r: any) => !linkedIds.has(r.id)).map((d: any) => (
+                <div key={d.id} className="flex items-center justify-between rounded p-2 hover:bg-muted/50">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{d.company_name ?? d.name ?? "—"}</p>
+                    <p className="text-xs text-muted-foreground truncate">{d.email ?? ""}</p>
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => add.mutate({ debtor_id: d.id, role })}>
+                    <Plus className="h-3.5 w-3.5 mr-1" /> Add
+                  </Button>
+                </div>
+              ))}
+              {results.length === 0 && <p className="text-xs text-muted-foreground text-center py-3">No accounts found</p>}
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );

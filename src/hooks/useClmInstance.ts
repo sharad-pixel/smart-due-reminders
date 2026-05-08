@@ -133,16 +133,97 @@ export const useClmInstance = (id: string | undefined) => {
 export const useUpdateInstanceSection = (instanceId: string) => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, body, title }: { id: string; body?: string; title?: string }) => {
+    mutationFn: async ({
+      id, body, title, change_summary, submitForApproval,
+    }: { id: string; body?: string; title?: string; change_summary?: string; submitForApproval?: boolean }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      // Snapshot previous body for revision history if body is being changed
+      let previous_body: string | null = null;
+      let section_key: string | null = null;
+      let section_title: string | null = null;
+      if (body !== undefined) {
+        const { data: prev } = await supabase
+          .from("clm_instance_sections")
+          .select("body, section_key, title")
+          .eq("id", id).maybeSingle();
+        previous_body = prev?.body ?? null;
+        section_key = prev?.section_key ?? null;
+        section_title = prev?.title ?? null;
+      }
+
       const patch: any = {};
       if (body !== undefined) patch.body = body;
       if (title !== undefined) patch.title = title;
       const { error } = await supabase.from("clm_instance_sections").update(patch).eq("id", id);
       if (error) throw error;
+
+      // Log revision when body changed
+      if (body !== undefined && previous_body !== body) {
+        let editorName: string | undefined;
+        if (user?.id) {
+          const { data: prof } = await supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
+          editorName = (prof as any)?.full_name ?? user.email ?? undefined;
+        }
+        await (supabase.from("clm_section_revisions" as any) as any).insert({
+          instance_id: instanceId, section_id: id,
+          section_key, section_title,
+          previous_body, new_body: body, change_summary,
+          edited_by: user?.id, edited_by_name: editorName,
+          approval_status: submitForApproval ? "pending" : "auto",
+        });
+      }
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["clm-instance", instanceId] });
+      qc.invalidateQueries({ queryKey: ["clm-revisions", instanceId] });
+      toast.success(vars.submitForApproval ? "Submitted for approval" : "Section updated");
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed"),
+  });
+};
+
+export const useInstanceRevisions = (instanceId: string | undefined) => {
+  return useQuery({
+    queryKey: ["clm-revisions", instanceId],
+    enabled: !!instanceId,
+    queryFn: async () => {
+      const { data, error } = await (supabase.from("clm_section_revisions" as any) as any)
+        .select("*").eq("instance_id", instanceId!).order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+};
+
+export const useReviewRevision = (instanceId: string) => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      revisionId, decision, note, revertOnReject,
+    }: { revisionId: string; decision: "approved" | "rejected"; note?: string; revertOnReject?: boolean }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      let reviewerName: string | undefined;
+      if (user?.id) {
+        const { data: prof } = await supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
+        reviewerName = (prof as any)?.full_name ?? user.email ?? undefined;
+      }
+      const { data: rev, error: rErr } = await (supabase.from("clm_section_revisions" as any) as any)
+        .update({
+          approval_status: decision, reviewed_by: user?.id, reviewed_by_name: reviewerName,
+          reviewed_at: new Date().toISOString(), review_note: note ?? null,
+        })
+        .eq("id", revisionId).select("section_id, previous_body").single();
+      if (rErr) throw rErr;
+
+      if (decision === "rejected" && revertOnReject && rev) {
+        await supabase.from("clm_instance_sections").update({ body: (rev as any).previous_body }).eq("id", (rev as any).section_id);
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["clm-instance", instanceId] });
-      toast.success("Section updated");
+      qc.invalidateQueries({ queryKey: ["clm-revisions", instanceId] });
+      toast.success("Reviewed");
     },
     onError: (e: any) => toast.error(e?.message ?? "Failed"),
   });
