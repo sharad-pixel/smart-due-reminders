@@ -155,10 +155,17 @@ const AddExternalForm = ({
     if (!trimmedEmail) return toast.error("Email is required");
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) return toast.error("Enter a valid email");
     setSaving(true);
+    const { data: debtorRow, error: dErr } = await supabase
+      .from("debtors").select("user_id").eq("id", debtorId).maybeSingle();
+    if (dErr || !debtorRow?.user_id) {
+      setSaving(false);
+      return toast.error("Could not resolve account owner");
+    }
     const { data, error } = await supabase
       .from("debtor_contacts")
       .insert({
         debtor_id: debtorId,
+        user_id: debtorRow.user_id,
         name: name.trim() || trimmedEmail.split("@")[0],
         email: trimmedEmail,
         title: title.trim() || null,
