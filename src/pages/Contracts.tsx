@@ -324,6 +324,7 @@ const WorkspacesTab = () => {
                 <TableHead>Approvals</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Created</TableHead>
+                <TableHead className="w-10"></TableHead>
               </TableRow></TableHeader>
               <TableBody>{closed.map(renderRow)}</TableBody>
             </Table>
