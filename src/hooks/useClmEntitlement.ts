@@ -72,18 +72,14 @@ export const useAdminClmEntitlement = (accountId: string | null) => {
       const { data: { user } } = await supabase.auth.getUser();
       const now = new Date().toISOString();
 
-      const payload: Record<string, unknown> = {
+      const payload = {
         account_id: accountId,
         status: enabled ? "active" : "disabled",
         notes: notes ?? null,
-      };
-      if (enabled) {
-        payload.enabled_at = now;
-        payload.enabled_by = user?.id ?? null;
-        payload.disabled_at = null;
-      } else {
-        payload.disabled_at = now;
-      }
+        enabled_at: enabled ? now : null,
+        enabled_by: enabled ? user?.id ?? null : null,
+        disabled_at: enabled ? null : now,
+      } as any;
 
       const { error } = await supabase
         .from("clm_entitlements")
