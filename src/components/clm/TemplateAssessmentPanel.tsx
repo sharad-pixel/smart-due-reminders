@@ -105,18 +105,39 @@ export const TemplateAssessmentPanel = ({ template }: { template: ClmTemplate })
               <div>
                 <p className="text-sm font-semibold mb-2 flex items-center gap-1">
                   <AlertTriangle className="h-4 w-4 text-destructive" /> Key Risks
+                  {ignored.length > 0 && (
+                    <span className="text-xs font-normal text-muted-foreground ml-1">({ignored.length} ignored)</span>
+                  )}
                 </p>
                 <ul className="space-y-2">
-                  {a.key_risks.map((r, i) => (
-                    <li key={i} className="rounded border p-3">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Badge variant={sevColor(r.severity) as any} className="capitalize text-xs">{r.severity ?? "—"}</Badge>
-                        <span className="font-medium text-sm">{r.title}</span>
-                        {r.clause && <span className="text-xs text-muted-foreground">· {r.clause}</span>}
-                      </div>
-                      {r.explanation && <p className="text-sm text-muted-foreground">{r.explanation}</p>}
-                    </li>
-                  ))}
+                  {a.key_risks.map((r, i) => {
+                    const isIgnored = ignored.includes(i);
+                    return (
+                      <li key={i} className={`rounded border p-3 ${isIgnored ? "opacity-50 bg-muted/30" : ""}`}>
+                        <div className="flex items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Badge variant={sevColor(r.severity) as any} className="capitalize text-xs">{r.severity ?? "—"}</Badge>
+                            <span className={`font-medium text-sm ${isIgnored ? "line-through" : ""}`}>{r.title}</span>
+                            {r.clause && <span className="text-xs text-muted-foreground">· {r.clause}</span>}
+                            {isIgnored && <Badge variant="outline" className="text-[10px]">Ignored</Badge>}
+                          </div>
+                          <Button
+                            variant="ghost" size="sm" className="h-6 px-2 text-xs shrink-0"
+                            onClick={() => toggleIgnore.mutate({ templateId: template.id, riskIndex: i, currentIgnored: ignored })}
+                            title={isIgnored ? "Restore this risk" : "Mark as not applicable"}
+                          >
+                            {isIgnored ? <><Eye className="h-3 w-3 mr-1" />Restore</> : <><EyeOff className="h-3 w-3 mr-1" />Ignore</>}
+                          </Button>
+                        </div>
+                        {r.explanation && <p className="text-sm text-muted-foreground">{r.explanation}</p>}
+                        {r.evidence_quote && (
+                          <p className="text-xs text-muted-foreground mt-1.5 italic border-l-2 border-destructive/30 pl-2">
+                            "{r.evidence_quote}"
+                          </p>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             )}
