@@ -167,6 +167,9 @@ const ARIntroduction = lazy(() => import("./pages/ARIntroduction"));
 // Contact
 const ContactUs = lazy(() => import("./pages/ContactUs"));
 
+// Contract Intelligence (CLM) — sales-led marketing page
+const ContractIntelligence = lazy(() => import("./pages/ContractIntelligence"));
+
 // Admin Pages (heavy - definitely lazy load)
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const AdminUserManagement = lazy(() => import("./pages/admin/AdminUserManagement"));
@@ -251,6 +254,10 @@ const App = () => (
               <Route path="/automation" element={<AutomationPage />} />
               
               <Route path="/analytics" element={<AnalyticsPage />} />
+
+              {/* Contract Intelligence (CLM) marketing */}
+              <Route path="/clm" element={<ContractIntelligence />} />
+              <Route path="/contract-intelligence" element={<ContractIntelligence />} />
 
               {/* Pillar Pages */}
               <Route path="/collections-crm" element={<CollectionsCRM />} />

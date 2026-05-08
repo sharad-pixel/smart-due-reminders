@@ -4,7 +4,7 @@ import { RecouplyLogo } from "@/components/layout/RecouplyLogo";
 import NicolasChat from "@/components/nicolas/NicolasChat";
 import MarketingFooter from "@/components/marketing/MarketingFooter";
 import DataVettingStickyBar from "@/components/marketing/DataVettingStickyBar";
-import { Brain, Bot, BarChart3, Zap, Building2, Rocket, Users, ChevronDown, Menu, X, User, CreditCard } from "lucide-react";
+import { Brain, Bot, BarChart3, Zap, Building2, Rocket, Users, ChevronDown, Menu, X, User, CreditCard, FileSignature } from "lucide-react";
 import { useState } from "react";
 
 interface MarketingLayoutProps {
@@ -73,6 +73,7 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
     { icon: Bot, title: "AI Agents", description: "Autonomous collection personas", path: "/personas" },
     { icon: Zap, title: "Automation", description: "Workflow & outreach automation", path: "/automation" },
     { icon: BarChart3, title: "Analytics", description: "Real-time AR dashboards", path: "/analytics" },
+    { icon: FileSignature, title: "CLM Intelligence", description: "AI-native contract lifecycle (new)", path: "/clm" },
   ];
 
   const solutionsItems = [
