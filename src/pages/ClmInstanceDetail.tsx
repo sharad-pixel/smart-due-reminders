@@ -9,6 +9,8 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { useClmInstance, useUpdateInstanceStatus } from "@/hooks/useClmInstance";
 import { InstanceAccountPicker } from "@/components/clm/InstanceAccountPicker";
+import { InternalCollaboratorsPanel } from "@/components/clm/InternalCollaboratorsPanel";
+import { FileText } from "lucide-react";
 import { SectionCommentsPanel } from "@/components/clm/SectionCommentsPanel";
 import { ClmBrandedHeader } from "@/components/clm/ClmBrandedHeader";
 import SEO from "@/components/seo/SEO";
