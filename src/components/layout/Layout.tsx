@@ -58,6 +58,7 @@ import { OnboardingProgressRing } from "@/components/layout/OnboardingProgressRi
 import { useOnboardingCompletion } from "@/hooks/useOnboardingCompletion";
 
 import { AlertNotifications } from "@/components/alerts/AlertNotifications";
+import { useClmEntitlement } from "@/hooks/useClmEntitlement";
 import { FloatingReferralAgent } from "@/components/referral/FloatingReferralAgent";
 import { useUserAlerts } from "@/hooks/useUserAlerts";
 import { RequireSubscription } from "@/components/billing/RequireSubscription";
