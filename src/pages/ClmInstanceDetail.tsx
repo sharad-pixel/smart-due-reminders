@@ -104,7 +104,24 @@ const Inner = () => {
         </Card>
 
         <div className="space-y-4">
-          <InstanceAccountPicker instanceId={id!} linkedDebtors={debtors} linkedContacts={contacts} />
+          <InstanceAccountPicker instanceId={id!} linkedDebtors={debtors} linkedContacts={contacts.filter((c: any) => !c.is_internal)} />
+          <InternalCollaboratorsPanel instanceId={id!} contacts={contacts} />
+          {extraTemplates.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2"><FileText className="h-4 w-4" /> Bundled Templates</CardTitle>
+                <CardDescription>Additional contracts included in this workspace</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-1">
+                {extraTemplates.map((t: any) => (
+                  <div key={t.id} className="flex items-center justify-between rounded border p-2">
+                    <span className="text-sm font-medium truncate">{t.template_name_snapshot ?? t.clm_templates?.name ?? "—"}</span>
+                    <Badge variant="outline" className="text-xs">bundled</Badge>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>
