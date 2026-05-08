@@ -1069,6 +1069,227 @@ export type Database = {
         }
         Relationships: []
       }
+      clm_instance_debtors: {
+        Row: {
+          added_by: string
+          created_at: string
+          debtor_id: string
+          id: string
+          instance_id: string
+          role: string
+        }
+        Insert: {
+          added_by: string
+          created_at?: string
+          debtor_id: string
+          id?: string
+          instance_id: string
+          role?: string
+        }
+        Update: {
+          added_by?: string
+          created_at?: string
+          debtor_id?: string
+          id?: string
+          instance_id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clm_instance_debtors_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "clm_template_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clm_section_comments: {
+        Row: {
+          author_id: string
+          body: string
+          created_at: string
+          id: string
+          instance_id: string
+          resolved_at: string | null
+          section_key: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          body: string
+          created_at?: string
+          id?: string
+          instance_id: string
+          resolved_at?: string | null
+          section_key: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          created_at?: string
+          id?: string
+          instance_id?: string
+          resolved_at?: string | null
+          section_key?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clm_section_comments_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "clm_template_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clm_template_instances: {
+        Row: {
+          account_id: string
+          created_at: string
+          created_by: string
+          id: string
+          name: string
+          notes: string | null
+          status: string
+          template_id: string
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          created_by: string
+          id?: string
+          name: string
+          notes?: string | null
+          status?: string
+          template_id: string
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          status?: string
+          template_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clm_template_instances_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "clm_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clm_template_sections: {
+        Row: {
+          ai_summary: string | null
+          body: string | null
+          created_at: string
+          id: string
+          order_index: number
+          risk_flags: Json
+          section_key: string
+          template_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          ai_summary?: string | null
+          body?: string | null
+          created_at?: string
+          id?: string
+          order_index?: number
+          risk_flags?: Json
+          section_key: string
+          template_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          ai_summary?: string | null
+          body?: string | null
+          created_at?: string
+          id?: string
+          order_index?: number
+          risk_flags?: Json
+          section_key?: string
+          template_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clm_template_sections_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "clm_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clm_templates: {
+        Row: {
+          account_id: string
+          created_at: string
+          created_by: string
+          description: string | null
+          file_size_bytes: number | null
+          id: string
+          metadata: Json
+          mime_type: string | null
+          name: string
+          parse_error: string | null
+          raw_text: string | null
+          source_file_name: string | null
+          source_storage_path: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          file_size_bytes?: number | null
+          id?: string
+          metadata?: Json
+          mime_type?: string | null
+          name: string
+          parse_error?: string | null
+          raw_text?: string | null
+          source_file_name?: string | null
+          source_storage_path?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          file_size_bytes?: number | null
+          id?: string
+          metadata?: Json
+          mime_type?: string | null
+          name?: string
+          parse_error?: string | null
+          raw_text?: string | null
+          source_file_name?: string | null
+          source_storage_path?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       collection_activities: {
         Row: {
           activity_type: string

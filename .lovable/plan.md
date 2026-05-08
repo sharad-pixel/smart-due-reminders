@@ -1,78 +1,67 @@
-## Support Access Feature
 
-Lets account owners grant the Recouply.ai support / solutions team scoped, time-limited access into their workspace to test functionality, troubleshoot issues, or assist with setup — fully audited and revocable in one click.
+## CLM Template Library + AI Sectionalization + Account Collaboration
 
-### How it works (user view)
+Extend Contract Intelligence with a 3-stage workflow:
 
-On **Settings → Team** (and a new card on **Settings → Security**), owners see a **Support Access** panel:
+1. **Upload** an MSA / contract template (PDF, DOCX, TXT)
+2. **AI sectionalizes** it (parties, term, payment terms, IP, indemnity, termination, confidentiality, governing law, etc.) using GPT-5 via Lovable AI Gateway
+3. **Use template** → spin up a contract instance, attach one or many accounts from the existing debtors list, and collaborate (comments per section, status tracking)
 
-- **Status badge**: "No access granted" / "Active until <date>" / "Expired"
-- **Grant Access** button opens a modal:
-  - Duration: 24 hours / 7 days / 30 days (default 7 days)
-  - Scope: "View only" or "Full access (can make changes)"
-  - Reason (optional free text — e.g., "Help with QuickBooks sync")
-  - Checkbox: "I authorize Recouply support staff to access my workspace data for the selected duration"
-- **Active grants** show: granted by, scope, expires at, "Revoke now" button
-- **Activity log** shows which support agent accessed what and when (last 90 days)
+### Data model (new tables, all RLS-scoped to `account_id`)
 
-When access is granted, an email goes to `support@recouply.ai` with the customer's name, account, scope, expiry, and a one-click link to open the workspace in support mode. A persistent banner appears at the top of the customer's app: *"Recouply Support has access until <date> — Revoke"* so the customer always knows.
+- `clm_templates` — uploaded master templates
+  - `id`, `account_id`, `created_by`, `name`, `description`, `source_file_url`, `source_file_name`, `mime_type`, `raw_text`, `status` ('uploading'|'parsing'|'ready'|'failed'), `parse_error`, `metadata` jsonb
+- `clm_template_sections` — AI-extracted sections per template
+  - `id`, `template_id`, `section_key` (e.g. `payment_terms`), `title`, `body`, `order_index`, `ai_summary`, `risk_flags` jsonb
+- `clm_template_instances` — a template "in use" for collaboration
+  - `id`, `template_id`, `account_id`, `created_by`, `name`, `status` ('draft'|'in_review'|'approved'|'executed'|'archived'), `notes`
+- `clm_instance_debtors` — links instances to debtor accounts (many-to-many)
+  - `id`, `instance_id`, `debtor_id`, `added_by`, `role` ('counterparty'|'cc'|'reviewer')
+- `clm_section_comments` — per-section collaboration threads
+  - `id`, `instance_id`, `section_key`, `author_id`, `body`, `resolved_at`
 
-### Technical design
+Storage bucket: `clm-templates` (private), with RLS allowing account members to upload/read their own files.
 
-**New table `support_access_grants`** (RLS, owner-managed):
-- `id`, `account_id` (owner's user_id), `granted_by` (user_id), `scope` ('read' | 'write'), `reason`, `expires_at`, `revoked_at`, `created_at`
-- Index on `(account_id, expires_at)` and `(revoked_at)`
-- RLS: account owners/admins can SELECT/INSERT/UPDATE their own; `is_recouply_admin()` can SELECT all
+### Edge function
 
-**New table `support_access_log`** (audit trail):
-- `id`, `grant_id`, `support_user_id`, `account_id`, `action`, `route`, `details` jsonb, `created_at`
-- RLS: owners can SELECT for their account; recouply admins can SELECT all + INSERT
+- `clm-sectionalize-template` — takes `template_id`, downloads the source file from storage, extracts text (PDF.js for PDF, mammoth-style for docx via simple text fallback initially), calls `google/gemini-2.5-flash` (per project memory — overriding the GPT-5 spec from earlier since memory mandates Gemini for AI features) with a structured-output schema, writes rows to `clm_template_sections`, updates template `status` to `ready`.
 
-**Helper function `has_active_support_access(account_id)`** → boolean
-- Returns true if a non-revoked grant exists with `expires_at > now()`
-- Used inside RLS policies on sensitive tables to extend access to support staff via a new `is_support_with_access(auth.uid(), account_id)` SECURITY DEFINER function that checks `is_recouply_admin(auth.uid())` AND `has_active_support_access(account_id)`
+> Note: project memory says "Gemini-2.5-Flash for all AI features" — I will use that and call it out. If you want GPT-5 specifically for CLM extraction, say so and I'll switch.
 
-**Scheduled cleanup**: extend the existing data retention cron to auto-mark expired grants and prune log entries >90 days.
+### UI changes
 
-**Edge function `grant-support-access`**:
-- Validates owner/admin role, creates grant row, emails `support@recouply.ai` (Resend) with grant details and a deep link `/admin/support-impersonate?account=<id>` for the support team to use.
-- Logs action to `admin_user_actions` for compliance.
-
-**Edge function `revoke-support-access`**:
-- Sets `revoked_at = now()`, emails support, logs action.
-
-**Support-side access** (admin app):
-- New page `src/pages/admin/AdminSupportAccess.tsx` listing active grants across all customers
-- "Open as support" button sets a session flag that scopes queries to that account_id (read-only or write per grant scope) — leverages existing `get_effective_account_id` pattern but gated by `is_support_with_access`.
-
-**UI components**:
-- `src/components/team/SupportAccessCard.tsx` — main grant/revoke UI on Team and Security pages
-- `src/components/security/SupportAccessBanner.tsx` — persistent top banner when active
-- `src/hooks/useSupportAccess.tsx` — query active grant + mutations
+- **`/contracts`** — gains a tab layout:
+  - **Contracts** (existing list) — unchanged
+  - **Templates** (new) — grid of templates with status badge; "Upload Template" button opens drag-drop modal (reuses upload pattern from `DocumentUpload`)
+  - Clicking a template → **Template Detail** (new route `/contracts/templates/:id`) showing sectionalized breakdown (accordion of sections, each with title / body / AI summary / risk flags), plus "Use Template" button
+  - **Use Template** → modal to name the instance, then redirects to instance detail
+- **`/contracts/instances/:id`** (new route) — instance workspace:
+  - Header: instance name, status dropdown, parent template link
+  - Left: section list (synced from template, editable per instance)
+  - Right: comments panel per selected section
+  - Bottom: **Collaborating Accounts** — searchable picker pulling from `debtors` table, add/remove with role selector
 
 ### Files to create
-- migration: `support_access_grants`, `support_access_log`, helper functions, RLS policies
-- `supabase/functions/grant-support-access/index.ts`
-- `supabase/functions/revoke-support-access/index.ts`
-- `src/components/team/SupportAccessCard.tsx`
-- `src/components/security/SupportAccessBanner.tsx`
-- `src/hooks/useSupportAccess.tsx`
-- `src/pages/admin/AdminSupportAccess.tsx` (+ route)
+
+- migration with 5 tables + RLS + storage bucket + policies
+- `supabase/functions/clm-sectionalize-template/index.ts`
+- `src/pages/ClmTemplateDetail.tsx`
+- `src/pages/ClmInstanceDetail.tsx`
+- `src/components/clm/TemplateUploadDialog.tsx`
+- `src/components/clm/TemplateSectionAccordion.tsx`
+- `src/components/clm/InstanceAccountPicker.tsx`
+- `src/components/clm/SectionCommentsPanel.tsx`
+- `src/hooks/useClmTemplates.ts`
+- `src/hooks/useClmInstance.ts`
 
 ### Files to edit
-- `src/pages/Team.tsx` — add SupportAccessCard
-- `src/pages/SecurityDashboard.tsx` — add SupportAccessCard
-- `src/App.tsx` — mount `SupportAccessBanner` globally for authed routes; add `/admin/support-access` route
-- `src/components/admin/AdminLayout.tsx` — nav link "Support Access"
 
-### Security & compliance
-- Default duration cap: 30 days max (server-enforced)
-- Only `owner` or `admin` roles can grant/revoke (server-enforced via `is_account_manager`)
-- Every support action logged to `support_access_log` and `admin_user_actions`
-- Banner is always visible to the customer while active — no silent access
-- Auto-expires; revoke is instant (RLS re-checks on every query)
-- Add a Trust Center mention on `src/pages/trust/AccessControl.tsx`
+- `src/pages/Contracts.tsx` — wrap content in Tabs (Contracts / Templates)
+- `src/App.tsx` — add `/contracts/templates/:id` and `/contracts/instances/:id` routes (gated by `RequireClmAccess`)
 
-### Out of scope (can be follow-ups)
-- Granular per-table scope (just read vs write for v1)
-- Customer-side notification email when support actually logs in (can add later)
+### Out of scope (v1.x follow-ups)
+- DocuSign send (still planned per earlier scope, layered on top of instances)
+- Diff view between template and instance edits
+- Real-time presence on the section editor
+- Clause library / clause-level AI suggestions
+

@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { Link } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import { RequireClmAccess } from "@/components/clm/RequireClmAccess";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -9,11 +10,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { FileSignature, Plus, Loader2, FileText } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { FileSignature, Plus, Loader2, FileText, Upload, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useClmEntitlement } from "@/hooks/useClmEntitlement";
+import { useClmTemplates } from "@/hooks/useClmTemplates";
+import { useClmInstances } from "@/hooks/useClmInstance";
+import { TemplateUploadDialog } from "@/components/clm/TemplateUploadDialog";
 import { toast } from "sonner";
 import SEO from "@/components/seo/SEO";
+import { useEffect } from "react";
 
 interface Contract {
   id: string;
@@ -22,176 +28,220 @@ interface Contract {
   counterparty_name: string | null;
   contract_value: number | null;
   currency: string | null;
-  effective_date: string | null;
   expiry_date: string | null;
   created_at: string;
 }
 
-const ContractsInner = () => {
+const StatusBadge = ({ status }: { status: string }) => {
+  const variant = status === "ready" ? "default" : status === "failed" ? "destructive" : "secondary";
+  const label = status === "parsing" ? "Sectionalizing…" : status === "uploading" ? "Uploading…" : status;
+  return <Badge variant={variant as any} className="capitalize">{label}</Badge>;
+};
+
+const ContractsTab = () => {
   const { accountId } = useClmEntitlement();
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({
-    title: "",
-    counterparty_name: "",
-    contract_value: "",
-    effective_date: "",
-    expiry_date: "",
-    notes: "",
-  });
+  const [form, setForm] = useState({ title: "", counterparty_name: "", contract_value: "", expiry_date: "" });
 
-  const loadContracts = async () => {
+  const load = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("contracts")
-      .select("*")
-      .order("created_at", { ascending: false });
+    const { data, error } = await supabase.from("contracts").select("*").order("created_at", { ascending: false });
     if (error) toast.error(error.message);
     setContracts((data as Contract[]) ?? []);
     setLoading(false);
   };
-
-  useEffect(() => {
-    loadContracts();
-  }, []);
+  useEffect(() => { load(); }, []);
 
   const handleCreate = async () => {
     if (!form.title.trim() || !accountId) return;
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
     const { error } = await supabase.from("contracts").insert({
-      account_id: accountId,
-      created_by: user!.id,
-      title: form.title.trim(),
+      account_id: accountId, created_by: user!.id, title: form.title.trim(),
       counterparty_name: form.counterparty_name || null,
       contract_value: form.contract_value ? Number(form.contract_value) : null,
-      effective_date: form.effective_date || null,
       expiry_date: form.expiry_date || null,
-      metadata: form.notes ? { notes: form.notes } : {},
     } as any);
     setSaving(false);
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
+    if (error) { toast.error(error.message); return; }
     toast.success("Contract created");
-    setOpen(false);
-    setForm({ title: "", counterparty_name: "", contract_value: "", effective_date: "", expiry_date: "", notes: "" });
-    loadContracts();
+    setOpen(false); setForm({ title: "", counterparty_name: "", contract_value: "", expiry_date: "" });
+    load();
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <SEO title="Contracts | Recouply CLM" description="Contract Lifecycle Management on Recouply.ai" />
-
-      <div className="flex items-center justify-between mb-6">
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <FileSignature className="h-6 w-6 text-primary" />
-            Contracts
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Repository of executed and in-progress contracts. Foundation for AI-native CLM.
-          </p>
+          <CardTitle>Contract Repository</CardTitle>
+          <CardDescription>{contracts.length} contracts</CardDescription>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button><Plus className="h-4 w-4 mr-1" /> New Contract</Button>
-          </DialogTrigger>
+          <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" />New Contract</Button></DialogTrigger>
           <DialogContent>
-            <DialogHeader>
-              <DialogTitle>New Contract</DialogTitle>
-            </DialogHeader>
+            <DialogHeader><DialogTitle>New Contract</DialogTitle></DialogHeader>
             <div className="space-y-3">
-              <div>
-                <Label>Title *</Label>
-                <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="MSA — Acme Corp" />
-              </div>
+              <div><Label>Title *</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
+              <div><Label>Counterparty</Label><Input value={form.counterparty_name} onChange={(e) => setForm({ ...form, counterparty_name: e.target.value })} /></div>
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label>Counterparty</Label>
-                  <Input value={form.counterparty_name} onChange={(e) => setForm({ ...form, counterparty_name: e.target.value })} />
-                </div>
-                <div>
-                  <Label>Value (USD)</Label>
-                  <Input type="number" value={form.contract_value} onChange={(e) => setForm({ ...form, contract_value: e.target.value })} />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label>Effective</Label>
-                  <Input type="date" value={form.effective_date} onChange={(e) => setForm({ ...form, effective_date: e.target.value })} />
-                </div>
-                <div>
-                  <Label>Expiry</Label>
-                  <Input type="date" value={form.expiry_date} onChange={(e) => setForm({ ...form, expiry_date: e.target.value })} />
-                </div>
-              </div>
-              <div>
-                <Label>Notes</Label>
-                <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} />
+                <div><Label>Value</Label><Input type="number" value={form.contract_value} onChange={(e) => setForm({ ...form, contract_value: e.target.value })} /></div>
+                <div><Label>Expiry</Label><Input type="date" value={form.expiry_date} onChange={(e) => setForm({ ...form, expiry_date: e.target.value })} /></div>
               </div>
             </div>
             <DialogFooter>
-              <Button onClick={handleCreate} disabled={saving || !form.title.trim()}>
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create"}
-              </Button>
+              <Button onClick={handleCreate} disabled={saving || !form.title.trim()}>{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create"}</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="py-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+        ) : contracts.length === 0 ? (
+          <div className="py-12 text-center text-muted-foreground">
+            <FileText className="h-10 w-10 mx-auto mb-2 opacity-40" />
+            <p className="text-sm">No contracts yet.</p>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader><TableRow><TableHead>Title</TableHead><TableHead>Counterparty</TableHead><TableHead>Status</TableHead><TableHead>Value</TableHead><TableHead>Expires</TableHead></TableRow></TableHeader>
+            <TableBody>
+              {contracts.map((c) => (
+                <TableRow key={c.id}>
+                  <TableCell className="font-medium">{c.title}</TableCell>
+                  <TableCell>{c.counterparty_name ?? "—"}</TableCell>
+                  <TableCell><Badge variant="outline">{c.status}</Badge></TableCell>
+                  <TableCell>{c.contract_value ? `${c.currency ?? "USD"} ${Number(c.contract_value).toLocaleString()}` : "—"}</TableCell>
+                  <TableCell>{c.expiry_date ?? "—"}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+const TemplatesTab = () => {
+  const { data: templates = [], isLoading } = useClmTemplates();
+  const [uploadOpen, setUploadOpen] = useState(false);
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>Contract Templates</CardTitle>
+          <CardDescription>Upload an MSA — AI will sectionalize it for legal review</CardDescription>
+        </div>
+        <Button size="sm" onClick={() => setUploadOpen(true)}><Upload className="h-4 w-4 mr-1" />Upload Template</Button>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="py-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+        ) : templates.length === 0 ? (
+          <div className="py-12 text-center text-muted-foreground">
+            <Upload className="h-10 w-10 mx-auto mb-2 opacity-40" />
+            <p className="text-sm">No templates uploaded yet. Upload your first MSA to get started.</p>
+          </div>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {templates.map((t) => (
+              <Link key={t.id} to={`/contracts/templates/${t.id}`} className="block">
+                <Card className="hover:border-primary/50 transition-colors h-full">
+                  <CardContent className="pt-4">
+                    <div className="flex items-start justify-between mb-2">
+                      <FileText className="h-8 w-8 text-primary" />
+                      <StatusBadge status={t.status} />
+                    </div>
+                    <p className="font-medium truncate">{t.name}</p>
+                    <p className="text-xs text-muted-foreground truncate">{t.source_file_name}</p>
+                    {t.parse_error && (
+                      <p className="text-xs text-destructive mt-2 flex items-start gap-1">
+                        <AlertCircle className="h-3 w-3 mt-0.5 shrink-0" />{t.parse_error}
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        )}
+      </CardContent>
+      <TemplateUploadDialog open={uploadOpen} onOpenChange={setUploadOpen} />
+    </Card>
+  );
+};
+
+const InstancesTab = () => {
+  const { data: instances = [], isLoading } = useClmInstances();
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Active Collaborations</CardTitle>
+        <CardDescription>Contracts being negotiated with debtor accounts</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="py-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+        ) : instances.length === 0 ? (
+          <p className="py-12 text-center text-sm text-muted-foreground">
+            No active collaborations. Open a template and click "Use Template" to start one.
+          </p>
+        ) : (
+          <Table>
+            <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Template</TableHead><TableHead>Status</TableHead><TableHead>Created</TableHead></TableRow></TableHeader>
+            <TableBody>
+              {instances.map((i: any) => (
+                <TableRow key={i.id} className="cursor-pointer">
+                  <TableCell className="font-medium">
+                    <Link to={`/contracts/instances/${i.id}`} className="hover:underline">{i.name}</Link>
+                  </TableCell>
+                  <TableCell>{i.clm_templates?.name ?? "—"}</TableCell>
+                  <TableCell><Badge variant="outline" className="capitalize">{i.status.replace("_", " ")}</Badge></TableCell>
+                  <TableCell>{new Date(i.created_at).toLocaleDateString()}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+const ContractsInner = () => {
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <SEO title="Contracts | Recouply CLM" description="Contract Lifecycle Management on Recouply.ai" />
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold flex items-center gap-2">
+          <FileSignature className="h-6 w-6 text-primary" /> Contract Intelligence
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          AI-native CLM: upload templates, sectionalize, and collaborate with accounts.
+        </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Repository</CardTitle>
-          <CardDescription>{contracts.length} contracts</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="py-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
-          ) : contracts.length === 0 ? (
-            <div className="py-12 text-center text-muted-foreground">
-              <FileText className="h-10 w-10 mx-auto mb-2 opacity-40" />
-              <p className="text-sm">No contracts yet. Create your first one to get started.</p>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Counterparty</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Value</TableHead>
-                  <TableHead>Expires</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {contracts.map((c) => (
-                  <TableRow key={c.id}>
-                    <TableCell className="font-medium">{c.title}</TableCell>
-                    <TableCell>{c.counterparty_name ?? "—"}</TableCell>
-                    <TableCell><Badge variant="outline">{c.status}</Badge></TableCell>
-                    <TableCell>{c.contract_value ? `${c.currency ?? "USD"} ${Number(c.contract_value).toLocaleString()}` : "—"}</TableCell>
-                    <TableCell>{c.expiry_date ?? "—"}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+      <Tabs defaultValue="templates" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="templates">Templates</TabsTrigger>
+          <TabsTrigger value="instances">Collaborations</TabsTrigger>
+          <TabsTrigger value="contracts">Contracts</TabsTrigger>
+        </TabsList>
+        <TabsContent value="templates"><TemplatesTab /></TabsContent>
+        <TabsContent value="instances"><InstancesTab /></TabsContent>
+        <TabsContent value="contracts"><ContractsTab /></TabsContent>
+      </Tabs>
     </div>
   );
 };
 
 export default function Contracts() {
   return (
-    <Layout>
-      <RequireClmAccess>
-        <ContractsInner />
-      </RequireClmAccess>
-    </Layout>
+    <Layout><RequireClmAccess><ContractsInner /></RequireClmAccess></Layout>
   );
 }
