@@ -100,16 +100,18 @@ export const useUploadClmTemplate = () => {
         throw upErr;
       }
 
-      await supabase.from("clm_templates").update({ source_storage_path: path }).eq("id", tmpl.id);
+      const { error: pathErr } = await supabase
+        .from("clm_templates")
+        .update({ source_storage_path: path })
+        .eq("id", tmpl.id);
+      if (pathErr) throw pathErr;
 
-      // 3. Trigger sectionalize
-      const { error: fnErr } = await supabase.functions.invoke("clm-sectionalize-template", {
-        body: { template_id: tmpl.id },
-      });
-      if (fnErr) {
-        // status updated by function; surface error but template row exists
-        toast.error(`Sectionalization failed: ${fnErr.message}`);
-      }
+      // 3. Trigger sectionalize (fire-and-forget — long-running; UI polls for status)
+      supabase.functions
+        .invoke("clm-sectionalize-template", { body: { template_id: tmpl.id } })
+        .then(({ error: fnErr }) => {
+          if (fnErr) console.error("sectionalize invoke error", fnErr);
+        });
 
       return tmpl as ClmTemplate;
     },
