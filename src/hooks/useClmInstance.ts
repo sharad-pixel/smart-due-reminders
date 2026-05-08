@@ -384,3 +384,61 @@ export const useUpdateInstanceStatus = (instanceId: string) => {
     },
   });
 };
+
+export const useArchiveInstance = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (instanceId: string) => {
+      const { error } = await supabase
+        .from("clm_template_instances")
+        .update({ status: "archived" })
+        .eq("id", instanceId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["clm-instances"] });
+      toast.success("Workspace closed and archived");
+    },
+    onError: (e: any) => toast.error(e.message ?? "Failed to archive workspace"),
+  });
+};
+
+export const useReopenInstance = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (instanceId: string) => {
+      const { error } = await supabase
+        .from("clm_template_instances")
+        .update({ status: "draft" })
+        .eq("id", instanceId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["clm-instances"] });
+      toast.success("Workspace reopened");
+    },
+    onError: (e: any) => toast.error(e.message ?? "Failed to reopen workspace"),
+  });
+};
+
+export const useDeleteInstance = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (instanceId: string) => {
+      // Best-effort cleanup of children that may not cascade
+      await supabase.from("clm_instance_contacts" as any).delete().eq("instance_id", instanceId);
+      await supabase.from("clm_instance_debtors").delete().eq("instance_id", instanceId);
+      await supabase.from("clm_section_revisions").delete().eq("instance_id", instanceId);
+      const { error } = await supabase
+        .from("clm_template_instances")
+        .delete()
+        .eq("id", instanceId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["clm-instances"] });
+      toast.success("Workspace deleted");
+    },
+    onError: (e: any) => toast.error(e.message ?? "Failed to delete workspace"),
+  });
+};
