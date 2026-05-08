@@ -35,35 +35,29 @@ const Inner = () => {
         <Link to="/contracts"><ArrowLeft className="h-4 w-4 mr-1" />Back to Contracts</Link>
       </Button>
 
-      <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <FileSignature className="h-6 w-6 text-primary" /> {instance.name}
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Based on{" "}
-            {sourceTemplateLink ? (
-              <Link className="underline" to={sourceTemplateLink}>{sourceTemplateName}</Link>
-            ) : (
-              <span>{sourceTemplateName}</span>
-            )}
-            {!sourceTemplateLink && <span className="ml-1 italic">(template removed — workspace uses its own copy)</span>}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="capitalize">{instance.status.replace("_", " ")}</Badge>
-          <Select value={instance.status} onValueChange={(v) => updateStatus.mutate(v)}>
-            <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="draft">Draft</SelectItem>
-              <SelectItem value="in_review">In Review</SelectItem>
-              <SelectItem value="approved">Approved</SelectItem>
-              <SelectItem value="executed">Executed</SelectItem>
-              <SelectItem value="archived">Archived</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      <ClmBrandedHeader
+        title={instance.name}
+        subtitle={
+          sourceTemplateLink
+            ? `Based on ${sourceTemplateName}`
+            : `Based on ${sourceTemplateName} (template removed — workspace uses its own copy)`
+        }
+        rightSlot={
+          <>
+            <Badge variant="outline" className="capitalize">{instance.status.replace("_", " ")}</Badge>
+            <Select value={instance.status} onValueChange={(v) => updateStatus.mutate(v)}>
+              <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="draft">Draft</SelectItem>
+                <SelectItem value="in_review">In Review</SelectItem>
+                <SelectItem value="approved">Approved</SelectItem>
+                <SelectItem value="executed">Executed</SelectItem>
+                <SelectItem value="archived">Archived</SelectItem>
+              </SelectContent>
+            </Select>
+          </>
+        }
+      />
 
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <Card>
