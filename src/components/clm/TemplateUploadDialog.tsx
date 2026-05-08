@@ -47,9 +47,10 @@ export const TemplateUploadDialog = ({ open, onOpenChange }: { open: boolean; on
   };
 
   const handleSubmit = async () => {
-    if (!file || !name.trim()) return;
+    const finalName = composedName();
+    if (!file || !finalName) return;
     try {
-      await upload.mutateAsync({ file, name: name.trim(), description });
+      await upload.mutateAsync({ file, name: finalName, description });
       reset();
       onOpenChange(false);
     } catch {/* toast handled */}
