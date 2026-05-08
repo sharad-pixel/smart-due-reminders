@@ -9,8 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ArrowLeft, Loader2, FileText, Users } from "lucide-react";
 import { useClmInstance, useUpdateInstanceStatus } from "@/hooks/useClmInstance";
-import { InstanceAccountPicker } from "@/components/clm/InstanceAccountPicker";
-import { InternalCollaboratorsPanel } from "@/components/clm/InternalCollaboratorsPanel";
+import { ContributorsPanel } from "@/components/clm/ContributorsPanel";
+import { WorkspaceOverviewCard } from "@/components/clm/WorkspaceOverviewCard";
 import { SectionCommentsPanel } from "@/components/clm/SectionCommentsPanel";
 import { SectionEditDialog } from "@/components/clm/SectionEditDialog";
 import { RevisionHistoryPanel } from "@/components/clm/RevisionHistoryPanel";
@@ -100,7 +100,9 @@ const Inner = () => {
         }
       />
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+      <WorkspaceOverviewCard instance={instance} debtors={debtors} />
+
+      <div className="grid gap-6 lg:grid-cols-[1fr_360px] mt-6">
         <Card>
           <CardHeader>
             <CardTitle>Sections</CardTitle>
@@ -147,15 +149,13 @@ const Inner = () => {
 
         <div className="space-y-4">
           <RevisionHistoryPanel instanceId={id!} />
-          <InstanceAccountPicker instanceId={id!} linkedDebtors={debtors} linkedContacts={contacts.filter((c: any) => !c.is_internal)} />
-          <InternalCollaboratorsPanel instanceId={id!} contacts={contacts} />
+          <ContributorsPanel instanceId={id!} contacts={contacts} debtors={debtors} />
           <Card>
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2"><FileText className="h-4 w-4" /> Templates in this workspace</CardTitle>
               <CardDescription>Click a template to invite collaborators specific to that contract.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-1">
-              {/* Primary */}
               {instance.template_id && (
                 <WorkspaceTemplateRow
                   instanceId={id!}
