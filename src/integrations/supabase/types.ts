@@ -1069,6 +1069,65 @@ export type Database = {
         }
         Relationships: []
       }
+      clm_instance_contacts: {
+        Row: {
+          added_by: string
+          contact_id: string
+          created_at: string
+          debtor_id: string
+          id: string
+          instance_id: string
+          role: string
+        }
+        Insert: {
+          added_by: string
+          contact_id: string
+          created_at?: string
+          debtor_id: string
+          id?: string
+          instance_id: string
+          role?: string
+        }
+        Update: {
+          added_by?: string
+          contact_id?: string
+          created_at?: string
+          debtor_id?: string
+          id?: string
+          instance_id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clm_instance_contacts_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "debtor_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clm_instance_contacts_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
+            referencedRelation: "debtor_contact_emails"
+            referencedColumns: ["debtor_id"]
+          },
+          {
+            foreignKeyName: "clm_instance_contacts_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
+            referencedRelation: "debtors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clm_instance_contacts_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "clm_template_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clm_instance_debtors: {
         Row: {
           added_by: string
