@@ -151,25 +151,31 @@ const TemplatesTab = () => {
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {templates.map((t) => (
-              <div key={t.id} className="relative">
+              <div key={t.id} className="relative group">
                 <Link to={`/contracts/templates/${t.id}`} className="block">
                   <Card className="hover:border-primary/50 transition-colors h-full">
                     <CardContent className="pt-4">
-                      <div className="flex items-start justify-between mb-2">
-                        <FileText className="h-8 w-8 text-primary" />
-                        <StatusBadge status={t.status} />
+                      <div className="flex items-start gap-2 mb-3">
+                        <FileText className="h-8 w-8 text-primary shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{t.name}</p>
+                          <p className="text-xs text-muted-foreground truncate">{t.source_file_name}</p>
+                        </div>
+                        {/* spacer reserved for the actions menu so it never overlaps text */}
+                        <div className="w-7 shrink-0" />
                       </div>
-                      <p className="font-medium truncate pr-8">{t.name}</p>
-                      <p className="text-xs text-muted-foreground truncate">{t.source_file_name}</p>
-                      {t.parse_error && (
-                        <p className="text-xs text-destructive mt-2 flex items-start gap-1">
-                          <AlertCircle className="h-3 w-3 mt-0.5 shrink-0" />{t.parse_error}
-                        </p>
-                      )}
+                      <div className="flex items-center justify-between">
+                        <StatusBadge status={t.status} />
+                        {t.parse_error && (
+                          <span className="text-[11px] text-destructive flex items-center gap-1 truncate ml-2">
+                            <AlertCircle className="h-3 w-3 shrink-0" />{t.parse_error}
+                          </span>
+                        )}
+                      </div>
                     </CardContent>
                   </Card>
                 </Link>
-                <div className="absolute top-3 right-3">
+                <div className="absolute top-2 right-2">
                   <TemplateActionsMenu template={t} />
                 </div>
               </div>

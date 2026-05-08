@@ -240,14 +240,28 @@ export const useAddInstanceDebtor = (instanceId: string) => {
   return useMutation({
     mutationFn: async ({ debtor_id, role }: { debtor_id: string; role: string }) => {
       const { data: { user } } = await supabase.auth.getUser();
-      const { error } = await supabase.from("clm_instance_debtors").upsert(
+      // Pre-check: workspace is 1:1 — block if another debtor is already linked
+      const { data: existing } = await supabase
+        .from("clm_instance_debtors")
+        .select("id, debtor_id")
+        .eq("instance_id", instanceId);
+      if ((existing ?? []).some((e: any) => e.debtor_id !== debtor_id)) {
+        throw new Error("This workspace is already linked to another account. Unlink it first.");
+      }
+      if ((existing ?? []).some((e: any) => e.debtor_id === debtor_id)) {
+        return; // already linked, no-op
+      }
+      const { error } = await supabase.from("clm_instance_debtors").insert(
         { instance_id: instanceId, debtor_id, added_by: user!.id, role } as any,
-        { onConflict: "instance_id,debtor_id", ignoreDuplicates: true },
       );
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["clm-instance", instanceId] }),
-    onError: (e: any) => toast.error(e?.message ?? "Failed"),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["clm-instance", instanceId] });
+      qc.invalidateQueries({ queryKey: ["clm-instances"] });
+      toast.success("Account linked to workspace");
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to link account"),
   });
 };
 
