@@ -18,6 +18,7 @@ import { useClmTemplates } from "@/hooks/useClmTemplates";
 import { useClmInstances } from "@/hooks/useClmInstance";
 import { TemplateUploadDialog } from "@/components/clm/TemplateUploadDialog";
 import { TemplateActionsMenu } from "@/components/clm/TemplateActionsMenu";
+import { NewWorkspaceDialog } from "@/components/clm/NewWorkspaceDialog";
 import { toast } from "sonner";
 import SEO from "@/components/seo/SEO";
 import { useEffect } from "react";
