@@ -47,15 +47,9 @@ const ExternalCollaboratorsCard = ({
             </CardTitle>
             <CardDescription>Counterparty contacts added to this workspace</CardDescription>
           </div>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="text-xs text-muted-foreground hover:text-destructive"
-            onClick={() => removeDebtor.mutate(linkedDebtor.id)}
-            title="Unlink account"
-          >
-            <X className="h-3.5 w-3.5 mr-1" /> Change account
-          </Button>
+          <Badge variant="outline" className="gap-1 text-[11px] shrink-0">
+            <Lock className="h-3 w-3" /> Account locked
+          </Badge>
         </div>
         <div className="flex items-center gap-2 rounded border bg-muted/40 p-2">
           <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
