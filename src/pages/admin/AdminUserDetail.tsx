@@ -1287,6 +1287,10 @@ const AdminUserDetail = () => {
               accountId={accountRelationships.find(r => r.is_owner)?.account_id || userId || null}
             />
 
+            <AdminClmToggle
+              accountId={accountRelationships.find(r => r.is_owner)?.account_id || userId || null}
+            />
+
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
