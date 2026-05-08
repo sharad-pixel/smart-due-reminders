@@ -143,6 +143,35 @@ export const useRemoveInstanceDebtor = (instanceId: string) => {
   });
 };
 
+export const useAddInstanceContact = (instanceId: string) => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ contact_id, debtor_id, role }: { contact_id: string; debtor_id: string; role: string }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await (supabase.from("clm_instance_contacts" as any) as any).insert({
+        instance_id: instanceId, contact_id, debtor_id, role, added_by: user!.id,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["clm-instance", instanceId] });
+      toast.success("Collaborator added");
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed"),
+  });
+};
+
+export const useRemoveInstanceContact = (instanceId: string) => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (linkId: string) => {
+      const { error } = await (supabase.from("clm_instance_contacts" as any) as any).delete().eq("id", linkId);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["clm-instance", instanceId] }),
+  });
+};
+
 export const useAddSectionComment = (instanceId: string) => {
   const qc = useQueryClient();
   return useMutation({
