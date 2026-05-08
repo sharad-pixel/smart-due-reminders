@@ -291,9 +291,10 @@ export const useAddInstanceDebtor = (instanceId: string) => {
       );
       if (error) throw error;
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["clm-instance", instanceId] });
-      qc.invalidateQueries({ queryKey: ["clm-instances"] });
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["clm-instance", instanceId] });
+      await qc.invalidateQueries({ queryKey: ["clm-instances"] });
+      await qc.refetchQueries({ queryKey: ["clm-instance", instanceId] });
       toast.success("Account linked to workspace");
     },
     onError: (e: any) => toast.error(e?.message ?? "Failed to link account"),
