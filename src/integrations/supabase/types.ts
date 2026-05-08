@@ -1081,6 +1081,7 @@ export type Database = {
           is_internal: boolean
           name: string | null
           role: string
+          template_id: string | null
           title: string | null
         }
         Insert: {
@@ -1094,6 +1095,7 @@ export type Database = {
           is_internal?: boolean
           name?: string | null
           role?: string
+          template_id?: string | null
           title?: string | null
         }
         Update: {
@@ -1107,6 +1109,7 @@ export type Database = {
           is_internal?: boolean
           name?: string | null
           role?: string
+          template_id?: string | null
           title?: string | null
         }
         Relationships: [
@@ -1136,6 +1139,13 @@ export type Database = {
             columns: ["instance_id"]
             isOneToOne: false
             referencedRelation: "clm_template_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clm_instance_contacts_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "clm_templates"
             referencedColumns: ["id"]
           },
         ]
