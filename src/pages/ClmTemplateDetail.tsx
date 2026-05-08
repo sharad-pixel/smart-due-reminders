@@ -11,11 +11,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, Loader2, AlertTriangle, RefreshCw, Sparkles, Play } from "lucide-react";
 import { useClmTemplate, useResectionalize } from "@/hooks/useClmTemplates";
-import { useCreateClmInstance } from "@/hooks/useClmInstance";
 import { TemplateActionsMenu } from "@/components/clm/TemplateActionsMenu";
 import { TemplateAssessmentPanel } from "@/components/clm/TemplateAssessmentPanel";
 import { ContractDocumentViewer } from "@/components/clm/ContractDocumentViewer";
 import { ClmBrandedHeader } from "@/components/clm/ClmBrandedHeader";
+import { UseTemplateDialog } from "@/components/clm/UseTemplateDialog";
 import SEO from "@/components/seo/SEO";
 
 const Inner = () => {
@@ -23,22 +23,13 @@ const Inner = () => {
   const nav = useNavigate();
   const { data, isLoading } = useClmTemplate(id);
   const resect = useResectionalize();
-  const createInstance = useCreateClmInstance();
   const [useOpen, setUseOpen] = useState(false);
-  const [instanceName, setInstanceName] = useState("");
 
   if (isLoading || !data) {
     return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
   }
 
   const { template, sections } = data;
-
-  const handleUse = async () => {
-    if (!instanceName.trim() || !id) return;
-    const inst = await createInstance.mutateAsync({ template_id: id, name: instanceName.trim() });
-    setUseOpen(false);
-    nav(`/contracts/instances/${inst.id}`);
-  };
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -152,24 +143,13 @@ const Inner = () => {
         </CardContent>
       </Card>
 
-      <Dialog open={useOpen} onOpenChange={setUseOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Use this template</DialogTitle></DialogHeader>
-          <div>
-            <Label>Workspace name</Label>
-            <Input value={instanceName} onChange={(e) => setInstanceName(e.target.value)} placeholder="MSA — Acme negotiation" />
-            <p className="text-xs text-muted-foreground mt-2">
-              Creates a collaboration workspace where you can attach debtor accounts and discuss each section.
-            </p>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setUseOpen(false)}>Cancel</Button>
-            <Button onClick={handleUse} disabled={!instanceName.trim() || createInstance.isPending}>
-              {createInstance.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create Workspace"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <UseTemplateDialog
+        open={useOpen}
+        onOpenChange={setUseOpen}
+        primaryTemplateId={template.id}
+        primaryTemplateName={template.name}
+        onCreated={(instanceId) => nav(`/contracts/instances/${instanceId}`)}
+      />
     </div>
   );
 };

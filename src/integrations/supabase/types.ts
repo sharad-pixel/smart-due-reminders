@@ -1072,30 +1072,42 @@ export type Database = {
       clm_instance_contacts: {
         Row: {
           added_by: string
-          contact_id: string
+          contact_id: string | null
           created_at: string
-          debtor_id: string
+          debtor_id: string | null
+          email: string | null
           id: string
           instance_id: string
+          is_internal: boolean
+          name: string | null
           role: string
+          title: string | null
         }
         Insert: {
           added_by: string
-          contact_id: string
+          contact_id?: string | null
           created_at?: string
-          debtor_id: string
+          debtor_id?: string | null
+          email?: string | null
           id?: string
           instance_id: string
+          is_internal?: boolean
+          name?: string | null
           role?: string
+          title?: string | null
         }
         Update: {
           added_by?: string
-          contact_id?: string
+          contact_id?: string | null
           created_at?: string
-          debtor_id?: string
+          debtor_id?: string | null
+          email?: string | null
           id?: string
           instance_id?: string
+          is_internal?: boolean
+          name?: string | null
           role?: string
+          title?: string | null
         }
         Relationships: [
           {
@@ -1163,6 +1175,48 @@ export type Database = {
           },
         ]
       }
+      clm_instance_extra_templates: {
+        Row: {
+          added_by: string | null
+          created_at: string
+          id: string
+          instance_id: string
+          template_id: string
+          template_name_snapshot: string | null
+        }
+        Insert: {
+          added_by?: string | null
+          created_at?: string
+          id?: string
+          instance_id: string
+          template_id: string
+          template_name_snapshot?: string | null
+        }
+        Update: {
+          added_by?: string | null
+          created_at?: string
+          id?: string
+          instance_id?: string
+          template_id?: string
+          template_name_snapshot?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clm_instance_extra_templates_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "clm_template_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clm_instance_extra_templates_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "clm_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clm_instance_sections: {
         Row: {
           ai_summary: string | null
@@ -1173,6 +1227,8 @@ export type Database = {
           order_index: number
           risk_flags: Json | null
           section_key: string
+          source_template_id: string | null
+          source_template_name: string | null
           title: string
           updated_at: string
         }
@@ -1185,6 +1241,8 @@ export type Database = {
           order_index?: number
           risk_flags?: Json | null
           section_key: string
+          source_template_id?: string | null
+          source_template_name?: string | null
           title: string
           updated_at?: string
         }
@@ -1197,6 +1255,8 @@ export type Database = {
           order_index?: number
           risk_flags?: Json | null
           section_key?: string
+          source_template_id?: string | null
+          source_template_name?: string | null
           title?: string
           updated_at?: string
         }
