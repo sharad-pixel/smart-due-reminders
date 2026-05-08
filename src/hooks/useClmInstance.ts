@@ -174,10 +174,13 @@ export const useRemoveInstanceDebtor = (instanceId: string) => {
 export const useAddInstanceContact = (instanceId: string) => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ contact_id, debtor_id, role }: { contact_id: string; debtor_id: string; role: string }) => {
+    mutationFn: async (input: {
+      contact_id?: string | null; debtor_id?: string | null; role: string;
+      is_internal?: boolean; name?: string; email?: string; title?: string;
+    }) => {
       const { data: { user } } = await supabase.auth.getUser();
       const { error } = await (supabase.from("clm_instance_contacts" as any) as any).insert({
-        instance_id: instanceId, contact_id, debtor_id, role, added_by: user!.id,
+        instance_id: instanceId, added_by: user!.id, ...input,
       });
       if (error) throw error;
     },
@@ -187,6 +190,17 @@ export const useAddInstanceContact = (instanceId: string) => {
     },
     onError: (e: any) => toast.error(e?.message ?? "Failed"),
   });
+};
+
+export const useAddInternalCollaborator = (instanceId: string) => {
+  const add = useAddInstanceContact(instanceId);
+  return {
+    ...add,
+    mutateAsync: (input: { name: string; email?: string; title?: string; role: string }) =>
+      add.mutateAsync({ ...input, is_internal: true }),
+    mutate: (input: { name: string; email?: string; title?: string; role: string }) =>
+      add.mutate({ ...input, is_internal: true }),
+  };
 };
 
 export const useRemoveInstanceContact = (instanceId: string) => {
