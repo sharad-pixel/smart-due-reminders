@@ -163,6 +163,8 @@ const AddExternalForm = ({
         email: trimmedEmail,
         title: title.trim() || null,
         is_primary: false,
+        outreach_enabled: false,
+        source: "clm_legal",
       } as any)
       .select("id").single();
     setSaving(false);
