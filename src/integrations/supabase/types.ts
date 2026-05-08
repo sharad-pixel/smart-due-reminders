@@ -1351,6 +1351,7 @@ export type Database = {
           assessed_at: string | null
           assessment: Json | null
           assessment_error: string | null
+          assessment_ignored_risks: Json
           assessment_model: string | null
           assessment_status: string
           created_at: string
@@ -1373,6 +1374,7 @@ export type Database = {
           assessed_at?: string | null
           assessment?: Json | null
           assessment_error?: string | null
+          assessment_ignored_risks?: Json
           assessment_model?: string | null
           assessment_status?: string
           created_at?: string
@@ -1395,6 +1397,7 @@ export type Database = {
           assessed_at?: string | null
           assessment?: Json | null
           assessment_error?: string | null
+          assessment_ignored_risks?: Json
           assessment_model?: string | null
           assessment_status?: string
           created_at?: string
