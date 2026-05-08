@@ -21,7 +21,7 @@ const Inner = () => {
     return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
   }
 
-  const { instance, sections, debtors, comments } = data;
+  const { instance, sections, debtors, contacts, comments } = data as any;
   const sourceTemplateName = instance.clm_templates?.name ?? instance.template_name_snapshot ?? "template";
   const sourceTemplateLink = instance.clm_templates?.id
     ? `/contracts/templates/${instance.clm_templates.id}`
@@ -107,7 +107,7 @@ const Inner = () => {
         </Card>
 
         <div className="space-y-4">
-          <InstanceAccountPicker instanceId={id!} linkedDebtors={debtors} />
+          <InstanceAccountPicker instanceId={id!} linkedDebtors={debtors} linkedContacts={contacts} />
         </div>
       </div>
     </div>
