@@ -16,6 +16,7 @@ export interface ClmInstance {
 export const useClmInstances = () => {
   return useQuery({
     queryKey: ["clm-instances"],
+    refetchOnWindowFocus: true,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("clm_template_instances")
@@ -27,7 +28,16 @@ export const useClmInstances = () => {
           clm_section_revisions(id, approval_status)
         `)
         .order("created_at", { ascending: false });
-      if (error) throw error;
+      if (error) {
+        console.error("[useClmInstances] embed query failed, falling back to flat query", error);
+        // Fallback: load instances without embeds so the user still sees their workspaces
+        const flat = await supabase
+          .from("clm_template_instances")
+          .select("*, clm_templates(name)")
+          .order("created_at", { ascending: false });
+        if (flat.error) throw flat.error;
+        return flat.data ?? [];
+      }
       return data ?? [];
     },
   });
