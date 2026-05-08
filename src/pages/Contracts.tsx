@@ -13,7 +13,7 @@ import { FileSignature, Plus, Loader2, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useClmEntitlement } from "@/hooks/useClmEntitlement";
 import { toast } from "sonner";
-import { SEO } from "@/components/seo/SEO";
+import SEO from "@/components/seo/SEO";
 
 interface Contract {
   id: string;
