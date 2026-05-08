@@ -107,7 +107,7 @@ const Inner = () => {
         </Card>
 
         <div className="space-y-4">
-          <InstanceAccountPicker instanceId={id!} linkedDebtors={debtors} />
+          <InstanceAccountPicker instanceId={id!} linkedDebtors={debtors} linkedContacts={contacts} />
         </div>
       </div>
     </div>
