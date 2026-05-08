@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { ArrowLeft, Loader2, FileSignature } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { useClmInstance, useUpdateInstanceStatus } from "@/hooks/useClmInstance";
 import { InstanceAccountPicker } from "@/components/clm/InstanceAccountPicker";
 import { SectionCommentsPanel } from "@/components/clm/SectionCommentsPanel";
+import { ClmBrandedHeader } from "@/components/clm/ClmBrandedHeader";
 import SEO from "@/components/seo/SEO";
 
 const Inner = () => {
