@@ -31,7 +31,8 @@ import {
   ShieldCheck,
   Loader2,
   DollarSign,
-  ShieldAlert
+  ShieldAlert,
+  FileSignature
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -58,6 +59,7 @@ import { OnboardingProgressRing } from "@/components/layout/OnboardingProgressRi
 import { useOnboardingCompletion } from "@/hooks/useOnboardingCompletion";
 
 import { AlertNotifications } from "@/components/alerts/AlertNotifications";
+import { useClmEntitlement } from "@/hooks/useClmEntitlement";
 import { FloatingReferralAgent } from "@/components/referral/FloatingReferralAgent";
 import { useUserAlerts } from "@/hooks/useUserAlerts";
 import { RequireSubscription } from "@/components/billing/RequireSubscription";
@@ -80,6 +82,7 @@ const Layout = ({ children }: LayoutProps) => {
   const [trialBannerVisible, setTrialBannerVisible] = useState(false);
   const [isFounder, setIsFounder] = useState(false);
   const { unreadCount: alertUnreadCount } = useUserAlerts();
+  const { isActive: clmActive } = useClmEntitlement();
   const {
     isTeamMember,
     ownerName,
@@ -255,6 +258,7 @@ const Layout = ({ children }: LayoutProps) => {
     { path: "/invoices", label: "Invoices", icon: FileText },
     { path: "/payments", label: "Payments", icon: DollarSign },
     { path: "/data-center", label: "Data Center", icon: Database },
+    ...(clmActive ? [{ path: "/contracts", label: "Contracts", icon: FileSignature }] : []),
   ];
 
   const aiToolsItems = [
