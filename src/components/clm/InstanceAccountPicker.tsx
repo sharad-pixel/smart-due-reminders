@@ -21,7 +21,6 @@ const ExternalCollaboratorsCard = ({
   const [role, setRole] = useState("reviewer");
   const addContact = useAddInstanceContact(instanceId);
   const removeContact = useRemoveInstanceContact(instanceId);
-  const removeDebtor = useRemoveInstanceDebtor(instanceId);
 
   const { data: contacts = [], isLoading } = useQuery({
     queryKey: ["clm-debtor-contacts", debtorId],
