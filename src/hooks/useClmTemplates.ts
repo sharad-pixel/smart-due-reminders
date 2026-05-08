@@ -188,6 +188,25 @@ export const useUpdateClmTemplate = () => {
   });
 };
 
+export const useUpdateClmTemplateSection = (templateId: string) => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, title, body, ai_summary }: { id: string; title?: string; body?: string; ai_summary?: string | null }) => {
+      const patch: any = {};
+      if (title !== undefined) patch.title = title;
+      if (body !== undefined) patch.body = body;
+      if (ai_summary !== undefined) patch.ai_summary = ai_summary;
+      const { error } = await supabase.from("clm_template_sections").update(patch).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["clm-template", templateId] });
+      toast.success("Section updated");
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed"),
+  });
+};
+
 export const useDeleteClmTemplate = () => {
   const qc = useQueryClient();
   return useMutation({
