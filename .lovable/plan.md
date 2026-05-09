@@ -1,116 +1,123 @@
-## Goal
+# Industry-Agnostic CLM Refactor
 
-Today every save in a CLM workspace creates a `clm_section_revisions` row. There is no concept of a labeled "version" of the document, anyone with the workspace can save, and reverting / approval logic is per-revision rather than per-version. We need a clearer versioning model where:
-
-- Only **invited collaborators with a defined role** can edit, snapshot, approve, or revert versions.
-- The team can produce **named versions** (v1, v2…) of the whole contract, not just per-section diffs.
-- Each version has a clear lifecycle: **Draft → Pending Review → Published → Sealed**.
-- All transitions are tracked in the audit log with user + timestamp + role.
+Today the CLM is tilted toward healthcare (BAA/HIPAA defaults, healthcare-style approval triggers, single-track section editing). This plan rebuilds the experience around a **controlled document model** that works for SaaS, goods, services, healthcare, AI, professional services, marketplaces, and usage-based companies — while keeping HIPAA/BAA as an *optional* template family and metadata profile.
 
 ---
 
-## Versioning model
+## 1. Template library — broaden + categorize
 
-Two layers, working together:
+Add an `industry_category` and `document_type` to `clm_templates.metadata` plus a curated seed catalog grouped by:
+
+- **Commercial / SaaS:** MSA, Order Form, SOW, DPA, SLA, Amendment, Renewal, Change Order
+- **Goods / Product:** Purchase, Supply, Sales, Distributor, Reseller, Product Terms, Warranty, Returns
+- **Services:** Services Agreement, Engagement Letter, SOW, Change Order, SLA, Retainer, Project Agreement
+- **Healthcare / Regulated:** BAA, HIPAA Addendum, Security Addendum, DPA
+- **General Legal:** NDA, Mutual NDA, Vendor, Partner, Termination Notice, Custom
+
+Template gallery (`UseTemplateDialog` / `AddTemplateToWorkspaceDialog`) gets a category filter + search; default view is **All industries**, not healthcare. New workspace flow asks "What kind of agreement?" first.
+
+## 2. Workspace business profile + metadata
+
+Add a `business_profile` jsonb to `clm_template_instances` capturing the workspace's commercial context. UI offers presets for **SaaS / Goods / Services / Healthcare / General**, each surfacing the relevant metadata fields (ARR/TCV/ACV/term for SaaS; SKUs/qty/delivery/warranty for Goods; scope/milestones/rates for Services; BAA/PHI/breach window for Healthcare). Healthcare fields only appear when that profile is selected or the template is tagged `healthcare`.
+
+## 3. Controlled document model (3 states)
+
+Introduce explicit document states so external users never touch the source of truth.
 
 ```text
-Document Version (whole workspace)        clm_document_versions
-   ├── label  (v1, v2, "Final for signature")
-   ├── status (draft | pending | published | sealed | superseded)
-   ├── created_by + role_at_time
-   ├── snapshot of every section body
-   └── linked revisions that fed into it
-        │
-        ▼
-Section Revisions (per edit, existing)    clm_section_revisions
-   └── now stamped with current_version_id
+                ┌──────────────────────┐
+   Internal ───►│  Official Version    │◄─── only internal authorized users edit
+                │  (clm_document_      │
+                │   versions, locked)  │
+                └─────────┬────────────┘
+                          │ publish read-only snapshot
+                          ▼
+                ┌──────────────────────┐
+   External ───►│ External Review Copy │  comment / suggest / approve / reject
+                │ (read-only mirror)   │
+                └─────────┬────────────┘
+                          │ feedback flows back as
+                          ▼
+                ┌──────────────────────┐
+                │ Suggested Changes    │  internal owner accept / reject / counter
+                │ + Uploaded Redlines  │  → creates next Official Version
+                └──────────────────────┘
 ```
 
-- **Draft**: editable. Editors keep saving — each save bumps revisions inside the current draft version.
-- **Pending Review**: snapshot is frozen; only Approver / Legal / Owner can approve or send back.
-- **Published**: becomes the new "current" version. Previous published version is marked `superseded`. A new Draft version is auto-opened for further edits.
-- **Sealed**: locked after signature. No reverts, no edits, ever.
+External edits never auto-merge. Uploads land in a new `clm_uploaded_redlines` table as alternate paper.
 
-Reverts always create a **new revision** in the active Draft version (never mutate history).
+## 4. Suggested Changes queue (replace inline redline confusion)
 
----
+Repurpose `clm_section_revisions` into a single **Suggested Changes** feed with: document, section, contributor, current text, proposed text, reason, status (`open | accepted | rejected | countered | needs_discussion`), assigned reviewer, visibility (`internal_only | external_visible`), timestamp. Internal users get accept / reject / counter / assign / add internal note. External users get suggest / comment / upload redline / approve / reject. Removes the duplicate "Track Changes" + "Revisions" panels in favor of one queue surfaced in the **Review** tab.
 
-## Role gating (who can do what)
+## 5. Document-level versioning
 
-Reuses existing roles in `src/lib/clmRoles.ts`. Versioning actions are exposed only to invited collaborators (`clm_instance_contacts` + `clm_external_access`); account-owner fallback kept.
+Promote `clm_document_versions` to the primary versioning unit (sections roll up). Each version stores: number, created_by, created_at, reason, source_of_changes (`internal_edit | external_feedback | uploaded_redline | counter`), approval_status, shared_externally, signed_sealed. Add fixed lifecycle labels:
 
-| Action                              | Owner | Legal | Approver | Editor | Reviewer | Signer | CC | Viewer |
-|------------------------------------|:-----:|:-----:|:--------:|:------:|:--------:|:------:|:--:|:------:|
-| Edit current draft (auto-save)     |  ✓    |  ✓    |   ✓      |  ✓     |          |        |    |        |
-| Open new Draft after publish       |  ✓    |  ✓    |   ✓      |  ✓     |          |        |    |        |
-| Submit Draft → Pending Review      |  ✓    |  ✓    |   ✓      |  ✓     |          |        |    |        |
-| Approve (Pending → Published)      |  ✓    |  ✓    |   ✓      |        |          |        |    |        |
-| Reject Pending → back to Draft     |  ✓    |  ✓    |   ✓      |        |          |        |    |        |
-| Revert to a prior Published ver.   |  ✓    |  ✓    |   ✓      |        |          |        |    |        |
-| Seal a Published version           |  ✓    |  ✓    |          |        |          |   ✓    |    |        |
-| Comment / @mention                 |  ✓    |  ✓    |   ✓      |  ✓     |   ✓      |   ✓    | ✓  |        |
-| View version history               |  ✓    |  ✓    |   ✓      |  ✓     |   ✓      |   ✓    | ✓  |   ✓    |
+`v1 Internal Draft → v2 Internal Reviewed → v3 Shared Externally → v4 External Feedback Received → v5 Revised Draft → v6 Approved for Signature → v7 Signed/Sealed`
 
-Anyone not in `clm_instance_contacts` / `clm_external_access` (and not the account owner) cannot view or act — enforced server-side via the existing `can_edit_clm_instance` / `can_approve_clm_instance` helpers extended with `can_seal_clm_instance` and `can_revert_clm_instance`.
+Once `signed_sealed = true`, the row is immutable (DB trigger blocks updates).
 
----
+## 6. Configurable approval rules by business type
 
-## Database changes
+New `clm_approval_rules` table keyed by `account_id` + `business_profile`, storing trigger conditions (discount %, payment terms, warranty deviation, BAA required, liability cap change, customer paper uploaded, etc.) and required approver roles (`Legal | Deal Desk | Finance | Security | Operations | Executive`). Replace the current healthcare-only approval logic with a rules engine that evaluates the workspace profile + suggested changes and produces a dynamic checklist on the **Approvals** tab. Ship sensible defaults per profile.
 
-New table `clm_document_versions`:
-- `id`, `instance_id`
-- `version_number` (auto-increment per instance)
-- `label` (optional human label)
-- `status` enum (`draft | pending | published | sealed | superseded`)
-- `snapshot_sections jsonb` (array of `{section_id, key, title, body}` at snapshot time)
-- `created_by`, `created_by_role`, `created_at`
-- `submitted_by`, `submitted_at`
-- `reviewed_by`, `reviewed_by_role`, `reviewed_at`, `review_note`
-- `sealed_by`, `sealed_at`
-- `supersedes_version_id`
+## 7. Workspace UI — collapse to 4 tabs
 
-Add `current_version_id` to `clm_template_instances` (the active Draft).
-Add `version_id` to `clm_section_revisions` (which version this revision belongs to).
-RLS: read for any contact / external-access / owner; writes via SECURITY DEFINER RPCs only.
+Refactor `WorkspaceTemplateTabs` into:
 
-New RPCs (all enforce role server-side):
-- `clm_open_new_draft_version(instance_id)` — Editor+
-- `clm_submit_version_for_review(version_id)` — Editor+
-- `clm_review_version(version_id, decision, note)` — Approver/Legal/Owner
-- `clm_revert_to_version(instance_id, target_version_id)` — Approver/Legal/Owner; copies snapshot back into sections inside a fresh Draft version, never deletes history
-- `clm_seal_version(version_id)` — Owner/Legal/Signer (only when `published`)
+1. **Documents** — selected templates, official versions, external review copies, uploaded customer paper, status, owner, last updated
+2. **Review** — comments, suggested changes, uploaded redlines, open issues, assigned reviewers (single unified queue)
+3. **Approvals** — required approvals, status, blockers, history (driven by rules engine)
+4. **Audit Trail** — `clm_audit_log` filtered by user / version / action / internal-vs-external
 
-Backfill: create one `published` version per existing instance from current section bodies, then open a fresh `draft` version on top.
+Retire/merge: `TrackChangesAndCollaborators`, `TrackChangesReviewer`, `RevisionHistoryPanel`, `VersionTimelinePanel`, separate `SectionCommentsPanel` — their content moves into Review/Audit. Status chips ("Official", "External Feedback", "Pending Review", "Pending Approval", "Signed/Sealed") become consistent across tabs.
+
+## 8. External CLM Hub hardening
+
+`ClmPortal` already handles magic link + countdown. Tighten so external users only see assigned workspaces + the External Review Copy — never internal notes, risk/strategy, pricing notes, or other customers' workspaces. Extend `clm-external-portal` to filter sections/comments by `visibility = external_visible` and to expose only published read-only snapshots, never the live official version.
 
 ---
 
-## UI changes
+## Technical changes
 
-1. **Header**: replace ad-hoc status select with a **Version pill** ("v3 · Draft") + dropdown showing the version timeline. Existing status select moves into the version's review menu.
-2. **New `VersionTimelinePanel`** (replaces parts of `RevisionHistoryPanel`):
-   - Vertical timeline of versions with badges (Draft / Pending / Published / Sealed / Superseded), author, timestamp, role.
-   - Expand a version to see the section-level revisions that rolled into it.
-   - Per-row actions gated by the matrix above: `Submit for review`, `Approve`, `Reject`, `Revert to this version`, `Seal`, `Open new draft`.
-3. **`RevisionHistoryPanel`** stays for in-version revisions but is nested under the active version.
-4. **`AuditLogPanel`** adds `version.opened`, `version.submitted`, `version.approved`, `version.rejected`, `version.reverted`, `version.sealed` event types.
-5. **Save bar** shows "Editing Draft v4 — 3 unsaved revisions since v3 (Published)".
-6. **`RoleCapabilitiesDialog`** matrix updated to reflect new versioning rows.
+**DB migrations**
+- `clm_templates.metadata`: add `industry_category`, `document_type` (seed catalog rows)
+- `clm_template_instances`: add `business_profile jsonb`, `document_state text` (`official | external_review | uploaded_redline`)
+- `clm_document_versions`: add `lifecycle_label`, `source_of_changes`, `shared_externally bool`, `signed_sealed bool`; immutability trigger
+- `clm_section_revisions`: add `visibility text`, `assigned_reviewer_id`, `counter_proposed_text` (rename status enum)
+- New `clm_uploaded_redlines` (file storage path, uploader, status, linked version)
+- New `clm_approval_rules` (account_id, business_profile, trigger jsonb, required_roles text[])
+- New `clm_approval_requests` (instance_id, version_id, role, status, decided_by, decided_at)
 
-If a user without the right role tries an action, the button is disabled with a tooltip explaining who can perform it.
+**Edge functions**
+- New `clm-evaluate-approvals` — runs rules engine against a version + business_profile → returns required approvals
+- Update `clm-external-portal` to enforce `visibility` filter and serve external review snapshot only
+- Update `clm-invite-external` to record workspace-level token TTL preset (already in place from previous turn)
+- `clm-sectionalize-template` keeps current behavior; tag new templates with `industry_category`
+
+**Frontend**
+- New `BusinessProfilePicker` in `NewWorkspaceDialog` (SaaS / Goods / Services / Healthcare / General)
+- New `MetadataPanel` rendering profile-specific fields
+- New `SuggestedChangesQueue` (replaces TrackChanges* components)
+- New `ApprovalsRulesPanel` and `ApprovalRequestsList`
+- Refactor `WorkspaceTemplateTabs` to 4 tabs
+- Template gallery: industry filter, search, "All industries" default
+- Status chip component for the 5 lifecycle states
+- External portal: hide internal-only suggested changes, audit, approval rules
+
+**Out of scope (explicit)**
+- E-signature provider swap (keep current `clm-send-for-signature`)
+- Kurt AI behavior changes (already scoped industry-agnostic via prompts)
+- Pricing/billing changes
 
 ---
 
-## Out of scope
-
-- Branching (parallel drafts) — keep linear for v1.
-- Per-section approvals — still supported via existing revision flow inside a Draft.
-- Diff visualization between two arbitrary versions — can be a follow-up; this plan covers the data so it's a UI-only addition later.
-
----
-
-## Rollout
-
-1. Migration: new table, columns, RPCs, RLS, backfill.
-2. Hooks: `useDocumentVersions`, `useOpenDraftVersion`, `useSubmitVersion`, `useReviewVersion`, `useRevertToVersion`, `useSealVersion`.
-3. UI: `VersionTimelinePanel`, header version pill, updated save bar, capabilities matrix.
-4. Audit log event types + backfill of synthetic "v1 published" event.
+## Rollout order
+1. DB migrations + seed industry-tagged template catalog
+2. Business profile picker + metadata panel
+3. Document-state model + version lifecycle labels
+4. Suggested Changes queue (retire duplicate panels)
+5. Approval rules engine + Approvals tab
+6. 4-tab UI refactor + external portal visibility filter
+7. QA pass per profile (SaaS, Goods, Services, Healthcare, General)
