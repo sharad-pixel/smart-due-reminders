@@ -91,8 +91,8 @@ export const ContributorsPanel = ({ instanceId, contacts, debtors }: Props) => {
 };
 
 const ContributorRow = ({
-  contact, onRemove, internal,
-}: { contact: any; onRemove: () => void; internal?: boolean }) => {
+  contact, onRemove, internal, onRoleChange,
+}: { contact: any; onRemove: () => void; internal?: boolean; onRoleChange?: (role: string) => void }) => {
   const name = internal
     ? contact.name
     : contact.debtor_contacts?.name ?? contact.name ?? "—";
@@ -102,6 +102,10 @@ const ContributorRow = ({
   const title = internal
     ? contact.title
     : contact.debtor_contacts?.title ?? contact.title;
+
+  const roleOptions = internal
+    ? ["editor", "approver", "reviewer", "legal", "signer", "cc"]
+    : ["editor", "signer", "reviewer", "legal", "cc"];
 
   return (
     <div className="flex items-center justify-between rounded border p-2">
@@ -116,7 +120,18 @@ const ContributorRow = ({
         </div>
       </div>
       <div className="flex items-center gap-1 shrink-0">
-        <Badge variant="outline" className="text-[10px] capitalize">{contact.role}</Badge>
+        {onRoleChange ? (
+          <Select value={contact.role || "reviewer"} onValueChange={onRoleChange}>
+            <SelectTrigger className="h-6 w-[110px] text-[11px] capitalize px-2"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {roleOptions.map((r) => (
+                <SelectItem key={r} value={r} className="text-xs capitalize">{r}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : (
+          <Badge variant="outline" className="text-[10px] capitalize">{contact.role}</Badge>
+        )}
         <Button size="icon" variant="ghost" className="h-6 w-6" onClick={onRemove}>
           <X className="h-3.5 w-3.5" />
         </Button>
