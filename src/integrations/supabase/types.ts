@@ -10417,6 +10417,16 @@ export type Database = {
         Returns: Json
       }
       rotate_ar_page_token: { Args: { p_user_id: string }; Returns: string }
+      submit_clm_review_batch: {
+        Args: {
+          p_approver_email: string
+          p_approver_name: string
+          p_instance_id: string
+          p_message: string
+          p_revision_ids: string[]
+        }
+        Returns: string
+      }
       validate_invite_token: { Args: { p_token: string }; Returns: Json }
       validate_support_impersonation: {
         Args: { p_target_account_id: string }
