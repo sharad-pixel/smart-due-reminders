@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  ScrollText, Pencil, Send, Check, X, RotateCcw, Lock, MessageSquare, UserPlus, FilePlus,
+  ScrollText, Pencil, Send, Check, X, RotateCcw, Lock, MessageSquare, UserPlus, FilePlus, GitMerge,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { useClmAuditLog } from "@/hooks/useClmInstance";
@@ -13,22 +13,29 @@ interface Props {
 }
 
 const META: Record<string, { label: string; tone: string; icon: any }> = {
-  edited:          { label: "Edit saved",        tone: "bg-slate-500/15 text-slate-700 border-slate-500/30",     icon: Pencil },
-  submitted:       { label: "Submitted",         tone: "bg-amber-500/15 text-amber-700 border-amber-500/30",     icon: Send },
-  batch_submitted: { label: "Batch submitted",   tone: "bg-amber-500/15 text-amber-700 border-amber-500/30",     icon: Send },
-  approved:        { label: "Approved",          tone: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30", icon: Check },
-  rejected:        { label: "Rejected",          tone: "bg-rose-500/15 text-rose-700 border-rose-500/30",        icon: X },
-  reverted:        { label: "Reverted",          tone: "bg-rose-500/15 text-rose-700 border-rose-500/30",        icon: RotateCcw },
-  marked_reverted: { label: "Marked reverted",   tone: "bg-rose-500/10 text-rose-600 border-rose-500/20",        icon: RotateCcw },
-  sealed:          { label: "Sealed",            tone: "bg-emerald-500/10 text-emerald-700 border-emerald-500/30", icon: Lock },
-  commented:       { label: "Comment",           tone: "bg-violet-500/15 text-violet-700 border-violet-500/30",  icon: MessageSquare },
-  review_requested:{ label: "Review requested",  tone: "bg-sky-500/15 text-sky-700 border-sky-500/30",           icon: UserPlus },
+  edited:           { label: "Edit saved",        tone: "bg-slate-500/15 text-slate-700 border-slate-500/30",     icon: Pencil },
+  submitted:        { label: "Submitted",         tone: "bg-amber-500/15 text-amber-700 border-amber-500/30",     icon: Send },
+  batch_submitted:  { label: "Batch submitted",   tone: "bg-amber-500/15 text-amber-700 border-amber-500/30",     icon: Send },
+  approved:         { label: "Approved",          tone: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30", icon: Check },
+  rejected:         { label: "Rejected",          tone: "bg-rose-500/15 text-rose-700 border-rose-500/30",        icon: X },
+  reverted:         { label: "Reverted",          tone: "bg-rose-500/15 text-rose-700 border-rose-500/30",        icon: RotateCcw },
+  marked_reverted:  { label: "Marked reverted",   tone: "bg-rose-500/10 text-rose-600 border-rose-500/20",        icon: RotateCcw },
+  sealed:           { label: "Sealed",            tone: "bg-emerald-500/10 text-emerald-700 border-emerald-500/30", icon: Lock },
+  commented:        { label: "Comment",           tone: "bg-violet-500/15 text-violet-700 border-violet-500/30",  icon: MessageSquare },
+  review_requested: { label: "Review requested",  tone: "bg-sky-500/15 text-sky-700 border-sky-500/30",           icon: UserPlus },
+  version_opened:   { label: "Version opened",    tone: "bg-slate-500/15 text-slate-700 border-slate-500/30",     icon: GitMerge },
+  version_submitted:{ label: "Version submitted", tone: "bg-amber-500/15 text-amber-700 border-amber-500/30",     icon: Send },
+  version_approved: { label: "Version published", tone: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30", icon: Check },
+  version_rejected: { label: "Version rejected",  tone: "bg-rose-500/15 text-rose-700 border-rose-500/30",        icon: X },
+  version_reverted: { label: "Version reverted",  tone: "bg-rose-500/15 text-rose-700 border-rose-500/30",        icon: RotateCcw },
+  version_sealed:   { label: "Version sealed",    tone: "bg-indigo-500/15 text-indigo-700 border-indigo-500/30",  icon: Lock },
 };
 
 const FALLBACK = { label: "Event", tone: "bg-slate-500/15 text-slate-600 border-slate-500/30", icon: FilePlus };
 
 const FILTERS: { id: string; label: string; types: string[] }[] = [
   { id: "all",       label: "All",       types: [] },
+  { id: "versions",  label: "Versions",  types: ["version_opened","version_submitted","version_approved","version_rejected","version_reverted","version_sealed"] },
   { id: "approvals", label: "Approvals", types: ["approved", "rejected", "sealed"] },
   { id: "edits",     label: "Edits",     types: ["edited", "submitted", "batch_submitted"] },
   { id: "reverts",   label: "Reverts",   types: ["reverted", "marked_reverted"] },
