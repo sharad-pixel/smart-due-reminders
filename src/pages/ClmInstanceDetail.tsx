@@ -35,7 +35,7 @@ const Inner = () => {
   const { id } = useParams<{ id: string }>();
   const { data, isLoading } = useClmInstance(id);
   const updateStatus = useUpdateInstanceStatus(id ?? "");
-  const { data: externalAccess = [] } = useExternalAccess(id ?? "");
+  const { data: externalAccess = [] } = useExternalAccess(id);
   const [pkgOpen, setPkgOpen] = useState(false);
 
   const instance = (data as any)?.instance;
