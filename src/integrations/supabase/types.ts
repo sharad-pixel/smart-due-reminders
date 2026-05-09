@@ -1563,6 +1563,7 @@ export type Database = {
           section_id: string
           section_key: string | null
           section_title: string | null
+          source_template_id: string | null
           version_number: number | null
         }
         Insert: {
@@ -1588,6 +1589,7 @@ export type Database = {
           section_id: string
           section_key?: string | null
           section_title?: string | null
+          source_template_id?: string | null
           version_number?: number | null
         }
         Update: {
@@ -1613,6 +1615,7 @@ export type Database = {
           section_id?: string
           section_key?: string | null
           section_title?: string | null
+          source_template_id?: string | null
           version_number?: number | null
         }
         Relationships: [
@@ -1635,6 +1638,65 @@ export type Database = {
             columns: ["section_id"]
             isOneToOne: false
             referencedRelation: "clm_instance_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clm_signature_packages: {
+        Row: {
+          account_id: string
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          external_envelope_id: string | null
+          id: string
+          included_templates: Json
+          instance_id: string
+          notes: string | null
+          provider: string
+          sent_at: string | null
+          signers: Json
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          completed_at?: string | null
+          created_at?: string
+          created_by: string
+          external_envelope_id?: string | null
+          id?: string
+          included_templates?: Json
+          instance_id: string
+          notes?: string | null
+          provider?: string
+          sent_at?: string | null
+          signers?: Json
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          external_envelope_id?: string | null
+          id?: string
+          included_templates?: Json
+          instance_id?: string
+          notes?: string | null
+          provider?: string
+          sent_at?: string | null
+          signers?: Json
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clm_signature_packages_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "clm_template_instances"
             referencedColumns: ["id"]
           },
         ]
