@@ -13,6 +13,7 @@ import {
   useAddInstanceContact,
   useAddInternalCollaborator,
   useRemoveInstanceContact,
+  useUpdateInstanceContactRole,
 } from "@/hooks/useClmInstance";
 
 interface Props {
