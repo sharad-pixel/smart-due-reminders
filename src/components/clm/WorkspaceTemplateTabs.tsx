@@ -24,13 +24,14 @@ interface Props {
   sections: any[];
   comments: any[];
   contacts: any[];
+  externalAccess?: any[];
   debtorId: string | null;
   myRole?: string | null;
 }
 
 export const WorkspaceTemplateTabs = ({
   instanceId, primaryTemplateId, primaryTemplateName, extraTemplates,
-  sections, comments, contacts, debtorId, myRole,
+  sections, comments, contacts, externalAccess = [], debtorId, myRole,
 }: Props) => {
   const [addOpen, setAddOpen] = useState(false);
   const [collabOpenFor, setCollabOpenFor] = useState<TabItem | null>(null);
