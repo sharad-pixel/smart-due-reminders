@@ -666,6 +666,7 @@ export const useRevertRevision = (instanceId: string) => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["clm-instance", instanceId] });
       qc.invalidateQueries({ queryKey: ["clm-revisions", instanceId] });
+      qc.invalidateQueries({ queryKey: ["clm-audit-log", instanceId] });
       toast.success("Change reverted — audit trail preserved");
     },
     onError: (e: any) => toast.error(e?.message ?? "Revert failed"),
