@@ -108,6 +108,8 @@ export const NewWorkspaceDialog = ({ open, onOpenChange }: Props) => {
     setDebtorLabel("");
     setSelectedTemplateIds([]);
     setName("");
+    setBusinessProfile("general");
+    setProfileMetadata({});
     setSelectedContactIds([]);
     setExternals([]);
     setInternals([]);
