@@ -235,6 +235,8 @@ export const useUpdateInstanceSection = (instanceId: string) => {
     onError: (e: any) => toast.error(e?.message ?? "Failed"),
   });
 };
+
+export const useInstanceRevisions = (instanceId: string | undefined) => {
   return useQuery({
     queryKey: ["clm-revisions", instanceId],
     enabled: !!instanceId,
