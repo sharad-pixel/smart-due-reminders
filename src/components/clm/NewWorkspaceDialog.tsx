@@ -397,6 +397,7 @@ export const NewWorkspaceDialog = ({ open, onOpenChange }: Props) => {
                 <Select value={extDraft.role} onValueChange={(v) => setExtDraft({ ...extDraft, role: v })}>
                   <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="editor">Editor (can edit)</SelectItem>
                     <SelectItem value="reviewer">Reviewer</SelectItem>
                     <SelectItem value="signer">Signer</SelectItem>
                     <SelectItem value="cc">CC</SelectItem>
