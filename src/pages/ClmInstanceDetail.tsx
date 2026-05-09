@@ -16,6 +16,8 @@ import { DraftSubmissionBar } from "@/components/clm/DraftSubmissionBar";
 import { RevisionHistoryPanel } from "@/components/clm/RevisionHistoryPanel";
 import { AuditLogPanel } from "@/components/clm/AuditLogPanel";
 import { RoleCapabilitiesDialog } from "@/components/clm/RoleCapabilitiesDialog";
+import { VersionTimelinePanel } from "@/components/clm/VersionTimelinePanel";
+import { VersionPill } from "@/components/clm/VersionPill";
 import { useMyClmRole } from "@/hooks/useMyClmRole";
 import { ClmBrandedHeader } from "@/components/clm/ClmBrandedHeader";
 import { KurtChatDrawer } from "@/components/clm/KurtChatDrawer";
@@ -101,6 +103,7 @@ const Inner = () => {
             />
             <RoleCapabilitiesDialog myRole={myRoleInfo?.role} />
             <KurtChatDrawer instanceId={id!} instanceName={instance.name} />
+            <VersionPill instanceId={id!} />
             <Badge variant="outline" className="capitalize">{instance.status.replace("_", " ")}</Badge>
             <Select value={instance.status} onValueChange={(v) => updateStatus.mutate(v)}>
               <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
@@ -148,6 +151,7 @@ const Inner = () => {
       </div>
 
       <div className="mt-6 space-y-6">
+        <VersionTimelinePanel instanceId={id!} myRole={myRoleInfo?.role} />
         <RevisionHistoryPanel
           instanceId={id!}
           contacts={contacts}

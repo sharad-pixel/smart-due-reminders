@@ -773,6 +773,119 @@ export const useResolveRevisionComment = (instanceId: string, revisionId: string
 // ─────────────────────────────────────────────────────────────────────────
 // Workspace audit log — every change with timestamp + actor
 // ─────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────
+// Document Versions — named, role-gated lifecycle (Draft → Pending → Published → Sealed)
+// ─────────────────────────────────────────────────────────────────────────
+
+export type ClmDocVersionStatus = "draft" | "pending" | "published" | "sealed" | "superseded";
+
+export const useDocumentVersions = (instanceId: string | undefined) => {
+  return useQuery({
+    queryKey: ["clm-doc-versions", instanceId],
+    enabled: !!instanceId,
+    queryFn: async () => {
+      const { data, error } = await (supabase.from("clm_document_versions" as any) as any)
+        .select("*").eq("instance_id", instanceId!).order("version_number", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+};
+
+const versionRpc = (instanceId: string, label: string, fn: () => Promise<any>) => {
+  // helper invalidations after any version mutation
+  return async () => {
+    const res = await fn();
+    return res;
+  };
+};
+
+export const useOpenDraftVersion = (instanceId: string) => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { error } = await (supabase as any).rpc("clm_open_new_draft_version", { p_instance_id: instanceId });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["clm-doc-versions", instanceId] });
+      qc.invalidateQueries({ queryKey: ["clm-instance", instanceId] });
+      qc.invalidateQueries({ queryKey: ["clm-audit-log", instanceId] });
+      toast.success("New draft version opened");
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to open draft"),
+  });
+};
+
+export const useSubmitVersion = (instanceId: string) => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ versionId }: { versionId: string }) => {
+      const { error } = await (supabase as any).rpc("clm_submit_version_for_review", { p_version_id: versionId });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["clm-doc-versions", instanceId] });
+      qc.invalidateQueries({ queryKey: ["clm-audit-log", instanceId] });
+      toast.success("Version submitted for review");
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to submit version"),
+  });
+};
+
+export const useReviewVersion = (instanceId: string) => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ versionId, decision, note }:
+      { versionId: string; decision: "approved" | "rejected"; note?: string }) => {
+      const { error } = await (supabase as any).rpc("clm_review_version", {
+        p_version_id: versionId, p_decision: decision, p_note: note ?? null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: ["clm-doc-versions", instanceId] });
+      qc.invalidateQueries({ queryKey: ["clm-instance", instanceId] });
+      qc.invalidateQueries({ queryKey: ["clm-audit-log", instanceId] });
+      toast.success(v.decision === "approved" ? "Version published" : "Version sent back to draft");
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Review failed"),
+  });
+};
+
+export const useRevertToVersion = (instanceId: string) => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ versionId }: { versionId: string }) => {
+      const { error } = await (supabase as any).rpc("clm_revert_to_version", { p_target_version_id: versionId });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["clm-doc-versions", instanceId] });
+      qc.invalidateQueries({ queryKey: ["clm-instance", instanceId] });
+      qc.invalidateQueries({ queryKey: ["clm-audit-log", instanceId] });
+      toast.success("Reverted — a new draft was opened from that version");
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Revert failed"),
+  });
+};
+
+export const useSealVersion = (instanceId: string) => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ versionId }: { versionId: string }) => {
+      const { error } = await (supabase as any).rpc("clm_seal_version", { p_version_id: versionId });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["clm-doc-versions", instanceId] });
+      qc.invalidateQueries({ queryKey: ["clm-audit-log", instanceId] });
+      toast.success("Version sealed — locked forever");
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Seal failed"),
+  });
+};
+
 export const useClmAuditLog = (instanceId: string | undefined) => {
   return useQuery({
     queryKey: ["clm-audit-log", instanceId],
