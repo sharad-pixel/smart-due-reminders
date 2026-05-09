@@ -1033,6 +1033,121 @@ export type Database = {
           },
         ]
       }
+      clm_approval_requests: {
+        Row: {
+          account_id: string
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decided_by_name: string | null
+          decision_note: string | null
+          id: string
+          instance_id: string
+          reason: string | null
+          required_role: string
+          rule_id: string | null
+          status: string
+          updated_at: string
+          version_id: string | null
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decided_by_name?: string | null
+          decision_note?: string | null
+          id?: string
+          instance_id: string
+          reason?: string | null
+          required_role: string
+          rule_id?: string | null
+          status?: string
+          updated_at?: string
+          version_id?: string | null
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decided_by_name?: string | null
+          decision_note?: string | null
+          id?: string
+          instance_id?: string
+          reason?: string | null
+          required_role?: string
+          rule_id?: string | null
+          status?: string
+          updated_at?: string
+          version_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clm_approval_requests_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "clm_template_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clm_approval_requests_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "clm_approval_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clm_approval_requests_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "clm_document_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clm_approval_rules: {
+        Row: {
+          account_id: string
+          business_profile: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          required_roles: string[]
+          trigger: Json
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          business_profile?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          required_roles?: string[]
+          trigger?: Json
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          business_profile?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          required_roles?: string[]
+          trigger?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       clm_audit_log: {
         Row: {
           actor_email: string | null
@@ -1099,6 +1214,7 @@ export type Database = {
           id: string
           instance_id: string
           label: string | null
+          lifecycle_label: string
           review_note: string | null
           reviewed_at: string | null
           reviewed_by: string | null
@@ -1107,7 +1223,10 @@ export type Database = {
           sealed_at: string | null
           sealed_by: string | null
           sealed_by_name: string | null
+          shared_externally: boolean
+          signed_sealed: boolean
           snapshot_sections: Json
+          source_of_changes: string
           status: Database["public"]["Enums"]["clm_doc_version_status"]
           submitted_at: string | null
           submitted_by: string | null
@@ -1123,6 +1242,7 @@ export type Database = {
           id?: string
           instance_id: string
           label?: string | null
+          lifecycle_label?: string
           review_note?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -1131,7 +1251,10 @@ export type Database = {
           sealed_at?: string | null
           sealed_by?: string | null
           sealed_by_name?: string | null
+          shared_externally?: boolean
+          signed_sealed?: boolean
           snapshot_sections?: Json
+          source_of_changes?: string
           status?: Database["public"]["Enums"]["clm_doc_version_status"]
           submitted_at?: string | null
           submitted_by?: string | null
@@ -1147,6 +1270,7 @@ export type Database = {
           id?: string
           instance_id?: string
           label?: string | null
+          lifecycle_label?: string
           review_note?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -1155,7 +1279,10 @@ export type Database = {
           sealed_at?: string | null
           sealed_by?: string | null
           sealed_by_name?: string | null
+          shared_externally?: boolean
+          signed_sealed?: boolean
           snapshot_sections?: Json
+          source_of_changes?: string
           status?: Database["public"]["Enums"]["clm_doc_version_status"]
           submitted_at?: string | null
           submitted_by?: string | null
@@ -1841,6 +1968,7 @@ export type Database = {
           assigned_approver_name: string | null
           assigned_at: string | null
           change_summary: string | null
+          counter_proposed_text: string | null
           created_at: string
           document_version_id: string | null
           edited_by: string | null
@@ -1864,7 +1992,9 @@ export type Database = {
           section_title: string | null
           source_template_id: string | null
           submitted_batch_id: string | null
+          suggested_by_external: boolean
           version_number: number | null
+          visibility: string
         }
         Insert: {
           approval_status?: string
@@ -1873,6 +2003,7 @@ export type Database = {
           assigned_approver_name?: string | null
           assigned_at?: string | null
           change_summary?: string | null
+          counter_proposed_text?: string | null
           created_at?: string
           document_version_id?: string | null
           edited_by?: string | null
@@ -1896,7 +2027,9 @@ export type Database = {
           section_title?: string | null
           source_template_id?: string | null
           submitted_batch_id?: string | null
+          suggested_by_external?: boolean
           version_number?: number | null
+          visibility?: string
         }
         Update: {
           approval_status?: string
@@ -1905,6 +2038,7 @@ export type Database = {
           assigned_approver_name?: string | null
           assigned_at?: string | null
           change_summary?: string | null
+          counter_proposed_text?: string | null
           created_at?: string
           document_version_id?: string | null
           edited_by?: string | null
@@ -1928,7 +2062,9 @@ export type Database = {
           section_title?: string | null
           source_template_id?: string | null
           submitted_batch_id?: string | null
+          suggested_by_external?: boolean
           version_number?: number | null
+          visibility?: string
         }
         Relationships: [
           {
@@ -2037,9 +2173,11 @@ export type Database = {
       clm_template_instances: {
         Row: {
           account_id: string
+          business_profile: string
           created_at: string
           created_by: string
           current_version_id: string | null
+          document_state: string
           gdoc_document_id: string | null
           gdoc_synced_at: string | null
           gdoc_synced_by: string | null
@@ -2047,6 +2185,7 @@ export type Database = {
           id: string
           name: string
           notes: string | null
+          profile_metadata: Json
           status: string
           template_id: string | null
           template_name_snapshot: string | null
@@ -2054,9 +2193,11 @@ export type Database = {
         }
         Insert: {
           account_id: string
+          business_profile?: string
           created_at?: string
           created_by: string
           current_version_id?: string | null
+          document_state?: string
           gdoc_document_id?: string | null
           gdoc_synced_at?: string | null
           gdoc_synced_by?: string | null
@@ -2064,6 +2205,7 @@ export type Database = {
           id?: string
           name: string
           notes?: string | null
+          profile_metadata?: Json
           status?: string
           template_id?: string | null
           template_name_snapshot?: string | null
@@ -2071,9 +2213,11 @@ export type Database = {
         }
         Update: {
           account_id?: string
+          business_profile?: string
           created_at?: string
           created_by?: string
           current_version_id?: string | null
+          document_state?: string
           gdoc_document_id?: string | null
           gdoc_synced_at?: string | null
           gdoc_synced_by?: string | null
@@ -2081,6 +2225,7 @@ export type Database = {
           id?: string
           name?: string
           notes?: string | null
+          profile_metadata?: Json
           status?: string
           template_id?: string | null
           template_name_snapshot?: string | null
@@ -2162,8 +2307,10 @@ export type Database = {
           created_at: string
           created_by: string
           description: string | null
+          document_type: string | null
           file_size_bytes: number | null
           id: string
+          industry_category: string
           metadata: Json
           mime_type: string | null
           name: string
@@ -2185,8 +2332,10 @@ export type Database = {
           created_at?: string
           created_by: string
           description?: string | null
+          document_type?: string | null
           file_size_bytes?: number | null
           id?: string
+          industry_category?: string
           metadata?: Json
           mime_type?: string | null
           name: string
@@ -2208,8 +2357,10 @@ export type Database = {
           created_at?: string
           created_by?: string
           description?: string | null
+          document_type?: string | null
           file_size_bytes?: number | null
           id?: string
+          industry_category?: string
           metadata?: Json
           mime_type?: string | null
           name?: string
@@ -2221,6 +2372,78 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      clm_uploaded_redlines: {
+        Row: {
+          account_id: string
+          created_at: string
+          file_name: string
+          file_size_bytes: number | null
+          id: string
+          instance_id: string
+          linked_version_id: string | null
+          mime_type: string | null
+          notes: string | null
+          source: string
+          status: string
+          storage_path: string
+          updated_at: string
+          uploaded_by: string | null
+          uploaded_by_email: string | null
+          uploaded_by_name: string | null
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          file_name: string
+          file_size_bytes?: number | null
+          id?: string
+          instance_id: string
+          linked_version_id?: string | null
+          mime_type?: string | null
+          notes?: string | null
+          source?: string
+          status?: string
+          storage_path: string
+          updated_at?: string
+          uploaded_by?: string | null
+          uploaded_by_email?: string | null
+          uploaded_by_name?: string | null
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          file_name?: string
+          file_size_bytes?: number | null
+          id?: string
+          instance_id?: string
+          linked_version_id?: string | null
+          mime_type?: string | null
+          notes?: string | null
+          source?: string
+          status?: string
+          storage_path?: string
+          updated_at?: string
+          uploaded_by?: string | null
+          uploaded_by_email?: string | null
+          uploaded_by_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clm_uploaded_redlines_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "clm_template_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clm_uploaded_redlines_linked_version_id_fkey"
+            columns: ["linked_version_id"]
+            isOneToOne: false
+            referencedRelation: "clm_document_versions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       collection_activities: {
         Row: {
