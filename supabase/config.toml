@@ -350,3 +350,6 @@ verify_jwt = false
 
 [functions.clm-kurt-chat]
 verify_jwt = true
+
+[functions.clm-push-to-gdocs]
+verify_jwt = true
