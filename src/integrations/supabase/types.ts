@@ -1033,6 +1033,63 @@ export type Database = {
           },
         ]
       }
+      clm_audit_log: {
+        Row: {
+          actor_email: string | null
+          actor_id: string | null
+          actor_name: string | null
+          created_at: string
+          event_type: string
+          id: string
+          instance_id: string
+          payload: Json
+          revision_id: string | null
+          section_id: string | null
+          section_title: string | null
+        }
+        Insert: {
+          actor_email?: string | null
+          actor_id?: string | null
+          actor_name?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          instance_id: string
+          payload?: Json
+          revision_id?: string | null
+          section_id?: string | null
+          section_title?: string | null
+        }
+        Update: {
+          actor_email?: string | null
+          actor_id?: string | null
+          actor_name?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          instance_id?: string
+          payload?: Json
+          revision_id?: string | null
+          section_id?: string | null
+          section_title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clm_audit_log_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "clm_template_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clm_audit_log_revision_id_fkey"
+            columns: ["revision_id"]
+            isOneToOne: false
+            referencedRelation: "clm_section_revisions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clm_entitlements: {
         Row: {
           account_id: string
@@ -10371,6 +10428,14 @@ export type Database = {
       cleanup_expired_oauth_states: { Args: never; Returns: undefined }
       cleanup_rate_limits: { Args: never; Returns: undefined }
       cleanup_support_access_log: { Args: never; Returns: undefined }
+      clm_current_actor: {
+        Args: never
+        Returns: {
+          actor_email: string
+          actor_id: string
+          actor_name: string
+        }[]
+      }
       create_default_outreach_templates: {
         Args: { p_user_id: string }
         Returns: undefined

@@ -14,6 +14,7 @@ import { WorkspaceTemplateTabs } from "@/components/clm/WorkspaceTemplateTabs";
 import { PrepareSignaturePackageDialog } from "@/components/clm/PrepareSignaturePackageDialog";
 import { DraftSubmissionBar } from "@/components/clm/DraftSubmissionBar";
 import { RevisionHistoryPanel } from "@/components/clm/RevisionHistoryPanel";
+import { AuditLogPanel } from "@/components/clm/AuditLogPanel";
 import { ClmBrandedHeader } from "@/components/clm/ClmBrandedHeader";
 import { KurtChatDrawer } from "@/components/clm/KurtChatDrawer";
 import { PushToGoogleDocsButton } from "@/components/clm/PushToGoogleDocsButton";
@@ -140,12 +141,13 @@ const Inner = () => {
         </div>
       </div>
 
-      <div className="mt-6">
+      <div className="mt-6 space-y-6">
         <RevisionHistoryPanel
           instanceId={id!}
           contacts={contacts}
           externalAccess={externalAccess as any[]}
         />
+        <AuditLogPanel instanceId={id!} />
       </div>
 
       <PrepareSignaturePackageDialog
