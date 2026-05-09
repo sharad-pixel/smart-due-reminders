@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Pencil, Send, Save, Loader2, FileDiff, Eye, FilePen, ShieldCheck } from "lucide-react";
+import { Pencil, Send, Save, Loader2, FileDiff, Eye, FilePen, ShieldCheck, GitBranch } from "lucide-react";
 import { useUpdateInstanceSection } from "@/hooks/useClmInstance";
 import { InlineDiff } from "./InlineDiff";
 import { wordDiff, diffStats } from "@/lib/textDiff";
@@ -103,7 +103,10 @@ export const SectionEditDialog = ({
               )}
             </DialogTitle>
             <DialogDescription>
-              Submitting for approval keeps the live section unchanged until your assignee approves. Saving directly publishes immediately.
+              <span className="inline-flex items-center gap-1.5 mr-2 rounded bg-primary/10 text-primary px-1.5 py-0.5 text-[11px] font-medium">
+                <GitBranch className="h-3 w-3" /> Suggesting mode
+              </span>
+              Like Google Docs, your edits are tracked as suggestions and only become live once an approver accepts them. Use "Save as new version" to publish immediately without review.
             </DialogDescription>
           </DialogHeader>
 

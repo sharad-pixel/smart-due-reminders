@@ -22,6 +22,7 @@ import { History, MessageSquare, Clock, CheckCircle2 } from "lucide-react";
 import { ClmBrandedHeader } from "@/components/clm/ClmBrandedHeader";
 import { TemplateCollaboratorsDialog } from "@/components/clm/TemplateCollaboratorsDialog";
 import { KurtChatDrawer } from "@/components/clm/KurtChatDrawer";
+import { PushToGoogleDocsButton } from "@/components/clm/PushToGoogleDocsButton";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import SEO from "@/components/seo/SEO";
@@ -204,6 +205,11 @@ const Inner = () => {
         }
         rightSlot={
           <>
+            <PushToGoogleDocsButton
+              instanceId={id!}
+              gdocUrl={(instance as any).gdoc_url}
+              gdocSyncedAt={(instance as any).gdoc_synced_at}
+            />
             <KurtChatDrawer instanceId={id!} instanceName={instance.name} />
             <Badge variant="outline" className="capitalize">{instance.status.replace("_", " ")}</Badge>
             <Select value={instance.status} onValueChange={(v) => updateStatus.mutate(v)}>

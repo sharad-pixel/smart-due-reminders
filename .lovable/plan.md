@@ -1,59 +1,67 @@
-## Kurt — General Counsel AI Agent for CLM
+## Goal
+Bring CLM section editing closer to Google Docs: a true track-changes experience (suggestions overlaid on the live text, accept/reject inline) and a one-click "Push to Google Docs" that creates a real Google Doc from the workspace using the existing Google OAuth (already used for Sheets / Smart Ingestion).
 
-Add a dedicated AI agent named **Kurt** who lives inside the CLM workspace and helps owners/approvers reason about contract changes, recommends accept/reject decisions, and offers best-practice guidance. Kurt mirrors the look-and-feel of the Collection Agents (Sam, James, Katy, Nicolas, etc.) but is scoped to CLM, not collections.
+---
 
-### 1. Persona & avatar
+## Part 1 — Google Docs-style Track Changes
 
-- Add Kurt to `src/lib/personaConfig.ts` as a special agent (like Nicolas — `bucketMin/Max = -999` so he never appears in collections routing).
-  - Name: Kurt
-  - Role: "(Special Agent) General Counsel — CLM Guidance"
-  - Tone: Professional, precise, plain-English legal commentary
-  - Color: deep navy/indigo to differentiate from Nicolas (purple) and the collections palette
-- Generate a Kurt avatar with the same illustrated style as the existing personas and save it to `src/assets/personas/kurt.png`.
-- Add Kurt to the Nicolas-style exclusion lists already used elsewhere so collections logic continues to skip special agents.
+### What changes for the user
+- **Suggesting mode**: when an editor opens a section, they can switch between *Editing* (publishes immediately, current behavior) and *Suggesting* (default for non-owners). In Suggesting mode every change becomes a tracked proposal — insertions show green-underlined, deletions show red strike-through, exactly like Google Docs.
+- **Inline review**: approvers see the suggestions rendered over the live body with hover chips ("Accept" / "Reject") on each change, plus a side rail listing every suggestion with author, timestamp, and a one-click jump.
+- **Granular approval**: instead of approving an entire revision blob, the approver can accept/reject *individual suggestions*. Once all are resolved, the section is auto-promoted to a new published version with a clean audit trail.
+- **Comments on suggestions**: short threaded reply on each suggestion (uses existing `clm_section_comments` with a new `revision_id` link).
+- **Authorship colors**: each contributor gets a stable color (consistent with Kurt's persona color system) so multiple editors are visually distinguishable.
 
-### 2. Where Kurt appears in the UI
+### Technical approach
+- New table `clm_section_suggestions` (per-change rows): `revision_id`, `section_id`, `change_index`, `op` (`insert`|`delete`), `anchor_start`, `anchor_end`, `text`, `status` (`pending`|`accepted`|`rejected`), `resolved_by`, `resolved_at`, `author_email`, `author_color`.
+- A diff utility (extends `src/lib/textDiff.ts`) splits a proposed `new_body` against `previous_body` into a list of atomic ops, written when a "Suggesting" save fires.
+- New component `TrackChangesEditor.tsx` — a contenteditable surface that renders the live body interleaved with `<ins>`/`<del>` spans bound to suggestion rows, with a floating accept/reject popover.
+- New component `SuggestionsRail.tsx` — vertical list of pending suggestions for the section, mirrors Google Docs' right-hand rail.
+- Database trigger: when **all** suggestions for a revision become `accepted`/`rejected`, the trigger replays the accepted ops against `clm_instance_sections.body` and stamps the revision `approved`. This preserves the existing "write-on-approve" model.
+- Kurt integration: his recommendation card now also shows per-suggestion verdicts ("Kurt suggests rejecting change #3 — broadens indemnity").
 
-- **Workspace detail (`ClmInstanceDetail.tsx`)**: floating "Ask Kurt" button + side drawer chat, plus a "Kurt's Review" badge next to each pending revision.
-- **Approvals panel**: when a reviewer opens a pending amendment, show a Kurt recommendation card: `Recommend: Approve / Request changes / Reject` with a 1–3 sentence rationale and a "Why?" expand showing the bullet points he weighed (clarity, risk, deviation from template, missing clauses, tone).
-- **Section edit dialog (Diff tab)**: inline "Kurt's take" panel summarizing what changed and any flags (ambiguous language, removed protections, indemnity/liability shifts, undefined terms).
-- **Portal (`ClmPortal.tsx`)**: external editors get a lighter Kurt panel with best-practice tips while drafting (no internal recommendations exposed).
+### Files
+- new: `src/components/clm/TrackChangesEditor.tsx`, `src/components/clm/SuggestionsRail.tsx`, `src/hooks/useSectionSuggestions.ts`
+- edit: `src/components/clm/SectionEditDialog.tsx` (add Editing/Suggesting toggle, route writes to suggestion engine), `src/components/clm/ApprovalsPanel.tsx` (replace blob approve with per-suggestion review), `src/components/clm/KurtRecommendationCard.tsx` (per-suggestion verdicts), `src/lib/textDiff.ts` (export atomic-op diff)
+- new migration: `clm_section_suggestions` table + RLS + trigger that promotes the section once everything is resolved
 
-### 3. Kurt's capabilities
+---
 
-- **Change tracking commentary** — Given the section diff (old body vs new body) and template guidance, summarize what changed in plain English.
-- **Accept / Reject recommendation** — Classify each pending revision as `approve`, `request_changes`, or `reject` with a confidence score and rationale.
-- **Best-practice guidance** — On demand, answer questions about the workspace contract: missing standard clauses, unusual terms, risk hot-spots, suggested fallback language.
-- **History awareness** — Pulls the section's prior revisions and comments so guidance reflects the negotiation history.
-- **Audit log entries** — Every Kurt recommendation is written to `audit_logs` with `action_type='clm_kurt_recommendation'` so reviewers can see Kurt's suggestion alongside the human decision.
+## Part 2 — Push to Google Docs
 
-### 4. Server side (edge functions)
+### What changes for the user
+- New **"Push to Google Docs"** button in the workspace header (next to Kurt) and on the Approvals panel.
+- First push from a workspace runs a one-time consent step that adds the `documents` scope to the existing Google OAuth (Drive/Sheets is already in place — this is a scope upgrade, not a new connection).
+- The button creates a Google Doc named after the workspace, writes each section as a Heading-1 block followed by its body text, and stores the resulting `document_id` + share URL on the workspace so subsequent pushes update the same document instead of creating a new one.
+- A "Open in Google Docs" link appears once a doc exists; status pill shows "Synced · 2m ago".
 
-- `clm-kurt-review` — invoked when a revision is submitted (and on demand). Loads section, prior body, new body, template guidance, comments. Calls Lovable AI Gateway (`google/gemini-2.5-flash`) with a structured-output schema returning `{ recommendation, confidence, summary, key_changes[], risks[], suggested_edits[] }`. Persists result to a new `clm_kurt_recommendations` table keyed by `revision_id`.
-- `clm-kurt-chat` — streaming chat endpoint scoped to a workspace; system prompt includes workspace metadata, current section bodies, recent revisions, and Kurt's persona. Uses Vercel AI SDK `streamText` and returns `toUIMessageStreamResponse`.
-- DB trigger `trg_clm_revision_kurt`: on insert into `clm_section_revisions` enqueue a job so `clm-kurt-review` runs automatically (cron drains the queue, similar to existing `clm_notification_queue`).
+### Technical approach
+- Reuse the existing `google_oauth_tokens` table populated by Sheets / Smart Ingestion. Add helper `requireGoogleDocsScope()` that checks the stored scope set and triggers a re-consent (`prompt=consent`, scopes = existing + `https://www.googleapis.com/auth/documents`) when missing — this matches the platform's existing OAuth flow rules in memory.
+- New edge function `clm-push-to-gdocs`:
+  1. Loads the workspace + sections.
+  2. Refreshes the Google access token if needed.
+  3. If `instance.gdoc_document_id` is null → `POST https://docs.googleapis.com/v1/documents` to create. Else → `batchUpdate` with `deleteContentRange` then re-insert.
+  4. Builds `requests[]` from sections (heading + paragraph). Uses our existing TipTap-style mapping pattern.
+  5. Persists `gdoc_document_id`, `gdoc_url`, `gdoc_synced_at` on `clm_contract_instances`.
+- New small migration: add those three columns to `clm_contract_instances`.
+- Audit log entry per push (`action_type='clm_gdoc_push'`).
+- Rate-limited to 1 push every 30s per workspace.
 
-### 5. Database
+### Files
+- new: `supabase/functions/clm-push-to-gdocs/index.ts`, `src/components/clm/PushToGoogleDocsButton.tsx`
+- edit: `src/pages/ClmInstanceDetail.tsx` (mount the button), `src/integrations/supabase/types.ts` (auto-regenerated), `supabase/config.toml` (register function)
+- new migration: add `gdoc_document_id`, `gdoc_url`, `gdoc_synced_at` to `clm_contract_instances`
 
-New migration:
-- `clm_kurt_recommendations` (`revision_id` FK, `recommendation` enum, `confidence` numeric, `summary` text, `key_changes` jsonb, `risks` jsonb, `suggested_edits` jsonb, `model` text). RLS: workspace contributors can read; service role writes.
-- `clm_kurt_chat_messages` (`workspace_id`, `user_id`, `role`, `content`, `created_at`) so internal users keep per-workspace chat history. RLS scoped to workspace contributors.
-- Trigger + queue entry for auto-review on revision submission.
+---
 
-### 6. Frontend pieces
+## Out of scope
+- Real-time multi-cursor co-editing (Google Docs OT/CRDT-level). Suggesting mode is async, not live presence.
+- Pulling edits **back** from Google Docs (one-way push for now — can be added later as a "Pull from Docs" once people validate the workflow).
+- Embedded comments syncing both ways with Google Docs comments.
+- Per-section push (always pushes the whole workspace document).
 
-- `src/components/clm/KurtRecommendationCard.tsx` — used in `ApprovalsPanel`, section detail, and Diff tab.
-- `src/components/clm/KurtChatDrawer.tsx` — slide-in chat using AI Elements (`Conversation`, `Message`, `MessageResponse`, `PromptInput*`, `Shimmer`) wired to `clm-kurt-chat` via `useChat`.
-- `src/hooks/useKurtRecommendation.ts` — TanStack Query hook to fetch/refresh recommendations.
-- Hook Kurt into `ClmInstanceDetail.tsx`, `ApprovalsPanel.tsx`, `SectionEditDialog.tsx` (Diff tab), and `ClmPortal.tsx`.
+---
 
-### 7. Out of scope
-
-- Binding legal advice / e-signature.
-- Auto-approving or auto-rejecting revisions — Kurt only recommends; humans decide.
-- Multi-jurisdiction legal rules engine.
-
-### Files to add / edit (technical)
-
-- Add: `src/assets/personas/kurt.png`, `src/components/clm/KurtRecommendationCard.tsx`, `src/components/clm/KurtChatDrawer.tsx`, `src/hooks/useKurtRecommendation.ts`, `supabase/functions/clm-kurt-review/index.ts`, `supabase/functions/clm-kurt-chat/index.ts`, new migration for tables + trigger.
-- Edit: `src/lib/personaConfig.ts`, `src/pages/ClmInstanceDetail.tsx`, `src/components/clm/ApprovalsPanel.tsx`, `src/components/clm/SectionEditDialog.tsx`, `src/pages/ClmPortal.tsx`, `supabase/config.toml` (cron for `clm-kurt-review`).
+## Risks / Notes
+- Re-consent UX: users who already authorized Sheets will see the Google consent screen once more to grant Docs scope. This is unavoidable and matches platform memory's OAuth rules.
+- Track-changes editor on a contenteditable surface needs careful selection handling; we will keep it textual (no rich formatting marks yet) so suggestion anchors remain stable.

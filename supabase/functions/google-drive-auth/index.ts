@@ -44,9 +44,11 @@ Deno.serve(async (req) => {
     // - Files the app creates (Sheets created via the API)
     // - Files the user explicitly opens via the Google Picker
     // Avoids the sensitive `spreadsheets` and `drive.readonly` scopes that require Google verification.
-    const scope = 'https://www.googleapis.com/auth/drive.file';
-    // Pass the origin so callback redirects back to the correct environment
     const body = await req.json().catch(() => ({}));
+    // Base scope: drive.file (per-file). Optionally add documents (CLM Push to Google Docs).
+    const scopes = ['https://www.googleapis.com/auth/drive.file'];
+    if (body.include_docs_scope) scopes.push('https://www.googleapis.com/auth/documents');
+    const scope = scopes.join(' ');
     const origin = body.origin || supabaseUrl;
     const state = btoa(JSON.stringify({ userId: user.id, origin }));
 

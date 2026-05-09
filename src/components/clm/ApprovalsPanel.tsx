@@ -15,6 +15,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { KurtRecommendationCard } from "./KurtRecommendationCard";
+import { TrackChangesReviewer, type TrackChangesReviewerHandle } from "./TrackChangesReviewer";
 
 interface Props {
   instanceId: string;
@@ -129,9 +130,10 @@ const PendingCard = ({
   const review = useReviewRevision(instanceId);
   const qc = useQueryClient();
   const [note, setNote] = useState("");
-  const [showDiff, setShowDiff] = useState(false);
+  const [showDiff, setShowDiff] = useState(true);
   const [assignee, setAssignee] = useState<string>(rev.assigned_approver_email || "");
   const [savingAssignee, setSavingAssignee] = useState(false);
+  const [reviewerHandle, setReviewerHandle] = useState<TrackChangesReviewerHandle | null>(null);
 
   const updateAssignee = async (email: string) => {
     setSavingAssignee(true);
@@ -149,6 +151,13 @@ const PendingCard = ({
     qc.invalidateQueries({ queryKey: ["clm-revisions", instanceId] });
     toast.success(email ? `Assigned to ${sel?.label || email}` : "Assignment cleared");
   };
+
+  const approveLabel =
+    reviewerHandle && reviewerHandle.totalChanges > 0
+      ? reviewerHandle.unresolved > 0
+        ? `Approve (${reviewerHandle.unresolved} pending)`
+        : "Approve selected changes"
+      : "Approve";
 
   return (
     <div className="rounded-lg border bg-card p-3 space-y-2.5">
@@ -190,23 +199,17 @@ const PendingCard = ({
       <Collapsible open={showDiff} onOpenChange={setShowDiff}>
         <CollapsibleTrigger asChild>
           <Button variant="ghost" size="sm" className="h-7 text-xs w-full justify-between">
-            <span className="flex items-center gap-1.5"><FileDiff className="h-3 w-3" /> Compare changes</span>
+            <span className="flex items-center gap-1.5"><FileDiff className="h-3 w-3" /> Track changes — accept or reject inline</span>
             <ChevronDown className={`h-3 w-3 transition-transform ${showDiff ? "rotate-180" : ""}`} />
           </Button>
         </CollapsibleTrigger>
-        <CollapsibleContent className="mt-2 grid grid-cols-2 gap-2 text-xs">
-          <div className="rounded border bg-muted/30 p-2">
-            <p className="font-semibold text-rose-600 mb-1">Before</p>
-            <pre className="whitespace-pre-wrap font-sans text-[12px] max-h-40 overflow-y-auto">
-              {rev.previous_body || <em className="text-muted-foreground">empty</em>}
-            </pre>
-          </div>
-          <div className="rounded border bg-emerald-500/5 p-2">
-            <p className="font-semibold text-emerald-700 mb-1">After</p>
-            <pre className="whitespace-pre-wrap font-sans text-[12px] max-h-40 overflow-y-auto">
-              {rev.new_body || <em className="text-muted-foreground">empty</em>}
-            </pre>
-          </div>
+        <CollapsibleContent className="mt-2">
+          <TrackChangesReviewer
+            before={rev.previous_body ?? ""}
+            after={rev.new_body ?? ""}
+            authorName={rev.edited_by_name || undefined}
+            onChange={setReviewerHandle}
+          />
         </CollapsibleContent>
       </Collapsible>
 
@@ -225,9 +228,16 @@ const PendingCard = ({
         </Button>
         <Button
           size="sm" className="flex-1"
-          onClick={() => review.mutate({ revisionId: rev.id, decision: "approved", note })}
+          onClick={() =>
+            review.mutate({
+              revisionId: rev.id,
+              decision: "approved",
+              note,
+              override_body: reviewerHandle?.mergedBody,
+            })
+          }
         >
-          <Check className="h-3.5 w-3.5 mr-1" /> Approve
+          <Check className="h-3.5 w-3.5 mr-1" /> {approveLabel}
         </Button>
       </div>
     </div>
