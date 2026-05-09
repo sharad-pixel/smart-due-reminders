@@ -80,9 +80,13 @@ export const SectionEditDialog = ({
 
   return (
     <>
-      <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); setOpen(true); }}>
-        <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
-      </Button>
+      {trigger ? (
+        <span onClick={(e) => { e.stopPropagation(); setOpen(true); }}>{trigger}</span>
+      ) : (
+        <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); setOpen(true); }}>
+          <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
+        </Button>
+      )}
       <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (v) { setBody(section.body ?? ""); setTab("edit"); } }}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>
