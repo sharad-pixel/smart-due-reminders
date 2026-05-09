@@ -149,6 +149,7 @@ const Inner = () => {
           sections={sections}
           comments={comments}
           contacts={contacts}
+          externalAccess={externalAccess as any[]}
           debtorId={debtorId}
           myRole={myRoleInfo?.role}
         />
