@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
+import { KurtRecommendationCard } from "./KurtRecommendationCard";
 
 interface Props {
   instanceId: string;
@@ -183,6 +184,8 @@ const PendingCard = ({
           </SelectContent>
         </Select>
       </div>
+
+      <KurtRecommendationCard revisionId={rev.id} />
 
       <Collapsible open={showDiff} onOpenChange={setShowDiff}>
         <CollapsibleTrigger asChild>
