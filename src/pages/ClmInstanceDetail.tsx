@@ -13,6 +13,7 @@ import { AccessSidebar } from "@/components/clm/AccessSidebar";
 import { WorkspaceTemplateTabs } from "@/components/clm/WorkspaceTemplateTabs";
 import { PrepareSignaturePackageDialog } from "@/components/clm/PrepareSignaturePackageDialog";
 import { DraftSubmissionBar } from "@/components/clm/DraftSubmissionBar";
+import { RevisionHistoryPanel } from "@/components/clm/RevisionHistoryPanel";
 import { ClmBrandedHeader } from "@/components/clm/ClmBrandedHeader";
 import { KurtChatDrawer } from "@/components/clm/KurtChatDrawer";
 import { PushToGoogleDocsButton } from "@/components/clm/PushToGoogleDocsButton";
