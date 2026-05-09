@@ -3309,6 +3309,300 @@ export type Database = {
           },
         ]
       }
+      contract_critical_dates: {
+        Row: {
+          account_id: string
+          created_at: string
+          date_type: string
+          debtor_id: string | null
+          due_date: string
+          id: string
+          import_id: string
+          notice_days: number | null
+          risk_level: string | null
+          status: string
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          date_type: string
+          debtor_id?: string | null
+          due_date: string
+          id?: string
+          import_id: string
+          notice_days?: number | null
+          risk_level?: string | null
+          status?: string
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          date_type?: string
+          debtor_id?: string | null
+          due_date?: string
+          id?: string
+          import_id?: string
+          notice_days?: number | null
+          risk_level?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_critical_dates_import_id_fkey"
+            columns: ["import_id"]
+            isOneToOne: false
+            referencedRelation: "live_contract_imports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contract_customer_matches: {
+        Row: {
+          account_id: string
+          candidate_debtor_id: string | null
+          created_at: string
+          id: string
+          import_id: string
+          is_selected: boolean
+          match_reasons: Json | null
+          match_score: number
+        }
+        Insert: {
+          account_id: string
+          candidate_debtor_id?: string | null
+          created_at?: string
+          id?: string
+          import_id: string
+          is_selected?: boolean
+          match_reasons?: Json | null
+          match_score?: number
+        }
+        Update: {
+          account_id?: string
+          candidate_debtor_id?: string | null
+          created_at?: string
+          id?: string
+          import_id?: string
+          is_selected?: boolean
+          match_reasons?: Json | null
+          match_score?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_customer_matches_import_id_fkey"
+            columns: ["import_id"]
+            isOneToOne: false
+            referencedRelation: "live_contract_imports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contract_invoice_schedules: {
+        Row: {
+          account_id: string
+          amount: number | null
+          billing_type: string | null
+          created_at: string
+          currency: string | null
+          debtor_id: string | null
+          description: string | null
+          expected_due_date: string | null
+          id: string
+          import_id: string
+          payment_terms: string | null
+          scheduled_date: string
+          service_period_end: string | null
+          service_period_start: string | null
+          status: string
+        }
+        Insert: {
+          account_id: string
+          amount?: number | null
+          billing_type?: string | null
+          created_at?: string
+          currency?: string | null
+          debtor_id?: string | null
+          description?: string | null
+          expected_due_date?: string | null
+          id?: string
+          import_id: string
+          payment_terms?: string | null
+          scheduled_date: string
+          service_period_end?: string | null
+          service_period_start?: string | null
+          status?: string
+        }
+        Update: {
+          account_id?: string
+          amount?: number | null
+          billing_type?: string | null
+          created_at?: string
+          currency?: string | null
+          debtor_id?: string | null
+          description?: string | null
+          expected_due_date?: string | null
+          id?: string
+          import_id?: string
+          payment_terms?: string | null
+          scheduled_date?: string
+          service_period_end?: string | null
+          service_period_start?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_invoice_schedules_import_id_fkey"
+            columns: ["import_id"]
+            isOneToOne: false
+            referencedRelation: "live_contract_imports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contract_poc_details: {
+        Row: {
+          account_id: string
+          conversion_language: string | null
+          conversion_terms: string | null
+          created_at: string
+          debtor_id: string | null
+          id: string
+          import_id: string
+          pilot_fee: number | null
+          poc_end: string | null
+          poc_start: string | null
+          success_criteria: string | null
+          termination_rights: string | null
+        }
+        Insert: {
+          account_id: string
+          conversion_language?: string | null
+          conversion_terms?: string | null
+          created_at?: string
+          debtor_id?: string | null
+          id?: string
+          import_id: string
+          pilot_fee?: number | null
+          poc_end?: string | null
+          poc_start?: string | null
+          success_criteria?: string | null
+          termination_rights?: string | null
+        }
+        Update: {
+          account_id?: string
+          conversion_language?: string | null
+          conversion_terms?: string | null
+          created_at?: string
+          debtor_id?: string | null
+          id?: string
+          import_id?: string
+          pilot_fee?: number | null
+          poc_end?: string | null
+          poc_start?: string | null
+          success_criteria?: string | null
+          termination_rights?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_poc_details_import_id_fkey"
+            columns: ["import_id"]
+            isOneToOne: true
+            referencedRelation: "live_contract_imports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contract_risk_flags: {
+        Row: {
+          account_id: string
+          created_at: string
+          debtor_id: string | null
+          description: string | null
+          flag_type: string
+          id: string
+          import_id: string
+          resolved: boolean
+          severity: string
+          source_field: string | null
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          debtor_id?: string | null
+          description?: string | null
+          flag_type: string
+          id?: string
+          import_id: string
+          resolved?: boolean
+          severity?: string
+          source_field?: string | null
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          debtor_id?: string | null
+          description?: string | null
+          flag_type?: string
+          id?: string
+          import_id?: string
+          resolved?: boolean
+          severity?: string
+          source_field?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_risk_flags_import_id_fkey"
+            columns: ["import_id"]
+            isOneToOne: false
+            referencedRelation: "live_contract_imports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contract_source_documents: {
+        Row: {
+          account_id: string
+          created_at: string
+          id: string
+          import_id: string
+          metadata: Json | null
+          ocr_used: boolean | null
+          page_count: number | null
+          storage_path: string | null
+          text_extracted: boolean | null
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          id?: string
+          import_id: string
+          metadata?: Json | null
+          ocr_used?: boolean | null
+          page_count?: number | null
+          storage_path?: string | null
+          text_extracted?: boolean | null
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          id?: string
+          import_id?: string
+          metadata?: Json | null
+          ocr_used?: boolean | null
+          page_count?: number | null
+          storage_path?: string | null
+          text_extracted?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_source_documents_import_id_fkey"
+            columns: ["import_id"]
+            isOneToOne: false
+            referencedRelation: "live_contract_imports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contracts: {
         Row: {
           account_id: string
@@ -7454,6 +7748,390 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "marketing_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_contract_audit_log: {
+        Row: {
+          account_id: string
+          created_at: string
+          event_details: Json | null
+          event_type: string
+          id: string
+          import_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          event_details?: Json | null
+          event_type: string
+          id?: string
+          import_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          event_details?: Json | null
+          event_type?: string
+          id?: string
+          import_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_contract_audit_log_import_id_fkey"
+            columns: ["import_id"]
+            isOneToOne: false
+            referencedRelation: "live_contract_imports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_contract_drive_folders: {
+        Row: {
+          account_id: string
+          connection_id: string
+          created_at: string
+          folder_id: string
+          folder_name: string | null
+          id: string
+          is_active: boolean
+          last_scanned_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_id: string
+          connection_id: string
+          created_at?: string
+          folder_id: string
+          folder_name?: string | null
+          id?: string
+          is_active?: boolean
+          last_scanned_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_id?: string
+          connection_id?: string
+          created_at?: string
+          folder_id?: string
+          folder_name?: string | null
+          id?: string
+          is_active?: boolean
+          last_scanned_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      live_contract_extracted_fields: {
+        Row: {
+          account_id: string
+          approved: boolean
+          confidence: number | null
+          created_at: string
+          edited_by_user: string | null
+          extraction_id: string
+          field_group: string
+          field_key: string
+          field_value: string | null
+          field_value_json: Json | null
+          id: string
+          import_id: string
+          page_ref: string | null
+          source_snippet: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          approved?: boolean
+          confidence?: number | null
+          created_at?: string
+          edited_by_user?: string | null
+          extraction_id: string
+          field_group: string
+          field_key: string
+          field_value?: string | null
+          field_value_json?: Json | null
+          id?: string
+          import_id: string
+          page_ref?: string | null
+          source_snippet?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          approved?: boolean
+          confidence?: number | null
+          created_at?: string
+          edited_by_user?: string | null
+          extraction_id?: string
+          field_group?: string
+          field_key?: string
+          field_value?: string | null
+          field_value_json?: Json | null
+          id?: string
+          import_id?: string
+          page_ref?: string | null
+          source_snippet?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_contract_extracted_fields_extraction_id_fkey"
+            columns: ["extraction_id"]
+            isOneToOne: false
+            referencedRelation: "live_contract_extractions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_contract_extracted_fields_import_id_fkey"
+            columns: ["import_id"]
+            isOneToOne: false
+            referencedRelation: "live_contract_imports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_contract_extractions: {
+        Row: {
+          account_id: string
+          ai_response: Json | null
+          extracted_at: string
+          id: string
+          import_id: string
+          model: string | null
+          raw_text: string | null
+          tokens_used: number | null
+        }
+        Insert: {
+          account_id: string
+          ai_response?: Json | null
+          extracted_at?: string
+          id?: string
+          import_id: string
+          model?: string | null
+          raw_text?: string | null
+          tokens_used?: number | null
+        }
+        Update: {
+          account_id?: string
+          ai_response?: Json | null
+          extracted_at?: string
+          id?: string
+          import_id?: string
+          model?: string | null
+          raw_text?: string | null
+          tokens_used?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_contract_extractions_import_id_fkey"
+            columns: ["import_id"]
+            isOneToOne: false
+            referencedRelation: "live_contract_imports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_contract_imports: {
+        Row: {
+          account_id: string
+          confidence: number | null
+          contract_name: string | null
+          contract_type: string | null
+          created_at: string
+          debtor_id: string | null
+          drive_file_id: string | null
+          duplicate_of: string | null
+          effective_date: string | null
+          error: string | null
+          file_name: string
+          file_size: number | null
+          folder_id: string | null
+          id: string
+          mime_type: string | null
+          scan_job_id: string | null
+          source: string
+          status: string
+          storage_path: string | null
+          term_end_date: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_id: string
+          confidence?: number | null
+          contract_name?: string | null
+          contract_type?: string | null
+          created_at?: string
+          debtor_id?: string | null
+          drive_file_id?: string | null
+          duplicate_of?: string | null
+          effective_date?: string | null
+          error?: string | null
+          file_name: string
+          file_size?: number | null
+          folder_id?: string | null
+          id?: string
+          mime_type?: string | null
+          scan_job_id?: string | null
+          source: string
+          status?: string
+          storage_path?: string | null
+          term_end_date?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_id?: string
+          confidence?: number | null
+          contract_name?: string | null
+          contract_type?: string | null
+          created_at?: string
+          debtor_id?: string | null
+          drive_file_id?: string | null
+          duplicate_of?: string | null
+          effective_date?: string | null
+          error?: string | null
+          file_name?: string
+          file_size?: number | null
+          folder_id?: string | null
+          id?: string
+          mime_type?: string | null
+          scan_job_id?: string | null
+          source?: string
+          status?: string
+          storage_path?: string | null
+          term_end_date?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_contract_imports_duplicate_of_fkey"
+            columns: ["duplicate_of"]
+            isOneToOne: false
+            referencedRelation: "live_contract_imports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_contract_imports_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "live_contract_drive_folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_contract_imports_scan_job_id_fkey"
+            columns: ["scan_job_id"]
+            isOneToOne: false
+            referencedRelation: "live_contract_scan_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_contract_review_queue: {
+        Row: {
+          account_id: string
+          assigned_to: string | null
+          created_at: string
+          id: string
+          import_id: string
+          notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          assigned_to?: string | null
+          created_at?: string
+          id?: string
+          import_id: string
+          notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          assigned_to?: string | null
+          created_at?: string
+          id?: string
+          import_id?: string
+          notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_contract_review_queue_import_id_fkey"
+            columns: ["import_id"]
+            isOneToOne: true
+            referencedRelation: "live_contract_imports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_contract_scan_jobs: {
+        Row: {
+          account_id: string
+          completed_at: string | null
+          created_at: string
+          error: string | null
+          files_duplicate: number
+          files_found: number
+          files_new: number
+          folder_id: string | null
+          id: string
+          started_at: string | null
+          status: string
+          triggered_by: string | null
+        }
+        Insert: {
+          account_id: string
+          completed_at?: string | null
+          created_at?: string
+          error?: string | null
+          files_duplicate?: number
+          files_found?: number
+          files_new?: number
+          folder_id?: string | null
+          id?: string
+          started_at?: string | null
+          status?: string
+          triggered_by?: string | null
+        }
+        Update: {
+          account_id?: string
+          completed_at?: string | null
+          created_at?: string
+          error?: string | null
+          files_duplicate?: number
+          files_found?: number
+          files_new?: number
+          folder_id?: string | null
+          id?: string
+          started_at?: string | null
+          status?: string
+          triggered_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_contract_scan_jobs_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "live_contract_drive_folders"
             referencedColumns: ["id"]
           },
         ]
