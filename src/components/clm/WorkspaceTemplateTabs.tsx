@@ -3,10 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { FileText, Plus, X, Users, Loader2, GitBranch } from "lucide-react";
+import { FileText, Plus, X, Users, Loader2, GitBranch, Rows3, FileText as FileIcon } from "lucide-react";
 import { TemplateCollaboratorsDialog } from "./TemplateCollaboratorsDialog";
 import { AddTemplateToWorkspaceDialog } from "./AddTemplateToWorkspaceDialog";
 import { SectionsList } from "./SectionsList";
+import { FullDocumentView } from "./FullDocumentView";
 import { useInstanceRevisions, useRemoveTemplateFromInstance } from "@/hooks/useClmInstance";
 
 interface TabItem {
