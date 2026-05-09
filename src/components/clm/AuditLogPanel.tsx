@@ -123,29 +123,69 @@ export const AuditLogPanel = ({ instanceId }: Props) => {
                   <span className="absolute -left-2 mt-1 flex h-4 w-4 items-center justify-center rounded-full border bg-background">
                     <Icon className="h-2.5 w-2.5" />
                   </span>
-                  <div className="rounded border bg-background p-2.5">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant="outline" className={`${meta.tone} text-[10px] h-5`}>{meta.label}</Badge>
-                      {e.section_title && (
-                        <span className="text-xs font-medium truncate">{e.section_title}</span>
-                      )}
-                      {e.payload?.version_number && (
-                        <Badge variant="outline" className="text-[9px] h-4">v{e.payload.version_number}</Badge>
-                      )}
-                      <span className="ml-auto text-[11px] text-muted-foreground" title={format(new Date(e.created_at), "PPpp")}>
-                        {formatDistanceToNow(new Date(e.created_at), { addSuffix: true })}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-muted-foreground mt-1">
-                      <span className="font-medium text-foreground">{e.actor_name ?? e.actor_email ?? "System"}</span>
-                      {e.actor_email && e.actor_name ? <> · {e.actor_email}</> : null}
-                      {" · "}
-                      {format(new Date(e.created_at), "MMM d, yyyy h:mm a")}
-                    </p>
-                    {detail && (
-                      <p className="text-xs mt-1 text-foreground/80 break-words">{detail}</p>
-                    )}
-                  </div>
+                  <HoverCard openDelay={120} closeDelay={80}>
+                    <HoverCardTrigger asChild>
+                      <div className="rounded border bg-background p-2.5 cursor-default transition-colors hover:bg-muted/30 hover:border-primary/40">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant="outline" className={`${meta.tone} text-[10px] h-5`}>{meta.label}</Badge>
+                          {e.section_title && (
+                            <span className="text-xs font-medium truncate">{e.section_title}</span>
+                          )}
+                          {e.payload?.version_number && (
+                            <Badge variant="outline" className="text-[9px] h-4">v{e.payload.version_number}</Badge>
+                          )}
+                          <span className="ml-auto text-[11px] text-muted-foreground" title={format(new Date(e.created_at), "PPpp")}>
+                            {formatDistanceToNow(new Date(e.created_at), { addSuffix: true })}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground mt-1">
+                          <span className="font-medium text-foreground">{e.actor_name ?? e.actor_email ?? "System"}</span>
+                          {e.actor_email && e.actor_name ? <> · {e.actor_email}</> : null}
+                          {" · "}
+                          {format(new Date(e.created_at), "MMM d, yyyy h:mm a")}
+                        </p>
+                        {detail && (
+                          <p className="text-xs mt-1 text-foreground/80 break-words">{detail}</p>
+                        )}
+                      </div>
+                    </HoverCardTrigger>
+                    <HoverCardContent side="left" align="start" className="w-80 p-3">
+                      <div className="flex items-start gap-3">
+                        <Avatar className="h-9 w-9">
+                          <AvatarFallback className="text-[11px] bg-primary/10 text-primary">
+                            {initials(e.actor_name || e.actor_email || "S")}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold truncate">{e.actor_name ?? e.actor_email ?? "System"}</p>
+                          {e.actor_email && (
+                            <p className="text-[11px] text-muted-foreground flex items-center gap-1 truncate">
+                              <Mail className="h-3 w-3" /> {e.actor_email}
+                            </p>
+                          )}
+                          {e.actor_role && (
+                            <Badge variant="outline" className="mt-1 text-[10px] h-4 capitalize">{e.actor_role}</Badge>
+                          )}
+                        </div>
+                      </div>
+                      <div className="mt-3 space-y-1.5 text-[11px]">
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <Badge variant="outline" className={`${meta.tone} text-[10px] h-4`}>{meta.label}</Badge>
+                          {e.section_title && <span className="truncate">on {e.section_title}</span>}
+                        </div>
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <ClockIcon className="h-3 w-3" />
+                          <span>{format(new Date(e.created_at), "PPpp")}</span>
+                        </div>
+                        {detail && (
+                          <p className="text-foreground/80 mt-2 border-t pt-2 break-words">{detail}</p>
+                        )}
+                        {e.payload?.change_summary && e.payload.change_summary !== detail && (
+                          <p className="text-foreground/70 italic">"{e.payload.change_summary}"</p>
+                        )}
+                      </div>
+                    </HoverCardContent>
+                  </HoverCard>
                 </li>
               );
             })}
