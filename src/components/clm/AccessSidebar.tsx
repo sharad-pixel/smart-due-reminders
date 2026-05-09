@@ -119,6 +119,7 @@ export const AccessSidebar = ({ instanceId, instance, contacts, externalAccess =
                 key={m.key}
                 member={m}
                 onRemove={m.contactId && !m.ownerOf ? () => remove.mutate(m.contactId!) : undefined}
+                onRoleChange={m.contactId && !m.ownerOf ? (role) => updateRole.mutate({ id: m.contactId!, role }) : undefined}
               />
             ))}
           </div>
