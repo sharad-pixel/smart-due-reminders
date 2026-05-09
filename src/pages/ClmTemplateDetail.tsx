@@ -26,6 +26,7 @@ const Inner = () => {
   const { data, isLoading } = useClmTemplate(id);
   const resect = useResectionalize();
   const [useOpen, setUseOpen] = useState(false);
+  const [view, setView] = useState<"sections" | "document">("sections");
 
   if (isLoading || !data) {
     return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
