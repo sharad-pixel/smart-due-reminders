@@ -29,6 +29,7 @@ export const ContributorsPanel = ({ instanceId, contacts, debtors }: Props) => {
   const debtorId = linkedDebtor?.debtor_id ?? null;
 
   const remove = useRemoveInstanceContact(instanceId);
+  const updateRole = useUpdateInstanceContactRole(instanceId);
 
   return (
     <Card>
