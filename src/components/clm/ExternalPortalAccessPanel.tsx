@@ -175,17 +175,21 @@ export const ExternalPortalAccessPanel = ({ instanceId }: Props) => {
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Expires (days)</Label>
-                <Select value={days} onValueChange={setDays}>
+                <Label className="text-xs">Link expires</Label>
+                <Select value={duration} onValueChange={setDuration}>
                   <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="7">7 days</SelectItem>
-                    <SelectItem value="14">14 days</SelectItem>
-                    <SelectItem value="30">30 days</SelectItem>
-                    <SelectItem value="60">60 days</SelectItem>
-                    <SelectItem value="90">90 days</SelectItem>
+                    <SelectItem value="1h">1 hour (high security)</SelectItem>
+                    <SelectItem value="12h">12 hours</SelectItem>
+                    <SelectItem value="24h">Session — 24 hours</SelectItem>
+                    <SelectItem value="7d">7 days</SelectItem>
+                    <SelectItem value="14d">14 days</SelectItem>
+                    <SelectItem value="30d">30 days</SelectItem>
+                    <SelectItem value="60d">60 days</SelectItem>
+                    <SelectItem value="90d">90 days</SelectItem>
                   </SelectContent>
                 </Select>
+                <p className="text-[10px] text-muted-foreground">Short-lived links (≤24h) show a live countdown to the recipient.</p>
               </div>
             </div>
             <div className="flex justify-end gap-2 pt-1">
