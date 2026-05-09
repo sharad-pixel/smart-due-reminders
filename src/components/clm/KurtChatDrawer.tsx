@@ -7,7 +7,7 @@ import { Scale, Send, Loader2, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import kurtAvatar from "@/assets/personas/kurt.png";
 import { toast } from "sonner";
-import ReactMarkdown from "react-markdown";
+
 
 interface Msg { role: "user" | "assistant"; content: string }
 
@@ -106,7 +106,7 @@ export const KurtChatDrawer = ({ instanceId, instanceName }: { instanceId: strin
                       : "max-w-[85%] text-sm prose prose-sm dark:prose-invert leading-relaxed"
                   }>
                     {m.role === "assistant"
-                      ? <ReactMarkdown>{m.content}</ReactMarkdown>
+                      ? <div className="whitespace-pre-wrap">{m.content}</div>
                       : m.content}
                   </div>
                 </div>
