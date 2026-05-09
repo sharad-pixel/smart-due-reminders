@@ -195,6 +195,7 @@ export const WorkspaceTemplateTabs = ({
             title={activeTab.templateName}
             description="Click a section to reveal its action menu (edit, versions, add note). Pending changes appear inline as redlines. Use the top track-changes panel to accept, counter, or reject."
             contacts={contacts}
+            externalAccess={externalAccess}
             comments={comments}
             canEdit
             myRole={myRole}
