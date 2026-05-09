@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ShieldCheck, X, Building2, Briefcase, KeyRound, ChevronDown, ChevronUp } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ContributorsPanel } from "./ContributorsPanel";
 import { ExternalPortalAccessPanel } from "./ExternalPortalAccessPanel";
-import { useRemoveInstanceContact } from "@/hooks/useClmInstance";
+import { useRemoveInstanceContact, useUpdateInstanceContactRole } from "@/hooks/useClmInstance";
 import { CAPABILITY_LABEL, getRoleMeta, type ClmCapabilities } from "@/lib/clmRoles";
 
 interface Member {
