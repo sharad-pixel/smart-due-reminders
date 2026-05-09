@@ -17,8 +17,8 @@ import { useQuery } from "@tanstack/react-query";
 interface Approver { value: string; label: string; sub: string }
 
 export const SectionEditDialog = ({
-  instanceId, section, currentVersion, contacts = [],
-}: { instanceId: string; section: any; currentVersion?: number; contacts?: any[] }) => {
+  instanceId, section, currentVersion, contacts = [], trigger,
+}: { instanceId: string; section: any; currentVersion?: number; contacts?: any[]; trigger?: React.ReactNode }) => {
   const [open, setOpen] = useState(false);
   const [body, setBody] = useState(section.body ?? "");
   const [summary, setSummary] = useState("");
@@ -80,9 +80,13 @@ export const SectionEditDialog = ({
 
   return (
     <>
-      <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); setOpen(true); }}>
-        <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
-      </Button>
+      {trigger ? (
+        <span onClick={(e) => { e.stopPropagation(); setOpen(true); }}>{trigger}</span>
+      ) : (
+        <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); setOpen(true); }}>
+          <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
+        </Button>
+      )}
       <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (v) { setBody(section.body ?? ""); setTab("edit"); } }}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>

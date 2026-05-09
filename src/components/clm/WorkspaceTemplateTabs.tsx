@@ -191,8 +191,9 @@ export const WorkspaceTemplateTabs = ({
             instanceId={instanceId}
             sections={activeSections}
             title={activeTab.templateName}
-            description="Read-through of the entire template with pending track-changes shown inline, in document order."
+            description="Select a section to reveal its edit menu. Pending track-changes and comments appear in the right margin."
             contacts={contacts}
+            comments={comments}
             canEdit
           />
         )
