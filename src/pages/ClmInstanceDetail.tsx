@@ -37,17 +37,12 @@ const Inner = () => {
   const { data: externalAccess = [] } = useExternalAccess(id ?? "");
   const [pkgOpen, setPkgOpen] = useState(false);
 
-  if (isLoading || !data) {
-    return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
-  }
-
-  const { instance, sections, debtors, contacts, comments, extraTemplates = [] } = data as any;
-  const sourceTemplateName = instance.clm_templates?.name ?? instance.template_name_snapshot ?? "template";
-  const sourceTemplateLink = instance.clm_templates?.id ? `/contracts/templates/${instance.clm_templates.id}` : null;
-  const debtorId = debtors[0]?.debtor_id ?? null;
+  const instance = (data as any)?.instance;
+  const extraTemplates = (data as any)?.extraTemplates ?? [];
 
   const templatesForPackage = useMemo(() => {
     const list: { template_id: string; template_name: string; is_primary: boolean }[] = [];
+    if (!instance) return list;
     if (instance.template_id) {
       list.push({
         template_id: instance.template_id,
@@ -62,6 +57,15 @@ const Inner = () => {
     }));
     return list;
   }, [instance, extraTemplates]);
+
+  if (isLoading || !data) {
+    return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
+  }
+
+  const { sections, debtors, contacts, comments } = data as any;
+  const sourceTemplateName = instance.clm_templates?.name ?? instance.template_name_snapshot ?? "template";
+  const sourceTemplateLink = instance.clm_templates?.id ? `/contracts/templates/${instance.clm_templates.id}` : null;
+  const debtorId = debtors[0]?.debtor_id ?? null;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
