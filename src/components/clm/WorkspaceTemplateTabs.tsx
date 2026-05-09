@@ -3,10 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { FileText, Plus, X, Users, Loader2, GitBranch } from "lucide-react";
+import { FileText, Plus, X, Users, Loader2, GitBranch, Rows3, FileText as FileIcon } from "lucide-react";
 import { TemplateCollaboratorsDialog } from "./TemplateCollaboratorsDialog";
 import { AddTemplateToWorkspaceDialog } from "./AddTemplateToWorkspaceDialog";
 import { SectionsList } from "./SectionsList";
+import { FullDocumentView } from "./FullDocumentView";
 import { useInstanceRevisions, useRemoveTemplateFromInstance } from "@/hooks/useClmInstance";
 
 interface TabItem {
@@ -33,6 +34,7 @@ export const WorkspaceTemplateTabs = ({
   const [addOpen, setAddOpen] = useState(false);
   const [collabOpenFor, setCollabOpenFor] = useState<TabItem | null>(null);
   const [confirmRemove, setConfirmRemove] = useState<TabItem | null>(null);
+  const [view, setView] = useState<"sections" | "document">("sections");
   const remove = useRemoveTemplateFromInstance(instanceId);
   const { data: revisions = [] } = useInstanceRevisions(instanceId);
 
@@ -134,14 +136,32 @@ export const WorkspaceTemplateTabs = ({
       </div>
 
       {activeTab && (
-        <div className="flex items-center gap-2 px-1">
+        <div className="flex items-center gap-2 px-1 flex-wrap">
           <GitBranch className="h-3.5 w-3.5 text-muted-foreground" />
           <span className="text-xs text-muted-foreground">
             <span className="font-medium text-foreground">{activeTab.templateName}</span>
             {" "}· {tabStats(activeTab.templateId, activeTab.isPrimary).sectionCount} sections
             {" "}· version {tabStats(activeTab.templateId, activeTab.isPrimary).version}
           </span>
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-1">
+            <div className="inline-flex rounded-md border bg-muted/30 p-0.5">
+              <Button
+                size="sm"
+                variant={view === "sections" ? "secondary" : "ghost"}
+                className="h-7 px-2 text-xs"
+                onClick={() => setView("sections")}
+              >
+                <Rows3 className="h-3.5 w-3.5 mr-1" /> Sectional
+              </Button>
+              <Button
+                size="sm"
+                variant={view === "document" ? "secondary" : "ghost"}
+                className="h-7 px-2 text-xs"
+                onClick={() => setView("document")}
+              >
+                <FileIcon className="h-3.5 w-3.5 mr-1" /> Full document
+              </Button>
+            </div>
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -158,13 +178,22 @@ export const WorkspaceTemplateTabs = ({
       )}
 
       {activeTab && (
-        <SectionsList
-          instanceId={instanceId}
-          sections={activeSections}
-          comments={comments}
-          contacts={contacts}
-          emptyText="No sections in this template yet."
-        />
+        view === "sections" ? (
+          <SectionsList
+            instanceId={instanceId}
+            sections={activeSections}
+            comments={comments}
+            contacts={contacts}
+            emptyText="No sections in this template yet."
+          />
+        ) : (
+          <FullDocumentView
+            instanceId={instanceId}
+            sections={activeSections}
+            title={activeTab.templateName}
+            description="Read-through of the entire template with pending track-changes shown inline, in document order."
+          />
+        )
       )}
 
       <AddTemplateToWorkspaceDialog

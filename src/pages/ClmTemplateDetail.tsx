@@ -9,7 +9,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Loader2, AlertTriangle, RefreshCw, Sparkles, Play } from "lucide-react";
+import { ArrowLeft, Loader2, AlertTriangle, RefreshCw, Sparkles, Play, Rows3, FileText as FileIcon } from "lucide-react";
 import { useClmTemplate, useResectionalize } from "@/hooks/useClmTemplates";
 import { TemplateActionsMenu } from "@/components/clm/TemplateActionsMenu";
 import { TemplateAssessmentPanel } from "@/components/clm/TemplateAssessmentPanel";
@@ -17,6 +17,7 @@ import { ContractDocumentViewer } from "@/components/clm/ContractDocumentViewer"
 import { ClmBrandedHeader } from "@/components/clm/ClmBrandedHeader";
 import { UseTemplateDialog } from "@/components/clm/UseTemplateDialog";
 import { TemplateSectionEditDialog } from "@/components/clm/TemplateSectionEditDialog";
+import { FullDocumentView } from "@/components/clm/FullDocumentView";
 import SEO from "@/components/seo/SEO";
 
 const Inner = () => {
@@ -25,6 +26,7 @@ const Inner = () => {
   const { data, isLoading } = useClmTemplate(id);
   const resect = useResectionalize();
   const [useOpen, setUseOpen] = useState(false);
+  const [view, setView] = useState<"sections" | "document">("sections");
 
   if (isLoading || !data) {
     return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
@@ -91,15 +93,43 @@ const Inner = () => {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-primary" /> AI Sectionalization</CardTitle>
-          <CardDescription>{sections.length} sections extracted</CardDescription>
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div>
+              <CardTitle className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-primary" /> AI Sectionalization</CardTitle>
+              <CardDescription>{sections.length} sections extracted</CardDescription>
+            </div>
+            <div className="inline-flex rounded-md border bg-muted/30 p-0.5">
+              <Button
+                size="sm"
+                variant={view === "sections" ? "secondary" : "ghost"}
+                className="h-7 px-2 text-xs"
+                onClick={() => setView("sections")}
+              >
+                <Rows3 className="h-3.5 w-3.5 mr-1" /> Sectional
+              </Button>
+              <Button
+                size="sm"
+                variant={view === "document" ? "secondary" : "ghost"}
+                className="h-7 px-2 text-xs"
+                onClick={() => setView("document")}
+              >
+                <FileIcon className="h-3.5 w-3.5 mr-1" /> Full document
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {sections.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-8">
               {template.status === "ready" ? "No sections found." : "Waiting for AI extraction…"}
             </p>
+          ) : view === "document" ? (
+            <FullDocumentView
+              sections={sections}
+              title={template.name}
+              description="Read-through of the entire template in document order."
+            />
           ) : (
             <Accordion type="multiple" className="w-full">
               {sections.map((s) => (
