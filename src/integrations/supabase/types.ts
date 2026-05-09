@@ -1522,6 +1522,59 @@ export type Database = {
           },
         ]
       }
+      clm_review_batches: {
+        Row: {
+          approver_email: string
+          approver_name: string | null
+          created_at: string
+          id: string
+          instance_id: string
+          message: string | null
+          resolved_at: string | null
+          revision_count: number
+          status: string
+          submitted_by: string | null
+          submitted_by_email: string | null
+          submitted_by_name: string | null
+        }
+        Insert: {
+          approver_email: string
+          approver_name?: string | null
+          created_at?: string
+          id?: string
+          instance_id: string
+          message?: string | null
+          resolved_at?: string | null
+          revision_count?: number
+          status?: string
+          submitted_by?: string | null
+          submitted_by_email?: string | null
+          submitted_by_name?: string | null
+        }
+        Update: {
+          approver_email?: string
+          approver_name?: string | null
+          created_at?: string
+          id?: string
+          instance_id?: string
+          message?: string | null
+          resolved_at?: string | null
+          revision_count?: number
+          status?: string
+          submitted_by?: string | null
+          submitted_by_email?: string | null
+          submitted_by_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clm_review_batches_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "clm_template_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clm_section_comments: {
         Row: {
           author_id: string
@@ -1588,6 +1641,7 @@ export type Database = {
           section_key: string | null
           section_title: string | null
           source_template_id: string | null
+          submitted_batch_id: string | null
           version_number: number | null
         }
         Insert: {
@@ -1614,6 +1668,7 @@ export type Database = {
           section_key?: string | null
           section_title?: string | null
           source_template_id?: string | null
+          submitted_batch_id?: string | null
           version_number?: number | null
         }
         Update: {
@@ -1640,6 +1695,7 @@ export type Database = {
           section_key?: string | null
           section_title?: string | null
           source_template_id?: string | null
+          submitted_batch_id?: string | null
           version_number?: number | null
         }
         Relationships: [
@@ -1662,6 +1718,13 @@ export type Database = {
             columns: ["section_id"]
             isOneToOne: false
             referencedRelation: "clm_instance_sections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clm_section_revisions_submitted_batch_id_fkey"
+            columns: ["submitted_batch_id"]
+            isOneToOne: false
+            referencedRelation: "clm_review_batches"
             referencedColumns: ["id"]
           },
         ]
