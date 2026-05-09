@@ -516,3 +516,66 @@ export const useDeleteInstance = () => {
     onError: (e: any) => toast.error(e.message ?? "Failed to delete workspace"),
   });
 };
+
+export const useAddTemplateToInstance = (instanceId: string) => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (templateId: string) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      // Ensure not already attached (primary or extra)
+      const { data: inst } = await supabase
+        .from("clm_template_instances")
+        .select("template_id")
+        .eq("id", instanceId).maybeSingle();
+      if (inst?.template_id === templateId) throw new Error("Template is already the primary template");
+
+      const { data: existing } = await (supabase.from("clm_instance_extra_templates" as any) as any)
+        .select("id").eq("instance_id", instanceId).eq("template_id", templateId).maybeSingle();
+      if (existing) throw new Error("Template already added to this workspace");
+
+      const { data: tpl, error: tplErr } = await supabase
+        .from("clm_templates").select("name").eq("id", templateId).single();
+      if (tplErr) throw tplErr;
+
+      const { error: linkErr } = await (supabase.from("clm_instance_extra_templates" as any) as any).insert({
+        instance_id: instanceId,
+        template_id: templateId,
+        template_name_snapshot: tpl?.name,
+        added_by: user.id,
+      });
+      if (linkErr) throw linkErr;
+
+      await snapshotTemplateSections(templateId, instanceId, true);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["clm-instance", instanceId] });
+      toast.success("Template added to workspace");
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to add template"),
+  });
+};
+
+export const useRemoveTemplateFromInstance = (instanceId: string) => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (templateId: string) => {
+      // Delete sections sourced from this template
+      await supabase.from("clm_instance_sections")
+        .delete()
+        .eq("instance_id", instanceId)
+        .eq("source_template_id", templateId);
+      const { error } = await (supabase.from("clm_instance_extra_templates" as any) as any)
+        .delete()
+        .eq("instance_id", instanceId)
+        .eq("template_id", templateId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["clm-instance", instanceId] });
+      toast.success("Template removed");
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to remove template"),
+  });
+};

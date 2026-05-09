@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { ArrowLeft, Loader2, FileText, Users } from "lucide-react";
 import { useClmInstance, useUpdateInstanceStatus } from "@/hooks/useClmInstance";
 import { ContributorsPanel } from "@/components/clm/ContributorsPanel";
@@ -21,6 +22,9 @@ import { formatDistanceToNow } from "date-fns";
 import { History, MessageSquare, Clock, CheckCircle2 } from "lucide-react";
 import { ClmBrandedHeader } from "@/components/clm/ClmBrandedHeader";
 import { TemplateCollaboratorsDialog } from "@/components/clm/TemplateCollaboratorsDialog";
+import { AddTemplateToWorkspaceDialog } from "@/components/clm/AddTemplateToWorkspaceDialog";
+import { useRemoveTemplateFromInstance } from "@/hooks/useClmInstance";
+import { Plus, X } from "lucide-react";
 import { KurtChatDrawer } from "@/components/clm/KurtChatDrawer";
 import { PushToGoogleDocsButton } from "@/components/clm/PushToGoogleDocsButton";
 import { useQuery } from "@tanstack/react-query";
@@ -47,6 +51,8 @@ const WorkspaceTemplateRow = ({
   isPrimary?: boolean; debtorId: string | null; contacts: any[];
 }) => {
   const [open, setOpen] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState(false);
+  const remove = useRemoveTemplateFromInstance(instanceId);
   const count = contacts.filter((c: any) => c.template_id === templateId).length;
   return (
     <>
@@ -58,10 +64,24 @@ const WorkspaceTemplateRow = ({
             ? <Badge variant="default" className="text-[10px]">Primary</Badge>
             : <Badge variant="outline" className="text-[10px]">Bundled</Badge>}
         </div>
-        <Button size="sm" variant="outline" onClick={() => setOpen(true)} className="shrink-0">
-          <Users className="h-3.5 w-3.5 mr-1" />
-          {count > 0 ? `${count} collab.` : "Invite"}
-        </Button>
+        <div className="flex items-center gap-1 shrink-0">
+          <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
+            <Users className="h-3.5 w-3.5 mr-1" />
+            {count > 0 ? `${count} collab.` : "Invite"}
+          </Button>
+          {!isPrimary && (
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-7 w-7 text-muted-foreground hover:text-destructive"
+              title="Remove from workspace"
+              disabled={remove.isPending}
+              onClick={() => setConfirmRemove(true)}
+            >
+              {remove.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />}
+            </Button>
+          )}
+        </div>
       </div>
       <TemplateCollaboratorsDialog
         open={open}
@@ -72,6 +92,28 @@ const WorkspaceTemplateRow = ({
         debtorId={debtorId}
         allLinkedContacts={contacts}
       />
+      {confirmRemove && (
+        <Dialog open={confirmRemove} onOpenChange={setConfirmRemove}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Remove "{templateName}"?</DialogTitle>
+              <DialogDescription>
+                This removes the bundled template and deletes its sections from this workspace.
+                Revisions and comments tied to those sections will also be removed. This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setConfirmRemove(false)}>Cancel</Button>
+              <Button
+                variant="destructive"
+                onClick={async () => { await remove.mutateAsync(templateId); setConfirmRemove(false); }}
+              >
+                Remove template
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 };
@@ -178,6 +220,7 @@ const Inner = () => {
   const { id } = useParams<{ id: string }>();
   const { data, isLoading } = useClmInstance(id);
   const updateStatus = useUpdateInstanceStatus(id ?? "");
+  const [addTplOpen, setAddTplOpen] = useState(false);
 
   if (isLoading || !data) {
     return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
@@ -238,8 +281,15 @@ const Inner = () => {
           <ContributorsPanel instanceId={id!} contacts={contacts} debtors={debtors} />
           <Card>
             <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2"><FileText className="h-4 w-4" /> Templates in this workspace</CardTitle>
-              <CardDescription>Click a template to invite collaborators specific to that contract.</CardDescription>
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <CardTitle className="text-base flex items-center gap-2"><FileText className="h-4 w-4" /> Templates in this workspace</CardTitle>
+                  <CardDescription>Click a template to invite collaborators specific to that contract.</CardDescription>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => setAddTplOpen(true)} className="shrink-0">
+                  <Plus className="h-3.5 w-3.5 mr-1" /> Add
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-1">
               {instance.template_id && (
@@ -264,6 +314,14 @@ const Inner = () => {
               ))}
             </CardContent>
           </Card>
+          <AddTemplateToWorkspaceDialog
+            open={addTplOpen}
+            onOpenChange={setAddTplOpen}
+            instanceId={id!}
+            primaryTemplateId={instance.template_id ?? null}
+            attachedTemplateIds={extraTemplates.map((t: any) => t.template_id)}
+          />
+
         </div>
       </div>
     </div>
