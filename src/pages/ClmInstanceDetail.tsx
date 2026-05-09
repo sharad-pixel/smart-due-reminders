@@ -280,8 +280,15 @@ const Inner = () => {
           <ContributorsPanel instanceId={id!} contacts={contacts} debtors={debtors} />
           <Card>
             <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2"><FileText className="h-4 w-4" /> Templates in this workspace</CardTitle>
-              <CardDescription>Click a template to invite collaborators specific to that contract.</CardDescription>
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <CardTitle className="text-base flex items-center gap-2"><FileText className="h-4 w-4" /> Templates in this workspace</CardTitle>
+                  <CardDescription>Click a template to invite collaborators specific to that contract.</CardDescription>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => setAddTplOpen(true)} className="shrink-0">
+                  <Plus className="h-3.5 w-3.5 mr-1" /> Add
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-1">
               {instance.template_id && (
@@ -306,6 +313,14 @@ const Inner = () => {
               ))}
             </CardContent>
           </Card>
+          <AddTemplateToWorkspaceDialog
+            open={addTplOpen}
+            onOpenChange={setAddTplOpen}
+            instanceId={id!}
+            primaryTemplateId={instance.template_id ?? null}
+            attachedTemplateIds={extraTemplates.map((t: any) => t.template_id)}
+          />
+
         </div>
       </div>
     </div>
