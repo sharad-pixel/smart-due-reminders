@@ -596,3 +596,85 @@ export const useRemoveTemplateFromInstance = (instanceId: string) => {
     onError: (e: any) => toast.error(e?.message ?? "Failed to remove template"),
   });
 };
+
+// ─────────────────────────────────────────────────────────────────────────
+// Drafts → batched review submission
+// Editors accumulate "auto" (draft) revisions during a session. They submit
+// them all at once for one approver — the owner is alerted once.
+// ─────────────────────────────────────────────────────────────────────────
+
+export const useMyUnsubmittedDrafts = (instanceId: string | undefined) => {
+  return useQuery({
+    queryKey: ["clm-my-drafts", instanceId],
+    enabled: !!instanceId,
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || !instanceId) return [];
+      const { data, error } = await (supabase.from("clm_section_revisions" as any) as any)
+        .select("id, section_id, section_title, section_key, change_summary, version_number, created_at, new_body, previous_body")
+        .eq("instance_id", instanceId)
+        .eq("edited_by", user.id)
+        .eq("approval_status", "auto")
+        .is("submitted_batch_id", null)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+};
+
+export const useSubmitDraftsForReview = (instanceId: string) => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      revisionIds, approverEmail, approverName, message,
+    }: { revisionIds: string[]; approverEmail: string; approverName?: string; message?: string }) => {
+      if (!revisionIds.length) throw new Error("No drafts to submit");
+      const { data: { user } } = await supabase.auth.getUser();
+      let submittedByName: string | undefined;
+      if (user?.id) {
+        const { data: prof } = await supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
+        submittedByName = (prof as any)?.full_name ?? user.email ?? undefined;
+      }
+
+      // 1. Flip the draft revisions to "pending" with the approver attached.
+      //    The per-revision trigger skips notifying because submitted_batch_id is set below.
+      //    We update first (without batch_id) — but the trigger only fires if status changes,
+      //    so we do this in two steps to avoid an interim individual email.
+      // Strategy: create the batch first (with revision_count), then update revisions
+      // to set submitted_batch_id + status=pending in a single statement.
+      const { data: batch, error: bErr } = await (supabase.from("clm_review_batches" as any) as any)
+        .insert({
+          instance_id: instanceId,
+          submitted_by: user?.id,
+          submitted_by_name: submittedByName,
+          submitted_by_email: user?.email,
+          approver_email: approverEmail.toLowerCase(),
+          approver_name: approverName ?? null,
+          message: message ?? null,
+          revision_count: revisionIds.length,
+        })
+        .select("id")
+        .single();
+      if (bErr) throw bErr;
+
+      const { error: uErr } = await (supabase.from("clm_section_revisions" as any) as any)
+        .update({
+          submitted_batch_id: (batch as any).id,
+          approval_status: "pending",
+          assigned_approver_email: approverEmail.toLowerCase(),
+          assigned_approver_name: approverName ?? null,
+          assigned_at: new Date().toISOString(),
+        })
+        .in("id", revisionIds);
+      if (uErr) throw uErr;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["clm-instance", instanceId] });
+      qc.invalidateQueries({ queryKey: ["clm-revisions", instanceId] });
+      qc.invalidateQueries({ queryKey: ["clm-my-drafts", instanceId] });
+      toast.success("Submitted for review — approver will receive a single digest");
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to submit"),
+  });
+};
