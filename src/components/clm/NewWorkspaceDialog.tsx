@@ -51,6 +51,8 @@ export const NewWorkspaceDialog = ({ open, onOpenChange }: Props) => {
   const [debtorLabel, setDebtorLabel] = useState("");
   const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([]);
   const [name, setName] = useState("");
+  const [businessProfile, setBusinessProfile] = useState<BusinessProfileId>("general");
+  const [profileMetadata, setProfileMetadata] = useState<Record<string, any>>({});
 
   // Collaborators state
   const [selectedContactIds, setSelectedContactIds] = useState<string[]>([]);
