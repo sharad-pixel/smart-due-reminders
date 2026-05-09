@@ -162,6 +162,8 @@ export const NewWorkspaceDialog = ({ open, onOpenChange }: Props) => {
       name: name.trim(),
       debtor_id: debtorId,
       extra_template_ids: extras,
+      business_profile: businessProfile,
+      profile_metadata: profileMetadata,
     });
 
     // Link collaborators / approvers (best-effort)
