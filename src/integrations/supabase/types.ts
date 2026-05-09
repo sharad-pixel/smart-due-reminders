@@ -1416,6 +1416,7 @@ export type Database = {
           section_id: string
           section_key: string | null
           section_title: string | null
+          version_number: number | null
         }
         Insert: {
           approval_status?: string
@@ -1438,6 +1439,7 @@ export type Database = {
           section_id: string
           section_key?: string | null
           section_title?: string | null
+          version_number?: number | null
         }
         Update: {
           approval_status?: string
@@ -1460,6 +1462,7 @@ export type Database = {
           section_id?: string
           section_key?: string | null
           section_title?: string | null
+          version_number?: number | null
         }
         Relationships: [
           {
