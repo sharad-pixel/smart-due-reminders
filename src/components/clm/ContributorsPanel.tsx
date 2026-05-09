@@ -78,7 +78,8 @@ export const ContributorsPanel = ({ instanceId, contacts, debtors }: Props) => {
           ) : (
             <div className="space-y-1">
               {internals.map((c) => (
-                <ContributorRow key={c.id} contact={c} onRemove={() => remove.mutate(c.id)} internal />
+                <ContributorRow key={c.id} contact={c} onRemove={() => remove.mutate(c.id)} internal
+                  onRoleChange={(role) => updateRole.mutate({ id: c.id, role })} />
               ))}
             </div>
           )}
