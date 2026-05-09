@@ -106,7 +106,9 @@ export const SectionEditDialog = ({
               <span className="inline-flex items-center gap-1.5 mr-2 rounded bg-primary/10 text-primary px-1.5 py-0.5 text-[11px] font-medium">
                 <GitBranch className="h-3 w-3" /> Suggesting mode
               </span>
-              Like Google Docs, your edits are tracked as suggestions and only become live once an approver accepts them. Use "Save as new version" to publish immediately without review.
+              Save as many edits as you like — each one is logged and versioned. They stay
+              private as drafts until you submit them all together for review from the
+              workspace bar (the approver gets one alert, not one per edit).
             </DialogDescription>
           </DialogHeader>
 
@@ -176,13 +178,13 @@ export const SectionEditDialog = ({
             </TabsContent>
           </Tabs>
 
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+            <p className="text-[11px] text-muted-foreground sm:mr-auto">
+              Drafts are batched — submit them all from the workspace bar when you're done.
+            </p>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button variant="secondary" disabled={!dirty || update.isPending} onClick={() => submit(false)}>
-              {update.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : (<><Save className="h-4 w-4 mr-1" /> Save as new version</>)}
-            </Button>
-            <Button disabled={!canSubmitForApproval || update.isPending} onClick={() => submit(true)}>
-              <Send className="h-4 w-4 mr-1" /> Submit for Approval
+            <Button disabled={!dirty || update.isPending} onClick={() => submit(false)}>
+              {update.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : (<><Save className="h-4 w-4 mr-1" /> Save draft (v+1)</>)}
             </Button>
           </DialogFooter>
         </DialogContent>

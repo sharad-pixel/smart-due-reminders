@@ -596,3 +596,55 @@ export const useRemoveTemplateFromInstance = (instanceId: string) => {
     onError: (e: any) => toast.error(e?.message ?? "Failed to remove template"),
   });
 };
+
+// ─────────────────────────────────────────────────────────────────────────
+// Drafts → batched review submission
+// Editors accumulate "auto" (draft) revisions during a session. They submit
+// them all at once for one approver — the owner is alerted once.
+// ─────────────────────────────────────────────────────────────────────────
+
+export const useMyUnsubmittedDrafts = (instanceId: string | undefined) => {
+  return useQuery({
+    queryKey: ["clm-my-drafts", instanceId],
+    enabled: !!instanceId,
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || !instanceId) return [];
+      const { data, error } = await (supabase.from("clm_section_revisions" as any) as any)
+        .select("id, section_id, section_title, section_key, change_summary, version_number, created_at, new_body, previous_body")
+        .eq("instance_id", instanceId)
+        .eq("edited_by", user.id)
+        .eq("approval_status", "auto")
+        .is("submitted_batch_id", null)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+};
+
+export const useSubmitDraftsForReview = (instanceId: string) => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      revisionIds, approverEmail, approverName, message,
+    }: { revisionIds: string[]; approverEmail: string; approverName?: string; message?: string }) => {
+      if (!revisionIds.length) throw new Error("No drafts to submit");
+      const { error } = await (supabase as any).rpc("submit_clm_review_batch", {
+        p_instance_id: instanceId,
+        p_revision_ids: revisionIds,
+        p_approver_email: approverEmail,
+        p_approver_name: approverName ?? null,
+        p_message: message ?? null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["clm-instance", instanceId] });
+      qc.invalidateQueries({ queryKey: ["clm-revisions", instanceId] });
+      qc.invalidateQueries({ queryKey: ["clm-my-drafts", instanceId] });
+      toast.success("Submitted for review — approver will receive a single digest");
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to submit"),
+  });
+};

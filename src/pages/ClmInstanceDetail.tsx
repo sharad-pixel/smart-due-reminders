@@ -12,6 +12,7 @@ import { ApprovalsPanel } from "@/components/clm/ApprovalsPanel";
 import { AccessSidebar } from "@/components/clm/AccessSidebar";
 import { WorkspaceTemplateTabs } from "@/components/clm/WorkspaceTemplateTabs";
 import { PrepareSignaturePackageDialog } from "@/components/clm/PrepareSignaturePackageDialog";
+import { DraftSubmissionBar } from "@/components/clm/DraftSubmissionBar";
 import { ClmBrandedHeader } from "@/components/clm/ClmBrandedHeader";
 import { KurtChatDrawer } from "@/components/clm/KurtChatDrawer";
 import { PushToGoogleDocsButton } from "@/components/clm/PushToGoogleDocsButton";
@@ -109,6 +110,10 @@ const Inner = () => {
       />
 
       <WorkspaceOverviewCard instance={instance} debtors={debtors} />
+
+      <div className="mt-6">
+        <DraftSubmissionBar instanceId={id!} contacts={contacts} externalAccess={externalAccess as any[]} />
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_360px] mt-6">
         <WorkspaceTemplateTabs

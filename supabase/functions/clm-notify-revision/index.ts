@@ -106,7 +106,7 @@ async function processJob(admin: any, job: any) {
           account_id: inst.account_id,
           email: recipientEmail,
           name: job.recipient_name || null,
-          role: job.event_type === "assigned" ? "approver" : "reviewer",
+          role: (job.event_type === "assigned" || job.event_type === "batch_assigned") ? "approver" : "reviewer",
           expires_at: new Date(Date.now() + 30 * 86400_000).toISOString(),
         })
         .select("token")
@@ -153,6 +153,25 @@ function buildEmail(job: any, workspaceName: string, link: string) {
         <p style="margin:0 0 12px;color:#475569;">Open the workspace to review the diff and approve or request changes.</p>
         ${cta("Review amendment")}`,
         "Amendment ready for your review"),
+    };
+  }
+
+  if (job.event_type === "batch_assigned") {
+    const sections = Array.isArray(p.sections) ? p.sections : [];
+    const list = sections.slice(0, 12).map((s: any) =>
+      `<li style="margin:4px 0;"><strong>${esc(s.section_title || s.section_key || "Section")}</strong>${s.change_summary ? ` — <span style="color:#475569;">${esc(s.change_summary)}</span>` : ""} <span style="color:#94a3b8;font-family:monospace;font-size:11px;">v${s.version_number ?? ""}</span></li>`
+    ).join("");
+    const more = sections.length > 12 ? `<p style="margin:4px 0;color:#64748b;font-size:12px;">+ ${sections.length - 12} more change${sections.length - 12 === 1 ? "" : "s"}…</p>` : "";
+    return {
+      subject: `Review requested: ${p.revision_count} change${p.revision_count === 1 ? "" : "s"} — ${workspaceName}`,
+      html: wrap(`
+        <p style="margin:0 0 12px;"><strong>${esc(p.submitted_by_name || p.submitted_by_email || "A collaborator")}</strong> finished an editing session in <strong>${esc(workspaceName)}</strong> and submitted <strong>${p.revision_count}</strong> change${p.revision_count === 1 ? "" : "s"} for your review.</p>
+        ${p.message ? `<div style="margin:0 0 12px;padding:10px 12px;background:#f1f5f9;border-left:3px solid #3b82f6;color:#334155;font-style:italic;">"${esc(p.message)}"</div>` : ""}
+        <p style="margin:12px 0 6px;color:#0f172a;font-weight:600;">Sections changed:</p>
+        <ul style="margin:0 0 12px;padding-left:20px;color:#0f172a;font-size:13px;">${list}</ul>
+        ${more}
+        ${cta("Review all changes")}`,
+        "Amendments ready for your review"),
     };
   }
 
