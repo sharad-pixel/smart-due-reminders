@@ -22,6 +22,7 @@ import { History, MessageSquare, Clock, CheckCircle2 } from "lucide-react";
 import { ClmBrandedHeader } from "@/components/clm/ClmBrandedHeader";
 import { TemplateCollaboratorsDialog } from "@/components/clm/TemplateCollaboratorsDialog";
 import { KurtChatDrawer } from "@/components/clm/KurtChatDrawer";
+import { PushToGoogleDocsButton } from "@/components/clm/PushToGoogleDocsButton";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import SEO from "@/components/seo/SEO";
