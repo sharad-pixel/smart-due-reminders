@@ -2,11 +2,15 @@ import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
-  ScrollText, Pencil, Send, Check, X, RotateCcw, Lock, MessageSquare, UserPlus, FilePlus, GitMerge,
+  ScrollText, Pencil, Send, Check, X, RotateCcw, Lock, MessageSquare, UserPlus, FilePlus, GitMerge, Mail, Clock as ClockIcon,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { useClmAuditLog } from "@/hooks/useClmInstance";
+
+const initials = (s: string) => s.split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase()).join("") || "?";
 
 interface Props {
   instanceId: string;
