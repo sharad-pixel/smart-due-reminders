@@ -1,73 +1,116 @@
-# Granular Edit Review, Tagging & Revert
+## Goal
 
-Today, edits are saved as drafts and submitted in batches to **one** approver, with revert only available from the version-history dialog. You're asking for a richer, Google-Docs / GitHub-PR-style flow:
+Today every save in a CLM workspace creates a `clm_section_revisions` row. There is no concept of a labeled "version" of the document, anyone with the workspace can save, and reverting / approval logic is per-revision rather than per-version. We need a clearer versioning model where:
 
-- Every individual edit can be reviewed in place
-- Editors **and** Approvers can accept changes (Editors merge their own peers' minor edits; Approvers are required for legal/material ones)
-- Users can `@mention` collaborators on a specific change to pull them in
-- Threaded comments live on the change itself
-- One-click revert on any change (live or historical)
+- Only **invited collaborators with a defined role** can edit, snapshot, approve, or revert versions.
+- The team can produce **named versions** (v1, v2…) of the whole contract, not just per-section diffs.
+- Each version has a clear lifecycle: **Draft → Pending Review → Published → Sealed**.
+- All transitions are tracked in the audit log with user + timestamp + role.
 
-## Proposed Logic (the "best" model)
+---
 
-### 1. Two-tier acceptance — separate "merge" from "approve"
-Each `clm_section_revisions` row gains:
+## Versioning model
 
-- `merge_status`  — `pending | merged | reverted` (who applied the text change)
-- `approval_status` — keep existing (`auto | pending | approved | rejected`)
+Two layers, working together:
 
-Rules:
-| Actor | Can merge? | Can approve? | Can revert? |
-|---|---|---|---|
-| **Owner** | Yes | Yes | Yes (any) |
-| **Approver / Legal** | Yes | **Yes** | Yes (any unsealed) |
-| **Editor** | Yes (own + peer Editor edits) | No (still needs Approver sign-off) | Own edits, or any pending peer edit |
-| **Reviewer / Viewer** | No | No | No |
+```text
+Document Version (whole workspace)        clm_document_versions
+   ├── label  (v1, v2, "Final for signature")
+   ├── status (draft | pending | published | sealed | superseded)
+   ├── created_by + role_at_time
+   ├── snapshot of every section body
+   └── linked revisions that fed into it
+        │
+        ▼
+Section Revisions (per edit, existing)    clm_section_revisions
+   └── now stamped with current_version_id
+```
 
-A revision is **"sealed"** (locked from revert) once `approval_status = approved` AND the workspace status ≥ `approved`. Before that, anyone with merge/approve rights can revert it.
+- **Draft**: editable. Editors keep saving — each save bumps revisions inside the current draft version.
+- **Pending Review**: snapshot is frozen; only Approver / Legal / Owner can approve or send back.
+- **Published**: becomes the new "current" version. Previous published version is marked `superseded`. A new Draft version is auto-opened for further edits.
+- **Sealed**: locked after signature. No reverts, no edits, ever.
 
-### 2. Tagging & threaded comments per revision
-New table `clm_revision_comments`:
-- `revision_id`, `author_user_id`/`author_email`, `body`, `mentions[]`, `parent_comment_id`, `resolved_at`
+Reverts always create a **new revision** in the active Draft version (never mutate history).
 
-Mentions (`@email` or `@name`) trigger a single notification to that collaborator with deep-link to the revision card. Mentioning someone with Approver/Editor role flags the revision with `requested_reviewers[]` so it appears in their queue.
+---
 
-### 3. Revert as a first-class action (not just "restore old version")
-A revert produces a **new revision** (`change_summary = "Reverted v4 by Jane"`, `previous_body = current`, `new_body = target version's previous_body`). This:
-- Preserves the audit trail (no destructive deletes)
-- Lets the revert itself be reviewed/approved like any change
-- Works identically for "undo my own draft" and "roll back an approved clause"
+## Role gating (who can do what)
 
-### 4. UI surfaces
-- **Inline change card** in `FullDocumentView` and `SectionsList`: shows diff, author, status chips, Merge / Approve / Revert / Comment buttons gated by capability
-- **Comment thread** expands under each change card with `@mention` autocomplete pulled from `contacts + externalAccess`
-- **Revisions panel** (`RevisionHistoryPanel`) gets per-row Revert + "Request review from…" picker
-- **DraftSubmissionBar** keeps batch submit, but auto-includes any revisions a user was `@mentioned` to review
+Reuses existing roles in `src/lib/clmRoles.ts`. Versioning actions are exposed only to invited collaborators (`clm_instance_contacts` + `clm_external_access`); account-owner fallback kept.
 
-### 5. Notifications (respecting your batching rule)
-- `@mention` → 1 immediate email to the tagged person (these are intentional pings, not noise)
-- Merge / Approve / Revert → no email; surfaces in the in-app activity feed only
-- Batch submit for review → unchanged digest behavior
+| Action                              | Owner | Legal | Approver | Editor | Reviewer | Signer | CC | Viewer |
+|------------------------------------|:-----:|:-----:|:--------:|:------:|:--------:|:------:|:--:|:------:|
+| Edit current draft (auto-save)     |  ✓    |  ✓    |   ✓      |  ✓     |          |        |    |        |
+| Open new Draft after publish       |  ✓    |  ✓    |   ✓      |  ✓     |          |        |    |        |
+| Submit Draft → Pending Review      |  ✓    |  ✓    |   ✓      |  ✓     |          |        |    |        |
+| Approve (Pending → Published)      |  ✓    |  ✓    |   ✓      |        |          |        |    |        |
+| Reject Pending → back to Draft     |  ✓    |  ✓    |   ✓      |        |          |        |    |        |
+| Revert to a prior Published ver.   |  ✓    |  ✓    |   ✓      |        |          |        |    |        |
+| Seal a Published version           |  ✓    |  ✓    |          |        |          |   ✓    |    |        |
+| Comment / @mention                 |  ✓    |  ✓    |   ✓      |  ✓     |   ✓      |   ✓    | ✓  |        |
+| View version history               |  ✓    |  ✓    |   ✓      |  ✓     |   ✓      |   ✓    | ✓  |   ✓    |
 
-## Technical Changes
+Anyone not in `clm_instance_contacts` / `clm_external_access` (and not the account owner) cannot view or act — enforced server-side via the existing `can_edit_clm_instance` / `can_approve_clm_instance` helpers extended with `can_seal_clm_instance` and `can_revert_clm_instance`.
 
-**Migration**
-- `ALTER clm_section_revisions ADD COLUMN merge_status text DEFAULT 'merged'`, `requested_reviewers text[]`, `sealed_at timestamptz`
-- New table `clm_revision_comments` with RLS mirroring `clm_section_comments`
-- RPC `revert_clm_revision(revision_id, note)` → inserts a new inverse revision and re-applies body
-- RPC `request_clm_revision_review(revision_id, emails[], message)` → updates `requested_reviewers`, enqueues mention notifications
-- Trigger to set `sealed_at` when approval_status flips to `approved` and instance status ≥ `approved`
+---
 
-**Frontend**
-- New `RevisionChangeCard.tsx` (merge / approve / revert / comment / mention)
-- New `RevisionCommentThread.tsx` with `@mention` autocomplete
-- Update `FullDocumentView`, `SectionsList`, `RevisionHistoryPanel` to render the new card
-- Extend `useClmInstance.ts` with `useRevertRevision`, `useRequestRevisionReview`, `useRevisionComments`, `usePostRevisionComment`
-- Capability helpers in `clmRoles.ts`: `canMerge`, `canApprove`, `canRevert(revision, role, isAuthor)`
+## Database changes
 
-**Edge function**
-- Extend `clm-notify-revision` with `mention` and `review_requested` event types (single-recipient, immediate)
+New table `clm_document_versions`:
+- `id`, `instance_id`
+- `version_number` (auto-increment per instance)
+- `label` (optional human label)
+- `status` enum (`draft | pending | published | sealed | superseded`)
+- `snapshot_sections jsonb` (array of `{section_id, key, title, body}` at snapshot time)
+- `created_by`, `created_by_role`, `created_at`
+- `submitted_by`, `submitted_at`
+- `reviewed_by`, `reviewed_by_role`, `reviewed_at`, `review_note`
+- `sealed_by`, `sealed_at`
+- `supersedes_version_id`
 
-## Out of scope (ask if you want them)
-- Character-level suggestions à la Google Docs "Suggesting" mode (current model is whole-section diffs)
-- Branching / parallel edit conflict resolution beyond last-write-wins on merge
+Add `current_version_id` to `clm_template_instances` (the active Draft).
+Add `version_id` to `clm_section_revisions` (which version this revision belongs to).
+RLS: read for any contact / external-access / owner; writes via SECURITY DEFINER RPCs only.
+
+New RPCs (all enforce role server-side):
+- `clm_open_new_draft_version(instance_id)` — Editor+
+- `clm_submit_version_for_review(version_id)` — Editor+
+- `clm_review_version(version_id, decision, note)` — Approver/Legal/Owner
+- `clm_revert_to_version(instance_id, target_version_id)` — Approver/Legal/Owner; copies snapshot back into sections inside a fresh Draft version, never deletes history
+- `clm_seal_version(version_id)` — Owner/Legal/Signer (only when `published`)
+
+Backfill: create one `published` version per existing instance from current section bodies, then open a fresh `draft` version on top.
+
+---
+
+## UI changes
+
+1. **Header**: replace ad-hoc status select with a **Version pill** ("v3 · Draft") + dropdown showing the version timeline. Existing status select moves into the version's review menu.
+2. **New `VersionTimelinePanel`** (replaces parts of `RevisionHistoryPanel`):
+   - Vertical timeline of versions with badges (Draft / Pending / Published / Sealed / Superseded), author, timestamp, role.
+   - Expand a version to see the section-level revisions that rolled into it.
+   - Per-row actions gated by the matrix above: `Submit for review`, `Approve`, `Reject`, `Revert to this version`, `Seal`, `Open new draft`.
+3. **`RevisionHistoryPanel`** stays for in-version revisions but is nested under the active version.
+4. **`AuditLogPanel`** adds `version.opened`, `version.submitted`, `version.approved`, `version.rejected`, `version.reverted`, `version.sealed` event types.
+5. **Save bar** shows "Editing Draft v4 — 3 unsaved revisions since v3 (Published)".
+6. **`RoleCapabilitiesDialog`** matrix updated to reflect new versioning rows.
+
+If a user without the right role tries an action, the button is disabled with a tooltip explaining who can perform it.
+
+---
+
+## Out of scope
+
+- Branching (parallel drafts) — keep linear for v1.
+- Per-section approvals — still supported via existing revision flow inside a Draft.
+- Diff visualization between two arbitrary versions — can be a follow-up; this plan covers the data so it's a UI-only addition later.
+
+---
+
+## Rollout
+
+1. Migration: new table, columns, RPCs, RLS, backfill.
+2. Hooks: `useDocumentVersions`, `useOpenDraftVersion`, `useSubmitVersion`, `useReviewVersion`, `useRevertToVersion`, `useSealVersion`.
+3. UI: `VersionTimelinePanel`, header version pill, updated save bar, capabilities matrix.
+4. Audit log event types + backfill of synthetic "v1 published" event.
