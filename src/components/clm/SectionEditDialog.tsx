@@ -103,7 +103,10 @@ export const SectionEditDialog = ({
               )}
             </DialogTitle>
             <DialogDescription>
-              Submitting for approval keeps the live section unchanged until your assignee approves. Saving directly publishes immediately.
+              <span className="inline-flex items-center gap-1.5 mr-2 rounded bg-primary/10 text-primary px-1.5 py-0.5 text-[11px] font-medium">
+                <GitBranch className="h-3 w-3" /> Suggesting mode
+              </span>
+              Like Google Docs, your edits are tracked as suggestions and only become live once an approver accepts them. Use "Save as new version" to publish immediately without review.
             </DialogDescription>
           </DialogHeader>
 
