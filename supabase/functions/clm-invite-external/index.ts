@@ -62,7 +62,7 @@ serve(async (req) => {
         .limit(1)
         .maybeSingle();
 
-      const days = Math.min(Math.max(parseInt(String(expires_in_days || "30"), 10) || 30, 1), 365);
+      const expiresAt = computeExpiresAt(expires_in_hours, expires_in_days);
 
       const { data: row, error: insErr } = await admin
         .from("clm_external_access")
@@ -73,7 +73,7 @@ serve(async (req) => {
           email: trimmed,
           name: name || null,
           role: role || "reviewer",
-          expires_at: new Date(Date.now() + days * 86400_000).toISOString(),
+          expires_at: expiresAt,
           created_by: userId,
         })
         .select()
