@@ -1090,6 +1090,96 @@ export type Database = {
           },
         ]
       }
+      clm_document_versions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+          created_by_role: string | null
+          id: string
+          instance_id: string
+          label: string | null
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          reviewed_by_name: string | null
+          reviewed_by_role: string | null
+          sealed_at: string | null
+          sealed_by: string | null
+          sealed_by_name: string | null
+          snapshot_sections: Json
+          status: Database["public"]["Enums"]["clm_doc_version_status"]
+          submitted_at: string | null
+          submitted_by: string | null
+          submitted_by_name: string | null
+          supersedes_version_id: string | null
+          version_number: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          created_by_role?: string | null
+          id?: string
+          instance_id: string
+          label?: string | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewed_by_name?: string | null
+          reviewed_by_role?: string | null
+          sealed_at?: string | null
+          sealed_by?: string | null
+          sealed_by_name?: string | null
+          snapshot_sections?: Json
+          status?: Database["public"]["Enums"]["clm_doc_version_status"]
+          submitted_at?: string | null
+          submitted_by?: string | null
+          submitted_by_name?: string | null
+          supersedes_version_id?: string | null
+          version_number: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          created_by_role?: string | null
+          id?: string
+          instance_id?: string
+          label?: string | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewed_by_name?: string | null
+          reviewed_by_role?: string | null
+          sealed_at?: string | null
+          sealed_by?: string | null
+          sealed_by_name?: string | null
+          snapshot_sections?: Json
+          status?: Database["public"]["Enums"]["clm_doc_version_status"]
+          submitted_at?: string | null
+          submitted_by?: string | null
+          submitted_by_name?: string | null
+          supersedes_version_id?: string | null
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clm_document_versions_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "clm_template_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clm_document_versions_supersedes_version_id_fkey"
+            columns: ["supersedes_version_id"]
+            isOneToOne: false
+            referencedRelation: "clm_document_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clm_entitlements: {
         Row: {
           account_id: string
@@ -1752,6 +1842,7 @@ export type Database = {
           assigned_at: string | null
           change_summary: string | null
           created_at: string
+          document_version_id: string | null
           edited_by: string | null
           edited_by_name: string | null
           id: string
@@ -1783,6 +1874,7 @@ export type Database = {
           assigned_at?: string | null
           change_summary?: string | null
           created_at?: string
+          document_version_id?: string | null
           edited_by?: string | null
           edited_by_name?: string | null
           id?: string
@@ -1814,6 +1906,7 @@ export type Database = {
           assigned_at?: string | null
           change_summary?: string | null
           created_at?: string
+          document_version_id?: string | null
           edited_by?: string | null
           edited_by_name?: string | null
           id?: string
@@ -1838,6 +1931,13 @@ export type Database = {
           version_number?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "clm_section_revisions_document_version_id_fkey"
+            columns: ["document_version_id"]
+            isOneToOne: false
+            referencedRelation: "clm_document_versions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "clm_section_revisions_instance_id_fkey"
             columns: ["instance_id"]
@@ -1939,6 +2039,7 @@ export type Database = {
           account_id: string
           created_at: string
           created_by: string
+          current_version_id: string | null
           gdoc_document_id: string | null
           gdoc_synced_at: string | null
           gdoc_synced_by: string | null
@@ -1955,6 +2056,7 @@ export type Database = {
           account_id: string
           created_at?: string
           created_by: string
+          current_version_id?: string | null
           gdoc_document_id?: string | null
           gdoc_synced_at?: string | null
           gdoc_synced_by?: string | null
@@ -1971,6 +2073,7 @@ export type Database = {
           account_id?: string
           created_at?: string
           created_by?: string
+          current_version_id?: string | null
           gdoc_document_id?: string | null
           gdoc_synced_at?: string | null
           gdoc_synced_by?: string | null
@@ -1984,6 +2087,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "clm_template_instances_current_version_id_fkey"
+            columns: ["current_version_id"]
+            isOneToOne: false
+            referencedRelation: "clm_document_versions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "clm_template_instances_template_id_fkey"
             columns: ["template_id"]
@@ -10399,6 +10509,14 @@ export type Database = {
         Args: { p_instance_id: string; p_user_id: string }
         Returns: boolean
       }
+      can_revert_clm_instance: {
+        Args: { p_instance_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      can_seal_clm_instance: {
+        Args: { p_instance_id: string; p_user_id: string }
+        Returns: boolean
+      }
       can_view_clm_instance: {
         Args: { p_instance_id: string; p_user_id: string }
         Returns: boolean
@@ -10452,9 +10570,30 @@ export type Database = {
         Args: { p_instance_id: string; p_user_id: string }
         Returns: string
       }
+      clm_open_new_draft_version: {
+        Args: { p_instance_id: string }
+        Returns: string
+      }
+      clm_revert_to_version: {
+        Args: { p_target_version_id: string }
+        Returns: string
+      }
+      clm_review_version: {
+        Args: { p_decision: string; p_note?: string; p_version_id: string }
+        Returns: undefined
+      }
+      clm_seal_version: { Args: { p_version_id: string }; Returns: undefined }
+      clm_submit_version_for_review: {
+        Args: { p_version_id: string }
+        Returns: undefined
+      }
       create_default_outreach_templates: {
         Args: { p_user_id: string }
         Returns: undefined
+      }
+      ensure_clm_draft_version: {
+        Args: { p_instance_id: string }
+        Returns: string
       }
       generate_invite_token: { Args: never; Returns: string }
       generate_reference_id: {
@@ -10633,6 +10772,12 @@ export type Database = {
     Enums: {
       app_role: "owner" | "admin" | "member" | "viewer"
       channel_type: "email" | "sms"
+      clm_doc_version_status:
+        | "draft"
+        | "pending"
+        | "published"
+        | "sealed"
+        | "superseded"
       clm_kurt_recommendation_kind: "approve" | "request_changes" | "reject"
       debtor_type: "B2B" | "B2C"
       document_category:
@@ -10821,6 +10966,13 @@ export const Constants = {
     Enums: {
       app_role: ["owner", "admin", "member", "viewer"],
       channel_type: ["email", "sms"],
+      clm_doc_version_status: [
+        "draft",
+        "pending",
+        "published",
+        "sealed",
+        "superseded",
+      ],
       clm_kurt_recommendation_kind: ["approve", "request_changes", "reject"],
       debtor_type: ["B2B", "B2C"],
       document_category: [
