@@ -1644,6 +1644,10 @@ export type Database = {
           account_id: string
           created_at: string
           created_by: string
+          gdoc_document_id: string | null
+          gdoc_synced_at: string | null
+          gdoc_synced_by: string | null
+          gdoc_url: string | null
           id: string
           name: string
           notes: string | null
@@ -1656,6 +1660,10 @@ export type Database = {
           account_id: string
           created_at?: string
           created_by: string
+          gdoc_document_id?: string | null
+          gdoc_synced_at?: string | null
+          gdoc_synced_by?: string | null
+          gdoc_url?: string | null
           id?: string
           name: string
           notes?: string | null
@@ -1668,6 +1676,10 @@ export type Database = {
           account_id?: string
           created_at?: string
           created_by?: string
+          gdoc_document_id?: string | null
+          gdoc_synced_at?: string | null
+          gdoc_synced_by?: string | null
+          gdoc_url?: string | null
           id?: string
           name?: string
           notes?: string | null
