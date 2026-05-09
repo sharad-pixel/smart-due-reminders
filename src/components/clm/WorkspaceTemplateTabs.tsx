@@ -34,6 +34,7 @@ export const WorkspaceTemplateTabs = ({
   const [addOpen, setAddOpen] = useState(false);
   const [collabOpenFor, setCollabOpenFor] = useState<TabItem | null>(null);
   const [confirmRemove, setConfirmRemove] = useState<TabItem | null>(null);
+  const [view, setView] = useState<"sections" | "document">("sections");
   const remove = useRemoveTemplateFromInstance(instanceId);
   const { data: revisions = [] } = useInstanceRevisions(instanceId);
 
