@@ -33,6 +33,7 @@ interface Props {
 export const AccessSidebar = ({ instanceId, instance, contacts, externalAccess = [], debtors }: Props) => {
   const [showInvite, setShowInvite] = useState(false);
   const remove = useRemoveInstanceContact(instanceId);
+  const updateRole = useUpdateInstanceContactRole(instanceId);
 
   const members = useMemo<Member[]>(() => {
     const list: Member[] = [];
