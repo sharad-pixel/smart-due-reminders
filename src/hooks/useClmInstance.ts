@@ -410,6 +410,23 @@ export const useAddInternalCollaborator = (instanceId: string) => {
   };
 };
 
+export const useUpdateInstanceContactRole = (instanceId: string) => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, role }: { id: string; role: string }) => {
+      const { error } = await (supabase.from("clm_instance_contacts" as any) as any)
+        .update({ role })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["clm-instance", instanceId] });
+      toast.success("Role updated");
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to update role"),
+  });
+};
+
 export const useRemoveInstanceContact = (instanceId: string) => {
   const qc = useQueryClient();
   return useMutation({
