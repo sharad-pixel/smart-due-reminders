@@ -229,3 +229,89 @@ function wrap(inner: string, header: string) {
 function esc(s: any) {
   return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 }
+
+async function sendDirectEvent(admin: any, payload: any) {
+  const { event, revision_id, emails = [], message, author_name } = payload;
+  if (!revision_id || !Array.isArray(emails) || emails.length === 0) return 0;
+
+  const { data: rev } = await admin
+    .from("clm_section_revisions")
+    .select("id, instance_id, section_title, section_key, change_summary, version_number, edited_by_name")
+    .eq("id", revision_id)
+    .maybeSingle();
+  if (!rev) return 0;
+
+  const { data: inst } = await admin
+    .from("clm_template_instances")
+    .select("id, name, account_id")
+    .eq("id", rev.instance_id)
+    .maybeSingle();
+  const workspaceName = inst?.name || "your contract workspace";
+  const sectionTitle = rev.section_title || rev.section_key || "a section";
+  const headerLabel = event === "mention" ? "You were mentioned" : "Review requested";
+  const verb = event === "mention" ? "mentioned you on" : "asked you to review";
+
+  let sent = 0;
+  for (const rawEmail of emails) {
+    const recipientEmail = String(rawEmail).toLowerCase();
+
+    // Build a workspace link: portal token for externals, app URL for internals
+    let link = `${APP_BASE}/contracts/${rev.instance_id}`;
+    let internal = false;
+    try {
+      const { data: prof } = await admin.from("profiles").select("id").ilike("email", recipientEmail).maybeSingle();
+      if (prof?.id) {
+        const { data: link1 } = await admin.from("account_users").select("id").eq("user_id", prof.id).eq("status", "active").maybeSingle();
+        if (link1) internal = true;
+      }
+    } catch (_) { /* ignore */ }
+
+    if (!internal && inst) {
+      let { data: access } = await admin
+        .from("clm_external_access")
+        .select("token")
+        .ilike("email", recipientEmail)
+        .eq("instance_id", rev.instance_id)
+        .is("revoked_at", null)
+        .gte("expires_at", new Date().toISOString())
+        .maybeSingle();
+      if (!access?.token) {
+        const { data: created } = await admin.from("clm_external_access").insert({
+          instance_id: rev.instance_id,
+          account_id: inst.account_id,
+          email: recipientEmail,
+          role: "reviewer",
+          expires_at: new Date(Date.now() + 30 * 86400_000).toISOString(),
+        }).select("token").single();
+        access = created;
+      }
+      if (access?.token) link = `${APP_BASE}/clm-portal?token=${access.token}`;
+    }
+
+    const subject = `${headerLabel}: ${sectionTitle} — ${workspaceName}`;
+    const inner = `
+      <p style="margin:0 0 12px;"><strong>${esc(author_name || rev.edited_by_name || "A collaborator")}</strong> ${verb} <strong>${esc(sectionTitle)}</strong> in <strong>${esc(workspaceName)}</strong>${rev.version_number ? ` <span style="color:#94a3b8;font-family:monospace;font-size:12px;">(v${rev.version_number})</span>` : ""}.</p>
+      ${rev.change_summary ? `<p style="margin:0 0 12px;color:#475569;font-style:italic;">"${esc(rev.change_summary)}"</p>` : ""}
+      ${message ? `<div style="margin:0 0 12px;padding:10px 12px;background:#f1f5f9;border-left:3px solid #3b82f6;color:#334155;">${esc(message)}</div>` : ""}
+      <p style="margin:0 0 12px;color:#475569;">Open the workspace to review the change, comment, or approve.</p>
+      <div style="text-align:center;margin:24px 0;">
+        <a href="${link}" style="display:inline-block;background:#3b82f6;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:600;">Open change</a>
+      </div>`;
+    const html = wrap(inner, headerLabel);
+
+    try {
+      const { error } = await admin.functions.invoke("send-email", {
+        body: {
+          to: recipientEmail,
+          from: "Recouply CLM <notifications@send.inbound.services.recouply.ai>",
+          subject,
+          html,
+        },
+      });
+      if (!error) sent++;
+    } catch (e) {
+      console.error("[clm-notify-revision] direct send failed", recipientEmail, e);
+    }
+  }
+  return sent;
+}
