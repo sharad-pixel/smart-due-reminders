@@ -19,27 +19,24 @@ export const KurtChatDrawer = ({ instanceId, instanceName }: { instanceId: strin
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Load greeting & history on open
+  // Always start with a fresh greeting on open — chat does not persist across
+  // sessions or page navigations. Only the last 3 messages are kept in view.
+  const MAX_VISIBLE = 3;
   useEffect(() => {
     if (!open) return;
     inputRef.current?.focus();
     if (messages.length) return;
-    (async () => {
-      const { data } = await (supabase.from("clm_kurt_chat_messages" as any) as any)
-        .select("role, content")
-        .eq("instance_id", instanceId)
-        .order("created_at", { ascending: true })
-        .limit(40);
-      if (data?.length) {
-        setMessages(data.map((d: any) => ({ role: d.role, content: d.content })));
-      } else {
-        setMessages([{
-          role: "assistant",
-          content: `Hi — I'm **Kurt**, your General Counsel for **${instanceName || "this contract"}**.\n\nI can help you:\n- Decide whether to approve, reject, or request changes on amendments\n- Spot risk in proposed redlines (liability, indemnity, IP, payment terms)\n- Suggest standard fallback language\n\nWhat would you like to look at?`,
-        }]);
-      }
-    })();
-  }, [open, instanceId, instanceName, messages.length]);
+    setMessages([{
+      role: "assistant",
+      content: `Hi — I'm **Kurt**, your General Counsel for **${instanceName || "this contract"}**.\n\nI can help you:\n- Decide whether to approve, reject, or request changes on amendments\n- Spot risk in proposed redlines (liability, indemnity, IP, payment terms)\n- Suggest standard fallback language\n\nWhat would you like to look at?`,
+    }]);
+  }, [open, instanceName, messages.length]);
+
+  // Reset chat when the workspace changes (navigating to a new page unmounts
+  // this component, so state naturally clears — this guards in-place changes).
+  useEffect(() => {
+    setMessages([]);
+  }, [instanceId]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -58,7 +55,7 @@ export const KurtChatDrawer = ({ instanceId, instanceName }: { instanceId: strin
       });
       if (error) throw error;
       const reply = (data as any)?.reply || "I couldn't form a response.";
-      setMessages((m) => [...m, { role: "assistant", content: reply }]);
+      setMessages((m) => [...m, { role: "assistant" as const, content: reply }].slice(-MAX_VISIBLE));
     } catch (e: any) {
       toast.error(e?.message || "Kurt couldn't respond");
     } finally {
@@ -95,7 +92,7 @@ export const KurtChatDrawer = ({ instanceId, instanceName }: { instanceId: strin
 
           <ScrollArea className="flex-1 px-5" ref={scrollRef as any}>
             <div className="py-4 space-y-4">
-              {messages.map((m, i) => (
+              {messages.slice(-MAX_VISIBLE).map((m, i) => (
                 <div key={i} className={m.role === "user" ? "flex justify-end" : "flex gap-2"}>
                   {m.role === "assistant" && (
                     <img src={kurtAvatar} alt="" className="h-7 w-7 rounded-full object-cover shrink-0 mt-0.5" />
@@ -111,6 +108,11 @@ export const KurtChatDrawer = ({ instanceId, instanceName }: { instanceId: strin
                   </div>
                 </div>
               ))}
+              {messages.length > MAX_VISIBLE && (
+                <p className="text-[10px] text-center text-muted-foreground italic">
+                  Showing the last {MAX_VISIBLE} messages — earlier prompts are cleared each session.
+                </p>
+              )}
               {sending && (
                 <div className="flex gap-2">
                   <img src={kurtAvatar} alt="" className="h-7 w-7 rounded-full object-cover" />
