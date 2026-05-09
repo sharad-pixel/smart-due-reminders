@@ -23,20 +23,30 @@ interface Props {
 export const FullDocumentView = ({ instanceId, sections, title, description, contacts = [], canEdit = false }: Props) => {
   const { data: revisions = [] } = useInstanceRevisions(instanceId ?? "");
 
-  const pendingBySection = useMemo(() => {
+  // Show both pending (submitted-for-review) AND auto (private drafts) inline so
+  // contributors can see their tracked changes immediately while still in a session.
+  const trackedBySection = useMemo(() => {
     const m = new Map<string, any[]>();
     if (!instanceId) return m;
     (revisions as any[])
-      .filter((r) => r.approval_status === "pending")
+      .filter((r) => r.approval_status === "pending" || r.approval_status === "auto")
       .forEach((r) => {
         const arr = m.get(r.section_id) ?? [];
         arr.push(r);
         m.set(r.section_id, arr);
       });
-    // newest pending first per section
     m.forEach((arr) => arr.sort((a, b) => (b.version_number ?? 0) - (a.version_number ?? 0)));
     return m;
   }, [revisions, instanceId]);
+
+  const currentVersionBySection = useMemo(() => {
+    const m = new Map<string, number>();
+    (revisions as any[]).forEach((r) => {
+      const v = r.version_number ?? 0;
+      if (v > (m.get(r.section_id) ?? 0)) m.set(r.section_id, v);
+    });
+    return m;
+  }, [revisions]);
 
   if (sections.length === 0) {
     return (
