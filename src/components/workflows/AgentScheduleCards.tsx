@@ -113,8 +113,9 @@ const AgentScheduleCards = ({ selectedPersona, onPersonaSelect }: AgentScheduleC
 
     const byPersona: Record<string, { key: string; nextApproved: Date | null; nextAny: Date | null; approvedCount: number; pendingCount: number; total: number; }> = {};
 
-    // Exclude nicolas from persona cards - he has a dedicated account-level card
-    const invoicePersonaKeys = Object.keys(personaConfig).filter(key => key !== 'nicolas');
+    // Exclude special agents (nicolas, kurt) from invoice-level persona cards
+    const SPECIAL_AGENTS = new Set(["nicolas", "kurt"]);
+    const invoicePersonaKeys = Object.keys(personaConfig).filter(key => !SPECIAL_AGENTS.has(key));
     
     for (const key of invoicePersonaKeys) {
       byPersona[key] = {
