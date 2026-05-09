@@ -107,7 +107,7 @@ export const SectionsList = ({ instanceId, sections, comments, contacts, emptyTe
                       <SectionEditDialog instanceId={instanceId} section={s} currentVersion={currentVersion} contacts={contacts} />
                     </div>
                   </div>
-                  <SectionCommentsPanel instanceId={instanceId} sectionKey={s.section_key} comments={comments} />
+                  <SectionCommentsPanel instanceId={instanceId} sectionKey={s.section_key} comments={comments} contacts={contacts} />
                 </AccordionContent>
               </AccordionItem>
             );
