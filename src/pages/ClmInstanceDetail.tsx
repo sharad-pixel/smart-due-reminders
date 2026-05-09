@@ -13,9 +13,12 @@ import { ContributorsPanel } from "@/components/clm/ContributorsPanel";
 import { WorkspaceOverviewCard } from "@/components/clm/WorkspaceOverviewCard";
 import { SectionCommentsPanel } from "@/components/clm/SectionCommentsPanel";
 import { SectionEditDialog } from "@/components/clm/SectionEditDialog";
-import { RevisionHistoryPanel } from "@/components/clm/RevisionHistoryPanel";
+import { ApprovalsPanel } from "@/components/clm/ApprovalsPanel";
+import { ExternalPortalAccessPanel } from "@/components/clm/ExternalPortalAccessPanel";
 import { ClmBrandedHeader } from "@/components/clm/ClmBrandedHeader";
 import { TemplateCollaboratorsDialog } from "@/components/clm/TemplateCollaboratorsDialog";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import SEO from "@/components/seo/SEO";
 
 const WorkspaceTemplateRow = ({
