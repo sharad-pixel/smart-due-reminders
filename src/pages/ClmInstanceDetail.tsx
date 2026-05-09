@@ -151,7 +151,8 @@ const Inner = () => {
         </Card>
 
         <div className="space-y-4">
-          <RevisionHistoryPanel instanceId={id!} />
+          <ApprovalsPanelWithAccess instanceId={id!} contacts={contacts} />
+          <ExternalPortalAccessPanel instanceId={id!} />
           <ContributorsPanel instanceId={id!} contacts={contacts} debtors={debtors} />
           <Card>
             <CardHeader>
