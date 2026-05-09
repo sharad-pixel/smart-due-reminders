@@ -176,10 +176,15 @@ export const useUpdateInstanceSection = (instanceId: string) => {
   return useMutation({
     mutationFn: async ({
       id, body, title, change_summary, submitForApproval,
-    }: { id: string; body?: string; title?: string; change_summary?: string; submitForApproval?: boolean }) => {
+      assigned_approver_email, assigned_approver_name,
+    }: {
+      id: string; body?: string; title?: string; change_summary?: string;
+      submitForApproval?: boolean;
+      assigned_approver_email?: string; assigned_approver_name?: string;
+    }) => {
       const { data: { user } } = await supabase.auth.getUser();
 
-      // Snapshot previous body for revision history if body is being changed
+      // Snapshot previous body / metadata
       let previous_body: string | null = null;
       let section_key: string | null = null;
       let section_title: string | null = null;
@@ -193,11 +198,15 @@ export const useUpdateInstanceSection = (instanceId: string) => {
         section_title = prev?.title ?? null;
       }
 
+      // Title-only edits update immediately. Body edits are written immediately ONLY
+      // when not submitting for approval; otherwise the trigger promotes new_body on approve.
       const patch: any = {};
-      if (body !== undefined) patch.body = body;
       if (title !== undefined) patch.title = title;
-      const { error } = await supabase.from("clm_instance_sections").update(patch).eq("id", id);
-      if (error) throw error;
+      if (body !== undefined && !submitForApproval) patch.body = body;
+      if (Object.keys(patch).length) {
+        const { error } = await supabase.from("clm_instance_sections").update(patch).eq("id", id);
+        if (error) throw error;
+      }
 
       // Log revision when body changed
       if (body !== undefined && previous_body !== body) {
@@ -212,19 +221,20 @@ export const useUpdateInstanceSection = (instanceId: string) => {
           previous_body, new_body: body, change_summary,
           edited_by: user?.id, edited_by_name: editorName,
           approval_status: submitForApproval ? "pending" : "auto",
+          assigned_approver_email: submitForApproval ? (assigned_approver_email || null) : null,
+          assigned_approver_name: submitForApproval ? (assigned_approver_name || null) : null,
+          assigned_at: submitForApproval && assigned_approver_email ? new Date().toISOString() : null,
         });
       }
     },
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ["clm-instance", instanceId] });
       qc.invalidateQueries({ queryKey: ["clm-revisions", instanceId] });
-      toast.success(vars.submitForApproval ? "Submitted for approval" : "Section updated");
+      toast.success(vars.submitForApproval ? "Submitted for approval — assignee notified" : "Section updated");
     },
     onError: (e: any) => toast.error(e?.message ?? "Failed"),
   });
 };
-
-export const useInstanceRevisions = (instanceId: string | undefined) => {
   return useQuery({
     queryKey: ["clm-revisions", instanceId],
     enabled: !!instanceId,
