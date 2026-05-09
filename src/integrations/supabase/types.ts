@@ -1036,15 +1036,21 @@ export type Database = {
       clm_approval_requests: {
         Row: {
           account_id: string
+          assignee_email: string | null
+          assignee_name: string | null
+          category: string | null
           created_at: string
           decided_at: string | null
           decided_by: string | null
           decided_by_name: string | null
           decision_note: string | null
+          delegated_to_email: string | null
+          due_at: string | null
           id: string
           instance_id: string
           reason: string | null
           required_role: string
+          revision_id: string | null
           rule_id: string | null
           status: string
           updated_at: string
@@ -1052,15 +1058,21 @@ export type Database = {
         }
         Insert: {
           account_id: string
+          assignee_email?: string | null
+          assignee_name?: string | null
+          category?: string | null
           created_at?: string
           decided_at?: string | null
           decided_by?: string | null
           decided_by_name?: string | null
           decision_note?: string | null
+          delegated_to_email?: string | null
+          due_at?: string | null
           id?: string
           instance_id: string
           reason?: string | null
           required_role: string
+          revision_id?: string | null
           rule_id?: string | null
           status?: string
           updated_at?: string
@@ -1068,15 +1080,21 @@ export type Database = {
         }
         Update: {
           account_id?: string
+          assignee_email?: string | null
+          assignee_name?: string | null
+          category?: string | null
           created_at?: string
           decided_at?: string | null
           decided_by?: string | null
           decided_by_name?: string | null
           decision_note?: string | null
+          delegated_to_email?: string | null
+          due_at?: string | null
           id?: string
           instance_id?: string
           reason?: string | null
           required_role?: string
+          revision_id?: string | null
           rule_id?: string | null
           status?: string
           updated_at?: string
@@ -1624,6 +1642,45 @@ export type Database = {
           },
         ]
       }
+      clm_instance_finalization: {
+        Row: {
+          account_id: string
+          blockers: Json
+          final_approved_at: string | null
+          final_approved_by: string | null
+          final_approved_by_name: string | null
+          instance_id: string
+          locked_version_id: string | null
+          readiness_score: number
+          ready_for_signature: boolean
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          blockers?: Json
+          final_approved_at?: string | null
+          final_approved_by?: string | null
+          final_approved_by_name?: string | null
+          instance_id: string
+          locked_version_id?: string | null
+          readiness_score?: number
+          ready_for_signature?: boolean
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          blockers?: Json
+          final_approved_at?: string | null
+          final_approved_by?: string | null
+          final_approved_by_name?: string | null
+          instance_id?: string
+          locked_version_id?: string | null
+          readiness_score?: number
+          ready_for_signature?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       clm_instance_sections: {
         Row: {
           ai_summary: string | null
@@ -2017,7 +2074,10 @@ export type Database = {
           assigned_approver_id: string | null
           assigned_approver_name: string | null
           assigned_at: string | null
+          change_category: string | null
           change_summary: string | null
+          clarification_question: string | null
+          clarification_requested_at: string | null
           counter_proposed_text: string | null
           created_at: string
           document_version_id: string | null
@@ -2031,11 +2091,14 @@ export type Database = {
           parent_revision_id: string | null
           previous_body: string | null
           requested_reviewers: string[]
+          resolved_at: string | null
+          resolved_by: string | null
           reverted_from_revision_id: string | null
           review_note: string | null
           reviewed_at: string | null
           reviewed_by: string | null
           reviewed_by_name: string | null
+          risk_level: string | null
           sealed_at: string | null
           section_id: string
           section_key: string | null
@@ -2052,7 +2115,10 @@ export type Database = {
           assigned_approver_id?: string | null
           assigned_approver_name?: string | null
           assigned_at?: string | null
+          change_category?: string | null
           change_summary?: string | null
+          clarification_question?: string | null
+          clarification_requested_at?: string | null
           counter_proposed_text?: string | null
           created_at?: string
           document_version_id?: string | null
@@ -2066,11 +2132,14 @@ export type Database = {
           parent_revision_id?: string | null
           previous_body?: string | null
           requested_reviewers?: string[]
+          resolved_at?: string | null
+          resolved_by?: string | null
           reverted_from_revision_id?: string | null
           review_note?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           reviewed_by_name?: string | null
+          risk_level?: string | null
           sealed_at?: string | null
           section_id: string
           section_key?: string | null
@@ -2087,7 +2156,10 @@ export type Database = {
           assigned_approver_id?: string | null
           assigned_approver_name?: string | null
           assigned_at?: string | null
+          change_category?: string | null
           change_summary?: string | null
+          clarification_question?: string | null
+          clarification_requested_at?: string | null
           counter_proposed_text?: string | null
           created_at?: string
           document_version_id?: string | null
@@ -2101,11 +2173,14 @@ export type Database = {
           parent_revision_id?: string | null
           previous_body?: string | null
           requested_reviewers?: string[]
+          resolved_at?: string | null
+          resolved_by?: string | null
           reverted_from_revision_id?: string | null
           review_note?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           reviewed_by_name?: string | null
+          risk_level?: string | null
           sealed_at?: string | null
           section_id?: string
           section_key?: string | null
@@ -11623,6 +11698,7 @@ export type Database = {
       cleanup_expired_oauth_states: { Args: never; Returns: undefined }
       cleanup_rate_limits: { Args: never; Returns: undefined }
       cleanup_support_access_log: { Args: never; Returns: undefined }
+      clm_compute_readiness: { Args: { p_instance_id: string }; Returns: Json }
       clm_current_actor: {
         Args: never
         Returns: {
@@ -11630,6 +11706,10 @@ export type Database = {
           actor_id: string
           actor_name: string
         }[]
+      }
+      clm_finalize_instance: {
+        Args: { p_instance_id: string; p_note?: string }
+        Returns: Json
       }
       clm_instance_role: {
         Args: { p_instance_id: string; p_user_id: string }
