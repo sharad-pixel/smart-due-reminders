@@ -107,6 +107,11 @@ export const AuditLogPanel = ({ instanceId }: Props) => {
                 e.event_type === "review_requested" ? `→ ${(e.payload?.reviewers ?? []).join(", ")}` :
                 e.event_type === "batch_submitted" ? `${e.payload?.revision_count ?? "?"} change(s) → ${e.payload?.approver_email ?? ""}` :
                 e.event_type === "reverted" ? (e.payload?.change_summary ?? "") :
+                e.event_type?.startsWith("version_") ? (
+                  e.event_type === "version_reverted"
+                    ? `Reverted to v${e.payload?.reverted_to_version} → new draft v${e.payload?.new_draft_version}`
+                    : e.payload?.note ?? ""
+                ) :
                 e.payload?.review_note ?? e.payload?.change_summary ?? "";
 
               return (
