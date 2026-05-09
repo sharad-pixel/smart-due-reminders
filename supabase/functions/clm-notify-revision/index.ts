@@ -106,7 +106,7 @@ async function processJob(admin: any, job: any) {
           account_id: inst.account_id,
           email: recipientEmail,
           name: job.recipient_name || null,
-          role: job.event_type === "assigned" ? "approver" : "reviewer",
+          role: (job.event_type === "assigned" || job.event_type === "batch_assigned") ? "approver" : "reviewer",
           expires_at: new Date(Date.now() + 30 * 86400_000).toISOString(),
         })
         .select("token")
