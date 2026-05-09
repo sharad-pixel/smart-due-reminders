@@ -34,7 +34,7 @@ serve(async (req) => {
     const action = body.action as "invite" | "renew" | "revoke";
 
     if (action === "invite") {
-      const { instance_id, email, name, role, expires_in_days } = body;
+      const { instance_id, email, name, role, expires_in_days, expires_in_hours } = body;
       const trimmed = (email || "").trim().toLowerCase();
       if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) return json({ error: "Valid email required" }, 400);
       if (!instance_id) return json({ error: "instance_id required" }, 400);
@@ -62,7 +62,7 @@ serve(async (req) => {
         .limit(1)
         .maybeSingle();
 
-      const days = Math.min(Math.max(parseInt(String(expires_in_days || "30"), 10) || 30, 1), 365);
+      const expiresAt = computeExpiresAt(expires_in_hours, expires_in_days);
 
       const { data: row, error: insErr } = await admin
         .from("clm_external_access")
@@ -73,7 +73,7 @@ serve(async (req) => {
           email: trimmed,
           name: name || null,
           role: role || "reviewer",
-          expires_at: new Date(Date.now() + days * 86400_000).toISOString(),
+          expires_at: expiresAt,
           created_by: userId,
         })
         .select()
@@ -85,7 +85,7 @@ serve(async (req) => {
     }
 
     if (action === "renew") {
-      const { id, expires_in_days } = body;
+      const { id, expires_in_days, expires_in_hours } = body;
       if (!id) return json({ error: "id required" }, 400);
       const { data: existing } = await admin
         .from("clm_external_access")
@@ -99,13 +99,13 @@ serve(async (req) => {
       });
       if (!canWrite) return json({ error: "Forbidden" }, 403);
 
-      const days = Math.min(Math.max(parseInt(String(expires_in_days || "30"), 10) || 30, 1), 365);
+      const expiresAt = computeExpiresAt(expires_in_hours, expires_in_days);
       const newToken = crypto.randomUUID();
       const { data: updated, error: updErr } = await admin
         .from("clm_external_access")
         .update({
           token: newToken,
-          expires_at: new Date(Date.now() + days * 86400_000).toISOString(),
+          expires_at: expiresAt,
           revoked_at: null,
           last_used_at: null,
         })
@@ -148,6 +148,17 @@ serve(async (req) => {
     return json({ error: e?.message || "Internal error" }, 500);
   }
 });
+
+function computeExpiresAt(hoursInput: unknown, daysInput: unknown): string {
+  // Hours take precedence (capped at 24h max for short-lived tokens)
+  const h = parseInt(String(hoursInput ?? ""), 10);
+  if (!isNaN(h) && h > 0) {
+    const hours = Math.min(Math.max(h, 1), 24);
+    return new Date(Date.now() + hours * 3600_000).toISOString();
+  }
+  const days = Math.min(Math.max(parseInt(String(daysInput || "30"), 10) || 30, 1), 365);
+  return new Date(Date.now() + days * 86400_000).toISOString();
+}
 
 function json(payload: unknown, status = 200) {
   return new Response(JSON.stringify(payload), {

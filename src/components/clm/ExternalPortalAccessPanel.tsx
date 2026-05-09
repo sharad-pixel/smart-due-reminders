@@ -23,8 +23,13 @@ export const ExternalPortalAccessPanel = ({ instanceId }: Props) => {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [role, setRole] = useState("reviewer");
-  const [days, setDays] = useState("30");
+  const [duration, setDuration] = useState("30d"); // 1h | 12h | 24h (session) | 7d | 14d | 30d | 60d | 90d
   const [busy, setBusy] = useState(false);
+
+  const durationToBody = (d: string): { expires_in_hours?: number; expires_in_days?: number } => {
+    if (d.endsWith("h")) return { expires_in_hours: Number(d.slice(0, -1)) };
+    return { expires_in_days: Number(d.slice(0, -1)) };
+  };
 
   const { data: tokens = [], isLoading } = useQuery({
     queryKey: ["clm-external-access", instanceId],
@@ -45,12 +50,12 @@ export const ExternalPortalAccessPanel = ({ instanceId }: Props) => {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t)) return toast.error("Enter a valid email");
     setBusy(true);
     const { error } = await supabase.functions.invoke("clm-invite-external", {
-      body: { action: "invite", instance_id: instanceId, email: t, name: name.trim() || null, role, expires_in_days: Number(days) || 30 },
+      body: { action: "invite", instance_id: instanceId, email: t, name: name.trim() || null, role, ...durationToBody(duration) },
     });
     setBusy(false);
     if (error) return toast.error(error.message);
     toast.success(`Secure portal link emailed to ${t}`);
-    setEmail(""); setName(""); setRole("reviewer"); setDays("30"); setOpen(false);
+    setEmail(""); setName(""); setRole("reviewer"); setDuration("30d"); setOpen(false);
     refresh();
   };
 
@@ -170,17 +175,21 @@ export const ExternalPortalAccessPanel = ({ instanceId }: Props) => {
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Expires (days)</Label>
-                <Select value={days} onValueChange={setDays}>
+                <Label className="text-xs">Link expires</Label>
+                <Select value={duration} onValueChange={setDuration}>
                   <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="7">7 days</SelectItem>
-                    <SelectItem value="14">14 days</SelectItem>
-                    <SelectItem value="30">30 days</SelectItem>
-                    <SelectItem value="60">60 days</SelectItem>
-                    <SelectItem value="90">90 days</SelectItem>
+                    <SelectItem value="1h">1 hour (high security)</SelectItem>
+                    <SelectItem value="12h">12 hours</SelectItem>
+                    <SelectItem value="24h">Session — 24 hours</SelectItem>
+                    <SelectItem value="7d">7 days</SelectItem>
+                    <SelectItem value="14d">14 days</SelectItem>
+                    <SelectItem value="30d">30 days</SelectItem>
+                    <SelectItem value="60d">60 days</SelectItem>
+                    <SelectItem value="90d">90 days</SelectItem>
                   </SelectContent>
                 </Select>
+                <p className="text-[10px] text-muted-foreground">Short-lived links (≤24h) show a live countdown to the recipient.</p>
               </div>
             </div>
             <div className="flex justify-end gap-2 pt-1">

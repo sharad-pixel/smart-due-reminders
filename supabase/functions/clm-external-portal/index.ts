@@ -150,7 +150,7 @@ serve(async (req) => {
 
       return json({
         success: true,
-        identity: { email: access.email, name: access.name, role: access.role },
+        identity: { email: access.email, name: access.name, role: access.role, expires_at: access.expires_at },
         workspaces: instances ?? [],
         accessByInstance: allAccess ?? [],
         sections: sections ?? [],

@@ -70,6 +70,7 @@ export default function ClmPortal() {
           </div>
           {data && (
             <div className="flex items-center gap-3 text-sm">
+              <SessionCountdown expiresAt={data.identity.expires_at} onExpire={signOut} />
               <span className="opacity-80 hidden sm:inline">{data.identity.email}</span>
               <Button variant="secondary" size="sm" onClick={signOut}>Sign out</Button>
             </div>
@@ -392,5 +393,43 @@ function PortalCommentForm({
         </Button>
       </div>
     </div>
+  );
+}
+
+function SessionCountdown({ expiresAt, onExpire }: { expiresAt?: string; onExpire: () => void }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  if (!expiresAt) return null;
+  const remaining = Math.max(0, new Date(expiresAt).getTime() - now);
+  // Only show countdown for short-lived tokens (<= ~25h to cover session links)
+  const TWENTY_FIVE_HRS = 25 * 60 * 60 * 1000;
+  if (remaining > TWENTY_FIVE_HRS) return null;
+  if (remaining === 0) {
+    setTimeout(onExpire, 0);
+    return null;
+  }
+  const totalSec = Math.floor(remaining / 1000);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  const display = h > 0
+    ? `${h}h ${String(m).padStart(2, "0")}m`
+    : `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  const urgent = remaining < 5 * 60 * 1000; // < 5 min
+  return (
+    <Badge
+      variant="outline"
+      className={`gap-1 font-mono ${
+        urgent
+          ? "bg-rose-500/15 text-rose-200 border-rose-500/40 animate-pulse"
+          : "bg-white/10 text-white border-white/20"
+      }`}
+      title={`Session expires at ${new Date(expiresAt).toLocaleString()}`}
+    >
+      <Clock className="h-3 w-3" /> {display}
+    </Badge>
   );
 }
