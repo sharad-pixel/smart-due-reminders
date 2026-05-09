@@ -111,6 +111,10 @@ const Inner = () => {
 
       <WorkspaceOverviewCard instance={instance} debtors={debtors} />
 
+      <div className="mt-6">
+        <DraftSubmissionBar instanceId={id!} contacts={contacts} externalAccess={externalAccess as any[]} />
+      </div>
+
       <div className="grid gap-6 lg:grid-cols-[1fr_360px] mt-6">
         <WorkspaceTemplateTabs
           instanceId={id!}
