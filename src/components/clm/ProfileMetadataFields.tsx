@@ -55,8 +55,8 @@ export const ProfileMetadataFields = ({ profile, value, onChange, only }: Props)
               value={v ?? ""}
               onChange={(e) => set(f.key, e.target.value)}
               placeholder={f.placeholder ?? (f.type === "currency" ? "$" : "")}
-              className="no-spinners"
             />
+            
             {f.helper && <p className="text-[10px] text-muted-foreground">{f.helper}</p>}
           </div>
         );
