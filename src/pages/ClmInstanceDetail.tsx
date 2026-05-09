@@ -11,6 +11,7 @@ import { useClmInstance, useUpdateInstanceStatus } from "@/hooks/useClmInstance"
 import { WorkspaceOverviewCard } from "@/components/clm/WorkspaceOverviewCard";
 import { EngagementOverviewCard } from "@/components/clm/EngagementOverviewCard";
 import { ApprovalWorkspace } from "@/components/clm/approvals/ApprovalWorkspace";
+import { SignatureReadyButton } from "@/components/clm/approvals/SignatureReadyButton";
 import { TrackChangesAndCollaborators } from "@/components/clm/TrackChangesAndCollaborators";
 import { WorkspaceTemplateTabs } from "@/components/clm/WorkspaceTemplateTabs";
 import { PrepareSignaturePackageDialog } from "@/components/clm/PrepareSignaturePackageDialog";
