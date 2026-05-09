@@ -293,6 +293,29 @@ export const NewWorkspaceDialog = ({ open, onOpenChange }: Props) => {
               <Button size="sm" variant="ghost" onClick={() => setStep("account")}>Change</Button>
             </div>
 
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2"><Briefcase className="h-4 w-4" /> What kind of agreement?</Label>
+              <p className="text-xs text-muted-foreground">
+                Pick the business profile that best matches this deal. The template list filters to relevant categories and approval rules will use this profile.
+              </p>
+              <BusinessProfilePicker value={businessProfile} onChange={setBusinessProfile} compact />
+            </div>
+
+            {profileDef.fields.length > 0 && (
+              <details className="rounded border p-3 bg-muted/20" open={businessProfile !== "general"}>
+                <summary className="text-xs font-semibold cursor-pointer select-none">
+                  {profileDef.short} commercial details (optional)
+                </summary>
+                <div className="mt-3">
+                  <ProfileMetadataFields
+                    profile={businessProfile}
+                    value={profileMetadata}
+                    onChange={setProfileMetadata}
+                  />
+                </div>
+              </details>
+            )}
+
             <div>
               <Label className="flex items-center gap-2"><FileText className="h-4 w-4" /> Templates to include</Label>
               <p className="text-xs text-muted-foreground mt-1">
