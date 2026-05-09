@@ -50,6 +50,8 @@ const WorkspaceTemplateRow = ({
   isPrimary?: boolean; debtorId: string | null; contacts: any[];
 }) => {
   const [open, setOpen] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState(false);
+  const remove = useRemoveTemplateFromInstance(instanceId);
   const count = contacts.filter((c: any) => c.template_id === templateId).length;
   return (
     <>
@@ -61,10 +63,24 @@ const WorkspaceTemplateRow = ({
             ? <Badge variant="default" className="text-[10px]">Primary</Badge>
             : <Badge variant="outline" className="text-[10px]">Bundled</Badge>}
         </div>
-        <Button size="sm" variant="outline" onClick={() => setOpen(true)} className="shrink-0">
-          <Users className="h-3.5 w-3.5 mr-1" />
-          {count > 0 ? `${count} collab.` : "Invite"}
-        </Button>
+        <div className="flex items-center gap-1 shrink-0">
+          <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
+            <Users className="h-3.5 w-3.5 mr-1" />
+            {count > 0 ? `${count} collab.` : "Invite"}
+          </Button>
+          {!isPrimary && (
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-7 w-7 text-muted-foreground hover:text-destructive"
+              title="Remove from workspace"
+              disabled={remove.isPending}
+              onClick={() => setConfirmRemove(true)}
+            >
+              {remove.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />}
+            </Button>
+          )}
+        </div>
       </div>
       <TemplateCollaboratorsDialog
         open={open}
@@ -75,6 +91,28 @@ const WorkspaceTemplateRow = ({
         debtorId={debtorId}
         allLinkedContacts={contacts}
       />
+      {confirmRemove && (
+        <Dialog open={confirmRemove} onOpenChange={setConfirmRemove}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Remove "{templateName}"?</DialogTitle>
+              <DialogDescription>
+                This removes the bundled template and deletes its sections from this workspace.
+                Revisions and comments tied to those sections will also be removed. This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setConfirmRemove(false)}>Cancel</Button>
+              <Button
+                variant="destructive"
+                onClick={async () => { await remove.mutateAsync(templateId); setConfirmRemove(false); }}
+              >
+                Remove template
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 };
