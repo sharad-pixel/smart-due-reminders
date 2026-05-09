@@ -8,7 +8,7 @@ import { ChevronDown, RefreshCw, Scale, AlertTriangle, CheckCircle2, XCircle, Li
 import { supabase } from "@/integrations/supabase/client";
 import kurtAvatar from "@/assets/personas/kurt.png";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Rec = {
   id: string;
@@ -31,6 +31,7 @@ export const KurtRecommendationCard = ({ revisionId }: { revisionId: string }) =
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const autoTriggered = useRef(false);
 
   const { data: rec, isLoading } = useQuery<Rec | null>({
     queryKey: ["kurt-rec", revisionId],
@@ -56,6 +57,16 @@ export const KurtRecommendationCard = ({ revisionId }: { revisionId: string }) =
       setRefreshing(false);
     }
   };
+
+  // Auto-ask Kurt on first mount if no rec yet
+  useEffect(() => {
+    if (!isLoading && !rec && !autoTriggered.current) {
+      autoTriggered.current = true;
+      supabase.functions.invoke("clm-kurt-review", { body: { revisionId } })
+        .then(() => qc.invalidateQueries({ queryKey: ["kurt-rec", revisionId] }))
+        .catch(() => {});
+    }
+  }, [isLoading, rec, revisionId, qc]);
 
   if (isLoading) {
     return <Skeleton className="h-20 w-full" />;
