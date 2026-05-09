@@ -21,6 +21,8 @@ import { TemplateActionsMenu } from "@/components/clm/TemplateActionsMenu";
 import { NewWorkspaceDialog } from "@/components/clm/NewWorkspaceDialog";
 import { WorkspaceActionsMenu } from "@/components/clm/WorkspaceActionsMenu";
 import { KurtLandingHero } from "@/components/clm/KurtLandingHero";
+import { INDUSTRY_CATEGORIES } from "@/lib/clm/businessProfiles";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import SEO from "@/components/seo/SEO";
 import { useEffect } from "react";
