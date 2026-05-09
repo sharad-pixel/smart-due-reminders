@@ -99,13 +99,13 @@ serve(async (req) => {
       });
       if (!canWrite) return json({ error: "Forbidden" }, 403);
 
-      const days = Math.min(Math.max(parseInt(String(expires_in_days || "30"), 10) || 30, 1), 365);
+      const expiresAt = computeExpiresAt(expires_in_hours, expires_in_days);
       const newToken = crypto.randomUUID();
       const { data: updated, error: updErr } = await admin
         .from("clm_external_access")
         .update({
           token: newToken,
-          expires_at: new Date(Date.now() + days * 86400_000).toISOString(),
+          expires_at: expiresAt,
           revoked_at: null,
           last_used_at: null,
         })
