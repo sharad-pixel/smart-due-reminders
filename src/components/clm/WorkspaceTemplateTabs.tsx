@@ -192,6 +192,8 @@ export const WorkspaceTemplateTabs = ({
             sections={activeSections}
             title={activeTab.templateName}
             description="Read-through of the entire template with pending track-changes shown inline, in document order."
+            contacts={contacts}
+            canEdit
           />
         )
       )}

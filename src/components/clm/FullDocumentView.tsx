@@ -4,12 +4,15 @@ import { Badge } from "@/components/ui/badge";
 import { Clock, CheckCircle2 } from "lucide-react";
 import { InlineDiff } from "./InlineDiff";
 import { useInstanceRevisions } from "@/hooks/useClmInstance";
+import { SectionEditDialog } from "./SectionEditDialog";
 
 interface Props {
   instanceId?: string;
   sections: any[];
   title?: string;
   description?: string;
+  contacts?: any[];
+  canEdit?: boolean;
 }
 
 /**
@@ -17,7 +20,7 @@ interface Props {
  * continuous read-only contract, with pending track-changes shown inline
  * (red strike-through → green insertion) per section.
  */
-export const FullDocumentView = ({ instanceId, sections, title, description }: Props) => {
+export const FullDocumentView = ({ instanceId, sections, title, description, contacts = [], canEdit = false }: Props) => {
   const { data: revisions = [] } = useInstanceRevisions(instanceId ?? "");
 
   const pendingBySection = useMemo(() => {
@@ -74,6 +77,11 @@ export const FullDocumentView = ({ instanceId, sections, title, description }: P
                         <CheckCircle2 className="h-2.5 w-2.5 mr-1" />
                         Clean
                       </Badge>
+                    )}
+                    {canEdit && instanceId && (
+                      <div className="ml-auto">
+                        <SectionEditDialog instanceId={instanceId} section={s} contacts={contacts} />
+                      </div>
                     )}
                   </div>
 
