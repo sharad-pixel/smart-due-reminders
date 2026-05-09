@@ -1388,6 +1388,30 @@ export type Database = {
           },
         ]
       }
+      clm_kurt_landing_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       clm_kurt_recommendations: {
         Row: {
           confidence: number
