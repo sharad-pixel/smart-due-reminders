@@ -1,120 +1,73 @@
-# Simplified CLM Workspace — Legal & Deal Desk Best Practices
+# Granular Edit Review, Tagging & Revert
 
-## Best practice we're modeling on
-Modern legal/deal-desk tooling (Ironclad, Juro, LinkSquares, DocuSign CLM) converges on a few patterns:
+Today, edits are saved as drafts and submitted in batches to **one** approver, with revert only available from the version-history dialog. You're asking for a richer, Google-Docs / GitHub-PR-style flow:
 
-1. **Workspace = a deal**, not a document. It bundles 1-N templates (MSA, Order Form, DPA, NDA…), each negotiated independently with its own redline history.
-2. **Each template instance is independently versioned** — accept/reject changes per section, with a clean version timeline (v1, v2, v3 …).
-3. **Roles drive UI** — Owner, Editor, Reviewer/Approver, Signer, Viewer. The sidebar always shows "who's in the room and what they can do."
-4. **Package step at the end** — owner selects which template versions form the final bundle, freezes them, and pushes to e-sign as a single envelope.
+- Every individual edit can be reviewed in place
+- Editors **and** Approvers can accept changes (Editors merge their own peers' minor edits; Approvers are required for legal/material ones)
+- Users can `@mention` collaborators on a specific change to pull them in
+- Threaded comments live on the change itself
+- One-click revert on any change (live or historical)
 
-## What changes
+## Proposed Logic (the "best" model)
 
-### 1. Remove "Associated Documents"
-Drop the `DocumentsList` block from `WorkspaceOverviewCard`. Workspace artifacts = the templates attached to it. Nothing else.
+### 1. Two-tier acceptance — separate "merge" from "approve"
+Each `clm_section_revisions` row gains:
 
-### 2. Templates panel becomes the work surface
-Replace the small "templates list" card with a **Template tabs** layout:
+- `merge_status`  — `pending | merged | reverted` (who applied the text change)
+- `approval_status` — keep existing (`auto | pending | approved | rejected`)
 
-```text
-[ MSA v3 (in review) ] [ Order Form v1 ] [ DPA v2 (approved) ]  [+ Add template]
-─────────────────────────────────────────────────────────────────
-Section editor | Track-changes reviewer | Version history (per template)
-```
+Rules:
+| Actor | Can merge? | Can approve? | Can revert? |
+|---|---|---|---|
+| **Owner** | Yes | Yes | Yes (any) |
+| **Approver / Legal** | Yes | **Yes** | Yes (any unsealed) |
+| **Editor** | Yes (own + peer Editor edits) | No (still needs Approver sign-off) | Own edits, or any pending peer edit |
+| **Reviewer / Viewer** | No | No | No |
 
-- Each tab is one template-instance with its **own** sections, revisions, approvals, and version timeline.
-- Switching tabs swaps the editor + approvals + history — they're already template-scoped in the data model; we just need to filter UI by `source_template_id`.
-- "Push to Google Docs" and "Track changes" become per-template (each template gets its own Google Doc).
+A revision is **"sealed"** (locked from revert) once `approval_status = approved` AND the workspace status ≥ `approved`. Before that, anyone with merge/approve rights can revert it.
 
-### 3. Fix change tracking on attached templates
-Today, sections from extra templates are copied in but the section editor / approvals panel show *all* sections mixed together. We'll:
-- Filter `sections`, `revisions`, and `approvals` by the active template tab (`source_template_id`).
-- Stamp every revision and approval with `source_template_id` so the version timeline is per-template.
-- Add a per-template **Version** chip (auto-increments when a batch of approvals is finalized via "Snapshot version").
+### 2. Tagging & threaded comments per revision
+New table `clm_revision_comments`:
+- `revision_id`, `author_user_id`/`author_email`, `body`, `mentions[]`, `parent_comment_id`, `resolved_at`
 
-### 4. Access & Capabilities sidebar
-Replace the current Contributors card with an **Access sidebar** on the right:
+Mentions (`@email` or `@name`) trigger a single notification to that collaborator with deep-link to the revision card. Mentioning someone with Approver/Editor role flags the revision with `requested_reviewers[]` so it appears in their queue.
 
-```text
-ACCESS (5)
-─────────────
-👑 Owner          Sara Kim          (you)            ✏️ Edit · ✅ Approve · ✍️ Sign
-✏️ Editor         alex@acme.com     External         ✏️ Edit · 💬 Comment
-👁  Reviewer      legal@acme.com    External         💬 Comment · ✅ Approve
-✍️ Signer         cfo@acme.com      External         ✍️ Sign
-👁  Viewer        ops@us            Internal         👁  View
+### 3. Revert as a first-class action (not just "restore old version")
+A revert produces a **new revision** (`change_summary = "Reverted v4 by Jane"`, `previous_body = current`, `new_body = target version's previous_body`). This:
+- Preserves the audit trail (no destructive deletes)
+- Lets the revert itself be reviewed/approved like any change
+- Works identically for "undo my own draft" and "roll back an approved clause"
 
-[+ Invite]
-```
+### 4. UI surfaces
+- **Inline change card** in `FullDocumentView` and `SectionsList`: shows diff, author, status chips, Merge / Approve / Revert / Comment buttons gated by capability
+- **Comment thread** expands under each change card with `@mention` autocomplete pulled from `contacts + externalAccess`
+- **Revisions panel** (`RevisionHistoryPanel`) gets per-row Revert + "Request review from…" picker
+- **DraftSubmissionBar** keeps batch submit, but auto-includes any revisions a user was `@mentioned` to review
 
-Capability matrix (rendered as small chips next to each person):
+### 5. Notifications (respecting your batching rule)
+- `@mention` → 1 immediate email to the tagged person (these are intentional pings, not noise)
+- Merge / Approve / Revert → no email; surfaces in the in-app activity feed only
+- Batch submit for review → unchanged digest behavior
 
-| Role      | Edit | Comment | Approve | Sign | View |
-|-----------|------|---------|---------|------|------|
-| Owner     | ✓    | ✓       | ✓       | ✓    | ✓    |
-| Editor    | ✓    | ✓       |         |      | ✓    |
-| Approver  |      | ✓       | ✓       |      | ✓    |
-| Reviewer  |      | ✓       |         |      | ✓    |
-| Signer    |      | ✓       |         | ✓    | ✓    |
-| Legal/CC  |      | ✓       |         |      | ✓    |
-| Viewer    |      |         |         |      | ✓    |
+## Technical Changes
 
-Defined once in `src/lib/clmRoles.ts` so portal + app share the same source of truth.
-
-### 5. Simpler edit flow
-- Section card → single "Edit" button → opens dialog in **Suggesting mode** by default.
-- Owners get a "Edit directly (no review)" toggle inside the dialog (skip approval for typo fixes).
-- Track-changes reviewer collapses to "X open suggestions" with an Accept all / Reject all and per-change chips (already built — just consolidating).
-
-### 6. E-sign package flow
-New **"Prepare for signature"** button in workspace header. Opens a dialog:
-
-```text
-Step 1 — Select versions for the package
-  [✓] MSA            current v3 (no open suggestions)
-  [✓] Order Form     current v1 (no open suggestions)
-  [ ] DPA            ⚠️ 2 open suggestions — resolve first
-
-Step 2 — Choose signers   (auto-filled from contributors with role = Signer)
-  • cfo@acme.com   — Customer signer
-  • sara@us        — Internal signer
-
-Step 3 — Send via
-  ( ) DocuSign     ( ) Adobe Sign     (•) Google Docs (manual download)
-```
-
-On confirm:
-- Freezes the selected template-instances (status = `packaged`, no further edits).
-- Renders a single combined PDF (concat in section order, simple header per template).
-- Stores the package row in a new `clm_signature_packages` table with `status` (`draft`, `sent`, `signed`, `void`).
-- For DocuSign/Adobe: stub a `clm-send-for-signature` edge function with provider switch — wired but provider integration only enabled when corresponding secret exists. Google Docs path uses the existing push function.
-
-## Technical changes
-
-**DB migration**
-- `clm_section_revisions`: add `source_template_id uuid` (nullable, backfilled from section).
-- `clm_template_instances`: add `version_label text` per attached template (computed via `clm_instance_extra_templates` row + primary).
-- `clm_signature_packages` (new): `id, instance_id, status, included_templates jsonb, signers jsonb, sent_at, completed_at, provider text, external_envelope_id text`. RLS scoped through instance ownership.
+**Migration**
+- `ALTER clm_section_revisions ADD COLUMN merge_status text DEFAULT 'merged'`, `requested_reviewers text[]`, `sealed_at timestamptz`
+- New table `clm_revision_comments` with RLS mirroring `clm_section_comments`
+- RPC `revert_clm_revision(revision_id, note)` → inserts a new inverse revision and re-applies body
+- RPC `request_clm_revision_review(revision_id, emails[], message)` → updates `requested_reviewers`, enqueues mention notifications
+- Trigger to set `sealed_at` when approval_status flips to `approved` and instance status ≥ `approved`
 
 **Frontend**
-- New `clmRoles.ts` (capability matrix).
-- New `WorkspaceTemplateTabs.tsx` — manages active template + filters sections.
-- New `AccessSidebar.tsx` — replaces ContributorsPanel block on the right rail; reuses existing add/remove mutations.
-- New `PrepareSignaturePackageDialog.tsx`.
-- New edge function `clm-send-for-signature` (provider-agnostic stub: Google Docs path works today, DocuSign/Adobe return 501 + clear message until secret added).
-- Edit `WorkspaceOverviewCard.tsx` — drop documents section.
-- Edit `ClmInstanceDetail.tsx` — new layout: header (status + Push to Google Docs + Prepare for signature) · main (tabbed templates) · right rail (Access sidebar + Approvals).
-- Edit `useClmInstance.ts` — add `useFinalizeVersion(templateId)`, `useCreateSignaturePackage`, filter helpers by `source_template_id`.
+- New `RevisionChangeCard.tsx` (merge / approve / revert / comment / mention)
+- New `RevisionCommentThread.tsx` with `@mention` autocomplete
+- Update `FullDocumentView`, `SectionsList`, `RevisionHistoryPanel` to render the new card
+- Extend `useClmInstance.ts` with `useRevertRevision`, `useRequestRevisionReview`, `useRevisionComments`, `usePostRevisionComment`
+- Capability helpers in `clmRoles.ts`: `canMerge`, `canApprove`, `canRevert(revision, role, isAuthor)`
 
-**Out of scope (call out, don't build now)**
-- Real-time multi-user cursors.
-- Native DocuSign/Adobe envelope creation (we add the hook + UI; actual provider call ships when you add the API key).
-- Clause library / playbook compliance scoring.
+**Edge function**
+- Extend `clm-notify-revision` with `mention` and `review_requested` event types (single-recipient, immediate)
 
-## Suggested order
-1. DB migration + role capability matrix.
-2. Drop documents section, switch right rail to Access sidebar.
-3. Template tabs + per-template filtering of sections/revisions/approvals/version timeline.
-4. Prepare-for-signature dialog + package table + stub edge function.
-
-Approve and I'll implement in that order.
+## Out of scope (ask if you want them)
+- Character-level suggestions à la Google Docs "Suggesting" mode (current model is whole-section diffs)
+- Branching / parallel edit conflict resolution beyond last-write-wins on merge
