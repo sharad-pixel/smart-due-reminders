@@ -233,11 +233,12 @@ export const FullDocumentView = ({
                               <p className="text-[11px] text-muted-foreground mb-2">
                                 Notes appear in the top "Track changes & comments" panel and the audit log.
                               </p>
-                              <Textarea
+                              <MentionTextarea
                                 rows={4}
                                 value={noteText}
-                                onChange={(e) => setNoteText(e.target.value)}
-                                placeholder='e.g. "Finance flagged the payment terms — needs review"'
+                                onChange={setNoteText}
+                                people={mentionPeople}
+                                placeholder='e.g. "@Kurt finance flagged the payment terms — needs review"'
                                 className="text-sm"
                                 autoFocus
                               />
