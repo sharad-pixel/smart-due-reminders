@@ -1,36 +1,82 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Pencil, Send, Save, Loader2, FileDiff, Eye, FilePen } from "lucide-react";
+import { Pencil, Send, Save, Loader2, FileDiff, Eye, FilePen, ShieldCheck } from "lucide-react";
 import { useUpdateInstanceSection } from "@/hooks/useClmInstance";
 import { InlineDiff } from "./InlineDiff";
 import { wordDiff, diffStats } from "@/lib/textDiff";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
+
+interface Approver { value: string; label: string; sub: string }
 
 export const SectionEditDialog = ({
-  instanceId, section, currentVersion,
-}: { instanceId: string; section: any; currentVersion?: number }) => {
+  instanceId, section, currentVersion, contacts = [],
+}: { instanceId: string; section: any; currentVersion?: number; contacts?: any[] }) => {
   const [open, setOpen] = useState(false);
   const [body, setBody] = useState(section.body ?? "");
   const [summary, setSummary] = useState("");
   const [tab, setTab] = useState("edit");
+  const [assignee, setAssignee] = useState<string>("");
   const update = useUpdateInstanceSection(instanceId);
+
+  // Pull portal collaborators for this workspace
+  const { data: externalAccess = [] } = useQuery({
+    queryKey: ["clm-external-access", instanceId],
+    enabled: open,
+    queryFn: async () => {
+      const { data } = await (supabase.from("clm_external_access" as any) as any)
+        .select("email, name, role, revoked_at, expires_at")
+        .eq("instance_id", instanceId);
+      return data ?? [];
+    },
+  });
+
+  const approvers: Approver[] = useMemo(() => {
+    const list: Approver[] = [];
+    const seen = new Set<string>();
+    contacts.forEach((c: any) => {
+      const email = (c.is_internal ? c.email : c.debtor_contacts?.email ?? c.email) || "";
+      const name = (c.is_internal ? c.name : c.debtor_contacts?.name ?? c.name) || email;
+      if (!email || seen.has(email.toLowerCase())) return;
+      seen.add(email.toLowerCase());
+      list.push({ value: email, label: name, sub: c.is_internal ? "Internal" : "External · account" });
+    });
+    (externalAccess as any[]).forEach((a: any) => {
+      if (!a.email || a.revoked_at || seen.has(a.email.toLowerCase())) return;
+      seen.add(a.email.toLowerCase());
+      list.push({ value: a.email, label: a.name || a.email, sub: `Portal · ${a.role}` });
+    });
+    return list;
+  }, [contacts, externalAccess]);
+
+  // Default assignee to first internal contact when dialog opens
+  useEffect(() => {
+    if (open && !assignee && approvers.length) setAssignee(approvers[0].value);
+  }, [open, approvers, assignee]);
 
   const dirty = body !== (section.body ?? "");
   const stats = useMemo(() => diffStats(wordDiff(section.body ?? "", body)), [section.body, body]);
 
   const submit = async (forApproval: boolean) => {
     if (!dirty) { setOpen(false); return; }
+    const sel = approvers.find((a) => a.value === assignee);
     await update.mutateAsync({
       id: section.id, body, change_summary: summary || undefined, submitForApproval: forApproval,
+      assigned_approver_email: forApproval ? assignee || undefined : undefined,
+      assigned_approver_name: forApproval ? sel?.label : undefined,
     });
     setOpen(false);
     setSummary("");
   };
+
+  const canSubmitForApproval = dirty && !!assignee;
 
   return (
     <>
@@ -57,7 +103,7 @@ export const SectionEditDialog = ({
               )}
             </DialogTitle>
             <DialogDescription>
-              Changes are tracked as new revisions. Submit for approval to require sign-off, or save directly as the latest version.
+              Submitting for approval keeps the live section unchanged until your assignee approves. Saving directly publishes immediately.
             </DialogDescription>
           </DialogHeader>
 
@@ -80,13 +126,36 @@ export const SectionEditDialog = ({
                   className="font-mono text-sm"
                 />
               </div>
-              <div>
-                <Label>Change summary (optional)</Label>
-                <Input
-                  value={summary}
-                  onChange={(e) => setSummary(e.target.value)}
-                  placeholder="e.g. Tightened liability cap to 12 months fees"
-                />
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div>
+                  <Label>Change summary (optional)</Label>
+                  <Input
+                    value={summary}
+                    onChange={(e) => setSummary(e.target.value)}
+                    placeholder="e.g. Tightened liability cap"
+                  />
+                </div>
+                <div>
+                  <Label className="flex items-center gap-1">
+                    <ShieldCheck className="h-3.5 w-3.5" /> Approver (required to submit)
+                  </Label>
+                  <Select value={assignee} onValueChange={setAssignee}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={approvers.length ? "Select approver…" : "Invite collaborators first"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {approvers.map((a) => (
+                        <SelectItem key={a.value} value={a.value}>
+                          <span className="font-medium">{a.label}</span>
+                          <span className="text-muted-foreground ml-1.5 text-[11px]">· {a.sub}</span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    They'll be emailed a link to review and approve.
+                  </p>
+                </div>
               </div>
             </TabsContent>
 
@@ -109,7 +178,7 @@ export const SectionEditDialog = ({
             <Button variant="secondary" disabled={!dirty || update.isPending} onClick={() => submit(false)}>
               {update.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : (<><Save className="h-4 w-4 mr-1" /> Save as new version</>)}
             </Button>
-            <Button disabled={!dirty || update.isPending} onClick={() => submit(true)}>
+            <Button disabled={!canSubmitForApproval || update.isPending} onClick={() => submit(true)}>
               <Send className="h-4 w-4 mr-1" /> Submit for Approval
             </Button>
           </DialogFooter>
