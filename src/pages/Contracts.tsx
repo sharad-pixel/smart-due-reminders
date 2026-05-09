@@ -135,56 +135,99 @@ const ContractsTab = () => {
 const TemplatesTab = () => {
   const { data: templates = [], isLoading } = useClmTemplates();
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [industryFilter, setIndustryFilter] = useState<string>("all");
+  const [search, setSearch] = useState("");
+
+  const filtered = templates.filter((t) => {
+    const cat = ((t as any).industry_category as string) ?? "general";
+    if (industryFilter !== "all" && cat !== industryFilter) return false;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      const hay = `${t.name ?? ""} ${(t as any).document_type ?? ""} ${t.description ?? ""}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="flex flex-row items-center justify-between gap-3">
         <div>
           <CardTitle>Contract Templates</CardTitle>
-          <CardDescription>Upload an MSA — AI will sectionalize it for legal review</CardDescription>
+          <CardDescription>Upload contracts of any type — AI sectionalizes them for review and reuse.</CardDescription>
         </div>
         <Button size="sm" onClick={() => setUploadOpen(true)}><Upload className="h-4 w-4 mr-1" />Upload Template</Button>
       </CardHeader>
       <CardContent>
+        <div className="flex flex-col sm:flex-row gap-2 mb-4">
+          <Input
+            placeholder="Search templates by name, type…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="sm:max-w-xs"
+          />
+          <Select value={industryFilter} onValueChange={setIndustryFilter}>
+            <SelectTrigger className="sm:w-[220px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All industries</SelectItem>
+              {INDUSTRY_CATEGORIES.map((c) => (
+                <SelectItem key={c.id} value={c.id}>{c.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
         {isLoading ? (
           <div className="py-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
-        ) : templates.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <div className="py-12 text-center text-muted-foreground">
             <Upload className="h-10 w-10 mx-auto mb-2 opacity-40" />
-            <p className="text-sm">No templates uploaded yet. Upload your first MSA to get started.</p>
+            <p className="text-sm">
+              {templates.length === 0
+                ? "No templates uploaded yet. Upload your first contract to get started."
+                : "No templates match your filters."}
+            </p>
           </div>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {templates.map((t) => (
-              <div key={t.id} className="relative group">
-                <Link to={`/contracts/templates/${t.id}`} className="block">
-                  <Card className="hover:border-primary/50 transition-colors h-full">
-                    <CardContent className="pt-4">
-                      <div className="flex items-start gap-2 mb-3">
-                        <FileText className="h-8 w-8 text-primary shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">{t.name}</p>
-                          <p className="text-xs text-muted-foreground truncate">{t.source_file_name}</p>
+            {filtered.map((t) => {
+              const cat = ((t as any).industry_category as string) ?? "general";
+              const catLabel = INDUSTRY_CATEGORIES.find((c) => c.id === cat)?.label ?? "General";
+              const docType = (t as any).document_type as string | undefined;
+              return (
+                <div key={t.id} className="relative group">
+                  <Link to={`/contracts/templates/${t.id}`} className="block">
+                    <Card className="hover:border-primary/50 transition-colors h-full">
+                      <CardContent className="pt-4">
+                        <div className="flex items-start gap-2 mb-3">
+                          <FileText className="h-8 w-8 text-primary shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{t.name}</p>
+                            <p className="text-xs text-muted-foreground truncate">{t.source_file_name}</p>
+                          </div>
+                          <div className="w-7 shrink-0" />
                         </div>
-                        {/* spacer reserved for the actions menu so it never overlaps text */}
-                        <div className="w-7 shrink-0" />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <StatusBadge status={t.status} />
-                        {t.parse_error && (
-                          <span className="text-[11px] text-destructive flex items-center gap-1 truncate ml-2">
-                            <AlertCircle className="h-3 w-3 shrink-0" />{t.parse_error}
-                          </span>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-                <div className="absolute top-2 right-2">
-                  <TemplateActionsMenu template={t} />
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <StatusBadge status={t.status} />
+                            <Badge variant="outline" className="text-[10px]">{catLabel}</Badge>
+                            {docType && <Badge variant="secondary" className="text-[10px]">{docType}</Badge>}
+                          </div>
+                          {t.parse_error && (
+                            <span className="text-[11px] text-destructive flex items-center gap-1 truncate">
+                              <AlertCircle className="h-3 w-3 shrink-0" />{t.parse_error}
+                            </span>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                  <div className="absolute top-2 right-2">
+                    <TemplateActionsMenu template={t} />
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </CardContent>
