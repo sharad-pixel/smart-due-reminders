@@ -351,6 +351,10 @@ const ContractsInner = () => {
         </p>
       </div>
 
+      <div className="mb-6">
+        <KurtLandingHero />
+      </div>
+
       <Tabs defaultValue="workspaces" className="space-y-4">
         <TabsList>
           <TabsTrigger value="workspaces">Workspaces</TabsTrigger>
