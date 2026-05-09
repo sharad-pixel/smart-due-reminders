@@ -10,7 +10,7 @@ import { ArrowLeft, Loader2, PenLine, FileText, MessageSquare, ShieldCheck, Hist
 import { useClmInstance, useUpdateInstanceStatus } from "@/hooks/useClmInstance";
 import { WorkspaceOverviewCard } from "@/components/clm/WorkspaceOverviewCard";
 import { EngagementOverviewCard } from "@/components/clm/EngagementOverviewCard";
-import { ApprovalsPanel } from "@/components/clm/ApprovalsPanel";
+import { ApprovalWorkspace } from "@/components/clm/approvals/ApprovalWorkspace";
 import { TrackChangesAndCollaborators } from "@/components/clm/TrackChangesAndCollaborators";
 import { WorkspaceTemplateTabs } from "@/components/clm/WorkspaceTemplateTabs";
 import { PrepareSignaturePackageDialog } from "@/components/clm/PrepareSignaturePackageDialog";
