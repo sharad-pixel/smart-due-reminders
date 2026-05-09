@@ -344,3 +344,9 @@ verify_jwt = true
 
 [functions.clm-notify-revision]
 verify_jwt = false
+
+[functions.clm-kurt-review]
+verify_jwt = false
+
+[functions.clm-kurt-chat]
+verify_jwt = true

@@ -1,67 +1,59 @@
+## Kurt — General Counsel AI Agent for CLM
 
-# CLM Amendment Approval Workflow
+Add a dedicated AI agent named **Kurt** who lives inside the CLM workspace and helps owners/approvers reason about contract changes, recommends accept/reject decisions, and offers best-practice guidance. Kurt mirrors the look-and-feel of the Collection Agents (Sam, James, Katy, Nicolas, etc.) but is scoped to CLM, not collections.
 
-Today the pieces exist (revisions, assignee field, portal, comments) but the lifecycle is loose: anyone with edit rights can save changes, no one is notified, and approvals only happen if someone manually opens the panel. This plan ties it together into a proper amendment → review → approval cycle that mirrors enterprise CLM patterns (DocuSign CLM, Ironclad, Juro).
+### 1. Persona & avatar
 
-## Workflow
+- Add Kurt to `src/lib/personaConfig.ts` as a special agent (like Nicolas — `bucketMin/Max = -999` so he never appears in collections routing).
+  - Name: Kurt
+  - Role: "(Special Agent) General Counsel — CLM Guidance"
+  - Tone: Professional, precise, plain-English legal commentary
+  - Color: deep navy/indigo to differentiate from Nicolas (purple) and the collections palette
+- Generate a Kurt avatar with the same illustrated style as the existing personas and save it to `src/assets/personas/kurt.png`.
+- Add Kurt to the Nicolas-style exclusion lists already used elsewhere so collections logic continues to skip special agents.
 
-```text
-Owner invites users → User edits a section → Amendment saved (pending) →
-Assignee notified by email → Reviewer opens portal/app → Approve / Request changes →
-All workspace contributors notified of decision → Audit log entry
-```
+### 2. Where Kurt appears in the UI
 
-### Roles (workspace-scoped)
-- **Owner** — full control, manages contributors, can override approvals.
-- **Editor** — can amend sections; amendments require approval before becoming the live version.
-- **Approver** — can approve/reject pending amendments assigned to them.
-- **Reviewer** — read + comment only.
-- **Viewer** — read only.
+- **Workspace detail (`ClmInstanceDetail.tsx`)**: floating "Ask Kurt" button + side drawer chat, plus a "Kurt's Review" badge next to each pending revision.
+- **Approvals panel**: when a reviewer opens a pending amendment, show a Kurt recommendation card: `Recommend: Approve / Request changes / Reject` with a 1–3 sentence rationale and a "Why?" expand showing the bullet points he weighed (clarity, risk, deviation from template, missing clauses, tone).
+- **Section edit dialog (Diff tab)**: inline "Kurt's take" panel summarizing what changed and any flags (ambiguous language, removed protections, indemnity/liability shifts, undefined terms).
+- **Portal (`ClmPortal.tsx`)**: external editors get a lighter Kurt panel with best-practice tips while drafting (no internal recommendations exposed).
 
-Internal users get roles via `clm_workspace_contributors`; external users via `clm_external_access` (already exists). Same role enum used for both.
+### 3. Kurt's capabilities
 
-## Amendment lifecycle (per section)
+- **Change tracking commentary** — Given the section diff (old body vs new body) and template guidance, summarize what changed in plain English.
+- **Accept / Reject recommendation** — Classify each pending revision as `approve`, `request_changes`, or `reject` with a confidence score and rationale.
+- **Best-practice guidance** — On demand, answer questions about the workspace contract: missing standard clauses, unusual terms, risk hot-spots, suggested fallback language.
+- **History awareness** — Pulls the section's prior revisions and comments so guidance reflects the negotiation history.
+- **Audit log entries** — Every Kurt recommendation is written to `audit_logs` with `action_type='clm_kurt_recommendation'` so reviewers can see Kurt's suggestion alongside the human decision.
 
-1. **Draft saved** — editor submits change → row in `clm_section_revisions` with `approval_status='pending'`, `version_number` auto-incremented (already in place), `assigned_approver_email` required (picker in editor, defaults to workspace owner).
-2. **Live body unchanged until approved** — section's `body` only updates when revision is approved. (Today the editor writes to body immediately; we'll switch to write-on-approve so pending changes are truly proposed amendments.)
-3. **Notification fan-out** — DB trigger enqueues a notification job; edge function `clm-notify-revision` sends:
-   - Email to the assigned approver (with deep link: in-app for internal, portal token URL for external).
-   - In-app notification (`user_alerts`) for internal assignees.
-4. **Decision** — Approve writes new body + marks revision approved. Reject reverts (keeps body as-is) and notifies the editor with the reviewer's note.
-5. **Audit** — every state change logged in `audit_logs` (action_type `clm_amendment_*`).
+### 4. Server side (edge functions)
 
-## What this changes vs today
+- `clm-kurt-review` — invoked when a revision is submitted (and on demand). Loads section, prior body, new body, template guidance, comments. Calls Lovable AI Gateway (`google/gemini-2.5-flash`) with a structured-output schema returning `{ recommendation, confidence, summary, key_changes[], risks[], suggested_edits[] }`. Persists result to a new `clm_kurt_recommendations` table keyed by `revision_id`.
+- `clm-kurt-chat` — streaming chat endpoint scoped to a workspace; system prompt includes workspace metadata, current section bodies, recent revisions, and Kurt's persona. Uses Vercel AI SDK `streamText` and returns `toUIMessageStreamResponse`.
+- DB trigger `trg_clm_revision_kurt`: on insert into `clm_section_revisions` enqueue a job so `clm-kurt-review` runs automatically (cron drains the queue, similar to existing `clm_notification_queue`).
 
-| Today | After |
-|---|---|
-| Section body updated on save | Body updated only on approval |
-| Assignee optional, free-text | Required dropdown (workspace contributors + portal users), defaults to owner |
-| No notifications | Email + in-app on assign, approve, reject |
-| Approvals panel only shows in-app | Same panel + portal page mirrors it for externals |
-| No "request changes" loop | Reject with note → editor sees alert + can resubmit (creates new revision linked via `parent_revision_id`) |
+### 5. Database
 
-## Technical Plan
+New migration:
+- `clm_kurt_recommendations` (`revision_id` FK, `recommendation` enum, `confidence` numeric, `summary` text, `key_changes` jsonb, `risks` jsonb, `suggested_edits` jsonb, `model` text). RLS: workspace contributors can read; service role writes.
+- `clm_kurt_chat_messages` (`workspace_id`, `user_id`, `role`, `content`, `created_at`) so internal users keep per-workspace chat history. RLS scoped to workspace contributors.
+- Trigger + queue entry for auto-review on revision submission.
 
-**DB migration:**
-- `ALTER TABLE clm_section_revisions ADD COLUMN parent_revision_id uuid REFERENCES clm_section_revisions(id), ADD COLUMN notified_at timestamptz`.
-- Make `assigned_approver_email` NOT NULL going forward (backfill existing pending rows to workspace owner email).
-- New trigger `notify_clm_revision_assigned`: on INSERT or assignee change with status='pending', call `pg_net` to invoke `clm-notify-revision` (or insert a row in a lightweight `clm_notification_queue` polled by the function — safer than pg_net dependency).
-- Trigger on UPDATE of `approval_status`: if `approved`, copy `new_body` into `clm_instance_sections.body`; if `rejected`, no-op on body but enqueue rejection notification.
+### 6. Frontend pieces
 
-**Edge functions:**
-- `clm-notify-revision` — drains `clm_notification_queue`, sends email via existing `send-email` infra. Builds the right link (internal `/contracts/{id}` vs portal `/clm-portal?token=...`), looks up portal token from `clm_external_access` (creates one if external assignee has no active token, with default 30-day expiry).
-- Tiny scheduled cron (every 1 min) to drain the queue, plus immediate trigger after insert.
+- `src/components/clm/KurtRecommendationCard.tsx` — used in `ApprovalsPanel`, section detail, and Diff tab.
+- `src/components/clm/KurtChatDrawer.tsx` — slide-in chat using AI Elements (`Conversation`, `Message`, `MessageResponse`, `PromptInput*`, `Shimmer`) wired to `clm-kurt-chat` via `useChat`.
+- `src/hooks/useKurtRecommendation.ts` — TanStack Query hook to fetch/refresh recommendations.
+- Hook Kurt into `ClmInstanceDetail.tsx`, `ApprovalsPanel.tsx`, `SectionEditDialog.tsx` (Diff tab), and `ClmPortal.tsx`.
 
-**Frontend:**
-- `SectionEditDialog` — assignee picker becomes required, with helper text "Changes go live after approval."
-- `ApprovalsPanel` — already in place; add a "Resubmit" action on rejected revisions (opens edit dialog pre-filled).
-- `ContributorsPanel` — surface role per contributor with an inline role dropdown (owner-only).
-- Section list — visual cue when a section has a pending amendment ("Amendment pending review by X").
-- `ClmPortal` — add same "Resubmit" affordance for external editors; already shows pending tasks.
+### 7. Out of scope
 
-**Out of scope this round:**
-- Multi-step approval chains (one approver per amendment for now).
-- Conditional routing rules (e.g. by clause type or value threshold).
-- E-signature integration on final approval.
+- Binding legal advice / e-signature.
+- Auto-approving or auto-rejecting revisions — Kurt only recommends; humans decide.
+- Multi-jurisdiction legal rules engine.
 
-Confirm and I'll implement.
+### Files to add / edit (technical)
+
+- Add: `src/assets/personas/kurt.png`, `src/components/clm/KurtRecommendationCard.tsx`, `src/components/clm/KurtChatDrawer.tsx`, `src/hooks/useKurtRecommendation.ts`, `supabase/functions/clm-kurt-review/index.ts`, `supabase/functions/clm-kurt-chat/index.ts`, new migration for tables + trigger.
+- Edit: `src/lib/personaConfig.ts`, `src/pages/ClmInstanceDetail.tsx`, `src/components/clm/ApprovalsPanel.tsx`, `src/components/clm/SectionEditDialog.tsx`, `src/pages/ClmPortal.tsx`, `supabase/config.toml` (cron for `clm-kurt-review`).

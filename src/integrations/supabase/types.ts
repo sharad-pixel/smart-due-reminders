@@ -1353,6 +1353,98 @@ export type Database = {
           },
         ]
       }
+      clm_kurt_chat_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          instance_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          instance_id: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          instance_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clm_kurt_chat_messages_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "clm_template_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clm_kurt_recommendations: {
+        Row: {
+          confidence: number
+          created_at: string
+          id: string
+          instance_id: string
+          key_changes: Json
+          model: string | null
+          recommendation: Database["public"]["Enums"]["clm_kurt_recommendation_kind"]
+          revision_id: string
+          risks: Json
+          suggested_edits: Json
+          summary: string
+        }
+        Insert: {
+          confidence?: number
+          created_at?: string
+          id?: string
+          instance_id: string
+          key_changes?: Json
+          model?: string | null
+          recommendation: Database["public"]["Enums"]["clm_kurt_recommendation_kind"]
+          revision_id: string
+          risks?: Json
+          suggested_edits?: Json
+          summary: string
+        }
+        Update: {
+          confidence?: number
+          created_at?: string
+          id?: string
+          instance_id?: string
+          key_changes?: Json
+          model?: string | null
+          recommendation?: Database["public"]["Enums"]["clm_kurt_recommendation_kind"]
+          revision_id?: string
+          risks?: Json
+          suggested_edits?: Json
+          summary?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clm_kurt_recommendations_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "clm_template_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clm_kurt_recommendations_revision_id_fkey"
+            columns: ["revision_id"]
+            isOneToOne: true
+            referencedRelation: "clm_section_revisions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clm_notification_queue: {
         Row: {
           attempts: number
@@ -10173,6 +10265,7 @@ export type Database = {
     Enums: {
       app_role: "owner" | "admin" | "member" | "viewer"
       channel_type: "email" | "sms"
+      clm_kurt_recommendation_kind: "approve" | "request_changes" | "reject"
       debtor_type: "B2B" | "B2C"
       document_category:
         | "ACH"
@@ -10360,6 +10453,7 @@ export const Constants = {
     Enums: {
       app_role: ["owner", "admin", "member", "viewer"],
       channel_type: ["email", "sms"],
+      clm_kurt_recommendation_kind: ["approve", "request_changes", "reject"],
       debtor_type: ["B2B", "B2C"],
       document_category: [
         "ACH",
