@@ -140,6 +140,7 @@ const Inner = () => {
             debtors={debtors}
           />
           <ApprovalsPanel instanceId={id!} contacts={contacts} externalAccess={externalAccess as any[]} />
+          <RoleCapabilitiesCard myRole={myRoleInfo?.role} />
         </div>
       </div>
 
