@@ -13,8 +13,12 @@ import { ContributorsPanel } from "@/components/clm/ContributorsPanel";
 import { WorkspaceOverviewCard } from "@/components/clm/WorkspaceOverviewCard";
 import { SectionCommentsPanel } from "@/components/clm/SectionCommentsPanel";
 import { SectionEditDialog } from "@/components/clm/SectionEditDialog";
+import { SectionVersionHistoryDialog } from "@/components/clm/SectionVersionHistoryDialog";
 import { ApprovalsPanel } from "@/components/clm/ApprovalsPanel";
 import { ExternalPortalAccessPanel } from "@/components/clm/ExternalPortalAccessPanel";
+import { useInstanceRevisions } from "@/hooks/useClmInstance";
+import { formatDistanceToNow } from "date-fns";
+import { History, MessageSquare, Clock, CheckCircle2 } from "lucide-react";
 import { ClmBrandedHeader } from "@/components/clm/ClmBrandedHeader";
 import { TemplateCollaboratorsDialog } from "@/components/clm/TemplateCollaboratorsDialog";
 import { useQuery } from "@tanstack/react-query";
@@ -70,6 +74,104 @@ const WorkspaceTemplateRow = ({
   );
 };
 
+const SectionsList = ({
+  instanceId, sections, comments,
+}: { instanceId: string; sections: any[]; comments: any[] }) => {
+  const { data: revisions = [] } = useInstanceRevisions(instanceId);
+  // index revisions per section_id
+  const revsBySection = (revisions as any[]).reduce((m, r) => {
+    const arr = m.get(r.section_id) ?? [];
+    arr.push(r);
+    m.set(r.section_id, arr);
+    return m;
+  }, new Map<string, any[]>());
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Sections</CardTitle>
+        <CardDescription>Discuss each clause, track every change, and route revisions for approval.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {sections.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-8">Loading sections from template…</p>
+        ) : (
+          <Accordion type="multiple" className="w-full">
+            {sections.map((s: any) => {
+              const sectionRevs = (revsBySection.get(s.id) ?? [])
+                .sort((a: any, b: any) => (b.version_number ?? 0) - (a.version_number ?? 0));
+              const latest = sectionRevs[0];
+              const currentVersion = latest?.version_number ?? 1;
+              const pendingCount = sectionRevs.filter((r: any) => r.approval_status === "pending").length;
+              const commentCount = comments.filter((c: any) => c.section_key === s.section_key).length;
+
+              return (
+                <AccordionItem key={s.id} value={s.id}>
+                  <AccordionTrigger>
+                    <div className="flex items-center gap-2 flex-wrap text-left">
+                      <span className="font-medium">{s.title}</span>
+                      <Badge variant="outline" className="font-mono text-[10px] h-5">v{currentVersion}</Badge>
+                      {pendingCount > 0 ? (
+                        <Badge variant="outline" className="bg-amber-500/15 text-amber-700 border-amber-500/30 text-[10px] h-5">
+                          <Clock className="h-2.5 w-2.5 mr-1" />{pendingCount} pending
+                        </Badge>
+                      ) : latest?.approval_status === "approved" ? (
+                        <Badge variant="outline" className="bg-emerald-500/15 text-emerald-700 border-emerald-500/30 text-[10px] h-5">
+                          <CheckCircle2 className="h-2.5 w-2.5 mr-1" />Approved
+                        </Badge>
+                      ) : null}
+                      {commentCount > 0 && (
+                        <Badge variant="secondary" className="text-[10px] h-5">
+                          <MessageSquare className="h-2.5 w-2.5 mr-1" />{commentCount}
+                        </Badge>
+                      )}
+                      {latest && (
+                        <span className="text-[11px] text-muted-foreground ml-1">
+                          · {latest.edited_by_name || "Edited"} {formatDistanceToNow(new Date(latest.created_at), { addSuffix: true })}
+                        </span>
+                      )}
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    {s.ai_summary && (
+                      <div className="rounded bg-primary/5 border border-primary/20 p-3 mb-3">
+                        <p className="text-sm">{s.ai_summary}</p>
+                      </div>
+                    )}
+                    {s.body && (
+                      <div className="rounded border p-3 bg-muted/30 mb-3">
+                        <p className="text-sm whitespace-pre-wrap leading-relaxed">{s.body}</p>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+                      <div className="text-[11px] text-muted-foreground">
+                        {sectionRevs.length} version{sectionRevs.length === 1 ? "" : "s"} on record
+                      </div>
+                      <div className="flex gap-1">
+                        <SectionVersionHistoryDialog
+                          instanceId={instanceId}
+                          section={s}
+                          trigger={
+                            <Button size="sm" variant="ghost">
+                              <History className="h-3.5 w-3.5 mr-1" /> History
+                            </Button>
+                          }
+                        />
+                        <SectionEditDialog instanceId={instanceId} section={s} currentVersion={currentVersion} />
+                      </div>
+                    </div>
+                    <SectionCommentsPanel instanceId={instanceId} sectionKey={s.section_key} comments={comments} />
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
+          </Accordion>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
 const Inner = () => {
   const { id } = useParams<{ id: string }>();
   const { data, isLoading } = useClmInstance(id);
@@ -119,49 +221,8 @@ const Inner = () => {
       <WorkspaceOverviewCard instance={instance} debtors={debtors} />
 
       <div className="grid gap-6 lg:grid-cols-[1fr_360px] mt-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Sections</CardTitle>
-            <CardDescription>Discuss each clause with your team and counterparty</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {sections.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">Loading sections from template…</p>
-            ) : (
-              <Accordion type="multiple" className="w-full">
-                {sections.map((s) => {
-                  const count = comments.filter((c: any) => c.section_key === s.section_key).length;
-                  return (
-                    <AccordionItem key={s.id} value={s.id}>
-                      <AccordionTrigger>
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{s.title}</span>
-                          {count > 0 && <Badge variant="secondary" className="text-xs">{count}</Badge>}
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent>
-                        {s.ai_summary && (
-                          <div className="rounded bg-primary/5 border border-primary/20 p-3 mb-3">
-                            <p className="text-sm">{s.ai_summary}</p>
-                          </div>
-                        )}
-                        {s.body && (
-                          <div className="rounded border p-3 bg-muted/30 mb-3">
-                            <p className="text-sm whitespace-pre-wrap">{s.body}</p>
-                          </div>
-                        )}
-                        <div className="flex justify-end mb-2">
-                          <SectionEditDialog instanceId={id!} section={s} />
-                        </div>
-                        <SectionCommentsPanel instanceId={id!} sectionKey={s.section_key} comments={comments} />
-                      </AccordionContent>
-                    </AccordionItem>
-                  );
-                })}
-              </Accordion>
-            )}
-          </CardContent>
-        </Card>
+        <SectionsList instanceId={id!} sections={sections} comments={comments} />
+
 
         <div className="space-y-4">
           <ApprovalsPanelWithAccess instanceId={id!} contacts={contacts} />
