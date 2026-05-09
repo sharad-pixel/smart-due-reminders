@@ -341,3 +341,6 @@ verify_jwt = false
 
 [functions.clm-invite-external]
 verify_jwt = true
+
+[functions.clm-notify-revision]
+verify_jwt = false
