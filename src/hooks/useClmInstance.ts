@@ -237,6 +237,46 @@ export const useInstanceRevisions = (instanceId: string | undefined) => {
   });
 };
 
+export const useRestoreRevision = (instanceId: string) => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ revisionId }: { revisionId: string }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: rev, error } = await (supabase.from("clm_section_revisions" as any) as any)
+        .select("section_id, new_body, version_number, section_key, section_title")
+        .eq("id", revisionId).single();
+      if (error) throw error;
+      // capture current body to use as previous_body for the new revision
+      const { data: cur } = await supabase
+        .from("clm_instance_sections")
+        .select("body").eq("id", (rev as any).section_id).maybeSingle();
+      // overwrite section with the historical body
+      await supabase.from("clm_instance_sections")
+        .update({ body: (rev as any).new_body }).eq("id", (rev as any).section_id);
+      // log a new revision capturing the restore action
+      let editorName: string | undefined;
+      if (user?.id) {
+        const { data: prof } = await supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
+        editorName = (prof as any)?.full_name ?? user.email ?? undefined;
+      }
+      await (supabase.from("clm_section_revisions" as any) as any).insert({
+        instance_id: instanceId, section_id: (rev as any).section_id,
+        section_key: (rev as any).section_key, section_title: (rev as any).section_title,
+        previous_body: cur?.body ?? null, new_body: (rev as any).new_body,
+        change_summary: `Restored from v${(rev as any).version_number}`,
+        edited_by: user?.id, edited_by_name: editorName,
+        approval_status: "auto",
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["clm-instance", instanceId] });
+      qc.invalidateQueries({ queryKey: ["clm-revisions", instanceId] });
+      toast.success("Section restored from earlier version");
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Restore failed"),
+  });
+};
+
 export const useReviewRevision = (instanceId: string) => {
   const qc = useQueryClient();
   return useMutation({
