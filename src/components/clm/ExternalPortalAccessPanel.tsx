@@ -50,12 +50,12 @@ export const ExternalPortalAccessPanel = ({ instanceId }: Props) => {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t)) return toast.error("Enter a valid email");
     setBusy(true);
     const { error } = await supabase.functions.invoke("clm-invite-external", {
-      body: { action: "invite", instance_id: instanceId, email: t, name: name.trim() || null, role, expires_in_days: Number(days) || 30 },
+      body: { action: "invite", instance_id: instanceId, email: t, name: name.trim() || null, role, ...durationToBody(duration) },
     });
     setBusy(false);
     if (error) return toast.error(error.message);
     toast.success(`Secure portal link emailed to ${t}`);
-    setEmail(""); setName(""); setRole("reviewer"); setDays("30"); setOpen(false);
+    setEmail(""); setName(""); setRole("reviewer"); setDuration("30d"); setOpen(false);
     refresh();
   };
 
