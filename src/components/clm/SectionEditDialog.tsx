@@ -106,7 +106,9 @@ export const SectionEditDialog = ({
               <span className="inline-flex items-center gap-1.5 mr-2 rounded bg-primary/10 text-primary px-1.5 py-0.5 text-[11px] font-medium">
                 <GitBranch className="h-3 w-3" /> Suggesting mode
               </span>
-              Like Google Docs, your edits are tracked as suggestions and only become live once an approver accepts them. Use "Save as new version" to publish immediately without review.
+              Save as many edits as you like — each one is logged and versioned. They stay
+              private as drafts until you submit them all together for review from the
+              workspace bar (the approver gets one alert, not one per edit).
             </DialogDescription>
           </DialogHeader>
 
