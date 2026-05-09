@@ -92,7 +92,7 @@ export const KurtChatDrawer = ({ instanceId, instanceName }: { instanceId: strin
 
           <ScrollArea className="flex-1 px-5" ref={scrollRef as any}>
             <div className="py-4 space-y-4">
-              {messages.map((m, i) => (
+              {messages.slice(-MAX_VISIBLE).map((m, i) => (
                 <div key={i} className={m.role === "user" ? "flex justify-end" : "flex gap-2"}>
                   {m.role === "assistant" && (
                     <img src={kurtAvatar} alt="" className="h-7 w-7 rounded-full object-cover shrink-0 mt-0.5" />
@@ -108,6 +108,11 @@ export const KurtChatDrawer = ({ instanceId, instanceName }: { instanceId: strin
                   </div>
                 </div>
               ))}
+              {messages.length > MAX_VISIBLE && (
+                <p className="text-[10px] text-center text-muted-foreground italic">
+                  Showing the last {MAX_VISIBLE} messages — earlier prompts are cleared each session.
+                </p>
+              )}
               {sending && (
                 <div className="flex gap-2">
                   <img src={kurtAvatar} alt="" className="h-7 w-7 rounded-full object-cover" />
