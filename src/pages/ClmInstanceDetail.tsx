@@ -10,7 +10,8 @@ import { ArrowLeft, Loader2, PenLine, FileText, MessageSquare, ShieldCheck, Hist
 import { useClmInstance, useUpdateInstanceStatus } from "@/hooks/useClmInstance";
 import { WorkspaceOverviewCard } from "@/components/clm/WorkspaceOverviewCard";
 import { EngagementOverviewCard } from "@/components/clm/EngagementOverviewCard";
-import { ApprovalsPanel } from "@/components/clm/ApprovalsPanel";
+import { ApprovalWorkspace } from "@/components/clm/approvals/ApprovalWorkspace";
+import { SignatureReadyButton } from "@/components/clm/approvals/SignatureReadyButton";
 import { TrackChangesAndCollaborators } from "@/components/clm/TrackChangesAndCollaborators";
 import { WorkspaceTemplateTabs } from "@/components/clm/WorkspaceTemplateTabs";
 import { PrepareSignaturePackageDialog } from "@/components/clm/PrepareSignaturePackageDialog";
@@ -95,9 +96,7 @@ const Inner = () => {
         }
         rightSlot={
           <>
-            <Button size="sm" onClick={() => setPkgOpen(true)} className="gap-1">
-              <PenLine className="h-3.5 w-3.5" /> Prepare for signature
-            </Button>
+            <SignatureReadyButton instanceId={id!} onClick={() => setPkgOpen(true)} />
             <PushToGoogleDocsButton
               instanceId={id!}
               gdocUrl={(instance as any).gdoc_url}
@@ -169,9 +168,15 @@ const Inner = () => {
           />
         </TabsContent>
 
-        <TabsContent value="approvals" className="mt-4 space-y-6">
-          <ApprovalsPanel instanceId={id!} contacts={contacts} externalAccess={externalAccess as any[]} />
-          <VersionTimelinePanel instanceId={id!} myRole={myRoleInfo?.role} />
+        <TabsContent value="approvals" className="mt-4">
+          <ApprovalWorkspace
+            instanceId={id!}
+            instanceStatus={instance.status}
+            contacts={contacts}
+            externalAccess={externalAccess as any[]}
+            myRole={myRoleInfo?.role}
+            myUserId={myRoleInfo?.userId}
+          />
         </TabsContent>
 
         <TabsContent value="audit" className="mt-4">
