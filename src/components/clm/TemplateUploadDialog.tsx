@@ -8,35 +8,43 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Upload, FileText, X, Loader2 } from "lucide-react";
 import { useUploadClmTemplate } from "@/hooks/useClmTemplates";
 import { toast } from "sonner";
+import { INDUSTRY_CATEGORIES } from "@/lib/clm/businessProfiles";
 
 const MAX_SIZE = 15 * 1024 * 1024; // 15MB for contracts
 const ACCEPT = ".pdf,.docx,.doc,.txt,.md";
 
-const TEMPLATE_TYPES = [
-  { value: "MSA", label: "MSA — Master Services Agreement" },
-  { value: "BAA", label: "BAA — Business Associate Agreement" },
-  { value: "SLA", label: "SLA — Service Level Agreement" },
-  { value: "Order Form", label: "Order Form" },
-  { value: "NDA", label: "NDA — Non-Disclosure Agreement" },
-  { value: "DPA", label: "DPA — Data Processing Agreement" },
-  { value: "Other", label: "Other" },
-];
+const DOCUMENT_TYPES_BY_INDUSTRY: Record<string, string[]> = {
+  saas: ["MSA", "Order Form", "SOW", "DPA", "SLA", "Amendment", "Renewal", "Change Order"],
+  goods: ["Purchase Agreement", "Supply Agreement", "Sales Agreement", "Distributor Agreement", "Reseller Agreement", "Product Terms", "Warranty Terms", "Returns / Refund Terms"],
+  services: ["Services Agreement", "Engagement Letter", "SOW", "Change Order", "SLA", "Retainer", "Project Agreement"],
+  healthcare: ["BAA", "HIPAA Addendum", "Security Addendum", "DPA"],
+  general: ["NDA", "Mutual NDA", "Vendor Agreement", "Partner Agreement", "Termination Notice", "Custom"],
+};
 
 export const TemplateUploadDialog = ({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) => {
   const [file, setFile] = useState<File | null>(null);
-  const [templateType, setTemplateType] = useState<string>("");
+  const [industryCategory, setIndustryCategory] = useState<string>("general");
+  const [documentType, setDocumentType] = useState<string>("");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const upload = useUploadClmTemplate();
 
-  const reset = () => { setFile(null); setTemplateType(""); setName(""); setDescription(""); };
+  const reset = () => {
+    setFile(null);
+    setIndustryCategory("general");
+    setDocumentType("");
+    setName("");
+    setDescription("");
+  };
+
+  const docTypes = DOCUMENT_TYPES_BY_INDUSTRY[industryCategory] ?? DOCUMENT_TYPES_BY_INDUSTRY.general;
 
   const composedName = () => {
     const trimmed = name.trim();
-    if (!templateType) return trimmed;
-    if (!trimmed) return templateType;
-    if (trimmed.toLowerCase().startsWith(templateType.toLowerCase())) return trimmed;
-    return `${templateType} — ${trimmed}`;
+    if (!documentType) return trimmed;
+    if (!trimmed) return documentType;
+    if (trimmed.toLowerCase().startsWith(documentType.toLowerCase())) return trimmed;
+    return `${documentType} — ${trimmed}`;
   };
 
   const onPick = (f: File | null) => {
@@ -50,7 +58,13 @@ export const TemplateUploadDialog = ({ open, onOpenChange }: { open: boolean; on
     const finalName = composedName();
     if (!file || !finalName) return;
     try {
-      await upload.mutateAsync({ file, name: finalName, description });
+      await upload.mutateAsync({
+        file,
+        name: finalName,
+        description,
+        industry_category: industryCategory,
+        document_type: documentType || undefined,
+      });
       reset();
       onOpenChange(false);
     } catch {/* toast handled */}
@@ -58,7 +72,7 @@ export const TemplateUploadDialog = ({ open, onOpenChange }: { open: boolean; on
 
   return (
     <Dialog open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) reset(); }}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Upload Contract Template</DialogTitle></DialogHeader>
         <div className="space-y-4">
           <div
@@ -83,34 +97,48 @@ export const TemplateUploadDialog = ({ open, onOpenChange }: { open: boolean; on
             ) : (
               <>
                 <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                <p className="text-sm font-medium">Drop your MSA / contract template here</p>
+                <p className="text-sm font-medium">Drop your contract template here</p>
                 <p className="text-xs text-muted-foreground mt-1">PDF, DOCX, TXT (best results: TXT or extracted text). Max 15MB.</p>
               </>
             )}
           </div>
 
-          <div>
-            <Label>Template Type *</Label>
-            <Select value={templateType} onValueChange={setTemplateType}>
-              <SelectTrigger><SelectValue placeholder="Select contract type (MSA, BAA, SLA…)" /></SelectTrigger>
-              <SelectContent>
-                {TEMPLATE_TYPES.map((t) => (
-                  <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Industry *</Label>
+              <Select value={industryCategory} onValueChange={(v) => { setIndustryCategory(v); setDocumentType(""); }}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {INDUSTRY_CATEGORIES.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Document Type *</Label>
+              <Select value={documentType} onValueChange={setDocumentType}>
+                <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                <SelectContent>
+                  {docTypes.map((t) => (
+                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
+
           <div>
-            <Label>Template Name {templateType ? "(optional)" : "*"}</Label>
+            <Label>Template Name {documentType ? "(optional)" : "*"}</Label>
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Standard v3, Enterprise Tier" />
-            {templateType && (
-              <p className="text-xs text-muted-foreground mt-1">Will be saved as: <span className="font-medium">{composedName() || templateType}</span></p>
+            {documentType && (
+              <p className="text-xs text-muted-foreground mt-1">Will be saved as: <span className="font-medium">{composedName() || documentType}</span></p>
             )}
           </div>
           <div>
             <Label>Description</Label>
             <Textarea rows={2} value={description} onChange={(e) => setDescription(e.target.value)}
-              placeholder="When should legal use this template?" />
+              placeholder="When should this template be used?" />
           </div>
         </div>
         <DialogFooter>
