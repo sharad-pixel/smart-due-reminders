@@ -15,6 +15,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { KurtRecommendationCard } from "./KurtRecommendationCard";
+import { TrackChangesReviewer, type TrackChangesReviewerHandle } from "./TrackChangesReviewer";
 
 interface Props {
   instanceId: string;
