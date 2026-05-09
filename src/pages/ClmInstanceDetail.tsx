@@ -16,6 +16,8 @@ import { DraftSubmissionBar } from "@/components/clm/DraftSubmissionBar";
 import { RevisionHistoryPanel } from "@/components/clm/RevisionHistoryPanel";
 import { AuditLogPanel } from "@/components/clm/AuditLogPanel";
 import { RoleCapabilitiesDialog } from "@/components/clm/RoleCapabilitiesDialog";
+import { VersionTimelinePanel } from "@/components/clm/VersionTimelinePanel";
+import { VersionPill } from "@/components/clm/VersionPill";
 import { useMyClmRole } from "@/hooks/useMyClmRole";
 import { ClmBrandedHeader } from "@/components/clm/ClmBrandedHeader";
 import { KurtChatDrawer } from "@/components/clm/KurtChatDrawer";
