@@ -4,12 +4,15 @@ import { Badge } from "@/components/ui/badge";
 import { Clock, CheckCircle2 } from "lucide-react";
 import { InlineDiff } from "./InlineDiff";
 import { useInstanceRevisions } from "@/hooks/useClmInstance";
+import { SectionEditDialog } from "./SectionEditDialog";
 
 interface Props {
   instanceId?: string;
   sections: any[];
   title?: string;
   description?: string;
+  contacts?: any[];
+  canEdit?: boolean;
 }
 
 /**
