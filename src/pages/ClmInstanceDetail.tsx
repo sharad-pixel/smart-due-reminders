@@ -205,6 +205,11 @@ const Inner = () => {
         }
         rightSlot={
           <>
+            <PushToGoogleDocsButton
+              instanceId={id!}
+              gdocUrl={(instance as any).gdoc_url}
+              gdocSyncedAt={(instance as any).gdoc_synced_at}
+            />
             <KurtChatDrawer instanceId={id!} instanceName={instance.name} />
             <Badge variant="outline" className="capitalize">{instance.status.replace("_", " ")}</Badge>
             <Select value={instance.status} onValueChange={(v) => updateStatus.mutate(v)}>
