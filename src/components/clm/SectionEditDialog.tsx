@@ -17,8 +17,8 @@ import { useQuery } from "@tanstack/react-query";
 interface Approver { value: string; label: string; sub: string }
 
 export const SectionEditDialog = ({
-  instanceId, section, currentVersion, contacts = [],
-}: { instanceId: string; section: any; currentVersion?: number; contacts?: any[] }) => {
+  instanceId, section, currentVersion, contacts = [], trigger,
+}: { instanceId: string; section: any; currentVersion?: number; contacts?: any[]; trigger?: React.ReactNode }) => {
   const [open, setOpen] = useState(false);
   const [body, setBody] = useState(section.body ?? "");
   const [summary, setSummary] = useState("");
