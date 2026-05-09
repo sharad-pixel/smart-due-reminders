@@ -123,49 +123,8 @@ const Inner = () => {
       <WorkspaceOverviewCard instance={instance} debtors={debtors} />
 
       <div className="grid gap-6 lg:grid-cols-[1fr_360px] mt-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Sections</CardTitle>
-            <CardDescription>Discuss each clause with your team and counterparty</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {sections.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">Loading sections from template…</p>
-            ) : (
-              <Accordion type="multiple" className="w-full">
-                {sections.map((s) => {
-                  const count = comments.filter((c: any) => c.section_key === s.section_key).length;
-                  return (
-                    <AccordionItem key={s.id} value={s.id}>
-                      <AccordionTrigger>
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{s.title}</span>
-                          {count > 0 && <Badge variant="secondary" className="text-xs">{count}</Badge>}
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent>
-                        {s.ai_summary && (
-                          <div className="rounded bg-primary/5 border border-primary/20 p-3 mb-3">
-                            <p className="text-sm">{s.ai_summary}</p>
-                          </div>
-                        )}
-                        {s.body && (
-                          <div className="rounded border p-3 bg-muted/30 mb-3">
-                            <p className="text-sm whitespace-pre-wrap">{s.body}</p>
-                          </div>
-                        )}
-                        <div className="flex justify-end mb-2">
-                          <SectionEditDialog instanceId={id!} section={s} />
-                        </div>
-                        <SectionCommentsPanel instanceId={id!} sectionKey={s.section_key} comments={comments} />
-                      </AccordionContent>
-                    </AccordionItem>
-                  );
-                })}
-              </Accordion>
-            )}
-          </CardContent>
-        </Card>
+        <SectionsList instanceId={id!} sections={sections} comments={comments} />
+
 
         <div className="space-y-4">
           <ApprovalsPanelWithAccess instanceId={id!} contacts={contacts} />
