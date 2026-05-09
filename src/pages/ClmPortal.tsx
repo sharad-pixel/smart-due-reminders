@@ -70,6 +70,7 @@ export default function ClmPortal() {
           </div>
           {data && (
             <div className="flex items-center gap-3 text-sm">
+              <SessionCountdown expiresAt={data.identity.expires_at} onExpire={signOut} />
               <span className="opacity-80 hidden sm:inline">{data.identity.email}</span>
               <Button variant="secondary" size="sm" onClick={signOut}>Sign out</Button>
             </div>
