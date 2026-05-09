@@ -630,44 +630,14 @@ export const useSubmitDraftsForReview = (instanceId: string) => {
       revisionIds, approverEmail, approverName, message,
     }: { revisionIds: string[]; approverEmail: string; approverName?: string; message?: string }) => {
       if (!revisionIds.length) throw new Error("No drafts to submit");
-      const { data: { user } } = await supabase.auth.getUser();
-      let submittedByName: string | undefined;
-      if (user?.id) {
-        const { data: prof } = await supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
-        submittedByName = (prof as any)?.full_name ?? user.email ?? undefined;
-      }
-
-      // 1. Flip the draft revisions to "pending" with the approver attached.
-      //    The per-revision trigger skips notifying because submitted_batch_id is set below.
-      //    We update first (without batch_id) — but the trigger only fires if status changes,
-      //    so we do this in two steps to avoid an interim individual email.
-      // Strategy: create the batch first (with revision_count), then update revisions
-      // to set submitted_batch_id + status=pending in a single statement.
-      const { data: batch, error: bErr } = await (supabase.from("clm_review_batches" as any) as any)
-        .insert({
-          instance_id: instanceId,
-          submitted_by: user?.id,
-          submitted_by_name: submittedByName,
-          submitted_by_email: user?.email,
-          approver_email: approverEmail.toLowerCase(),
-          approver_name: approverName ?? null,
-          message: message ?? null,
-          revision_count: revisionIds.length,
-        })
-        .select("id")
-        .single();
-      if (bErr) throw bErr;
-
-      const { error: uErr } = await (supabase.from("clm_section_revisions" as any) as any)
-        .update({
-          submitted_batch_id: (batch as any).id,
-          approval_status: "pending",
-          assigned_approver_email: approverEmail.toLowerCase(),
-          assigned_approver_name: approverName ?? null,
-          assigned_at: new Date().toISOString(),
-        })
-        .in("id", revisionIds);
-      if (uErr) throw uErr;
+      const { error } = await (supabase as any).rpc("submit_clm_review_batch", {
+        p_instance_id: instanceId,
+        p_revision_ids: revisionIds,
+        p_approver_email: approverEmail,
+        p_approver_name: approverName ?? null,
+        p_message: message ?? null,
+      });
+      if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["clm-instance", instanceId] });
