@@ -9,7 +9,7 @@ import { ArrowLeft, Loader2, PenLine } from "lucide-react";
 import { useClmInstance, useUpdateInstanceStatus } from "@/hooks/useClmInstance";
 import { WorkspaceOverviewCard } from "@/components/clm/WorkspaceOverviewCard";
 import { ApprovalsPanel } from "@/components/clm/ApprovalsPanel";
-import { AccessSidebar } from "@/components/clm/AccessSidebar";
+import { TrackChangesAndCollaborators } from "@/components/clm/TrackChangesAndCollaborators";
 import { WorkspaceTemplateTabs } from "@/components/clm/WorkspaceTemplateTabs";
 import { PrepareSignaturePackageDialog } from "@/components/clm/PrepareSignaturePackageDialog";
 import { DraftSubmissionBar } from "@/components/clm/DraftSubmissionBar";
