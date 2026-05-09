@@ -149,6 +149,17 @@ serve(async (req) => {
   }
 });
 
+function computeExpiresAt(hoursInput: unknown, daysInput: unknown): string {
+  // Hours take precedence (capped at 24h max for short-lived tokens)
+  const h = parseInt(String(hoursInput ?? ""), 10);
+  if (!isNaN(h) && h > 0) {
+    const hours = Math.min(Math.max(h, 1), 24);
+    return new Date(Date.now() + hours * 3600_000).toISOString();
+  }
+  const days = Math.min(Math.max(parseInt(String(daysInput || "30"), 10) || 30, 1), 365);
+  return new Date(Date.now() + days * 86400_000).toISOString();
+}
+
 function json(payload: unknown, status = 200) {
   return new Response(JSON.stringify(payload), {
     status,
