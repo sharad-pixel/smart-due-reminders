@@ -92,7 +92,15 @@ export const useCreateClmInstance = () => {
   return useMutation({
     mutationFn: async ({
       template_id, name, debtor_id, extra_template_ids = [],
-    }: { template_id: string; name: string; debtor_id?: string | null; extra_template_ids?: string[] }) => {
+      business_profile, profile_metadata,
+    }: {
+      template_id: string;
+      name: string;
+      debtor_id?: string | null;
+      extra_template_ids?: string[];
+      business_profile?: string;
+      profile_metadata?: Record<string, any>;
+    }) => {
       if (!accountId) throw new Error("No account");
       const { data: { user } } = await supabase.auth.getUser();
 
@@ -105,6 +113,8 @@ export const useCreateClmInstance = () => {
         .insert({
           template_id, account_id: accountId, created_by: user!.id, name,
           template_name_snapshot: tpl.name,
+          ...(business_profile ? { business_profile } : {}),
+          ...(profile_metadata ? { profile_metadata } : {}),
         } as any)
         .select()
         .single();

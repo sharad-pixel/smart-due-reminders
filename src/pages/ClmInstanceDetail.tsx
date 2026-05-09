@@ -5,7 +5,8 @@ import { RequireClmAccess } from "@/components/clm/RequireClmAccess";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Loader2, PenLine } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowLeft, Loader2, PenLine, FileText, MessageSquare, ShieldCheck, History } from "lucide-react";
 import { useClmInstance, useUpdateInstanceStatus } from "@/hooks/useClmInstance";
 import { WorkspaceOverviewCard } from "@/components/clm/WorkspaceOverviewCard";
 import { ApprovalsPanel } from "@/components/clm/ApprovalsPanel";
@@ -125,49 +126,56 @@ const Inner = () => {
         <DraftSubmissionBar instanceId={id!} contacts={contacts} externalAccess={externalAccess as any[]} />
       </div>
 
-      {/* Top bar: Collaborators + Track changes & comments — moved above templates */}
-      <div className="mt-6">
-        <TrackChangesAndCollaborators
-          instanceId={id!}
-          instance={instance}
-          contacts={contacts}
-          externalAccess={externalAccess as any[]}
-          debtors={debtors}
-          comments={comments}
-          sections={sections}
-          myRole={myRoleInfo?.role}
-        />
-      </div>
+      <Tabs defaultValue="documents" className="mt-6">
+        <TabsList className="grid grid-cols-4 w-full sm:w-auto">
+          <TabsTrigger value="documents" className="gap-1.5"><FileText className="h-3.5 w-3.5" /> Documents</TabsTrigger>
+          <TabsTrigger value="review" className="gap-1.5"><MessageSquare className="h-3.5 w-3.5" /> Review</TabsTrigger>
+          <TabsTrigger value="approvals" className="gap-1.5"><ShieldCheck className="h-3.5 w-3.5" /> Approvals</TabsTrigger>
+          <TabsTrigger value="audit" className="gap-1.5"><History className="h-3.5 w-3.5" /> Audit Trail</TabsTrigger>
+        </TabsList>
 
-      {/* Full-width templates */}
-      <div className="mt-6">
-        <WorkspaceTemplateTabs
-          instanceId={id!}
-          primaryTemplateId={instance.template_id ?? null}
-          primaryTemplateName={instance.clm_templates?.name ?? instance.template_name_snapshot ?? "Primary template"}
-          extraTemplates={extraTemplates}
-          sections={sections}
-          comments={comments}
-          contacts={contacts}
-          externalAccess={externalAccess as any[]}
-          debtorId={debtorId}
-          myRole={myRoleInfo?.role}
-        />
-      </div>
+        <TabsContent value="documents" className="mt-4">
+          <WorkspaceTemplateTabs
+            instanceId={id!}
+            primaryTemplateId={instance.template_id ?? null}
+            primaryTemplateName={instance.clm_templates?.name ?? instance.template_name_snapshot ?? "Primary template"}
+            extraTemplates={extraTemplates}
+            sections={sections}
+            comments={comments}
+            contacts={contacts}
+            externalAccess={externalAccess as any[]}
+            debtorId={debtorId}
+            myRole={myRoleInfo?.role}
+          />
+        </TabsContent>
 
-      <div className="mt-6">
-        <ApprovalsPanel instanceId={id!} contacts={contacts} externalAccess={externalAccess as any[]} />
-      </div>
+        <TabsContent value="review" className="mt-4 space-y-6">
+          <TrackChangesAndCollaborators
+            instanceId={id!}
+            instance={instance}
+            contacts={contacts}
+            externalAccess={externalAccess as any[]}
+            debtors={debtors}
+            comments={comments}
+            sections={sections}
+            myRole={myRoleInfo?.role}
+          />
+          <RevisionHistoryPanel
+            instanceId={id!}
+            contacts={contacts}
+            externalAccess={externalAccess as any[]}
+          />
+        </TabsContent>
 
-      <div className="mt-6 space-y-6">
-        <VersionTimelinePanel instanceId={id!} myRole={myRoleInfo?.role} />
-        <RevisionHistoryPanel
-          instanceId={id!}
-          contacts={contacts}
-          externalAccess={externalAccess as any[]}
-        />
-        <AuditLogPanel instanceId={id!} />
-      </div>
+        <TabsContent value="approvals" className="mt-4 space-y-6">
+          <ApprovalsPanel instanceId={id!} contacts={contacts} externalAccess={externalAccess as any[]} />
+          <VersionTimelinePanel instanceId={id!} myRole={myRoleInfo?.role} />
+        </TabsContent>
+
+        <TabsContent value="audit" className="mt-4">
+          <AuditLogPanel instanceId={id!} />
+        </TabsContent>
+      </Tabs>
 
       <PrepareSignaturePackageDialog
         open={pkgOpen}

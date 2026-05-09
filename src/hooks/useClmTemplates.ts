@@ -96,7 +96,15 @@ export const useUploadClmTemplate = () => {
   const { accountId } = useClmEntitlement();
 
   return useMutation({
-    mutationFn: async ({ file, name, description }: { file: File; name: string; description?: string }) => {
+    mutationFn: async ({
+      file, name, description, industry_category, document_type,
+    }: {
+      file: File;
+      name: string;
+      description?: string;
+      industry_category?: string;
+      document_type?: string;
+    }) => {
       if (!accountId) throw new Error("No account context");
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
@@ -113,6 +121,8 @@ export const useUploadClmTemplate = () => {
           mime_type: file.type,
           file_size_bytes: file.size,
           status: "uploading",
+          ...(industry_category ? { industry_category } : {}),
+          ...(document_type ? { document_type } : {}),
         } as any)
         .select()
         .single();
