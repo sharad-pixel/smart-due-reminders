@@ -95,9 +95,7 @@ const Inner = () => {
         }
         rightSlot={
           <>
-            <Button size="sm" onClick={() => setPkgOpen(true)} className="gap-1">
-              <PenLine className="h-3.5 w-3.5" /> Prepare for signature
-            </Button>
+            <SignatureReadyButton instanceId={id!} onClick={() => setPkgOpen(true)} />
             <PushToGoogleDocsButton
               instanceId={id!}
               gdocUrl={(instance as any).gdoc_url}
