@@ -648,3 +648,137 @@ export const useSubmitDraftsForReview = (instanceId: string) => {
     onError: (e: any) => toast.error(e?.message ?? "Failed to submit"),
   });
 };
+
+// ─────────────────────────────────────────────────────────────────────────
+// Granular per-revision review: revert, request reviewers, threaded comments
+// ─────────────────────────────────────────────────────────────────────────
+
+export const useRevertRevision = (instanceId: string) => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ revisionId, note }: { revisionId: string; note?: string }) => {
+      const { error } = await (supabase as any).rpc("revert_clm_revision", {
+        p_revision_id: revisionId,
+        p_note: note ?? null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["clm-instance", instanceId] });
+      qc.invalidateQueries({ queryKey: ["clm-revisions", instanceId] });
+      toast.success("Change reverted — audit trail preserved");
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Revert failed"),
+  });
+};
+
+export const useRequestRevisionReview = (instanceId: string) => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ revisionId, emails, message }: { revisionId: string; emails: string[]; message?: string }) => {
+      const cleaned = Array.from(new Set(emails.map((e) => e.trim().toLowerCase()).filter(Boolean)));
+      if (!cleaned.length) throw new Error("Add at least one reviewer");
+      const { error } = await (supabase as any).rpc("request_clm_revision_review", {
+        p_revision_id: revisionId,
+        p_emails: cleaned,
+      });
+      if (error) throw error;
+      // fire-and-forget notification
+      try {
+        await supabase.functions.invoke("clm-notify-revision", {
+          body: { event: "review_requested", revision_id: revisionId, emails: cleaned, message: message ?? null },
+        });
+      } catch (e) {
+        console.warn("[clm] notify review_requested failed", e);
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["clm-revisions", instanceId] });
+      toast.success("Review requested");
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to request review"),
+  });
+};
+
+export const useRevisionComments = (revisionId: string | undefined) => {
+  return useQuery({
+    queryKey: ["clm-revision-comments", revisionId],
+    enabled: !!revisionId,
+    queryFn: async () => {
+      const { data, error } = await (supabase.from("clm_revision_comments" as any) as any)
+        .select("*").eq("revision_id", revisionId!).order("created_at", { ascending: true });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+};
+
+export const usePostRevisionComment = (instanceId: string) => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      revisionId, body, mentions = [], parentCommentId,
+    }: { revisionId: string; body: string; mentions?: string[]; parentCommentId?: string | null }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Sign in required");
+      let name: string | undefined;
+      const { data: prof } = await supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
+      name = (prof as any)?.full_name ?? user.email ?? undefined;
+      const cleanedMentions = Array.from(new Set(mentions.map((m) => m.trim().toLowerCase()).filter(Boolean)));
+      const { error } = await (supabase.from("clm_revision_comments" as any) as any).insert({
+        revision_id: revisionId,
+        instance_id: instanceId,
+        parent_comment_id: parentCommentId ?? null,
+        author_id: user.id,
+        author_email: user.email ?? null,
+        author_name: name ?? null,
+        body,
+        mentions: cleanedMentions,
+      });
+      if (error) throw error;
+
+      // If mentions exist, also tag them as reviewers and notify
+      if (cleanedMentions.length) {
+        try {
+          await (supabase as any).rpc("request_clm_revision_review", {
+            p_revision_id: revisionId,
+            p_emails: cleanedMentions,
+          });
+          await supabase.functions.invoke("clm-notify-revision", {
+            body: {
+              event: "mention",
+              revision_id: revisionId,
+              emails: cleanedMentions,
+              message: body.slice(0, 280),
+              author_name: name,
+            },
+          });
+        } catch (e) {
+          console.warn("[clm] mention notify failed", e);
+        }
+      }
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["clm-revision-comments", vars.revisionId] });
+      qc.invalidateQueries({ queryKey: ["clm-revisions", instanceId] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to post comment"),
+  });
+};
+
+export const useResolveRevisionComment = (instanceId: string, revisionId: string) => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ commentId, resolved }: { commentId: string; resolved: boolean }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await (supabase.from("clm_revision_comments" as any) as any)
+        .update({ resolved_at: resolved ? new Date().toISOString() : null, resolved_by: resolved ? user?.id : null })
+        .eq("id", commentId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["clm-revision-comments", revisionId] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed"),
+  });
+};

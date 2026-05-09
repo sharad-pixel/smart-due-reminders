@@ -54,3 +54,41 @@ export const CAPABILITY_LABEL: Record<keyof ClmCapabilities, { label: string; sh
   sign:    { label: "Can sign",    short: "Sign" },
   view:    { label: "Can view",    short: "View" },
 };
+
+// ─────────────────────────────────────────────────────────────────────────
+// Per-revision capabilities — separates "merge" (apply text) from "approve"
+// (sign off legally). Editors can merge; only Approver/Legal/Owner can approve.
+// Anyone with merge or approve can revert any unsealed change. Authors can
+// always revert their own pending drafts.
+// ─────────────────────────────────────────────────────────────────────────
+
+const APPROVER_ROLES: ClmRole[] = ["owner", "approver", "legal"];
+const EDITOR_ROLES: ClmRole[]   = ["owner", "editor", "approver", "legal"];
+
+export const canApproveRevisions  = (role?: string | null) =>
+  APPROVER_ROLES.includes(((role ?? "viewer").toLowerCase() as ClmRole));
+
+export const canMergeRevisions    = (role?: string | null) =>
+  EDITOR_ROLES.includes(((role ?? "viewer").toLowerCase() as ClmRole));
+
+export const canCommentOnRevisions = (role?: string | null) =>
+  getRoleMeta(role).caps.comment;
+
+export interface RevisionForCaps {
+  edited_by?: string | null;
+  approval_status?: string | null;
+  sealed_at?: string | null;
+}
+
+export const canRevertRevision = (
+  rev: RevisionForCaps | undefined | null,
+  role?: string | null,
+  myUserId?: string | null,
+) => {
+  if (!rev) return false;
+  if (rev.sealed_at) return false;
+  if (canApproveRevisions(role)) return true;
+  if (canMergeRevisions(role)) return true;
+  if (myUserId && rev.edited_by === myUserId && rev.approval_status !== "approved") return true;
+  return false;
+};

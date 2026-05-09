@@ -1575,6 +1575,76 @@ export type Database = {
           },
         ]
       }
+      clm_revision_comments: {
+        Row: {
+          author_email: string | null
+          author_id: string | null
+          author_name: string | null
+          body: string
+          created_at: string
+          id: string
+          instance_id: string
+          mentions: string[]
+          parent_comment_id: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          revision_id: string
+          updated_at: string
+        }
+        Insert: {
+          author_email?: string | null
+          author_id?: string | null
+          author_name?: string | null
+          body: string
+          created_at?: string
+          id?: string
+          instance_id: string
+          mentions?: string[]
+          parent_comment_id?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          revision_id: string
+          updated_at?: string
+        }
+        Update: {
+          author_email?: string | null
+          author_id?: string | null
+          author_name?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          instance_id?: string
+          mentions?: string[]
+          parent_comment_id?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          revision_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clm_revision_comments_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "clm_template_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clm_revision_comments_parent_comment_id_fkey"
+            columns: ["parent_comment_id"]
+            isOneToOne: false
+            referencedRelation: "clm_revision_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clm_revision_comments_revision_id_fkey"
+            columns: ["revision_id"]
+            isOneToOne: false
+            referencedRelation: "clm_section_revisions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clm_section_comments: {
         Row: {
           author_id: string
@@ -1629,14 +1699,18 @@ export type Database = {
           edited_by_name: string | null
           id: string
           instance_id: string
+          merge_status: string
           new_body: string | null
           notified_at: string | null
           parent_revision_id: string | null
           previous_body: string | null
+          requested_reviewers: string[]
+          reverted_from_revision_id: string | null
           review_note: string | null
           reviewed_at: string | null
           reviewed_by: string | null
           reviewed_by_name: string | null
+          sealed_at: string | null
           section_id: string
           section_key: string | null
           section_title: string | null
@@ -1656,14 +1730,18 @@ export type Database = {
           edited_by_name?: string | null
           id?: string
           instance_id: string
+          merge_status?: string
           new_body?: string | null
           notified_at?: string | null
           parent_revision_id?: string | null
           previous_body?: string | null
+          requested_reviewers?: string[]
+          reverted_from_revision_id?: string | null
           review_note?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           reviewed_by_name?: string | null
+          sealed_at?: string | null
           section_id: string
           section_key?: string | null
           section_title?: string | null
@@ -1683,14 +1761,18 @@ export type Database = {
           edited_by_name?: string | null
           id?: string
           instance_id?: string
+          merge_status?: string
           new_body?: string | null
           notified_at?: string | null
           parent_revision_id?: string | null
           previous_body?: string | null
+          requested_reviewers?: string[]
+          reverted_from_revision_id?: string | null
           review_note?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           reviewed_by_name?: string | null
+          sealed_at?: string | null
           section_id?: string
           section_key?: string | null
           section_title?: string | null
@@ -1709,6 +1791,13 @@ export type Database = {
           {
             foreignKeyName: "clm_section_revisions_parent_revision_id_fkey"
             columns: ["parent_revision_id"]
+            isOneToOne: false
+            referencedRelation: "clm_section_revisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clm_section_revisions_reverted_from_revision_id_fkey"
+            columns: ["reverted_from_revision_id"]
             isOneToOne: false
             referencedRelation: "clm_section_revisions"
             referencedColumns: ["id"]
@@ -10415,6 +10504,14 @@ export type Database = {
           p_user_id: string
         }
         Returns: Json
+      }
+      request_clm_revision_review: {
+        Args: { p_emails: string[]; p_revision_id: string }
+        Returns: undefined
+      }
+      revert_clm_revision: {
+        Args: { p_note?: string; p_revision_id: string }
+        Returns: string
       }
       rotate_ar_page_token: { Args: { p_user_id: string }; Returns: string }
       submit_clm_review_batch: {
