@@ -353,3 +353,6 @@ verify_jwt = true
 
 [functions.clm-push-to-gdocs]
 verify_jwt = true
+
+[functions.clm-send-for-signature]
+verify_jwt = true
