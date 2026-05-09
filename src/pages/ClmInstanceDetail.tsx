@@ -103,6 +103,7 @@ const Inner = () => {
             />
             <RoleCapabilitiesDialog myRole={myRoleInfo?.role} />
             <KurtChatDrawer instanceId={id!} instanceName={instance.name} />
+            <VersionPill instanceId={id!} />
             <Badge variant="outline" className="capitalize">{instance.status.replace("_", " ")}</Badge>
             <Select value={instance.status} onValueChange={(v) => updateStatus.mutate(v)}>
               <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
