@@ -65,7 +65,15 @@ export const NewWorkspaceDialog = ({ open, onOpenChange }: Props) => {
 
   const create = useCreateClmInstance();
   const { data: templates = [] } = useClmTemplates();
-  const readyTemplates = templates.filter((t) => t.status === "ready");
+  const profileDef = getBusinessProfile(businessProfile);
+  const allReady = templates.filter((t) => t.status === "ready");
+  // Filter templates by the selected business profile's industry categories,
+  // but always include uncategorised/legacy templates so nothing disappears.
+  const readyTemplates = allReady.filter((t) => {
+    const cat = (t as any).industry_category as string | undefined;
+    if (!cat) return true;
+    return profileDef.templateCategories.includes(cat);
+  });
 
   const { data: debtors = [] } = useQuery({
     queryKey: ["new-workspace-debtor-search", debtorSearch],
