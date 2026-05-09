@@ -5,33 +5,43 @@ import { Badge } from "@/components/ui/badge";
 import { Check, X, ShieldCheck } from "lucide-react";
 import { CLM_ROLE_META, type ClmRole } from "@/lib/clmRoles";
 
-type Cap = "view" | "comment" | "edit" | "submit" | "approve" | "revert" | "tagReviewers" | "manageAccess" | "sign";
+type Cap =
+  | "view" | "comment" | "edit" | "submit" | "approve" | "revert" | "tagReviewers" | "manageAccess" | "sign"
+  | "openDraft" | "submitVersion" | "approveVersion" | "revertVersion" | "sealVersion";
 
 const CAP_LABELS: Record<Cap, string> = {
-  view: "View document",
+  view: "View document & history",
   comment: "Comment & @mention",
   edit: "Edit sections (auto-saves draft)",
-  submit: "Submit for approval",
+  submit: "Submit a change for approval",
   revert: "Revert pending / own drafts",
-  approve: "Approve / reject changes",
+  approve: "Approve / reject single changes",
   tagReviewers: "Tag reviewers on a change",
   manageAccess: "Add / remove collaborators",
   sign: "Sign final document",
+  openDraft: "Open a new Draft version",
+  submitVersion: "Submit Draft → Pending Review",
+  approveVersion: "Approve / reject a version",
+  revertVersion: "Revert to a prior version",
+  sealVersion: "Seal a Published version",
 };
 
 const MATRIX: Record<ClmRole, Partial<Record<Cap, boolean>>> = {
-  owner:    { view: true, comment: true, edit: true, submit: true, revert: true, approve: true, tagReviewers: true, manageAccess: true, sign: true },
-  legal:    { view: true, comment: true, edit: true, submit: true, revert: true, approve: true, tagReviewers: true, manageAccess: false, sign: false },
-  approver: { view: true, comment: true, edit: true, submit: true, revert: true, approve: true, tagReviewers: true, manageAccess: false, sign: false },
-  editor:   { view: true, comment: true, edit: true, submit: true, revert: true, approve: false, tagReviewers: true, manageAccess: false, sign: false },
-  reviewer: { view: true, comment: true, edit: false, submit: false, revert: false, approve: false, tagReviewers: true, manageAccess: false, sign: false },
-  signer:   { view: true, comment: true, edit: false, submit: false, revert: false, approve: false, tagReviewers: false, manageAccess: false, sign: true },
-  cc:       { view: true, comment: true, edit: false, submit: false, revert: false, approve: false, tagReviewers: false, manageAccess: false, sign: false },
-  viewer:   { view: true, comment: false, edit: false, submit: false, revert: false, approve: false, tagReviewers: false, manageAccess: false, sign: false },
+  owner:    { view: true, comment: true, edit: true, submit: true, revert: true, approve: true, tagReviewers: true, manageAccess: true, sign: true,  openDraft: true,  submitVersion: true,  approveVersion: true,  revertVersion: true,  sealVersion: true  },
+  legal:    { view: true, comment: true, edit: true, submit: true, revert: true, approve: true, tagReviewers: true, manageAccess: false, sign: false, openDraft: true,  submitVersion: true,  approveVersion: true,  revertVersion: true,  sealVersion: true  },
+  approver: { view: true, comment: true, edit: true, submit: true, revert: true, approve: true, tagReviewers: true, manageAccess: false, sign: false, openDraft: true,  submitVersion: true,  approveVersion: true,  revertVersion: true,  sealVersion: false },
+  editor:   { view: true, comment: true, edit: true, submit: true, revert: true, approve: false, tagReviewers: true, manageAccess: false, sign: false, openDraft: true,  submitVersion: true,  approveVersion: false, revertVersion: false, sealVersion: false },
+  reviewer: { view: true, comment: true, edit: false, submit: false, revert: false, approve: false, tagReviewers: true, manageAccess: false, sign: false, openDraft: false, submitVersion: false, approveVersion: false, revertVersion: false, sealVersion: false },
+  signer:   { view: true, comment: true, edit: false, submit: false, revert: false, approve: false, tagReviewers: false, manageAccess: false, sign: true,  openDraft: false, submitVersion: false, approveVersion: false, revertVersion: false, sealVersion: true  },
+  cc:       { view: true, comment: true, edit: false, submit: false, revert: false, approve: false, tagReviewers: false, manageAccess: false, sign: false, openDraft: false, submitVersion: false, approveVersion: false, revertVersion: false, sealVersion: false },
+  viewer:   { view: true, comment: false, edit: false, submit: false, revert: false, approve: false, tagReviewers: false, manageAccess: false, sign: false, openDraft: false, submitVersion: false, approveVersion: false, revertVersion: false, sealVersion: false },
 };
 
 const ROLE_ORDER: ClmRole[] = ["owner", "legal", "approver", "editor", "reviewer", "signer", "cc", "viewer"];
-const CAP_ORDER: Cap[] = ["view", "comment", "edit", "submit", "revert", "approve", "tagReviewers", "manageAccess", "sign"];
+const CAP_ORDER: Cap[] = [
+  "view", "comment", "edit", "submit", "revert", "approve", "tagReviewers", "manageAccess", "sign",
+  "openDraft", "submitVersion", "approveVersion", "revertVersion", "sealVersion",
+];
 
 interface Props {
   myRole?: string | null;
