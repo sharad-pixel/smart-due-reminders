@@ -163,6 +163,7 @@ export const ExternalPortalAccessPanel = ({ instanceId }: Props) => {
                   <SelectContent>
                     <SelectItem value="viewer">Viewer (read only)</SelectItem>
                     <SelectItem value="reviewer">Reviewer (comment)</SelectItem>
+                    <SelectItem value="editor">Editor (can edit)</SelectItem>
                     <SelectItem value="approver">Approver (sign off)</SelectItem>
                     <SelectItem value="signer">Signer</SelectItem>
                   </SelectContent>
