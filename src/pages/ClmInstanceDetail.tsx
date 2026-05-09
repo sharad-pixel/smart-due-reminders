@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Loader2, PenLine, FileText, MessageSquare, ShieldCheck, History } from "lucide-react";
 import { useClmInstance, useUpdateInstanceStatus } from "@/hooks/useClmInstance";
 import { WorkspaceOverviewCard } from "@/components/clm/WorkspaceOverviewCard";
+import { EngagementOverviewCard } from "@/components/clm/EngagementOverviewCard";
 import { ApprovalsPanel } from "@/components/clm/ApprovalsPanel";
 import { TrackChangesAndCollaborators } from "@/components/clm/TrackChangesAndCollaborators";
 import { WorkspaceTemplateTabs } from "@/components/clm/WorkspaceTemplateTabs";
@@ -121,6 +122,7 @@ const Inner = () => {
       />
 
       <WorkspaceOverviewCard instance={instance} debtors={debtors} />
+      <EngagementOverviewCard instanceId={id!} />
 
       <div className="mt-6">
         <DraftSubmissionBar instanceId={id!} contacts={contacts} externalAccess={externalAccess as any[]} />

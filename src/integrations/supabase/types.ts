@@ -1307,6 +1307,56 @@ export type Database = {
           },
         ]
       }
+      clm_engagement_profiles: {
+        Row: {
+          account_id: string
+          business_model: string | null
+          created_at: string
+          created_by: string | null
+          customer_info: Json
+          engagement_type: string | null
+          id: string
+          industries: string[]
+          instance_id: string
+          risk_level: string
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          business_model?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_info?: Json
+          engagement_type?: string | null
+          id?: string
+          industries?: string[]
+          instance_id: string
+          risk_level?: string
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          business_model?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_info?: Json
+          engagement_type?: string | null
+          id?: string
+          industries?: string[]
+          instance_id?: string
+          risk_level?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clm_engagement_profiles_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: true
+            referencedRelation: "clm_template_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clm_entitlements: {
         Row: {
           account_id: string
@@ -2441,6 +2491,120 @@ export type Database = {
             columns: ["linked_version_id"]
             isOneToOne: false
             referencedRelation: "clm_document_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clm_workspace_approval_routing: {
+        Row: {
+          account_id: string
+          approver_role: string
+          created_at: string
+          id: string
+          instance_id: string
+          reason: string | null
+          required: boolean
+        }
+        Insert: {
+          account_id: string
+          approver_role: string
+          created_at?: string
+          id?: string
+          instance_id: string
+          reason?: string | null
+          required?: boolean
+        }
+        Update: {
+          account_id?: string
+          approver_role?: string
+          created_at?: string
+          id?: string
+          instance_id?: string
+          reason?: string | null
+          required?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clm_workspace_approval_routing_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "clm_template_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clm_workspace_compliance_requirements: {
+        Row: {
+          account_id: string
+          created_at: string
+          id: string
+          instance_id: string
+          label: string
+          requirement_key: string
+          status: string
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          id?: string
+          instance_id: string
+          label: string
+          requirement_key: string
+          status?: string
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          id?: string
+          instance_id?: string
+          label?: string
+          requirement_key?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clm_workspace_compliance_requirements_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "clm_template_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clm_workspace_required_documents: {
+        Row: {
+          account_id: string
+          created_at: string
+          document_type: string
+          id: string
+          instance_id: string
+          source: string
+          status: string
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          document_type: string
+          id?: string
+          instance_id: string
+          source?: string
+          status?: string
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          document_type?: string
+          id?: string
+          instance_id?: string
+          source?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clm_workspace_required_documents_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "clm_template_instances"
             referencedColumns: ["id"]
           },
         ]
