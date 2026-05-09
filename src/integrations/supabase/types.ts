@@ -1069,6 +1069,65 @@ export type Database = {
         }
         Relationships: []
       }
+      clm_external_access: {
+        Row: {
+          account_id: string
+          created_at: string
+          created_by: string | null
+          debtor_id: string | null
+          email: string
+          expires_at: string
+          id: string
+          instance_id: string
+          last_used_at: string | null
+          name: string | null
+          revoked_at: string | null
+          role: string
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          created_by?: string | null
+          debtor_id?: string | null
+          email: string
+          expires_at?: string
+          id?: string
+          instance_id: string
+          last_used_at?: string | null
+          name?: string | null
+          revoked_at?: string | null
+          role?: string
+          token?: string
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          created_by?: string | null
+          debtor_id?: string | null
+          email?: string
+          expires_at?: string
+          id?: string
+          instance_id?: string
+          last_used_at?: string | null
+          name?: string | null
+          revoked_at?: string | null
+          role?: string
+          token?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clm_external_access_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "clm_template_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clm_instance_contacts: {
         Row: {
           added_by: string
@@ -1338,6 +1397,10 @@ export type Database = {
       clm_section_revisions: {
         Row: {
           approval_status: string
+          assigned_approver_email: string | null
+          assigned_approver_id: string | null
+          assigned_approver_name: string | null
+          assigned_at: string | null
           change_summary: string | null
           created_at: string
           edited_by: string | null
@@ -1356,6 +1419,10 @@ export type Database = {
         }
         Insert: {
           approval_status?: string
+          assigned_approver_email?: string | null
+          assigned_approver_id?: string | null
+          assigned_approver_name?: string | null
+          assigned_at?: string | null
           change_summary?: string | null
           created_at?: string
           edited_by?: string | null
@@ -1374,6 +1441,10 @@ export type Database = {
         }
         Update: {
           approval_status?: string
+          assigned_approver_email?: string | null
+          assigned_approver_id?: string | null
+          assigned_approver_name?: string | null
+          assigned_at?: string | null
           change_summary?: string | null
           created_at?: string
           edited_by?: string | null
