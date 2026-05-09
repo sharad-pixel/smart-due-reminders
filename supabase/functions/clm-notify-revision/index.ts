@@ -16,6 +16,20 @@ serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
+  // Direct invocation for per-event notifications (mention / review_requested).
+  // These are intentional pings, sent immediately and bypassing the queue.
+  if (req.method === "POST") {
+    try {
+      const body = await req.clone().json().catch(() => null);
+      if (body?.event === "mention" || body?.event === "review_requested") {
+        const sent = await sendDirectEvent(admin, body);
+        return new Response(JSON.stringify({ success: true, sent }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    } catch (_) { /* fall through to queue drain */ }
+  }
+
   try {
     // Drain up to 25 pending notifications
     const { data: queue } = await admin
