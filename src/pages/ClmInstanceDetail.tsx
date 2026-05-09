@@ -72,6 +72,7 @@ const Inner = () => {
   const sourceTemplateName = instance.clm_templates?.name ?? instance.template_name_snapshot ?? "template";
   const sourceTemplateLink = instance.clm_templates?.id ? `/contracts/templates/${instance.clm_templates.id}` : null;
   const debtorId = debtors[0]?.debtor_id ?? null;
+  const { data: myRoleInfo } = useMyClmRole(id, contacts, externalAccess as any[], instance);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
