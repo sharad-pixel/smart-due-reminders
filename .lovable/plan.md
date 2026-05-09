@@ -1,60 +1,67 @@
-# CLM: Friendlier Approvals UI + Secure External Collaborator Portal
 
-Two related improvements to the CLM workspace:
+# CLM Amendment Approval Workflow
 
-## 1. Friendlier Change Tracking & Approval Assignment
+Today the pieces exist (revisions, assignee field, portal, comments) but the lifecycle is loose: anyone with edit rights can save changes, no one is notified, and approvals only happen if someone manually opens the panel. This plan ties it together into a proper amendment → review → approval cycle that mirrors enterprise CLM patterns (DocuSign CLM, Ironclad, Juro).
 
-Today the `RevisionHistoryPanel` is a dense audit log with inline accept/reject. Hard to scan, and you can't assign a specific approver.
+## Workflow
 
-**New UX (in-app, for internal users):**
-- Split the right-rail panel into two tabs:
-  - **Pending Approvals** (default) — card per pending revision: section title, who edited, time, change summary, before/after diff toggle, **Assign approver** dropdown (account collaborators + internal team), Approve / Request Changes buttons, optional note.
-  - **History** — chronological feed of all approved/rejected/auto-saved changes with status pills and reviewer name.
-- Add a top summary strip: "X pending · Y approved this week · Z rejected".
-- New `assigned_approver_id` column on `clm_instance_revisions`; assigning sends an in-app notification + email to that person.
-- Section editor: when submitting for approval, pick an assignee from the same dropdown.
+```text
+Owner invites users → User edits a section → Amendment saved (pending) →
+Assignee notified by email → Reviewer opens portal/app → Approve / Request changes →
+All workspace contributors notified of decision → Audit log entry
+```
 
-## 2. Secure-Token External Collaborator Portal
+### Roles (workspace-scoped)
+- **Owner** — full control, manages contributors, can override approvals.
+- **Editor** — can amend sections; amendments require approval before becoming the live version.
+- **Approver** — can approve/reject pending amendments assigned to them.
+- **Reviewer** — read + comment only.
+- **Viewer** — read only.
 
-Mirror the payment portal pattern: external party enters their email, receives a magic link, lands on a scoped CLM portal that lists every workspace they're invited to plus their pending tasks (sections to review, approvals requested, comments mentioning them).
+Internal users get roles via `clm_workspace_contributors`; external users via `clm_external_access` (already exists). Same role enum used for both.
 
-**Flow:**
-1. From `ContributorsPanel` → "Invite external collaborator" → email + role (Reviewer / Approver / Viewer) + optional expiry.
-2. Backend creates a `clm_external_access` row (token uuid, email, instance_id, role, expires_at, last_used_at, revoked_at) and emails a `https://recouply.ai/clm-portal?token=...` link.
-3. Edge function `clm-portal-access` validates token by email, returns scoped data: workspaces, sections, pending approvals/tasks assigned to that email, comments threaded with them.
-4. Public portal page `/clm-portal` (no auth) — email entry → magic link → token-authenticated session (sessionStorage). Lists workspaces, opens read/comment/approve view per their role.
-5. Owner can **renew** (rotate token + new expiry, resend email) or **revoke** from the workspace contributors panel — same affordance as payment portal token rotation.
+## Amendment lifecycle (per section)
 
-**Security:**
-- Tokens are random uuids, single-purpose, expire (default 30 days, renewable).
-- All portal data fetched server-side via SECURITY DEFINER edge function — base tables stay locked behind RLS; no anon SELECT policies added.
-- Rate-limit magic-link requests via existing `check_action_rate_limit`.
-- Audit log entry on issue / renew / revoke / portal access.
+1. **Draft saved** — editor submits change → row in `clm_section_revisions` with `approval_status='pending'`, `version_number` auto-incremented (already in place), `assigned_approver_email` required (picker in editor, defaults to workspace owner).
+2. **Live body unchanged until approved** — section's `body` only updates when revision is approved. (Today the editor writes to body immediately; we'll switch to write-on-approve so pending changes are truly proposed amendments.)
+3. **Notification fan-out** — DB trigger enqueues a notification job; edge function `clm-notify-revision` sends:
+   - Email to the assigned approver (with deep link: in-app for internal, portal token URL for external).
+   - In-app notification (`user_alerts`) for internal assignees.
+4. **Decision** — Approve writes new body + marks revision approved. Reject reverts (keeps body as-is) and notifies the editor with the reviewer's note.
+5. **Audit** — every state change logged in `audit_logs` (action_type `clm_amendment_*`).
+
+## What this changes vs today
+
+| Today | After |
+|---|---|
+| Section body updated on save | Body updated only on approval |
+| Assignee optional, free-text | Required dropdown (workspace contributors + portal users), defaults to owner |
+| No notifications | Email + in-app on assign, approve, reject |
+| Approvals panel only shows in-app | Same panel + portal page mirrors it for externals |
+| No "request changes" loop | Reject with note → editor sees alert + can resubmit (creates new revision linked via `parent_revision_id`) |
 
 ## Technical Plan
 
 **DB migration:**
-- `ALTER TABLE clm_instance_revisions ADD COLUMN assigned_approver_id uuid, assigned_approver_email text, assigned_at timestamptz`.
-- New table `clm_external_access` (id, instance_id, debtor_id nullable, email, role, token uuid unique, expires_at, last_used_at, revoked_at, created_by, created_at).
-- New table `clm_external_tasks` is unnecessary — derive tasks from existing revisions + comments + assigned_approver_email match.
-- RLS: account members can manage rows for their workspaces; no anon SELECT (portal goes through edge function only).
+- `ALTER TABLE clm_section_revisions ADD COLUMN parent_revision_id uuid REFERENCES clm_section_revisions(id), ADD COLUMN notified_at timestamptz`.
+- Make `assigned_approver_email` NOT NULL going forward (backfill existing pending rows to workspace owner email).
+- New trigger `notify_clm_revision_assigned`: on INSERT or assignee change with status='pending', call `pg_net` to invoke `clm-notify-revision` (or insert a row in a lightweight `clm_notification_queue` polled by the function — safer than pg_net dependency).
+- Trigger on UPDATE of `approval_status`: if `approved`, copy `new_body` into `clm_instance_sections.body`; if `rejected`, no-op on body but enqueue rejection notification.
 
 **Edge functions:**
-- `clm-invite-external` — creates access row, sends magic-link email via existing email infra.
-- `clm-portal-request-link` — email lookup, rate-limited, sends magic link.
-- `clm-portal-access` — `{ token }` → returns workspaces + tasks assigned to that email; updates `last_used_at`.
-- `clm-portal-action` — `{ token, action: approve|reject|comment, payload }` — performs scoped writes server-side.
+- `clm-notify-revision` — drains `clm_notification_queue`, sends email via existing `send-email` infra. Builds the right link (internal `/contracts/{id}` vs portal `/clm-portal?token=...`), looks up portal token from `clm_external_access` (creates one if external assignee has no active token, with default 30-day expiry).
+- Tiny scheduled cron (every 1 min) to drain the queue, plus immediate trigger after insert.
 
 **Frontend:**
-- Rewrite `RevisionHistoryPanel` → `ApprovalsPanel` with tabs (Pending / History) + summary chips + per-card assignee dropdown.
-- Update `SectionEditDialog` to add optional approver picker on Submit.
-- Replace "Add external" form in `ContributorsPanel` with "Invite external collaborator" dialog (email + role + expiry); list issued tokens with status (active/expired/revoked) + Renew / Revoke / Copy link actions.
-- New page `src/pages/ClmPortal.tsx` (route `/clm-portal`) with two states: email entry → workspace list → workspace detail (sections read, comment, approve if role=Approver).
-- Add route in `App.tsx`, exclude from sitemap.
+- `SectionEditDialog` — assignee picker becomes required, with helper text "Changes go live after approval."
+- `ApprovalsPanel` — already in place; add a "Resubmit" action on rejected revisions (opens edit dialog pre-filled).
+- `ContributorsPanel` — surface role per contributor with an inline role dropdown (owner-only).
+- Section list — visual cue when a section has a pending amendment ("Amendment pending review by X").
+- `ClmPortal` — add same "Resubmit" affordance for external editors; already shows pending tasks.
 
 **Out of scope this round:**
-- Realtime presence in portal.
-- Bulk approver assignment.
-- Custom email template branding (uses default transactional template).
+- Multi-step approval chains (one approver per amendment for now).
+- Conditional routing rules (e.g. by clause type or value threshold).
+- E-signature integration on final approval.
 
 Confirm and I'll implement.
