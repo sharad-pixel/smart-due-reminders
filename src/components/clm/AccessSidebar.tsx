@@ -146,11 +146,12 @@ export const AccessSidebar = ({ instanceId, instance, contacts, externalAccess =
   );
 };
 
-const MemberRow = ({ member, onRemove }: { member: Member; onRemove?: () => void }) => {
+const MemberRow = ({ member, onRemove, onRoleChange }: { member: Member; onRemove?: () => void; onRoleChange?: (role: string) => void }) => {
   const meta = getRoleMeta(member.role);
   const Icon = meta.icon;
   const initial = (member.name || member.email || "?").trim().charAt(0).toUpperCase();
   const enabledCaps = (Object.keys(meta.caps) as (keyof ClmCapabilities)[]).filter((k) => meta.caps[k] && k !== "view");
+  const roleOptions = ["editor", "approver", "reviewer", "legal", "signer", "cc", "viewer"];
 
   return (
     <div className="rounded border p-2 hover:bg-muted/30 transition-colors">
@@ -161,9 +162,23 @@ const MemberRow = ({ member, onRemove }: { member: Member; onRemove?: () => void
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
             <p className="text-sm font-medium truncate">{member.name}</p>
-            <Badge variant="outline" className={`${meta.tone} text-[10px] h-4 px-1.5`}>
-              <Icon className="h-2.5 w-2.5 mr-0.5" />{meta.label}
-            </Badge>
+            {onRoleChange ? (
+              <Select value={(member.role || "reviewer").toLowerCase()} onValueChange={onRoleChange}>
+                <SelectTrigger className={`h-5 px-1.5 text-[10px] capitalize w-auto gap-1 ${meta.tone}`}>
+                  <Icon className="h-2.5 w-2.5" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {roleOptions.map((r) => (
+                    <SelectItem key={r} value={r} className="text-xs capitalize">{r}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Badge variant="outline" className={`${meta.tone} text-[10px] h-4 px-1.5`}>
+                <Icon className="h-2.5 w-2.5 mr-0.5" />{meta.label}
+              </Badge>
+            )}
             {member.source === "portal" && (
               <Badge variant="outline" className="text-[10px] h-4 px-1.5 border-dashed">Portal</Badge>
             )}
