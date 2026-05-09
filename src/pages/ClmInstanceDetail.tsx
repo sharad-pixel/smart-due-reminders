@@ -140,12 +140,13 @@ const Inner = () => {
         </div>
       </div>
 
-      <div className="mt-6">
+      <div className="mt-6 space-y-6">
         <RevisionHistoryPanel
           instanceId={id!}
           contacts={contacts}
           externalAccess={externalAccess as any[]}
         />
+        <AuditLogPanel instanceId={id!} />
       </div>
 
       <PrepareSignaturePackageDialog
