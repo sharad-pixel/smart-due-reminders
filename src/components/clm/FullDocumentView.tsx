@@ -7,13 +7,14 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
-import { Clock, CheckCircle2, MessageSquare, History, Pencil, GitBranch, X, User, StickyNote, Loader2 } from "lucide-react";
-import { format } from "date-fns";
+import { Clock, CheckCircle2, MessageSquare, History, Pencil, GitBranch, X, User, StickyNote, Loader2, FileEdit } from "lucide-react";
+import { format, formatDistanceToNow } from "date-fns";
 import { InlineDiff } from "./InlineDiff";
 import { useInstanceRevisions, useAddSectionComment } from "@/hooks/useClmInstance";
 import { SectionEditDialog } from "./SectionEditDialog";
 import { SectionVersionHistoryDialog } from "./SectionVersionHistoryDialog";
 import { canCommentOnRevisions } from "@/lib/clmRoles";
+import { MentionTextarea, renderMentionedBody, type MentionPerson } from "./MentionTextarea";
 
 interface Props {
   instanceId?: string;
@@ -21,6 +22,7 @@ interface Props {
   title?: string;
   description?: string;
   contacts?: any[];
+  externalAccess?: any[];
   comments?: any[];
   canEdit?: boolean;
   myRole?: string | null;
@@ -29,7 +31,7 @@ interface Props {
 const initials = (s: string) => s.split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase()).join("") || "?";
 
 export const FullDocumentView = ({
-  instanceId, sections, title, description, contacts = [], comments = [], canEdit = false, myRole,
+  instanceId, sections, title, description, contacts = [], externalAccess = [], comments = [], canEdit = false, myRole,
 }: Props) => {
   const { data: revisions = [] } = useInstanceRevisions(instanceId ?? "");
   const addComment = useAddSectionComment(instanceId ?? "");
