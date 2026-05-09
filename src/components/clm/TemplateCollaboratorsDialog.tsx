@@ -28,6 +28,7 @@ interface Props {
 }
 
 const ROLE_OPTIONS = [
+  { v: "editor", l: "Editor (can edit)" },
   { v: "signer", l: "Signer" },
   { v: "reviewer", l: "Reviewer" },
   { v: "legal", l: "Legal" },
