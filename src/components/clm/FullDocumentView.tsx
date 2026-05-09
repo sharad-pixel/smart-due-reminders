@@ -6,7 +6,7 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/h
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Textarea } from "@/components/ui/textarea";
+
 import { Clock, CheckCircle2, MessageSquare, History, Pencil, GitBranch, X, User, StickyNote, Loader2, FileEdit } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { InlineDiff } from "./InlineDiff";
