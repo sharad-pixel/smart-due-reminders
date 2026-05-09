@@ -20,7 +20,7 @@ interface Props {
  * continuous read-only contract, with pending track-changes shown inline
  * (red strike-through → green insertion) per section.
  */
-export const FullDocumentView = ({ instanceId, sections, title, description }: Props) => {
+export const FullDocumentView = ({ instanceId, sections, title, description, contacts = [], canEdit = false }: Props) => {
   const { data: revisions = [] } = useInstanceRevisions(instanceId ?? "");
 
   const pendingBySection = useMemo(() => {
