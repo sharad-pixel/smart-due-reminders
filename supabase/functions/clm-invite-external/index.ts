@@ -34,7 +34,7 @@ serve(async (req) => {
     const action = body.action as "invite" | "renew" | "revoke";
 
     if (action === "invite") {
-      const { instance_id, email, name, role, expires_in_days } = body;
+      const { instance_id, email, name, role, expires_in_days, expires_in_hours } = body;
       const trimmed = (email || "").trim().toLowerCase();
       if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) return json({ error: "Valid email required" }, 400);
       if (!instance_id) return json({ error: "instance_id required" }, 400);
