@@ -348,12 +348,88 @@ export const FullDocumentView = ({
                             <MessageSquare className="h-3 w-3 text-violet-600 shrink-0 mt-0.5" />
                             <span className="text-foreground/80">
                               <span className="font-medium">{c.author_name || c.author_email || "Note"}:</span>{" "}
-                              <span className="italic">{c.body}</span>
+                              <span className="italic">{renderMentionedBody(c.body || "")}</span>
                             </span>
                           </div>
                         ))}
                       </div>
                     )}
+
+                    {/* Per-section change log — drafts/edits with user + timestamp */}
+                    {(() => {
+                      const log = changeLogBySection.get(s.id) ?? [];
+                      if (log.length === 0) return null;
+                      const visible = log.slice(0, 5);
+                      return (
+                        <div className="mt-2 pt-2 border-t border-dashed">
+                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1 inline-flex items-center gap-1">
+                            <FileEdit className="h-3 w-3" /> Change log ({log.length})
+                          </p>
+                          <div className="space-y-1">
+                            {visible.map((r: any) => {
+                              const status = r.approval_status as string | undefined;
+                              const tone =
+                                status === "approved" ? "bg-emerald-500/15 text-emerald-700 border-emerald-500/30"
+                                : status === "pending" ? "bg-amber-500/15 text-amber-700 border-amber-500/30"
+                                : status === "auto" ? "bg-sky-500/15 text-sky-700 border-sky-500/30"
+                                : status === "rejected" ? "bg-rose-500/15 text-rose-700 border-rose-500/30"
+                                : status === "reverted" ? "bg-slate-500/15 text-slate-600 border-slate-500/30"
+                                : "bg-slate-500/10 text-slate-600 border-slate-500/30";
+                              const statusLabel =
+                                status === "auto" ? "draft" : (status ?? "edit");
+                              return (
+                                <HoverCard key={r.id} openDelay={150}>
+                                  <HoverCardTrigger asChild>
+                                    <div className="text-[11px] flex items-center gap-1.5 cursor-help">
+                                      <FileEdit className="h-3 w-3 text-muted-foreground shrink-0" />
+                                      <span className="font-medium">{r.edited_by_name || r.edited_by_email || "Collaborator"}</span>
+                                      <Badge variant="outline" className={`text-[9px] h-4 px-1 ${tone}`}>
+                                        v{r.version_number ?? "?"} · {statusLabel}
+                                      </Badge>
+                                      <span className="text-muted-foreground">
+                                        · {formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}
+                                      </span>
+                                      {r.change_summary && (
+                                        <span className="italic text-foreground/70 truncate max-w-[260px]">— {r.change_summary}</span>
+                                      )}
+                                    </div>
+                                  </HoverCardTrigger>
+                                  <HoverCardContent side="top" align="start" className="w-80 p-3">
+                                    <div className="flex items-start gap-2">
+                                      <Avatar className="h-8 w-8">
+                                        <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+                                          {initials(r.edited_by_name || r.edited_by_email || "?")}
+                                        </AvatarFallback>
+                                      </Avatar>
+                                      <div className="min-w-0">
+                                        <p className="text-sm font-semibold truncate">{r.edited_by_name || "Collaborator"}</p>
+                                        {r.edited_by_email && (
+                                          <p className="text-[11px] text-muted-foreground truncate">{r.edited_by_email}</p>
+                                        )}
+                                        <p className="text-[11px] text-muted-foreground mt-1">
+                                          {format(new Date(r.created_at), "PPpp")}
+                                        </p>
+                                        <p className="text-[11px] mt-1">
+                                          Status: <span className="font-medium">{statusLabel}</span> · v{r.version_number ?? "?"}
+                                        </p>
+                                      </div>
+                                    </div>
+                                    {r.change_summary && (
+                                      <p className="text-xs mt-2 pt-2 border-t italic text-foreground/80">"{r.change_summary}"</p>
+                                    )}
+                                  </HoverCardContent>
+                                </HoverCard>
+                              );
+                            })}
+                            {log.length > visible.length && (
+                              <p className="text-[10px] text-muted-foreground pl-4">
+                                + {log.length - visible.length} earlier change{log.length - visible.length === 1 ? "" : "s"} — see Versions
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </section>
                 );
               })}
