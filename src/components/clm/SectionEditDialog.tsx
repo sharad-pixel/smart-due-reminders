@@ -178,13 +178,13 @@ export const SectionEditDialog = ({
             </TabsContent>
           </Tabs>
 
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+            <p className="text-[11px] text-muted-foreground sm:mr-auto">
+              Drafts are batched — submit them all from the workspace bar when you're done.
+            </p>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button variant="secondary" disabled={!dirty || update.isPending} onClick={() => submit(false)}>
-              {update.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : (<><Save className="h-4 w-4 mr-1" /> Save as new version</>)}
-            </Button>
-            <Button disabled={!canSubmitForApproval || update.isPending} onClick={() => submit(true)}>
-              <Send className="h-4 w-4 mr-1" /> Submit for Approval
+            <Button disabled={!dirty || update.isPending} onClick={() => submit(false)}>
+              {update.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : (<><Save className="h-4 w-4 mr-1" /> Save draft (v+1)</>)}
             </Button>
           </DialogFooter>
         </DialogContent>
