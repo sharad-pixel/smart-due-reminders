@@ -1,0 +1,670 @@
+import { useState, useCallback, useMemo } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import Layout from "@/components/layout/Layout";
+import { RequireClmAccess } from "@/components/clm/RequireClmAccess";
+import SEO from "@/components/seo/SEO";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { openFolderPicker } from "@/lib/googlePicker";
+import {
+  FolderPlus, RefreshCw, Upload, FileText, Sparkles, AlertTriangle, CalendarClock,
+  CheckCircle2, XCircle, FileSearch, Building2, DollarSign, Receipt, Loader2,
+  ShieldAlert, Clock, ClipboardList,
+} from "lucide-react";
+
+// ------- Status helpers -------
+const STATUS_LABEL: Record<string, string> = {
+  found: "Found",
+  queued: "Queued",
+  scanning: "Scanning",
+  ocr_processing: "OCR Processing",
+  ai_extracting: "AI Extracting",
+  needs_review: "Needs Review",
+  approved: "Approved",
+  imported: "Imported",
+  duplicate: "Duplicate",
+  failed: "Failed",
+  rejected: "Rejected",
+};
+const STATUS_VARIANT = (s: string): "default" | "secondary" | "destructive" | "outline" => {
+  if (["imported", "approved"].includes(s)) return "default";
+  if (["failed", "rejected"].includes(s)) return "destructive";
+  if (["needs_review"].includes(s)) return "outline";
+  return "secondary";
+};
+
+// ------- Hooks -------
+function useFolders() {
+  return useQuery({
+    queryKey: ["lc-folders"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("live_contract_drive_folders")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+}
+
+function useImports() {
+  return useQuery({
+    queryKey: ["lc-imports"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("live_contract_imports")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+}
+
+function useReviewItem(importId: string | null) {
+  return useQuery({
+    enabled: !!importId,
+    queryKey: ["lc-review", importId],
+    queryFn: async () => {
+      const [imp, fields, matches, dates, schedules, flags, poc] = await Promise.all([
+        supabase.from("live_contract_imports").select("*").eq("id", importId!).maybeSingle(),
+        supabase.from("live_contract_extracted_fields").select("*").eq("import_id", importId!),
+        supabase.from("contract_customer_matches").select("*").eq("import_id", importId!).order("match_score", { ascending: false }),
+        supabase.from("contract_critical_dates").select("*").eq("import_id", importId!).order("due_date"),
+        supabase.from("contract_invoice_schedules").select("*").eq("import_id", importId!).order("scheduled_date"),
+        supabase.from("contract_risk_flags").select("*").eq("import_id", importId!),
+        supabase.from("contract_poc_details").select("*").eq("import_id", importId!).maybeSingle(),
+      ]);
+      return {
+        imp: imp.data, fields: fields.data || [], matches: matches.data || [],
+        dates: dates.data || [], schedules: schedules.data || [], flags: flags.data || [], poc: poc.data,
+      };
+    },
+  });
+}
+
+function useAuditLog() {
+  return useQuery({
+    queryKey: ["lc-audit"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("live_contract_audit_log")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(100);
+      return data || [];
+    },
+  });
+}
+
+// ------- Dashboard widgets -------
+function DashboardWidgets({ imports }: { imports: any[] }) {
+  const stats = useMemo(() => {
+    const today = new Date();
+    const in30 = new Date(today.getTime() + 30 * 86400000);
+    return {
+      scanned: imports.length,
+      review: imports.filter((i) => i.status === "needs_review").length,
+      imported: imports.filter((i) => i.status === "imported").length,
+      failed: imports.filter((i) => i.status === "failed").length,
+      duplicate: imports.filter((i) => i.status === "duplicate").length,
+      upcomingRenewals: imports.filter((i) => i.term_end_date && new Date(i.term_end_date) <= in30 && new Date(i.term_end_date) >= today).length,
+    };
+  }, [imports]);
+
+  const tile = (icon: any, label: string, value: number, color: string) => (
+    <Card>
+      <CardContent className="pt-6">
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-sm text-muted-foreground">{label}</p>
+            <p className="text-2xl font-semibold mt-1">{value}</p>
+          </div>
+          <div className={`p-2 rounded-md ${color}`}>{icon}</div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      {tile(<FileSearch className="h-4 w-4" />, "Scanned", stats.scanned, "bg-muted")}
+      {tile(<ClipboardList className="h-4 w-4" />, "Needs Review", stats.review, "bg-amber-100 text-amber-700")}
+      {tile(<CheckCircle2 className="h-4 w-4" />, "Imported", stats.imported, "bg-emerald-100 text-emerald-700")}
+      {tile(<CalendarClock className="h-4 w-4" />, "Renewals ≤30d", stats.upcomingRenewals, "bg-blue-100 text-blue-700")}
+      {tile(<XCircle className="h-4 w-4" />, "Failed", stats.failed, "bg-red-100 text-red-700")}
+      {tile(<AlertTriangle className="h-4 w-4" />, "Duplicates", stats.duplicate, "bg-slate-100 text-slate-700")}
+    </div>
+  );
+}
+
+// ------- Folders tab -------
+function FoldersTab() {
+  const qc = useQueryClient();
+  const { data: folders = [], isLoading } = useFolders();
+  const [pickerOpening, setPickerOpening] = useState(false);
+
+  const addFolder = useMutation({
+    mutationFn: async ({ folderId, folderName, connectionId }: any) => {
+      const { data, error } = await supabase.functions.invoke("live-contract-scan", {
+        body: { action: "add_folder", folderId, folderName, connectionId },
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["lc-folders"] }); toast.success("Folder added"); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const scanFolder = useMutation({
+    mutationFn: async (folderRowId: string) => {
+      const { data, error } = await supabase.functions.invoke("live-contract-scan", {
+        body: { folderRowId },
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (d: any) => {
+      toast.success(`Scan complete: ${d.new_files} new of ${d.total_files} files`);
+      qc.invalidateQueries({ queryKey: ["lc-folders"] });
+      qc.invalidateQueries({ queryKey: ["lc-imports"] });
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const handlePick = useCallback(async () => {
+    setPickerOpening(true);
+    try {
+      // Reuse existing google-drive-scan picker token endpoint
+      const { data: tokenData, error } = await supabase.functions.invoke("google-drive-scan", {
+        body: { action: "get_picker_token" },
+      });
+      if (error) throw error;
+      if (!tokenData?.access_token) throw new Error("No Google access token");
+
+      // Find connection_id
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: conn } = await supabase
+        .from("drive_connections").select("id").eq("user_id", user!.id).eq("is_active", true).maybeSingle();
+      if (!conn) throw new Error("No active Google Drive connection. Connect one in Data Center first.");
+
+      await openFolderPicker({
+        accessToken: tokenData.access_token,
+        apiKey: tokenData.api_key,
+        appId: tokenData.app_id,
+        onPicked: (folder) => {
+          addFolder.mutate({ folderId: folder.id, folderName: folder.name, connectionId: conn.id });
+        },
+      });
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setPickerOpening(false);
+    }
+  }, [addFolder]);
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle>Connected Drive Folders</CardTitle>
+            <CardDescription>Select Google Drive folders to scan for live contracts.</CardDescription>
+          </div>
+          <Button onClick={handlePick} disabled={pickerOpening}>
+            {pickerOpening ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FolderPlus className="h-4 w-4 mr-2" />}
+            Add folder
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? <p className="text-sm text-muted-foreground">Loading…</p> :
+          folders.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-8 text-center">No folders connected yet. Add one to start scanning.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Folder</TableHead>
+                  <TableHead>Last scanned</TableHead>
+                  <TableHead className="text-right">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {folders.map((f: any) => (
+                  <TableRow key={f.id}>
+                    <TableCell className="font-medium">{f.folder_name || f.folder_id}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {f.last_scanned_at ? new Date(f.last_scanned_at).toLocaleString() : "Never"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button size="sm" variant="outline" onClick={() => scanFolder.mutate(f.id)} disabled={scanFolder.isPending}>
+                        <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${scanFolder.isPending ? "animate-spin" : ""}`} />
+                        Scan now
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ------- Upload dialog -------
+function UploadDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+  const qc = useQueryClient();
+  const [file, setFile] = useState<File | null>(null);
+  const upload = useMutation({
+    mutationFn: async () => {
+      if (!file) throw new Error("Select a file");
+      const fd = new FormData();
+      fd.append("file", file);
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/live-contract-upload`,
+        { method: "POST", headers: { Authorization: `Bearer ${session?.access_token}` }, body: fd }
+      );
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Upload failed");
+      return json;
+    },
+    onSuccess: (d: any) => {
+      toast.success("Uploaded — extracting…");
+      qc.invalidateQueries({ queryKey: ["lc-imports"] });
+      onOpenChange(false);
+      setFile(null);
+      // Trigger extraction
+      supabase.functions.invoke("live-contract-extract", { body: { importId: d.import.id } })
+        .then(() => qc.invalidateQueries({ queryKey: ["lc-imports"] }));
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Upload contract</DialogTitle>
+          <DialogDescription>PDF, DOCX, or Google Doc export. Max 25MB.</DialogDescription>
+        </DialogHeader>
+        <Input type="file" accept=".pdf,.docx,.txt" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={() => upload.mutate()} disabled={!file || upload.isPending}>
+            {upload.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+            Upload
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ------- Imports/Queue table -------
+function ImportsTable({ imports, onReview, statusFilter }: { imports: any[]; onReview: (id: string) => void; statusFilter?: string[] }) {
+  const qc = useQueryClient();
+  const filtered = statusFilter ? imports.filter((i) => statusFilter.includes(i.status)) : imports;
+  const extract = useMutation({
+    mutationFn: async (importId: string) => {
+      const { data, error } = await supabase.functions.invoke("live-contract-extract", { body: { importId } });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["lc-imports"] }); toast.success("Extraction complete"); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  if (filtered.length === 0) {
+    return <p className="text-sm text-muted-foreground py-8 text-center">No contracts here.</p>;
+  }
+
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>File</TableHead>
+          <TableHead>Type</TableHead>
+          <TableHead>Status</TableHead>
+          <TableHead>Confidence</TableHead>
+          <TableHead className="text-right">Action</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {filtered.map((i) => (
+          <TableRow key={i.id}>
+            <TableCell>
+              <div className="font-medium text-sm">{i.contract_name || i.file_name}</div>
+              <div className="text-xs text-muted-foreground">{i.source}</div>
+            </TableCell>
+            <TableCell className="text-sm">{i.contract_type || "—"}</TableCell>
+            <TableCell><Badge variant={STATUS_VARIANT(i.status)}>{STATUS_LABEL[i.status] || i.status}</Badge></TableCell>
+            <TableCell className="text-sm">{i.confidence ? `${Math.round(i.confidence)}%` : "—"}</TableCell>
+            <TableCell className="text-right">
+              {i.status === "found" || i.status === "queued" ? (
+                <Button size="sm" variant="outline" onClick={() => extract.mutate(i.id)} disabled={extract.isPending}>
+                  <Sparkles className="h-3.5 w-3.5 mr-1.5" /> Extract
+                </Button>
+              ) : i.status === "needs_review" ? (
+                <Button size="sm" onClick={() => onReview(i.id)}>Review</Button>
+              ) : (
+                <Button size="sm" variant="ghost" onClick={() => onReview(i.id)}>View</Button>
+              )}
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+}
+
+// ------- Review drawer -------
+function ReviewDrawer({ importId, onClose }: { importId: string | null; onClose: () => void }) {
+  const qc = useQueryClient();
+  const { data, isLoading } = useReviewItem(importId);
+  const [selectedDebtorId, setSelectedDebtorId] = useState<string | null>(null);
+  const [newDebtor, setNewDebtor] = useState({ company_name: "", primary_email: "", phone: "", address: "" });
+
+  const approve = useMutation({
+    mutationFn: async () => {
+      const body: any = { importId, action: "approve" };
+      if (selectedDebtorId) body.debtorId = selectedDebtorId;
+      else if (newDebtor.company_name) body.newDebtor = newDebtor;
+      else throw new Error("Select an existing customer or fill in a new one");
+      const { data, error } = await supabase.functions.invoke("live-contract-approve", { body });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Contract imported");
+      qc.invalidateQueries({ queryKey: ["lc-imports"] });
+      qc.invalidateQueries({ queryKey: ["lc-audit"] });
+      onClose();
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const reject = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.functions.invoke("live-contract-approve", { body: { importId, action: "reject" } });
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Rejected"); qc.invalidateQueries({ queryKey: ["lc-imports"] }); onClose(); },
+  });
+
+  const groups = useMemo(() => {
+    const g: Record<string, any[]> = {};
+    (data?.fields || []).forEach((f: any) => {
+      g[f.field_group] = g[f.field_group] || [];
+      g[f.field_group].push(f);
+    });
+    return g;
+  }, [data?.fields]);
+
+  return (
+    <Sheet open={!!importId} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle>Review extraction</SheetTitle>
+          <SheetDescription>{data?.imp?.contract_name || data?.imp?.file_name}</SheetDescription>
+        </SheetHeader>
+
+        {isLoading || !data ? (
+          <div className="py-12 text-center"><Loader2 className="h-5 w-5 animate-spin mx-auto" /></div>
+        ) : (
+          <div className="space-y-6 py-4">
+            {/* Confidence */}
+            <div className="flex items-center gap-2">
+              <Badge variant="outline">Confidence: {data.imp.confidence ? `${Math.round(data.imp.confidence)}%` : "—"}</Badge>
+              <Badge variant={STATUS_VARIANT(data.imp.status)}>{STATUS_LABEL[data.imp.status]}</Badge>
+            </div>
+
+            {/* Customer match */}
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Building2 className="h-4 w-4" />Customer match</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                {data.matches.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No suggested matches found.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {data.matches.slice(0, 5).map((m: any) => (
+                      <label key={m.id} className={`flex items-center gap-2 p-2 border rounded cursor-pointer ${selectedDebtorId === m.candidate_debtor_id ? "border-primary bg-primary/5" : ""}`}>
+                        <input type="radio" name="match" checked={selectedDebtorId === m.candidate_debtor_id} onChange={() => setSelectedDebtorId(m.candidate_debtor_id)} />
+                        <div className="flex-1 text-sm">
+                          <div className="font-medium">{m.match_reasons?.name || "Unknown"}</div>
+                          <div className="text-xs text-muted-foreground">{m.match_reasons?.email} · {m.match_reasons?.reason} · {m.match_score}%</div>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                )}
+                <div className="border-t pt-3 space-y-2">
+                  <p className="text-xs font-medium">Or create new customer</p>
+                  <Input placeholder="Company name" value={newDebtor.company_name} onChange={(e) => { setNewDebtor({ ...newDebtor, company_name: e.target.value }); setSelectedDebtorId(null); }} />
+                  <Input placeholder="Primary email" value={newDebtor.primary_email} onChange={(e) => setNewDebtor({ ...newDebtor, primary_email: e.target.value })} />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Extracted fields by group */}
+            {Object.entries(groups).map(([group, fields]) => (
+              <Card key={group}>
+                <CardHeader className="pb-2"><CardTitle className="text-base capitalize">{group} details</CardTitle></CardHeader>
+                <CardContent>
+                  <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                    {fields.map((f: any) => (
+                      <div key={f.id} className="contents">
+                        <dt className="text-muted-foreground capitalize">{f.field_key.replace(/_/g, " ")}</dt>
+                        <dd className="font-medium">{f.field_value || "—"}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </CardContent>
+              </Card>
+            ))}
+
+            {/* Critical dates */}
+            {data.dates.length > 0 && (
+              <Card>
+                <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><CalendarClock className="h-4 w-4" />Critical dates</CardTitle></CardHeader>
+                <CardContent className="space-y-1.5">
+                  {data.dates.map((d: any) => (
+                    <div key={d.id} className="flex justify-between text-sm">
+                      <span className="capitalize">{d.date_type.replace(/_/g, " ")}</span>
+                      <span className="font-medium">{d.due_date} <Badge variant="outline" className="ml-1">{d.risk_level}</Badge></span>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Invoice schedule */}
+            {data.schedules.length > 0 && (
+              <Card>
+                <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Receipt className="h-4 w-4" />Invoice schedule ({data.schedules.length})</CardTitle></CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Type</TableHead><TableHead className="text-right">Amount</TableHead></TableRow></TableHeader>
+                    <TableBody>
+                      {data.schedules.map((s: any) => (
+                        <TableRow key={s.id}>
+                          <TableCell className="text-sm">{s.scheduled_date}</TableCell>
+                          <TableCell className="text-sm">{s.billing_type || "—"}</TableCell>
+                          <TableCell className="text-sm text-right">{s.amount ? `${s.currency} ${s.amount}` : "—"}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Risk flags */}
+            {data.flags.length > 0 && (
+              <Card>
+                <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><ShieldAlert className="h-4 w-4 text-amber-600" />Risk flags</CardTitle></CardHeader>
+                <CardContent className="space-y-2">
+                  {data.flags.map((f: any) => (
+                    <div key={f.id} className="flex items-start gap-2 text-sm">
+                      <Badge variant={f.severity === "critical" || f.severity === "high" ? "destructive" : "secondary"} className="capitalize">{f.severity}</Badge>
+                      <div>
+                        <div className="font-medium capitalize">{f.flag_type.replace(/_/g, " ")}</div>
+                        <div className="text-xs text-muted-foreground">{f.description}</div>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* POC */}
+            {data.poc && (
+              <Card>
+                <CardHeader className="pb-2"><CardTitle className="text-base">POC / Pilot</CardTitle></CardHeader>
+                <CardContent className="text-sm space-y-1">
+                  <div>Period: {data.poc.poc_start} → {data.poc.poc_end}</div>
+                  {data.poc.pilot_fee && <div>Fee: {data.poc.pilot_fee}</div>}
+                  {data.poc.conversion_terms && <div className="text-muted-foreground">{data.poc.conversion_terms}</div>}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Actions */}
+            {data.imp.status === "needs_review" && (
+              <div className="flex gap-2 sticky bottom-0 bg-background pt-3 border-t">
+                <Button variant="outline" onClick={() => reject.mutate()} disabled={reject.isPending}>
+                  <XCircle className="h-4 w-4 mr-2" />Reject
+                </Button>
+                <Button onClick={() => approve.mutate()} disabled={approve.isPending} className="flex-1">
+                  {approve.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
+                  Approve & import
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+// ------- Audit tab -------
+function AuditTab() {
+  const { data: events = [] } = useAuditLog();
+  return (
+    <Card>
+      <CardHeader><CardTitle>Audit trail</CardTitle></CardHeader>
+      <CardContent>
+        <ScrollArea className="h-[500px]">
+          <div className="space-y-2">
+            {events.map((e: any) => (
+              <div key={e.id} className="flex items-start gap-3 text-sm border-b pb-2">
+                <Clock className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <div className="flex-1">
+                  <div className="font-medium capitalize">{e.event_type.replace(/_/g, " ")}</div>
+                  <div className="text-xs text-muted-foreground">{new Date(e.created_at).toLocaleString()}</div>
+                  {e.event_details && Object.keys(e.event_details).length > 0 && (
+                    <div className="text-xs text-muted-foreground mt-1">{JSON.stringify(e.event_details)}</div>
+                  )}
+                </div>
+              </div>
+            ))}
+            {events.length === 0 && <p className="text-sm text-muted-foreground py-8 text-center">No events yet.</p>}
+          </div>
+        </ScrollArea>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ------- Main page -------
+export default function LiveContracts() {
+  const { data: imports = [] } = useImports();
+  const [reviewId, setReviewId] = useState<string | null>(null);
+  const [uploadOpen, setUploadOpen] = useState(false);
+
+  return (
+    <RequireClmAccess>
+      <SEO title="Live Contracts — Recouply" description="Ingest, extract, and review live contracts from Google Drive or upload." />
+      <Layout>
+        <div className="container mx-auto px-4 py-6 space-y-6 max-w-7xl">
+          <div className="flex items-start justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold flex items-center gap-2">
+                <FileText className="h-6 w-6" /> Live Contracts
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                Scan live contracts from Google Drive or upload them, then extract critical commercial, renewal, invoice, and risk metadata before import.
+              </p>
+            </div>
+            <Button onClick={() => setUploadOpen(true)}>
+              <Upload className="h-4 w-4 mr-2" />Upload contract
+            </Button>
+          </div>
+
+          <DashboardWidgets imports={imports} />
+
+          <Tabs defaultValue="review">
+            <TabsList>
+              <TabsTrigger value="folders">Folders</TabsTrigger>
+              <TabsTrigger value="queue">Scan queue</TabsTrigger>
+              <TabsTrigger value="review">Review ({imports.filter((i) => i.status === "needs_review").length})</TabsTrigger>
+              <TabsTrigger value="imported">Imported</TabsTrigger>
+              <TabsTrigger value="audit">Audit</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="folders" className="mt-4"><FoldersTab /></TabsContent>
+
+            <TabsContent value="queue" className="mt-4">
+              <Card>
+                <CardHeader><CardTitle>Scan queue</CardTitle><CardDescription>Files discovered or uploaded, awaiting extraction.</CardDescription></CardHeader>
+                <CardContent>
+                  <ImportsTable imports={imports} onReview={setReviewId}
+                    statusFilter={["found", "queued", "scanning", "ocr_processing", "ai_extracting", "failed"]} />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="review" className="mt-4">
+              <Card>
+                <CardHeader><CardTitle>Needs review</CardTitle><CardDescription>Confirm extracted data before importing into your account.</CardDescription></CardHeader>
+                <CardContent>
+                  <ImportsTable imports={imports} onReview={setReviewId} statusFilter={["needs_review"]} />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="imported" className="mt-4">
+              <Card>
+                <CardHeader><CardTitle>Imported & duplicates</CardTitle></CardHeader>
+                <CardContent>
+                  <ImportsTable imports={imports} onReview={setReviewId} statusFilter={["imported", "duplicate", "rejected", "approved"]} />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="audit" className="mt-4"><AuditTab /></TabsContent>
+          </Tabs>
+        </div>
+
+        <UploadDialog open={uploadOpen} onOpenChange={setUploadOpen} />
+        <ReviewDrawer importId={reviewId} onClose={() => setReviewId(null)} />
+      </Layout>
+    </RequireClmAccess>
+  );
+}
