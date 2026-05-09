@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Pencil, Send, Save, Loader2, FileDiff, Eye, FilePen, ShieldCheck } from "lucide-react";
+import { Pencil, Send, Save, Loader2, FileDiff, Eye, FilePen, ShieldCheck, GitBranch } from "lucide-react";
 import { useUpdateInstanceSection } from "@/hooks/useClmInstance";
 import { InlineDiff } from "./InlineDiff";
 import { wordDiff, diffStats } from "@/lib/textDiff";
