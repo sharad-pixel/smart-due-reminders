@@ -202,6 +202,7 @@ const AddExternalForm = ({
         <Select value={role} onValueChange={setRole}>
           <SelectTrigger className="h-8 w-[120px] text-xs ml-auto"><SelectValue /></SelectTrigger>
           <SelectContent>
+            <SelectItem value="editor">Editor (can edit)</SelectItem>
             <SelectItem value="signer">Signer</SelectItem>
             <SelectItem value="reviewer">Reviewer</SelectItem>
             <SelectItem value="legal">Legal</SelectItem>
