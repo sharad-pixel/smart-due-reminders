@@ -55,7 +55,7 @@ export const KurtChatDrawer = ({ instanceId, instanceName }: { instanceId: strin
       });
       if (error) throw error;
       const reply = (data as any)?.reply || "I couldn't form a response.";
-      setMessages((m) => [...m, { role: "assistant", content: reply }]);
+      setMessages((m) => [...m, { role: "assistant", content: reply }].slice(-MAX_VISIBLE));
     } catch (e: any) {
       toast.error(e?.message || "Kurt couldn't respond");
     } finally {
