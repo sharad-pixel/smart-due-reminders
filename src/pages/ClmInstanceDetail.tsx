@@ -9,7 +9,7 @@ import { ArrowLeft, Loader2, PenLine } from "lucide-react";
 import { useClmInstance, useUpdateInstanceStatus } from "@/hooks/useClmInstance";
 import { WorkspaceOverviewCard } from "@/components/clm/WorkspaceOverviewCard";
 import { ApprovalsPanel } from "@/components/clm/ApprovalsPanel";
-import { AccessSidebar } from "@/components/clm/AccessSidebar";
+import { TrackChangesAndCollaborators } from "@/components/clm/TrackChangesAndCollaborators";
 import { WorkspaceTemplateTabs } from "@/components/clm/WorkspaceTemplateTabs";
 import { PrepareSignaturePackageDialog } from "@/components/clm/PrepareSignaturePackageDialog";
 import { DraftSubmissionBar } from "@/components/clm/DraftSubmissionBar";
@@ -125,7 +125,22 @@ const Inner = () => {
         <DraftSubmissionBar instanceId={id!} contacts={contacts} externalAccess={externalAccess as any[]} />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_360px] mt-6">
+      {/* Top bar: Collaborators + Track changes & comments — moved above templates */}
+      <div className="mt-6">
+        <TrackChangesAndCollaborators
+          instanceId={id!}
+          instance={instance}
+          contacts={contacts}
+          externalAccess={externalAccess as any[]}
+          debtors={debtors}
+          comments={comments}
+          sections={sections}
+          myRole={myRoleInfo?.role}
+        />
+      </div>
+
+      {/* Full-width templates */}
+      <div className="mt-6">
         <WorkspaceTemplateTabs
           instanceId={id!}
           primaryTemplateId={instance.template_id ?? null}
@@ -135,19 +150,12 @@ const Inner = () => {
           comments={comments}
           contacts={contacts}
           debtorId={debtorId}
+          myRole={myRoleInfo?.role}
         />
+      </div>
 
-        <div className="space-y-4">
-          <AccessSidebar
-            instanceId={id!}
-            instance={instance}
-            contacts={contacts}
-            externalAccess={externalAccess as any[]}
-            debtors={debtors}
-          />
-          <ApprovalsPanel instanceId={id!} contacts={contacts} externalAccess={externalAccess as any[]} />
-          
-        </div>
+      <div className="mt-6">
+        <ApprovalsPanel instanceId={id!} contacts={contacts} externalAccess={externalAccess as any[]} />
       </div>
 
       <div className="mt-6 space-y-6">

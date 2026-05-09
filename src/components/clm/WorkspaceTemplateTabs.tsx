@@ -25,11 +25,12 @@ interface Props {
   comments: any[];
   contacts: any[];
   debtorId: string | null;
+  myRole?: string | null;
 }
 
 export const WorkspaceTemplateTabs = ({
   instanceId, primaryTemplateId, primaryTemplateName, extraTemplates,
-  sections, comments, contacts, debtorId,
+  sections, comments, contacts, debtorId, myRole,
 }: Props) => {
   const [addOpen, setAddOpen] = useState(false);
   const [collabOpenFor, setCollabOpenFor] = useState<TabItem | null>(null);
@@ -191,10 +192,11 @@ export const WorkspaceTemplateTabs = ({
             instanceId={instanceId}
             sections={activeSections}
             title={activeTab.templateName}
-            description="Select a section to reveal its edit menu. Pending track-changes and comments appear in the right margin."
+            description="Click a section to reveal its action menu (edit, versions, add note). Pending changes appear inline as redlines. Use the top track-changes panel to accept, counter, or reject."
             contacts={contacts}
             comments={comments}
             canEdit
+            myRole={myRole}
           />
         )
       )}
