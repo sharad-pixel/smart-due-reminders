@@ -140,6 +140,14 @@ const Inner = () => {
         </div>
       </div>
 
+      <div className="mt-6">
+        <RevisionHistoryPanel
+          instanceId={id!}
+          contacts={contacts}
+          externalAccess={externalAccess as any[]}
+        />
+      </div>
+
       <PrepareSignaturePackageDialog
         open={pkgOpen}
         onOpenChange={setPkgOpen}
