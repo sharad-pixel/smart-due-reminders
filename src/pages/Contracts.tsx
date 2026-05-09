@@ -20,6 +20,7 @@ import { TemplateUploadDialog } from "@/components/clm/TemplateUploadDialog";
 import { TemplateActionsMenu } from "@/components/clm/TemplateActionsMenu";
 import { NewWorkspaceDialog } from "@/components/clm/NewWorkspaceDialog";
 import { WorkspaceActionsMenu } from "@/components/clm/WorkspaceActionsMenu";
+import { KurtLandingHero } from "@/components/clm/KurtLandingHero";
 import { toast } from "sonner";
 import SEO from "@/components/seo/SEO";
 import { useEffect } from "react";
