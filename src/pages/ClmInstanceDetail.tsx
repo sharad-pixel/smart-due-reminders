@@ -15,6 +15,8 @@ import { PrepareSignaturePackageDialog } from "@/components/clm/PrepareSignature
 import { DraftSubmissionBar } from "@/components/clm/DraftSubmissionBar";
 import { RevisionHistoryPanel } from "@/components/clm/RevisionHistoryPanel";
 import { AuditLogPanel } from "@/components/clm/AuditLogPanel";
+import { RoleCapabilitiesCard } from "@/components/clm/RoleCapabilitiesCard";
+import { useMyClmRole } from "@/hooks/useMyClmRole";
 import { ClmBrandedHeader } from "@/components/clm/ClmBrandedHeader";
 import { KurtChatDrawer } from "@/components/clm/KurtChatDrawer";
 import { PushToGoogleDocsButton } from "@/components/clm/PushToGoogleDocsButton";
