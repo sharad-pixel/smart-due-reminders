@@ -1353,6 +1353,59 @@ export type Database = {
           },
         ]
       }
+      clm_notification_queue: {
+        Row: {
+          attempts: number
+          created_at: string
+          event_type: string
+          id: string
+          instance_id: string
+          last_error: string | null
+          payload: Json
+          recipient_email: string
+          recipient_name: string | null
+          revision_id: string
+          sent_at: string | null
+          status: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          event_type: string
+          id?: string
+          instance_id: string
+          last_error?: string | null
+          payload?: Json
+          recipient_email: string
+          recipient_name?: string | null
+          revision_id: string
+          sent_at?: string | null
+          status?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          event_type?: string
+          id?: string
+          instance_id?: string
+          last_error?: string | null
+          payload?: Json
+          recipient_email?: string
+          recipient_name?: string | null
+          revision_id?: string
+          sent_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clm_notification_queue_revision_id_fkey"
+            columns: ["revision_id"]
+            isOneToOne: false
+            referencedRelation: "clm_section_revisions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clm_section_comments: {
         Row: {
           author_id: string
@@ -1408,6 +1461,8 @@ export type Database = {
           id: string
           instance_id: string
           new_body: string | null
+          notified_at: string | null
+          parent_revision_id: string | null
           previous_body: string | null
           review_note: string | null
           reviewed_at: string | null
@@ -1431,6 +1486,8 @@ export type Database = {
           id?: string
           instance_id: string
           new_body?: string | null
+          notified_at?: string | null
+          parent_revision_id?: string | null
           previous_body?: string | null
           review_note?: string | null
           reviewed_at?: string | null
@@ -1454,6 +1511,8 @@ export type Database = {
           id?: string
           instance_id?: string
           new_body?: string | null
+          notified_at?: string | null
+          parent_revision_id?: string | null
           previous_body?: string | null
           review_note?: string | null
           reviewed_at?: string | null
@@ -1470,6 +1529,13 @@ export type Database = {
             columns: ["instance_id"]
             isOneToOne: false
             referencedRelation: "clm_template_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clm_section_revisions_parent_revision_id_fkey"
+            columns: ["parent_revision_id"]
+            isOneToOne: false
+            referencedRelation: "clm_section_revisions"
             referencedColumns: ["id"]
           },
           {
