@@ -183,48 +183,55 @@ export const useUpdateInstanceSection = (instanceId: string) => {
       assigned_approver_email?: string; assigned_approver_name?: string;
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Sign in required");
 
-      // Snapshot previous body / metadata
-      let previous_body: string | null = null;
-      let section_key: string | null = null;
-      let section_title: string | null = null;
-      if (body !== undefined) {
-        const { data: prev } = await supabase
-          .from("clm_instance_sections")
-          .select("body, section_key, title")
-          .eq("id", id).maybeSingle();
-        previous_body = prev?.body ?? null;
-        section_key = prev?.section_key ?? null;
-        section_title = prev?.title ?? null;
-      }
-
-      // Title-only edits update immediately. Body edits are written immediately ONLY
-      // when not submitting for approval; otherwise the trigger promotes new_body on approve.
-      const patch: any = {};
-      if (title !== undefined) patch.title = title;
-      if (body !== undefined && !submitForApproval) patch.body = body;
-      if (Object.keys(patch).length) {
-        const { error } = await supabase.from("clm_instance_sections").update(patch).eq("id", id);
+      // Title-only edits update directly. Body changes go through the
+      // SECURITY DEFINER RPC that enforces role and atomically logs a revision.
+      if (title !== undefined && body === undefined) {
+        const { error } = await supabase.from("clm_instance_sections").update({ title }).eq("id", id);
         if (error) throw error;
       }
 
-      // Log revision when body changed
-      if (body !== undefined && previous_body !== body) {
-        let editorName: string | undefined;
-        if (user?.id) {
+      if (body !== undefined) {
+        if (submitForApproval) {
+          // Submit for approval path keeps the legacy revision insert (pending status)
+          const { data: prev } = await supabase
+            .from("clm_instance_sections")
+            .select("body, section_key, title")
+            .eq("id", id).maybeSingle();
+          const previous_body = prev?.body ?? null;
+          const section_key = prev?.section_key ?? null;
+          const section_title = prev?.title ?? null;
+          let editorName: string | undefined;
           const { data: prof } = await supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
           editorName = (prof as any)?.full_name ?? user.email ?? undefined;
+
+          if (title !== undefined) {
+            await supabase.from("clm_instance_sections").update({ title }).eq("id", id);
+          }
+          if (previous_body !== body) {
+            const { error: rErr } = await (supabase.from("clm_section_revisions" as any) as any).insert({
+              instance_id: instanceId, section_id: id,
+              section_key, section_title,
+              previous_body, new_body: body, change_summary,
+              edited_by: user.id, edited_by_name: editorName,
+              approval_status: "pending",
+              assigned_approver_email: assigned_approver_email || null,
+              assigned_approver_name: assigned_approver_name || null,
+              assigned_at: assigned_approver_email ? new Date().toISOString() : null,
+            });
+            if (rErr) throw rErr;
+          }
+        } else {
+          // Draft save: atomic via RPC — bypasses RLS quirks for workspace editors
+          const { error } = await (supabase as any).rpc("save_clm_section_draft", {
+            p_section_id: id,
+            p_body: body,
+            p_title: title ?? null,
+            p_change_summary: change_summary ?? null,
+          });
+          if (error) throw error;
         }
-        await (supabase.from("clm_section_revisions" as any) as any).insert({
-          instance_id: instanceId, section_id: id,
-          section_key, section_title,
-          previous_body, new_body: body, change_summary,
-          edited_by: user?.id, edited_by_name: editorName,
-          approval_status: submitForApproval ? "pending" : "auto",
-          assigned_approver_email: submitForApproval ? (assigned_approver_email || null) : null,
-          assigned_approver_name: submitForApproval ? (assigned_approver_name || null) : null,
-          assigned_at: submitForApproval && assigned_approver_email ? new Date().toISOString() : null,
-        });
       }
     },
     onSuccess: (_d, vars) => {
