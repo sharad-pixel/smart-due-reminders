@@ -78,6 +78,11 @@ export const FullDocumentView = ({ instanceId, sections, title, description, con
                         Clean
                       </Badge>
                     )}
+                    {canEdit && instanceId && (
+                      <div className="ml-auto">
+                        <SectionEditDialog instanceId={instanceId} section={s} contacts={contacts} />
+                      </div>
+                    )}
                   </div>
 
                   {latestPending ? (
