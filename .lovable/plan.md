@@ -1,67 +1,120 @@
-## Goal
-Bring CLM section editing closer to Google Docs: a true track-changes experience (suggestions overlaid on the live text, accept/reject inline) and a one-click "Push to Google Docs" that creates a real Google Doc from the workspace using the existing Google OAuth (already used for Sheets / Smart Ingestion).
+# Simplified CLM Workspace — Legal & Deal Desk Best Practices
 
----
+## Best practice we're modeling on
+Modern legal/deal-desk tooling (Ironclad, Juro, LinkSquares, DocuSign CLM) converges on a few patterns:
 
-## Part 1 — Google Docs-style Track Changes
+1. **Workspace = a deal**, not a document. It bundles 1-N templates (MSA, Order Form, DPA, NDA…), each negotiated independently with its own redline history.
+2. **Each template instance is independently versioned** — accept/reject changes per section, with a clean version timeline (v1, v2, v3 …).
+3. **Roles drive UI** — Owner, Editor, Reviewer/Approver, Signer, Viewer. The sidebar always shows "who's in the room and what they can do."
+4. **Package step at the end** — owner selects which template versions form the final bundle, freezes them, and pushes to e-sign as a single envelope.
 
-### What changes for the user
-- **Suggesting mode**: when an editor opens a section, they can switch between *Editing* (publishes immediately, current behavior) and *Suggesting* (default for non-owners). In Suggesting mode every change becomes a tracked proposal — insertions show green-underlined, deletions show red strike-through, exactly like Google Docs.
-- **Inline review**: approvers see the suggestions rendered over the live body with hover chips ("Accept" / "Reject") on each change, plus a side rail listing every suggestion with author, timestamp, and a one-click jump.
-- **Granular approval**: instead of approving an entire revision blob, the approver can accept/reject *individual suggestions*. Once all are resolved, the section is auto-promoted to a new published version with a clean audit trail.
-- **Comments on suggestions**: short threaded reply on each suggestion (uses existing `clm_section_comments` with a new `revision_id` link).
-- **Authorship colors**: each contributor gets a stable color (consistent with Kurt's persona color system) so multiple editors are visually distinguishable.
+## What changes
 
-### Technical approach
-- New table `clm_section_suggestions` (per-change rows): `revision_id`, `section_id`, `change_index`, `op` (`insert`|`delete`), `anchor_start`, `anchor_end`, `text`, `status` (`pending`|`accepted`|`rejected`), `resolved_by`, `resolved_at`, `author_email`, `author_color`.
-- A diff utility (extends `src/lib/textDiff.ts`) splits a proposed `new_body` against `previous_body` into a list of atomic ops, written when a "Suggesting" save fires.
-- New component `TrackChangesEditor.tsx` — a contenteditable surface that renders the live body interleaved with `<ins>`/`<del>` spans bound to suggestion rows, with a floating accept/reject popover.
-- New component `SuggestionsRail.tsx` — vertical list of pending suggestions for the section, mirrors Google Docs' right-hand rail.
-- Database trigger: when **all** suggestions for a revision become `accepted`/`rejected`, the trigger replays the accepted ops against `clm_instance_sections.body` and stamps the revision `approved`. This preserves the existing "write-on-approve" model.
-- Kurt integration: his recommendation card now also shows per-suggestion verdicts ("Kurt suggests rejecting change #3 — broadens indemnity").
+### 1. Remove "Associated Documents"
+Drop the `DocumentsList` block from `WorkspaceOverviewCard`. Workspace artifacts = the templates attached to it. Nothing else.
 
-### Files
-- new: `src/components/clm/TrackChangesEditor.tsx`, `src/components/clm/SuggestionsRail.tsx`, `src/hooks/useSectionSuggestions.ts`
-- edit: `src/components/clm/SectionEditDialog.tsx` (add Editing/Suggesting toggle, route writes to suggestion engine), `src/components/clm/ApprovalsPanel.tsx` (replace blob approve with per-suggestion review), `src/components/clm/KurtRecommendationCard.tsx` (per-suggestion verdicts), `src/lib/textDiff.ts` (export atomic-op diff)
-- new migration: `clm_section_suggestions` table + RLS + trigger that promotes the section once everything is resolved
+### 2. Templates panel becomes the work surface
+Replace the small "templates list" card with a **Template tabs** layout:
 
----
+```text
+[ MSA v3 (in review) ] [ Order Form v1 ] [ DPA v2 (approved) ]  [+ Add template]
+─────────────────────────────────────────────────────────────────
+Section editor | Track-changes reviewer | Version history (per template)
+```
 
-## Part 2 — Push to Google Docs
+- Each tab is one template-instance with its **own** sections, revisions, approvals, and version timeline.
+- Switching tabs swaps the editor + approvals + history — they're already template-scoped in the data model; we just need to filter UI by `source_template_id`.
+- "Push to Google Docs" and "Track changes" become per-template (each template gets its own Google Doc).
 
-### What changes for the user
-- New **"Push to Google Docs"** button in the workspace header (next to Kurt) and on the Approvals panel.
-- First push from a workspace runs a one-time consent step that adds the `documents` scope to the existing Google OAuth (Drive/Sheets is already in place — this is a scope upgrade, not a new connection).
-- The button creates a Google Doc named after the workspace, writes each section as a Heading-1 block followed by its body text, and stores the resulting `document_id` + share URL on the workspace so subsequent pushes update the same document instead of creating a new one.
-- A "Open in Google Docs" link appears once a doc exists; status pill shows "Synced · 2m ago".
+### 3. Fix change tracking on attached templates
+Today, sections from extra templates are copied in but the section editor / approvals panel show *all* sections mixed together. We'll:
+- Filter `sections`, `revisions`, and `approvals` by the active template tab (`source_template_id`).
+- Stamp every revision and approval with `source_template_id` so the version timeline is per-template.
+- Add a per-template **Version** chip (auto-increments when a batch of approvals is finalized via "Snapshot version").
 
-### Technical approach
-- Reuse the existing `google_oauth_tokens` table populated by Sheets / Smart Ingestion. Add helper `requireGoogleDocsScope()` that checks the stored scope set and triggers a re-consent (`prompt=consent`, scopes = existing + `https://www.googleapis.com/auth/documents`) when missing — this matches the platform's existing OAuth flow rules in memory.
-- New edge function `clm-push-to-gdocs`:
-  1. Loads the workspace + sections.
-  2. Refreshes the Google access token if needed.
-  3. If `instance.gdoc_document_id` is null → `POST https://docs.googleapis.com/v1/documents` to create. Else → `batchUpdate` with `deleteContentRange` then re-insert.
-  4. Builds `requests[]` from sections (heading + paragraph). Uses our existing TipTap-style mapping pattern.
-  5. Persists `gdoc_document_id`, `gdoc_url`, `gdoc_synced_at` on `clm_contract_instances`.
-- New small migration: add those three columns to `clm_contract_instances`.
-- Audit log entry per push (`action_type='clm_gdoc_push'`).
-- Rate-limited to 1 push every 30s per workspace.
+### 4. Access & Capabilities sidebar
+Replace the current Contributors card with an **Access sidebar** on the right:
 
-### Files
-- new: `supabase/functions/clm-push-to-gdocs/index.ts`, `src/components/clm/PushToGoogleDocsButton.tsx`
-- edit: `src/pages/ClmInstanceDetail.tsx` (mount the button), `src/integrations/supabase/types.ts` (auto-regenerated), `supabase/config.toml` (register function)
-- new migration: add `gdoc_document_id`, `gdoc_url`, `gdoc_synced_at` to `clm_contract_instances`
+```text
+ACCESS (5)
+─────────────
+👑 Owner          Sara Kim          (you)            ✏️ Edit · ✅ Approve · ✍️ Sign
+✏️ Editor         alex@acme.com     External         ✏️ Edit · 💬 Comment
+👁  Reviewer      legal@acme.com    External         💬 Comment · ✅ Approve
+✍️ Signer         cfo@acme.com      External         ✍️ Sign
+👁  Viewer        ops@us            Internal         👁  View
 
----
+[+ Invite]
+```
 
-## Out of scope
-- Real-time multi-cursor co-editing (Google Docs OT/CRDT-level). Suggesting mode is async, not live presence.
-- Pulling edits **back** from Google Docs (one-way push for now — can be added later as a "Pull from Docs" once people validate the workflow).
-- Embedded comments syncing both ways with Google Docs comments.
-- Per-section push (always pushes the whole workspace document).
+Capability matrix (rendered as small chips next to each person):
 
----
+| Role      | Edit | Comment | Approve | Sign | View |
+|-----------|------|---------|---------|------|------|
+| Owner     | ✓    | ✓       | ✓       | ✓    | ✓    |
+| Editor    | ✓    | ✓       |         |      | ✓    |
+| Approver  |      | ✓       | ✓       |      | ✓    |
+| Reviewer  |      | ✓       |         |      | ✓    |
+| Signer    |      | ✓       |         | ✓    | ✓    |
+| Legal/CC  |      | ✓       |         |      | ✓    |
+| Viewer    |      |         |         |      | ✓    |
 
-## Risks / Notes
-- Re-consent UX: users who already authorized Sheets will see the Google consent screen once more to grant Docs scope. This is unavoidable and matches platform memory's OAuth rules.
-- Track-changes editor on a contenteditable surface needs careful selection handling; we will keep it textual (no rich formatting marks yet) so suggestion anchors remain stable.
+Defined once in `src/lib/clmRoles.ts` so portal + app share the same source of truth.
+
+### 5. Simpler edit flow
+- Section card → single "Edit" button → opens dialog in **Suggesting mode** by default.
+- Owners get a "Edit directly (no review)" toggle inside the dialog (skip approval for typo fixes).
+- Track-changes reviewer collapses to "X open suggestions" with an Accept all / Reject all and per-change chips (already built — just consolidating).
+
+### 6. E-sign package flow
+New **"Prepare for signature"** button in workspace header. Opens a dialog:
+
+```text
+Step 1 — Select versions for the package
+  [✓] MSA            current v3 (no open suggestions)
+  [✓] Order Form     current v1 (no open suggestions)
+  [ ] DPA            ⚠️ 2 open suggestions — resolve first
+
+Step 2 — Choose signers   (auto-filled from contributors with role = Signer)
+  • cfo@acme.com   — Customer signer
+  • sara@us        — Internal signer
+
+Step 3 — Send via
+  ( ) DocuSign     ( ) Adobe Sign     (•) Google Docs (manual download)
+```
+
+On confirm:
+- Freezes the selected template-instances (status = `packaged`, no further edits).
+- Renders a single combined PDF (concat in section order, simple header per template).
+- Stores the package row in a new `clm_signature_packages` table with `status` (`draft`, `sent`, `signed`, `void`).
+- For DocuSign/Adobe: stub a `clm-send-for-signature` edge function with provider switch — wired but provider integration only enabled when corresponding secret exists. Google Docs path uses the existing push function.
+
+## Technical changes
+
+**DB migration**
+- `clm_section_revisions`: add `source_template_id uuid` (nullable, backfilled from section).
+- `clm_template_instances`: add `version_label text` per attached template (computed via `clm_instance_extra_templates` row + primary).
+- `clm_signature_packages` (new): `id, instance_id, status, included_templates jsonb, signers jsonb, sent_at, completed_at, provider text, external_envelope_id text`. RLS scoped through instance ownership.
+
+**Frontend**
+- New `clmRoles.ts` (capability matrix).
+- New `WorkspaceTemplateTabs.tsx` — manages active template + filters sections.
+- New `AccessSidebar.tsx` — replaces ContributorsPanel block on the right rail; reuses existing add/remove mutations.
+- New `PrepareSignaturePackageDialog.tsx`.
+- New edge function `clm-send-for-signature` (provider-agnostic stub: Google Docs path works today, DocuSign/Adobe return 501 + clear message until secret added).
+- Edit `WorkspaceOverviewCard.tsx` — drop documents section.
+- Edit `ClmInstanceDetail.tsx` — new layout: header (status + Push to Google Docs + Prepare for signature) · main (tabbed templates) · right rail (Access sidebar + Approvals).
+- Edit `useClmInstance.ts` — add `useFinalizeVersion(templateId)`, `useCreateSignaturePackage`, filter helpers by `source_template_id`.
+
+**Out of scope (call out, don't build now)**
+- Real-time multi-user cursors.
+- Native DocuSign/Adobe envelope creation (we add the hook + UI; actual provider call ships when you add the API key).
+- Clause library / playbook compliance scoring.
+
+## Suggested order
+1. DB migration + role capability matrix.
+2. Drop documents section, switch right rail to Access sidebar.
+3. Template tabs + per-template filtering of sections/revisions/approvals/version timeline.
+4. Prepare-for-signature dialog + package table + stub edge function.
+
+Approve and I'll implement in that order.
