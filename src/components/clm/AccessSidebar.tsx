@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { ShieldCheck, X, Building2, Briefcase, Users as UsersIcon, KeyRound, ChevronDown, ChevronUp } from "lucide-react";
+import { ShieldCheck, X, Building2, Briefcase, KeyRound, ChevronDown, ChevronUp } from "lucide-react";
 import { ContributorsPanel } from "./ContributorsPanel";
 import { ExternalPortalAccessPanel } from "./ExternalPortalAccessPanel";
 import { useRemoveInstanceContact } from "@/hooks/useClmInstance";
@@ -124,16 +124,12 @@ export const AccessSidebar = ({ instanceId, instance, contacts, externalAccess =
 
         {showInvite && (
           <div className="pt-3 border-t mt-3 space-y-3">
-            <Tabs defaultValue="internal">
-              <TabsList className="grid grid-cols-3 w-full">
-                <TabsTrigger value="internal" className="text-xs"><Briefcase className="h-3 w-3 mr-1" />Internal</TabsTrigger>
-                <TabsTrigger value="external" className="text-xs"><Building2 className="h-3 w-3 mr-1" />External</TabsTrigger>
+            <Tabs defaultValue="people">
+              <TabsList className="grid grid-cols-2 w-full">
+                <TabsTrigger value="people" className="text-xs"><Briefcase className="h-3 w-3 mr-1" />Internal &amp; external</TabsTrigger>
                 <TabsTrigger value="portal" className="text-xs"><KeyRound className="h-3 w-3 mr-1" />Portal link</TabsTrigger>
               </TabsList>
-              <TabsContent value="internal" className="mt-3">
-                <ContributorsPanel instanceId={instanceId} contacts={contacts} debtors={debtors} />
-              </TabsContent>
-              <TabsContent value="external" className="mt-3">
+              <TabsContent value="people" className="mt-3">
                 <ContributorsPanel instanceId={instanceId} contacts={contacts} debtors={debtors} />
               </TabsContent>
               <TabsContent value="portal" className="mt-3">
