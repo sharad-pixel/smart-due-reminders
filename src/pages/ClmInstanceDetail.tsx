@@ -1,38 +1,26 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import { RequireClmAccess } from "@/components/clm/RequireClmAccess";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { ArrowLeft, Loader2, FileText, Users } from "lucide-react";
+import { ArrowLeft, Loader2, PenLine } from "lucide-react";
 import { useClmInstance, useUpdateInstanceStatus } from "@/hooks/useClmInstance";
-import { ContributorsPanel } from "@/components/clm/ContributorsPanel";
 import { WorkspaceOverviewCard } from "@/components/clm/WorkspaceOverviewCard";
-import { SectionCommentsPanel } from "@/components/clm/SectionCommentsPanel";
-import { SectionEditDialog } from "@/components/clm/SectionEditDialog";
-import { SectionVersionHistoryDialog } from "@/components/clm/SectionVersionHistoryDialog";
 import { ApprovalsPanel } from "@/components/clm/ApprovalsPanel";
-import { ExternalPortalAccessPanel } from "@/components/clm/ExternalPortalAccessPanel";
-import { useInstanceRevisions } from "@/hooks/useClmInstance";
-import { formatDistanceToNow } from "date-fns";
-import { History, MessageSquare, Clock, CheckCircle2 } from "lucide-react";
+import { AccessSidebar } from "@/components/clm/AccessSidebar";
+import { WorkspaceTemplateTabs } from "@/components/clm/WorkspaceTemplateTabs";
+import { PrepareSignaturePackageDialog } from "@/components/clm/PrepareSignaturePackageDialog";
 import { ClmBrandedHeader } from "@/components/clm/ClmBrandedHeader";
-import { TemplateCollaboratorsDialog } from "@/components/clm/TemplateCollaboratorsDialog";
-import { AddTemplateToWorkspaceDialog } from "@/components/clm/AddTemplateToWorkspaceDialog";
-import { useRemoveTemplateFromInstance } from "@/hooks/useClmInstance";
-import { Plus, X } from "lucide-react";
 import { KurtChatDrawer } from "@/components/clm/KurtChatDrawer";
 import { PushToGoogleDocsButton } from "@/components/clm/PushToGoogleDocsButton";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import SEO from "@/components/seo/SEO";
 
-const ApprovalsPanelWithAccess = ({ instanceId, contacts }: { instanceId: string; contacts: any[] }) => {
-  const { data: externalAccess = [] } = useQuery({
+const useExternalAccess = (instanceId: string) =>
+  useQuery({
     queryKey: ["clm-external-access", instanceId],
     queryFn: async () => {
       const { data } = await (supabase.from("clm_external_access" as any) as any)
@@ -41,186 +29,13 @@ const ApprovalsPanelWithAccess = ({ instanceId, contacts }: { instanceId: string
       return data ?? [];
     },
   });
-  return <ApprovalsPanel instanceId={instanceId} contacts={contacts} externalAccess={externalAccess} />;
-};
-
-const WorkspaceTemplateRow = ({
-  instanceId, templateId, templateName, isPrimary, debtorId, contacts,
-}: {
-  instanceId: string; templateId: string; templateName: string;
-  isPrimary?: boolean; debtorId: string | null; contacts: any[];
-}) => {
-  const [open, setOpen] = useState(false);
-  const [confirmRemove, setConfirmRemove] = useState(false);
-  const remove = useRemoveTemplateFromInstance(instanceId);
-  const count = contacts.filter((c: any) => c.template_id === templateId).length;
-  return (
-    <>
-      <div className="flex items-center justify-between rounded border p-2 gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <FileText className="h-4 w-4 text-primary shrink-0" />
-          <span className="text-sm font-medium truncate">{templateName}</span>
-          {isPrimary
-            ? <Badge variant="default" className="text-[10px]">Primary</Badge>
-            : <Badge variant="outline" className="text-[10px]">Bundled</Badge>}
-        </div>
-        <div className="flex items-center gap-1 shrink-0">
-          <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
-            <Users className="h-3.5 w-3.5 mr-1" />
-            {count > 0 ? `${count} collab.` : "Invite"}
-          </Button>
-          {!isPrimary && (
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-7 w-7 text-muted-foreground hover:text-destructive"
-              title="Remove from workspace"
-              disabled={remove.isPending}
-              onClick={() => setConfirmRemove(true)}
-            >
-              {remove.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />}
-            </Button>
-          )}
-        </div>
-      </div>
-      <TemplateCollaboratorsDialog
-        open={open}
-        onOpenChange={setOpen}
-        instanceId={instanceId}
-        templateId={templateId}
-        templateName={templateName}
-        debtorId={debtorId}
-        allLinkedContacts={contacts}
-      />
-      {confirmRemove && (
-        <Dialog open={confirmRemove} onOpenChange={setConfirmRemove}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Remove "{templateName}"?</DialogTitle>
-              <DialogDescription>
-                This removes the bundled template and deletes its sections from this workspace.
-                Revisions and comments tied to those sections will also be removed. This action cannot be undone.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setConfirmRemove(false)}>Cancel</Button>
-              <Button
-                variant="destructive"
-                onClick={async () => { await remove.mutateAsync(templateId); setConfirmRemove(false); }}
-              >
-                Remove template
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
-    </>
-  );
-};
-
-const SectionsList = ({
-  instanceId, sections, comments, contacts,
-}: { instanceId: string; sections: any[]; comments: any[]; contacts: any[] }) => {
-  const { data: revisions = [] } = useInstanceRevisions(instanceId);
-  // index revisions per section_id
-  const revsBySection = (revisions as any[]).reduce((m, r) => {
-    const arr = m.get(r.section_id) ?? [];
-    arr.push(r);
-    m.set(r.section_id, arr);
-    return m;
-  }, new Map<string, any[]>());
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Sections</CardTitle>
-        <CardDescription>Discuss each clause, track every change, and route revisions for approval.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {sections.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-8">Loading sections from template…</p>
-        ) : (
-          <Accordion type="multiple" className="w-full">
-            {sections.map((s: any) => {
-              const sectionRevs = (revsBySection.get(s.id) ?? [])
-                .sort((a: any, b: any) => (b.version_number ?? 0) - (a.version_number ?? 0));
-              const latest = sectionRevs[0];
-              const currentVersion = latest?.version_number ?? 1;
-              const pendingCount = sectionRevs.filter((r: any) => r.approval_status === "pending").length;
-              const commentCount = comments.filter((c: any) => c.section_key === s.section_key).length;
-
-              return (
-                <AccordionItem key={s.id} value={s.id}>
-                  <AccordionTrigger>
-                    <div className="flex items-center gap-2 flex-wrap text-left">
-                      <span className="font-medium">{s.title}</span>
-                      <Badge variant="outline" className="font-mono text-[10px] h-5">v{currentVersion}</Badge>
-                      {pendingCount > 0 ? (
-                        <Badge variant="outline" className="bg-amber-500/15 text-amber-700 border-amber-500/30 text-[10px] h-5">
-                          <Clock className="h-2.5 w-2.5 mr-1" />{pendingCount} pending
-                        </Badge>
-                      ) : latest?.approval_status === "approved" ? (
-                        <Badge variant="outline" className="bg-emerald-500/15 text-emerald-700 border-emerald-500/30 text-[10px] h-5">
-                          <CheckCircle2 className="h-2.5 w-2.5 mr-1" />Approved
-                        </Badge>
-                      ) : null}
-                      {commentCount > 0 && (
-                        <Badge variant="secondary" className="text-[10px] h-5">
-                          <MessageSquare className="h-2.5 w-2.5 mr-1" />{commentCount}
-                        </Badge>
-                      )}
-                      {latest && (
-                        <span className="text-[11px] text-muted-foreground ml-1">
-                          · {latest.edited_by_name || "Edited"} {formatDistanceToNow(new Date(latest.created_at), { addSuffix: true })}
-                        </span>
-                      )}
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    {s.ai_summary && (
-                      <div className="rounded bg-primary/5 border border-primary/20 p-3 mb-3">
-                        <p className="text-sm">{s.ai_summary}</p>
-                      </div>
-                    )}
-                    {s.body && (
-                      <div className="rounded border p-3 bg-muted/30 mb-3">
-                        <p className="text-sm whitespace-pre-wrap leading-relaxed">{s.body}</p>
-                      </div>
-                    )}
-                    <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
-                      <div className="text-[11px] text-muted-foreground">
-                        {sectionRevs.length} version{sectionRevs.length === 1 ? "" : "s"} on record
-                      </div>
-                      <div className="flex gap-1">
-                        <SectionVersionHistoryDialog
-                          instanceId={instanceId}
-                          section={s}
-                          trigger={
-                            <Button size="sm" variant="ghost">
-                              <History className="h-3.5 w-3.5 mr-1" /> History
-                            </Button>
-                          }
-                        />
-                        <SectionEditDialog instanceId={instanceId} section={s} currentVersion={currentVersion} contacts={contacts} />
-                      </div>
-                    </div>
-                    <SectionCommentsPanel instanceId={instanceId} sectionKey={s.section_key} comments={comments} />
-                  </AccordionContent>
-                </AccordionItem>
-              );
-            })}
-          </Accordion>
-        )}
-      </CardContent>
-    </Card>
-  );
-};
 
 const Inner = () => {
   const { id } = useParams<{ id: string }>();
   const { data, isLoading } = useClmInstance(id);
   const updateStatus = useUpdateInstanceStatus(id ?? "");
-  const [addTplOpen, setAddTplOpen] = useState(false);
+  const { data: externalAccess = [] } = useExternalAccess(id ?? "");
+  const [pkgOpen, setPkgOpen] = useState(false);
 
   if (isLoading || !data) {
     return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
@@ -228,9 +43,25 @@ const Inner = () => {
 
   const { instance, sections, debtors, contacts, comments, extraTemplates = [] } = data as any;
   const sourceTemplateName = instance.clm_templates?.name ?? instance.template_name_snapshot ?? "template";
-  const sourceTemplateLink = instance.clm_templates?.id
-    ? `/contracts/templates/${instance.clm_templates.id}`
-    : null;
+  const sourceTemplateLink = instance.clm_templates?.id ? `/contracts/templates/${instance.clm_templates.id}` : null;
+  const debtorId = debtors[0]?.debtor_id ?? null;
+
+  const templatesForPackage = useMemo(() => {
+    const list: { template_id: string; template_name: string; is_primary: boolean }[] = [];
+    if (instance.template_id) {
+      list.push({
+        template_id: instance.template_id,
+        template_name: instance.clm_templates?.name ?? instance.template_name_snapshot ?? "Primary template",
+        is_primary: true,
+      });
+    }
+    extraTemplates.forEach((t: any) => list.push({
+      template_id: t.template_id,
+      template_name: t.template_name_snapshot ?? t.clm_templates?.name ?? "—",
+      is_primary: false,
+    }));
+    return list;
+  }, [instance, extraTemplates]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -248,6 +79,9 @@ const Inner = () => {
         }
         rightSlot={
           <>
+            <Button size="sm" onClick={() => setPkgOpen(true)} className="gap-1">
+              <PenLine className="h-3.5 w-3.5" /> Prepare for signature
+            </Button>
             <PushToGoogleDocsButton
               instanceId={id!}
               gdocUrl={(instance as any).gdoc_url}
@@ -272,58 +106,38 @@ const Inner = () => {
       <WorkspaceOverviewCard instance={instance} debtors={debtors} />
 
       <div className="grid gap-6 lg:grid-cols-[1fr_360px] mt-6">
-        <SectionsList instanceId={id!} sections={sections} comments={comments} contacts={contacts} />
-
+        <WorkspaceTemplateTabs
+          instanceId={id!}
+          primaryTemplateId={instance.template_id ?? null}
+          primaryTemplateName={instance.clm_templates?.name ?? instance.template_name_snapshot ?? "Primary template"}
+          extraTemplates={extraTemplates}
+          sections={sections}
+          comments={comments}
+          contacts={contacts}
+          debtorId={debtorId}
+        />
 
         <div className="space-y-4">
-          <ApprovalsPanelWithAccess instanceId={id!} contacts={contacts} />
-          <ExternalPortalAccessPanel instanceId={id!} />
-          <ContributorsPanel instanceId={id!} contacts={contacts} debtors={debtors} />
-          <Card>
-            <CardHeader>
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <CardTitle className="text-base flex items-center gap-2"><FileText className="h-4 w-4" /> Templates in this workspace</CardTitle>
-                  <CardDescription>Click a template to invite collaborators specific to that contract.</CardDescription>
-                </div>
-                <Button size="sm" variant="outline" onClick={() => setAddTplOpen(true)} className="shrink-0">
-                  <Plus className="h-3.5 w-3.5 mr-1" /> Add
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-1">
-              {instance.template_id && (
-                <WorkspaceTemplateRow
-                  instanceId={id!}
-                  templateId={instance.template_id}
-                  templateName={instance.clm_templates?.name ?? instance.template_name_snapshot ?? "Primary template"}
-                  isPrimary
-                  debtorId={debtors[0]?.debtor_id ?? null}
-                  contacts={contacts.filter((c: any) => !c.is_internal)}
-                />
-              )}
-              {extraTemplates.map((t: any) => (
-                <WorkspaceTemplateRow
-                  key={t.id}
-                  instanceId={id!}
-                  templateId={t.template_id}
-                  templateName={t.template_name_snapshot ?? t.clm_templates?.name ?? "—"}
-                  debtorId={debtors[0]?.debtor_id ?? null}
-                  contacts={contacts.filter((c: any) => !c.is_internal)}
-                />
-              ))}
-            </CardContent>
-          </Card>
-          <AddTemplateToWorkspaceDialog
-            open={addTplOpen}
-            onOpenChange={setAddTplOpen}
+          <AccessSidebar
             instanceId={id!}
-            primaryTemplateId={instance.template_id ?? null}
-            attachedTemplateIds={extraTemplates.map((t: any) => t.template_id)}
+            instance={instance}
+            contacts={contacts}
+            externalAccess={externalAccess as any[]}
+            debtors={debtors}
           />
-
+          <ApprovalsPanel instanceId={id!} contacts={contacts} externalAccess={externalAccess as any[]} />
         </div>
       </div>
+
+      <PrepareSignaturePackageDialog
+        open={pkgOpen}
+        onOpenChange={setPkgOpen}
+        instanceId={id!}
+        templates={templatesForPackage}
+        sections={sections}
+        contacts={contacts}
+        externalAccess={externalAccess as any[]}
+      />
     </div>
   );
 };
