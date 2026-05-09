@@ -782,3 +782,23 @@ export const useResolveRevisionComment = (instanceId: string, revisionId: string
     onError: (e: any) => toast.error(e?.message ?? "Failed"),
   });
 };
+
+// ─────────────────────────────────────────────────────────────────────────
+// Workspace audit log — every change with timestamp + actor
+// ─────────────────────────────────────────────────────────────────────────
+export const useClmAuditLog = (instanceId: string | undefined) => {
+  return useQuery({
+    queryKey: ["clm-audit-log", instanceId],
+    enabled: !!instanceId,
+    queryFn: async () => {
+      const { data, error } = await (supabase.from("clm_audit_log" as any) as any)
+        .select("*")
+        .eq("instance_id", instanceId!)
+        .order("created_at", { ascending: false })
+        .limit(500);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+};
+
