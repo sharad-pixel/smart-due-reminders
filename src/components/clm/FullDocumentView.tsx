@@ -70,22 +70,31 @@ export const FullDocumentView = ({ instanceId, sections, title, description, con
         <div className="rounded border bg-background">
           <div className="px-6 py-8 sm:px-10 sm:py-10 space-y-8 max-h-[75vh] overflow-y-auto">
             {sections.map((s: any, idx: number) => {
-              const pending = pendingBySection.get(s.id) ?? [];
-              const latestPending = pending[0];
+              const tracked = trackedBySection.get(s.id) ?? [];
+              const pendingCount = tracked.filter((r) => r.approval_status === "pending").length;
+              const draftCount = tracked.filter((r) => r.approval_status === "auto").length;
+              const latestTracked = tracked[0];
+              const isLatestDraft = latestTracked?.approval_status === "auto";
+              const version = currentVersionBySection.get(s.id) ?? 1;
               return (
                 <section key={s.id} className="space-y-2">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs font-mono text-muted-foreground">{idx + 1}.</span>
                     <h3 className="text-sm font-semibold uppercase tracking-wide">{s.title}</h3>
-                    {pending.length > 0 ? (
+                    <Badge variant="outline" className="font-mono text-[10px] h-5">v{version}</Badge>
+                    {pendingCount > 0 && (
                       <Badge variant="outline" className="bg-amber-500/15 text-amber-700 border-amber-500/30 text-[10px] h-5">
-                        <Clock className="h-2.5 w-2.5 mr-1" />
-                        {pending.length} pending
+                        <Clock className="h-2.5 w-2.5 mr-1" />{pendingCount} pending
                       </Badge>
-                    ) : (
+                    )}
+                    {draftCount > 0 && (
+                      <Badge variant="outline" className="bg-sky-500/15 text-sky-700 border-sky-500/30 text-[10px] h-5">
+                        <Clock className="h-2.5 w-2.5 mr-1" />{draftCount} draft
+                      </Badge>
+                    )}
+                    {pendingCount === 0 && draftCount === 0 && (
                       <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 border-emerald-500/30 text-[10px] h-5">
-                        <CheckCircle2 className="h-2.5 w-2.5 mr-1" />
-                        Clean
+                        <CheckCircle2 className="h-2.5 w-2.5 mr-1" />Clean
                       </Badge>
                     )}
                     {canEdit && instanceId && (
@@ -95,21 +104,22 @@ export const FullDocumentView = ({ instanceId, sections, title, description, con
                     )}
                   </div>
 
-                  {latestPending ? (
+                  {latestTracked ? (
                     <div className="space-y-2">
-                      <p className="text-[11px] text-muted-foreground italic">
-                        Proposed by {latestPending.edited_by_name || "collaborator"} ·
-                        {" "}awaiting approval
+                      <p className="text-[11px] italic text-muted-foreground">
+                        {isLatestDraft
+                          ? <>Draft by {latestTracked.edited_by_name || "you"} · not yet submitted</>
+                          : <>Proposed by {latestTracked.edited_by_name || "collaborator"} · awaiting approval</>}
                       </p>
                       <InlineDiff
-                        before={latestPending.previous_body ?? s.body ?? ""}
-                        after={latestPending.new_body ?? ""}
+                        before={latestTracked.previous_body ?? s.body ?? ""}
+                        after={latestTracked.new_body ?? ""}
                         showStats={false}
                         className=""
                       />
-                      {pending.length > 1 && (
+                      {tracked.length > 1 && (
                         <p className="text-[11px] text-muted-foreground">
-                          + {pending.length - 1} earlier pending revision{pending.length - 1 === 1 ? "" : "s"} on this section.
+                          + {tracked.length - 1} earlier tracked change{tracked.length - 1 === 1 ? "" : "s"} on this section.
                         </p>
                       )}
                     </div>
