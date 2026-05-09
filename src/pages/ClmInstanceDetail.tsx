@@ -75,8 +75,8 @@ const WorkspaceTemplateRow = ({
 };
 
 const SectionsList = ({
-  instanceId, sections, comments,
-}: { instanceId: string; sections: any[]; comments: any[] }) => {
+  instanceId, sections, comments, contacts,
+}: { instanceId: string; sections: any[]; comments: any[]; contacts: any[] }) => {
   const { data: revisions = [] } = useInstanceRevisions(instanceId);
   // index revisions per section_id
   const revsBySection = (revisions as any[]).reduce((m, r) => {
@@ -157,7 +157,7 @@ const SectionsList = ({
                             </Button>
                           }
                         />
-                        <SectionEditDialog instanceId={instanceId} section={s} currentVersion={currentVersion} />
+                        <SectionEditDialog instanceId={instanceId} section={s} currentVersion={currentVersion} contacts={contacts} />
                       </div>
                     </div>
                     <SectionCommentsPanel instanceId={instanceId} sectionKey={s.section_key} comments={comments} />
@@ -221,7 +221,7 @@ const Inner = () => {
       <WorkspaceOverviewCard instance={instance} debtors={debtors} />
 
       <div className="grid gap-6 lg:grid-cols-[1fr_360px] mt-6">
-        <SectionsList instanceId={id!} sections={sections} comments={comments} />
+        <SectionsList instanceId={id!} sections={sections} comments={comments} contacts={contacts} />
 
 
         <div className="space-y-4">
