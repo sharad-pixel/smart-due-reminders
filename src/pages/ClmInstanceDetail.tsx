@@ -169,9 +169,15 @@ const Inner = () => {
           />
         </TabsContent>
 
-        <TabsContent value="approvals" className="mt-4 space-y-6">
-          <ApprovalsPanel instanceId={id!} contacts={contacts} externalAccess={externalAccess as any[]} />
-          <VersionTimelinePanel instanceId={id!} myRole={myRoleInfo?.role} />
+        <TabsContent value="approvals" className="mt-4">
+          <ApprovalWorkspace
+            instanceId={id!}
+            instanceStatus={instance.status}
+            contacts={contacts}
+            externalAccess={externalAccess as any[]}
+            myRole={myRoleInfo?.role}
+            myUserId={myRoleInfo?.userId}
+          />
         </TabsContent>
 
         <TabsContent value="audit" className="mt-4">
