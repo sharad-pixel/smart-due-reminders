@@ -17,6 +17,9 @@ import {
 import { toast } from "sonner";
 import { useClmTemplates } from "@/hooks/useClmTemplates";
 import { useCreateClmInstance } from "@/hooks/useClmInstance";
+import { BusinessProfilePicker } from "./BusinessProfilePicker";
+import { ProfileMetadataFields } from "./ProfileMetadataFields";
+import { BusinessProfileId, getBusinessProfile } from "@/lib/clm/businessProfiles";
 
 interface Props {
   open: boolean;
