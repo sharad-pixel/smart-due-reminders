@@ -15,7 +15,7 @@ import { PrepareSignaturePackageDialog } from "@/components/clm/PrepareSignature
 import { DraftSubmissionBar } from "@/components/clm/DraftSubmissionBar";
 import { RevisionHistoryPanel } from "@/components/clm/RevisionHistoryPanel";
 import { AuditLogPanel } from "@/components/clm/AuditLogPanel";
-import { RoleCapabilitiesCard } from "@/components/clm/RoleCapabilitiesCard";
+import { RoleCapabilitiesDialog } from "@/components/clm/RoleCapabilitiesDialog";
 import { useMyClmRole } from "@/hooks/useMyClmRole";
 import { ClmBrandedHeader } from "@/components/clm/ClmBrandedHeader";
 import { KurtChatDrawer } from "@/components/clm/KurtChatDrawer";
@@ -99,6 +99,7 @@ const Inner = () => {
               gdocUrl={(instance as any).gdoc_url}
               gdocSyncedAt={(instance as any).gdoc_synced_at}
             />
+            <RoleCapabilitiesDialog myRole={myRoleInfo?.role} />
             <KurtChatDrawer instanceId={id!} instanceName={instance.name} />
             <Badge variant="outline" className="capitalize">{instance.status.replace("_", " ")}</Badge>
             <Select value={instance.status} onValueChange={(v) => updateStatus.mutate(v)}>
@@ -142,7 +143,7 @@ const Inner = () => {
             debtors={debtors}
           />
           <ApprovalsPanel instanceId={id!} contacts={contacts} externalAccess={externalAccess as any[]} />
-          <RoleCapabilitiesCard myRole={myRoleInfo?.role} />
+          
         </div>
       </div>
 
