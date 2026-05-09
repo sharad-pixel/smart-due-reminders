@@ -1,67 +1,60 @@
+# CLM: Friendlier Approvals UI + Secure External Collaborator Portal
 
-## CLM Template Library + AI Sectionalization + Account Collaboration
+Two related improvements to the CLM workspace:
 
-Extend Contract Intelligence with a 3-stage workflow:
+## 1. Friendlier Change Tracking & Approval Assignment
 
-1. **Upload** an MSA / contract template (PDF, DOCX, TXT)
-2. **AI sectionalizes** it (parties, term, payment terms, IP, indemnity, termination, confidentiality, governing law, etc.) using GPT-5 via Lovable AI Gateway
-3. **Use template** → spin up a contract instance, attach one or many accounts from the existing debtors list, and collaborate (comments per section, status tracking)
+Today the `RevisionHistoryPanel` is a dense audit log with inline accept/reject. Hard to scan, and you can't assign a specific approver.
 
-### Data model (new tables, all RLS-scoped to `account_id`)
+**New UX (in-app, for internal users):**
+- Split the right-rail panel into two tabs:
+  - **Pending Approvals** (default) — card per pending revision: section title, who edited, time, change summary, before/after diff toggle, **Assign approver** dropdown (account collaborators + internal team), Approve / Request Changes buttons, optional note.
+  - **History** — chronological feed of all approved/rejected/auto-saved changes with status pills and reviewer name.
+- Add a top summary strip: "X pending · Y approved this week · Z rejected".
+- New `assigned_approver_id` column on `clm_instance_revisions`; assigning sends an in-app notification + email to that person.
+- Section editor: when submitting for approval, pick an assignee from the same dropdown.
 
-- `clm_templates` — uploaded master templates
-  - `id`, `account_id`, `created_by`, `name`, `description`, `source_file_url`, `source_file_name`, `mime_type`, `raw_text`, `status` ('uploading'|'parsing'|'ready'|'failed'), `parse_error`, `metadata` jsonb
-- `clm_template_sections` — AI-extracted sections per template
-  - `id`, `template_id`, `section_key` (e.g. `payment_terms`), `title`, `body`, `order_index`, `ai_summary`, `risk_flags` jsonb
-- `clm_template_instances` — a template "in use" for collaboration
-  - `id`, `template_id`, `account_id`, `created_by`, `name`, `status` ('draft'|'in_review'|'approved'|'executed'|'archived'), `notes`
-- `clm_instance_debtors` — links instances to debtor accounts (many-to-many)
-  - `id`, `instance_id`, `debtor_id`, `added_by`, `role` ('counterparty'|'cc'|'reviewer')
-- `clm_section_comments` — per-section collaboration threads
-  - `id`, `instance_id`, `section_key`, `author_id`, `body`, `resolved_at`
+## 2. Secure-Token External Collaborator Portal
 
-Storage bucket: `clm-templates` (private), with RLS allowing account members to upload/read their own files.
+Mirror the payment portal pattern: external party enters their email, receives a magic link, lands on a scoped CLM portal that lists every workspace they're invited to plus their pending tasks (sections to review, approvals requested, comments mentioning them).
 
-### Edge function
+**Flow:**
+1. From `ContributorsPanel` → "Invite external collaborator" → email + role (Reviewer / Approver / Viewer) + optional expiry.
+2. Backend creates a `clm_external_access` row (token uuid, email, instance_id, role, expires_at, last_used_at, revoked_at) and emails a `https://recouply.ai/clm-portal?token=...` link.
+3. Edge function `clm-portal-access` validates token by email, returns scoped data: workspaces, sections, pending approvals/tasks assigned to that email, comments threaded with them.
+4. Public portal page `/clm-portal` (no auth) — email entry → magic link → token-authenticated session (sessionStorage). Lists workspaces, opens read/comment/approve view per their role.
+5. Owner can **renew** (rotate token + new expiry, resend email) or **revoke** from the workspace contributors panel — same affordance as payment portal token rotation.
 
-- `clm-sectionalize-template` — takes `template_id`, downloads the source file from storage, extracts text (PDF.js for PDF, mammoth-style for docx via simple text fallback initially), calls `google/gemini-2.5-flash` (per project memory — overriding the GPT-5 spec from earlier since memory mandates Gemini for AI features) with a structured-output schema, writes rows to `clm_template_sections`, updates template `status` to `ready`.
+**Security:**
+- Tokens are random uuids, single-purpose, expire (default 30 days, renewable).
+- All portal data fetched server-side via SECURITY DEFINER edge function — base tables stay locked behind RLS; no anon SELECT policies added.
+- Rate-limit magic-link requests via existing `check_action_rate_limit`.
+- Audit log entry on issue / renew / revoke / portal access.
 
-> Note: project memory says "Gemini-2.5-Flash for all AI features" — I will use that and call it out. If you want GPT-5 specifically for CLM extraction, say so and I'll switch.
+## Technical Plan
 
-### UI changes
+**DB migration:**
+- `ALTER TABLE clm_instance_revisions ADD COLUMN assigned_approver_id uuid, assigned_approver_email text, assigned_at timestamptz`.
+- New table `clm_external_access` (id, instance_id, debtor_id nullable, email, role, token uuid unique, expires_at, last_used_at, revoked_at, created_by, created_at).
+- New table `clm_external_tasks` is unnecessary — derive tasks from existing revisions + comments + assigned_approver_email match.
+- RLS: account members can manage rows for their workspaces; no anon SELECT (portal goes through edge function only).
 
-- **`/contracts`** — gains a tab layout:
-  - **Contracts** (existing list) — unchanged
-  - **Templates** (new) — grid of templates with status badge; "Upload Template" button opens drag-drop modal (reuses upload pattern from `DocumentUpload`)
-  - Clicking a template → **Template Detail** (new route `/contracts/templates/:id`) showing sectionalized breakdown (accordion of sections, each with title / body / AI summary / risk flags), plus "Use Template" button
-  - **Use Template** → modal to name the instance, then redirects to instance detail
-- **`/contracts/instances/:id`** (new route) — instance workspace:
-  - Header: instance name, status dropdown, parent template link
-  - Left: section list (synced from template, editable per instance)
-  - Right: comments panel per selected section
-  - Bottom: **Collaborating Accounts** — searchable picker pulling from `debtors` table, add/remove with role selector
+**Edge functions:**
+- `clm-invite-external` — creates access row, sends magic-link email via existing email infra.
+- `clm-portal-request-link` — email lookup, rate-limited, sends magic link.
+- `clm-portal-access` — `{ token }` → returns workspaces + tasks assigned to that email; updates `last_used_at`.
+- `clm-portal-action` — `{ token, action: approve|reject|comment, payload }` — performs scoped writes server-side.
 
-### Files to create
+**Frontend:**
+- Rewrite `RevisionHistoryPanel` → `ApprovalsPanel` with tabs (Pending / History) + summary chips + per-card assignee dropdown.
+- Update `SectionEditDialog` to add optional approver picker on Submit.
+- Replace "Add external" form in `ContributorsPanel` with "Invite external collaborator" dialog (email + role + expiry); list issued tokens with status (active/expired/revoked) + Renew / Revoke / Copy link actions.
+- New page `src/pages/ClmPortal.tsx` (route `/clm-portal`) with two states: email entry → workspace list → workspace detail (sections read, comment, approve if role=Approver).
+- Add route in `App.tsx`, exclude from sitemap.
 
-- migration with 5 tables + RLS + storage bucket + policies
-- `supabase/functions/clm-sectionalize-template/index.ts`
-- `src/pages/ClmTemplateDetail.tsx`
-- `src/pages/ClmInstanceDetail.tsx`
-- `src/components/clm/TemplateUploadDialog.tsx`
-- `src/components/clm/TemplateSectionAccordion.tsx`
-- `src/components/clm/InstanceAccountPicker.tsx`
-- `src/components/clm/SectionCommentsPanel.tsx`
-- `src/hooks/useClmTemplates.ts`
-- `src/hooks/useClmInstance.ts`
+**Out of scope this round:**
+- Realtime presence in portal.
+- Bulk approver assignment.
+- Custom email template branding (uses default transactional template).
 
-### Files to edit
-
-- `src/pages/Contracts.tsx` — wrap content in Tabs (Contracts / Templates)
-- `src/App.tsx` — add `/contracts/templates/:id` and `/contracts/instances/:id` routes (gated by `RequireClmAccess`)
-
-### Out of scope (v1.x follow-ups)
-- DocuSign send (still planned per earlier scope, layered on top of instances)
-- Diff view between template and instance edits
-- Real-time presence on the section editor
-- Clause library / clause-level AI suggestions
-
+Confirm and I'll implement.

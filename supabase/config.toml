@@ -335,3 +335,9 @@ verify_jwt = false
 
 [functions.notify-new-signup]
 verify_jwt = false
+
+[functions.clm-external-portal]
+verify_jwt = false
+
+[functions.clm-invite-external]
+verify_jwt = true
