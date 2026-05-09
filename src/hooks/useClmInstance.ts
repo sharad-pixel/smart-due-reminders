@@ -302,40 +302,19 @@ export const useReviewRevision = (instanceId: string) => {
     mutationFn: async ({
       revisionId, decision, note, revertOnReject, override_body,
     }: { revisionId: string; decision: "approved" | "rejected"; note?: string; revertOnReject?: boolean; override_body?: string }) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      let reviewerName: string | undefined;
-      if (user?.id) {
-        const { data: prof } = await supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
-        reviewerName = (prof as any)?.full_name ?? user.email ?? undefined;
-      }
-      // If reviewer cherry-picked a subset of changes via Track Changes, persist
-      // the merged body as the new_body before approval triggers fire.
-      if (decision === "approved" && typeof override_body === "string") {
-        await (supabase.from("clm_section_revisions" as any) as any)
-          .update({ new_body: override_body })
-          .eq("id", revisionId);
-      }
-      const { data: rev, error: rErr } = await (supabase.from("clm_section_revisions" as any) as any)
-        .update({
-          approval_status: decision, reviewed_by: user?.id, reviewed_by_name: reviewerName,
-          reviewed_at: new Date().toISOString(), review_note: note ?? null,
-        })
-        .eq("id", revisionId).select("section_id, previous_body, new_body").single();
-      if (rErr) throw rErr;
-
-      // Defensive: if the DB trigger isn't writing the body on approval, do it here.
-      if (decision === "approved" && rev) {
-        await supabase.from("clm_instance_sections")
-          .update({ body: (rev as any).new_body })
-          .eq("id", (rev as any).section_id);
-      }
-      if (decision === "rejected" && revertOnReject && rev) {
-        await supabase.from("clm_instance_sections").update({ body: (rev as any).previous_body }).eq("id", (rev as any).section_id);
-      }
+      const { error } = await (supabase as any).rpc("review_clm_revision", {
+        p_revision_id: revisionId,
+        p_decision: decision,
+        p_note: note ?? null,
+        p_override_body: override_body ?? null,
+        p_revert_on_reject: !!revertOnReject,
+      });
+      if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["clm-instance", instanceId] });
       qc.invalidateQueries({ queryKey: ["clm-revisions", instanceId] });
+      qc.invalidateQueries({ queryKey: ["clm-audit-log", instanceId] });
       toast.success("Reviewed");
     },
     onError: (e: any) => toast.error(e?.message ?? "Failed"),
