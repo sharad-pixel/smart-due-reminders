@@ -15,6 +15,8 @@ import { PrepareSignaturePackageDialog } from "@/components/clm/PrepareSignature
 import { DraftSubmissionBar } from "@/components/clm/DraftSubmissionBar";
 import { RevisionHistoryPanel } from "@/components/clm/RevisionHistoryPanel";
 import { AuditLogPanel } from "@/components/clm/AuditLogPanel";
+import { RoleCapabilitiesCard } from "@/components/clm/RoleCapabilitiesCard";
+import { useMyClmRole } from "@/hooks/useMyClmRole";
 import { ClmBrandedHeader } from "@/components/clm/ClmBrandedHeader";
 import { KurtChatDrawer } from "@/components/clm/KurtChatDrawer";
 import { PushToGoogleDocsButton } from "@/components/clm/PushToGoogleDocsButton";
@@ -39,6 +41,8 @@ const Inner = () => {
   const { data, isLoading } = useClmInstance(id);
   const updateStatus = useUpdateInstanceStatus(id ?? "");
   const { data: externalAccess = [] } = useExternalAccess(id);
+  const contactsForRole = ((data as any)?.contacts ?? []) as any[];
+  const { data: myRoleInfo } = useMyClmRole(id, contactsForRole, externalAccess as any[], (data as any)?.instance);
   const [pkgOpen, setPkgOpen] = useState(false);
 
   const instance = (data as any)?.instance;
@@ -138,6 +142,7 @@ const Inner = () => {
             debtors={debtors}
           />
           <ApprovalsPanel instanceId={id!} contacts={contacts} externalAccess={externalAccess as any[]} />
+          <RoleCapabilitiesCard myRole={myRoleInfo?.role} />
         </div>
       </div>
 

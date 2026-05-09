@@ -183,48 +183,55 @@ export const useUpdateInstanceSection = (instanceId: string) => {
       assigned_approver_email?: string; assigned_approver_name?: string;
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Sign in required");
 
-      // Snapshot previous body / metadata
-      let previous_body: string | null = null;
-      let section_key: string | null = null;
-      let section_title: string | null = null;
-      if (body !== undefined) {
-        const { data: prev } = await supabase
-          .from("clm_instance_sections")
-          .select("body, section_key, title")
-          .eq("id", id).maybeSingle();
-        previous_body = prev?.body ?? null;
-        section_key = prev?.section_key ?? null;
-        section_title = prev?.title ?? null;
-      }
-
-      // Title-only edits update immediately. Body edits are written immediately ONLY
-      // when not submitting for approval; otherwise the trigger promotes new_body on approve.
-      const patch: any = {};
-      if (title !== undefined) patch.title = title;
-      if (body !== undefined && !submitForApproval) patch.body = body;
-      if (Object.keys(patch).length) {
-        const { error } = await supabase.from("clm_instance_sections").update(patch).eq("id", id);
+      // Title-only edits update directly. Body changes go through the
+      // SECURITY DEFINER RPC that enforces role and atomically logs a revision.
+      if (title !== undefined && body === undefined) {
+        const { error } = await supabase.from("clm_instance_sections").update({ title }).eq("id", id);
         if (error) throw error;
       }
 
-      // Log revision when body changed
-      if (body !== undefined && previous_body !== body) {
-        let editorName: string | undefined;
-        if (user?.id) {
+      if (body !== undefined) {
+        if (submitForApproval) {
+          // Submit for approval path keeps the legacy revision insert (pending status)
+          const { data: prev } = await supabase
+            .from("clm_instance_sections")
+            .select("body, section_key, title")
+            .eq("id", id).maybeSingle();
+          const previous_body = prev?.body ?? null;
+          const section_key = prev?.section_key ?? null;
+          const section_title = prev?.title ?? null;
+          let editorName: string | undefined;
           const { data: prof } = await supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
           editorName = (prof as any)?.full_name ?? user.email ?? undefined;
+
+          if (title !== undefined) {
+            await supabase.from("clm_instance_sections").update({ title }).eq("id", id);
+          }
+          if (previous_body !== body) {
+            const { error: rErr } = await (supabase.from("clm_section_revisions" as any) as any).insert({
+              instance_id: instanceId, section_id: id,
+              section_key, section_title,
+              previous_body, new_body: body, change_summary,
+              edited_by: user.id, edited_by_name: editorName,
+              approval_status: "pending",
+              assigned_approver_email: assigned_approver_email || null,
+              assigned_approver_name: assigned_approver_name || null,
+              assigned_at: assigned_approver_email ? new Date().toISOString() : null,
+            });
+            if (rErr) throw rErr;
+          }
+        } else {
+          // Draft save: atomic via RPC — bypasses RLS quirks for workspace editors
+          const { error } = await (supabase as any).rpc("save_clm_section_draft", {
+            p_section_id: id,
+            p_body: body,
+            p_title: title ?? null,
+            p_change_summary: change_summary ?? null,
+          });
+          if (error) throw error;
         }
-        await (supabase.from("clm_section_revisions" as any) as any).insert({
-          instance_id: instanceId, section_id: id,
-          section_key, section_title,
-          previous_body, new_body: body, change_summary,
-          edited_by: user?.id, edited_by_name: editorName,
-          approval_status: submitForApproval ? "pending" : "auto",
-          assigned_approver_email: submitForApproval ? (assigned_approver_email || null) : null,
-          assigned_approver_name: submitForApproval ? (assigned_approver_name || null) : null,
-          assigned_at: submitForApproval && assigned_approver_email ? new Date().toISOString() : null,
-        });
       }
     },
     onSuccess: (_d, vars) => {
@@ -295,40 +302,19 @@ export const useReviewRevision = (instanceId: string) => {
     mutationFn: async ({
       revisionId, decision, note, revertOnReject, override_body,
     }: { revisionId: string; decision: "approved" | "rejected"; note?: string; revertOnReject?: boolean; override_body?: string }) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      let reviewerName: string | undefined;
-      if (user?.id) {
-        const { data: prof } = await supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
-        reviewerName = (prof as any)?.full_name ?? user.email ?? undefined;
-      }
-      // If reviewer cherry-picked a subset of changes via Track Changes, persist
-      // the merged body as the new_body before approval triggers fire.
-      if (decision === "approved" && typeof override_body === "string") {
-        await (supabase.from("clm_section_revisions" as any) as any)
-          .update({ new_body: override_body })
-          .eq("id", revisionId);
-      }
-      const { data: rev, error: rErr } = await (supabase.from("clm_section_revisions" as any) as any)
-        .update({
-          approval_status: decision, reviewed_by: user?.id, reviewed_by_name: reviewerName,
-          reviewed_at: new Date().toISOString(), review_note: note ?? null,
-        })
-        .eq("id", revisionId).select("section_id, previous_body, new_body").single();
-      if (rErr) throw rErr;
-
-      // Defensive: if the DB trigger isn't writing the body on approval, do it here.
-      if (decision === "approved" && rev) {
-        await supabase.from("clm_instance_sections")
-          .update({ body: (rev as any).new_body })
-          .eq("id", (rev as any).section_id);
-      }
-      if (decision === "rejected" && revertOnReject && rev) {
-        await supabase.from("clm_instance_sections").update({ body: (rev as any).previous_body }).eq("id", (rev as any).section_id);
-      }
+      const { error } = await (supabase as any).rpc("review_clm_revision", {
+        p_revision_id: revisionId,
+        p_decision: decision,
+        p_note: note ?? null,
+        p_override_body: override_body ?? null,
+        p_revert_on_reject: !!revertOnReject,
+      });
+      if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["clm-instance", instanceId] });
       qc.invalidateQueries({ queryKey: ["clm-revisions", instanceId] });
+      qc.invalidateQueries({ queryKey: ["clm-audit-log", instanceId] });
       toast.success("Reviewed");
     },
     onError: (e: any) => toast.error(e?.message ?? "Failed"),

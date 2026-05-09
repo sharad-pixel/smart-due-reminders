@@ -10391,6 +10391,18 @@ export type Database = {
         Args: { p_org_id: string; p_user_id: string }
         Returns: boolean
       }
+      can_approve_clm_instance: {
+        Args: { p_instance_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      can_edit_clm_instance: {
+        Args: { p_instance_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      can_view_clm_instance: {
+        Args: { p_instance_id: string; p_user_id: string }
+        Returns: boolean
+      }
       can_write_as_account: {
         Args: { p_account_id: string; p_user_id: string }
         Returns: boolean
@@ -10435,6 +10447,10 @@ export type Database = {
           actor_id: string
           actor_name: string
         }[]
+      }
+      clm_instance_role: {
+        Args: { p_instance_id: string; p_user_id: string }
+        Returns: string
       }
       create_default_outreach_templates: {
         Args: { p_user_id: string }
@@ -10578,7 +10594,26 @@ export type Database = {
         Args: { p_note?: string; p_revision_id: string }
         Returns: string
       }
+      review_clm_revision: {
+        Args: {
+          p_decision: string
+          p_note?: string
+          p_override_body?: string
+          p_revert_on_reject?: boolean
+          p_revision_id: string
+        }
+        Returns: undefined
+      }
       rotate_ar_page_token: { Args: { p_user_id: string }; Returns: string }
+      save_clm_section_draft: {
+        Args: {
+          p_body: string
+          p_change_summary?: string
+          p_section_id: string
+          p_title?: string
+        }
+        Returns: string
+      }
       submit_clm_review_batch: {
         Args: {
           p_approver_email: string
