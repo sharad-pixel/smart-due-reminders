@@ -151,6 +151,7 @@ const Inner = () => {
       </div>
 
       <div className="mt-6 space-y-6">
+        <VersionTimelinePanel instanceId={id!} myRole={myRoleInfo?.role} />
         <RevisionHistoryPanel
           instanceId={id!}
           contacts={contacts}
