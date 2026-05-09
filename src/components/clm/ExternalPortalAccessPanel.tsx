@@ -23,8 +23,13 @@ export const ExternalPortalAccessPanel = ({ instanceId }: Props) => {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [role, setRole] = useState("reviewer");
-  const [days, setDays] = useState("30");
+  const [duration, setDuration] = useState("30d"); // 1h | 12h | 24h (session) | 7d | 14d | 30d | 60d | 90d
   const [busy, setBusy] = useState(false);
+
+  const durationToBody = (d: string): { expires_in_hours?: number; expires_in_days?: number } => {
+    if (d.endsWith("h")) return { expires_in_hours: Number(d.slice(0, -1)) };
+    return { expires_in_days: Number(d.slice(0, -1)) };
+  };
 
   const { data: tokens = [], isLoading } = useQuery({
     queryKey: ["clm-external-access", instanceId],
