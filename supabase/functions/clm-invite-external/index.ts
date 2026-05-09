@@ -85,7 +85,7 @@ serve(async (req) => {
     }
 
     if (action === "renew") {
-      const { id, expires_in_days } = body;
+      const { id, expires_in_days, expires_in_hours } = body;
       if (!id) return json({ error: "id required" }, 400);
       const { data: existing } = await admin
         .from("clm_external_access")
