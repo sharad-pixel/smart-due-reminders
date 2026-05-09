@@ -64,6 +64,16 @@ export const FullDocumentView = ({
     return m;
   }, [revisions]);
 
+  const mentionPeople = useMemo<MentionPerson[]>(() => {
+    const out: MentionPerson[] = [];
+    contacts.forEach((c: any) => out.push({ name: c.name ?? c.full_name ?? null, email: c.email ?? null, role: c.role ?? null }));
+    externalAccess.forEach((a: any) => {
+      if (a.revoked_at) return;
+      out.push({ name: a.name ?? a.full_name ?? null, email: a.email ?? null, role: a.role ?? null });
+    });
+    return out;
+  }, [contacts, externalAccess]);
+
   const commentsBySection = useMemo(() => {
     const m = new Map<string, any[]>();
     comments.forEach((c: any) => {
@@ -73,6 +83,18 @@ export const FullDocumentView = ({
     });
     return m;
   }, [comments]);
+
+  // All revisions (drafts + pending + approved + reverted) per section, for change-log
+  const changeLogBySection = useMemo(() => {
+    const m = new Map<string, any[]>();
+    (revisions as any[]).forEach((r) => {
+      const arr = m.get(r.section_id) ?? [];
+      arr.push(r);
+      m.set(r.section_id, arr);
+    });
+    m.forEach((arr) => arr.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
+    return m;
+  }, [revisions]);
 
   const scrollToSection = (id: string) => {
     setSelectedId(id);
