@@ -21,6 +21,19 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import SEO from "@/components/seo/SEO";
 
+const ApprovalsPanelWithAccess = ({ instanceId, contacts }: { instanceId: string; contacts: any[] }) => {
+  const { data: externalAccess = [] } = useQuery({
+    queryKey: ["clm-external-access", instanceId],
+    queryFn: async () => {
+      const { data } = await (supabase.from("clm_external_access" as any) as any)
+        .select("email, name, role, revoked_at, expires_at")
+        .eq("instance_id", instanceId);
+      return data ?? [];
+    },
+  });
+  return <ApprovalsPanel instanceId={instanceId} contacts={contacts} externalAccess={externalAccess} />;
+};
+
 const WorkspaceTemplateRow = ({
   instanceId, templateId, templateName, isPrimary, debtorId, contacts,
 }: {
