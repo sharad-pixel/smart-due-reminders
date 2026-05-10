@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
-  Check, X, RotateCcw, MessageSquare, Lock, Clock, Sparkles, GitBranch, ChevronDown, ChevronRight, UserPlus,
+  Check, X, RotateCcw, MessageSquare, Lock, Clock, Sparkles, GitBranch, ChevronDown, ChevronRight, UserPlus, ShieldCheck,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { InlineDiff } from "./InlineDiff";
@@ -18,6 +20,9 @@ import {
 import {
   canApproveRevisions, canMergeRevisions, canRevertRevision, canCommentOnRevisions,
 } from "@/lib/clmRoles";
+
+const APPROVER_ROLES = new Set(["owner", "approver", "legal"]);
+
 
 interface Mentionable { email: string; name?: string | null; role?: string | null }
 
