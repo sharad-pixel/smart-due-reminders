@@ -48,7 +48,7 @@ export const RevisionChangeCard = ({
   const [open, setOpen] = useState(defaultOpen);
   const [note, setNote] = useState("");
   const [reviewerOpen, setReviewerOpen] = useState(false);
-  const [pickedReviewer, setPickedReviewer] = useState<string>("");
+  const [pickedReviewers, setPickedReviewers] = useState<string[]>([]);
 
   const review = useReviewRevision(instanceId);
   const revert = useRevertRevision(instanceId);
