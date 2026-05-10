@@ -278,6 +278,123 @@ export const FullDocumentView = ({
                             </PopoverContent>
                           </Popover>
                         )}
+                        {canEdit && instanceId && (
+                          <Popover
+                            open={approverOpenFor === s.id}
+                            onOpenChange={(o) => {
+                              if (o) { setApproverOpenFor(s.id); setPickedApprovers([]); }
+                              else { setApproverOpenFor(null); setPickedApprovers([]); }
+                            }}
+                          >
+                            <PopoverTrigger asChild>
+                              <Button size="sm" variant="ghost" className="h-7 px-2 text-xs">
+                                <ShieldCheck className="h-3 w-3 mr-1" /> Approvers
+                                {approverDetails.length > 0 && (
+                                  <Badge variant="secondary" className="ml-1 h-4 text-[10px]">
+                                    {approverDetails.length}
+                                  </Badge>
+                                )}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent align="end" className="w-[340px] p-0" onClick={(e) => e.stopPropagation()}>
+                              <div className="p-3 border-b">
+                                <p className="text-xs font-semibold flex items-center gap-1">
+                                  <ShieldCheck className="h-3 w-3" /> Assigned approvers for this section
+                                </p>
+                                <p className="text-[11px] text-muted-foreground mt-0.5">
+                                  Editor / Approvers tagged on the latest pending change. They’ll get notified to review.
+                                </p>
+                              </div>
+                              <div className="max-h-40 overflow-y-auto p-2 border-b">
+                                {approverDetails.length === 0 ? (
+                                  <p className="text-[11px] text-muted-foreground italic px-2 py-3 text-center">
+                                    No approvers tagged yet.
+                                  </p>
+                                ) : (
+                                  approverDetails.map((a) => (
+                                    <div key={a.email} className="flex items-center gap-2 px-1.5 py-1 text-xs">
+                                      <Avatar className="h-6 w-6">
+                                        <AvatarFallback className="text-[10px] bg-emerald-500/10 text-emerald-700">
+                                          {initials(a.name)}
+                                        </AvatarFallback>
+                                      </Avatar>
+                                      <div className="min-w-0 flex-1">
+                                        <p className="truncate">{a.name}</p>
+                                        {a.name !== a.email && (
+                                          <p className="text-[10px] text-muted-foreground truncate">{a.email}</p>
+                                        )}
+                                      </div>
+                                      <Badge variant="outline" className="text-[9px] h-4 bg-amber-500/10 text-amber-700 border-amber-500/30">
+                                        Pending
+                                      </Badge>
+                                    </div>
+                                  ))
+                                )}
+                              </div>
+                              <div className="p-2">
+                                <p className="text-[10px] uppercase tracking-wide text-muted-foreground px-1.5 mb-1">
+                                  Tag more approvers
+                                </p>
+                                {eligibleApprovers.length === 0 ? (
+                                  <p className="text-[11px] text-muted-foreground italic px-2 py-2 text-center">
+                                    No collaborators with approver permissions yet.
+                                  </p>
+                                ) : !latestTracked ? (
+                                  <p className="text-[11px] text-muted-foreground italic px-2 py-2 text-center">
+                                    Edit this section first — approvers are tagged on a pending change.
+                                  </p>
+                                ) : (
+                                  <div className="max-h-44 overflow-y-auto">
+                                    {eligibleApprovers.map((m) => {
+                                      const already = assignedApprovers.includes(m.email);
+                                      const checked = pickedApprovers.includes(m.email);
+                                      return (
+                                        <label
+                                          key={m.email}
+                                          className={`flex items-center gap-2 px-2 py-1.5 rounded text-xs cursor-pointer hover:bg-muted/60 ${already ? "opacity-60" : ""}`}
+                                        >
+                                          <Checkbox
+                                            checked={checked || already}
+                                            disabled={already}
+                                            onCheckedChange={() =>
+                                              setPickedApprovers((prev) =>
+                                                prev.includes(m.email) ? prev.filter((e) => e !== m.email) : [...prev, m.email]
+                                              )
+                                            }
+                                          />
+                                          <div className="flex-1 min-w-0">
+                                            <p className="truncate">{m.name || m.email}</p>
+                                            <p className="text-[10px] text-muted-foreground truncate">{m.email}</p>
+                                          </div>
+                                          {already && <Badge variant="secondary" className="text-[9px] h-4">Tagged</Badge>}
+                                        </label>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="p-2 border-t flex items-center justify-between gap-2">
+                                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setApproverOpenFor(null); setPickedApprovers([]); }}>
+                                  Cancel
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  className="h-7 text-xs"
+                                  disabled={!pickedApprovers.length || !latestTracked || reqReview.isPending}
+                                  onClick={async () => {
+                                    if (!latestTracked) return;
+                                    await reqReview.mutateAsync({ revisionId: latestTracked.id, emails: pickedApprovers });
+                                    setApproverOpenFor(null);
+                                    setPickedApprovers([]);
+                                  }}
+                                >
+                                  {reqReview.isPending ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <UserPlus className="h-3 w-3 mr-1" />}
+                                  Tag {pickedApprovers.length || ""} for approval
+                                </Button>
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                        )}
                         <span className="text-xs text-muted-foreground inline-flex items-center px-1">
                           <MessageSquare className="h-3 w-3 mr-1" /> {sectionComments.length}
                         </span>
