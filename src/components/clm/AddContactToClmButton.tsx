@@ -16,7 +16,7 @@ interface Props {
 export const AddContactToClmButton = ({ contactId, debtorId }: Props) => {
   const [open, setOpen] = useState(false);
   const [instanceId, setInstanceId] = useState<string>("");
-  const [role, setRole] = useState("reviewer");
+  const [role, setRole] = useState("editor_approver");
   const [saving, setSaving] = useState(false);
   const qc = useQueryClient();
   const { isActive } = useClmEntitlement();
@@ -99,10 +99,9 @@ export const AddContactToClmButton = ({ contactId, debtorId }: Props) => {
               <Select value={role} onValueChange={setRole}>
                 <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="signer">Signer</SelectItem>
-                  <SelectItem value="reviewer">Reviewer</SelectItem>
-                  <SelectItem value="legal">Legal</SelectItem>
-                  <SelectItem value="cc">CC</SelectItem>
+                  <SelectItem value="editor_approver">Editor / Approver</SelectItem>
+                  <SelectItem value="viewer">Viewer (read-only)</SelectItem>
+                  <SelectItem value="signer">Signer (post-finalization)</SelectItem>
                 </SelectContent>
               </Select>
               <Button size="sm" className="w-full" onClick={handleAdd} disabled={!instanceId || saving}>

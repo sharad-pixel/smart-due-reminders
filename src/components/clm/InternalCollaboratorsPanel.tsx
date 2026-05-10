@@ -17,7 +17,7 @@ export const InternalCollaboratorsPanel = ({
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [title, setTitle] = useState("");
-  const [role, setRole] = useState("reviewer");
+  const [role, setRole] = useState("editor_approver");
 
   const handleAdd = async () => {
     if (!name.trim()) return;
@@ -62,19 +62,20 @@ export const InternalCollaboratorsPanel = ({
           <Input placeholder="Email (optional)" value={email} onChange={(e) => setEmail(e.target.value)} />
           <div className="flex items-center gap-2">
             <Select value={role} onValueChange={setRole}>
-              <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="approver">Approver</SelectItem>
-                <SelectItem value="reviewer">Reviewer</SelectItem>
-                <SelectItem value="legal">Legal</SelectItem>
-                <SelectItem value="signer">Signer</SelectItem>
-                <SelectItem value="cc">CC</SelectItem>
+                <SelectItem value="editor_approver">Editor / Approver</SelectItem>
+                <SelectItem value="viewer">Viewer (read-only)</SelectItem>
+                <SelectItem value="signer">Signer (post-finalization)</SelectItem>
               </SelectContent>
             </Select>
             <Button size="sm" onClick={handleAdd} disabled={!name.trim() || add.isPending} className="ml-auto">
               <Plus className="h-3.5 w-3.5 mr-1" /> Add
             </Button>
           </div>
+          <p className="text-[10px] text-muted-foreground">
+            One collaborator role keeps it simple — the audit trail tracks every action. Add Signers once the contract is finalized.
+          </p>
         </div>
       </CardContent>
     </Card>
