@@ -189,35 +189,76 @@ export const RevisionChangeCard = ({
               )}
 
               {canComment && (
-                <div className="ml-auto flex items-center gap-1">
-                  {!reviewerOpen ? (
-                    <Button size="sm" variant="ghost" className="h-8" onClick={() => setReviewerOpen(true)}>
-                      <UserPlus className="h-3.5 w-3.5 mr-1" /> Request review
-                    </Button>
-                  ) : (
-                    <div className="flex items-center gap-1">
-                      <select
-                        value={pickedReviewer}
-                        onChange={(e) => setPickedReviewer(e.target.value)}
-                        className="h-8 text-xs rounded border bg-background px-2"
-                      >
-                        <option value="">Pick reviewer…</option>
-                        {mentionables.map((m) => (
-                          <option key={m.email} value={m.email}>
-                            {(m.name || m.email)}{m.role ? ` (${m.role})` : ""}
-                          </option>
-                        ))}
-                      </select>
-                      <Button size="sm" disabled={!pickedReviewer || reqReview.isPending}
-                        onClick={async () => {
-                          await reqReview.mutateAsync({ revisionId: rev.id, emails: [pickedReviewer], message: note || undefined });
-                          setPickedReviewer(""); setReviewerOpen(false);
-                        }}>
-                        Send
+                <div className="ml-auto">
+                  <Popover open={reviewerOpen} onOpenChange={setReviewerOpen}>
+                    <PopoverTrigger asChild>
+                      <Button size="sm" variant="ghost" className="h-8">
+                        <UserPlus className="h-3.5 w-3.5 mr-1" />
+                        Tag approvers
+                        {pickedReviewers.length > 0 && (
+                          <Badge variant="secondary" className="ml-1 h-4 text-[10px]">{pickedReviewers.length}</Badge>
+                        )}
                       </Button>
-                      <Button size="sm" variant="ghost" onClick={() => setReviewerOpen(false)}>Cancel</Button>
-                    </div>
-                  )}
+                    </PopoverTrigger>
+                    <PopoverContent align="end" className="w-72 p-0">
+                      <div className="p-2 border-b">
+                        <p className="text-xs font-medium flex items-center gap-1">
+                          <ShieldCheck className="h-3 w-3" /> Tag collaborators to approve
+                        </p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          Only Owner / Approver / Legal can sign off changes.
+                        </p>
+                      </div>
+                      <div className="max-h-64 overflow-y-auto p-1">
+                        {eligibleReviewers.length === 0 ? (
+                          <p className="text-xs text-muted-foreground p-3 text-center">
+                            No collaborators have approver permissions yet.
+                          </p>
+                        ) : (
+                          eligibleReviewers.map((m) => {
+                            const checked = pickedReviewers.includes(m.email);
+                            const already = requested.includes(m.email);
+                            return (
+                              <label
+                                key={m.email}
+                                className={`flex items-center gap-2 px-2 py-1.5 rounded text-xs cursor-pointer hover:bg-muted/60 ${already ? "opacity-60" : ""}`}
+                              >
+                                <Checkbox
+                                  checked={checked}
+                                  disabled={already}
+                                  onCheckedChange={() => toggle(m.email)}
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <p className="truncate">{m.name || m.email}</p>
+                                  <p className="text-[10px] text-muted-foreground truncate">{m.email}</p>
+                                </div>
+                                {m.role && (
+                                  <Badge variant="outline" className="text-[9px] h-4 capitalize">{m.role}</Badge>
+                                )}
+                                {already && <Badge variant="secondary" className="text-[9px] h-4">Tagged</Badge>}
+                              </label>
+                            );
+                          })
+                        )}
+                      </div>
+                      <div className="p-2 border-t flex items-center justify-between gap-2">
+                        <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setPickedReviewers([]); setReviewerOpen(false); }}>
+                          Cancel
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="h-7 text-xs"
+                          disabled={!pickedReviewers.length || reqReview.isPending}
+                          onClick={async () => {
+                            await reqReview.mutateAsync({ revisionId: rev.id, emails: pickedReviewers, message: note || undefined });
+                            setPickedReviewers([]); setReviewerOpen(false);
+                          }}
+                        >
+                          Tag {pickedReviewers.length || ""} for approval
+                        </Button>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 </div>
               )}
             </TooltipProvider>
