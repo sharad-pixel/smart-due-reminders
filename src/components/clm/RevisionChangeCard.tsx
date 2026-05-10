@@ -66,7 +66,15 @@ export const RevisionChangeCard = ({
   const canRevert = canRevertRevision(rev, myRole, myUserId) && !reverted;
   const canComment = canCommentOnRevisions(myRole);
 
+  const eligibleReviewers = useMemo(
+    () => mentionables.filter((m) => APPROVER_ROLES.has((m.role ?? "").toLowerCase())),
+    [mentionables],
+  );
   const requested: string[] = rev.requested_reviewers ?? [];
+  const toggle = (email: string) =>
+    setPickedReviewers((prev) =>
+      prev.includes(email) ? prev.filter((e) => e !== email) : [...prev, email],
+    );
 
   return (
     <div className={`rounded border ${sealed ? "bg-emerald-50/40 border-emerald-200" : "bg-background"}`}>
