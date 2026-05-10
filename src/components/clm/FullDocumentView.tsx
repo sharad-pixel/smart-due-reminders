@@ -7,13 +7,14 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
-import { Clock, CheckCircle2, MessageSquare, History, Pencil, GitBranch, X, User, StickyNote, Loader2, FileEdit } from "lucide-react";
+import { Clock, CheckCircle2, MessageSquare, History, Pencil, GitBranch, X, User, StickyNote, Loader2, FileEdit, ShieldCheck, UserPlus } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
+import { Checkbox } from "@/components/ui/checkbox";
 import { InlineDiff } from "./InlineDiff";
-import { useInstanceRevisions, useAddSectionComment } from "@/hooks/useClmInstance";
+import { useInstanceRevisions, useAddSectionComment, useRequestRevisionReview } from "@/hooks/useClmInstance";
 import { SectionEditDialog } from "./SectionEditDialog";
 import { SectionVersionHistoryDialog } from "./SectionVersionHistoryDialog";
-import { canCommentOnRevisions } from "@/lib/clmRoles";
+import { canCommentOnRevisions, normalizeRole } from "@/lib/clmRoles";
 import { MentionTextarea, renderMentionedBody, type MentionPerson } from "./MentionTextarea";
 
 interface Props {
@@ -35,11 +36,28 @@ export const FullDocumentView = ({
 }: Props) => {
   const { data: revisions = [] } = useInstanceRevisions(instanceId ?? "");
   const addComment = useAddSectionComment(instanceId ?? "");
+  const reqReview = useRequestRevisionReview(instanceId ?? "");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [flashId, setFlashId] = useState<string | null>(null);
   const [noteOpenFor, setNoteOpenFor] = useState<string | null>(null);
   const [noteText, setNoteText] = useState("");
+  const [approverOpenFor, setApproverOpenFor] = useState<string | null>(null);
+  const [pickedApprovers, setPickedApprovers] = useState<string[]>([]);
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
+
+  // Collaborators eligible to approve (Owner / Editor-Approver)
+  const eligibleApprovers = useMemo(() => {
+    const all: { email: string; name?: string | null; role?: string | null }[] = [];
+    contacts.forEach((c: any) => { if (c.email) all.push({ email: c.email, name: c.name ?? c.full_name, role: c.role }); });
+    externalAccess.forEach((a: any) => {
+      if (a.revoked_at || !a.email) return;
+      all.push({ email: a.email, name: a.name ?? a.full_name, role: a.role });
+    });
+    return all.filter((m) => {
+      const r = normalizeRole(m.role);
+      return r === "owner" || r === "editor_approver";
+    });
+  }, [contacts, externalAccess]);
 
   const trackedBySection = useMemo(() => {
     const m = new Map<string, any[]>();
