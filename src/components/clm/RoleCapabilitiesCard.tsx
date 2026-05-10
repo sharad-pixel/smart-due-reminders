@@ -1,9 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Check, X, ShieldCheck } from "lucide-react";
-import { CLM_ROLE_META, type ClmRole } from "@/lib/clmRoles";
+import { CLM_ROLE_META, normalizeRole, type ClmRole } from "@/lib/clmRoles";
 
-type Cap = "view" | "comment" | "edit" | "submit" | "approve" | "revert" | "tagReviewers" | "manageAccess" | "sign";
+type Cap = "view" | "comment" | "edit" | "submit" | "approve" | "revert" | "tagApprovers" | "manageAccess" | "sign";
 
 const CAP_LABELS: Record<Cap, string> = {
   view: "View document",
@@ -12,31 +12,27 @@ const CAP_LABELS: Record<Cap, string> = {
   submit: "Submit for approval",
   revert: "Revert pending / own drafts",
   approve: "Approve / reject changes",
-  tagReviewers: "Tag reviewers on a change",
+  tagApprovers: "Tag collaborators for approval",
   manageAccess: "Add / remove collaborators",
   sign: "Sign final document",
 };
 
 const MATRIX: Record<ClmRole, Partial<Record<Cap, boolean>>> = {
-  owner:    { view: true, comment: true, edit: true, submit: true, revert: true, approve: true, tagReviewers: true, manageAccess: true, sign: true },
-  legal:    { view: true, comment: true, edit: true, submit: true, revert: true, approve: true, tagReviewers: true, manageAccess: false, sign: false },
-  approver: { view: true, comment: true, edit: true, submit: true, revert: true, approve: true, tagReviewers: true, manageAccess: false, sign: false },
-  editor:   { view: true, comment: true, edit: true, submit: true, revert: true, approve: false, tagReviewers: true, manageAccess: false, sign: false },
-  reviewer: { view: true, comment: true, edit: false, submit: false, revert: false, approve: false, tagReviewers: true, manageAccess: false, sign: false },
-  signer:   { view: true, comment: true, edit: false, submit: false, revert: false, approve: false, tagReviewers: false, manageAccess: false, sign: true },
-  cc:       { view: true, comment: true, edit: false, submit: false, revert: false, approve: false, tagReviewers: false, manageAccess: false, sign: false },
-  viewer:   { view: true, comment: false, edit: false, submit: false, revert: false, approve: false, tagReviewers: false, manageAccess: false, sign: false },
+  owner:           { view: true, comment: true,  edit: true,  submit: true,  revert: true,  approve: true,  tagApprovers: true,  manageAccess: true,  sign: true },
+  editor_approver: { view: true, comment: true,  edit: true,  submit: true,  revert: true,  approve: true,  tagApprovers: true,  manageAccess: false, sign: false },
+  signer:          { view: true, comment: true,  edit: false, submit: false, revert: false, approve: false, tagApprovers: false, manageAccess: false, sign: true },
+  viewer:          { view: true, comment: false, edit: false, submit: false, revert: false, approve: false, tagApprovers: false, manageAccess: false, sign: false },
 };
 
-const ROLE_ORDER: ClmRole[] = ["owner", "legal", "approver", "editor", "reviewer", "signer", "cc", "viewer"];
-const CAP_ORDER: Cap[] = ["view", "comment", "edit", "submit", "revert", "approve", "tagReviewers", "manageAccess", "sign"];
+const ROLE_ORDER: ClmRole[] = ["owner", "editor_approver", "signer", "viewer"];
+const CAP_ORDER: Cap[] = ["view", "comment", "edit", "submit", "revert", "approve", "tagApprovers", "manageAccess", "sign"];
 
 interface Props {
   myRole?: string | null;
 }
 
 export const RoleCapabilitiesCard = ({ myRole }: Props) => {
-  const me = (myRole ?? "viewer").toLowerCase() as ClmRole;
+  const me = normalizeRole(myRole);
   return (
     <Card>
       <CardHeader>
@@ -44,7 +40,8 @@ export const RoleCapabilitiesCard = ({ myRole }: Props) => {
           <ShieldCheck className="h-4 w-4" /> Role Permissions
         </CardTitle>
         <CardDescription>
-          Who can do what on this contract workspace. Your role:{" "}
+          A single collaborator role keeps governance simple — the audit trail captures who did what.
+          Your role:{" "}
           <Badge variant="outline" className={`${CLM_ROLE_META[me]?.tone ?? ""} text-[10px] h-4 ml-0.5`}>
             {CLM_ROLE_META[me]?.label ?? "Viewer"}
           </Badge>
@@ -57,7 +54,7 @@ export const RoleCapabilitiesCard = ({ myRole }: Props) => {
               <th className="font-medium py-1.5 pr-2">Capability</th>
               {ROLE_ORDER.map((r) => (
                 <th key={r} className="font-medium px-1.5 py-1.5 text-center">
-                  <Badge variant="outline" className={`${CLM_ROLE_META[r].tone} text-[9px] h-4 capitalize`}>
+                  <Badge variant="outline" className={`${CLM_ROLE_META[r].tone} text-[9px] h-4`}>
                     {CLM_ROLE_META[r].label}
                   </Badge>
                 </th>
@@ -86,8 +83,8 @@ export const RoleCapabilitiesCard = ({ myRole }: Props) => {
           </tbody>
         </table>
         <p className="text-[10px] text-muted-foreground mt-2">
-          Editor drafts auto-save and apply immediately, but only Approver, Legal, or Owner can sign off (Approve)
-          changes. Sealed approvals on a finalized workspace cannot be reverted.
+          Editor / Approvers can edit, tag others, and sign off on changes. Signers are added after the
+          contract is finalized to execute the agreement.
         </p>
       </CardContent>
     </Card>
