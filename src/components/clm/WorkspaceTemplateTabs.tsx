@@ -3,10 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { FileText, Plus, X, Users, Loader2, GitBranch, Rows3, FileText as FileIcon } from "lucide-react";
+import { FileText, Plus, X, Users, Loader2, GitBranch } from "lucide-react";
 import { TemplateCollaboratorsDialog } from "./TemplateCollaboratorsDialog";
 import { AddTemplateToWorkspaceDialog } from "./AddTemplateToWorkspaceDialog";
-import { SectionsList } from "./SectionsList";
 import { FullDocumentView } from "./FullDocumentView";
 import { useInstanceRevisions, useRemoveTemplateFromInstance } from "@/hooks/useClmInstance";
 
@@ -36,7 +35,6 @@ export const WorkspaceTemplateTabs = ({
   const [addOpen, setAddOpen] = useState(false);
   const [collabOpenFor, setCollabOpenFor] = useState<TabItem | null>(null);
   const [confirmRemove, setConfirmRemove] = useState<TabItem | null>(null);
-  const [view, setView] = useState<"sections" | "document">("sections");
   const remove = useRemoveTemplateFromInstance(instanceId);
   const { data: revisions = [] } = useInstanceRevisions(instanceId);
 
@@ -146,24 +144,6 @@ export const WorkspaceTemplateTabs = ({
             {" "}· version {tabStats(activeTab.templateId, activeTab.isPrimary).version}
           </span>
           <div className="ml-auto flex items-center gap-1">
-            <div className="inline-flex rounded-md border bg-muted/30 p-0.5">
-              <Button
-                size="sm"
-                variant={view === "sections" ? "secondary" : "ghost"}
-                className="h-7 px-2 text-xs"
-                onClick={() => setView("sections")}
-              >
-                <Rows3 className="h-3.5 w-3.5 mr-1" /> Sectional
-              </Button>
-              <Button
-                size="sm"
-                variant={view === "document" ? "secondary" : "ghost"}
-                className="h-7 px-2 text-xs"
-                onClick={() => setView("document")}
-              >
-                <FileIcon className="h-3.5 w-3.5 mr-1" /> Full document
-              </Button>
-            </div>
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -180,27 +160,17 @@ export const WorkspaceTemplateTabs = ({
       )}
 
       {activeTab && (
-        view === "sections" ? (
-          <SectionsList
-            instanceId={instanceId}
-            sections={activeSections}
-            comments={comments}
-            contacts={contacts}
-            emptyText="No sections in this template yet."
-          />
-        ) : (
-          <FullDocumentView
-            instanceId={instanceId}
-            sections={activeSections}
-            title={activeTab.templateName}
-            description="Click a section to reveal its action menu (edit, versions, add note). Pending changes appear inline as redlines. Use the top track-changes panel to accept, counter, or reject."
-            contacts={contacts}
-            externalAccess={externalAccess}
-            comments={comments}
-            canEdit
-            myRole={myRole}
-          />
-        )
+        <FullDocumentView
+          instanceId={instanceId}
+          sections={activeSections}
+          title={activeTab.templateName}
+          description="Click any section to edit, tag an Editor / Approver, view versions, or leave a note. Pending changes appear inline as redlines."
+          contacts={contacts}
+          externalAccess={externalAccess}
+          comments={comments}
+          canEdit
+          myRole={myRole}
+        />
       )}
 
       <AddTemplateToWorkspaceDialog
