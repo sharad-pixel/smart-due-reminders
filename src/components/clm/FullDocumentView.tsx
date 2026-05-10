@@ -191,6 +191,14 @@ export const FullDocumentView = ({
                 const sectionComments = commentsBySection.get(s.section_key) ?? [];
                 const isSelected = selectedId === s.id;
                 const isFlashing = flashId === s.id;
+                // Approvers tagged on any pending/draft revision in this section
+                const assignedApprovers = Array.from(new Set(
+                  tracked.flatMap((r: any) => (r.requested_reviewers ?? []) as string[])
+                ));
+                const approverDetails = assignedApprovers.map((email) => {
+                  const m = eligibleApprovers.find((e) => e.email === email);
+                  return { email, name: m?.name ?? email };
+                });
 
                 return (
                   <section
