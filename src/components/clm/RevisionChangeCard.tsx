@@ -18,10 +18,8 @@ import {
   useRevisionComments,
 } from "@/hooks/useClmInstance";
 import {
-  canApproveRevisions, canMergeRevisions, canRevertRevision, canCommentOnRevisions,
+  canApproveRevisions, canMergeRevisions, canRevertRevision, canCommentOnRevisions, normalizeRole,
 } from "@/lib/clmRoles";
-
-const APPROVER_ROLES = new Set(["owner", "approver", "legal"]);
 
 
 interface Mentionable { email: string; name?: string | null; role?: string | null }
@@ -67,7 +65,10 @@ export const RevisionChangeCard = ({
   const canComment = canCommentOnRevisions(myRole);
 
   const eligibleReviewers = useMemo(
-    () => mentionables.filter((m) => APPROVER_ROLES.has((m.role ?? "").toLowerCase())),
+    () => mentionables.filter((m) => {
+      const r = normalizeRole(m.role);
+      return r === "owner" || r === "editor_approver";
+    }),
     [mentionables],
   );
   const requested: string[] = rev.requested_reviewers ?? [];

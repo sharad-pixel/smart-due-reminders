@@ -151,7 +151,7 @@ const MemberRow = ({ member, onRemove, onRoleChange }: { member: Member; onRemov
   const Icon = meta.icon;
   const initial = (member.name || member.email || "?").trim().charAt(0).toUpperCase();
   const enabledCaps = (Object.keys(meta.caps) as (keyof ClmCapabilities)[]).filter((k) => meta.caps[k] && k !== "view");
-  const roleOptions = ["editor", "approver", "reviewer", "legal", "signer", "cc", "viewer"];
+  const roleOptions = ["editor_approver", "signer", "viewer"];
 
   return (
     <div className="rounded border p-2 hover:bg-muted/30 transition-colors">
@@ -163,14 +163,16 @@ const MemberRow = ({ member, onRemove, onRoleChange }: { member: Member; onRemov
           <div className="flex items-center gap-2 flex-wrap">
             <p className="text-sm font-medium truncate">{member.name}</p>
             {onRoleChange ? (
-              <Select value={(member.role || "reviewer").toLowerCase()} onValueChange={onRoleChange}>
-                <SelectTrigger className={`h-5 px-1.5 text-[10px] capitalize w-auto gap-1 ${meta.tone}`}>
+              <Select value={(member.role || "editor_approver").toLowerCase()} onValueChange={onRoleChange}>
+                <SelectTrigger className={`h-5 px-1.5 text-[10px] w-auto gap-1 ${meta.tone}`}>
                   <Icon className="h-2.5 w-2.5" />
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {roleOptions.map((r) => (
-                    <SelectItem key={r} value={r} className="text-xs capitalize">{r}</SelectItem>
+                    <SelectItem key={r} value={r} className="text-xs">
+                      {r === "editor_approver" ? "Editor / Approver" : r.charAt(0).toUpperCase() + r.slice(1)}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>

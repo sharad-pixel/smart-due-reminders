@@ -22,7 +22,7 @@ export const ExternalPortalAccessPanel = ({ instanceId }: Props) => {
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
-  const [role, setRole] = useState("reviewer");
+  const [role, setRole] = useState("editor_approver");
   const [duration, setDuration] = useState("30d"); // 1h | 12h | 24h (session) | 7d | 14d | 30d | 60d | 90d
   const [busy, setBusy] = useState(false);
 
@@ -55,7 +55,7 @@ export const ExternalPortalAccessPanel = ({ instanceId }: Props) => {
     setBusy(false);
     if (error) return toast.error(error.message);
     toast.success(`Secure portal link emailed to ${t}`);
-    setEmail(""); setName(""); setRole("reviewer"); setDuration("30d"); setOpen(false);
+    setEmail(""); setName(""); setRole("editor_approver"); setDuration("30d"); setOpen(false);
     refresh();
   };
 
@@ -166,11 +166,9 @@ export const ExternalPortalAccessPanel = ({ instanceId }: Props) => {
                 <Select value={role} onValueChange={setRole}>
                   <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="viewer">Viewer (read only)</SelectItem>
-                    <SelectItem value="reviewer">Reviewer (comment)</SelectItem>
-                    <SelectItem value="editor">Editor (can edit)</SelectItem>
-                    <SelectItem value="approver">Approver (sign off)</SelectItem>
-                    <SelectItem value="signer">Signer</SelectItem>
+                    <SelectItem value="editor_approver">Editor / Approver</SelectItem>
+                    <SelectItem value="viewer">Viewer (read-only)</SelectItem>
+                    <SelectItem value="signer">Signer (after finalization)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

@@ -1,14 +1,14 @@
-import { Crown, Pencil, MessageSquare, CheckCircle2, PenLine, Eye, Scale, Mail } from "lucide-react";
+import { Crown, ShieldCheck, PenLine, Eye } from "lucide-react";
 
-export type ClmRole =
-  | "owner"
-  | "editor"
-  | "approver"
-  | "reviewer"
-  | "signer"
-  | "legal"
-  | "cc"
-  | "viewer";
+// Simplified CLM role matrix:
+// - owner            → full control (workspace owner / creator)
+// - editor_approver  → can edit, comment, approve, tag others (single collaborator role)
+// - signer           → added AFTER finalization to execute the contract
+// - viewer           → read-only
+//
+// Legacy values (editor / approver / reviewer / legal / cc) are mapped to
+// "editor_approver" so existing data keeps working without a migration.
+export type ClmRole = "owner" | "editor_approver" | "signer" | "viewer";
 
 export interface ClmCapabilities {
   edit: boolean;
@@ -24,28 +24,47 @@ export const CLM_ROLE_META: Record<ClmRole, {
   caps: ClmCapabilities;
   tone: string;
 }> = {
-  owner:    { label: "Owner",    icon: Crown,         tone: "bg-amber-500/15 text-amber-700 border-amber-500/30",
-              caps: { edit: true,  comment: true,  approve: true,  sign: true,  view: true } },
-  editor:   { label: "Editor",   icon: Pencil,        tone: "bg-sky-500/15 text-sky-700 border-sky-500/30",
-              caps: { edit: true,  comment: true,  approve: false, sign: false, view: true } },
-  approver: { label: "Approver", icon: CheckCircle2,  tone: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30",
-              caps: { edit: false, comment: true,  approve: true,  sign: false, view: true } },
-  reviewer: { label: "Reviewer", icon: MessageSquare, tone: "bg-violet-500/15 text-violet-700 border-violet-500/30",
-              caps: { edit: false, comment: true,  approve: false, sign: false, view: true } },
-  signer:   { label: "Signer",   icon: PenLine,       tone: "bg-indigo-500/15 text-indigo-700 border-indigo-500/30",
-              caps: { edit: false, comment: true,  approve: false, sign: true,  view: true } },
-  legal:    { label: "Legal",    icon: Scale,         tone: "bg-rose-500/15 text-rose-700 border-rose-500/30",
-              caps: { edit: false, comment: true,  approve: true,  sign: false, view: true } },
-  cc:       { label: "CC",       icon: Mail,          tone: "bg-slate-500/15 text-slate-600 border-slate-500/30",
-              caps: { edit: false, comment: true,  approve: false, sign: false, view: true } },
-  viewer:   { label: "Viewer",   icon: Eye,           tone: "bg-slate-500/10 text-slate-600 border-slate-500/30",
-              caps: { edit: false, comment: false, approve: false, sign: false, view: true } },
+  owner: {
+    label: "Owner",
+    icon: Crown,
+    tone: "bg-amber-500/15 text-amber-700 border-amber-500/30",
+    caps: { edit: true, comment: true, approve: true, sign: true, view: true },
+  },
+  editor_approver: {
+    label: "Editor / Approver",
+    icon: ShieldCheck,
+    tone: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30",
+    caps: { edit: true, comment: true, approve: true, sign: false, view: true },
+  },
+  signer: {
+    label: "Signer",
+    icon: PenLine,
+    tone: "bg-indigo-500/15 text-indigo-700 border-indigo-500/30",
+    caps: { edit: false, comment: true, approve: false, sign: true, view: true },
+  },
+  viewer: {
+    label: "Viewer",
+    icon: Eye,
+    tone: "bg-slate-500/10 text-slate-600 border-slate-500/30",
+    caps: { edit: false, comment: false, approve: false, sign: false, view: true },
+  },
 };
 
-export const getRoleMeta = (role?: string | null) => {
-  const key = (role ?? "viewer").toLowerCase() as ClmRole;
-  return CLM_ROLE_META[key] ?? CLM_ROLE_META.viewer;
+// Map any legacy or raw role string → canonical ClmRole
+export const normalizeRole = (role?: string | null): ClmRole => {
+  const k = (role ?? "viewer").toLowerCase().trim();
+  if (k === "owner") return "owner";
+  if (k === "signer") return "signer";
+  if (k === "viewer") return "viewer";
+  // Everything that used to imply edit/comment/approve collapses into the
+  // single collaborator role.
+  if (["editor_approver", "editor", "approver", "reviewer", "legal", "cc"].includes(k)) {
+    return "editor_approver";
+  }
+  return "viewer";
 };
+
+export const getRoleMeta = (role?: string | null) => CLM_ROLE_META[normalizeRole(role)];
 
 export const CAPABILITY_LABEL: Record<keyof ClmCapabilities, { label: string; short: string }> = {
   edit:    { label: "Can edit",    short: "Edit" },
@@ -56,23 +75,17 @@ export const CAPABILITY_LABEL: Record<keyof ClmCapabilities, { label: string; sh
 };
 
 // ─────────────────────────────────────────────────────────────────────────
-// Per-revision capabilities — separates "merge" (apply text) from "approve"
-// (sign off legally). Editors can merge; only Approver/Legal/Owner can approve.
-// Anyone with merge or approve can revert any unsealed change. Authors can
-// always revert their own pending drafts.
+// Capability helpers — drive UI gating across the workspace.
+// Editor/Approver merges the old "merge" + "approve" capabilities into one.
 // ─────────────────────────────────────────────────────────────────────────
+export const canApproveRevisions = (role?: string | null) => {
+  const r = normalizeRole(role);
+  return r === "owner" || r === "editor_approver";
+};
 
-const APPROVER_ROLES: ClmRole[] = ["owner", "approver", "legal"];
-const EDITOR_ROLES: ClmRole[]   = ["owner", "editor", "approver", "legal"];
+export const canMergeRevisions = (role?: string | null) => canApproveRevisions(role);
 
-export const canApproveRevisions  = (role?: string | null) =>
-  APPROVER_ROLES.includes(((role ?? "viewer").toLowerCase() as ClmRole));
-
-export const canMergeRevisions    = (role?: string | null) =>
-  EDITOR_ROLES.includes(((role ?? "viewer").toLowerCase() as ClmRole));
-
-export const canCommentOnRevisions = (role?: string | null) =>
-  getRoleMeta(role).caps.comment;
+export const canCommentOnRevisions = (role?: string | null) => getRoleMeta(role).caps.comment;
 
 export interface RevisionForCaps {
   edited_by?: string | null;
@@ -88,7 +101,15 @@ export const canRevertRevision = (
   if (!rev) return false;
   if (rev.sealed_at) return false;
   if (canApproveRevisions(role)) return true;
-  if (canMergeRevisions(role)) return true;
   if (myUserId && rev.edited_by === myUserId && rev.approval_status !== "approved") return true;
   return false;
 };
+
+// Selectable role options surfaced in collaborator pickers.
+// Signers are intentionally collected only after a contract is finalized.
+export const COLLABORATOR_ROLE_OPTIONS: { value: string; label: string; description: string }[] = [
+  { value: "editor_approver", label: "Editor / Approver", description: "Edit, comment, tag others, and approve changes" },
+  { value: "viewer",          label: "Viewer",            description: "Read-only access — no edits or comments" },
+];
+
+export const SIGNER_ROLE_OPTION = { value: "signer", label: "Signer", description: "Executes the final contract" };
