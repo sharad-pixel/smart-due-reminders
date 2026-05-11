@@ -1,14 +1,78 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Send, Loader2, Sparkles, Scale, MessageSquare, RotateCcw } from "lucide-react";
+import { Send, Loader2, Sparkles, Scale, MessageSquare, RotateCcw, ArrowUpRight, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import kurtAvatar from "@/assets/personas/kurt.png";
 import { toast } from "sonner";
 
 interface Msg { role: "user" | "assistant"; content: string }
+
+// Render a string with markdown-style links, **bold**, and friendly pills
+// for internal contract workspace links.
+function renderRich(text: string) {
+  // Strip duplicated "[/path](url)" → keep only the markdown link form
+  const cleaned = text.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, (_m, label, url) => `[[LINK:${url}|${label}]]`);
+
+  // Tokenize on our placeholder, **bold**, and newlines
+  const parts = cleaned.split(/(\[\[LINK:[^\]]+\]\]|\*\*[^*]+\*\*|\n)/g);
+
+  const toInternal = (url: string): string | null => {
+    try {
+      const u = new URL(url);
+      const isInternal =
+        u.hostname.endsWith("recouply.com") ||
+        u.hostname.endsWith("recouply.ai") ||
+        u.hostname.endsWith("lovable.app") ||
+        u.hostname === window.location.hostname;
+      if (isInternal && u.pathname.startsWith("/")) return u.pathname + u.search;
+      return null;
+    } catch { return null; }
+  };
+
+  const labelFor = (rawLabel: string, url: string) => {
+    // If the label is itself a path (e.g. /contracts/instances/UUID), make it friendly
+    const m = url.match(/\/contracts\/instances\/([0-9a-f-]{8,})/i);
+    if (m) return "Open workspace";
+    if (/^https?:\/\//.test(rawLabel) || rawLabel.startsWith("/")) return "Open link";
+    return rawLabel;
+  };
+
+  return parts.map((part, i) => {
+    if (!part) return null;
+    if (part === "\n") return <br key={i} />;
+    const linkMatch = part.match(/^\[\[LINK:([^|]+)\|(.+)\]\]$/);
+    if (linkMatch) {
+      const url = linkMatch[1];
+      const label = labelFor(linkMatch[2], url);
+      const internal = toInternal(url);
+      const cls =
+        "inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 text-xs font-medium align-baseline mx-0.5 no-underline";
+      const isWorkspace = /\/contracts\/instances\//.test(url);
+      const Icon = isWorkspace ? FileText : ArrowUpRight;
+      if (internal) {
+        return (
+          <Link key={i} to={internal} className={cls}>
+            <Icon className="h-3 w-3" />{label}
+          </Link>
+        );
+      }
+      return (
+        <a key={i} href={url} target="_blank" rel="noopener noreferrer" className={cls}>
+          <Icon className="h-3 w-3" />{label}
+        </a>
+      );
+    }
+    const boldMatch = part.match(/^\*\*(.+)\*\*$/);
+    if (boldMatch) return <strong key={i} className="font-semibold">{boldMatch[1]}</strong>;
+    return <span key={i}>{part}</span>;
+  });
+}
+
+
 
 const SUGGESTIONS = [
   "What needs my attention today?",
