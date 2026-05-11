@@ -101,10 +101,9 @@ Deno.serve(async (req) => {
       let createdNew = false;
       let resolvedNewDebtor = newDebtor;
       let extractedCustomer: any = {};
+      let matchVia: string | null = null;
 
-      // Auto-fallback: if no debtor selected and no manual newDebtor payload,
-      // build one from the extracted customer fields so an account is always created.
-      if (!finalDebtorId && (!resolvedNewDebtor || !resolvedNewDebtor.company_name)) {
+      if (!finalDebtorId) {
         const { data: extraction } = await supabase
           .from("live_contract_extractions")
           .select("ai_response")
@@ -113,6 +112,11 @@ Deno.serve(async (req) => {
           .limit(1)
           .maybeSingle();
         extractedCustomer = (extraction?.ai_response as any)?.customer || {};
+      }
+
+      // Auto-fallback: if no debtor selected and no manual newDebtor payload,
+      // build one from the extracted customer fields so an account is always created.
+      if (!finalDebtorId && (!resolvedNewDebtor || !resolvedNewDebtor.company_name)) {
         const company = extractedCustomer.legal_name || extractedCustomer.dba_name || extractedCustomer.billing_entity || imp.contract_name || imp.file_name;
         if (company) {
           const emailGuess = extractedCustomer.billing_contact || extractedCustomer.primary_contact ||
@@ -139,6 +143,7 @@ Deno.serve(async (req) => {
           .maybeSingle();
         if (savedMatch?.candidate_debtor_id) {
           finalDebtorId = savedMatch.candidate_debtor_id;
+          matchVia = "saved_match";
           await supabase.from("live_contract_audit_log").insert({ account_id: imp.account_id, user_id: user.id, import_id: imp.id, event_type: "customer_matched", event_details: { debtor_id: finalDebtorId, via: "saved_match", score: savedMatch.match_score } });
         }
 
@@ -155,6 +160,7 @@ Deno.serve(async (req) => {
             .sort((a: any, b: any) => b.score - a.score)[0];
           if (best?.score >= 75) {
             finalDebtorId = best.debtor.id;
+            matchVia = "scored_match";
             await supabase.from("live_contract_audit_log").insert({ account_id: imp.account_id, user_id: user.id, import_id: imp.id, event_type: "customer_matched", event_details: { debtor_id: finalDebtorId, via: "scored_match", score: best.score } });
           }
         }
@@ -169,10 +175,11 @@ Deno.serve(async (req) => {
           .maybeSingle();
           if (exactExisting?.id) {
             finalDebtorId = exactExisting.id;
+            matchVia = "name_dedupe";
           }
         }
 
-        if (finalDebtorId) {
+        if (finalDebtorId && matchVia === "name_dedupe") {
           await supabase.from("live_contract_audit_log").insert({ account_id: imp.account_id, user_id: user.id, import_id: imp.id, event_type: "customer_matched", event_details: { debtor_id: finalDebtorId, via: "name_dedupe" } });
         } else {
           const emailValue = resolvedNewDebtor.primary_email || `noreply+${crypto.randomUUID().slice(0, 8)}@unknown.local`;
@@ -186,7 +193,7 @@ Deno.serve(async (req) => {
             address: resolvedNewDebtor.address || null,
             billing_address_line1: resolvedNewDebtor.address || null,
             reference_id: refId,
-            source_system: "live_contract",
+            source_system: "manual",
             integration_source: "recouply_manual",
           }).select("id").single();
           if (cErr) throw new Error(`Create debtor: ${cErr.message}`);
