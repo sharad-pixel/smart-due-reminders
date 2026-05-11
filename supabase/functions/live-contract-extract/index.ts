@@ -273,7 +273,7 @@ Deno.serve(async (req) => {
                 }),
               });
               if (visionRes.ok) {
-                const vd = await visionRes.json();
+                const vd = await parseJsonResponse(visionRes, "Vision OCR");
                 const visionText = vd.choices?.[0]?.message?.content || "";
                 if (visionText.length > text.length) text = visionText;
                 log("Vision OCR done", { len: text.length });
@@ -314,16 +314,18 @@ Deno.serve(async (req) => {
       }),
     });
 
-    if (!aiRes.ok) {
-      const txt = await aiRes.text();
-      await supabase.from("live_contract_imports").update({ status: "failed", error: `AI ${aiRes.status}` }).eq("id", imp.id);
-      throw new Error(`AI ${aiRes.status}: ${txt}`);
+    let aiData: any;
+    try {
+      aiData = await parseJsonResponse(aiRes, "AI extraction");
+    } catch (e) {
+      await supabase.from("live_contract_imports").update({ status: "failed", error: String(e).slice(0, 500) }).eq("id", imp.id);
+      throw e;
     }
-
-    const aiData = await aiRes.json();
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall) throw new Error("No tool call in AI response");
-    const extracted = JSON.parse(toolCall.function.arguments);
+    const extracted = typeof toolCall.function.arguments === "string"
+      ? parseJsonFromText(toolCall.function.arguments, "AI tool arguments")
+      : toolCall.function.arguments;
 
     // Persist extraction
     const { data: extractionRow } = await supabase.from("live_contract_extractions").insert({
