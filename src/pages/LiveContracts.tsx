@@ -299,18 +299,10 @@ function UploadDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o:
   const uploadOne = async (file: File) => {
     const fd = new FormData();
     fd.append("file", file);
-    const { data: { session } } = await supabase.auth.getSession();
-    const res = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/live-contract-upload`,
-      { method: "POST", headers: { Authorization: `Bearer ${session?.access_token}` }, body: fd }
-    );
-    const text = await res.text();
-    let json: any = null;
-    try { json = text ? JSON.parse(text) : null; } catch {
-      throw new Error(`Upload failed (${res.status}). Server returned a non-JSON response.`);
-    }
-    if (!res.ok) throw new Error(json?.error || `Upload failed (${res.status})`);
-    return json;
+    const { data, error } = await supabase.functions.invoke("live-contract-upload", { body: fd });
+    if (error) throw new Error(error.message || "Upload failed");
+    if (!data?.success || !data?.import?.id) throw new Error(data?.error || "Upload failed: server returned an unexpected response");
+    return data;
   };
 
   const upload = useMutation({
