@@ -31,6 +31,7 @@ import { useOnboardingCompletion } from "@/hooks/useOnboardingCompletion";
 import { Progress } from "@/components/ui/progress";
 import { AlertTriangle, ArrowRight, CheckCircle2 } from "lucide-react";
 import { IntegrationSetupModal } from "@/components/integrations/IntegrationSetupModal";
+import { ContractSummaryCard } from "@/components/dashboard/ContractSummaryCard";
 
 
 
@@ -702,6 +703,9 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Contract Summary (CLM enabled only) */}
+        <ContractSummaryCard />
 
         {/* Revenue Risk Card */}
         <Card className="bg-gradient-to-br from-amber-500/10 to-orange-500/5 border-amber-500/20">
