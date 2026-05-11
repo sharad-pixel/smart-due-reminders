@@ -180,10 +180,10 @@ export const KurtLandingHero = () => {
                 )}
                 <div className={
                   m.role === "user"
-                    ? "max-w-[80%] rounded-2xl rounded-tr-sm bg-primary text-primary-foreground px-3.5 py-2 text-sm whitespace-pre-wrap"
-                    : "max-w-[85%] text-sm leading-relaxed whitespace-pre-wrap"
+                    ? "max-w-[80%] rounded-2xl rounded-tr-sm bg-primary text-primary-foreground px-3.5 py-2 text-sm whitespace-pre-wrap break-words"
+                    : "max-w-[85%] rounded-2xl rounded-tl-sm bg-background border px-3.5 py-2 text-sm leading-relaxed break-words shadow-sm"
                 }>
-                  {m.content}
+                  {m.role === "assistant" ? renderRich(m.content) : m.content}
                 </div>
               </div>
             ))}
