@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
             billing_address_line1: resolvedNewDebtor.address || null,
             reference_id: refId,
             source_system: "live_contract",
-            integration_source: "live_contract",
+            integration_source: "recouply_manual",
           }).select("id").single();
           if (cErr) throw new Error(`Create debtor: ${cErr.message}`);
           finalDebtorId = created.id;
