@@ -181,7 +181,7 @@ Deno.serve(async (req) => {
 
         if (finalDebtorId && matchVia === "name_dedupe") {
           await supabase.from("live_contract_audit_log").insert({ account_id: imp.account_id, user_id: user.id, import_id: imp.id, event_type: "customer_matched", event_details: { debtor_id: finalDebtorId, via: "name_dedupe" } });
-        } else {
+        } else if (!finalDebtorId) {
           const emailValue = resolvedNewDebtor.primary_email || `noreply+${crypto.randomUUID().slice(0, 8)}@unknown.local`;
           const refId = `LC-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
           const { data: created, error: cErr } = await supabase.from("debtors").insert({
