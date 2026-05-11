@@ -7,6 +7,39 @@ const corsHeaders = {
 
 const log = (s: string, d?: unknown) => console.log(`[LC-EXTRACT] ${s}${d ? " " + JSON.stringify(d) : ""}`);
 
+function parseJsonFromText(text: string, label: string): any {
+  const cleaned = text
+    .replace(/```json\s*/gi, "")
+    .replace(/```/g, "")
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "")
+    .trim();
+
+  if (!cleaned) throw new Error(`${label} returned an empty response`);
+
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    const start = cleaned.search(/[\[{]/);
+    if (start === -1) throw new Error(`${label} returned non-JSON content: ${cleaned.slice(0, 180)}`);
+
+    const end = Math.max(cleaned.lastIndexOf("}"), cleaned.lastIndexOf("]"));
+    if (end <= start) throw new Error(`${label} returned malformed JSON: ${cleaned.slice(0, 180)}`);
+
+    const candidate = cleaned.slice(start, end + 1).replace(/,\s*([}\]])/g, "$1");
+    try {
+      return JSON.parse(candidate);
+    } catch (e) {
+      throw new Error(`${label} returned invalid JSON: ${String(e)}`);
+    }
+  }
+}
+
+async function parseJsonResponse(res: Response, label: string): Promise<any> {
+  const text = await res.text();
+  if (!res.ok) throw new Error(`${label} ${res.status}: ${text.slice(0, 500)}`);
+  return parseJsonFromText(text, label);
+}
+
 async function refreshToken(supabase: any, conn: any, clientId: string, clientSecret: string) {
   const res = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
@@ -240,7 +273,7 @@ Deno.serve(async (req) => {
                 }),
               });
               if (visionRes.ok) {
-                const vd = await visionRes.json();
+                const vd = await parseJsonResponse(visionRes, "Vision OCR");
                 const visionText = vd.choices?.[0]?.message?.content || "";
                 if (visionText.length > text.length) text = visionText;
                 log("Vision OCR done", { len: text.length });
@@ -281,16 +314,18 @@ Deno.serve(async (req) => {
       }),
     });
 
-    if (!aiRes.ok) {
-      const txt = await aiRes.text();
-      await supabase.from("live_contract_imports").update({ status: "failed", error: `AI ${aiRes.status}` }).eq("id", imp.id);
-      throw new Error(`AI ${aiRes.status}: ${txt}`);
+    let aiData: any;
+    try {
+      aiData = await parseJsonResponse(aiRes, "AI extraction");
+    } catch (e) {
+      await supabase.from("live_contract_imports").update({ status: "failed", error: String(e).slice(0, 500) }).eq("id", imp.id);
+      throw e;
     }
-
-    const aiData = await aiRes.json();
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall) throw new Error("No tool call in AI response");
-    const extracted = JSON.parse(toolCall.function.arguments);
+    const extracted = typeof toolCall.function.arguments === "string"
+      ? parseJsonFromText(toolCall.function.arguments, "AI tool arguments")
+      : toolCall.function.arguments;
 
     // Persist extraction
     const { data: extractionRow } = await supabase.from("live_contract_extractions").insert({
