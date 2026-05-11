@@ -472,9 +472,11 @@ function ReviewDrawer({ importId, onClose }: { importId: string | null; onClose:
                   </div>
                 )}
                 <div className="border-t pt-3 space-y-2">
-                  <p className="text-xs font-medium">Or create new customer</p>
+                  <p className="text-xs font-medium">Or create new customer {data.matches.length === 0 && <span className="text-muted-foreground">(auto-filled from contract)</span>}</p>
                   <Input placeholder="Company name" value={newDebtor.company_name} onChange={(e) => { setNewDebtor({ ...newDebtor, company_name: e.target.value }); setSelectedDebtorId(null); }} />
                   <Input placeholder="Primary email" value={newDebtor.primary_email} onChange={(e) => setNewDebtor({ ...newDebtor, primary_email: e.target.value })} />
+                  <Input placeholder="Phone" value={newDebtor.phone} onChange={(e) => setNewDebtor({ ...newDebtor, phone: e.target.value })} />
+                  <Input placeholder="Address" value={newDebtor.address} onChange={(e) => setNewDebtor({ ...newDebtor, address: e.target.value })} />
                 </div>
               </CardContent>
             </Card>
