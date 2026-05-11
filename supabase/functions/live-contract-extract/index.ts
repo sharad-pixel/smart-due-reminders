@@ -2,7 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 const log = (s: string, d?: unknown) => console.log(`[LC-EXTRACT] ${s}${d ? " " + JSON.stringify(d) : ""}`);
@@ -451,18 +451,19 @@ Deno.serve(async (req) => {
     const candidates: any[] = [];
     const seen = new Set<string>();
     const addCandidates = async (q: any, score: number, reason: string) => {
-      let query = supabase.from("debtors").select("id,company_name,primary_email").eq("account_id", imp.account_id).limit(5);
+      let query = supabase.from("debtors").select("id,company_name,email").eq("user_id", imp.account_id).limit(5);
       if (q.legal) query = query.ilike("company_name", `%${q.legal}%`);
-      else if (q.email) query = query.ilike("primary_email", `%${q.email}%`);
+      else if (q.email) query = query.ilike("email", `%${q.email}%`);
       else return;
-      const { data } = await query;
+      const { data, error } = await query;
+      if (error) throw new Error(`Customer match lookup failed: ${error.message}`);
       for (const d of data || []) {
         if (seen.has(d.id)) continue;
         seen.add(d.id);
         candidates.push({
           account_id: imp.account_id, import_id: imp.id,
           candidate_debtor_id: d.id, match_score: score,
-          match_reasons: { reason, name: d.company_name, email: d.primary_email },
+          match_reasons: { reason, name: d.company_name, email: d.email },
         });
       }
     };
