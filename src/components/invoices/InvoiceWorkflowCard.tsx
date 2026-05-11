@@ -193,7 +193,7 @@ export const InvoiceWorkflowCard = ({
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base">
             <Brain className="h-4 w-4 text-muted-foreground" />
-            Collection Intelligence
+            Revenue Intelligence
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -211,7 +211,7 @@ export const InvoiceWorkflowCard = ({
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-base">
             <Brain className="h-4 w-4" />
-            Collection Intelligence
+            Revenue Intelligence
           </CardTitle>
           {accountOutreachEnabled && (
             <Badge variant="secondary" className="gap-1 text-xs bg-primary/10 text-primary border-primary/20">

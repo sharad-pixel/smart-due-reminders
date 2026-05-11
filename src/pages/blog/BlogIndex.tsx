@@ -36,7 +36,7 @@ const BlogIndex = () => {
               The RecouplyAI Inc. Blog
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
-              Insights on Collection Intelligence, accounts receivable automation, and building durable growth.
+              Insights on Revenue Intelligence, accounts receivable automation, and building durable growth.
             </p>
           </header>
 

@@ -120,7 +120,7 @@ serve(async (req) => {
           const metrics = await fetchMetrics(supabase, debtor.id, fullDebtor);
 
           // Generate AI intelligence report
-          const systemPrompt = `You are a Collection Intelligence analyst for RecouplyAI. Analyze account data and provide actionable intelligence reports.
+          const systemPrompt = `You are a Revenue Intelligence analyst for RecouplyAI. Analyze account data and provide actionable intelligence reports.
 
 Your reports should be:
 - Concise and actionable
@@ -138,7 +138,7 @@ Structure your response as JSON with these fields:
 - communicationSentiment: assessment of customer engagement/sentiment
 - collectionStrategy: recommended approach for this account`;
 
-          const userPrompt = `Generate a Collection Intelligence Report for this account:\n\n${JSON.stringify(metrics, null, 2)}\n\nProvide your analysis as a JSON object.`;
+          const userPrompt = `Generate a Revenue Intelligence Report for this account:\n\n${JSON.stringify(metrics, null, 2)}\n\nProvide your analysis as a JSON object.`;
 
           const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
             method: "POST",

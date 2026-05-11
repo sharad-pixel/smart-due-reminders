@@ -58,7 +58,7 @@ const SMB = () => {
             <div>
               <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-6">
                 <Brain className="h-4 w-4" />
-                AR & Collection Intelligence for SMBs
+                AR & Revenue Intelligence for SMBs
               </div>
               <h1 className="text-4xl md:text-5xl font-bold mb-6">
                 AI-Assisted Collections With Human Oversight

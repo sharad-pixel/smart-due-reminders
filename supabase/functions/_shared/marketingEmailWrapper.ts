@@ -11,7 +11,7 @@ const FONT_STACK = `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 const BRAND = {
   name: "Recouply.ai",
   legalName: "RecouplyAI Inc.",
-  tagline: "Collections & Risk Intelligence Platform",
+  tagline: "Revenue Intelligence Platform",
   website: "https://recouply.ai",
   address: "Delaware, USA",
   primary: "#3b82f6",

@@ -16,7 +16,7 @@ const CollectionIntelligence = () => {
         title={PAGE_SEO.collectionIntelligence.title}
         description={PAGE_SEO.collectionIntelligence.description}
         keywords={PAGE_SEO.collectionIntelligence.keywords}
-        breadcrumbs={[{ name: 'Collection Intelligence', url: 'https://recouply.ai/collection-intelligence' }]}
+        breadcrumbs={[{ name: 'Revenue Intelligence', url: 'https://recouply.ai/collection-intelligence' }]}
       />
       {/* Hero Section */}
       <section className="py-24 px-4 bg-gradient-to-b from-primary/5 via-background to-background">
@@ -30,7 +30,7 @@ const CollectionIntelligence = () => {
           
           <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight">
             <span className="bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
-              AR & Collection Intelligence
+              AR & Revenue Intelligence
             </span>
             <br />
             <span className="text-foreground">Powered by AI</span>
@@ -107,7 +107,7 @@ const CollectionIntelligence = () => {
               </h2>
               <p className="text-lg text-muted-foreground mb-6">
                 Every inbound email is analyzed by our AI to extract intent, sentiment, and actionable items. 
-                No more manual reading through hundreds of customer responses—our Collection Intelligence does it for you.
+                No more manual reading through hundreds of customer responses—our Revenue Intelligence does it for you.
               </p>
               <ul className="space-y-4">
                 <li className="flex items-start gap-3">
@@ -377,7 +377,7 @@ const CollectionIntelligence = () => {
         </div>
       </section>
 
-      {/* Collection Intelligence Showcase */}
+      {/* Revenue Intelligence Showcase */}
       <CollectionIntelligenceShowcase />
 
       {/* AI Intelligence Report Section */}
@@ -684,7 +684,7 @@ const CollectionIntelligence = () => {
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4">
-              How Collection Intelligence Works
+              How Revenue Intelligence Works
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               A continuous loop of intelligence that improves with every interaction
@@ -748,7 +748,7 @@ const CollectionIntelligence = () => {
                   </h2>
                   <p className="text-lg text-muted-foreground mb-6">
                     Every email analyzed, every task resolved, every payment received—our AI learns from it all. 
-                    The more you use Collection Intelligence, the more effective it becomes at recovering your receivables.
+                    The more you use Revenue Intelligence, the more effective it becomes at recovering your receivables.
                   </p>
                   <ul className="space-y-3">
                     <li className="flex items-start gap-2">
@@ -768,7 +768,7 @@ const CollectionIntelligence = () => {
                 <div className="text-center">
                   <div className="inline-block p-8 bg-card rounded-3xl border shadow-xl">
                     <Brain className="w-24 h-24 text-primary mx-auto mb-6" />
-                    <p className="text-2xl font-bold mb-2">Collection Intelligence</p>
+                    <p className="text-2xl font-bold mb-2">Revenue Intelligence</p>
                     <p className="text-sm text-muted-foreground mb-4">Platform</p>
                     <div className="flex items-center justify-center gap-2 text-primary">
                       <Sparkles className="h-5 w-5" />
@@ -850,7 +850,7 @@ const CollectionIntelligence = () => {
         <div className="container mx-auto text-center max-w-3xl">
           <Brain className="w-16 h-16 mx-auto mb-6 opacity-90" />
           <h2 className="text-4xl font-bold mb-4">
-            Experience Collection Intelligence Today
+            Experience Revenue Intelligence Today
           </h2>
           <p className="text-lg mb-4 opacity-90">
             AI that reads, understands, and acts on every customer communication.

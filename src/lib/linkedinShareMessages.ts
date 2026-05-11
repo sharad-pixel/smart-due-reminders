@@ -65,7 +65,7 @@ ${HASHTAGS}`,
 
 Your invoices aren't your problem. Your follow-ups are.
 
-Recouply.ai is a Collections & Risk Intelligence Platform that sits on top of Stripe and runs the chase for you — politely, on-brand, and 24/7.
+Recouply.ai is a Revenue Intelligence Platform that sits on top of Stripe and runs the chase for you — politely, on-brand, and 24/7.
 
 Plans scale from solo founders to enterprise AR teams.
 
@@ -185,7 +185,7 @@ ${HASHTAGS}`,
   // 12 — Conversational
   (link, a) => `Genuine recommendation if you run on Stripe and hate chasing invoices 👇
 
-Recouply.ai is a Collections & Risk Intelligence Platform that does the chasing *for* you — in your tone, on schedule, with risk scoring built in. Customers pay through a clean branded portal.
+Recouply.ai is a Revenue Intelligence Platform that does the chasing *for* you — in your tone, on schedule, with risk scoring built in. Customers pay through a clean branded portal.
 
 Solo plan to enterprise. Truly set it and forget it AR.
 

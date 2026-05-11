@@ -80,7 +80,7 @@ export function CollectionIntelligenceDashboard() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Brain className="h-5 w-5 text-primary animate-pulse" />
-            Loading Collection Intelligence...
+            Loading Revenue Intelligence...
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -114,7 +114,7 @@ export function CollectionIntelligenceDashboard() {
         <div className="flex items-center justify-between flex-wrap gap-2">
           <CardTitle className="flex items-center gap-2">
             <Brain className="h-5 w-5 text-primary" />
-            Collection Intelligence Scorecards
+            Revenue Intelligence Scorecards
           </CardTitle>
           <Button 
             variant="outline" 

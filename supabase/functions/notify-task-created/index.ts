@@ -117,7 +117,7 @@ const generateTaskEmailHtml = (params: {
   return wrapEnterpriseEmail(bodyContent, {
     headerStyle: 'gradient',
     title: '🎯 New Task',
-    subtitle: 'Collections & Risk Intelligence CRM',
+    subtitle: 'Revenue Intelligence CRM',
   });
 };
 

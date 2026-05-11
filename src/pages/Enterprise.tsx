@@ -84,7 +84,7 @@ const Enterprise = () => {
   return (
     <MarketingLayout>
       <SEO
-        title="Enterprise AR Automation | High-Volume Collection Intelligence"
+        title="Enterprise AR Automation | High-Volume Revenue Intelligence"
         description="AI collection intelligence for enterprise—handle 10,000+ invoices monthly with Salesforce, NetSuite integration. Enterprise governance, audit trails, and risk scoring."
         canonical="https://recouply.ai/enterprise"
         keywords="enterprise AR automation, high volume collections, Salesforce AR integration, NetSuite collections, enterprise invoice management"
@@ -99,7 +99,7 @@ const Enterprise = () => {
                 Enterprise AR Intelligence
               </div>
               <h1 className="text-4xl md:text-5xl font-bold mb-6">
-                Enterprise Collections & Risk Intelligence Platform for High Volume
+                Enterprise Revenue Intelligence Platform for High Volume
               </h1>
               <p className="text-xl text-muted-foreground mb-8">
                 Built for enterprise companies processing thousands of invoices monthly. AI agents trained on your CRM data, CS cases, and AR history—automating high-volume accounts receivable with enterprise-grade security and governance.

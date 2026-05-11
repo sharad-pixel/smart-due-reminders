@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
       </h2>
       
       <p style="margin: 0 0 20px; color: #475569; font-size: 14px; line-height: 1.7;">
-        <strong>${referrerName}</strong>${referrerCompany ? ` from <strong>${referrerCompany}</strong>` : ''} thinks you'd love Recouply.ai — the Collections & Risk Intelligence Platform that helps businesses get paid faster with AI-powered automation.
+        <strong>${referrerName}</strong>${referrerCompany ? ` from <strong>${referrerCompany}</strong>` : ''} thinks you'd love Recouply.ai — the Revenue Intelligence Platform that helps businesses get paid faster with AI-powered automation.
       </p>
 
       <div style="background-color: ${BRAND.surfaceLight}; border: 1px solid ${BRAND.border}; border-radius: 8px; padding: 24px; margin: 24px 0;">

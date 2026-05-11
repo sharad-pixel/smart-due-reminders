@@ -24,7 +24,7 @@ export const founderAnnouncements: FounderMessage[] = [
   {
     id: "ann-collection-tips",
     category: "announcement",
-    title: "Collection Intelligence Tips from the Founder",
+    title: "Revenue Intelligence Tips from the Founder",
     body: `Quick tips from ${founderConfig.name}:\n\n1. Import your aging report to get instant risk scoring\n2. Let AI agents handle follow-ups — they never forget\n3. Review your Collection Health Score daily\n4. Use the Payment Portal link in outreach for faster payments\n\nRemember: ${founderConfig.tagline}`,
     tone: "professional",
   },

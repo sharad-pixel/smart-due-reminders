@@ -210,7 +210,7 @@ import { useState } from "react";
            "Automated outreach reduces DSO by 15-25 days",
            "24/7 collection agents never miss a payment window"
          ],
-         recommendation: "Start your free trial to unlock your full Collection Intelligence report.",
+         recommendation: "Start your free trial to unlock your full Revenue Intelligence report.",
          dsoImpact: 18
        });
      } finally {
@@ -251,7 +251,7 @@ import { useState } from "react";
               <span className="text-sm font-medium">Free Assessment</span>
             </div>
             <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4">
-              Discover Your Collection Intelligence Score
+              Discover Your Revenue Intelligence Score
             </h2>
             <p className="text-muted-foreground mb-8 text-base md:text-lg">
               Answer 5 quick questions and get personalized AI insights on how to improve your cash flow and reduce DSO.
@@ -308,7 +308,7 @@ import { useState } from "react";
                <div className="flex items-center justify-between mb-2">
                  <div className="flex items-center gap-2">
                    <Brain className="h-5 w-5 text-primary" />
-                   <span className="font-semibold text-sm">Collection Intelligence Quiz</span>
+                   <span className="font-semibold text-sm">Revenue Intelligence Quiz</span>
                  </div>
                  <button 
                    onClick={resetQuiz}

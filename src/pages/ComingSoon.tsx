@@ -26,7 +26,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import MarketingLayout from "@/components/layout/MarketingLayout";
 
 const headlines = [
-  "Collection Intelligence Is Coming",
+  "Revenue Intelligence Is Coming",
   "Shape Your Cash Flow With AI",
   "Predict. Act. Recover.",
   "The Future of Receivables",
@@ -96,7 +96,7 @@ const ComingSoon = () => {
         }
       } else {
         toast.success("You're on the list!", {
-          description: "We'll notify you when Collection Intelligence launches."
+          description: "We'll notify you when Revenue Intelligence launches."
         });
         setSubmitted(true);
       }
@@ -257,13 +257,13 @@ const ComingSoon = () => {
         </div>
       </section>
 
-      {/* How Collection Intelligence Shapes Cash Flow */}
+      {/* How Revenue Intelligence Shapes Cash Flow */}
       <section className="py-24 px-4 bg-gradient-to-b from-muted/10 to-background">
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-16">
             <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
               <Brain className="h-4 w-4" />
-              Collection Intelligence
+              Revenue Intelligence
             </div>
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
               How AI Shapes Your Cash Flow
@@ -430,7 +430,7 @@ const ComingSoon = () => {
               </h2>
               
               <p className="text-xl md:text-2xl text-primary font-semibold mb-4">
-                Join the Collection Intelligence Revolution
+                Join the Revenue Intelligence Revolution
               </p>
               
               <p className="text-lg text-muted-foreground mb-10 max-w-2xl mx-auto">

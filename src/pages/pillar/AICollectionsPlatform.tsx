@@ -85,12 +85,12 @@ const AICollectionsPlatform = () => {
             <li><Link to="/features" className="text-primary hover:underline">Platform Features →</Link></li>
             <li><Link to="/collections-crm" className="text-primary hover:underline">Collections CRM →</Link></li>
             <li><Link to="/revenue-risk-intelligence" className="text-primary hover:underline">Revenue Risk Intelligence →</Link></li>
-            <li><Link to="/collection-intelligence" className="text-primary hover:underline">Collection Intelligence →</Link></li>
+            <li><Link to="/collection-intelligence" className="text-primary hover:underline">Revenue Intelligence →</Link></li>
             <li><Link to="/personas" className="text-primary hover:underline">AI Agent Personas →</Link></li>
             <li><Link to="/ai-command-center" className="text-primary hover:underline">AI Command Center →</Link></li>
             <li><Link to="/pricing" className="text-primary hover:underline">Pricing Plans →</Link></li>
             <li><Link to="/blog/death-of-traditional-collections" className="text-primary hover:underline">Blog: Death of Traditional Collections →</Link></li>
-            <li><Link to="/blog/rise-of-collections-intelligence" className="text-primary hover:underline">Blog: Rise of Collections Intelligence →</Link></li>
+            <li><Link to="/blog/rise-of-collections-intelligence" className="text-primary hover:underline">Blog: Rise of Revenue Intelligence →</Link></li>
             <li><Link to="/blog/set-it-and-forget-it-automation" className="text-primary hover:underline">Blog: Set It and Forget It →</Link></li>
             <li><Link to="/solutions" className="text-primary hover:underline">Solutions by Company Size →</Link></li>
             <li><Link to="/integrations" className="text-primary hover:underline">Integrations →</Link></li>

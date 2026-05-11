@@ -147,7 +147,7 @@ export const DemoOutreachHistory = () => {
           { title: "Open tracking", description: "A tracking pixel records every time the email is opened, including device type, email client, and approximate location." },
           { title: "Click tracking", description: "All links (payment, invoice PDF, portal) are wrapped to track clicks. See which links drive the most engagement." },
           { title: "Reply detection", description: "Inbound replies are matched to the original outreach and create an Inbound AI task for smart response drafting." },
-          { title: "Engagement scoring", description: "Each account gets an engagement score based on open/click/reply patterns, feeding into the Collection Intelligence model.", action: "View in Collection Intel" },
+          { title: "Engagement scoring", description: "Each account gets an engagement score based on open/click/reply patterns, feeding into the Revenue Intelligence model.", action: "View in Collection Intel" },
         ]}
         proTip="Accounts that open but don't click may need a stronger CTA or payment link. Accounts that click but don't pay may benefit from a payment plan offer."
       />

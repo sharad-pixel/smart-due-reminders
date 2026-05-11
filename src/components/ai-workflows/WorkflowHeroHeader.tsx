@@ -27,7 +27,7 @@ export function WorkflowHeroHeader({
               <Sparkles className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">AI Collection Intelligence</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">AI Revenue Intelligence</h1>
               <p className="text-sm text-muted-foreground">
                 Automated outreach powered by AI agents that adapt to invoice aging
               </p>

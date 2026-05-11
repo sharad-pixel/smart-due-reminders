@@ -25,7 +25,7 @@ const Careers = () => {
     <MarketingLayout>
       <SEO
         title="Careers at Recouply.ai | Join Our Team"
-        description="Join the Recouply.ai team and help build the future of Collection Intelligence. View open positions and apply today."
+        description="Join the Recouply.ai team and help build the future of Revenue Intelligence. View open positions and apply today."
         canonical="https://recouply.ai/careers"
         keywords="Recouply careers, collection intelligence jobs, fintech jobs, startup jobs, founding engineer"
       />
@@ -43,7 +43,7 @@ const Careers = () => {
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
               Build the Future of{" "}
               <span className="bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
-                Collection Intelligence
+                Revenue Intelligence
               </span>
             </h1>
 
@@ -102,7 +102,7 @@ const Careers = () => {
                     About Recouply.ai
                   </h3>
                   <p className="text-muted-foreground leading-relaxed mb-3">
-                    Recouply.ai is a Collections & Risk Intelligence Platform helping businesses automate, 
+                    Recouply.ai is a Revenue Intelligence Platform helping businesses automate, 
                     centralize, and optimize accounts receivable and collections.
                   </p>
                   <p className="text-muted-foreground leading-relaxed mb-3">

@@ -291,7 +291,7 @@ serve(async (req) => {
           }))
         };
 
-        const intelligenceSystemPrompt = `You are a Collection Intelligence analyst for RecouplyAI. Analyze account data and provide actionable intelligence reports.
+        const intelligenceSystemPrompt = `You are a Revenue Intelligence analyst for RecouplyAI. Analyze account data and provide actionable intelligence reports.
 
 Your reports should be:
 - Concise and actionable
@@ -309,7 +309,7 @@ Structure your response as JSON with these fields:
 - communicationSentiment: assessment of customer engagement/sentiment
 - collectionStrategy: recommended approach for this account`;
 
-        const intelligenceUserPrompt = `Generate a Collection Intelligence Report for this account:
+        const intelligenceUserPrompt = `Generate a Revenue Intelligence Report for this account:
 
 ${JSON.stringify(contextData, null, 2)}
 

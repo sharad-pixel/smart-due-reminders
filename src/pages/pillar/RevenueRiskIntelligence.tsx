@@ -88,7 +88,7 @@ const RevenueRiskIntelligence = () => {
             <li><Link to="/features/revenue-risk" className="text-primary hover:underline">Revenue Risk Feature →</Link></li>
             <li><Link to="/collections-crm" className="text-primary hover:underline">Collections CRM →</Link></li>
             <li><Link to="/ai-collections-platform" className="text-primary hover:underline">AI Collections Platform →</Link></li>
-            <li><Link to="/collection-intelligence" className="text-primary hover:underline">Collection Intelligence →</Link></li>
+            <li><Link to="/collection-intelligence" className="text-primary hover:underline">Revenue Intelligence →</Link></li>
             <li><Link to="/analytics" className="text-primary hover:underline">Analytics & Reporting →</Link></li>
             <li><Link to="/pricing" className="text-primary hover:underline">Pricing Plans →</Link></li>
             <li><Link to="/blog/predictive-collections-revenue-risk" className="text-primary hover:underline">Blog: Predictive Collections →</Link></li>

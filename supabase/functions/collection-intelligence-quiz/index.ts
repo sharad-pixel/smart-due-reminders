@@ -18,8 +18,8 @@
        throw new Error("LOVABLE_API_KEY is not configured");
      }
  
-     const systemPrompt = `You are a Collection Intelligence expert for Recouply.ai, an AI-powered accounts receivable platform. 
- Based on the user's quiz answers about their business, provide a personalized Collection Intelligence Summary.
+     const systemPrompt = `You are a Revenue Intelligence expert for Recouply.ai, an AI-powered accounts receivable platform. 
+ Based on the user's quiz answers about their business, provide a personalized Revenue Intelligence Summary.
  
  Be concise but impactful. Use specific numbers and percentages when possible.
  Structure your response as JSON with these fields:
@@ -33,7 +33,7 @@
      const userMessage = `Quiz answers from a potential customer:
  ${JSON.stringify(answers, null, 2)}
  
- Generate a personalized Collection Intelligence Summary for this business.`;
+ Generate a personalized Revenue Intelligence Summary for this business.`;
  
      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
        method: "POST",
@@ -85,7 +85,7 @@
            "AI automation can reduce collection time by 50%",
            "Proactive outreach prevents payment delays"
          ],
-         recommendation: "Start your free trial to see your full Collection Intelligence report.",
+         recommendation: "Start your free trial to see your full Revenue Intelligence report.",
          dsoImpact: 15
        };
      }

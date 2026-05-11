@@ -44,12 +44,12 @@ export const DemoCollectionIntelligence = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Step 6: Collection Intelligence</h1>
+        <h1 className="text-2xl font-bold text-foreground">Step 6: Revenue Intelligence</h1>
         <p className="text-muted-foreground">AI-powered account analysis with real payment history and behavioral scoring</p>
       </div>
 
       <DemoTutorialCallout
-        title="How Collection Intelligence Works"
+        title="How Revenue Intelligence Works"
         description="Below are live intelligence reports generated from each account's enriched data — payment history, risk score, outstanding balances, and AI-recommended actions."
         platformPath="Intelligence → Account Analysis"
         steps={[

@@ -76,7 +76,7 @@ const CelebrateCash = () => {
       <p>This belief is why we built Recouply.ai.</p>
 
       <p>
-        Recouply.ai is a <strong>Collections & Risk Intelligence Platform</strong> designed to give cash the same level of focus, automation, and visibility that businesses apply to bookings. Traditional collections are often manual, reactive, and dependent on individuals and inboxes, with little real-time insight or accountability.
+        Recouply.ai is a <strong>Revenue Intelligence Platform</strong> designed to give cash the same level of focus, automation, and visibility that businesses apply to bookings. Traditional collections are often manual, reactive, and dependent on individuals and inboxes, with little real-time insight or accountability.
       </p>
 
       <p>
@@ -89,7 +89,7 @@ const CelebrateCash = () => {
         Cash flow isn't just a finance metric. It's a growth enabler. When businesses have full engagement and insight into how cash is collected, forecasting improves, risk is identified earlier, teams operate proactively, and growth becomes durable instead of fragile.
       </p>
 
-      <p><strong>That is what Collection Intelligence enables.</strong></p>
+      <p><strong>That is what Revenue Intelligence enables.</strong></p>
 
       <h2>It's Time to Celebrate the Right Outcome</h2>
 

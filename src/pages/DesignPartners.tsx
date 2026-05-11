@@ -30,7 +30,7 @@ const DesignPartners = () => {
     {
       icon: Lightbulb,
       title: "Early Features",
-      description: "Be the first to try new Collection Intelligence capabilities before public release."
+      description: "Be the first to try new Revenue Intelligence capabilities before public release."
     },
     {
       icon: Users,
@@ -50,7 +50,7 @@ const DesignPartners = () => {
     <MarketingLayout>
       <SEOHead
         title="Design Partner Program | Recouply"
-        description="Join Recouply's Design Partner Program. Help shape the future of Collection Intelligence and get exclusive benefits as a founding partner."
+        description="Join Recouply's Design Partner Program. Help shape the future of Revenue Intelligence and get exclusive benefits as a founding partner."
         keywords="design partner, early access, collection intelligence, AR automation, founding member"
         canonical="https://recouply.ai/design-partners"
       />
@@ -64,7 +64,7 @@ const DesignPartners = () => {
           </Badge>
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 max-w-4xl mx-auto">
             Help Build the Future of{" "}
-            <span className="text-primary">Collection Intelligence</span>
+            <span className="text-primary">Revenue Intelligence</span>
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
             Join our Design Partner Program and work directly with our team to shape 

@@ -97,7 +97,7 @@ export const knowledgeBaseData: FAQCategory[] = [
       },
       {
         question: "How do I manage debtor/account information?",
-        answer: "From the Debtors page, you can: view all accounts and their AR balance, click into any account for detailed history, add/edit contact information, view the Collection Intelligence Report for each account, and manage payment plans. Each account shows all associated invoices and communication history.",
+        answer: "From the Debtors page, you can: view all accounts and their AR balance, click into any account for detailed history, add/edit contact information, view the Revenue Intelligence Report for each account, and manage payment plans. Each account shows all associated invoices and communication history.",
         keywords: ["debtor", "account", "customer", "manage accounts"]
       },
       {
@@ -134,7 +134,7 @@ export const knowledgeBaseData: FAQCategory[] = [
       },
       {
         question: "What is Account-Level Outreach?",
-        answer: "Instead of sending invoice-specific messages, Account-Level Outreach sends consolidated communications at the debtor level. This uses the Collection Intelligence Report to dynamically inform message tone based on overall account health. Enable it from the debtor detail page.",
+        answer: "Instead of sending invoice-specific messages, Account-Level Outreach sends consolidated communications at the debtor level. This uses the Revenue Intelligence Report to dynamically inform message tone based on overall account health. Enable it from the debtor detail page.",
         keywords: ["account level", "consolidated", "account outreach"]
       },
       {
