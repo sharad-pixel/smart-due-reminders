@@ -344,6 +344,12 @@ Deno.serve(async (req) => {
       raw_text: text.slice(0, 50_000), ai_response: extracted,
       model: "google/gemini-2.5-flash",
     }).select().single();
+    if (extractionErr || !extractionRow) {
+      const msg = `Failed to persist extraction: ${extractionErr?.message || "no row returned"}`;
+      log("Persist extraction failed", { error: extractionErr });
+      await supabase.from("live_contract_imports").update({ status: "failed", error: msg.slice(0, 500) }).eq("id", imp.id);
+      throw new Error(msg);
+    }
 
     // Field rows
     const fieldRows: any[] = [];
