@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
           .from("live_contract_extractions")
           .select("ai_response")
           .eq("import_id", imp.id)
-          .order("created_at", { ascending: false })
+          .order("extracted_at", { ascending: false })
           .limit(1)
           .maybeSingle();
         const cust = (extraction?.ai_response as any)?.customer || {};
