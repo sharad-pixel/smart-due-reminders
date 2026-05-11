@@ -1,16 +1,8 @@
- import { Button } from "@/components/ui/button";
- import { useNavigate, Link } from "react-router-dom";
- import { RecouplyLogo } from "@/components/layout/RecouplyLogo";
- import { Brain, Linkedin, ShieldCheck, ClipboardCheck } from "lucide-react";
- 
- const COMPANY_INFO = {
-   legalName: "RecouplyAI Inc.",
-   displayName: "Recouply.ai",
-   tagline: "Revenue Intelligence Platform",
-   social: {
-     linkedin: "https://www.linkedin.com/company/recouplyai-inc",
-   },
- } as const;
+import { Button } from "@/components/ui/button";
+import { useNavigate, Link } from "react-router-dom";
+import { RecouplyLogo } from "@/components/layout/RecouplyLogo";
+import { Brain, Linkedin, ShieldCheck, ClipboardCheck } from "lucide-react";
+import { COMPANY_INFO } from "@/lib/companyConfig";
  
  const MarketingFooter = () => {
    const navigate = useNavigate();
