@@ -327,12 +327,29 @@ Deno.serve(async (req) => {
       ? parseJsonFromText(toolCall.function.arguments, "AI tool arguments")
       : toolCall.function.arguments;
 
+    // Idempotency: clear any prior derived rows for this import so re-extract is safe
+    await Promise.all([
+      supabase.from("live_contract_extracted_fields").delete().eq("import_id", imp.id),
+      supabase.from("contract_critical_dates").delete().eq("import_id", imp.id),
+      supabase.from("contract_invoice_schedules").delete().eq("import_id", imp.id).is("invoice_id", null),
+      supabase.from("contract_risk_flags").delete().eq("import_id", imp.id),
+      supabase.from("contract_poc_details").delete().eq("import_id", imp.id),
+      supabase.from("contract_customer_matches").delete().eq("import_id", imp.id),
+      supabase.from("live_contract_extractions").delete().eq("import_id", imp.id),
+    ]);
+
     // Persist extraction
-    const { data: extractionRow } = await supabase.from("live_contract_extractions").insert({
+    const { data: extractionRow, error: extractionErr } = await supabase.from("live_contract_extractions").insert({
       account_id: imp.account_id, import_id: imp.id,
       raw_text: text.slice(0, 50_000), ai_response: extracted,
       model: "google/gemini-2.5-flash",
     }).select().single();
+    if (extractionErr || !extractionRow) {
+      const msg = `Failed to persist extraction: ${extractionErr?.message || "no row returned"}`;
+      log("Persist extraction failed", { error: extractionErr });
+      await supabase.from("live_contract_imports").update({ status: "failed", error: msg.slice(0, 500) }).eq("id", imp.id);
+      throw new Error(msg);
+    }
 
     // Field rows
     const fieldRows: any[] = [];

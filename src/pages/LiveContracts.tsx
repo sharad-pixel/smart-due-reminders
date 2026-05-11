@@ -333,8 +333,19 @@ function UploadDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o:
       Promise.allSettled(
         results.map((d: any) =>
           supabase.functions.invoke("live-contract-extract", { body: { importId: d.import.id } })
+            .then(({ data, error }) => {
+              if (error) throw new Error(error.message || "Extraction failed");
+              if (data?.error) throw new Error(data.error);
+              return data;
+            })
         )
-      ).then(() => qc.invalidateQueries({ queryKey: ["lc-imports"] }));
+      ).then((settled) => {
+        const failed = settled.filter((r) => r.status === "rejected") as PromiseRejectedResult[];
+        if (failed.length) {
+          toast.error(`Extraction failed: ${failed[0].reason?.message || String(failed[0].reason)}`);
+        }
+        qc.invalidateQueries({ queryKey: ["lc-imports"] });
+      });
     },
     onError: (e: any) => { toast.error(e.message); setProgress(null); },
   });
