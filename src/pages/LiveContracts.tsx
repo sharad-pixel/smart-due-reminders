@@ -17,10 +17,12 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { openFolderPicker } from "@/lib/googlePicker";
+import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   FolderPlus, RefreshCw, Upload, FileText, Sparkles, AlertTriangle, CalendarClock,
   CheckCircle2, XCircle, FileSearch, Building2, DollarSign, Receipt, Loader2,
-  ShieldAlert, Clock, ClipboardList,
+  ShieldAlert, Clock, ClipboardList, BellRing, Wand2, ExternalLink,
 } from "lucide-react";
 
 // ------- Status helpers -------
