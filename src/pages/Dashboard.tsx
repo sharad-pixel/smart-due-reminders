@@ -704,6 +704,9 @@ const Dashboard = () => {
           </Card>
         </div>
 
+        {/* Contract Summary (CLM enabled only) */}
+        <ContractSummaryCard />
+
         {/* Revenue Risk Card */}
         <Card className="bg-gradient-to-br from-amber-500/10 to-orange-500/5 border-amber-500/20">
           <CardContent className="pt-4 sm:pt-6">
