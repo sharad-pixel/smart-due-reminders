@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Layout from "@/components/layout/Layout";
 import { RequireClmAccess } from "@/components/clm/RequireClmAccess";
@@ -379,13 +379,31 @@ function ReviewDrawer({ importId, onClose }: { importId: string | null; onClose:
   const { data, isLoading } = useReviewItem(importId);
   const [selectedDebtorId, setSelectedDebtorId] = useState<string | null>(null);
   const [newDebtor, setNewDebtor] = useState({ company_name: "", primary_email: "", phone: "", address: "" });
+  const [prefilled, setPrefilled] = useState(false);
+
+  // Pre-fill new-customer form from extracted customer fields
+  useEffect(() => {
+    if (prefilled || !data?.fields?.length) return;
+    const cust: Record<string, string> = {};
+    for (const f of data.fields) {
+      if (f.field_group === "customer" && f.field_value) cust[f.field_key] = f.field_value;
+    }
+    if (Object.keys(cust).length === 0) return;
+    setNewDebtor((prev) => ({
+      company_name: prev.company_name || cust.legal_name || cust.dba_name || cust.billing_entity || "",
+      primary_email: prev.primary_email || cust.billing_contact || cust.primary_contact || (cust.email_domain ? `billing@${cust.email_domain.replace(/^@/, "")}` : ""),
+      phone: prev.phone || "",
+      address: prev.address || cust.address || "",
+    }));
+    setPrefilled(true);
+  }, [data?.fields, prefilled]);
 
   const approve = useMutation({
     mutationFn: async () => {
       const body: any = { importId, action: "approve" };
       if (selectedDebtorId) body.debtorId = selectedDebtorId;
       else if (newDebtor.company_name) body.newDebtor = newDebtor;
-      else throw new Error("Select an existing customer or fill in a new one");
+      // else: backend will auto-create from extracted customer data
       const { data, error } = await supabase.functions.invoke("live-contract-approve", { body });
       if (error) throw error;
       return data;
@@ -454,9 +472,11 @@ function ReviewDrawer({ importId, onClose }: { importId: string | null; onClose:
                   </div>
                 )}
                 <div className="border-t pt-3 space-y-2">
-                  <p className="text-xs font-medium">Or create new customer</p>
+                  <p className="text-xs font-medium">Or create new customer {data.matches.length === 0 && <span className="text-muted-foreground">(auto-filled from contract)</span>}</p>
                   <Input placeholder="Company name" value={newDebtor.company_name} onChange={(e) => { setNewDebtor({ ...newDebtor, company_name: e.target.value }); setSelectedDebtorId(null); }} />
                   <Input placeholder="Primary email" value={newDebtor.primary_email} onChange={(e) => setNewDebtor({ ...newDebtor, primary_email: e.target.value })} />
+                  <Input placeholder="Phone" value={newDebtor.phone} onChange={(e) => setNewDebtor({ ...newDebtor, phone: e.target.value })} />
+                  <Input placeholder="Address" value={newDebtor.address} onChange={(e) => setNewDebtor({ ...newDebtor, address: e.target.value })} />
                 </div>
               </CardContent>
             </Card>
