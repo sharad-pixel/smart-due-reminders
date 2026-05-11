@@ -269,46 +269,170 @@ function FoldersTab() {
 // ------- Upload dialog -------
 function UploadDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const qc = useQueryClient();
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [dragActive, setDragActive] = useState(false);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+
+  const ACCEPT = [".pdf", ".docx", ".txt"];
+  const MAX_BYTES = 25 * 1024 * 1024;
+
+  const validate = (f: File): string | null => {
+    const ext = "." + (f.name.split(".").pop() || "").toLowerCase();
+    if (!ACCEPT.includes(ext)) return `${f.name}: unsupported file type`;
+    if (f.size > MAX_BYTES) return `${f.name}: exceeds 25MB`;
+    return null;
+  };
+
+  const addFiles = (incoming: FileList | File[]) => {
+    const arr = Array.from(incoming);
+    const errors: string[] = [];
+    const ok: File[] = [];
+    for (const f of arr) {
+      const err = validate(f);
+      if (err) errors.push(err);
+      else ok.push(f);
+    }
+    if (errors.length) toast.error(errors.join(" • "));
+    if (ok.length) setFiles((prev) => [...prev, ...ok]);
+  };
+
+  const uploadOne = async (file: File) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    const { data: { session } } = await supabase.auth.getSession();
+    const res = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/live-contract-upload`,
+      { method: "POST", headers: { Authorization: `Bearer ${session?.access_token}` }, body: fd }
+    );
+    const text = await res.text();
+    let json: any = null;
+    try { json = text ? JSON.parse(text) : null; } catch {
+      throw new Error(`Upload failed (${res.status}). Server returned a non-JSON response.`);
+    }
+    if (!res.ok) throw new Error(json?.error || `Upload failed (${res.status})`);
+    return json;
+  };
+
   const upload = useMutation({
     mutationFn: async () => {
-      if (!file) throw new Error("Select a file");
-      const fd = new FormData();
-      fd.append("file", file);
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/live-contract-upload`,
-        { method: "POST", headers: { Authorization: `Bearer ${session?.access_token}` }, body: fd }
-      );
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Upload failed");
-      return json;
+      if (files.length === 0) throw new Error("Select at least one file");
+      setProgress({ done: 0, total: files.length });
+      const results: any[] = [];
+      for (let i = 0; i < files.length; i++) {
+        try {
+          const r = await uploadOne(files[i]);
+          results.push(r);
+        } catch (e: any) {
+          toast.error(`${files[i].name}: ${e.message}`);
+        }
+        setProgress({ done: i + 1, total: files.length });
+      }
+      return results;
     },
-    onSuccess: (d: any) => {
-      toast.success("Uploaded — extracting…");
+    onSuccess: (results: any[]) => {
+      if (results.length) toast.success(`${results.length} file${results.length > 1 ? "s" : ""} uploaded — extracting…`);
       qc.invalidateQueries({ queryKey: ["lc-imports"] });
       onOpenChange(false);
-      setFile(null);
-      // Trigger extraction
-      supabase.functions.invoke("live-contract-extract", { body: { importId: d.import.id } })
-        .then(() => qc.invalidateQueries({ queryKey: ["lc-imports"] }));
+      setFiles([]);
+      setProgress(null);
+      // Trigger extraction in parallel
+      Promise.allSettled(
+        results.map((d: any) =>
+          supabase.functions.invoke("live-contract-extract", { body: { importId: d.import.id } })
+        )
+      ).then(() => qc.invalidateQueries({ queryKey: ["lc-imports"] }));
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => { toast.error(e.message); setProgress(null); },
   });
 
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault(); e.stopPropagation(); setDragActive(false);
+    if (e.dataTransfer.files?.length) addFiles(e.dataTransfer.files);
+  };
+
+  const fmtSize = (b: number) => b < 1024 * 1024 ? `${(b / 1024).toFixed(0)} KB` : `${(b / 1024 / 1024).toFixed(1)} MB`;
+  const totalBytes = files.reduce((s, f) => s + f.size, 0);
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+    <Dialog open={open} onOpenChange={(o) => { if (!upload.isPending) onOpenChange(o); }}>
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Upload contract</DialogTitle>
-          <DialogDescription>PDF, DOCX, or Google Doc export. Max 25MB.</DialogDescription>
+          <DialogTitle className="flex items-center gap-2"><FileSearch className="h-5 w-5 text-primary" />Upload contract</DialogTitle>
+          <DialogDescription>
+            Drop one or more files. Our AI will OCR, extract critical dates, commercial terms, and risk flags automatically.
+          </DialogDescription>
         </DialogHeader>
-        <Input type="file" accept=".pdf,.docx,.txt" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+
+        <label
+          onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
+          onDragLeave={() => setDragActive(false)}
+          onDrop={handleDrop}
+          className={`relative flex flex-col items-center justify-center gap-2 border-2 border-dashed rounded-lg px-6 py-10 text-center cursor-pointer transition-colors ${
+            dragActive ? "border-primary bg-primary/5" : "border-border hover:border-primary/50 hover:bg-muted/30"
+          }`}
+        >
+          <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+            <Upload className="h-6 w-6 text-primary" />
+          </div>
+          <div className="text-sm font-medium">
+            {dragActive ? "Drop to upload" : "Drag & drop or click to browse"}
+          </div>
+          <div className="text-xs text-muted-foreground">PDF, DOCX or TXT • up to 25MB each</div>
+          <input
+            type="file"
+            multiple
+            accept=".pdf,.docx,.txt"
+            className="absolute inset-0 opacity-0 cursor-pointer"
+            onChange={(e) => { if (e.target.files) addFiles(e.target.files); e.currentTarget.value = ""; }}
+          />
+        </label>
+
+        {files.length > 0 && (
+          <div className="space-y-1.5 max-h-48 overflow-y-auto">
+            {files.map((f, i) => (
+              <div key={`${f.name}-${i}`} className="flex items-center gap-2 p-2 rounded border bg-muted/30 text-sm">
+                <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="truncate font-medium">{f.name}</div>
+                  <div className="text-xs text-muted-foreground">{fmtSize(f.size)}</div>
+                </div>
+                {!upload.isPending && (
+                  <button
+                    type="button"
+                    onClick={() => setFiles((prev) => prev.filter((_, idx) => idx !== i))}
+                    className="text-muted-foreground hover:text-destructive p-1"
+                    aria-label="Remove"
+                  >
+                    <XCircle className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            ))}
+            <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
+              <span>{files.length} file{files.length > 1 ? "s" : ""} • {fmtSize(totalBytes)}</span>
+              {!upload.isPending && (
+                <button type="button" className="hover:text-foreground" onClick={() => setFiles([])}>Clear all</button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {progress && (
+          <div className="space-y-1">
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>Uploading…</span><span>{progress.done}/{progress.total}</span>
+            </div>
+            <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+              <div className="h-full bg-primary transition-all" style={{ width: `${(progress.done / progress.total) * 100}%` }} />
+            </div>
+          </div>
+        )}
+
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={() => upload.mutate()} disabled={!file || upload.isPending}>
-            {upload.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
-            Upload
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={upload.isPending}>Cancel</Button>
+          <Button onClick={() => upload.mutate()} disabled={files.length === 0 || upload.isPending}>
+            {upload.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+            {upload.isPending ? "Uploading…" : `Upload ${files.length || ""}`}
           </Button>
         </DialogFooter>
       </DialogContent>
