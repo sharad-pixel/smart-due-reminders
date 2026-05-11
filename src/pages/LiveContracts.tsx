@@ -850,6 +850,11 @@ function ReviewDrawer({ importId, onClose }: { importId: string | null; onClose:
             )}
 
             {/* Actions */}
+            {/* Post-import actions: invoices + alerts */}
+            {(data.imp.status === "imported" || data.imp.status === "approved") && (
+              <PostImportActions importId={data.imp.id} schedules={data.schedules} dates={data.dates} />
+            )}
+
             {data.imp.status === "needs_review" && (
               <div className="flex gap-2 sticky bottom-0 bg-background pt-3 border-t">
                 <Button variant="outline" onClick={() => reject.mutate()} disabled={reject.isPending}>
