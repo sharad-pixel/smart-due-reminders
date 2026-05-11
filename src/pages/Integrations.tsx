@@ -469,7 +469,7 @@ const Integrations = () => {
               <div>
                 <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
                   <Brain className="h-4 w-4" />
-                  Collection Intelligence
+                  Revenue Intelligence
                 </div>
                 <h2 className="text-3xl md:text-4xl font-bold mb-6">
                   Collections data that works beyond collections

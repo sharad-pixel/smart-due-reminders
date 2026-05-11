@@ -16,7 +16,7 @@ const RiseOfCollectionsIntelligence = () => {
         A new category — collections intelligence platforms — is emerging to fill this gap. These platforms combine AI-driven analytics, behavioral signal processing, and workflow automation to give AR teams the tools they need to move from reactive follow-up to proactive revenue recovery.
       </p>
 
-      <h2>What Defines a Collections Intelligence Platform</h2>
+      <h2>What Defines a Revenue Intelligence Platform</h2>
       <p>
         Collections intelligence is not simply collections software with an AI label. The distinction lies in three foundational capabilities that separate this new category from legacy tools.
       </p>
@@ -44,7 +44,7 @@ const RiseOfCollectionsIntelligence = () => {
         Third, CFOs and finance leaders are increasingly recognizing that accounts receivable is not just a back-office function but a strategic lever for cash flow optimization and working capital management. This shift in perspective creates demand for tools that go beyond basic invoicing and aging.
       </p>
 
-      <h2>How Collections Intelligence Differs from Traditional AR Software</h2>
+      <h2>How Revenue Intelligence Differs from Traditional AR Software</h2>
       <p>
         The most visible difference is in how these platforms handle outreach. Traditional AR software provides templates and schedules. Collections intelligence platforms analyze each debtor's profile — their historical responsiveness, preferred communication channel, typical payment timing, and current engagement level — and adapt outreach accordingly.
       </p>

@@ -6,7 +6,7 @@
  const COMPANY_INFO = {
    legalName: "RecouplyAI Inc.",
    displayName: "Recouply.ai",
-   tagline: "Collections and Risk Intelligence Platform",
+   tagline: "Revenue Intelligence Platform",
    social: {
      linkedin: "https://www.linkedin.com/company/recouplyai-inc",
    },
@@ -48,7 +48,7 @@
                    className="text-muted-foreground hover:text-primary flex items-center gap-1"
                  >
                    <Brain className="h-3 w-3" />
-                   Collection Intelligence
+                   Revenue Intelligence
                  </button>
                </li>
                <li>

@@ -54,11 +54,11 @@ const Investors = () => {
             </div>
             
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground leading-tight">
-              Building the <span className="text-primary">Collections & Risk Intelligence Platform</span> for a $70T Receivables Market
+              Building the <span className="text-primary">Revenue Intelligence Platform</span> for a $70T Receivables Market
             </h1>
             
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-              Every year, over $70 trillion in B2B receivables flows through global businesses. Recouply.ai brings Collection Intelligence, continuous risk assessment, and AI-driven execution to one of the most critical—and least modernized—parts of the revenue lifecycle.
+              Every year, over $70 trillion in B2B receivables flows through global businesses. Recouply.ai brings Revenue Intelligence, continuous risk assessment, and AI-driven execution to one of the most critical—and least modernized—parts of the revenue lifecycle.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
@@ -150,10 +150,10 @@ const Investors = () => {
                 The Solution
               </div>
               <h2 className="text-3xl md:text-4xl font-bold text-foreground">
-                Recouply.ai Introduces Collection Intelligence
+                Recouply.ai Introduces Revenue Intelligence
               </h2>
               <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-                Recouply.ai is a Collections & Risk Intelligence Platform that continuously assesses receivables risk, prioritizes action, and automates engagement—turning static AR data into real-time, actionable intelligence.
+                Recouply.ai is a Revenue Intelligence Platform that continuously assesses receivables risk, prioritizes action, and automates engagement—turning static AR data into real-time, actionable intelligence.
               </p>
             </div>
 
@@ -244,7 +244,7 @@ const Investors = () => {
                 Timing & Inflection Point
               </div>
               <h2 className="text-3xl md:text-4xl font-bold text-foreground">
-                Why Collection Intelligence Matters Now
+                Why Revenue Intelligence Matters Now
               </h2>
             </div>
 
@@ -308,7 +308,7 @@ const Investors = () => {
                 <CardContent className="pt-6 text-center space-y-2">
                   <p className="text-4xl font-bold text-primary">New</p>
                   <p className="text-sm text-muted-foreground">
-                    Category: Collection Intelligence
+                    Category: Revenue Intelligence
                   </p>
                 </CardContent>
               </Card>

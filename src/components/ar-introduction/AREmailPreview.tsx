@@ -52,7 +52,7 @@ const AREmailPreview = ({
         <h2 style="margin:0 0 24px;color:#0f172a;font-size:20px;font-weight:700;">Enhanced Accounts Receivable Communication</h2>
         <p style="margin:0 0 20px;color:#475569;font-size:13px;line-height:1.7;">Dear Valued Client,</p>
         <p style="margin:0 0 20px;color:#475569;font-size:13px;line-height:1.7;">
-          We are writing to inform you that <strong>${name}</strong> has implemented an enhanced accounts receivable management system powered by <strong>Recouply.ai</strong> — a Collections &amp; Risk Intelligence Platform designed to improve client communication, transparency, and efficiency.
+          We are writing to inform you that <strong>${name}</strong> has implemented an enhanced accounts receivable management system powered by <strong>Recouply.ai</strong> — a Revenue Intelligence Platform designed to improve client communication, transparency, and efficiency.
         </p>
         <div style="background-color:${primaryColor};border-radius:8px;padding:20px;margin:24px 0;text-align:center;">
           <p style="margin:0;color:#ffffff;font-size:16px;font-weight:700;">What This Means for You</p>
@@ -87,7 +87,7 @@ const AREmailPreview = ({
           <p style="margin:0;color:#0f172a;font-size:14px;font-weight:600;">${name}</p>
           <p style="margin:4px 0 0;color:#94a3b8;font-size:12px;">Accounts Receivable Department</p>
           ${addressHtml}${phoneHtml}${websiteHtml}
-          <p style="margin:8px 0 0;color:${primaryColor};font-size:11px;font-style:italic;">Powered by Recouply.ai — Collections &amp; Risk Intelligence</p>
+          <p style="margin:8px 0 0;color:${primaryColor};font-size:11px;font-style:italic;">Powered by Recouply.ai — Revenue Intelligence</p>
         </div>
       </div>
     `;

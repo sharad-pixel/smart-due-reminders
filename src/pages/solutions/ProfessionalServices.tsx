@@ -17,7 +17,7 @@ const ProfessionalServices = () => {
 
   useEffect(() => {
     // SEO metadata
-    document.title = "AR & Collection Intelligence for Professional Services | Recouply.ai";
+    document.title = "AR & Revenue Intelligence for Professional Services | Recouply.ai";
     const metaDescription = document.querySelector('meta[name="description"]');
     if (metaDescription) {
       metaDescription.setAttribute('content', 'Six AI agents recovering AR revenue 24/7 for agencies, consultants, accounting firms, and professional service providers. Getting smarter with every invoice.');

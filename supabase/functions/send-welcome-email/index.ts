@@ -59,7 +59,7 @@ serve(async (req) => {
 
     const bodyContent = `
       <h2 style="margin: 0 0 24px; color: ${BRAND.foreground}; font-size: 22px; font-weight: 700;">
-        🎉 Welcome to Collections & Risk Intelligence!
+        🎉 Welcome to Revenue Intelligence!
       </h2>
       
       <p style="margin: 0 0 20px; color: #475569; font-size: 14px; line-height: 1.7;">
@@ -67,12 +67,12 @@ serve(async (req) => {
       </p>
 
       <p style="margin: 0 0 20px; color: #475569; font-size: 14px; line-height: 1.7;">
-        I'm <strong>Sharad Chanana</strong>, founder of Recouply.ai, and I'm personally thrilled to welcome you to our Collections and Risk Intelligence Platform. <strong>You're about to transform how you manage receivables.</strong>
+        I'm <strong>Sharad Chanana</strong>, founder of Recouply.ai, and I'm personally thrilled to welcome you to our Revenue Intelligence Platform. <strong>You're about to transform how you manage receivables.</strong>
       </p>
 
       <div style="background-color: ${BRAND.primary}; border-radius: 8px; padding: 24px; margin: 24px 0; text-align: center;">
         <p style="margin: 0; color: #ffffff; font-size: 20px; font-weight: 700;">
-          🚀 Your Collections & Risk Intelligence Journey Starts Now
+          🚀 Your Revenue Intelligence Journey Starts Now
         </p>
         <p style="margin: 10px 0 0; color: rgba(255, 255, 255, 0.85); font-size: 14px;">
           Six AI agents are ready to transform your collections
@@ -80,7 +80,7 @@ serve(async (req) => {
       </div>
 
       <p style="margin: 0 0 20px; color: #475569; font-size: 14px; line-height: 1.7;">
-        At Recouply.ai, we believe that managing receivables shouldn't be a headache. Our Collections and Risk Intelligence CRM handles collections intelligently, preserves customer relationships, and accelerates your cash flow.
+        At Recouply.ai, we believe that managing receivables shouldn't be a headache. Our Revenue Intelligence CRM handles collections intelligently, preserves customer relationships, and accelerates your cash flow.
       </p>
 
       <div style="background-color: #f0fdf4; border-radius: 8px; padding: 20px; margin: 24px 0; border: 1px solid #86efac;">
@@ -141,7 +141,7 @@ serve(async (req) => {
     const htmlContent = wrapEnterpriseEmail(bodyContent, {
       headerStyle: 'gradient',
       title: 'Welcome!',
-      subtitle: 'Your Collections & Risk Intelligence CRM awaits',
+      subtitle: 'Your Revenue Intelligence CRM awaits',
     });
 
     const resendResponse = await fetch("https://api.resend.com/emails", {
@@ -154,7 +154,7 @@ serve(async (req) => {
         from: "Sharad Chanana - Recouply.ai <notifications@send.inbound.services.recouply.ai>",
         to: [email],
         reply_to: "sharad@recouply.ai",
-        subject: "🎉 Welcome to Recouply.ai — Collections & Risk Intelligence CRM",
+        subject: "🎉 Welcome to Recouply.ai — Revenue Intelligence CRM",
         html: htmlContent,
       }),
     });

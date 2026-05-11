@@ -342,7 +342,7 @@ export function AccountIntelligencePanel({
           {/* Score Bar */}
           <div className="space-y-1">
             <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Collection Intelligence Score</span>
+              <span>Revenue Intelligence Score</span>
               <span>{score ?? 0}/100</span>
             </div>
             <div className="h-2 bg-muted rounded-full overflow-hidden">

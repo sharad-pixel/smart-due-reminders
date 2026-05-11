@@ -788,7 +788,7 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* Unified Collection Intelligence */}
+        {/* Unified Revenue Intelligence */}
         <CollectionIntelligenceCard />
 
         {/* Proactive Engagement Actions */}
@@ -861,7 +861,7 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Collection Intelligence Scorecards */}
+        {/* Revenue Intelligence Scorecards */}
         <CollectionIntelligenceDashboard />
 
         {/* Payments Activity */}

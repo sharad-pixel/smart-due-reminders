@@ -122,7 +122,7 @@ const AICommandCenter = () => {
       {/* Hero Section */}
       <section className="py-20 px-4 bg-gradient-to-b from-primary/5 to-background">
         <div className="container mx-auto max-w-6xl text-center">
-          <Badge className="mb-4 text-sm px-4 py-1">AI-Powered Collections Intelligence</Badge>
+          <Badge className="mb-4 text-sm px-4 py-1">AI-Powered Revenue Intelligence</Badge>
           <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
             The AI Collections Command Center
           </h1>

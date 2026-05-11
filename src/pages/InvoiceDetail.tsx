@@ -1648,7 +1648,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
             />
           </div>
 
-          {/* Right Column - Collection Intelligence */}
+          {/* Right Column - Revenue Intelligence */}
           <div className="space-y-6">
             <InvoiceWorkflowCard
               daysPastDue={daysPastDue}

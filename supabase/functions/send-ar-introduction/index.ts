@@ -263,7 +263,7 @@ serve(async (req) => {
       </p>
 
       <p style="margin: 0 0 20px; color: #475569; font-size: 14px; line-height: 1.7;">
-        We are writing to inform you that <strong>${businessName}</strong> has implemented an enhanced accounts receivable management system powered by <strong>Recouply.ai</strong> — a Collections &amp; Risk Intelligence Platform designed to improve client communication, transparency, and efficiency.
+        We are writing to inform you that <strong>${businessName}</strong> has implemented an enhanced accounts receivable management system powered by <strong>Recouply.ai</strong> — a Revenue Intelligence Platform designed to improve client communication, transparency, and efficiency.
       </p>
 
       <div style="background-color: ${primaryColor}; border-radius: 8px; padding: 24px; margin: 24px 0; text-align: center;">
@@ -338,7 +338,7 @@ serve(async (req) => {
         ${phoneHtml}
         ${websiteHtml}
         <p style="margin: 8px 0 0; color: ${primaryColor}; font-size: 12px; font-style: italic;">
-          Powered by Recouply.ai — Collections &amp; Risk Intelligence
+          Powered by Recouply.ai — Revenue Intelligence
         </p>
       </div>
     `;

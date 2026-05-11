@@ -15,7 +15,7 @@ interface MarketingLayoutProps {
 const _COMPANY_INFO = {
   legalName: "RecouplyAI Inc.",
   displayName: "Recouply.ai",
-  tagline: "Collections & Risk Intelligence Platform",
+  tagline: "Revenue Intelligence Platform",
   emails: {
     collections: "collections@recouply.ai",
     support: "support@recouply.ai",
@@ -69,7 +69,7 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const platformItems = [
-    { icon: Brain, title: "Collection Intelligence", description: "AI-powered insights & predictions", path: "/collection-intelligence" },
+    { icon: Brain, title: "Revenue Intelligence", description: "AI-powered insights & predictions", path: "/collection-intelligence" },
     { icon: Bot, title: "AI Agents", description: "Autonomous collection personas", path: "/personas" },
     { icon: Zap, title: "Automation", description: "Workflow & outreach automation", path: "/automation" },
     { icon: BarChart3, title: "Analytics", description: "Real-time AR dashboards", path: "/analytics" },

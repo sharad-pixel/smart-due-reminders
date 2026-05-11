@@ -269,7 +269,7 @@ export function CollectionIntelligenceCard() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Brain className="h-5 w-5 text-primary animate-pulse" />
-            Collection Intelligence
+            Revenue Intelligence
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -294,7 +294,7 @@ export function CollectionIntelligenceCard() {
             <Brain className="h-8 w-8 text-primary" />
           </div>
           <div className="text-center">
-            <h3 className="font-semibold text-lg">Collection Intelligence</h3>
+            <h3 className="font-semibold text-lg">Revenue Intelligence</h3>
             <p className="text-sm text-muted-foreground mt-1 max-w-md">
               Add accounts and invoices to unlock AI-powered collection insights and risk analysis
             </p>
@@ -323,7 +323,7 @@ export function CollectionIntelligenceCard() {
               <Brain className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <CardTitle className="text-lg">Collection Intelligence</CardTitle>
+              <CardTitle className="text-lg">Revenue Intelligence</CardTitle>
               <CardDescription className="text-xs mt-0.5">
                 AI-powered insights across all collection activities
               </CardDescription>

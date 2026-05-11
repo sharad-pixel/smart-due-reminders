@@ -217,7 +217,7 @@ const BlogPostLayout = ({ post, children }: BlogPostLayoutProps) => {
             <aside className="p-8 md:p-10 rounded-2xl bg-gradient-to-br from-primary/5 via-primary/10 to-accent/5 border border-primary/20 text-center">
               <h3 className="text-2xl font-bold mb-3">About Recouply.ai</h3>
               <p className="text-muted-foreground mb-6 max-w-xl mx-auto">
-                Recouply.ai is a Collection Intelligence Platform that helps businesses automate, centralize, 
+                Recouply.ai is a Revenue Intelligence Platform that helps businesses automate, centralize, 
                 and optimize accounts receivable and collections. By combining AI-driven workflows, 
                 customer-centric engagement, and real-time insights, Recouply.ai enables faster cash collection, 
                 reduced risk, and stronger cash flow.

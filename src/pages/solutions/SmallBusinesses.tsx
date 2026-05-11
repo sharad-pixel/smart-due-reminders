@@ -18,7 +18,7 @@ const SmallBusinesses = () => {
 
   useEffect(() => {
     // SEO metadata
-    document.title = "AR & Collection Intelligence for Small Businesses | Recouply.ai";
+    document.title = "AR & Revenue Intelligence for Small Businesses | Recouply.ai";
     const metaDescription = document.querySelector('meta[name="description"]');
     if (metaDescription) {
       metaDescription.setAttribute('content', 'Six AI agents recovering AR revenue 24/7 for small businesses, service providers, and contractors. Getting smarter with every invoice while protecting customer relationships.');

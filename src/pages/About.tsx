@@ -189,7 +189,7 @@ const About = () => {
             </Badge>
             
             <h2 className="text-3xl md:text-4xl font-bold mb-6">
-              AR & Collection Intelligence Designed by Real Operators
+              AR & Revenue Intelligence Designed by Real Operators
             </h2>
             
             <p className="text-lg text-muted-foreground leading-relaxed mb-4">

@@ -187,7 +187,7 @@ export const AccountOutreachSettings = ({
           <div>
             <CardTitle className="flex items-center gap-2">
               <Brain className="h-5 w-5" />
-              AI Collection Intelligence Outreach
+              AI Revenue Intelligence Outreach
             </CardTitle>
             <CardDescription>
               AI-generated account summaries based on invoice activity, communication history & risk analysis

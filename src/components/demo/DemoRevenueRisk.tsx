@@ -131,7 +131,7 @@ export const DemoRevenueRisk = () => {
       </Card>
 
       <div className="flex justify-end pt-2">
-        <Button size="lg" onClick={nextStep}>Next: Collection Intelligence <ArrowRight className="ml-2 h-4 w-4" /></Button>
+        <Button size="lg" onClick={nextStep}>Next: Revenue Intelligence <ArrowRight className="ml-2 h-4 w-4" /></Button>
       </div>
     </div>
   );

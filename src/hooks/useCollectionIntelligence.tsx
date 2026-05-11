@@ -67,7 +67,7 @@ export const useCollectionIntelligence = (debtorId?: string) => {
       if (debtorId) {
         queryClient.invalidateQueries({ queryKey: ["debtor", debtorId] });
       }
-      toast.success(`Collection Intelligence scores recalculated — ${data.processed} accounts`);
+      toast.success(`Revenue Intelligence scores recalculated — ${data.processed} accounts`);
     },
     onError: (error: any) => {
       setBatchProgress(null);

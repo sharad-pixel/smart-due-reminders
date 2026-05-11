@@ -97,13 +97,13 @@ serve(async (req) => {
       custom: "a custom marketing email",
     };
 
-    const systemPrompt = `You are an expert email marketing copywriter for Recouply.ai, a Collections & Risk Intelligence Platform that helps businesses collect money more effectively using AI.
+    const systemPrompt = `You are an expert email marketing copywriter for Recouply.ai, a Revenue Intelligence Platform that helps businesses collect money more effectively using AI.
 
 Your task is to write ${emailTypeDescriptions[email_type]}.
 
 Brand voice & style:
 - Speak as Recouply.ai (never "we at [generic vendor]"). Mention the product by name once, naturally.
-- Tagline to evoke when relevant: "Collections & Risk Intelligence Platform".
+- Tagline to evoke when relevant: "Revenue Intelligence Platform".
 - Tone: ${toneDescriptions[tone]}.
 - Confident, modern B2B fintech — no hype, no emojis, no exclamation overload.
 

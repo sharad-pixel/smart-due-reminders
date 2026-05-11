@@ -6,7 +6,7 @@ const CollectionsCRM = () => {
   return (
     <MarketingLayout>
       <SEOHead
-        title="Collections CRM | AI-Powered Collections & Risk Intelligence CRM — Recouply.ai"
+        title="Collections CRM | AI-Powered Revenue Intelligence CRM — Recouply.ai"
         description="Recouply.ai is the Collections CRM built for finance teams. Centralize receivables, prioritize by risk, automate outreach, and maintain a full audit trail — replacing spreadsheets and legacy tools with an intelligent system of record."
         keywords="collections CRM, accounts receivable CRM, AI collections CRM, collections management software, AR CRM platform, collections system of record, receivables CRM, debt collection CRM, B2B collections CRM, collections workflow CRM"
         canonical="https://recouply.ai/collections-crm"
@@ -83,7 +83,7 @@ const CollectionsCRM = () => {
           <h2 className="text-2xl font-semibold text-foreground mb-6">Explore More</h2>
           <ul className="grid sm:grid-cols-2 gap-4 text-base">
             <li><Link to="/features" className="text-primary hover:underline">Platform Features →</Link></li>
-            <li><Link to="/collection-intelligence" className="text-primary hover:underline">Collection Intelligence →</Link></li>
+            <li><Link to="/collection-intelligence" className="text-primary hover:underline">Revenue Intelligence →</Link></li>
             <li><Link to="/ai-collections-platform" className="text-primary hover:underline">AI Collections Platform →</Link></li>
             <li><Link to="/revenue-risk-intelligence" className="text-primary hover:underline">Revenue Risk Intelligence →</Link></li>
             <li><Link to="/automation" className="text-primary hover:underline">Automation & Workflows →</Link></li>

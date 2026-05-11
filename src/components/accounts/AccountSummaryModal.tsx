@@ -201,7 +201,7 @@ const AccountSummaryModal = ({ open, onOpenChange, debtor }: AccountSummaryModal
         setIntelligenceGeneratedAt(data.intelligenceGeneratedAt || new Date().toISOString());
       }
       
-      toast.success("AI outreach generated based on Collection Intelligence Report");
+      toast.success("AI outreach generated based on Revenue Intelligence Report");
     } catch (error: any) {
       console.error("Error generating AI outreach:", error);
       toast.error(error.message || "Failed to generate AI outreach");
@@ -427,7 +427,7 @@ const AccountSummaryModal = ({ open, onOpenChange, debtor }: AccountSummaryModal
                 {aiGenerated && (
                   <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 dark:bg-green-950 p-3 rounded-lg">
                     <CheckCircle2 className="h-4 w-4" />
-                    <span>AI-generated outreach based on Collection Intelligence Report. You can edit before sending.</span>
+                    <span>AI-generated outreach based on Revenue Intelligence Report. You can edit before sending.</span>
                   </div>
                 )}
                 
@@ -444,7 +444,7 @@ const AccountSummaryModal = ({ open, onOpenChange, debtor }: AccountSummaryModal
                       <div className="flex items-center justify-between flex-wrap gap-2">
                         <div className="flex items-center gap-2">
                           <Brain className="h-4 w-4 text-primary" />
-                          <span className="font-semibold text-sm">Collection Intelligence Report</span>
+                          <span className="font-semibold text-sm">Revenue Intelligence Report</span>
                         </div>
                         <div className="flex items-center gap-2">
                           {intelligenceGeneratedAt && (

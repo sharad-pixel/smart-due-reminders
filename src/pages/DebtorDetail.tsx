@@ -1111,7 +1111,7 @@ const DebtorDetail = () => {
         {/* Customer Intelligence Data for AI */}
         <CustomerAIContext debtorId={debtor.id} />
 
-        {/* Collection Intelligence Panel (Consolidated Scorecard + Report) */}
+        {/* Revenue Intelligence Panel (Consolidated Scorecard + Report) */}
         <AccountIntelligencePanel 
           debtorId={debtor.id} 
           debtorName={debtor.company_name || debtor.name}
