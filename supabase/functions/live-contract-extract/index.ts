@@ -503,31 +503,31 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Suggested customer matches against debtors table
+    // Suggested customer matches against debtors table. Pull a bounded account list and
+    // score in-code so minor legal suffix/name variations still match existing customers.
     const cust = extracted.customer || {};
-    const candidates: any[] = [];
-    const seen = new Set<string>();
-    const addCandidates = async (q: any, score: number, reason: string) => {
-      let query = supabase.from("debtors").select("id,company_name,email").eq("user_id", imp.account_id).limit(5);
-      if (q.legal) query = query.ilike("company_name", `%${q.legal}%`);
-      else if (q.email) query = query.ilike("email", `%${q.email}%`);
-      else return;
-      const { data, error } = await query;
-      if (error) throw new Error(`Customer match lookup failed: ${error.message}`);
-      for (const d of data || []) {
-        if (seen.has(d.id)) continue;
-        seen.add(d.id);
-        candidates.push({
-          account_id: imp.account_id, import_id: imp.id,
-          candidate_debtor_id: d.id, match_score: score,
-          match_reasons: { reason, name: d.company_name, email: d.email },
-        });
-      }
-    };
-    if (cust.legal_name) await addCandidates({ legal: cust.legal_name }, 80, "legal_name_match");
-    if (cust.dba_name) await addCandidates({ legal: cust.dba_name }, 60, "dba_match");
-    if (cust.email_domain) await addCandidates({ email: cust.email_domain }, 50, "email_domain");
-    if (candidates.length) await supabase.from("contract_customer_matches").insert(candidates);
+    const { data: accountDebtors, error: debtorLookupError } = await supabase
+      .from("debtors")
+      .select("id,company_name,name,email")
+      .eq("user_id", imp.account_id)
+      .limit(1000);
+    if (debtorLookupError) throw new Error(`Customer match lookup failed: ${debtorLookupError.message}`);
+    const candidates = (accountDebtors || [])
+      .map((d: any) => ({ debtor: d, match: scoreCustomerMatch(cust, d) }))
+      .filter(({ match }: any) => match.score >= 50)
+      .sort((a: any, b: any) => b.match.score - a.match.score)
+      .slice(0, 5)
+      .map(({ debtor, match }: any) => ({
+        account_id: imp.account_id,
+        import_id: imp.id,
+        candidate_debtor_id: debtor.id,
+        match_score: match.score,
+        match_reasons: { reason: match.reason, name: debtor.company_name || debtor.name, email: debtor.email },
+      }));
+    if (candidates.length) {
+      const { error: matchInsertError } = await supabase.from("contract_customer_matches").insert(candidates);
+      if (matchInsertError) throw new Error(`Save customer matches failed: ${matchInsertError.message}`);
+    }
 
     // Mark import for review
     await supabase.from("live_contract_imports").update({
