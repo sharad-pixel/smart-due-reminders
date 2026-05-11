@@ -91,7 +91,7 @@ Deno.serve(async (req) => {
           const refId = `LC-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
           const { data: created, error: cErr } = await supabase.from("debtors").insert({
             account_id: imp.account_id,
-            user_id: user.id,
+            user_id: imp.account_id,
             company_name: resolvedNewDebtor.company_name,
             name: resolvedNewDebtor.company_name,
             email: emailValue,
