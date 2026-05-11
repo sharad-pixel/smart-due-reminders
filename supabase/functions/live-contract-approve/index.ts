@@ -100,6 +100,7 @@ Deno.serve(async (req) => {
       let finalDebtorId = debtorId;
       let createdNew = false;
       let resolvedNewDebtor = newDebtor;
+      let extractedCustomer: any = {};
 
       // Auto-fallback: if no debtor selected and no manual newDebtor payload,
       // build one from the extracted customer fields so an account is always created.
@@ -111,31 +112,67 @@ Deno.serve(async (req) => {
           .order("extracted_at", { ascending: false })
           .limit(1)
           .maybeSingle();
-        const cust = (extraction?.ai_response as any)?.customer || {};
-        const company = cust.legal_name || cust.dba_name || cust.billing_entity || imp.contract_name || imp.file_name;
+        extractedCustomer = (extraction?.ai_response as any)?.customer || {};
+        const company = extractedCustomer.legal_name || extractedCustomer.dba_name || extractedCustomer.billing_entity || imp.contract_name || imp.file_name;
         if (company) {
-          const emailGuess = cust.billing_contact || cust.primary_contact ||
-            (cust.email_domain ? `billing@${String(cust.email_domain).replace(/^@/, "")}` : null);
+          const emailGuess = extractedCustomer.billing_contact || extractedCustomer.primary_contact ||
+            (extractedCustomer.email_domain ? `billing@${String(extractedCustomer.email_domain).replace(/^@/, "")}` : null);
           resolvedNewDebtor = {
             company_name: company,
             primary_email: emailGuess,
             phone: null,
-            address: cust.address || null,
+            address: extractedCustomer.address || null,
           };
         }
       }
 
       if (!finalDebtorId && resolvedNewDebtor && resolvedNewDebtor.company_name) {
-        // De-dupe: try exact case-insensitive match on company_name within account before creating
-        const { data: existing } = await supabase
+        // De-dupe: first try saved extraction matches, then score existing customers
+        // before creating a new account from contract information.
+        const { data: savedMatch } = await supabase
+          .from("contract_customer_matches")
+          .select("candidate_debtor_id,match_score")
+          .eq("import_id", imp.id)
+          .gte("match_score", 75)
+          .order("match_score", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (savedMatch?.candidate_debtor_id) {
+          finalDebtorId = savedMatch.candidate_debtor_id;
+          await supabase.from("live_contract_audit_log").insert({ account_id: imp.account_id, user_id: user.id, import_id: imp.id, event_type: "customer_matched", event_details: { debtor_id: finalDebtorId, via: "saved_match", score: savedMatch.match_score } });
+        }
+
+        if (!finalDebtorId) {
+          const matchBasis = { ...extractedCustomer, ...resolvedNewDebtor };
+          const { data: existing, error: existingErr } = await supabase
+            .from("debtors")
+            .select("id,company_name,name,email")
+            .eq("user_id", imp.account_id)
+            .limit(1000);
+          if (existingErr) throw new Error(`Customer lookup: ${existingErr.message}`);
+          const best = (existing || [])
+            .map((d: any) => ({ debtor: d, score: scoreCustomerMatch(matchBasis, d) }))
+            .sort((a: any, b: any) => b.score - a.score)[0];
+          if (best?.score >= 75) {
+            finalDebtorId = best.debtor.id;
+            await supabase.from("live_contract_audit_log").insert({ account_id: imp.account_id, user_id: user.id, import_id: imp.id, event_type: "customer_matched", event_details: { debtor_id: finalDebtorId, via: "scored_match", score: best.score } });
+          }
+        }
+
+        if (!finalDebtorId) {
+          const { data: exactExisting } = await supabase
           .from("debtors")
           .select("id")
           .eq("user_id", imp.account_id)
           .ilike("company_name", resolvedNewDebtor.company_name)
           .limit(1)
           .maybeSingle();
-        if (existing?.id) {
-          finalDebtorId = existing.id;
+          if (exactExisting?.id) {
+            finalDebtorId = exactExisting.id;
+          }
+        }
+
+        if (finalDebtorId) {
           await supabase.from("live_contract_audit_log").insert({ account_id: imp.account_id, user_id: user.id, import_id: imp.id, event_type: "customer_matched", event_details: { debtor_id: finalDebtorId, via: "name_dedupe" } });
         } else {
           const emailValue = resolvedNewDebtor.primary_email || `noreply+${crypto.randomUUID().slice(0, 8)}@unknown.local`;
