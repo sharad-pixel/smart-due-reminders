@@ -200,13 +200,69 @@ Deno.serve(async (req) => {
       const { data: file } = await supabase.storage.from("live-contracts").download(imp.storage_path);
       if (file) {
         const buf = new Uint8Array(await file.arrayBuffer());
-        text = new TextDecoder("utf-8", { fatal: false }).decode(buf.slice(0, 200_000));
+        const mime = (imp.mime_type || "").toLowerCase();
+        const name = (imp.file_name || "").toLowerCase();
+        const isPdf = mime.includes("pdf") || name.endsWith(".pdf");
+        const isDocx = mime.includes("officedocument.wordprocessingml") || name.endsWith(".docx");
+
+        if (isPdf) {
+          await supabase.from("live_contract_imports").update({ status: "ocr_processing" }).eq("id", imp.id);
+          try {
+            const pdfParse = (await import("npm:pdf-parse@1.1.1/lib/pdf-parse.js")).default;
+            const { Buffer } = await import("node:buffer");
+            const parsed = await pdfParse(Buffer.from(buf));
+            text = parsed.text || "";
+            log("PDF parsed", { len: text.length });
+          } catch (e) {
+            log("pdf-parse failed", { err: String(e) });
+          }
+
+          // OCR fallback via Lovable AI Gateway (Gemini multimodal) for scanned PDFs
+          const letters = (text.match(/[a-zA-Z]/g) || []).length;
+          if (text.length < 500 || letters < 100) {
+            log("Native PDF text low-quality, trying vision OCR");
+            try {
+              let bin = "";
+              for (let i = 0; i < buf.length; i++) bin += String.fromCharCode(buf[i]);
+              const b64 = btoa(bin);
+              const visionRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+                method: "POST",
+                headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  model: "google/gemini-2.5-flash",
+                  messages: [{
+                    role: "user",
+                    content: [
+                      { type: "text", text: "Extract ALL text from this contract PDF. Return only the raw extracted text, preserving order." },
+                      { type: "image_url", image_url: { url: `data:application/pdf;base64,${b64}` } },
+                    ],
+                  }],
+                }),
+              });
+              if (visionRes.ok) {
+                const vd = await visionRes.json();
+                const visionText = vd.choices?.[0]?.message?.content || "";
+                if (visionText.length > text.length) text = visionText;
+                log("Vision OCR done", { len: text.length });
+              } else {
+                log("Vision OCR failed", { status: visionRes.status, body: await visionRes.text() });
+              }
+            } catch (e) {
+              log("Vision OCR error", { err: String(e) });
+            }
+          }
+        } else if (isDocx) {
+          // DOCX: best-effort, decode embedded XML strings
+          text = new TextDecoder("utf-8", { fatal: false }).decode(buf).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+        } else {
+          text = new TextDecoder("utf-8", { fatal: false }).decode(buf.slice(0, 200_000));
+        }
       }
     }
 
     if (!text || text.length < 50) {
       await supabase.from("live_contract_imports").update({ status: "failed", error: "Could not extract text from file" }).eq("id", imp.id);
-      throw new Error("No extractable text. PDF/DOCX OCR not enabled for this file.");
+      throw new Error("No extractable text. The PDF appears to be empty or unreadable.");
     }
 
     log("Calling AI", { textLen: text.length });
