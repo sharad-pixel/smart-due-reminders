@@ -259,13 +259,13 @@ const Layout = ({ children }: LayoutProps) => {
     { path: "/invoices", label: "Invoices", icon: FileText },
     { path: "/payments", label: "Payments", icon: DollarSign },
     { path: "/data-center", label: "Data Center", icon: Database },
-    ...(clmActive
-      ? [
-          { path: "/contracts", label: "Contracts", icon: FileSignature },
-          { path: "/contracts/live", label: "Live Contracts (OCR)", icon: FileSearch },
-        ]
-      : []),
   ];
+
+  const clmItems = [
+    { path: "/contracts", label: "Contracts", icon: FileSignature },
+    { path: "/contracts/live", label: "Live Contracts (OCR)", icon: FileSearch },
+  ];
+  const isAnyClmActive = clmItems.some(item => isActive(item.path));
 
   const aiToolsItems = [
     { path: "/settings/ai-workflows", label: "AI Workflows", icon: Workflow },
@@ -279,7 +279,7 @@ const Layout = ({ children }: LayoutProps) => {
   ];
 
   // Mobile nav items - excludes admin/settings items since they're in user dropdown
-  const mobileNavItems = [...coreNavItems, ...aiToolsItems];
+  const mobileNavItems = [...coreNavItems, ...aiToolsItems, ...(clmActive ? clmItems : [])];
 
   const isAnyAIToolActive = aiToolsItems.some(item => isActive(item.path));
 
@@ -388,6 +388,45 @@ const Layout = ({ children }: LayoutProps) => {
                     })}
                   </DropdownMenuContent>
               </DropdownMenu>
+
+              {/* CLM Dropdown */}
+              {clmActive && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={`flex items-center gap-1.5 px-3 py-2 h-auto text-sm font-medium ${
+                        isAnyClmActive
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                      }`}
+                    >
+                      <FileSignature className="h-4 w-4 shrink-0" />
+                      <span>CLM</span>
+                      <ChevronDown className="h-3 w-3 shrink-0" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-56 z-[110] bg-card border shadow-lg">
+                    {clmItems.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <DropdownMenuItem key={item.path} asChild>
+                          <Link
+                            to={item.path}
+                            className={`flex items-center gap-2 cursor-pointer ${
+                              isActive(item.path) ? "bg-accent" : ""
+                            }`}
+                          >
+                            <Icon className="h-4 w-4" />
+                            <span>{item.label}</span>
+                          </Link>
+                        </DropdownMenuItem>
+                      );
+                    })}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
               </div>
             </div>
             
