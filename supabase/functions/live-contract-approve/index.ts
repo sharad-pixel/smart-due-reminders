@@ -95,10 +95,12 @@ Deno.serve(async (req) => {
             company_name: resolvedNewDebtor.company_name,
             name: resolvedNewDebtor.company_name,
             email: emailValue,
-            primary_email: resolvedNewDebtor.primary_email || null,
             phone: resolvedNewDebtor.phone || null,
+            address: resolvedNewDebtor.address || null,
             billing_address_line1: resolvedNewDebtor.address || null,
             reference_id: refId,
+            source_system: "live_contract",
+            integration_source: "live_contract",
           }).select("id").single();
           if (cErr) throw new Error(`Create debtor: ${cErr.message}`);
           finalDebtorId = created.id;
