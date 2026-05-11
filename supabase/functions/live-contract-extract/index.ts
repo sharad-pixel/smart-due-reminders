@@ -7,6 +7,39 @@ const corsHeaders = {
 
 const log = (s: string, d?: unknown) => console.log(`[LC-EXTRACT] ${s}${d ? " " + JSON.stringify(d) : ""}`);
 
+function parseJsonFromText(text: string, label: string): any {
+  const cleaned = text
+    .replace(/```json\s*/gi, "")
+    .replace(/```/g, "")
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "")
+    .trim();
+
+  if (!cleaned) throw new Error(`${label} returned an empty response`);
+
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    const start = cleaned.search(/[\[{]/);
+    if (start === -1) throw new Error(`${label} returned non-JSON content: ${cleaned.slice(0, 180)}`);
+
+    const end = Math.max(cleaned.lastIndexOf("}"), cleaned.lastIndexOf("]"));
+    if (end <= start) throw new Error(`${label} returned malformed JSON: ${cleaned.slice(0, 180)}`);
+
+    const candidate = cleaned.slice(start, end + 1).replace(/,\s*([}\]])/g, "$1");
+    try {
+      return JSON.parse(candidate);
+    } catch (e) {
+      throw new Error(`${label} returned invalid JSON: ${String(e)}`);
+    }
+  }
+}
+
+async function parseJsonResponse(res: Response, label: string): Promise<any> {
+  const text = await res.text();
+  if (!res.ok) throw new Error(`${label} ${res.status}: ${text.slice(0, 500)}`);
+  return parseJsonFromText(text, label);
+}
+
 async function refreshToken(supabase: any, conn: any, clientId: string, clientSecret: string) {
   const res = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
