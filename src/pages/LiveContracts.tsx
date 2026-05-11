@@ -537,7 +537,7 @@ function PostImportActions({ importId, schedules, dates }: { importId: string; s
       const { data, error } = await supabase.functions.invoke("live-contract-actions", {
         body: { importId, action: "generate_invoices", scheduleIds: Array.from(selected) },
       });
-      if (error) throw error;
+      if (error) await throwFunctionError(error, "Generate invoices failed");
       if (data?.error) throw new Error(data.error);
       return data;
     },
@@ -556,7 +556,7 @@ function PostImportActions({ importId, schedules, dates }: { importId: string; s
       const { data, error } = await supabase.functions.invoke("live-contract-actions", {
         body: { importId, action: "set_alerts", dates: payload },
       });
-      if (error) throw error;
+      if (error) await throwFunctionError(error, "Save alerts failed");
       if (data?.error) throw new Error(data.error);
       return data;
     },
