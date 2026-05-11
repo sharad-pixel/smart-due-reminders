@@ -259,13 +259,13 @@ const Layout = ({ children }: LayoutProps) => {
     { path: "/invoices", label: "Invoices", icon: FileText },
     { path: "/payments", label: "Payments", icon: DollarSign },
     { path: "/data-center", label: "Data Center", icon: Database },
-    ...(clmActive
-      ? [
-          { path: "/contracts", label: "Contracts", icon: FileSignature },
-          { path: "/contracts/live", label: "Live Contracts (OCR)", icon: FileSearch },
-        ]
-      : []),
   ];
+
+  const clmItems = [
+    { path: "/contracts", label: "Contracts", icon: FileSignature },
+    { path: "/contracts/live", label: "Live Contracts (OCR)", icon: FileSearch },
+  ];
+  const isAnyClmActive = clmItems.some(item => isActive(item.path));
 
   const aiToolsItems = [
     { path: "/settings/ai-workflows", label: "AI Workflows", icon: Workflow },
