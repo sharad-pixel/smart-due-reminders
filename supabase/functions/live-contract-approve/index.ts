@@ -10,6 +10,57 @@ const json = (body: any, status = 200) => new Response(JSON.stringify(body), {
   headers: { ...corsHeaders, "Content-Type": "application/json" },
 });
 
+function normalizeCompanyName(value?: string | null): string {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/\b(incorporated|inc|llc|l\.l\.c|corp|corporation|co|company|ltd|limited|plc|systems|system)\b/g, "")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function extractEmailDomain(value?: string | null): string | null {
+  const text = String(value || "").toLowerCase();
+  const match = text.match(/[a-z0-9._%+-]+@([a-z0-9.-]+\.[a-z]{2,})/i);
+  if (match?.[1]) return match[1].replace(/^www\./, "");
+  const domain = text.replace(/^@/, "").replace(/^www\./, "").trim();
+  return /^[a-z0-9.-]+\.[a-z]{2,}$/i.test(domain) ? domain : null;
+}
+
+function tokenOverlap(a: string, b: string): number {
+  const aTokens = new Set(a.split(" ").filter((t) => t.length > 2));
+  const bTokens = new Set(b.split(" ").filter((t) => t.length > 2));
+  if (!aTokens.size || !bTokens.size) return 0;
+  let matches = 0;
+  for (const token of aTokens) if (bTokens.has(token)) matches += 1;
+  return matches / Math.max(aTokens.size, bTokens.size);
+}
+
+function scoreCustomerMatch(cust: any, debtor: any): number {
+  const extractedNames = [cust.legal_name, cust.dba_name, cust.billing_entity, cust.company_name].filter(Boolean).map(normalizeCompanyName);
+  const debtorNames = [debtor.company_name, debtor.name].filter(Boolean).map(normalizeCompanyName);
+  let score = 0;
+  for (const extracted of extractedNames) {
+    for (const candidate of debtorNames) {
+      if (!extracted || !candidate) continue;
+      if (extracted === candidate) score = Math.max(score, 95);
+      else if (extracted.length > 6 && candidate.length > 6 && (extracted.includes(candidate) || candidate.includes(extracted))) score = Math.max(score, 85);
+      else {
+        const overlap = tokenOverlap(extracted, candidate);
+        if (overlap >= 0.75) score = Math.max(score, 75);
+        else if (overlap >= 0.5) score = Math.max(score, 60);
+      }
+    }
+  }
+  const extractedDomains = [cust.email_domain, cust.billing_contact, cust.primary_contact, cust.legal_contact, cust.procurement_contact, cust.primary_email]
+    .map(extractEmailDomain)
+    .filter(Boolean);
+  const debtorDomain = extractEmailDomain(debtor.email);
+  if (debtorDomain && extractedDomains.includes(debtorDomain) && !["gmail.com", "yahoo.com", "outlook.com", "hotmail.com"].includes(debtorDomain)) score = Math.max(score, 90);
+  return score;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
