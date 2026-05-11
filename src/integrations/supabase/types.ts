@@ -3387,36 +3387,45 @@ export type Database = {
       contract_critical_dates: {
         Row: {
           account_id: string
+          alert_enabled: boolean
+          alert_lead_days: number
           created_at: string
           date_type: string
           debtor_id: string | null
           due_date: string
           id: string
           import_id: string
+          last_alerted_at: string | null
           notice_days: number | null
           risk_level: string | null
           status: string
         }
         Insert: {
           account_id: string
+          alert_enabled?: boolean
+          alert_lead_days?: number
           created_at?: string
           date_type: string
           debtor_id?: string | null
           due_date: string
           id?: string
           import_id: string
+          last_alerted_at?: string | null
           notice_days?: number | null
           risk_level?: string | null
           status?: string
         }
         Update: {
           account_id?: string
+          alert_enabled?: boolean
+          alert_lead_days?: number
           created_at?: string
           date_type?: string
           debtor_id?: string | null
           due_date?: string
           id?: string
           import_id?: string
+          last_alerted_at?: string | null
           notice_days?: number | null
           risk_level?: string | null
           status?: string
@@ -3484,6 +3493,8 @@ export type Database = {
           expected_due_date: string | null
           id: string
           import_id: string
+          invoice_created_at: string | null
+          invoice_id: string | null
           payment_terms: string | null
           scheduled_date: string
           service_period_end: string | null
@@ -3501,6 +3512,8 @@ export type Database = {
           expected_due_date?: string | null
           id?: string
           import_id: string
+          invoice_created_at?: string | null
+          invoice_id?: string | null
           payment_terms?: string | null
           scheduled_date: string
           service_period_end?: string | null
@@ -3518,6 +3531,8 @@ export type Database = {
           expected_due_date?: string | null
           id?: string
           import_id?: string
+          invoice_created_at?: string | null
+          invoice_id?: string | null
           payment_terms?: string | null
           scheduled_date?: string
           service_period_end?: string | null
@@ -3530,6 +3545,13 @@ export type Database = {
             columns: ["import_id"]
             isOneToOne: false
             referencedRelation: "live_contract_imports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_invoice_schedules_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
             referencedColumns: ["id"]
           },
         ]

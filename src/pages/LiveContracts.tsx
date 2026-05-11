@@ -17,10 +17,12 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { openFolderPicker } from "@/lib/googlePicker";
+import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   FolderPlus, RefreshCw, Upload, FileText, Sparkles, AlertTriangle, CalendarClock,
   CheckCircle2, XCircle, FileSearch, Building2, DollarSign, Receipt, Loader2,
-  ShieldAlert, Clock, ClipboardList,
+  ShieldAlert, Clock, ClipboardList, BellRing, Wand2, ExternalLink,
 } from "lucide-react";
 
 // ------- Status helpers -------
@@ -489,6 +491,173 @@ function ImportsTable({ imports, onReview, statusFilter }: { imports: any[]; onR
   );
 }
 
+// ------- Post-import actions (invoices + alerts) -------
+function PostImportActions({ importId, schedules, dates }: { importId: string; schedules: any[]; dates: any[] }) {
+  const qc = useQueryClient();
+  const pendingSchedules = useMemo(() => schedules.filter((s) => !s.invoice_id && s.amount), [schedules]);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [alertCfg, setAlertCfg] = useState<Record<string, { enabled: boolean; lead: number }>>(() => {
+    const init: Record<string, { enabled: boolean; lead: number }> = {};
+    dates.forEach((d) => { init[d.id] = { enabled: !!d.alert_enabled, lead: d.alert_lead_days || 30 }; });
+    return init;
+  });
+
+  const allSelected = pendingSchedules.length > 0 && pendingSchedules.every((s) => selected.has(s.id));
+  const toggleAll = () => setSelected(allSelected ? new Set() : new Set(pendingSchedules.map((s) => s.id)));
+
+  const genInvoices = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke("live-contract-actions", {
+        body: { importId, action: "generate_invoices", scheduleIds: Array.from(selected) },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: (d: any) => {
+      toast.success(`Generated ${d.created} invoice${d.created === 1 ? "" : "s"}${d.skipped?.length ? ` · ${d.skipped.length} skipped` : ""}`);
+      setSelected(new Set());
+      qc.invalidateQueries({ queryKey: ["lc-review", importId] });
+      qc.invalidateQueries({ queryKey: ["lc-imports"] });
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const saveAlerts = useMutation({
+    mutationFn: async () => {
+      const payload = Object.entries(alertCfg).map(([id, v]) => ({ id, enabled: v.enabled, lead_days: v.lead }));
+      const { data, error } = await supabase.functions.invoke("live-contract-actions", {
+        body: { importId, action: "set_alerts", dates: payload },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: (d: any) => {
+      toast.success(`Alerts saved · ${d.fired} sent now${d.fired ? "" : " (none due yet)"}`);
+      qc.invalidateQueries({ queryKey: ["lc-review", importId] });
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  return (
+    <Card className="border-primary/30 bg-primary/[0.02]">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base flex items-center gap-2">
+          <Wand2 className="h-4 w-4 text-primary" /> Post-import actions
+        </CardTitle>
+        <CardDescription>Turn this contract into Recouply invoices and renewal/opt-out alerts.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Invoices */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Receipt className="h-4 w-4 text-emerald-600" />
+              <span className="text-sm font-medium">Generate Recouply invoices</span>
+              <Badge variant="outline" className="text-xs">{pendingSchedules.length} pending</Badge>
+            </div>
+            {pendingSchedules.length > 0 && (
+              <button type="button" className="text-xs text-primary hover:underline" onClick={toggleAll}>
+                {allSelected ? "Deselect all" : "Select all"}
+              </button>
+            )}
+          </div>
+          {schedules.length === 0 ? (
+            <p className="text-xs text-muted-foreground">No invoice schedule was extracted from this contract.</p>
+          ) : (
+            <div className="space-y-1.5 max-h-56 overflow-y-auto rounded border bg-background">
+              {schedules.map((s) => (
+                <div key={s.id} className="flex items-center gap-3 p-2 text-sm border-b last:border-b-0">
+                  {s.invoice_id ? (
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                  ) : (
+                    <Checkbox
+                      checked={selected.has(s.id)}
+                      onCheckedChange={(c) => {
+                        const next = new Set(selected);
+                        if (c) next.add(s.id); else next.delete(s.id);
+                        setSelected(next);
+                      }}
+                      disabled={!s.amount}
+                    />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium truncate">{s.scheduled_date} · {s.billing_type || "invoice"}</div>
+                    <div className="text-xs text-muted-foreground truncate">
+                      {s.description || "—"}
+                      {s.expected_due_date && ` · due ${s.expected_due_date}`}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-semibold">{s.amount ? `${s.currency || "USD"} ${Number(s.amount).toLocaleString()}` : "—"}</div>
+                    {s.invoice_id && <div className="text-[10px] text-emerald-700">Invoice created</div>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <Button
+            size="sm"
+            className="mt-3"
+            onClick={() => genInvoices.mutate()}
+            disabled={selected.size === 0 || genInvoices.isPending}
+          >
+            {genInvoices.isPending ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5 mr-1.5" />}
+            Generate {selected.size > 0 ? `${selected.size} ` : ""}invoice{selected.size === 1 ? "" : "s"}
+          </Button>
+        </div>
+
+        {/* Alerts */}
+        <div className="border-t pt-4">
+          <div className="flex items-center gap-2 mb-2">
+            <BellRing className="h-4 w-4 text-amber-600" />
+            <span className="text-sm font-medium">Renewal, opt-out & milestone alerts</span>
+          </div>
+          {dates.length === 0 ? (
+            <p className="text-xs text-muted-foreground">No critical dates were extracted from this contract.</p>
+          ) : (
+            <div className="space-y-2">
+              {dates.map((d) => {
+                const cfg = alertCfg[d.id] || { enabled: false, lead: 30 };
+                return (
+                  <div key={d.id} className="flex items-center gap-3 p-2 rounded border bg-background text-sm">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium capitalize">{d.date_type.replace(/_/g, " ")}</div>
+                      <div className="text-xs text-muted-foreground">Due {d.due_date}{d.risk_level ? ` · ${d.risk_level} risk` : ""}</div>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <span className="text-muted-foreground">Notify</span>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={365}
+                        value={cfg.lead}
+                        onChange={(e) => setAlertCfg({ ...alertCfg, [d.id]: { ...cfg, lead: Number(e.target.value) || 30 } })}
+                        className="h-7 w-16 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        disabled={!cfg.enabled}
+                      />
+                      <span className="text-muted-foreground">days before</span>
+                    </div>
+                    <Switch
+                      checked={cfg.enabled}
+                      onCheckedChange={(v) => setAlertCfg({ ...alertCfg, [d.id]: { ...cfg, enabled: v } })}
+                    />
+                  </div>
+                );
+              })}
+              <Button size="sm" variant="outline" onClick={() => saveAlerts.mutate()} disabled={saveAlerts.isPending}>
+                {saveAlerts.isPending ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <BellRing className="h-3.5 w-3.5 mr-1.5" />}
+                Save alert settings
+              </Button>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 // ------- Review drawer -------
 function ReviewDrawer({ importId, onClose }: { importId: string | null; onClose: () => void }) {
   const qc = useQueryClient();
@@ -681,6 +850,11 @@ function ReviewDrawer({ importId, onClose }: { importId: string | null; onClose:
             )}
 
             {/* Actions */}
+            {/* Post-import actions: invoices + alerts */}
+            {(data.imp.status === "imported" || data.imp.status === "approved") && (
+              <PostImportActions importId={data.imp.id} schedules={data.schedules} dates={data.dates} />
+            )}
+
             {data.imp.status === "needs_review" && (
               <div className="flex gap-2 sticky bottom-0 bg-background pt-3 border-t">
                 <Button variant="outline" onClick={() => reject.mutate()} disabled={reject.isPending}>
