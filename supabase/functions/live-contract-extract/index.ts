@@ -193,6 +193,63 @@ function calcDate(d?: string): Date | null {
 
 function fmtDate(d: Date): string { return d.toISOString().slice(0, 10); }
 
+function normalizeCompanyName(value?: string | null): string {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/\b(incorporated|inc|llc|l\.l\.c|corp|corporation|co|company|ltd|limited|plc|systems|system)\b/g, "")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function extractEmailDomain(value?: string | null): string | null {
+  const text = String(value || "").toLowerCase();
+  const match = text.match(/[a-z0-9._%+-]+@([a-z0-9.-]+\.[a-z]{2,})/i);
+  if (match?.[1]) return match[1].replace(/^www\./, "");
+  const domain = text.replace(/^@/, "").replace(/^www\./, "").trim();
+  return /^[a-z0-9.-]+\.[a-z]{2,}$/i.test(domain) ? domain : null;
+}
+
+function tokenOverlap(a: string, b: string): number {
+  const aTokens = new Set(a.split(" ").filter((t) => t.length > 2));
+  const bTokens = new Set(b.split(" ").filter((t) => t.length > 2));
+  if (!aTokens.size || !bTokens.size) return 0;
+  let matches = 0;
+  for (const token of aTokens) if (bTokens.has(token)) matches += 1;
+  return matches / Math.max(aTokens.size, bTokens.size);
+}
+
+function scoreCustomerMatch(cust: any, debtor: any): { score: number; reason: string } {
+  const extractedNames = [cust.legal_name, cust.dba_name, cust.billing_entity].filter(Boolean).map(normalizeCompanyName);
+  const debtorNames = [debtor.company_name, debtor.name].filter(Boolean).map(normalizeCompanyName);
+  let best = { score: 0, reason: "" };
+
+  for (const extracted of extractedNames) {
+    for (const candidate of debtorNames) {
+      if (!extracted || !candidate) continue;
+      if (extracted === candidate) best = { score: Math.max(best.score, 95), reason: "company_name_exact" };
+      else if (extracted.length > 6 && candidate.length > 6 && (extracted.includes(candidate) || candidate.includes(extracted))) {
+        best = { score: Math.max(best.score, 85), reason: "company_name_partial" };
+      } else {
+        const overlap = tokenOverlap(extracted, candidate);
+        if (overlap >= 0.75) best = { score: Math.max(best.score, 75), reason: "company_name_token_match" };
+        else if (overlap >= 0.5) best = { score: Math.max(best.score, 60), reason: "company_name_possible_match" };
+      }
+    }
+  }
+
+  const extractedDomains = [cust.email_domain, cust.billing_contact, cust.primary_contact, cust.legal_contact, cust.procurement_contact]
+    .map(extractEmailDomain)
+    .filter(Boolean);
+  const debtorDomain = extractEmailDomain(debtor.email);
+  if (debtorDomain && extractedDomains.includes(debtorDomain) && !["gmail.com", "yahoo.com", "outlook.com", "hotmail.com"].includes(debtorDomain)) {
+    best = { score: Math.max(best.score, 90), reason: best.score ? `${best.reason}+email_domain` : "email_domain" };
+  }
+
+  return best;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -446,31 +503,31 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Suggested customer matches against debtors table
+    // Suggested customer matches against debtors table. Pull a bounded account list and
+    // score in-code so minor legal suffix/name variations still match existing customers.
     const cust = extracted.customer || {};
-    const candidates: any[] = [];
-    const seen = new Set<string>();
-    const addCandidates = async (q: any, score: number, reason: string) => {
-      let query = supabase.from("debtors").select("id,company_name,email").eq("user_id", imp.account_id).limit(5);
-      if (q.legal) query = query.ilike("company_name", `%${q.legal}%`);
-      else if (q.email) query = query.ilike("email", `%${q.email}%`);
-      else return;
-      const { data, error } = await query;
-      if (error) throw new Error(`Customer match lookup failed: ${error.message}`);
-      for (const d of data || []) {
-        if (seen.has(d.id)) continue;
-        seen.add(d.id);
-        candidates.push({
-          account_id: imp.account_id, import_id: imp.id,
-          candidate_debtor_id: d.id, match_score: score,
-          match_reasons: { reason, name: d.company_name, email: d.email },
-        });
-      }
-    };
-    if (cust.legal_name) await addCandidates({ legal: cust.legal_name }, 80, "legal_name_match");
-    if (cust.dba_name) await addCandidates({ legal: cust.dba_name }, 60, "dba_match");
-    if (cust.email_domain) await addCandidates({ email: cust.email_domain }, 50, "email_domain");
-    if (candidates.length) await supabase.from("contract_customer_matches").insert(candidates);
+    const { data: accountDebtors, error: debtorLookupError } = await supabase
+      .from("debtors")
+      .select("id,company_name,name,email")
+      .eq("user_id", imp.account_id)
+      .limit(1000);
+    if (debtorLookupError) throw new Error(`Customer match lookup failed: ${debtorLookupError.message}`);
+    const candidates = (accountDebtors || [])
+      .map((d: any) => ({ debtor: d, match: scoreCustomerMatch(cust, d) }))
+      .filter(({ match }: any) => match.score >= 50)
+      .sort((a: any, b: any) => b.match.score - a.match.score)
+      .slice(0, 5)
+      .map(({ debtor, match }: any) => ({
+        account_id: imp.account_id,
+        import_id: imp.id,
+        candidate_debtor_id: debtor.id,
+        match_score: match.score,
+        match_reasons: { reason: match.reason, name: debtor.company_name || debtor.name, email: debtor.email },
+      }));
+    if (candidates.length) {
+      const { error: matchInsertError } = await supabase.from("contract_customer_matches").insert(candidates);
+      if (matchInsertError) throw new Error(`Save customer matches failed: ${matchInsertError.message}`);
+    }
 
     // Mark import for review
     await supabase.from("live_contract_imports").update({

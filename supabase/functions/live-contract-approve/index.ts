@@ -10,6 +10,57 @@ const json = (body: any, status = 200) => new Response(JSON.stringify(body), {
   headers: { ...corsHeaders, "Content-Type": "application/json" },
 });
 
+function normalizeCompanyName(value?: string | null): string {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/\b(incorporated|inc|llc|l\.l\.c|corp|corporation|co|company|ltd|limited|plc|systems|system)\b/g, "")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function extractEmailDomain(value?: string | null): string | null {
+  const text = String(value || "").toLowerCase();
+  const match = text.match(/[a-z0-9._%+-]+@([a-z0-9.-]+\.[a-z]{2,})/i);
+  if (match?.[1]) return match[1].replace(/^www\./, "");
+  const domain = text.replace(/^@/, "").replace(/^www\./, "").trim();
+  return /^[a-z0-9.-]+\.[a-z]{2,}$/i.test(domain) ? domain : null;
+}
+
+function tokenOverlap(a: string, b: string): number {
+  const aTokens = new Set(a.split(" ").filter((t) => t.length > 2));
+  const bTokens = new Set(b.split(" ").filter((t) => t.length > 2));
+  if (!aTokens.size || !bTokens.size) return 0;
+  let matches = 0;
+  for (const token of aTokens) if (bTokens.has(token)) matches += 1;
+  return matches / Math.max(aTokens.size, bTokens.size);
+}
+
+function scoreCustomerMatch(cust: any, debtor: any): number {
+  const extractedNames = [cust.legal_name, cust.dba_name, cust.billing_entity, cust.company_name].filter(Boolean).map(normalizeCompanyName);
+  const debtorNames = [debtor.company_name, debtor.name].filter(Boolean).map(normalizeCompanyName);
+  let score = 0;
+  for (const extracted of extractedNames) {
+    for (const candidate of debtorNames) {
+      if (!extracted || !candidate) continue;
+      if (extracted === candidate) score = Math.max(score, 95);
+      else if (extracted.length > 6 && candidate.length > 6 && (extracted.includes(candidate) || candidate.includes(extracted))) score = Math.max(score, 85);
+      else {
+        const overlap = tokenOverlap(extracted, candidate);
+        if (overlap >= 0.75) score = Math.max(score, 75);
+        else if (overlap >= 0.5) score = Math.max(score, 60);
+      }
+    }
+  }
+  const extractedDomains = [cust.email_domain, cust.billing_contact, cust.primary_contact, cust.legal_contact, cust.procurement_contact, cust.primary_email]
+    .map(extractEmailDomain)
+    .filter(Boolean);
+  const debtorDomain = extractEmailDomain(debtor.email);
+  if (debtorDomain && extractedDomains.includes(debtorDomain) && !["gmail.com", "yahoo.com", "outlook.com", "hotmail.com"].includes(debtorDomain)) score = Math.max(score, 90);
+  return score;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -49,10 +100,10 @@ Deno.serve(async (req) => {
       let finalDebtorId = debtorId;
       let createdNew = false;
       let resolvedNewDebtor = newDebtor;
+      let extractedCustomer: any = {};
+      let matchVia: string | null = null;
 
-      // Auto-fallback: if no debtor selected and no manual newDebtor payload,
-      // build one from the extracted customer fields so an account is always created.
-      if (!finalDebtorId && (!resolvedNewDebtor || !resolvedNewDebtor.company_name)) {
+      if (!finalDebtorId) {
         const { data: extraction } = await supabase
           .from("live_contract_extractions")
           .select("ai_response")
@@ -60,33 +111,77 @@ Deno.serve(async (req) => {
           .order("extracted_at", { ascending: false })
           .limit(1)
           .maybeSingle();
-        const cust = (extraction?.ai_response as any)?.customer || {};
-        const company = cust.legal_name || cust.dba_name || cust.billing_entity || imp.contract_name || imp.file_name;
+        extractedCustomer = (extraction?.ai_response as any)?.customer || {};
+      }
+
+      // Auto-fallback: if no debtor selected and no manual newDebtor payload,
+      // build one from the extracted customer fields so an account is always created.
+      if (!finalDebtorId && (!resolvedNewDebtor || !resolvedNewDebtor.company_name)) {
+        const company = extractedCustomer.legal_name || extractedCustomer.dba_name || extractedCustomer.billing_entity || imp.contract_name || imp.file_name;
         if (company) {
-          const emailGuess = cust.billing_contact || cust.primary_contact ||
-            (cust.email_domain ? `billing@${String(cust.email_domain).replace(/^@/, "")}` : null);
+          const emailGuess = extractedCustomer.billing_contact || extractedCustomer.primary_contact ||
+            (extractedCustomer.email_domain ? `billing@${String(extractedCustomer.email_domain).replace(/^@/, "")}` : null);
           resolvedNewDebtor = {
             company_name: company,
             primary_email: emailGuess,
             phone: null,
-            address: cust.address || null,
+            address: extractedCustomer.address || null,
           };
         }
       }
 
       if (!finalDebtorId && resolvedNewDebtor && resolvedNewDebtor.company_name) {
-        // De-dupe: try exact case-insensitive match on company_name within account before creating
-        const { data: existing } = await supabase
+        // De-dupe: first try saved extraction matches, then score existing customers
+        // before creating a new account from contract information.
+        const { data: savedMatch } = await supabase
+          .from("contract_customer_matches")
+          .select("candidate_debtor_id,match_score")
+          .eq("import_id", imp.id)
+          .gte("match_score", 75)
+          .order("match_score", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (savedMatch?.candidate_debtor_id) {
+          finalDebtorId = savedMatch.candidate_debtor_id;
+          matchVia = "saved_match";
+          await supabase.from("live_contract_audit_log").insert({ account_id: imp.account_id, user_id: user.id, import_id: imp.id, event_type: "customer_matched", event_details: { debtor_id: finalDebtorId, via: "saved_match", score: savedMatch.match_score } });
+        }
+
+        if (!finalDebtorId) {
+          const matchBasis = { ...extractedCustomer, ...resolvedNewDebtor };
+          const { data: existing, error: existingErr } = await supabase
+            .from("debtors")
+            .select("id,company_name,name,email")
+            .eq("user_id", imp.account_id)
+            .limit(1000);
+          if (existingErr) throw new Error(`Customer lookup: ${existingErr.message}`);
+          const best = (existing || [])
+            .map((d: any) => ({ debtor: d, score: scoreCustomerMatch(matchBasis, d) }))
+            .sort((a: any, b: any) => b.score - a.score)[0];
+          if (best?.score >= 75) {
+            finalDebtorId = best.debtor.id;
+            matchVia = "scored_match";
+            await supabase.from("live_contract_audit_log").insert({ account_id: imp.account_id, user_id: user.id, import_id: imp.id, event_type: "customer_matched", event_details: { debtor_id: finalDebtorId, via: "scored_match", score: best.score } });
+          }
+        }
+
+        if (!finalDebtorId) {
+          const { data: exactExisting } = await supabase
           .from("debtors")
           .select("id")
           .eq("user_id", imp.account_id)
           .ilike("company_name", resolvedNewDebtor.company_name)
           .limit(1)
           .maybeSingle();
-        if (existing?.id) {
-          finalDebtorId = existing.id;
+          if (exactExisting?.id) {
+            finalDebtorId = exactExisting.id;
+            matchVia = "name_dedupe";
+          }
+        }
+
+        if (finalDebtorId && matchVia === "name_dedupe") {
           await supabase.from("live_contract_audit_log").insert({ account_id: imp.account_id, user_id: user.id, import_id: imp.id, event_type: "customer_matched", event_details: { debtor_id: finalDebtorId, via: "name_dedupe" } });
-        } else {
+        } else if (!finalDebtorId) {
           const emailValue = resolvedNewDebtor.primary_email || `noreply+${crypto.randomUUID().slice(0, 8)}@unknown.local`;
           const refId = `LC-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
           const { data: created, error: cErr } = await supabase.from("debtors").insert({
@@ -98,7 +193,7 @@ Deno.serve(async (req) => {
             address: resolvedNewDebtor.address || null,
             billing_address_line1: resolvedNewDebtor.address || null,
             reference_id: refId,
-            source_system: "live_contract",
+            source_system: "manual",
             integration_source: "recouply_manual",
           }).select("id").single();
           if (cErr) throw new Error(`Create debtor: ${cErr.message}`);
@@ -161,7 +256,7 @@ Deno.serve(async (req) => {
     }
 
     throw new Error(`Unknown action: ${action}`);
-  } catch (e) {
+  } catch (e: any) {
     return json({ error: e?.message || String(e) }, 500);
   }
 });

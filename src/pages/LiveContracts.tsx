@@ -693,6 +693,18 @@ function ReviewDrawer({ importId, onClose }: { importId: string | null; onClose:
   const [newDebtor, setNewDebtor] = useState({ company_name: "", primary_email: "", phone: "", address: "" });
   const [prefilled, setPrefilled] = useState(false);
 
+  useEffect(() => {
+    setSelectedDebtorId(null);
+    setNewDebtor({ company_name: "", primary_email: "", phone: "", address: "" });
+    setPrefilled(false);
+  }, [importId]);
+
+  useEffect(() => {
+    if (!data?.matches?.length || selectedDebtorId || newDebtor.company_name) return;
+    const confidentMatch = data.matches.find((m: any) => Number(m.match_score) >= 75);
+    if (confidentMatch?.candidate_debtor_id) setSelectedDebtorId(confidentMatch.candidate_debtor_id);
+  }, [data?.matches, selectedDebtorId, newDebtor.company_name]);
+
   // Pre-fill new-customer form from extracted customer fields
   useEffect(() => {
     if (prefilled || !data?.fields?.length) return;
@@ -771,7 +783,7 @@ function ReviewDrawer({ importId, onClose }: { importId: string | null; onClose:
               <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Building2 className="h-4 w-4" />Customer match</CardTitle></CardHeader>
               <CardContent className="space-y-3">
                 {data.matches.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No suggested matches found.</p>
+                  <p className="text-sm text-muted-foreground">No existing customer matched this contract. Confirm the customer below to create it.</p>
                 ) : (
                   <div className="space-y-2">
                     {data.matches.slice(0, 5).map((m: any) => (
