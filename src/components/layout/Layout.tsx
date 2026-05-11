@@ -279,7 +279,7 @@ const Layout = ({ children }: LayoutProps) => {
   ];
 
   // Mobile nav items - excludes admin/settings items since they're in user dropdown
-  const mobileNavItems = [...coreNavItems, ...aiToolsItems];
+  const mobileNavItems = [...coreNavItems, ...aiToolsItems, ...(clmActive ? clmItems : [])];
 
   const isAnyAIToolActive = aiToolsItems.some(item => isActive(item.path));
 
