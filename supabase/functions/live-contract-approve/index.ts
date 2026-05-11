@@ -42,23 +42,63 @@ Deno.serve(async (req) => {
 
     if (action === "approve") {
       let finalDebtorId = debtorId;
+      let createdNew = false;
+      let resolvedNewDebtor = newDebtor;
 
-      if (!finalDebtorId && newDebtor) {
-        const { data: created, error: cErr } = await supabase.from("debtors").insert({
-          account_id: imp.account_id,
-          user_id: user.id,
-          company_name: newDebtor.company_name,
-          primary_email: newDebtor.primary_email || null,
-          phone: newDebtor.phone || null,
-          billing_address_line1: newDebtor.address || null,
-        }).select("id").single();
-        if (cErr) throw new Error(`Create debtor: ${cErr.message}`);
-        finalDebtorId = created.id;
-        await supabase.from("live_contract_audit_log").insert({ account_id: imp.account_id, user_id: user.id, import_id: imp.id, event_type: "customer_created", event_details: { debtor_id: finalDebtorId } });
+      // Auto-fallback: if no debtor selected and no manual newDebtor payload,
+      // build one from the extracted customer fields so an account is always created.
+      if (!finalDebtorId && (!resolvedNewDebtor || !resolvedNewDebtor.company_name)) {
+        const { data: extraction } = await supabase
+          .from("live_contract_extractions")
+          .select("ai_response")
+          .eq("import_id", imp.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        const cust = (extraction?.ai_response as any)?.customer || {};
+        const company = cust.legal_name || cust.dba_name || cust.billing_entity || imp.contract_name || imp.file_name;
+        if (company) {
+          const emailGuess = cust.billing_contact || cust.primary_contact ||
+            (cust.email_domain ? `billing@${String(cust.email_domain).replace(/^@/, "")}` : null);
+          resolvedNewDebtor = {
+            company_name: company,
+            primary_email: emailGuess,
+            phone: null,
+            address: cust.address || null,
+          };
+        }
+      }
+
+      if (!finalDebtorId && resolvedNewDebtor && resolvedNewDebtor.company_name) {
+        // De-dupe: try exact case-insensitive match on company_name within account before creating
+        const { data: existing } = await supabase
+          .from("debtors")
+          .select("id")
+          .eq("account_id", imp.account_id)
+          .ilike("company_name", resolvedNewDebtor.company_name)
+          .limit(1)
+          .maybeSingle();
+        if (existing?.id) {
+          finalDebtorId = existing.id;
+          await supabase.from("live_contract_audit_log").insert({ account_id: imp.account_id, user_id: user.id, import_id: imp.id, event_type: "customer_matched", event_details: { debtor_id: finalDebtorId, via: "name_dedupe" } });
+        } else {
+          const { data: created, error: cErr } = await supabase.from("debtors").insert({
+            account_id: imp.account_id,
+            user_id: user.id,
+            company_name: resolvedNewDebtor.company_name,
+            primary_email: resolvedNewDebtor.primary_email || null,
+            phone: resolvedNewDebtor.phone || null,
+            billing_address_line1: resolvedNewDebtor.address || null,
+          }).select("id").single();
+          if (cErr) throw new Error(`Create debtor: ${cErr.message}`);
+          finalDebtorId = created.id;
+          createdNew = true;
+          await supabase.from("live_contract_audit_log").insert({ account_id: imp.account_id, user_id: user.id, import_id: imp.id, event_type: "customer_created", event_details: { debtor_id: finalDebtorId, auto: !newDebtor } });
+        }
       } else if (finalDebtorId) {
         await supabase.from("live_contract_audit_log").insert({ account_id: imp.account_id, user_id: user.id, import_id: imp.id, event_type: "customer_matched", event_details: { debtor_id: finalDebtorId } });
       } else {
-        throw new Error("debtorId or newDebtor required to approve");
+        throw new Error("Could not resolve a customer to attach this contract to");
       }
 
       // Backfill debtor on related rows
