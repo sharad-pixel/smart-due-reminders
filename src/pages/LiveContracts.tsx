@@ -46,6 +46,21 @@ const STATUS_VARIANT = (s: string): "default" | "secondary" | "destructive" | "o
   return "secondary";
 };
 
+async function throwFunctionError(error: any, fallback: string) {
+  if (!error) return;
+  let message = error.message || fallback;
+  const context = error.context;
+  if (context?.json) {
+    try {
+      const body = await context.json();
+      message = body?.error || body?.message || message;
+    } catch {
+      // Keep the SDK-provided message when the response body has already been read.
+    }
+  }
+  throw new Error(message);
+}
+
 // ------- Hooks -------
 function useFolders() {
   return useQuery({
@@ -333,8 +348,8 @@ function UploadDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o:
       Promise.allSettled(
         results.map((d: any) =>
           supabase.functions.invoke("live-contract-extract", { body: { importId: d.import.id } })
-            .then(({ data, error }) => {
-              if (error) throw new Error(error.message || "Extraction failed");
+            .then(async ({ data, error }) => {
+              if (error) await throwFunctionError(error, "Extraction failed");
               if (data?.error) throw new Error(data.error);
               return data;
             })
@@ -452,7 +467,8 @@ function ImportsTable({ imports, onReview, statusFilter }: { imports: any[]; onR
   const extract = useMutation({
     mutationFn: async (importId: string) => {
       const { data, error } = await supabase.functions.invoke("live-contract-extract", { body: { importId } });
-      if (error) throw error;
+      if (error) await throwFunctionError(error, "Extraction failed");
+      if (data?.error) throw new Error(data.error);
       return data;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["lc-imports"] }); toast.success("Extraction complete"); },
