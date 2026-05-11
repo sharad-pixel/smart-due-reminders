@@ -717,7 +717,8 @@ function ReviewDrawer({ importId, onClose }: { importId: string | null; onClose:
       else if (newDebtor.company_name) body.newDebtor = newDebtor;
       // else: backend will auto-create from extracted customer data
       const { data, error } = await supabase.functions.invoke("live-contract-approve", { body });
-      if (error) throw error;
+      if (error) await throwFunctionError(error, "Approve and import failed");
+      if (data?.error) throw new Error(data.error);
       return data;
     },
     onSuccess: () => {
@@ -731,8 +732,9 @@ function ReviewDrawer({ importId, onClose }: { importId: string | null; onClose:
 
   const reject = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.functions.invoke("live-contract-approve", { body: { importId, action: "reject" } });
-      if (error) throw error;
+      const { data, error } = await supabase.functions.invoke("live-contract-approve", { body: { importId, action: "reject" } });
+      if (error) await throwFunctionError(error, "Reject failed");
+      if (data?.error) throw new Error(data.error);
     },
     onSuccess: () => { toast.success("Rejected"); qc.invalidateQueries({ queryKey: ["lc-imports"] }); onClose(); },
   });
