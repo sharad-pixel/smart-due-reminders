@@ -46,6 +46,21 @@ const STATUS_VARIANT = (s: string): "default" | "secondary" | "destructive" | "o
   return "secondary";
 };
 
+async function throwFunctionError(error: any, fallback: string) {
+  if (!error) return;
+  let message = error.message || fallback;
+  const context = error.context;
+  if (context?.json) {
+    try {
+      const body = await context.json();
+      message = body?.error || body?.message || message;
+    } catch {
+      // Keep the SDK-provided message when the response body has already been read.
+    }
+  }
+  throw new Error(message);
+}
+
 // ------- Hooks -------
 function useFolders() {
   return useQuery({
@@ -333,8 +348,8 @@ function UploadDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o:
       Promise.allSettled(
         results.map((d: any) =>
           supabase.functions.invoke("live-contract-extract", { body: { importId: d.import.id } })
-            .then(({ data, error }) => {
-              if (error) throw new Error(error.message || "Extraction failed");
+            .then(async ({ data, error }) => {
+              if (error) await throwFunctionError(error, "Extraction failed");
               if (data?.error) throw new Error(data.error);
               return data;
             })
@@ -452,7 +467,8 @@ function ImportsTable({ imports, onReview, statusFilter }: { imports: any[]; onR
   const extract = useMutation({
     mutationFn: async (importId: string) => {
       const { data, error } = await supabase.functions.invoke("live-contract-extract", { body: { importId } });
-      if (error) throw error;
+      if (error) await throwFunctionError(error, "Extraction failed");
+      if (data?.error) throw new Error(data.error);
       return data;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["lc-imports"] }); toast.success("Extraction complete"); },
@@ -521,7 +537,7 @@ function PostImportActions({ importId, schedules, dates }: { importId: string; s
       const { data, error } = await supabase.functions.invoke("live-contract-actions", {
         body: { importId, action: "generate_invoices", scheduleIds: Array.from(selected) },
       });
-      if (error) throw error;
+      if (error) await throwFunctionError(error, "Generate invoices failed");
       if (data?.error) throw new Error(data.error);
       return data;
     },
@@ -540,7 +556,7 @@ function PostImportActions({ importId, schedules, dates }: { importId: string; s
       const { data, error } = await supabase.functions.invoke("live-contract-actions", {
         body: { importId, action: "set_alerts", dates: payload },
       });
-      if (error) throw error;
+      if (error) await throwFunctionError(error, "Save alerts failed");
       if (data?.error) throw new Error(data.error);
       return data;
     },
@@ -701,7 +717,8 @@ function ReviewDrawer({ importId, onClose }: { importId: string | null; onClose:
       else if (newDebtor.company_name) body.newDebtor = newDebtor;
       // else: backend will auto-create from extracted customer data
       const { data, error } = await supabase.functions.invoke("live-contract-approve", { body });
-      if (error) throw error;
+      if (error) await throwFunctionError(error, "Approve and import failed");
+      if (data?.error) throw new Error(data.error);
       return data;
     },
     onSuccess: () => {
@@ -715,8 +732,9 @@ function ReviewDrawer({ importId, onClose }: { importId: string | null; onClose:
 
   const reject = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.functions.invoke("live-contract-approve", { body: { importId, action: "reject" } });
-      if (error) throw error;
+      const { data, error } = await supabase.functions.invoke("live-contract-approve", { body: { importId, action: "reject" } });
+      if (error) await throwFunctionError(error, "Reject failed");
+      if (data?.error) throw new Error(data.error);
     },
     onSuccess: () => { toast.success("Rejected"); qc.invalidateQueries({ queryKey: ["lc-imports"] }); onClose(); },
   });

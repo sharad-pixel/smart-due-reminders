@@ -2,7 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 const json = (b: any, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
         const refId = `LC-INV-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
         const invNum = `${imp.contract_name?.slice(0, 20).replace(/\s+/g, "-") || "CONTRACT"}-${new Date(issue).toISOString().slice(0, 10)}-${Math.random().toString(36).slice(2, 5).toUpperCase()}`;
         const { data: inv, error: iErr } = await supabase.from("invoices").insert({
-          user_id: user.id,
+          user_id: imp.account_id,
           debtor_id: imp.debtor_id,
           invoice_number: invNum,
           reference_id: refId,

@@ -2,8 +2,13 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+const json = (body: any, status = 200) => new Response(JSON.stringify(body), {
+  status,
+  headers: { ...corsHeaders, "Content-Type": "application/json" },
+});
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -52,7 +57,7 @@ Deno.serve(async (req) => {
           .from("live_contract_extractions")
           .select("ai_response")
           .eq("import_id", imp.id)
-          .order("created_at", { ascending: false })
+          .order("extracted_at", { ascending: false })
           .limit(1)
           .maybeSingle();
         const cust = (extraction?.ai_response as any)?.customer || {};
@@ -74,7 +79,7 @@ Deno.serve(async (req) => {
         const { data: existing } = await supabase
           .from("debtors")
           .select("id")
-          .eq("account_id", imp.account_id)
+          .eq("user_id", imp.account_id)
           .ilike("company_name", resolvedNewDebtor.company_name)
           .limit(1)
           .maybeSingle();
@@ -85,15 +90,16 @@ Deno.serve(async (req) => {
           const emailValue = resolvedNewDebtor.primary_email || `noreply+${crypto.randomUUID().slice(0, 8)}@unknown.local`;
           const refId = `LC-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
           const { data: created, error: cErr } = await supabase.from("debtors").insert({
-            account_id: imp.account_id,
-            user_id: user.id,
+            user_id: imp.account_id,
             company_name: resolvedNewDebtor.company_name,
             name: resolvedNewDebtor.company_name,
             email: emailValue,
-            primary_email: resolvedNewDebtor.primary_email || null,
             phone: resolvedNewDebtor.phone || null,
+            address: resolvedNewDebtor.address || null,
             billing_address_line1: resolvedNewDebtor.address || null,
             reference_id: refId,
+            source_system: "live_contract",
+            integration_source: "live_contract",
           }).select("id").single();
           if (cErr) throw new Error(`Create debtor: ${cErr.message}`);
           finalDebtorId = created.id;
@@ -105,6 +111,15 @@ Deno.serve(async (req) => {
       } else {
         throw new Error("Could not resolve a customer to attach this contract to");
       }
+
+      const { data: debtorCheck, error: debtorCheckErr } = await supabase
+        .from("debtors")
+        .select("id")
+        .eq("id", finalDebtorId)
+        .eq("user_id", imp.account_id)
+        .maybeSingle();
+      if (debtorCheckErr) throw new Error(`Validate customer: ${debtorCheckErr.message}`);
+      if (!debtorCheck) return json({ error: "Selected customer is not available for this account" }, 400);
 
       // Backfill debtor on related rows
       await supabase.from("live_contract_imports").update({ debtor_id: finalDebtorId, status: "imported" }).eq("id", imp.id);
@@ -130,7 +145,7 @@ Deno.serve(async (req) => {
         event_type: "contract_imported", event_details: { debtor_id: finalDebtorId },
       });
 
-      return new Response(JSON.stringify({ success: true, debtor_id: finalDebtorId }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return json({ success: true, debtor_id: finalDebtorId });
     }
 
     if (action === "update_field") {
@@ -147,6 +162,6 @@ Deno.serve(async (req) => {
 
     throw new Error(`Unknown action: ${action}`);
   } catch (e) {
-    return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return json({ error: e?.message || String(e) }, 500);
   }
 });
