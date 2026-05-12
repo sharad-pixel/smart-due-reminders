@@ -33,7 +33,7 @@ export const DebtorContractSummaryCard = ({ debtorId }: Props) => {
       const { data: imports } = await supabase
         .from("live_contract_imports")
         .select(
-          "id, contract_name, contract_type, effective_date, term_end_date, status, source_filename, updated_at",
+          "id, contract_name, contract_type, effective_date, term_end_date, status, updated_at",
         )
         .eq("debtor_id", debtorId)
         .order("updated_at", { ascending: false });
