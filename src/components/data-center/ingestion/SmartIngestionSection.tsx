@@ -400,6 +400,7 @@ export function SmartIngestionSection() {
 
   return (
     <div className="space-y-4">
+      <OcrPricingNotice />
       {/* Connection Status & Quick Actions */}
       <Card>
         <CardHeader className="pb-3">

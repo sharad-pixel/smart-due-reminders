@@ -25,6 +25,8 @@ import {
   AMOUNT_KEYS,
   toNumber,
 } from "@/lib/clm/financialMetrics";
+import { ContractStagingPanel } from "@/components/clm/ContractStagingPanel";
+import { useQueryClient } from "@tanstack/react-query";
 
 const FIN_KEYS = new Set<string>([
   ...Array.from(AMOUNT_KEYS),
@@ -44,6 +46,7 @@ const FIN_KEYS = new Set<string>([
 
 const LiveContractDetailInner = () => {
   const { importId } = useParams<{ importId: string }>();
+  const qc = useQueryClient();
 
   const { data, isLoading } = useQuery({
     queryKey: ["live-contract-detail", importId],
@@ -392,6 +395,16 @@ const LiveContractDetailInner = () => {
           </CardContent>
         </Card>
       )}
+
+      <ContractStagingPanel
+        contractId={c.id}
+        accountId={c.account_id}
+        debtorId={c.debtor_id || null}
+        contractName={c.contract_name || null}
+        schedules={data.schedules}
+        stagingStatus={c.staging_status || "draft"}
+        onChanged={() => qc.invalidateQueries({ queryKey: ["live-contract-detail", importId] })}
+      />
 
       <div className="flex justify-end">
         <Button variant="outline" size="sm" asChild>

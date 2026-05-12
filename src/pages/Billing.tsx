@@ -19,6 +19,7 @@ import ConsumptionTracker from "@/components/billing/ConsumptionTracker";
 import { UsageIndicator } from "@/components/billing/UsageIndicator";
 import { TrialCountdown } from "@/components/billing/TrialCountdown";
 import UsageBillingLog from "@/components/billing/UsageBillingLog";
+import OcrUsageCard from "@/components/billing/OcrUsageCard";
 // Colorful gauge component
 const _UsageGauge = ({ 
   used, 
@@ -539,6 +540,9 @@ const Billing = () => {
 
           {/* Monthly Usage Billing Log */}
           <UsageBillingLog />
+
+          {/* OCR Scanning Usage ($0.75/page) */}
+          <OcrUsageCard />
 
           {/* Account Hierarchy - Visual Tree */}
           <AccountHierarchy />
