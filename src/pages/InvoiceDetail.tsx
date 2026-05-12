@@ -1709,6 +1709,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                   )}
                 </div>
               )}
+              {invoice.external_link && (
                 <div>
                   <p className="text-xs text-muted-foreground">External Link</p>
                   <a 
