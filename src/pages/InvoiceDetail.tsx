@@ -65,6 +65,10 @@ interface Invoice {
   promise_to_pay_amount: number | null;
   promise_to_pay_date: string | null;
   source_system: string | null;
+  source_contract_id?: string | null;
+  source_contract_schedule_id?: string | null;
+  source_clm_instance_id?: string | null;
+  source_origin?: string | null;
   subtotal: number | null;
   tax_amount: number | null;
   total_amount: number | null;
