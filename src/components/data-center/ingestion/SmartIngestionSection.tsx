@@ -28,6 +28,7 @@ import { IngestionDashboard } from "./IngestionDashboard";
 import { SheetTemplatesSection } from "./SheetTemplatesSection";
 import { PendingSheetImports } from "../PendingSheetImports";
 import { SheetBestPractices } from "./SheetBestPractices";
+import { OcrPricingNotice } from "@/components/ocr/OcrPricingNotice";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
