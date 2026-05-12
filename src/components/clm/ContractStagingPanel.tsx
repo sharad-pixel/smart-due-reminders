@@ -319,11 +319,24 @@ export const ContractStagingPanel = ({
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {done ? (
-                        <Button asChild size="sm" variant="outline">
-                          <Link to={`/invoices/${s.invoice_id}`}>
-                            <LinkIcon className="h-3.5 w-3.5 mr-1" /> View / edit invoice
-                          </Link>
-                        </Button>
+                        <>
+                          <Button asChild size="sm" variant="outline">
+                            <Link to={`/invoices/${s.invoice_id}`}>
+                              <LinkIcon className="h-3.5 w-3.5 mr-1" /> Open
+                            </Link>
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => openEdit(s)}>
+                            <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => setDeleteTarget(s)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
+                          </Button>
+                        </>
                       ) : (
                         <>
                           <Button
