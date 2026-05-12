@@ -225,7 +225,7 @@ export const ContractTermGauge = ({ effectiveDate, termEndDate, keyDates }: Prop
                         ? "border-slate-200 bg-slate-50/50 opacity-70"
                         : isUrgent
                           ? "border-amber-300 bg-amber-50"
-                          : accentClasses[d.meta.accent].replace(/text-\S+/, "").replace("bg-", "border-").split(" ").join(" ") + " " + accentClasses[d.meta.accent]
+                          : accentClasses[d.meta.accent]
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
