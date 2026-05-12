@@ -133,6 +133,7 @@ export const ContractScheduleLines = ({ schedules, defaultCurrency, onChanged }:
                   <th className="text-right py-2 px-2 font-medium">Unit price</th>
                   <th className="text-right py-2 px-2 font-medium">Amount</th>
                   <th className="text-left py-2 px-2 font-medium">Scheduled</th>
+                  <th className="text-left py-2 px-2 font-medium">Status</th>
                   <th className="text-right py-2 pl-2 font-medium">Actions</th>
                 </tr>
               </thead>
