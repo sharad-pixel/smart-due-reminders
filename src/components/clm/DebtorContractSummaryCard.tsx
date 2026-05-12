@@ -96,7 +96,10 @@ export const DebtorContractSummaryCard = ({ debtorId }: Props) => {
     (c) => !c.term_end_date || new Date(c.term_end_date) >= new Date(),
   );
 
-  const detailHref = `/contracts/live?debtor=${debtorId}`;
+  const detailHref =
+    data.imports.length === 1
+      ? `/contracts/live/${data.imports[0].id}`
+      : `/contracts/live?debtor=${debtorId}`;
 
   return (
     <Card className="border-l-4 border-l-primary">
