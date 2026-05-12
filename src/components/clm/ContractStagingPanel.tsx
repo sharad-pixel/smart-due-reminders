@@ -199,6 +199,80 @@ export const ContractStagingPanel = ({
     }
   };
 
+  const openEdit = async (s: any) => {
+    if (!s.invoice_id) return;
+    const { data: inv, error } = await supabase
+      .from("invoices")
+      .select("id, invoice_number, amount, issue_date, due_date")
+      .eq("id", s.invoice_id)
+      .maybeSingle();
+    if (error || !inv) {
+      toast.error("Could not load invoice");
+      return;
+    }
+    setEditTarget({ schedule: s, invoice: inv });
+    setEditForm({
+      invoice_number: inv.invoice_number || "",
+      amount: String(inv.amount ?? ""),
+      issue_date: inv.issue_date || "",
+      due_date: inv.due_date || "",
+    });
+  };
+
+  const saveEdit = async () => {
+    if (!editTarget) return;
+    const amt = Number(editForm.amount);
+    if (!editForm.invoice_number.trim() || !Number.isFinite(amt) || amt <= 0) {
+      toast.error("Invoice number and a positive amount are required");
+      return;
+    }
+    setSavingEdit(true);
+    try {
+      const { error } = await supabase
+        .from("invoices")
+        .update({
+          invoice_number: editForm.invoice_number.trim(),
+          amount: amt,
+          subtotal: amt,
+          total_amount: amt,
+          amount_outstanding: amt,
+          amount_original: amt,
+          issue_date: editForm.issue_date || null,
+          due_date: editForm.due_date || null,
+        } as any)
+        .eq("id", editTarget.invoice.id);
+      if (error) throw error;
+      toast.success("Invoice updated");
+      setEditTarget(null);
+      onChanged();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to update invoice");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const invoiceId = deleteTarget.invoice_id;
+      await supabase
+        .from("contract_invoice_schedules")
+        .update({ invoice_id: null, invoice_created_at: null, status: "pending", attachment_source: null } as any)
+        .eq("id", deleteTarget.id);
+      const { error } = await supabase.from("invoices").delete().eq("id", invoiceId);
+      if (error) throw error;
+      toast.success("Invoice deleted · schedule reset");
+      setDeleteTarget(null);
+      onChanged();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to delete invoice");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Invoicing actions */}
