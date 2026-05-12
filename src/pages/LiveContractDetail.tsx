@@ -97,22 +97,12 @@ const LiveContractDetailInner = () => {
   });
 
   const totals = useMemo(() => {
-    const t = { mrr: 0, arr: 0, acv: 0, tcv: 0, scheduled: 0, currency: "USD" };
-    (data?.fields || []).forEach((f: any) => {
-      if (f.field_key === "mrr") t.mrr += num(f.field_value);
-      else if (f.field_key === "arr") t.arr += num(f.field_value);
-      else if (f.field_key === "acv") t.acv += num(f.field_value);
-      else if (f.field_key === "tcv" || f.field_key === "contract_value")
-        t.tcv += num(f.field_value);
-      else if (f.field_key === "currency" && f.field_value)
-        t.currency = f.field_value;
-    });
-    if (t.arr === 0 && t.mrr > 0) t.arr = t.mrr * 12;
-    if (t.acv === 0 && t.arr > 0) t.acv = t.arr;
+    const t = computeContractTotals(data?.fields || [], data?.imp || undefined);
+    let scheduled = 0;
     (data?.schedules || []).forEach((s: any) => {
-      t.scheduled += num(s.amount);
+      scheduled += toNumber(s.amount);
     });
-    return t;
+    return { ...t, scheduled };
   }, [data]);
 
   if (isLoading) {
