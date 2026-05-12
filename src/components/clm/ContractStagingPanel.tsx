@@ -130,6 +130,16 @@ export const ContractStagingPanel = ({
       const refId = `REC-${ymd}-${rand4}`;
       const invNum = `REC-${ymd}-${rand4}`;
       const amount = Number(s.amount) || 0;
+
+      // Pre-insert duplicate check
+      const { data: dupes } = await supabase
+        .from("invoices")
+        .select("id, invoice_number")
+        .eq("debtor_id", debtorId)
+        .eq("issue_date", issue)
+        .eq("amount", amount)
+        .limit(1);
+
       const { data: inv, error } = await supabase
         .from("invoices")
         .insert({
@@ -147,6 +157,9 @@ export const ContractStagingPanel = ({
           due_date: due,
           status: "Open",
           source_system: "manual",
+          source_origin: "manual_from_contract",
+          source_contract_id: contractId,
+          source_contract_schedule_id: s.id,
           payment_terms: s.payment_terms || null,
           product_description: s.description || contractName || "Contract billing",
           notes: `Manually created from contract: ${contractName || ""}`,
@@ -163,6 +176,26 @@ export const ContractStagingPanel = ({
           attachment_source: "manual",
         } as any)
         .eq("id", s.id);
+
+      // Audit trail
+      const auditRows = [
+        { field_name: "amount", source_value: String(s.amount), applied_value: String(amount) },
+        { field_name: "issue_date", source_value: issue, applied_value: issue },
+        { field_name: "due_date", source_value: due, applied_value: due },
+        { field_name: "currency", source_value: s.currency || "USD", applied_value: s.currency || "USD" },
+        { field_name: "invoice_number", source_value: invNum, applied_value: invNum },
+      ].map((r) => ({
+        ...r,
+        invoice_id: inv.id,
+        user_id: accountId,
+        source_type: "manual",
+        source_contract_id: contractId,
+        source_schedule_id: s.id,
+        source_reference: contractName || null,
+        duplicate_of_invoice_id: dupes && dupes.length > 0 ? dupes[0].id : null,
+        notes: dupes && dupes.length > 0 ? `Possible duplicate of invoice ${dupes[0].invoice_number}` : null,
+      }));
+      await supabase.from("invoice_data_audit").insert(auditRows as any);
       toast.success("Manual invoice created");
       onChanged();
     } catch (e: any) {
