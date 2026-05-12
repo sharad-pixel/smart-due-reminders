@@ -33,7 +33,8 @@ import {
   DollarSign,
   ShieldAlert,
   FileSignature,
-  FileSearch
+  FileSearch,
+  Briefcase
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -262,7 +263,7 @@ const Layout = ({ children }: LayoutProps) => {
   ];
 
   const clmItems = [
-    { path: "/contracts", label: "Contracts", icon: FileSignature },
+    { path: "/contracts", label: "Workspaces", icon: Briefcase },
     { path: "/contracts/live", label: "Live Contracts (OCR)", icon: FileSearch },
   ];
   const isAnyClmActive = clmItems.some(item => isActive(item.path));
@@ -535,8 +536,8 @@ const Layout = ({ children }: LayoutProps) => {
                   {clmActive && (
                     <>
                       <DropdownMenuItem onClick={() => navigate("/contracts")}>
-                        <FileSignature className="mr-2 h-4 w-4" />
-                        Contracts (CLM)
+                        <Briefcase className="mr-2 h-4 w-4" />
+                        Workspaces (CLM)
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => navigate("/contracts/live")}>
                         <FileSignature className="mr-2 h-4 w-4" />
