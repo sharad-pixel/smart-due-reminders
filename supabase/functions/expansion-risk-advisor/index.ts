@@ -303,13 +303,17 @@ Return ONLY valid JSON. No markdown, no code fences.`;
 
 function buildFallback(ctx: any, openBalance: number, expansionAmount: number) {
   const score = ctx.debtor.payment_score || 50;
-  const totalExposure = openBalance + expansionAmount;
+  const contractedValue = ctx.contracts?.total_contracted_value || 0;
+  const totalExposure = openBalance + expansionAmount + contractedValue;
   const riskLevel = score >= 80 ? "Low" : score >= 60 ? "Medium" : score >= 40 ? "High" : "Critical";
+  const contractNote = contractedValue > 0
+    ? ` Existing contracted value of $${contractedValue.toLocaleString()} adds to total committed exposure.`
+    : "";
 
   return {
     risk_level: riskLevel,
     risk_score: 100 - score,
-    risk_summary: `Based on the customer's payment score of ${score} and current balance of $${openBalance.toLocaleString()}, expanding by $${expansionAmount.toLocaleString()} carries ${riskLevel.toLowerCase()} risk. Total exposure would be $${totalExposure.toLocaleString()}.`,
+    risk_summary: `Based on the customer's payment score of ${score} and current balance of $${openBalance.toLocaleString()}, expanding by $${expansionAmount.toLocaleString()} carries ${riskLevel.toLowerCase()} risk. Total exposure would be $${totalExposure.toLocaleString()}.${contractNote}`,
     recommended_terms: {
       payment_terms: score >= 70 ? "Net 30" : score >= 50 ? "Net 15" : "Due on Receipt or 50% upfront",
       billing_structure: score >= 70 ? "Standard invoicing" : "Milestone-based or deposit + balance",
