@@ -147,13 +147,18 @@ const LiveContractDetailInner = () => {
         description="Financial terms and risk profile for this contract."
       />
 
-      <Button variant="ghost" size="sm" asChild>
-        <Link to={data.debtor ? `/customers/${data.debtor.id}` : "/contracts/live"}>
-          <ArrowLeft className="h-4 w-4 mr-1" />
-          {data.debtor
-            ? `Back to ${data.debtor.company_name || data.debtor.name}`
-            : "Back to Live Contracts"}
-        </Link>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => {
+          if (window.history.length > 1) navigate(-1);
+          else navigate(data.debtor ? `/customers/${data.debtor.id}` : "/contracts/live");
+        }}
+      >
+        <ArrowLeft className="h-4 w-4 mr-1" />
+        {data.debtor
+          ? `Back to ${data.debtor.company_name || data.debtor.name}`
+          : "Back to Live Contracts"}
       </Button>
 
       <ClmBrandedHeader
