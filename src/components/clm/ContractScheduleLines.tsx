@@ -35,6 +35,29 @@ export const ContractScheduleLines = ({ schedules, defaultCurrency, onChanged }:
     expected_due_date: "",
   });
   const [saving, setSaving] = useState(false);
+  const [statusMap, setStatusMap] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const ids = schedules.map((s: any) => s.invoice_id).filter(Boolean);
+    if (ids.length === 0) {
+      setStatusMap({});
+      return;
+    }
+    let cancelled = false;
+    supabase
+      .from("invoices")
+      .select("id, status")
+      .in("id", ids)
+      .then(({ data }) => {
+        if (cancelled || !data) return;
+        const m: Record<string, string> = {};
+        data.forEach((r: any) => (m[r.id] = r.status));
+        setStatusMap(m);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [schedules]);
 
   const open = (s: any) => {
     const qty = s.quantity != null ? Number(s.quantity) : null;
