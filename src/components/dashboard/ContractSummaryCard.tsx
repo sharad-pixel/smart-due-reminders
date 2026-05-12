@@ -87,7 +87,7 @@ export const ContractSummaryCard = () => {
           <CardTitle className="text-base sm:text-lg flex items-center gap-2">
             <FileText className="h-5 w-5 text-primary" /> Current Contract Summary
           </CardTitle>
-          <Button variant="ghost" size="sm" onClick={() => navigate("/live-contracts")}>
+          <Button variant="ghost" size="sm" onClick={() => navigate("/contracts/live")}>
             View all <ArrowRight className="h-3.5 w-3.5 ml-1" />
           </Button>
         </div>
