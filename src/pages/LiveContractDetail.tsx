@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { RequireClmAccess } from "@/components/clm/RequireClmAccess";
+import Layout from "@/components/layout/Layout";
 import { ClmBrandedHeader } from "@/components/clm/ClmBrandedHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
