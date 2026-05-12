@@ -3485,6 +3485,7 @@ export type Database = {
         Row: {
           account_id: string
           amount: number | null
+          attachment_source: string | null
           billing_type: string | null
           created_at: string
           currency: string | null
@@ -3495,6 +3496,7 @@ export type Database = {
           import_id: string
           invoice_created_at: string | null
           invoice_id: string | null
+          ocr_scanned_file_id: string | null
           payment_terms: string | null
           scheduled_date: string
           service_period_end: string | null
@@ -3504,6 +3506,7 @@ export type Database = {
         Insert: {
           account_id: string
           amount?: number | null
+          attachment_source?: string | null
           billing_type?: string | null
           created_at?: string
           currency?: string | null
@@ -3514,6 +3517,7 @@ export type Database = {
           import_id: string
           invoice_created_at?: string | null
           invoice_id?: string | null
+          ocr_scanned_file_id?: string | null
           payment_terms?: string | null
           scheduled_date: string
           service_period_end?: string | null
@@ -3523,6 +3527,7 @@ export type Database = {
         Update: {
           account_id?: string
           amount?: number | null
+          attachment_source?: string | null
           billing_type?: string | null
           created_at?: string
           currency?: string | null
@@ -3533,6 +3538,7 @@ export type Database = {
           import_id?: string
           invoice_created_at?: string | null
           invoice_id?: string | null
+          ocr_scanned_file_id?: string | null
           payment_terms?: string | null
           scheduled_date?: string
           service_period_end?: string | null
@@ -8053,8 +8059,12 @@ export type Database = {
           folder_id: string | null
           id: string
           mime_type: string | null
+          published_at: string | null
           scan_job_id: string | null
           source: string
+          staged_fields: Json | null
+          staging_completed_at: string | null
+          staging_status: string
           status: string
           storage_path: string | null
           term_end_date: string | null
@@ -8077,8 +8087,12 @@ export type Database = {
           folder_id?: string | null
           id?: string
           mime_type?: string | null
+          published_at?: string | null
           scan_job_id?: string | null
           source: string
+          staged_fields?: Json | null
+          staging_completed_at?: string | null
+          staging_status?: string
           status?: string
           storage_path?: string | null
           term_end_date?: string | null
@@ -8101,8 +8115,12 @@ export type Database = {
           folder_id?: string | null
           id?: string
           mime_type?: string | null
+          published_at?: string | null
           scan_job_id?: string | null
           source?: string
+          staged_fields?: Json | null
+          staging_completed_at?: string | null
+          staging_status?: string
           status?: string
           storage_path?: string | null
           term_end_date?: string | null
@@ -8229,6 +8247,41 @@ export type Database = {
             columns: ["folder_id"]
             isOneToOne: false
             referencedRelation: "live_contract_drive_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_contract_watchers: {
+        Row: {
+          account_id: string
+          added_by: string | null
+          contract_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          account_id: string
+          added_by?: string | null
+          contract_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          account_id?: string
+          added_by?: string | null
+          contract_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_contract_watchers_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "live_contract_imports"
             referencedColumns: ["id"]
           },
         ]
@@ -8697,6 +8750,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ocr_usage_events: {
+        Row: {
+          account_id: string | null
+          contract_id: string | null
+          created_at: string
+          file_name: string | null
+          id: string
+          invoice_id: string | null
+          metadata: Json | null
+          page_count: number
+          scanned_file_id: string | null
+          source: string
+          stripe_meter_event_id: string | null
+          stripe_reported: boolean
+          total_cents: number
+          unit_price_cents: number
+          user_id: string
+        }
+        Insert: {
+          account_id?: string | null
+          contract_id?: string | null
+          created_at?: string
+          file_name?: string | null
+          id?: string
+          invoice_id?: string | null
+          metadata?: Json | null
+          page_count?: number
+          scanned_file_id?: string | null
+          source?: string
+          stripe_meter_event_id?: string | null
+          stripe_reported?: boolean
+          total_cents: number
+          unit_price_cents?: number
+          user_id: string
+        }
+        Update: {
+          account_id?: string | null
+          contract_id?: string | null
+          created_at?: string
+          file_name?: string | null
+          id?: string
+          invoice_id?: string | null
+          metadata?: Json | null
+          page_count?: number
+          scanned_file_id?: string | null
+          source?: string
+          stripe_meter_event_id?: string | null
+          stripe_reported?: boolean
+          total_cents?: number
+          unit_price_cents?: number
+          user_id?: string
+        }
+        Relationships: []
       }
       onboarding_progress: {
         Row: {
