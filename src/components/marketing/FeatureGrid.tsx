@@ -35,7 +35,7 @@ const FeatureGrid = () => {
           transition={{ duration: 0.5 }}
         >
           <div className="inline-block px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
-            Collections & Risk CRM
+            Revenue Intelligence Platform
           </div>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
             AI-Powered Collections Workflows That Drive Cash Outcomes

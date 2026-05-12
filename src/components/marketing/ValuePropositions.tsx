@@ -20,7 +20,7 @@ const ValuePropositions = () => {
     {
       icon: Rocket,
       title: "For Startups",
-      subtitle: "AI-Powered Collections CRM From Day One",
+      subtitle: "AI-Powered Revenue Intelligence Platform From Day One",
       items: [
         "Centralize every receivable in one system of record",
         "AI-powered collections workflows eliminate missed payments",
@@ -33,7 +33,7 @@ const ValuePropositions = () => {
     {
       icon: Building2,
       title: "For SMBs",
-      subtitle: "Collections CRM With Risk-Based Prioritization",
+      subtitle: "Revenue Intelligence Platform With Risk-Based Prioritization",
       items: [
         "24/7 AI-powered collections workflows and follow-ups",
         "AI agents read and respond to customer emails",
@@ -46,7 +46,7 @@ const ValuePropositions = () => {
     {
       icon: Building,
       title: "For Enterprise",
-      subtitle: "Enterprise Collections CRM Across Finance, Sales & RevOps",
+      subtitle: "Enterprise Revenue Intelligence Platform Across Finance, Sales & RevOps",
       items: [
         "Agents trained on Salesforce RCA, CS Cases, NetSuite data",
         "AI-powered collections workflows with risk-aware routing",
@@ -69,10 +69,10 @@ const ValuePropositions = () => {
           transition={{ duration: 0.5 }}
         >
           <div className="inline-block px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
-            Collections & Risk CRM
+            Revenue Intelligence Platform
           </div>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-            AI-Powered Collections CRM Built for Your Scale
+            AI-Powered Revenue Intelligence Platform Built for Your Scale
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
             Centralized receivables management with AI-powered collections workflows — so your team focuses on cash outcomes, not manual follow-ups

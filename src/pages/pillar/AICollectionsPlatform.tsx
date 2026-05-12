@@ -6,17 +6,17 @@ const AICollectionsPlatform = () => {
   return (
     <MarketingLayout>
       <SEOHead
-        title="AI Collections Platform | Autonomous Revenue Recovery — Recouply.ai"
-        description="Recouply.ai is the AI collections platform that deploys autonomous agents to manage outreach, assess risk, and recover revenue — with human oversight at every decision point. Replace manual follow-ups with intelligent, adaptive workflows."
-        keywords="AI collections platform, AI accounts receivable, autonomous collections, AI debt collection software, AI-powered AR, agentic AI collections, AI invoice recovery, machine learning collections, automated collections platform, AI dunning software"
+        title="AI Revenue Intelligence Platform | Autonomous Revenue Recovery — Recouply.ai"
+        description="Recouply.ai is the AI revenue intelligence platform that deploys autonomous agents to manage outreach, assess risk, and recover revenue — with human oversight at every decision point. Replace manual follow-ups with intelligent, adaptive workflows."
+        keywords="AI revenue intelligence platform, AI accounts receivable, autonomous collections, AI debt collection software, AI-powered AR, agentic AI collections, AI invoice recovery, machine learning collections, automated collections platform, AI dunning software"
         canonical="https://recouply.ai/ai-collections-platform"
-        breadcrumbs={[{ name: "AI Collections Platform", url: "https://recouply.ai/ai-collections-platform" }]}
+        breadcrumbs={[{ name: "AI Revenue Intelligence Platform", url: "https://recouply.ai/ai-collections-platform" }]}
       />
 
       <article className="max-w-4xl mx-auto px-4 py-16 sm:py-24">
         <header>
           <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-foreground mb-6">
-            AI Collections Platform: Autonomous Agents for Revenue Recovery
+            AI Revenue Intelligence Platform: Autonomous Agents for Revenue Recovery
           </h1>
           <p className="text-xl text-muted-foreground leading-relaxed mb-12">
             Recouply.ai deploys six specialized AI agents that independently manage the entire revenue
@@ -83,7 +83,7 @@ const AICollectionsPlatform = () => {
           <h2 className="text-2xl font-semibold text-foreground mb-6">Explore More</h2>
           <ul className="grid sm:grid-cols-2 gap-4 text-base">
             <li><Link to="/features" className="text-primary hover:underline">Platform Features →</Link></li>
-            <li><Link to="/collections-crm" className="text-primary hover:underline">Collections CRM →</Link></li>
+            <li><Link to="/collections-crm" className="text-primary hover:underline">Revenue Intelligence Platform →</Link></li>
             <li><Link to="/revenue-risk-intelligence" className="text-primary hover:underline">Revenue Risk Intelligence →</Link></li>
             <li><Link to="/collection-intelligence" className="text-primary hover:underline">Revenue Intelligence →</Link></li>
             <li><Link to="/personas" className="text-primary hover:underline">AI Agent Personas →</Link></li>

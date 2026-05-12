@@ -34,7 +34,7 @@ export const DemoWelcome = () => {
           animate={{ opacity: 1, y: 0 }}
           className="text-3xl md:text-4xl font-bold text-foreground"
         >
-          Your AI-Powered Collections & Risk CRM
+          Your AI-Powered Revenue Intelligence Platform
         </motion.h1>
         <motion.p
           initial={{ opacity: 0 }}
