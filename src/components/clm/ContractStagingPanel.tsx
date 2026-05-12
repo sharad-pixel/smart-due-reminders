@@ -4,9 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Upload, Link as LinkIcon, X, UserPlus, CheckCircle2, Sparkles, FilePlus2 } from "lucide-react";
+import { Upload, Link as LinkIcon, X, UserPlus, CheckCircle2, Sparkles, FilePlus2, Pencil, Trash2 } from "lucide-react";
 import { OcrPricingNotice } from "@/components/ocr/OcrPricingNotice";
 import { Link } from "react-router-dom";
 import { formatCurrency, formatDateShort } from "@/lib/formatters";
@@ -41,6 +44,11 @@ export const ContractStagingPanel = ({
   const [busyScheduleId, setBusyScheduleId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [watcherEmail, setWatcherEmail] = useState("");
+  const [editTarget, setEditTarget] = useState<any | null>(null);
+  const [editForm, setEditForm] = useState<{ invoice_number: string; amount: string; issue_date: string; due_date: string }>({ invoice_number: "", amount: "", issue_date: "", due_date: "" });
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const { data: watchers = [] } = useQuery({
     queryKey: ["contract-watchers", contractId],
@@ -191,6 +199,80 @@ export const ContractStagingPanel = ({
     }
   };
 
+  const openEdit = async (s: any) => {
+    if (!s.invoice_id) return;
+    const { data: inv, error } = await supabase
+      .from("invoices")
+      .select("id, invoice_number, amount, issue_date, due_date")
+      .eq("id", s.invoice_id)
+      .maybeSingle();
+    if (error || !inv) {
+      toast.error("Could not load invoice");
+      return;
+    }
+    setEditTarget({ schedule: s, invoice: inv });
+    setEditForm({
+      invoice_number: inv.invoice_number || "",
+      amount: String(inv.amount ?? ""),
+      issue_date: inv.issue_date || "",
+      due_date: inv.due_date || "",
+    });
+  };
+
+  const saveEdit = async () => {
+    if (!editTarget) return;
+    const amt = Number(editForm.amount);
+    if (!editForm.invoice_number.trim() || !Number.isFinite(amt) || amt <= 0) {
+      toast.error("Invoice number and a positive amount are required");
+      return;
+    }
+    setSavingEdit(true);
+    try {
+      const { error } = await supabase
+        .from("invoices")
+        .update({
+          invoice_number: editForm.invoice_number.trim(),
+          amount: amt,
+          subtotal: amt,
+          total_amount: amt,
+          amount_outstanding: amt,
+          amount_original: amt,
+          issue_date: editForm.issue_date || null,
+          due_date: editForm.due_date || null,
+        } as any)
+        .eq("id", editTarget.invoice.id);
+      if (error) throw error;
+      toast.success("Invoice updated");
+      setEditTarget(null);
+      onChanged();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to update invoice");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const invoiceId = deleteTarget.invoice_id;
+      await supabase
+        .from("contract_invoice_schedules")
+        .update({ invoice_id: null, invoice_created_at: null, status: "pending", attachment_source: null } as any)
+        .eq("id", deleteTarget.id);
+      const { error } = await supabase.from("invoices").delete().eq("id", invoiceId);
+      if (error) throw error;
+      toast.success("Invoice deleted · schedule reset");
+      setDeleteTarget(null);
+      onChanged();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to delete invoice");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Invoicing actions */}
@@ -237,11 +319,24 @@ export const ContractStagingPanel = ({
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {done ? (
-                        <Button asChild size="sm" variant="outline">
-                          <Link to={`/invoices/${s.invoice_id}`}>
-                            <LinkIcon className="h-3.5 w-3.5 mr-1" /> View / edit invoice
-                          </Link>
-                        </Button>
+                        <>
+                          <Button asChild size="sm" variant="outline">
+                            <Link to={`/invoices/${s.invoice_id}`}>
+                              <LinkIcon className="h-3.5 w-3.5 mr-1" /> Open
+                            </Link>
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => openEdit(s)}>
+                            <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => setDeleteTarget(s)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
+                          </Button>
+                        </>
                       ) : (
                         <>
                           <Button
@@ -343,6 +438,81 @@ export const ContractStagingPanel = ({
           )}
         </CardContent>
       </Card>
+
+      {/* Edit invoice dialog */}
+      <Dialog open={!!editTarget} onOpenChange={(o) => !o && setEditTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit invoice</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-invnum">Invoice number</Label>
+              <Input
+                id="edit-invnum"
+                value={editForm.invoice_number}
+                onChange={(e) => setEditForm({ ...editForm, invoice_number: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-amount">Amount</Label>
+              <Input
+                id="edit-amount"
+                type="number"
+                step="0.01"
+                value={editForm.amount}
+                onChange={(e) => setEditForm({ ...editForm, amount: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-issue">Issue date</Label>
+                <Input
+                  id="edit-issue"
+                  type="date"
+                  value={editForm.issue_date}
+                  onChange={(e) => setEditForm({ ...editForm, issue_date: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-due">Due date</Label>
+                <Input
+                  id="edit-due"
+                  type="date"
+                  value={editForm.due_date}
+                  onChange={(e) => setEditForm({ ...editForm, due_date: e.target.value })}
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditTarget(null)} disabled={savingEdit}>
+              Cancel
+            </Button>
+            <Button onClick={saveEdit} disabled={savingEdit}>
+              {savingEdit ? "Saving…" : "Save changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete invoice confirm */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this invoice?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The invoice will be permanently removed and the schedule line will be reset so you can re-issue it.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} disabled={deleting}>
+              {deleting ? "Deleting…" : "Delete invoice"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
