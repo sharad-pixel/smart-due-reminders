@@ -55,48 +55,38 @@ const LiveContractDetailInner = () => {
     queryKey: ["live-contract-detail", importId],
     enabled: !!importId,
     queryFn: async () => {
-      const [imp, fields, dates, schedules, flags, parties, debtor] =
-        await Promise.all([
-          supabase
-            .from("live_contract_imports")
-            .select("*")
-            .eq("id", importId!)
-            .maybeSingle(),
-          supabase
-            .from("live_contract_extracted_fields")
-            .select("*")
-            .eq("import_id", importId!),
-          supabase
-            .from("contract_critical_dates")
-            .select("*")
-            .eq("import_id", importId!)
-            .order("due_date"),
-          supabase
-            .from("contract_invoice_schedules")
-            .select("*")
-            .eq("import_id", importId!)
-            .order("scheduled_date"),
-          supabase
-            .from("contract_risk_flags")
-            .select("*")
-            .eq("import_id", importId!),
-          supabase
-            .from("contract_parties")
-            .select("*")
-            .eq("import_id", importId!),
-          supabase
-            .from("live_contract_imports")
-            .select("debtor_id")
-            .eq("id", importId!)
-            .maybeSingle(),
-        ]);
+      const [imp, fields, dates, schedules, flags] = await Promise.all([
+        supabase
+          .from("live_contract_imports")
+          .select("*")
+          .eq("id", importId!)
+          .maybeSingle(),
+        supabase
+          .from("live_contract_extracted_fields")
+          .select("*")
+          .eq("import_id", importId!),
+        supabase
+          .from("contract_critical_dates")
+          .select("*")
+          .eq("import_id", importId!)
+          .order("due_date"),
+        supabase
+          .from("contract_invoice_schedules")
+          .select("*")
+          .eq("import_id", importId!)
+          .order("scheduled_date"),
+        supabase
+          .from("contract_risk_flags")
+          .select("*")
+          .eq("import_id", importId!),
+      ]);
 
       let debtorRow: any = null;
-      if (debtor.data?.debtor_id) {
+      if (imp.data?.debtor_id) {
         const { data: d } = await supabase
           .from("debtors")
           .select("id, company_name, name, current_balance")
-          .eq("id", debtor.data.debtor_id)
+          .eq("id", imp.data.debtor_id)
           .maybeSingle();
         debtorRow = d;
       }
@@ -107,7 +97,6 @@ const LiveContractDetailInner = () => {
         dates: dates.data || [],
         schedules: schedules.data || [],
         flags: flags.data || [],
-        parties: parties.data || [],
         debtor: debtorRow,
       };
     },
