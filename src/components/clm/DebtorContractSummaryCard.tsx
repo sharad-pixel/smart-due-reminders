@@ -49,8 +49,7 @@ export const DebtorContractSummaryCard = ({ debtorId }: Props) => {
           supabase
             .from("live_contract_extracted_fields")
             .select("import_id, field_group, field_key, field_value")
-            .in("import_id", ids)
-            .eq("field_group", "commercial"),
+            .in("import_id", ids),
           supabase
             .from("contract_critical_dates")
             .select("import_id, date_type, due_date, risk_level")
