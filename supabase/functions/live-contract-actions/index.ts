@@ -68,6 +68,20 @@ Deno.serve(async (req) => {
             invoice_created_at: new Date().toISOString(),
             status: "invoice_created",
           }).eq("id", s.id);
+          // Audit: record duplicate detection so the user can see why no new invoice was created
+          await supabase.from("invoice_data_audit").insert({
+            invoice_id: dupes[0].id,
+            user_id: imp.account_id,
+            source_type: "contract_intelligence",
+            source_contract_id: imp.id,
+            source_schedule_id: s.id,
+            source_reference: imp.contract_name || imp.file_name,
+            field_name: "duplicate_check",
+            source_value: `${imp.debtor_id}|${issue}|${s.amount}`,
+            applied_value: dupes[0].invoice_number || dupes[0].id,
+            duplicate_of_invoice_id: dupes[0].id,
+            notes: "Duplicate live_contract invoice (same debtor/issue_date/amount) — schedule linked to existing invoice",
+          });
           duplicates.push({ id: s.id, existing_invoice_id: dupes[0].id });
           skipped.push({ id: s.id, reason: "duplicate detected, linked to existing invoice" });
           continue;
@@ -88,6 +102,9 @@ Deno.serve(async (req) => {
           total_amount: s.amount,
           amount_outstanding: s.amount,
           amount_original: s.amount,
+          source_contract_id: imp.id,
+          source_contract_schedule_id: s.id,
+          source_origin: "contract_intelligence",
           currency: s.currency || "USD",
           issue_date: issue,
           due_date: due,
