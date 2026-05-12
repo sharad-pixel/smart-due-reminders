@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   HoverCard, HoverCardContent, HoverCardTrigger,
@@ -115,9 +114,9 @@ export const DebtorWorkspacesCard = ({ debtorId }: { debtorId: string }) => {
               </Badge>
             </div>
             <div className="mt-3 flex justify-end">
-              <Button variant="ghost" size="sm" className="h-7 px-2 pointer-events-none">
+              <span className="inline-flex h-7 items-center rounded-md px-2 text-sm font-medium text-primary">
                 Open workspace <ExternalLink className="h-3.5 w-3.5 ml-1" />
-              </Button>
+              </span>
             </div>
           </Link>
         ))}
