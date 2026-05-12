@@ -536,8 +536,8 @@ const Layout = ({ children }: LayoutProps) => {
                   {clmActive && (
                     <>
                       <DropdownMenuItem onClick={() => navigate("/contracts")}>
-                        <FileSignature className="mr-2 h-4 w-4" />
-                        Contracts (CLM)
+                        <Briefcase className="mr-2 h-4 w-4" />
+                        Workspaces (CLM)
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => navigate("/contracts/live")}>
                         <FileSignature className="mr-2 h-4 w-4" />
