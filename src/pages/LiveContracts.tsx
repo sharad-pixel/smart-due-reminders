@@ -509,7 +509,9 @@ function ImportsTable({ imports, onReview, statusFilter }: { imports: any[]; onR
               ) : i.status === "needs_review" ? (
                 <Button size="sm" onClick={() => onReview(i.id)}>Review</Button>
               ) : (
-                <Button size="sm" variant="ghost" onClick={() => onReview(i.id)}>View</Button>
+                <Button size="sm" variant="ghost" asChild>
+                  <Link to={`/contracts/live/${i.id}`}>View</Link>
+                </Button>
               )}
             </TableCell>
           </TableRow>
