@@ -26,6 +26,8 @@ import {
   toNumber,
 } from "@/lib/clm/financialMetrics";
 import { ContractStagingPanel } from "@/components/clm/ContractStagingPanel";
+import { ContractOverviewEditor } from "@/components/clm/ContractOverviewEditor";
+import { ContractScheduleLines } from "@/components/clm/ContractScheduleLines";
 import { useQueryClient } from "@tanstack/react-query";
 
 const FIN_KEYS = new Set<string>([
