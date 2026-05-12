@@ -1168,9 +1168,6 @@ const DebtorDetail = () => {
           disputedInvoicesCount={debtor.disputed_invoices_count}
         />
 
-        {/* CLM Contract Summary (only renders if entitled & contracts exist) */}
-        <DebtorContractSummaryCard debtorId={debtor.id} />
-
         {/* Aging Bucket Breakdown */}
         <AgingBucketBreakdown debtorId={id} />
 
