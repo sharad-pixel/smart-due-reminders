@@ -345,9 +345,16 @@ const LiveContractDetailInner = () => {
                         {formatDateShort(s.scheduled_date)}
                         {s.invoice_id && (
                           <span className="ml-2 inline-flex items-center gap-1 text-primary">
-                            · Invoiced ·
+                            ·
                             <Link
-                              to={`/invoices?invoice=${s.invoice_id}`}
+                              to={`/invoices/${s.invoice_id}`}
+                              className="underline hover:no-underline"
+                            >
+                              Invoiced
+                            </Link>
+                            ·
+                            <Link
+                              to={`/invoices/${s.invoice_id}`}
                               className="underline hover:no-underline"
                             >
                               Edit
