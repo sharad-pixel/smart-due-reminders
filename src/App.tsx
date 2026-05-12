@@ -174,6 +174,7 @@ const ClmTemplateDetail = lazy(() => import("./pages/ClmTemplateDetail"));
 const ClmInstanceDetail = lazy(() => import("./pages/ClmInstanceDetail"));
 const ClmPortal = lazy(() => import("./pages/ClmPortal"));
 const LiveContracts = lazy(() => import("./pages/LiveContracts"));
+const LiveContractDetail = lazy(() => import("./pages/LiveContractDetail"));
 
 // Admin Pages (heavy - definitely lazy load)
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
@@ -268,6 +269,7 @@ const App = () => (
               <Route path="/contracts/instances/:id" element={<ClmInstanceDetail />} />
               <Route path="/clm-portal" element={<ClmPortal />} />
               <Route path="/contracts/live" element={<LiveContracts />} />
+              <Route path="/contracts/live/:importId" element={<LiveContractDetail />} />
               <Route path="/clm/live-contracts" element={<LiveContracts />} />
 
               {/* Pillar Pages */}

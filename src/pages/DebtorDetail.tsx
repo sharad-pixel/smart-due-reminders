@@ -883,6 +883,9 @@ const DebtorDetail = () => {
           </div>
         )}
 
+        {/* CLM Contract Summary (only renders if entitled & contracts exist) */}
+        <DebtorContractSummaryCard debtorId={debtor.id} />
+
         <div className="grid md:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
@@ -1164,9 +1167,6 @@ const DebtorDetail = () => {
           openInvoicesCount={debtor.open_invoices_count}
           disputedInvoicesCount={debtor.disputed_invoices_count}
         />
-
-        {/* CLM Contract Summary (only renders if entitled & contracts exist) */}
-        <DebtorContractSummaryCard debtorId={debtor.id} />
 
         {/* Aging Bucket Breakdown */}
         <AgingBucketBreakdown debtorId={id} />
