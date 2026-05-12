@@ -157,7 +157,7 @@ export const DebtorContractSummaryCard = ({ debtorId }: Props) => {
               {data.imports.slice(0, 5).map((c) => (
                 <Link
                   key={c.id}
-                  to={`/contracts/live?import=${c.id}`}
+                  to={`/contracts/live/${c.id}`}
                   className="block text-sm border rounded-md p-2 hover:bg-muted transition-colors"
                 >
                   <div className="font-medium truncate">
