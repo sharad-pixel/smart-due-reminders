@@ -518,7 +518,7 @@ Deno.serve(async (req) => {
             debtor_id: debtorId,
             quickbooks_invoice_id: invoice.Id,
             quickbooks_doc_number: invoice.DocNumber,
-            invoice_number: invoice.DocNumber || `QB-${invoice.Id}`,
+            invoice_number: invoice.DocNumber || `QBI-${(invoice.TxnDate || new Date().toISOString().slice(0,10)).replace(/-/g,'')}-${String(invoice.Id || Math.random().toString(36).slice(2,6)).slice(-4).toUpperCase()}`,
             // QB returns amounts in dollars - store as-is (not multiplied by 100)
             amount: invoice.TotalAmt || 0,
             amount_outstanding: invoice.Balance || 0,
