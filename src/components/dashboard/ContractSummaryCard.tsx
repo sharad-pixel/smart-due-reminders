@@ -94,10 +94,11 @@ export const ContractSummaryCard = () => {
       </CardHeader>
       <CardContent className="space-y-5">
         {/* Financial metrics */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           <MetricTile label="MRR" value={formatCurrency(totals.mrr, totals.currency)} icon={TrendingUp} />
           <MetricTile label="ARR" value={formatCurrency(totals.arr, totals.currency)} icon={TrendingUp} />
           <MetricTile label="ACV" value={formatCurrency(totals.acv, totals.currency)} icon={TrendingUp} />
+          <MetricTile label="TCV" value={formatCurrency(totals.tcv, totals.currency)} icon={TrendingUp} />
           <MetricTile label="Active Contracts" value={String(activeContracts.length)} icon={FileText} />
         </div>
 
