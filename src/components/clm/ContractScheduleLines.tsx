@@ -177,6 +177,17 @@ export const ContractScheduleLines = ({ schedules, defaultCurrency, onChanged }:
                           </Badge>
                         )}
                       </td>
+                      <td className="py-2 px-2">
+                        {s.invoice_id && statusMap[s.invoice_id] ? (
+                          <Badge className={`text-[10px] ${getInvoiceStatusColor(statusMap[s.invoice_id])}`}>
+                            {getInvoiceStatusLabel(statusMap[s.invoice_id])}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[10px] text-muted-foreground">
+                            Pending
+                          </Badge>
+                        )}
+                      </td>
                       <td className="text-right py-2 pl-2">
                         <Button size="sm" variant="ghost" onClick={() => open(s)}>
                           <Pencil className="h-3.5 w-3.5" />
