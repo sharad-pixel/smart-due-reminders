@@ -44,6 +44,11 @@ export const ContractStagingPanel = ({
   const [busyScheduleId, setBusyScheduleId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [watcherEmail, setWatcherEmail] = useState("");
+  const [editTarget, setEditTarget] = useState<any | null>(null);
+  const [editForm, setEditForm] = useState<{ invoice_number: string; amount: string; issue_date: string; due_date: string }>({ invoice_number: "", amount: "", issue_date: "", due_date: "" });
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const { data: watchers = [] } = useQuery({
     queryKey: ["contract-watchers", contractId],
