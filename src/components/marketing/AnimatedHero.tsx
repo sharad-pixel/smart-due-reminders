@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import RollingAgentIntro from "./RollingAgentIntro";
 
 const headlines = [
-  "Your Collections & Risk CRM — Powered by AI",
+  "Your Revenue Intelligence Platform — Powered by AI",
   "Centralized Receivables. Prioritized by Risk.",
   "Every Outreach. Every Outcome. One System of Record.",
   "AI-Powered Collections Workflows That Recover Cash",
@@ -16,7 +16,7 @@ const headlines = [
   "From Overdue to Recovered — With Full Visibility",
   "The CRM Built for Finance Teams",
   "Manage Risk. Recover Revenue. One Platform.",
-  "AI Collections CRM That Compounds Results",
+  "AI Revenue Intelligence Platform That Compounds Results",
   "Centralized AR Intelligence. Faster Recovery.",
   "Stop Chasing. Start Managing. Recover More.",
   "Complete Collections History at Your Fingertips",
@@ -101,7 +101,7 @@ const AnimatedHero = () => {
              transition={{ duration: 0.6, ease: "easeOut" }}
            >
             <Sparkles className="w-4 h-4 animate-pulse" />
-            AI-Powered Collections & Risk CRM
+            AI-Powered Revenue Intelligence Platform
            </motion.div>
           
           {/* Supporting tagline */}

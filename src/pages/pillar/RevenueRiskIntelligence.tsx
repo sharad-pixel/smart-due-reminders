@@ -86,8 +86,8 @@ const RevenueRiskIntelligence = () => {
           <h2 className="text-2xl font-semibold text-foreground mb-6">Explore More</h2>
           <ul className="grid sm:grid-cols-2 gap-4 text-base">
             <li><Link to="/features/revenue-risk" className="text-primary hover:underline">Revenue Risk Feature →</Link></li>
-            <li><Link to="/collections-crm" className="text-primary hover:underline">Collections CRM →</Link></li>
-            <li><Link to="/ai-collections-platform" className="text-primary hover:underline">AI Collections Platform →</Link></li>
+            <li><Link to="/collections-crm" className="text-primary hover:underline">Revenue Intelligence Platform →</Link></li>
+            <li><Link to="/ai-collections-platform" className="text-primary hover:underline">AI Revenue Intelligence Platform →</Link></li>
             <li><Link to="/collection-intelligence" className="text-primary hover:underline">Revenue Intelligence →</Link></li>
             <li><Link to="/analytics" className="text-primary hover:underline">Analytics & Reporting →</Link></li>
             <li><Link to="/pricing" className="text-primary hover:underline">Pricing Plans →</Link></li>

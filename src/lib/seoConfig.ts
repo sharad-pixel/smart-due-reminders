@@ -142,7 +142,7 @@ export const PAGE_SEO: Record<string, { title: string; description: string; keyw
     keywords: 'collections CRM, AI collections software, accounts receivable CRM, AI-powered collections workflows, risk-based prioritization, collections audit trail, centralized receivables, DSO reduction, cash flow management, collection intelligence platform',
   },
   features: {
-    title: 'AI Collections CRM Features | Risk Scoring & Workflow Engine',
+    title: 'AI Revenue Intelligence Platform Features | Risk Scoring & Workflow Engine',
     description: 'AI-powered collections CRM features: risk-based prioritization, centralized receivables, full audit trail, AI-powered collections workflows, and intelligent outreach.',
     keywords: 'AI collections CRM features, risk-based prioritization, collections audit trail, AI-powered collections workflows, centralized receivables management, payment behavior prediction',
   },
@@ -182,7 +182,7 @@ export const PAGE_SEO: Record<string, { title: string; description: string; keyw
     keywords: 'accounts receivable blog, AI collections insights, AR automation best practices, credit risk management articles, Stripe AR tips, cash flow management blog, DSO reduction strategies',
   },
   collectionIntelligence: {
-    title: 'Collections & Risk CRM | AI-Powered Workflows & Risk Scoring',
+    title: 'Revenue Intelligence Platform | AI-Powered Workflows & Risk Scoring',
     description: 'AI-powered collections CRM with risk-based prioritization, centralized receivables management, full audit trail, and intelligent collections workflows for maximum recovery.',
     keywords: 'collections CRM, AI collections workflows, risk-based prioritization, collections audit trail, centralized receivables, predictive collections, AI credit risk, AR intelligence platform',
   },

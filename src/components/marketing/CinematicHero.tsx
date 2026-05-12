@@ -24,7 +24,7 @@ const PHASE_DURATIONS: Record<Phase, number> = {
 
 const HEADLINES: string[] = [
   "Turn Revenue Risk Into Predictable Cash Flow",
-  "Your Collections & Risk CRM — Powered by AI",
+  "Your Revenue Intelligence Platform — Powered by AI",
   "Centralized Receivables. Prioritized by Risk.",
   "AI-Powered Collections Workflows That Recover Cash",
   "Six AI Agents. Full Audit Trail. Zero Gaps.",
@@ -159,7 +159,7 @@ const CinematicHero = () => {
           >
             <Sparkles className="w-3.5 h-3.5 transition-transform duration-500 group-hover:rotate-12 group-hover:scale-110" />
             <span className="transition-colors duration-300 group-hover:text-accent">
-              AI-Powered Collections & Risk Command Center
+              AI-Powered Revenue Intelligence Command Center
             </span>
           </motion.div>
 

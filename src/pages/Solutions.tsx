@@ -86,7 +86,7 @@ const Solutions = () => {
               Revenue Intelligence Platform
             </div>
             <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              AI-Powered Collections CRM for Every Industry
+              AI-Powered Revenue Intelligence Platform for Every Industry
             </h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-4">
               Recouply.ai centralizes your receivables, prioritizes by risk, and maintains a complete audit trail —

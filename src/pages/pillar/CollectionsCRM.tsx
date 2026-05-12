@@ -6,17 +6,17 @@ const CollectionsCRM = () => {
   return (
     <MarketingLayout>
       <SEOHead
-        title="Collections CRM | AI-Powered Revenue Intelligence CRM — Recouply.ai"
-        description="Recouply.ai is the Collections CRM built for finance teams. Centralize receivables, prioritize by risk, automate outreach, and maintain a full audit trail — replacing spreadsheets and legacy tools with an intelligent system of record."
+        title="Revenue Intelligence Platform | AI-Powered Revenue Intelligence CRM — Recouply.ai"
+        description="Recouply.ai is the Revenue Intelligence Platform built for finance teams. Centralize receivables, prioritize by risk, automate outreach, and maintain a full audit trail — replacing spreadsheets and legacy tools with an intelligent system of record."
         keywords="collections CRM, accounts receivable CRM, AI collections CRM, collections management software, AR CRM platform, collections system of record, receivables CRM, debt collection CRM, B2B collections CRM, collections workflow CRM"
         canonical="https://recouply.ai/collections-crm"
-        breadcrumbs={[{ name: "Collections CRM", url: "https://recouply.ai/collections-crm" }]}
+        breadcrumbs={[{ name: "Revenue Intelligence Platform", url: "https://recouply.ai/collections-crm" }]}
       />
 
       <article className="max-w-4xl mx-auto px-4 py-16 sm:py-24">
         <header>
           <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-foreground mb-6">
-            Collections CRM: The System of Record for Revenue Recovery
+            Revenue Intelligence Platform: The System of Record for Revenue Recovery
           </h1>
           <p className="text-xl text-muted-foreground leading-relaxed mb-12">
             Recouply.ai is the first CRM purpose-built for collections and accounts receivable teams.
@@ -31,7 +31,7 @@ const CollectionsCRM = () => {
             Sales teams have Salesforce. Support teams have Zendesk. But collections teams — responsible
             for recovering billions in outstanding receivables — have been stuck with spreadsheets, shared
             inboxes, and disconnected billing tools. Recouply.ai changes that by delivering a dedicated
-            Collections CRM with AI-powered workflows, risk-based prioritization, and a complete audit trail
+            Revenue Intelligence Platform with AI-powered workflows, risk-based prioritization, and a complete audit trail
             of every customer touchpoint.
           </p>
           <p>
@@ -40,7 +40,7 @@ const CollectionsCRM = () => {
             dispute resolution, and compliance — all unified in a single workspace.
           </p>
 
-          <h2>Core Capabilities of Recouply's Collections CRM</h2>
+          <h2>Core Capabilities of Recouply's Revenue Intelligence Platform</h2>
           <ul>
             <li><strong>Centralized Receivables Dashboard</strong> — View every invoice, debtor, and payment status in one place with real-time AR aging analysis.</li>
             <li><strong>Risk-Based Account Prioritization</strong> — AI-driven Collectability Scores (0–100) automatically rank accounts by recovery probability, so your team focuses where it matters most.</li>
@@ -59,12 +59,12 @@ const CollectionsCRM = () => {
 
           <h2>Built for Finance Teams, Not Salespeople</h2>
           <p>
-            Recouply's Collections CRM speaks the language of AR professionals. Our data model understands
+            Recouply's Revenue Intelligence Platform speaks the language of AR professionals. Our data model understands
             invoices, aging buckets, payment terms, credit limits, and debtor hierarchies natively — no
             custom fields or workarounds required.
           </p>
 
-          <h2>Integrations That Power Your Collections CRM</h2>
+          <h2>Integrations That Power Your Revenue Intelligence Platform</h2>
           <p>
             Connect your existing billing stack to sync invoices and payments automatically. Recouply
             integrates with <Link to="/integrations" className="text-primary hover:underline">Stripe, QuickBooks, Google Sheets, and more</Link> for
@@ -73,7 +73,7 @@ const CollectionsCRM = () => {
 
           <h2>From Spreadsheets to System of Record</h2>
           <p>
-            The shift from spreadsheets to a purpose-built Collections CRM isn't just about efficiency — it's
+            The shift from spreadsheets to a purpose-built Revenue Intelligence Platform isn't just about efficiency — it's
             about creating an auditable, intelligent, and scalable foundation for revenue recovery. Read more
             in our deep dive: <Link to="/blog/spreadsheets-to-systems-of-record" className="text-primary hover:underline">From Spreadsheets to Systems of Record</Link>.
           </p>
@@ -84,7 +84,7 @@ const CollectionsCRM = () => {
           <ul className="grid sm:grid-cols-2 gap-4 text-base">
             <li><Link to="/features" className="text-primary hover:underline">Platform Features →</Link></li>
             <li><Link to="/collection-intelligence" className="text-primary hover:underline">Revenue Intelligence →</Link></li>
-            <li><Link to="/ai-collections-platform" className="text-primary hover:underline">AI Collections Platform →</Link></li>
+            <li><Link to="/ai-collections-platform" className="text-primary hover:underline">AI Revenue Intelligence Platform →</Link></li>
             <li><Link to="/revenue-risk-intelligence" className="text-primary hover:underline">Revenue Risk Intelligence →</Link></li>
             <li><Link to="/automation" className="text-primary hover:underline">Automation & Workflows →</Link></li>
             <li><Link to="/pricing" className="text-primary hover:underline">Pricing Plans →</Link></li>
