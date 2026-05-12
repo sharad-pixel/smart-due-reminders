@@ -1,19 +1,30 @@
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useClmEntitlement } from "@/hooks/useClmEntitlement";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, CalendarClock, Receipt, TrendingUp, ArrowRight } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { FileText, ArrowRight, Search, Building2 } from "lucide-react";
 import { formatCurrency, formatDateShort } from "@/lib/formatters";
 import { computeContractTotals } from "@/lib/clm/financialMetrics";
 
-const PAGE_SIZE = 5;
+const PAGE_SIZE = 15;
 
 export const ContractSummaryCard = () => {
   const { isActive, isLoading: clmLoading } = useClmEntitlement();
   const navigate = useNavigate();
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
 
   const { data, isLoading } = useQuery({
     queryKey: ["dashboard-contract-summary"],
@@ -24,183 +35,188 @@ export const ContractSummaryCard = () => {
         .select("id, contract_name, contract_type, effective_date, term_end_date, debtor_id")
         .in("status", ["approved", "imported"])
         .order("updated_at", { ascending: false })
-        .limit(50);
+        .limit(200);
 
       const importIds = (imports ?? []).map((i) => i.id);
-      if (importIds.length === 0) return { imports: [], fields: [], dates: [], schedules: [] };
+      const debtorIds = Array.from(
+        new Set((imports ?? []).map((i) => i.debtor_id).filter(Boolean) as string[]),
+      );
 
-      const [{ data: fields }, { data: dates }, { data: schedules }] = await Promise.all([
+      if (importIds.length === 0) return { rows: [] };
+
+      const [{ data: fields }, { data: debtors }] = await Promise.all([
         supabase
           .from("live_contract_extracted_fields")
           .select("import_id, field_group, field_key, field_value")
-          .in("import_id", importIds)
-          .in("field_group", ["commercial", "contract"]),
-        supabase
-          .from("contract_critical_dates")
-          .select("import_id, date_type, due_date, status, risk_level")
-          .in("import_id", importIds)
-          .gte("due_date", new Date().toISOString().slice(0, 10))
-          .order("due_date", { ascending: true })
-          .limit(8),
-        supabase
-          .from("contract_invoice_schedules")
-          .select("import_id, scheduled_date, amount, currency, billing_type, description, status")
-          .in("import_id", importIds)
-          .order("scheduled_date", { ascending: true })
-          .limit(8),
+          .in("import_id", importIds),
+        debtorIds.length
+          ? supabase
+              .from("debtors")
+              .select("id, company_name, name")
+              .in("id", debtorIds)
+          : Promise.resolve({ data: [] as any[] }),
       ]);
 
-      return {
-        imports: imports ?? [],
-        fields: fields ?? [],
-        dates: dates ?? [],
-        schedules: schedules ?? [],
-      };
+      const debtorMap = new Map(
+        (debtors ?? []).map((d: any) => [d.id, d.company_name || d.name || "—"]),
+      );
+
+      const rows = (imports ?? []).map((imp: any) => {
+        const impFields = (fields ?? []).filter((f: any) => f.import_id === imp.id);
+        const t = computeContractTotals(impFields, imp);
+        return {
+          importId: imp.id,
+          debtorId: imp.debtor_id as string | null,
+          debtorName: imp.debtor_id ? debtorMap.get(imp.debtor_id) || "Unknown" : "Unlinked",
+          contractName: imp.contract_name || "Untitled contract",
+          termStart: imp.effective_date as string | null,
+          termEnd: imp.term_end_date as string | null,
+          mrr: t.mrr,
+          arr: t.arr,
+          acv: t.acv,
+          currency: t.currency || "USD",
+        };
+      });
+
+      return { rows };
     },
   });
 
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const rows = data?.rows ?? [];
+    if (!q) return rows;
+    return rows.filter(
+      (r) =>
+        r.debtorName.toLowerCase().includes(q) ||
+        r.contractName.toLowerCase().includes(q),
+    );
+  }, [data, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const paged = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
   if (clmLoading || !isActive) return null;
   if (isLoading) return null;
-  if (!data || data.imports.length === 0) return null;
-
-  // Aggregate MRR/ARR/ACV/TCV across active contracts using shared derivation
-  const totals = { mrr: 0, arr: 0, acv: 0, tcv: 0, currency: "USD" };
-  for (const imp of data.imports) {
-    const impFields = data.fields.filter((f: any) => f.import_id === imp.id);
-    const t = computeContractTotals(impFields, imp);
-    totals.mrr += t.mrr;
-    totals.arr += t.arr;
-    totals.acv += t.acv;
-    totals.tcv += t.tcv;
-    if (t.currency && t.currency !== "USD") totals.currency = t.currency;
-  }
-
-  const activeContracts = data.imports.filter((c) => {
-    if (!c.term_end_date) return true;
-    return new Date(c.term_end_date) >= new Date();
-  });
+  if (!data || data.rows.length === 0) return null;
 
   return (
     <Card className="border-l-4 border-l-primary">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-            <FileText className="h-5 w-5 text-primary" /> Current Contract Summary
+            <FileText className="h-5 w-5 text-primary" /> Contracts Summary
           </CardTitle>
           <Button variant="ghost" size="sm" onClick={() => navigate("/contracts/live")}>
             View all <ArrowRight className="h-3.5 w-3.5 ml-1" />
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="space-y-5">
-        {/* Financial metrics */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-          <MetricTile label="MRR" value={formatCurrency(totals.mrr, totals.currency)} icon={TrendingUp} />
-          <MetricTile label="ARR" value={formatCurrency(totals.arr, totals.currency)} icon={TrendingUp} />
-          <MetricTile label="ACV" value={formatCurrency(totals.acv, totals.currency)} icon={TrendingUp} />
-          <MetricTile label="TCV" value={formatCurrency(totals.tcv, totals.currency)} icon={TrendingUp} />
-          <MetricTile label="Active Contracts" value={String(activeContracts.length)} icon={FileText} />
+      <CardContent className="space-y-3">
+        <div className="relative max-w-sm">
+          <Search className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+            placeholder="Search debtor or contract…"
+            className="pl-8 h-9"
+          />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Current Term */}
-          <div>
-            <div className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
-              <FileText className="h-3.5 w-3.5" /> Current Term
-            </div>
-            <div className="space-y-2 max-h-56 overflow-auto pr-1">
-              {activeContracts.slice(0, PAGE_SIZE).map((c) => (
-                <div key={c.id} className="text-sm border rounded-md p-2">
-                  <div className="font-medium truncate">{c.contract_name || "Untitled contract"}</div>
-                  <div className="text-xs text-muted-foreground mt-0.5">
-                    {c.effective_date ? formatDateShort(c.effective_date) : "—"}
-                    {" → "}
-                    {c.term_end_date ? formatDateShort(c.term_end_date) : "Open"}
-                  </div>
-                  {c.contract_type && (
-                    <Badge variant="outline" className="mt-1 text-[10px] font-normal">{c.contract_type}</Badge>
-                  )}
-                </div>
-              ))}
-              {activeContracts.length === 0 && (
-                <p className="text-xs text-muted-foreground">No active contracts.</p>
+        <div className="rounded-md border overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Debtor</TableHead>
+                <TableHead>Term Start</TableHead>
+                <TableHead>Term End</TableHead>
+                <TableHead className="text-right">MRR</TableHead>
+                <TableHead className="text-right">ARR</TableHead>
+                <TableHead className="text-right">ACV</TableHead>
+                <TableHead className="w-10"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paged.map((r) => {
+                const target = r.debtorId ? `/customers/${r.debtorId}` : `/contracts/live/${r.importId}`;
+                return (
+                  <TableRow
+                    key={r.importId}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => navigate(target)}
+                  >
+                    <TableCell>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Building2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        <div className="min-w-0">
+                          <div className="font-medium truncate">{r.debtorName}</div>
+                          <div className="text-xs text-muted-foreground truncate">{r.contractName}</div>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {r.termStart ? formatDateShort(r.termStart) : "—"}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {r.termEnd ? formatDateShort(r.termEnd) : "Open"}
+                    </TableCell>
+                    <TableCell className="text-right text-sm font-medium">
+                      {r.mrr > 0 ? formatCurrency(r.mrr, r.currency) : "—"}
+                    </TableCell>
+                    <TableCell className="text-right text-sm font-medium">
+                      {r.arr > 0 ? formatCurrency(r.arr, r.currency) : "—"}
+                    </TableCell>
+                    <TableCell className="text-right text-sm font-medium">
+                      {r.acv > 0 ? formatCurrency(r.acv, r.currency) : "—"}
+                    </TableCell>
+                    <TableCell>
+                      <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+              {paged.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center text-sm text-muted-foreground py-6">
+                    No contracts match your search.
+                  </TableCell>
+                </TableRow>
               )}
-            </div>
-          </div>
-
-          {/* Key Dates */}
-          <div>
-            <div className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
-              <CalendarClock className="h-3.5 w-3.5" /> Upcoming Key Dates
-            </div>
-            <div className="space-y-2 max-h-56 overflow-auto pr-1">
-              {data.dates.slice(0, PAGE_SIZE).map((d, idx) => (
-                <div key={idx} className="text-sm border rounded-md p-2 flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="font-medium capitalize truncate">{d.date_type.replace(/_/g, " ")}</div>
-                    <div className="text-xs text-muted-foreground">{formatDateShort(d.due_date)}</div>
-                  </div>
-                  {d.risk_level && (
-                    <Badge
-                      variant="outline"
-                      className={`text-[10px] font-normal shrink-0 ${
-                        d.risk_level === "high" || d.risk_level === "critical"
-                          ? "bg-red-50 text-red-700 border-red-200"
-                          : d.risk_level === "medium"
-                          ? "bg-amber-50 text-amber-700 border-amber-200"
-                          : "bg-emerald-50 text-emerald-700 border-emerald-200"
-                      }`}
-                    >
-                      {d.risk_level}
-                    </Badge>
-                  )}
-                </div>
-              ))}
-              {data.dates.length === 0 && (
-                <p className="text-xs text-muted-foreground">No upcoming dates.</p>
-              )}
-            </div>
-          </div>
-
-          {/* Invoice Schedule */}
-          <div>
-            <div className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
-              <Receipt className="h-3.5 w-3.5" /> Invoice Schedule
-            </div>
-            <div className="space-y-2 max-h-56 overflow-auto pr-1">
-              {data.schedules.slice(0, PAGE_SIZE).map((s, idx) => (
-                <div key={idx} className="text-sm border rounded-md p-2 flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="font-medium truncate">
-                      {s.description || s.billing_type || "Scheduled invoice"}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {formatDateShort(s.scheduled_date)}
-                    </div>
-                  </div>
-                  <div className="text-sm font-medium shrink-0">
-                    {s.amount != null ? formatCurrency(Number(s.amount), s.currency || "USD") : "—"}
-                  </div>
-                </div>
-              ))}
-              {data.schedules.length === 0 && (
-                <p className="text-xs text-muted-foreground">No scheduled invoices.</p>
-              )}
-            </div>
-          </div>
+            </TableBody>
+          </Table>
         </div>
+
+        {filtered.length > PAGE_SIZE && (
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>
+              Showing {(currentPage - 1) * PAGE_SIZE + 1}–
+              {Math.min(currentPage * PAGE_SIZE, filtered.length)} of {filtered.length}
+            </span>
+            <div className="flex gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage >= totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
 };
-
-const MetricTile = ({
-  label, value, icon: Icon,
-}: { label: string; value: string; icon: React.ComponentType<{ className?: string }> }) => (
-  <div className="border rounded-md p-3 bg-muted/30">
-    <div className="text-[11px] uppercase tracking-wide text-muted-foreground flex items-center gap-1">
-      <Icon className="h-3 w-3" /> {label}
-    </div>
-    <div className="text-lg font-semibold mt-1 truncate">{value}</div>
-  </div>
-);
