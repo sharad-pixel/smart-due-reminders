@@ -8,13 +8,36 @@
  * Supports any ISO 4217 currency code.
  */
 export function formatCurrency(amount: number | null | undefined, currency: string = 'USD'): string {
-  if (amount === null || amount === undefined) return getCurrencySymbol(currency) + '0.00';
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: currency || 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amount);
+  const code = normalizeCurrencyCode(currency);
+  if (amount === null || amount === undefined) return getCurrencySymbol(code) + '0.00';
+  try {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: code,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  } catch {
+    return `${getCurrencySymbol(code)}${amount.toFixed(2)}`;
+  }
+}
+
+/**
+ * Normalize free-form currency input ("$", "usd", "US$") into an ISO 4217 code.
+ */
+export function normalizeCurrencyCode(input: string | null | undefined): string {
+  if (!input) return 'USD';
+  const raw = String(input).trim();
+  if (/^[A-Za-z]{3}$/.test(raw)) return raw.toUpperCase();
+  const symbolMap: Record<string, string> = {
+    '$': 'USD', 'US$': 'USD', 'C$': 'CAD', 'CA$': 'CAD', 'A$': 'AUD',
+    '€': 'EUR', '£': 'GBP', '¥': 'JPY', '₹': 'INR', 'CHF': 'CHF',
+  };
+  if (symbolMap[raw]) return symbolMap[raw];
+  const upper = raw.toUpperCase();
+  if (symbolMap[upper]) return symbolMap[upper];
+  const match = upper.match(/[A-Z]{3}/);
+  return match ? match[0] : 'USD';
 }
 
 /**
