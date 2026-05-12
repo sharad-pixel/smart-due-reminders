@@ -33,7 +33,7 @@ import { ExpansionRiskAdvisor } from "@/components/accounts/ExpansionRiskAdvisor
 import { AccountOutreachSettings } from "@/components/outreach/AccountOutreachSettings";
 import { SalesRepCard } from "@/components/accounts/SalesRepCard";
 import { InternalAccountOwnerBadge } from "@/components/accounts/InternalAccountOwnerBadge";
-import { DebtorWorkspacesBadge } from "@/components/clm/DebtorWorkspacesBadge";
+import { DebtorWorkspacesCard } from "@/components/clm/DebtorWorkspacesBadge";
 import { DebtorContractSummaryCard } from "@/components/clm/DebtorContractSummaryCard";
 import { OutreachDetailModal, OutreachRecord } from "@/components/outreach/OutreachDetailModal";
 import { OutreachSummaryRow } from "@/components/outreach/OutreachSummaryRow";
@@ -796,7 +796,6 @@ const DebtorDetail = () => {
                   salesRepEmail={debtor.sales_rep_email}
                   alertsEnabled={!!debtor.sales_rep_alerts_enabled}
                 />
-                <DebtorWorkspacesBadge debtorId={debtor.id} />
               </div>
             </div>
           </div>
@@ -882,9 +881,6 @@ const DebtorDetail = () => {
             </div>
           </div>
         )}
-
-        {/* CLM Contract Summary (only renders if entitled & contracts exist) */}
-        <DebtorContractSummaryCard debtorId={debtor.id} />
 
         <div className="grid md:grid-cols-2 gap-6">
           <Card>
@@ -1111,6 +1107,10 @@ const DebtorDetail = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* CLM Contract Summary + Workspaces (only render when linked records exist) */}
+        <DebtorContractSummaryCard debtorId={debtor.id} />
+        <DebtorWorkspacesCard debtorId={debtor.id} />
 
         {/* Customer Intelligence Data for AI */}
         <CustomerAIContext debtorId={debtor.id} />
