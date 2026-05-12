@@ -3498,10 +3498,13 @@ export type Database = {
           invoice_id: string | null
           ocr_scanned_file_id: string | null
           payment_terms: string | null
+          product_description: string | null
+          quantity: number | null
           scheduled_date: string
           service_period_end: string | null
           service_period_start: string | null
           status: string
+          unit_price: number | null
         }
         Insert: {
           account_id: string
@@ -3519,10 +3522,13 @@ export type Database = {
           invoice_id?: string | null
           ocr_scanned_file_id?: string | null
           payment_terms?: string | null
+          product_description?: string | null
+          quantity?: number | null
           scheduled_date: string
           service_period_end?: string | null
           service_period_start?: string | null
           status?: string
+          unit_price?: number | null
         }
         Update: {
           account_id?: string
@@ -3540,10 +3546,13 @@ export type Database = {
           invoice_id?: string | null
           ocr_scanned_file_id?: string | null
           payment_terms?: string | null
+          product_description?: string | null
+          quantity?: number | null
           scheduled_date?: string
           service_period_end?: string | null
           service_period_start?: string | null
           status?: string
+          unit_price?: number | null
         }
         Relationships: [
           {
@@ -8048,6 +8057,7 @@ export type Database = {
           confidence: number | null
           contract_name: string | null
           contract_type: string | null
+          contract_value: number | null
           created_at: string
           debtor_id: string | null
           drive_file_id: string | null
@@ -8059,6 +8069,7 @@ export type Database = {
           folder_id: string | null
           id: string
           mime_type: string | null
+          product_description: string | null
           published_at: string | null
           scan_job_id: string | null
           source: string
@@ -8076,6 +8087,7 @@ export type Database = {
           confidence?: number | null
           contract_name?: string | null
           contract_type?: string | null
+          contract_value?: number | null
           created_at?: string
           debtor_id?: string | null
           drive_file_id?: string | null
@@ -8087,6 +8099,7 @@ export type Database = {
           folder_id?: string | null
           id?: string
           mime_type?: string | null
+          product_description?: string | null
           published_at?: string | null
           scan_job_id?: string | null
           source: string
@@ -8104,6 +8117,7 @@ export type Database = {
           confidence?: number | null
           contract_name?: string | null
           contract_type?: string | null
+          contract_value?: number | null
           created_at?: string
           debtor_id?: string | null
           drive_file_id?: string | null
@@ -8115,6 +8129,7 @@ export type Database = {
           folder_id?: string | null
           id?: string
           mime_type?: string | null
+          product_description?: string | null
           published_at?: string | null
           scan_job_id?: string | null
           source?: string
