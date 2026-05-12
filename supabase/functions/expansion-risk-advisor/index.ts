@@ -227,6 +227,7 @@ Risk assessment should factor in:
 - Payment history (avg days to pay, disputes, defaults)
 - Payment risk tier and score
 - Customer AI context (industry, revenue, relationship)
+- **Existing contracts (CLM)**: total contracted value (TCV/ACV/ARR/MRR), active contract count, upcoming renewal/termination dates, and any contract risk flags. Treat existing contracted obligations as additional exposure on top of open AR. Flag concentration risk when expansion meaningfully increases total committed value, and call out contract-driven risks (auto-renewals, near-term renewals, termination clauses) that affect the safety of expanding.
 
 Output ONLY valid JSON matching this schema:
 {
