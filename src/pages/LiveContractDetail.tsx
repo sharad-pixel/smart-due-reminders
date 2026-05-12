@@ -326,62 +326,13 @@ const LiveContractDetailInner = () => {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Receipt className="h-4 w-4 text-primary" /> Invoice Schedule
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {data.schedules.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No scheduled invoices.
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {data.schedules.map((s: any) => (
-                  <div
-                    key={s.id}
-                    className="text-sm border rounded-md p-2 flex items-start justify-between gap-2"
-                  >
-                    <div className="min-w-0">
-                      <div className="font-medium truncate">
-                        {s.description || s.billing_type || "Scheduled invoice"}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {formatDateShort(s.scheduled_date)}
-                        {s.invoice_id && (
-                          <span className="ml-2 inline-flex items-center gap-1 text-primary">
-                            ·
-                            <Link
-                              to={`/invoices/${s.invoice_id}`}
-                              className="underline hover:no-underline"
-                            >
-                              Invoiced
-                            </Link>
-                            ·
-                            <Link
-                              to={`/invoices/${s.invoice_id}`}
-                              className="underline hover:no-underline"
-                            >
-                              Edit
-                            </Link>
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="font-medium shrink-0">
-                      {s.amount != null
-                        ? formatCurrency(Number(s.amount), s.currency || totals.currency)
-                        : "—"}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
       </div>
+
+      <ContractScheduleLines
+        schedules={data.schedules}
+        defaultCurrency={totals.currency}
+        onChanged={() => qc.invalidateQueries({ queryKey: ["live-contract-detail", importId] })}
+      />
 
       {/* Parties section omitted (no contract_parties table) */}
 
