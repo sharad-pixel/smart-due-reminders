@@ -19,7 +19,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { formatCurrency, formatDateShort } from "@/lib/formatters";
-import { SEO } from "@/components/seo/SEO";
+import SEO from "@/components/seo/SEO";
 
 const FIN_KEYS = new Set([
   "mrr",
