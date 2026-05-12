@@ -119,22 +119,11 @@ export const DebtorContractSummaryCard = ({ debtorId }: Props) => {
       </CardHeader>
       <CardContent className="space-y-5">
         {/* KPIs */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <Tile
-            label="MRR"
-            value={formatCurrency(totals.mrr, totals.currency)}
-            icon={TrendingUp}
-          />
-          <Tile
-            label="ARR"
-            value={formatCurrency(totals.arr, totals.currency)}
-            icon={TrendingUp}
-          />
-          <Tile
-            label="ACV"
-            value={formatCurrency(totals.acv, totals.currency)}
-            icon={TrendingUp}
-          />
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
+          <Tile label="MRR" value={formatCurrency(totals.mrr, totals.currency)} icon={TrendingUp} />
+          <Tile label="ARR" value={formatCurrency(totals.arr, totals.currency)} icon={TrendingUp} />
+          <Tile label="ACV" value={formatCurrency(totals.acv, totals.currency)} icon={TrendingUp} />
+          <Tile label="TCV" value={formatCurrency(totals.tcv, totals.currency)} icon={TrendingUp} />
           <Tile
             label="Active"
             value={`${activeContracts.length} of ${data.imports.length}`}
