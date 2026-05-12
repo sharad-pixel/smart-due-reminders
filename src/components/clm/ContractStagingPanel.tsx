@@ -1,12 +1,12 @@
 import { useState, useRef } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Upload, Link as LinkIcon, Sparkles, X, UserPlus, CheckCircle2 } from "lucide-react";
+import { Upload, Link as LinkIcon, X, UserPlus, CheckCircle2, Sparkles, FilePlus2 } from "lucide-react";
 import { OcrPricingNotice } from "@/components/ocr/OcrPricingNotice";
 import { Link } from "react-router-dom";
 import { formatCurrency, formatDateShort } from "@/lib/formatters";
@@ -22,7 +22,8 @@ interface Props {
   debtorId: string | null;
   contractName: string | null;
   schedules: any[];
-  stagingStatus: string;
+  /** @deprecated kept for backward compatibility — staging happens at extraction time */
+  stagingStatus?: string;
   onChanged: () => void;
 }
 
@@ -32,38 +33,22 @@ export const ContractStagingPanel = ({
   debtorId,
   contractName,
   schedules,
-  stagingStatus,
   onChanged,
 }: Props) => {
   const qc = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
   const [activeScheduleId, setActiveScheduleId] = useState<string | null>(null);
+  const [busyScheduleId, setBusyScheduleId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [watcherEmail, setWatcherEmail] = useState("");
 
-  // Watchers
   const { data: watchers = [] } = useQuery({
     queryKey: ["contract-watchers", contractId],
     queryFn: () => fetchContractWatchers(contractId),
   });
 
-  const stagingMutation = useMutation({
-    mutationFn: async (next: "staging" | "published") => {
-      const updates: any = { staging_status: next };
-      if (next === "staging") updates.staging_completed_at = new Date().toISOString();
-      if (next === "published") updates.published_at = new Date().toISOString();
-      const { error } = await supabase
-        .from("live_contract_imports")
-        .update(updates)
-        .eq("id", contractId);
-      if (error) throw error;
-    },
-    onSuccess: (_d, next) => {
-      toast.success(next === "published" ? "Contract published" : "Marked ready for review");
-      onChanged();
-    },
-    onError: (e: any) => toast.error(e.message),
-  });
+  const completed = schedules.filter((s: any) => !!s.invoice_id).length;
+  const total = schedules.length;
 
   const handleOcrUpload = async (file: File, scheduleId?: string | null) => {
     if (!file) return;
@@ -105,6 +90,78 @@ export const ContractStagingPanel = ({
     }
   };
 
+  const handleGenerateRecouply = async (scheduleId: string) => {
+    setBusyScheduleId(scheduleId);
+    try {
+      const { data, error } = await supabase.functions.invoke("live-contract-actions", {
+        body: { importId: contractId, action: "generate_invoices", scheduleIds: [scheduleId] },
+      });
+      if (error) throw error;
+      if (data?.created > 0) toast.success("Recouply invoice generated");
+      else if (data?.duplicates > 0) toast.success("Linked to existing invoice");
+      else toast.message("No invoice created", { description: data?.skipped?.[0]?.reason || "Check schedule details" });
+      onChanged();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to generate invoice");
+    } finally {
+      setBusyScheduleId(null);
+    }
+  };
+
+  const handleCreateManual = async (s: any) => {
+    if (!debtorId) {
+      toast.error("Attach a customer to this contract first");
+      return;
+    }
+    setBusyScheduleId(s.id);
+    try {
+      const issue = s.scheduled_date as string;
+      const due = (s.expected_due_date as string) || issue;
+      const refId = `LC-INV-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+      const invNum = `${(contractName || "CONTRACT").slice(0, 20).replace(/\s+/g, "-")}-${new Date(issue).toISOString().slice(0, 10)}-M${Math.random().toString(36).slice(2, 5).toUpperCase()}`;
+      const amount = Number(s.amount) || 0;
+      const { data: inv, error } = await supabase
+        .from("invoices")
+        .insert({
+          user_id: accountId,
+          debtor_id: debtorId,
+          invoice_number: invNum,
+          reference_id: refId,
+          amount,
+          subtotal: amount,
+          total_amount: amount,
+          amount_outstanding: amount,
+          amount_original: amount,
+          currency: s.currency || "USD",
+          issue_date: issue,
+          due_date: due,
+          status: "Open",
+          source_system: "manual",
+          payment_terms: s.payment_terms || null,
+          product_description: s.description || contractName || "Contract billing",
+          notes: `Manually created from contract: ${contractName || ""}`,
+        } as any)
+        .select("id")
+        .single();
+      if (error) throw error;
+      await supabase
+        .from("contract_invoice_schedules")
+        .update({
+          invoice_id: inv.id,
+          invoice_created_at: new Date().toISOString(),
+          status: "invoice_created",
+          attachment_source: "manual",
+        } as any)
+        .eq("id", s.id);
+      toast.success("Manual invoice created");
+      onChanged();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to create invoice");
+    } finally {
+      setBusyScheduleId(null);
+    }
+  };
+
   const addWatcher = async () => {
     if (!watcherEmail.trim()) return;
     try {
@@ -134,40 +191,17 @@ export const ContractStagingPanel = ({
 
   return (
     <div className="space-y-4">
-      {/* Staging status bar */}
+      {/* Invoicing actions */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
-              Contract Staging
-              <Badge variant="outline" className="ml-1 capitalize">
-                {stagingStatus}
+            <span>Invoicing Schedule</span>
+            {total > 0 && (
+              <Badge variant="outline" className="text-xs">
+                {completed}/{total} invoiced
               </Badge>
-            </div>
-            <div className="flex gap-2">
-              {stagingStatus === "draft" && (
-                <Button size="sm" variant="outline" onClick={() => stagingMutation.mutate("staging")}>
-                  Mark ready for review
-                </Button>
-              )}
-              {stagingStatus !== "published" && (
-                <Button size="sm" onClick={() => stagingMutation.mutate("published")}>
-                  <CheckCircle2 className="h-4 w-4 mr-1" /> Publish contract
-                </Button>
-              )}
-            </div>
+            )}
           </CardTitle>
-        </CardHeader>
-        <CardContent className="text-xs text-muted-foreground">
-          Edit extracted financial terms inline above. Publish to feed this contract into Expansion Risk and the dashboard.
-        </CardContent>
-      </Card>
-
-      {/* Invoice attachment */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Invoice Attachments</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <OcrPricingNotice />
@@ -175,55 +209,76 @@ export const ContractStagingPanel = ({
             <p className="text-sm text-muted-foreground">No scheduled invoices on this contract.</p>
           ) : (
             <div className="space-y-2">
-              {schedules.map((s: any) => (
-                <div key={s.id} className="border rounded-md p-3 text-sm space-y-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="font-medium truncate">
-                        {s.description || s.billing_type || "Scheduled invoice"}
+              {schedules.map((s: any) => {
+                const done = !!s.invoice_id;
+                const busy = busyScheduleId === s.id;
+                return (
+                  <div key={s.id} className="border rounded-md p-3 text-sm space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="font-medium truncate flex items-center gap-2">
+                          {done && <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />}
+                          {s.description || s.billing_type || "Scheduled invoice"}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {formatDateShort(s.scheduled_date)}
+                          {s.attachment_source && (
+                            <Badge variant="outline" className="ml-2 text-[10px] capitalize">
+                              {s.attachment_source}
+                            </Badge>
+                          )}
+                        </div>
                       </div>
-                      <div className="text-xs text-muted-foreground">
-                        {formatDateShort(s.scheduled_date)}
-                        {s.attachment_source && (
-                          <Badge variant="outline" className="ml-2 text-[10px] capitalize">
-                            {s.attachment_source}
-                          </Badge>
-                        )}
+                      <div className="font-medium shrink-0">
+                        {s.amount != null ? formatCurrency(Number(s.amount), s.currency || "USD") : "—"}
                       </div>
                     </div>
-                    <div className="font-medium shrink-0">
-                      {s.amount != null ? formatCurrency(Number(s.amount), s.currency || "USD") : "—"}
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {s.invoice_id ? (
-                      <Button asChild size="sm" variant="outline">
-                        <Link to={`/invoices?invoice=${s.invoice_id}`}>
-                          <LinkIcon className="h-3.5 w-3.5 mr-1" /> View / edit invoice
-                        </Link>
-                      </Button>
-                    ) : (
-                      <>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={uploading}
-                          onClick={() => {
-                            setActiveScheduleId(s.id);
-                            fileRef.current?.click();
-                          }}
-                        >
-                          <Upload className="h-3.5 w-3.5 mr-1" />
-                          {uploading && activeScheduleId === s.id ? "Scanning…" : "Upload + OCR"}
+                    <div className="flex flex-wrap gap-2">
+                      {done ? (
+                        <Button asChild size="sm" variant="outline">
+                          <Link to={`/invoices?invoice=${s.invoice_id}`}>
+                            <LinkIcon className="h-3.5 w-3.5 mr-1" /> View / edit invoice
+                          </Link>
                         </Button>
-                        <span className="text-[11px] text-muted-foreground self-center">
-                          $0.75/page
-                        </span>
-                      </>
-                    )}
+                      ) : (
+                        <>
+                          <Button
+                            size="sm"
+                            disabled={busy || uploading}
+                            onClick={() => handleGenerateRecouply(s.id)}
+                          >
+                            <Sparkles className="h-3.5 w-3.5 mr-1" />
+                            {busy ? "Generating…" : "Issue via Recouply"}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={busy || uploading}
+                            onClick={() => handleCreateManual(s)}
+                          >
+                            <FilePlus2 className="h-3.5 w-3.5 mr-1" /> Create manual
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={uploading || busy}
+                            onClick={() => {
+                              setActiveScheduleId(s.id);
+                              fileRef.current?.click();
+                            }}
+                          >
+                            <Upload className="h-3.5 w-3.5 mr-1" />
+                            {uploading && activeScheduleId === s.id ? "Scanning…" : "Upload + OCR"}
+                          </Button>
+                          <span className="text-[11px] text-muted-foreground self-center">
+                            OCR $0.75/page
+                          </span>
+                        </>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 
@@ -249,7 +304,7 @@ export const ContractStagingPanel = ({
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-xs text-muted-foreground">
-            Watchers receive in-app alerts when this contract moves through staging, gets published, or has invoices attached.
+            Watchers receive in-app alerts when invoices are generated or attached on this contract.
           </p>
           <div className="flex gap-2">
             <Input
