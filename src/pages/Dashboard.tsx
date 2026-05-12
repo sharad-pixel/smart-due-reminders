@@ -32,6 +32,7 @@ import { Progress } from "@/components/ui/progress";
 import { AlertTriangle, ArrowRight, CheckCircle2 } from "lucide-react";
 import { IntegrationSetupModal } from "@/components/integrations/IntegrationSetupModal";
 import { ContractSummaryCard } from "@/components/dashboard/ContractSummaryCard";
+import { ClmQuickAccessCard } from "@/components/dashboard/ClmQuickAccessCard";
 
 
 
