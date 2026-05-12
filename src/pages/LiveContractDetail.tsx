@@ -12,7 +12,6 @@ import {
   ArrowLeft,
   FileSignature,
   CalendarClock,
-  Receipt,
   TrendingUp,
   AlertTriangle,
   Building2,
