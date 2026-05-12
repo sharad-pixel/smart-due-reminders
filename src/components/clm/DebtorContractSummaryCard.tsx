@@ -161,7 +161,7 @@ export const DebtorContractSummaryCard = ({ debtorId }: Props) => {
                   className="block text-sm border rounded-md p-2 hover:bg-muted transition-colors"
                 >
                   <div className="font-medium truncate">
-                    {c.contract_name || c.source_filename || "Untitled contract"}
+                    {c.contract_name || "Untitled contract"}
                   </div>
                   <div className="text-xs text-muted-foreground mt-0.5">
                     {c.effective_date ? formatDateShort(c.effective_date) : "—"}
