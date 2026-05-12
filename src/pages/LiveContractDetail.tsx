@@ -46,6 +46,7 @@ const FIN_KEYS = new Set<string>([
 
 const LiveContractDetailInner = () => {
   const { importId } = useParams<{ importId: string }>();
+  const qc = useQueryClient();
 
   const { data, isLoading } = useQuery({
     queryKey: ["live-contract-detail", importId],
