@@ -153,7 +153,7 @@ const LiveContractDetailInner = () => {
         size="sm"
         onClick={() => {
           if (window.history.length > 1) navigate(-1);
-          else navigate(data.debtor ? `/customers/${data.debtor.id}` : "/contracts/live");
+          else navigate(data.debtor ? `/debtors/${data.debtor.id}` : "/contracts/live");
         }}
       >
         <ArrowLeft className="h-4 w-4 mr-1" />
@@ -171,7 +171,7 @@ const LiveContractDetailInner = () => {
         rightSlot={
           data.debtor && (
             <Button asChild variant="outline" size="sm">
-              <Link to={`/customers/${data.debtor.id}`}>
+              <Link to={`/debtors/${data.debtor.id}`}>
                 <Building2 className="h-4 w-4 mr-1" />
                 {data.debtor.company_name || data.debtor.name}
               </Link>
