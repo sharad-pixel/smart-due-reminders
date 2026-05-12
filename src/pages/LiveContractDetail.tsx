@@ -201,19 +201,27 @@ const LiveContractDetailInner = () => {
               </p>
             ) : (
               <dl className="divide-y text-sm">
-                {financialFields.map((f: any) => (
-                  <div
-                    key={`${f.field_key}-${f.id}`}
-                    className="flex items-start justify-between gap-3 py-2"
-                  >
-                    <dt className="text-muted-foreground capitalize">
-                      {f.field_key.replace(/_/g, " ")}
-                    </dt>
-                    <dd className="font-medium text-right break-words max-w-[60%]">
-                      {f.field_value || "—"}
-                    </dd>
-                  </div>
-                ))}
+                {financialFields.map((f: any) => {
+                  const isAmount = AMOUNT_KEYS.has(f.field_key);
+                  const numeric = isAmount ? toNumber(f.field_value) : 0;
+                  const display =
+                    isAmount && numeric > 0
+                      ? formatCurrency(numeric, totals.currency)
+                      : f.field_value || "—";
+                  return (
+                    <div
+                      key={`${f.field_key}-${f.id}`}
+                      className="flex items-start justify-between gap-3 py-2"
+                    >
+                      <dt className="text-muted-foreground capitalize">
+                        {f.field_key.replace(/_/g, " ")}
+                      </dt>
+                      <dd className="font-medium text-right break-words max-w-[60%]">
+                        {display}
+                      </dd>
+                    </div>
+                  );
+                })}
               </dl>
             )}
           </CardContent>
