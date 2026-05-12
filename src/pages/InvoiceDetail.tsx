@@ -1692,7 +1692,23 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                   <p className="font-medium">{invoice.source_system}</p>
                 </div>
               )}
-              {invoice.external_link && (
+              {invoice.source_contract_id && (
+                <div>
+                  <p className="text-xs text-muted-foreground">Source Contract</p>
+                  <Link
+                    to={`/contracts/live/${invoice.source_contract_id}`}
+                    className="text-sm text-primary hover:underline inline-flex items-center gap-1"
+                  >
+                    View contract
+                    <ExternalLink className="h-3 w-3" />
+                  </Link>
+                  {invoice.source_origin && (
+                    <p className="text-[10px] text-muted-foreground mt-0.5 capitalize">
+                      via {invoice.source_origin.replace(/_/g, " ")}
+                    </p>
+                  )}
+                </div>
+              )}
                 <div>
                   <p className="text-xs text-muted-foreground">External Link</p>
                   <a 
