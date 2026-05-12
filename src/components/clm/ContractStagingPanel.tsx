@@ -110,7 +110,7 @@ export const ContractStagingPanel = ({
     try {
       const { data: profile } = await supabase
         .from("profiles")
-        .select("user_id, email")
+        .select("id, email")
         .eq("email", watcherEmail.trim().toLowerCase())
         .maybeSingle();
       if (!profile) {
@@ -121,8 +121,8 @@ export const ContractStagingPanel = ({
       await addContractWatcher({
         contractId,
         accountId,
-        userId: profile.user_id,
-        addedBy: me?.id || profile.user_id,
+        userId: profile.id,
+        addedBy: me?.id || profile.id,
       });
       setWatcherEmail("");
       qc.invalidateQueries({ queryKey: ["contract-watchers", contractId] });
