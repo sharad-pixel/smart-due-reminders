@@ -334,6 +334,8 @@ const LiveContractDetailInner = () => {
         onChanged={() => qc.invalidateQueries({ queryKey: ["live-contract-detail", importId] })}
       />
 
+      <InvoiceDataAuditPanel contractId={c.id} />
+
       {/* Parties section omitted (no contract_parties table) */}
 
       {otherFields.length > 0 && (
