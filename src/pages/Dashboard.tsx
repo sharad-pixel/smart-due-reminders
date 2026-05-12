@@ -705,6 +705,9 @@ const Dashboard = () => {
           </Card>
         </div>
 
+        {/* Contract Intelligence quick access (CLM enabled only) */}
+        <ClmQuickAccessCard />
+
         {/* Contract Summary (CLM enabled only) */}
         <ContractSummaryCard />
 
