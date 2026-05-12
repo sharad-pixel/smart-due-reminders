@@ -13,6 +13,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { formatCurrency, formatDateShort } from "@/lib/formatters";
+import { computeContractTotals } from "@/lib/clm/financialMetrics";
 
 interface Props {
   debtorId: string;
