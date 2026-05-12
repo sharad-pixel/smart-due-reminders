@@ -19,7 +19,7 @@ export const ClmQuickAccessCard = () => {
           .select("id, status", { count: "exact", head: false })
           .limit(1000),
         supabase
-          .from("clm_instances")
+          .from("clm_template_instances")
           .select("id", { count: "exact", head: true }),
       ]);
       const rows = imports.data || [];
