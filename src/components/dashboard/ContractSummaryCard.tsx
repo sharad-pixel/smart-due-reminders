@@ -63,22 +63,17 @@ export const ContractSummaryCard = () => {
   if (isLoading) return null;
   if (!data || data.imports.length === 0) return null;
 
-  // Aggregate MRR/ARR/ACV across active contracts
-  const totals = { mrr: 0, arr: 0, acv: 0, currency: "USD" };
-  const num = (v: string | null) => {
-    if (!v) return 0;
-    const n = parseFloat(String(v).replace(/[^0-9.\-]/g, ""));
-    return isFinite(n) ? n : 0;
-  };
-  for (const f of data.fields) {
-    if (f.field_group !== "commercial") continue;
-    if (f.field_key === "mrr") totals.mrr += num(f.field_value);
-    else if (f.field_key === "arr") totals.arr += num(f.field_value);
-    else if (f.field_key === "acv") totals.acv += num(f.field_value);
-    else if (f.field_key === "currency" && f.field_value) totals.currency = f.field_value;
+  // Aggregate MRR/ARR/ACV/TCV across active contracts using shared derivation
+  const totals = { mrr: 0, arr: 0, acv: 0, tcv: 0, currency: "USD" };
+  for (const imp of data.imports) {
+    const impFields = data.fields.filter((f: any) => f.import_id === imp.id);
+    const t = computeContractTotals(impFields, imp);
+    totals.mrr += t.mrr;
+    totals.arr += t.arr;
+    totals.acv += t.acv;
+    totals.tcv += t.tcv;
+    if (t.currency && t.currency !== "USD") totals.currency = t.currency;
   }
-  if (totals.arr === 0 && totals.mrr > 0) totals.arr = totals.mrr * 12;
-  if (totals.acv === 0 && totals.arr > 0) totals.acv = totals.arr;
 
   const activeContracts = data.imports.filter((c) => {
     if (!c.term_end_date) return true;
