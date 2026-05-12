@@ -29,6 +29,7 @@ import { ContractStagingPanel } from "@/components/clm/ContractStagingPanel";
 import { ContractOverviewEditor } from "@/components/clm/ContractOverviewEditor";
 import { ContractScheduleLines } from "@/components/clm/ContractScheduleLines";
 import { InvoiceDataAuditPanel } from "@/components/clm/InvoiceDataAuditPanel";
+import { ContractTermGauge } from "@/components/clm/ContractTermGauge";
 import { useQueryClient } from "@tanstack/react-query";
 
 const FIN_KEYS = new Set<string>([
