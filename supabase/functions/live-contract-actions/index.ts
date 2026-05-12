@@ -39,13 +39,43 @@ Deno.serve(async (req) => {
 
       const created: any[] = [];
       const skipped: any[] = [];
+      const duplicates: any[] = [];
       for (const s of schedules) {
-        if (s.invoice_id) { skipped.push({ id: s.id, reason: "already invoiced" }); continue; }
+        // Re-fetch schedule to avoid stale invoice_id
+        const { data: fresh } = await supabase
+          .from("contract_invoice_schedules")
+          .select("invoice_id")
+          .eq("id", s.id)
+          .single();
+        if (fresh?.invoice_id) { skipped.push({ id: s.id, reason: "already invoiced" }); continue; }
         if (!s.amount) { skipped.push({ id: s.id, reason: "no amount" }); continue; }
         const issue = s.scheduled_date as string;
         const due = (s.expected_due_date as string) || issue;
+
+        // Dedup: existing live_contract invoice for same debtor/date/amount
+        const { data: dupes } = await supabase
+          .from("invoices")
+          .select("id, invoice_number")
+          .eq("debtor_id", imp.debtor_id)
+          .eq("source_system", "live_contract")
+          .eq("issue_date", issue)
+          .eq("amount", s.amount)
+          .limit(1);
+        if (dupes && dupes.length > 0) {
+          // Link the existing invoice back to the schedule and skip creation
+          await supabase.from("contract_invoice_schedules").update({
+            invoice_id: dupes[0].id,
+            invoice_created_at: new Date().toISOString(),
+            status: "invoice_created",
+          }).eq("id", s.id);
+          duplicates.push({ id: s.id, existing_invoice_id: dupes[0].id });
+          skipped.push({ id: s.id, reason: "duplicate detected, linked to existing invoice" });
+          continue;
+        }
+
         const refId = `LC-INV-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
         const invNum = `${imp.contract_name?.slice(0, 20).replace(/\s+/g, "-") || "CONTRACT"}-${new Date(issue).toISOString().slice(0, 10)}-${Math.random().toString(36).slice(2, 5).toUpperCase()}`;
+        const lineDescription = s.description || imp.contract_name || "Contract billing";
         const { data: inv, error: iErr } = await supabase.from("invoices").insert({
           user_id: imp.account_id,
           debtor_id: imp.debtor_id,
@@ -62,10 +92,35 @@ Deno.serve(async (req) => {
           status: "Open",
           source_system: "live_contract",
           payment_terms: s.payment_terms || null,
-          product_description: s.description || imp.contract_name || null,
+          product_description: lineDescription,
           notes: `Auto-generated from contract: ${imp.contract_name || imp.file_name}`,
         }).select("id").single();
-        if (iErr) { skipped.push({ id: s.id, reason: iErr.message }); continue; }
+        if (iErr) {
+          // Treat unique-violation as duplicate, not failure
+          if ((iErr as any).code === "23505") {
+            skipped.push({ id: s.id, reason: "duplicate (unique constraint)" });
+          } else {
+            skipped.push({ id: s.id, reason: iErr.message });
+          }
+          continue;
+        }
+
+        // Insert a line item carrying the contract description for editability
+        try {
+          await supabase.from("invoice_line_items").insert({
+            invoice_id: inv.id,
+            user_id: imp.account_id,
+            description: lineDescription,
+            quantity: 1,
+            unit_price: s.amount,
+            line_total: s.amount,
+            line_type: "item",
+            sort_order: 0,
+          });
+        } catch (lineErr) {
+          console.warn("line item insert failed", lineErr);
+        }
+
         await supabase.from("contract_invoice_schedules").update({
           invoice_id: inv.id, invoice_created_at: new Date().toISOString(), status: "invoice_created",
         }).eq("id", s.id);
@@ -75,9 +130,9 @@ Deno.serve(async (req) => {
       await supabase.from("live_contract_audit_log").insert({
         account_id: imp.account_id, user_id: user.id, import_id: imp.id,
         event_type: "invoices_generated",
-        event_details: { created: created.length, skipped: skipped.length, skipped_detail: skipped },
+        event_details: { created: created.length, skipped: skipped.length, duplicates: duplicates.length, skipped_detail: skipped },
       });
-      return json({ success: true, created: created.length, skipped });
+      return json({ success: true, created: created.length, duplicates: duplicates.length, skipped });
     }
 
     if (action === "set_alerts") {

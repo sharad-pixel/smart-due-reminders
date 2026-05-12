@@ -340,6 +340,17 @@ const LiveContractDetailInner = () => {
                       </div>
                       <div className="text-xs text-muted-foreground">
                         {formatDateShort(s.scheduled_date)}
+                        {s.invoice_id && (
+                          <span className="ml-2 inline-flex items-center gap-1 text-primary">
+                            · Invoiced ·
+                            <Link
+                              to={`/invoices?invoice=${s.invoice_id}`}
+                              className="underline hover:no-underline"
+                            >
+                              Edit
+                            </Link>
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div className="font-medium shrink-0">
