@@ -117,8 +117,10 @@ export const ContractStagingPanel = ({
     try {
       const issue = s.scheduled_date as string;
       const due = (s.expected_due_date as string) || issue;
-      const refId = `LC-INV-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
-      const invNum = `${(contractName || "CONTRACT").slice(0, 20).replace(/\s+/g, "-")}-${new Date(issue).toISOString().slice(0, 10)}-M${Math.random().toString(36).slice(2, 5).toUpperCase()}`;
+      const ymd = new Date(issue).toISOString().slice(0, 10).replace(/-/g, "");
+      const rand4 = Math.random().toString(36).slice(2, 6).toUpperCase();
+      const refId = `REC-${ymd}-${rand4}`;
+      const invNum = `REC-${ymd}-${rand4}`;
       const amount = Number(s.amount) || 0;
       const { data: inv, error } = await supabase
         .from("invoices")
