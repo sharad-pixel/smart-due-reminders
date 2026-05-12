@@ -13,6 +13,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { formatCurrency, formatDateShort } from "@/lib/formatters";
+import { computeContractTotals } from "@/lib/clm/financialMetrics";
 
 interface Props {
   debtorId: string;
@@ -48,8 +49,7 @@ export const DebtorContractSummaryCard = ({ debtorId }: Props) => {
           supabase
             .from("live_contract_extracted_fields")
             .select("import_id, field_group, field_key, field_value")
-            .in("import_id", ids)
-            .eq("field_group", "commercial"),
+            .in("import_id", ids),
           supabase
             .from("contract_critical_dates")
             .select("import_id, date_type, due_date, risk_level")
@@ -80,22 +80,17 @@ export const DebtorContractSummaryCard = ({ debtorId }: Props) => {
   if (isLoading) return null;
   if (!data || data.imports.length === 0) return null;
 
-  // Aggregate financials
-  const totals = { mrr: 0, arr: 0, acv: 0, currency: "USD" };
-  const num = (v: string | null) => {
-    if (!v) return 0;
-    const n = parseFloat(String(v).replace(/[^0-9.\-]/g, ""));
-    return isFinite(n) ? n : 0;
-  };
-  for (const f of data.fields) {
-    if (f.field_key === "mrr") totals.mrr += num(f.field_value);
-    else if (f.field_key === "arr") totals.arr += num(f.field_value);
-    else if (f.field_key === "acv") totals.acv += num(f.field_value);
-    else if (f.field_key === "currency" && f.field_value)
-      totals.currency = f.field_value;
+  // Aggregate financials across contracts (derives MRR/ARR/ACV/TCV from fees + term)
+  const totals = { mrr: 0, arr: 0, acv: 0, tcv: 0, currency: "USD" };
+  for (const imp of data.imports) {
+    const impFields = data.fields.filter((f: any) => f.import_id === imp.id);
+    const t = computeContractTotals(impFields, imp);
+    totals.mrr += t.mrr;
+    totals.arr += t.arr;
+    totals.acv += t.acv;
+    totals.tcv += t.tcv;
+    if (t.currency && t.currency !== "USD") totals.currency = t.currency;
   }
-  if (totals.arr === 0 && totals.mrr > 0) totals.arr = totals.mrr * 12;
-  if (totals.acv === 0 && totals.arr > 0) totals.acv = totals.arr;
 
   const activeContracts = data.imports.filter(
     (c) => !c.term_end_date || new Date(c.term_end_date) >= new Date(),
@@ -124,22 +119,11 @@ export const DebtorContractSummaryCard = ({ debtorId }: Props) => {
       </CardHeader>
       <CardContent className="space-y-5">
         {/* KPIs */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <Tile
-            label="MRR"
-            value={formatCurrency(totals.mrr, totals.currency)}
-            icon={TrendingUp}
-          />
-          <Tile
-            label="ARR"
-            value={formatCurrency(totals.arr, totals.currency)}
-            icon={TrendingUp}
-          />
-          <Tile
-            label="ACV"
-            value={formatCurrency(totals.acv, totals.currency)}
-            icon={TrendingUp}
-          />
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
+          <Tile label="MRR" value={formatCurrency(totals.mrr, totals.currency)} icon={TrendingUp} />
+          <Tile label="ARR" value={formatCurrency(totals.arr, totals.currency)} icon={TrendingUp} />
+          <Tile label="ACV" value={formatCurrency(totals.acv, totals.currency)} icon={TrendingUp} />
+          <Tile label="TCV" value={formatCurrency(totals.tcv, totals.currency)} icon={TrendingUp} />
           <Tile
             label="Active"
             value={`${activeContracts.length} of ${data.imports.length}`}

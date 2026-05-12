@@ -20,33 +20,27 @@ import {
 } from "lucide-react";
 import { formatCurrency, formatDateShort } from "@/lib/formatters";
 import SEO from "@/components/seo/SEO";
+import {
+  computeContractTotals,
+  AMOUNT_KEYS,
+  toNumber,
+} from "@/lib/clm/financialMetrics";
 
-const FIN_KEYS = new Set([
-  "mrr",
-  "arr",
-  "acv",
-  "tcv",
-  "contract_value",
-  "total_value",
-  "monthly_fee",
-  "annual_fee",
+const FIN_KEYS = new Set<string>([
+  ...Array.from(AMOUNT_KEYS),
   "currency",
   "payment_terms",
   "billing_frequency",
-  "discount",
   "auto_renewal",
   "renewal_term",
+  "renewal_frequency",
   "notice_period",
-  "late_fee",
-  "cap",
   "true_up",
+  "subscription_fees",
+  "platform_fees",
+  "one_time_fees",
+  "professional_services_fees",
 ]);
-
-const num = (v: unknown) => {
-  if (v == null) return 0;
-  const n = parseFloat(String(v).replace(/[^0-9.\-]/g, ""));
-  return isFinite(n) ? n : 0;
-};
 
 const LiveContractDetailInner = () => {
   const { importId } = useParams<{ importId: string }>();
@@ -103,22 +97,12 @@ const LiveContractDetailInner = () => {
   });
 
   const totals = useMemo(() => {
-    const t = { mrr: 0, arr: 0, acv: 0, tcv: 0, scheduled: 0, currency: "USD" };
-    (data?.fields || []).forEach((f: any) => {
-      if (f.field_key === "mrr") t.mrr += num(f.field_value);
-      else if (f.field_key === "arr") t.arr += num(f.field_value);
-      else if (f.field_key === "acv") t.acv += num(f.field_value);
-      else if (f.field_key === "tcv" || f.field_key === "contract_value")
-        t.tcv += num(f.field_value);
-      else if (f.field_key === "currency" && f.field_value)
-        t.currency = f.field_value;
-    });
-    if (t.arr === 0 && t.mrr > 0) t.arr = t.mrr * 12;
-    if (t.acv === 0 && t.arr > 0) t.acv = t.arr;
+    const t = computeContractTotals(data?.fields || [], data?.imp || undefined);
+    let scheduled = 0;
     (data?.schedules || []).forEach((s: any) => {
-      t.scheduled += num(s.amount);
+      scheduled += toNumber(s.amount);
     });
-    return t;
+    return { ...t, scheduled };
   }, [data]);
 
   if (isLoading) {
@@ -217,19 +201,27 @@ const LiveContractDetailInner = () => {
               </p>
             ) : (
               <dl className="divide-y text-sm">
-                {financialFields.map((f: any) => (
-                  <div
-                    key={`${f.field_key}-${f.id}`}
-                    className="flex items-start justify-between gap-3 py-2"
-                  >
-                    <dt className="text-muted-foreground capitalize">
-                      {f.field_key.replace(/_/g, " ")}
-                    </dt>
-                    <dd className="font-medium text-right break-words max-w-[60%]">
-                      {f.field_value || "—"}
-                    </dd>
-                  </div>
-                ))}
+                {financialFields.map((f: any) => {
+                  const isAmount = AMOUNT_KEYS.has(f.field_key);
+                  const numeric = isAmount ? toNumber(f.field_value) : 0;
+                  const display =
+                    isAmount && numeric > 0
+                      ? formatCurrency(numeric, totals.currency)
+                      : f.field_value || "—";
+                  return (
+                    <div
+                      key={`${f.field_key}-${f.id}`}
+                      className="flex items-start justify-between gap-3 py-2"
+                    >
+                      <dt className="text-muted-foreground capitalize">
+                        {f.field_key.replace(/_/g, " ")}
+                      </dt>
+                      <dd className="font-medium text-right break-words max-w-[60%]">
+                        {display}
+                      </dd>
+                    </div>
+                  );
+                })}
               </dl>
             )}
           </CardContent>
