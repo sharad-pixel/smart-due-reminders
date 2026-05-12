@@ -363,32 +363,7 @@ const LiveContractDetailInner = () => {
         </Card>
       </div>
 
-      {data.parties.length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Parties</CardTitle>
-          </CardHeader>
-          <CardContent className="grid sm:grid-cols-2 gap-3">
-            {data.parties.map((p: any) => (
-              <div key={p.id} className="border rounded-md p-3 text-sm">
-                <div className="font-medium">{p.party_name || "—"}</div>
-                {p.party_role && (
-                  <div className="text-xs text-muted-foreground capitalize">
-                    {p.party_role.replace(/_/g, " ")}
-                  </div>
-                )}
-                {(p.contact_email || p.contact_phone) && (
-                  <div className="text-xs text-muted-foreground mt-1">
-                    {p.contact_email}
-                    {p.contact_email && p.contact_phone ? " · " : ""}
-                    {p.contact_phone}
-                  </div>
-                )}
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
+      {/* Parties section omitted (no contract_parties table) */}
 
       {otherFields.length > 0 && (
         <Card>
