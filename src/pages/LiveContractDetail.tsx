@@ -20,33 +20,27 @@ import {
 } from "lucide-react";
 import { formatCurrency, formatDateShort } from "@/lib/formatters";
 import SEO from "@/components/seo/SEO";
+import {
+  computeContractTotals,
+  AMOUNT_KEYS,
+  toNumber,
+} from "@/lib/clm/financialMetrics";
 
-const FIN_KEYS = new Set([
-  "mrr",
-  "arr",
-  "acv",
-  "tcv",
-  "contract_value",
-  "total_value",
-  "monthly_fee",
-  "annual_fee",
+const FIN_KEYS = new Set<string>([
+  ...Array.from(AMOUNT_KEYS),
   "currency",
   "payment_terms",
   "billing_frequency",
-  "discount",
   "auto_renewal",
   "renewal_term",
+  "renewal_frequency",
   "notice_period",
-  "late_fee",
-  "cap",
   "true_up",
+  "subscription_fees",
+  "platform_fees",
+  "one_time_fees",
+  "professional_services_fees",
 ]);
-
-const num = (v: unknown) => {
-  if (v == null) return 0;
-  const n = parseFloat(String(v).replace(/[^0-9.\-]/g, ""));
-  return isFinite(n) ? n : 0;
-};
 
 const LiveContractDetailInner = () => {
   const { importId } = useParams<{ importId: string }>();
