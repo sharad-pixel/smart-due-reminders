@@ -1041,6 +1041,8 @@ export default function LiveContracts() {
 
           <DashboardWidgets imports={imports} />
 
+          <RecentScansCard imports={imports} />
+
           <Tabs defaultValue="review">
             <TabsList>
               <TabsTrigger value="folders">Folders</TabsTrigger>
