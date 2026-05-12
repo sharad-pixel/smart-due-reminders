@@ -192,6 +192,11 @@ const LiveContractDetailInner = () => {
         </CardContent>
       </Card>
 
+      <ContractOverviewEditor
+        contract={c}
+        onSaved={() => qc.invalidateQueries({ queryKey: ["live-contract-detail", importId] })}
+      />
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
           <CardHeader className="pb-3">
