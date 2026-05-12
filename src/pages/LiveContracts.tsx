@@ -169,6 +169,74 @@ function DashboardWidgets({ imports }: { imports: any[] }) {
   );
 }
 
+function RecentScansCard({ imports }: { imports: any[] }) {
+  const recent = useMemo(() => {
+    return [...imports]
+      .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
+      .slice(0, 10);
+  }, [imports]);
+
+  if (recent.length === 0) return null;
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-base flex items-center gap-2">
+              <FileSearch className="h-4 w-4 text-primary" /> Recently Scanned (OCR)
+            </CardTitle>
+            <CardDescription>Last 10 contracts processed by Contract Intelligence.</CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="rounded-md border overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Contract</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Confidence</TableHead>
+                <TableHead>Scanned</TableHead>
+                <TableHead className="w-10"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {recent.map((i) => (
+                <TableRow key={i.id} className="cursor-pointer hover:bg-muted/50">
+                  <TableCell className="max-w-[280px]">
+                    <Link to={`/contracts/live/${i.id}`} className="block">
+                      <div className="font-medium text-sm truncate">{i.contract_name || i.file_name}</div>
+                      <div className="text-xs text-muted-foreground truncate">{i.source}</div>
+                    </Link>
+                  </TableCell>
+                  <TableCell className="text-sm">{i.contract_type || "—"}</TableCell>
+                  <TableCell>
+                    <Badge variant={STATUS_VARIANT(i.status)}>{STATUS_LABEL[i.status] || i.status}</Badge>
+                  </TableCell>
+                  <TableCell className="text-sm">{i.confidence ? `${Math.round(i.confidence)}%` : "—"}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {i.created_at ? new Date(i.created_at).toLocaleDateString() : "—"}
+                  </TableCell>
+                  <TableCell>
+                    <Button asChild size="sm" variant="ghost">
+                      <Link to={`/contracts/live/${i.id}`}>
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </Link>
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 // ------- Folders tab -------
 function FoldersTab() {
   const qc = useQueryClient();
@@ -972,6 +1040,8 @@ export default function LiveContracts() {
           </div>
 
           <DashboardWidgets imports={imports} />
+
+          <RecentScansCard imports={imports} />
 
           <Tabs defaultValue="review">
             <TabsList>
