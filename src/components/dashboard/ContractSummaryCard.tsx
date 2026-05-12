@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FileText, CalendarClock, Receipt, TrendingUp, ArrowRight } from "lucide-react";
 import { formatCurrency, formatDateShort } from "@/lib/formatters";
+import { computeContractTotals } from "@/lib/clm/financialMetrics";
 
 const PAGE_SIZE = 5;
 
