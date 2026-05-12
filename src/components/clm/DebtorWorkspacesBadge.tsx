@@ -2,17 +2,15 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   HoverCard, HoverCardContent, HoverCardTrigger,
 } from "@/components/ui/hover-card";
 import { Briefcase, ExternalLink } from "lucide-react";
 
-/**
- * Shows a compact "X CLM workspaces" badge on a debtor account.
- * Hover reveals each workspace with status + a deep link.
- */
-export const DebtorWorkspacesBadge = ({ debtorId }: { debtorId: string }) => {
-  const { data = [] } = useQuery({
+const useDebtorClmWorkspaces = (debtorId: string) =>
+  useQuery({
     queryKey: ["debtor-clm-workspaces", debtorId],
     enabled: !!debtorId,
     queryFn: async () => {
@@ -26,6 +24,13 @@ export const DebtorWorkspacesBadge = ({ debtorId }: { debtorId: string }) => {
         .filter(Boolean);
     },
   });
+
+/**
+ * Shows a compact "X CLM workspaces" badge on a debtor account.
+ * Hover reveals each workspace with status + a deep link.
+ */
+export const DebtorWorkspacesBadge = ({ debtorId }: { debtorId: string }) => {
+  const { data = [] } = useDebtorClmWorkspaces(debtorId);
 
   if (data.length === 0) return null;
 
@@ -65,5 +70,58 @@ export const DebtorWorkspacesBadge = ({ debtorId }: { debtorId: string }) => {
         </div>
       </HoverCardContent>
     </HoverCard>
+  );
+};
+
+export const DebtorWorkspacesCard = ({ debtorId }: { debtorId: string }) => {
+  const { data = [] } = useDebtorClmWorkspaces(debtorId);
+
+  if (data.length === 0) return null;
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+              <Briefcase className="h-5 w-5 text-primary" />
+              Contract Workspaces
+            </CardTitle>
+            <CardDescription>
+              Prospect contracting workspaces linked to this account
+            </CardDescription>
+          </div>
+          <Badge variant="secondary" className="shrink-0">
+            {data.length} {data.length === 1 ? "workspace" : "workspaces"}
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="grid gap-3 md:grid-cols-2">
+        {data.map((w: any) => (
+          <Link
+            key={w.id}
+            to={`/contracts/instances/${w.id}`}
+            className="rounded-md border p-3 transition-colors hover:bg-muted"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="font-medium truncate">{w.name}</p>
+                <p className="text-xs text-muted-foreground truncate mt-0.5">
+                  {w.template_name_snapshot ?? "Workspace"}
+                </p>
+              </div>
+              <Badge variant="outline" className="text-[10px] capitalize shrink-0">
+                {String(w.status ?? "draft").replace(/_/g, " ")}
+              </Badge>
+            </div>
+            <div className="mt-3 flex justify-end">
+              <Button variant="ghost" size="sm" className="h-7 px-2 pointer-events-none">
+                Open workspace <ExternalLink className="h-3.5 w-3.5 ml-1" />
+              </Button>
+            </div>
+          </Link>
+        ))}
+      </CardContent>
+    </Card>
   );
 };
