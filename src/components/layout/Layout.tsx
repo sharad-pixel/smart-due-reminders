@@ -263,7 +263,7 @@ const Layout = ({ children }: LayoutProps) => {
   ];
 
   const clmItems = [
-    { path: "/contracts", label: "Contracts", icon: FileSignature },
+    { path: "/contracts", label: "Workspaces", icon: Briefcase },
     { path: "/contracts/live", label: "Live Contracts (OCR)", icon: FileSearch },
   ];
   const isAnyClmActive = clmItems.some(item => isActive(item.path));
