@@ -73,8 +73,10 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        const refId = `LC-INV-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
-        const invNum = `${imp.contract_name?.slice(0, 20).replace(/\s+/g, "-") || "CONTRACT"}-${new Date(issue).toISOString().slice(0, 10)}-${Math.random().toString(36).slice(2, 5).toUpperCase()}`;
+        const ymd = new Date(issue).toISOString().slice(0, 10).replace(/-/g, "");
+        const rand4 = Math.random().toString(36).slice(2, 6).toUpperCase();
+        const refId = `REC-${ymd}-${rand4}`;
+        const invNum = `REC-${ymd}-${rand4}`;
         const lineDescription = s.description || imp.contract_name || "Contract billing";
         const { data: inv, error: iErr } = await supabase.from("invoices").insert({
           user_id: imp.account_id,

@@ -154,8 +154,8 @@ serve(async (req) => {
       // Generate invoice number if missing
       let invoiceNumber = invoice.invoice_number;
       if (!invoiceNumber || invoiceNumber.trim() === "") {
-        const randomSuffix = Math.random().toString(36).substring(2, 8).toUpperCase();
-        invoiceNumber = `AI-${today.replace(/-/g, '')}-${randomSuffix}`;
+        const rand4 = Math.random().toString(36).slice(2, 6).toUpperCase();
+        invoiceNumber = `REC-${today.replace(/-/g, '')}-${rand4}`;
       }
 
       const { data: newInvoice, error: invoiceError } = await supabaseClient

@@ -596,7 +596,7 @@ Deno.serve(async (req) => {
           user_id: effectiveAccountId,
           debtor_id: debtorId,
           sync_log_id: syncLogId,
-          invoice_number: stripeInvoice.number || stripeInvoice.id,
+          invoice_number: stripeInvoice.number || `STR-${(stripeInvoice.created ? new Date(stripeInvoice.created * 1000) : new Date()).toISOString().slice(0,10).replace(/-/g,'')}-${(stripeInvoice.id || '').slice(-4).toUpperCase() || Math.random().toString(36).slice(2,6).toUpperCase()}`,
           amount: stripeAmount,
           amount_outstanding: (stripeInvoice.amount_remaining || 0) / 100,
           amount_original: (stripeInvoice.total || 0) / 100,

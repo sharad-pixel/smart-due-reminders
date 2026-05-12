@@ -222,8 +222,10 @@ Extract: invoice_number, invoice_date (YYYY-MM-DD), due_date (YYYY-MM-DD), debto
         const issue = extracted.invoice_date || new Date().toISOString().slice(0, 10);
         const due = extracted.due_date || issue;
         const amount = Number(extracted.amount || extracted.outstanding_balance || 0);
-        const refId = `OCR-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
-        const invNumber = extracted.invoice_number || refId;
+        const ymd = issue.replace(/-/g, "");
+        const rand4 = Math.random().toString(36).slice(2, 6).toUpperCase();
+        const refId = `OCR-${ymd}-${rand4}`;
+        const invNumber = extracted.invoice_number || `OCR-${ymd}-${rand4}`;
 
         const { data: inv, error: iErr } = await supabase
           .from("invoices")
