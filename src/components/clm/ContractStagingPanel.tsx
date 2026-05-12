@@ -236,7 +236,7 @@ export const ContractStagingPanel = ({
                     <div className="flex flex-wrap gap-2">
                       {done ? (
                         <Button asChild size="sm" variant="outline">
-                          <Link to={`/invoices?invoice=${s.invoice_id}`}>
+                          <Link to={`/invoices/${s.invoice_id}`}>
                             <LinkIcon className="h-3.5 w-3.5 mr-1" /> View / edit invoice
                           </Link>
                         </Button>
