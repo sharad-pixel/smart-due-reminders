@@ -33,7 +33,8 @@ import {
   DollarSign,
   ShieldAlert,
   FileSignature,
-  FileSearch
+  FileSearch,
+  Briefcase
 } from "lucide-react";
 import {
   DropdownMenu,
