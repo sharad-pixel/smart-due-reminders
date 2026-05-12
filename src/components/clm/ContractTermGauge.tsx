@@ -180,7 +180,7 @@ export const ContractTermGauge = ({ effectiveDate, termEndDate, keyDates }: Prop
                     style={{ left: `${pct}%` }}
                   >
                     <div className="w-1 h-5 bg-foreground rounded-full" />
-                    <div className="absolute top-6 left-1/2 -translate-x-1/2 text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap">
+                    <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap text-foreground">
                       Today
                     </div>
                   </div>
