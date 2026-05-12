@@ -27,6 +27,7 @@ import {
 import { ContractStagingPanel } from "@/components/clm/ContractStagingPanel";
 import { ContractOverviewEditor } from "@/components/clm/ContractOverviewEditor";
 import { ContractScheduleLines } from "@/components/clm/ContractScheduleLines";
+import { InvoiceDataAuditPanel } from "@/components/clm/InvoiceDataAuditPanel";
 import { useQueryClient } from "@tanstack/react-query";
 
 const FIN_KEYS = new Set<string>([
@@ -332,6 +333,8 @@ const LiveContractDetailInner = () => {
         defaultCurrency={totals.currency}
         onChanged={() => qc.invalidateQueries({ queryKey: ["live-contract-detail", importId] })}
       />
+
+      <InvoiceDataAuditPanel contractId={c.id} />
 
       {/* Parties section omitted (no contract_parties table) */}
 

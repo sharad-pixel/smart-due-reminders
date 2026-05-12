@@ -6919,6 +6919,102 @@ export type Database = {
         }
         Relationships: []
       }
+      invoice_data_audit: {
+        Row: {
+          ai_confidence: number | null
+          applied_value: string | null
+          created_at: string
+          duplicate_of_invoice_id: string | null
+          field_name: string
+          id: string
+          invoice_id: string
+          is_overridden: boolean
+          notes: string | null
+          organization_id: string | null
+          source_clm_instance_id: string | null
+          source_contract_id: string | null
+          source_reference: string | null
+          source_schedule_id: string | null
+          source_type: string
+          source_value: string | null
+          user_id: string
+        }
+        Insert: {
+          ai_confidence?: number | null
+          applied_value?: string | null
+          created_at?: string
+          duplicate_of_invoice_id?: string | null
+          field_name: string
+          id?: string
+          invoice_id: string
+          is_overridden?: boolean
+          notes?: string | null
+          organization_id?: string | null
+          source_clm_instance_id?: string | null
+          source_contract_id?: string | null
+          source_reference?: string | null
+          source_schedule_id?: string | null
+          source_type: string
+          source_value?: string | null
+          user_id: string
+        }
+        Update: {
+          ai_confidence?: number | null
+          applied_value?: string | null
+          created_at?: string
+          duplicate_of_invoice_id?: string | null
+          field_name?: string
+          id?: string
+          invoice_id?: string
+          is_overridden?: boolean
+          notes?: string | null
+          organization_id?: string | null
+          source_clm_instance_id?: string | null
+          source_contract_id?: string | null
+          source_reference?: string | null
+          source_schedule_id?: string | null
+          source_type?: string
+          source_value?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_data_audit_duplicate_of_invoice_id_fkey"
+            columns: ["duplicate_of_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_data_audit_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_data_audit_source_clm_instance_id_fkey"
+            columns: ["source_clm_instance_id"]
+            isOneToOne: false
+            referencedRelation: "clm_template_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_data_audit_source_contract_id_fkey"
+            columns: ["source_contract_id"]
+            isOneToOne: false
+            referencedRelation: "live_contract_imports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_data_audit_source_schedule_id_fkey"
+            columns: ["source_schedule_id"]
+            isOneToOne: false
+            referencedRelation: "contract_invoice_schedules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_import_errors: {
         Row: {
           error_message: string
@@ -7607,6 +7703,10 @@ export type Database = {
           quickbooks_doc_number: string | null
           quickbooks_invoice_id: string | null
           reference_id: string
+          source_clm_instance_id: string | null
+          source_contract_id: string | null
+          source_contract_schedule_id: string | null
+          source_origin: string | null
           source_system: string | null
           status: Database["public"]["Enums"]["invoice_status"] | null
           stripe_customer_id: string | null
@@ -7676,6 +7776,10 @@ export type Database = {
           quickbooks_doc_number?: string | null
           quickbooks_invoice_id?: string | null
           reference_id: string
+          source_clm_instance_id?: string | null
+          source_contract_id?: string | null
+          source_contract_schedule_id?: string | null
+          source_origin?: string | null
           source_system?: string | null
           status?: Database["public"]["Enums"]["invoice_status"] | null
           stripe_customer_id?: string | null
@@ -7745,6 +7849,10 @@ export type Database = {
           quickbooks_doc_number?: string | null
           quickbooks_invoice_id?: string | null
           reference_id?: string
+          source_clm_instance_id?: string | null
+          source_contract_id?: string | null
+          source_contract_schedule_id?: string | null
+          source_origin?: string | null
           source_system?: string | null
           status?: Database["public"]["Enums"]["invoice_status"] | null
           stripe_customer_id?: string | null
@@ -7793,6 +7901,27 @@ export type Database = {
             columns: ["payment_plan_id"]
             isOneToOne: false
             referencedRelation: "payment_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_source_clm_instance_id_fkey"
+            columns: ["source_clm_instance_id"]
+            isOneToOne: false
+            referencedRelation: "clm_template_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_source_contract_id_fkey"
+            columns: ["source_contract_id"]
+            isOneToOne: false
+            referencedRelation: "live_contract_imports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_source_contract_schedule_id_fkey"
+            columns: ["source_contract_schedule_id"]
+            isOneToOne: false
+            referencedRelation: "contract_invoice_schedules"
             referencedColumns: ["id"]
           },
           {

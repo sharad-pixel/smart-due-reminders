@@ -68,6 +68,20 @@ Deno.serve(async (req) => {
             invoice_created_at: new Date().toISOString(),
             status: "invoice_created",
           }).eq("id", s.id);
+          // Audit: record duplicate detection so the user can see why no new invoice was created
+          await supabase.from("invoice_data_audit").insert({
+            invoice_id: dupes[0].id,
+            user_id: imp.account_id,
+            source_type: "contract_intelligence",
+            source_contract_id: imp.id,
+            source_schedule_id: s.id,
+            source_reference: imp.contract_name || imp.file_name,
+            field_name: "duplicate_check",
+            source_value: `${imp.debtor_id}|${issue}|${s.amount}`,
+            applied_value: dupes[0].invoice_number || dupes[0].id,
+            duplicate_of_invoice_id: dupes[0].id,
+            notes: "Duplicate live_contract invoice (same debtor/issue_date/amount) — schedule linked to existing invoice",
+          });
           duplicates.push({ id: s.id, existing_invoice_id: dupes[0].id });
           skipped.push({ id: s.id, reason: "duplicate detected, linked to existing invoice" });
           continue;
@@ -88,6 +102,9 @@ Deno.serve(async (req) => {
           total_amount: s.amount,
           amount_outstanding: s.amount,
           amount_original: s.amount,
+          source_contract_id: imp.id,
+          source_contract_schedule_id: s.id,
+          source_origin: "contract_intelligence",
           currency: s.currency || "USD",
           issue_date: issue,
           due_date: due,
@@ -126,6 +143,26 @@ Deno.serve(async (req) => {
         await supabase.from("contract_invoice_schedules").update({
           invoice_id: inv.id, invoice_created_at: new Date().toISOString(), status: "invoice_created",
         }).eq("id", s.id);
+
+        // Audit: record every key data point sourced from the contract schedule
+        const auditRows = [
+          { field_name: "amount", source_value: String(s.amount), applied_value: String(s.amount) },
+          { field_name: "issue_date", source_value: issue, applied_value: issue },
+          { field_name: "due_date", source_value: due, applied_value: due },
+          { field_name: "currency", source_value: s.currency || "USD", applied_value: s.currency || "USD" },
+          { field_name: "product_description", source_value: lineDescription, applied_value: lineDescription },
+          { field_name: "invoice_number", source_value: invNum, applied_value: invNum },
+        ].map((r) => ({
+          ...r,
+          invoice_id: inv.id,
+          user_id: imp.account_id,
+          source_type: "contract_intelligence",
+          source_contract_id: imp.id,
+          source_schedule_id: s.id,
+          source_reference: imp.contract_name || imp.file_name,
+        }));
+        await supabase.from("invoice_data_audit").insert(auditRows);
+
         created.push(inv.id);
       }
 

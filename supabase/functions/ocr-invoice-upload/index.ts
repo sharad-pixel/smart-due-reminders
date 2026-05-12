@@ -227,6 +227,15 @@ Extract: invoice_number, invoice_date (YYYY-MM-DD), due_date (YYYY-MM-DD), debto
         const refId = `OCR-${ymd}-${rand4}`;
         const invNumber = extracted.invoice_number || `OCR-${ymd}-${rand4}`;
 
+        // Pre-insert duplicate check
+        const { data: dupes } = await supabase
+          .from("invoices")
+          .select("id, invoice_number")
+          .eq("debtor_id", targetDebtorId)
+          .eq("issue_date", issue)
+          .eq("amount", amount)
+          .limit(1);
+
         const { data: inv, error: iErr } = await supabase
           .from("invoices")
           .insert({
@@ -244,6 +253,9 @@ Extract: invoice_number, invoice_date (YYYY-MM-DD), due_date (YYYY-MM-DD), debto
             due_date: due,
             status: "Open",
             source_system: "ocr_upload",
+            source_origin: contract ? "ocr_contract" : "ocr_upload",
+            source_contract_id: contract?.id || null,
+            source_contract_schedule_id: scheduleId || null,
             product_description: contract?.contract_name || extracted.po_number || fileName || "OCR uploaded invoice",
             notes: `OCR-extracted from ${fileName || "uploaded PDF"} (${pageCount} page${pageCount === 1 ? "" : "s"})`,
           })
@@ -264,6 +276,28 @@ Extract: invoice_number, invoice_date (YYYY-MM-DD), due_date (YYYY-MM-DD), debto
               })
               .eq("id", scheduleId);
           }
+
+          // AI / OCR audit trail of every extracted data point
+          const auditRows = [
+            { field_name: "invoice_number", source_value: extracted.invoice_number || null, applied_value: invNumber },
+            { field_name: "amount", source_value: extracted.amount != null ? String(extracted.amount) : null, applied_value: String(amount) },
+            { field_name: "outstanding_balance", source_value: extracted.outstanding_balance != null ? String(extracted.outstanding_balance) : null, applied_value: String(extracted.outstanding_balance ?? amount) },
+            { field_name: "issue_date", source_value: extracted.invoice_date || null, applied_value: issue },
+            { field_name: "due_date", source_value: extracted.due_date || null, applied_value: due },
+            { field_name: "po_number", source_value: extracted.po_number || null, applied_value: extracted.po_number || null },
+            { field_name: "company_name", source_value: extracted.company_name || null, applied_value: extracted.company_name || null },
+          ].map((r) => ({
+            ...r,
+            invoice_id: inv.id,
+            user_id: accountId,
+            source_type: contract ? "ocr_contract" : "ai_extract",
+            source_contract_id: contract?.id || null,
+            source_schedule_id: scheduleId || null,
+            source_reference: fileName || "OCR upload",
+            duplicate_of_invoice_id: dupes && dupes.length > 0 ? dupes[0].id : null,
+            notes: dupes && dupes.length > 0 ? `Possible duplicate of invoice ${dupes[0].invoice_number}` : null,
+          }));
+          await supabase.from("invoice_data_audit").insert(auditRows);
         } else if ((iErr as any)?.code === "23505") {
           log("Duplicate invoice on OCR upload — treating as success");
         } else if (iErr) {

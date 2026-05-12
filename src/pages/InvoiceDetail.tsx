@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { formatCurrency } from "@/lib/formatters";
 import { getAgingBucketFromDays as getAgingBucket, getAgingBucketLabel } from "@/lib/agingBuckets";
 import { getInvoiceStatusColor as getStatusColor } from "@/lib/invoiceStatuses";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { ArrowLeft, CheckCircle, AlertCircle, XCircle, Info, Copy, Check, Sparkles, Edit, DollarSign, Mail, FileText, X, PauseCircle, PlayCircle, Search, MessageSquare, CreditCard, FileX, Undo2 } from "lucide-react";
+import { ArrowLeft, CheckCircle, AlertCircle, XCircle, Info, Copy, Check, Sparkles, Edit, DollarSign, Mail, FileText, X, PauseCircle, PlayCircle, Search, MessageSquare, CreditCard, FileX, Undo2, ExternalLink } from "lucide-react";
 import { InvoiceTransactionLog } from "@/components/invoices/InvoiceTransactionLog";
 import { PersonaAvatar } from "@/components/ai/PersonaAvatar";
 import { getPersonaByDaysPastDue } from "@/lib/personaConfig";
@@ -65,6 +65,10 @@ interface Invoice {
   promise_to_pay_amount: number | null;
   promise_to_pay_date: string | null;
   source_system: string | null;
+  source_contract_id?: string | null;
+  source_contract_schedule_id?: string | null;
+  source_clm_instance_id?: string | null;
+  source_origin?: string | null;
   subtotal: number | null;
   tax_amount: number | null;
   total_amount: number | null;
@@ -1686,6 +1690,23 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                 <div>
                   <p className="text-xs text-muted-foreground">Source System</p>
                   <p className="font-medium">{invoice.source_system}</p>
+                </div>
+              )}
+              {invoice.source_contract_id && (
+                <div>
+                  <p className="text-xs text-muted-foreground">Source Contract</p>
+                  <Link
+                    to={`/contracts/live/${invoice.source_contract_id}`}
+                    className="text-sm text-primary hover:underline inline-flex items-center gap-1"
+                  >
+                    View contract
+                    <ExternalLink className="h-3 w-3" />
+                  </Link>
+                  {invoice.source_origin && (
+                    <p className="text-[10px] text-muted-foreground mt-0.5 capitalize">
+                      via {invoice.source_origin.replace(/_/g, " ")}
+                    </p>
+                  )}
                 </div>
               )}
               {invoice.external_link && (
