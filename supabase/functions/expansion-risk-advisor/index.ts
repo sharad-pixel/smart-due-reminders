@@ -94,6 +94,70 @@ serve(async (req) => {
     const totalPaidVolume = paidInvoices.reduce((s, i) => s + (i.amount || 0), 0);
     const openBalance = debtor.current_balance || 0;
 
+    // ---- CLM Contract context (if entitled & contracts linked) -----------
+    let contracts: any[] = [];
+    let contractFinancials = { mrr: 0, arr: 0, acv: 0, tcv: 0, currency: "USD" };
+    let contractRiskFlags: any[] = [];
+    let upcomingDates: any[] = [];
+
+    try {
+      const { data: imports } = await supabase
+        .from("live_contract_imports")
+        .select("id, contract_name, contract_type, effective_date, term_end_date, status")
+        .eq("debtor_id", debtor_id);
+
+      contracts = imports || [];
+      const ids = contracts.map((c: any) => c.id);
+      if (ids.length > 0) {
+        const [{ data: fields }, { data: flags }, { data: dates }] = await Promise.all([
+          supabase.from("live_contract_extracted_fields")
+            .select("import_id, field_key, field_value, field_group")
+            .in("import_id", ids),
+          supabase.from("contract_risk_flags")
+            .select("import_id, flag_type, severity, description")
+            .in("import_id", ids),
+          supabase.from("contract_critical_dates")
+            .select("import_id, date_type, due_date, risk_level")
+            .in("import_id", ids)
+            .gte("due_date", new Date().toISOString().slice(0, 10))
+            .order("due_date", { ascending: true })
+            .limit(10),
+        ]);
+
+        const num = (v: any) => {
+          if (v == null) return 0;
+          const n = parseFloat(String(v).replace(/[^0-9.\-]/g, ""));
+          return isFinite(n) ? n : 0;
+        };
+        for (const f of fields || []) {
+          if (f.field_key === "mrr") contractFinancials.mrr += num(f.field_value);
+          else if (f.field_key === "arr") contractFinancials.arr += num(f.field_value);
+          else if (f.field_key === "acv") contractFinancials.acv += num(f.field_value);
+          else if (f.field_key === "tcv" || f.field_key === "contract_value")
+            contractFinancials.tcv += num(f.field_value);
+          else if (f.field_key === "currency" && f.field_value)
+            contractFinancials.currency = f.field_value;
+        }
+        if (contractFinancials.arr === 0 && contractFinancials.mrr > 0)
+          contractFinancials.arr = contractFinancials.mrr * 12;
+        if (contractFinancials.acv === 0 && contractFinancials.arr > 0)
+          contractFinancials.acv = contractFinancials.arr;
+
+        contractRiskFlags = flags || [];
+        upcomingDates = dates || [];
+      }
+    } catch (clmErr) {
+      console.warn("CLM context fetch failed (non-fatal):", clmErr);
+    }
+
+    const activeContracts = contracts.filter(
+      (c: any) => !c.term_end_date || new Date(c.term_end_date) >= new Date(),
+    );
+    const totalContractedValue =
+      contractFinancials.tcv > 0
+        ? contractFinancials.tcv
+        : contractFinancials.acv;
+
     const contextPayload = {
       debtor: {
         company_name: debtor.company_name,
@@ -118,6 +182,26 @@ serve(async (req) => {
         paid_invoices: paidInvoices.length,
         avg_payment_days_vs_due: avgPaymentDays !== null ? Math.round(avgPaymentDays) : null,
         total_paid_volume: totalPaidVolume,
+      },
+      contracts: {
+        total_contracts: contracts.length,
+        active_contracts: activeContracts.length,
+        currency: contractFinancials.currency,
+        mrr: contractFinancials.mrr,
+        arr: contractFinancials.arr,
+        acv: contractFinancials.acv,
+        tcv: contractFinancials.tcv,
+        total_contracted_value: totalContractedValue,
+        risk_flags: contractRiskFlags.map((f: any) => ({
+          type: f.flag_type, severity: f.severity, description: f.description,
+        })),
+        upcoming_key_dates: upcomingDates.map((d: any) => ({
+          type: d.date_type, due_date: d.due_date, risk_level: d.risk_level,
+        })),
+        active_list: activeContracts.slice(0, 10).map((c: any) => ({
+          name: c.contract_name, type: c.contract_type,
+          start: c.effective_date, end: c.term_end_date, status: c.status,
+        })),
       },
       expansion: {
         amount: expansion_amount,
