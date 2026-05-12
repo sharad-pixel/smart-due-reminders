@@ -68,8 +68,27 @@ export const ContractTermGauge = ({ effectiveDate, termEndDate, keyDates }: Prop
   }, [start?.getTime(), end?.getTime(), today.getTime()]);
 
   const sortedDates = useMemo(() => {
-    const enriched = keyDates
-      .filter((d) => d.due_date)
+    // AI-style dedupe: collapse entries with the same normalized label + same calendar day.
+    // Keep the highest-risk variant when multiple exist.
+    const riskRank = (r?: string | null) => {
+      const v = (r || "").toLowerCase();
+      if (v.includes("high") || v.includes("crit")) return 3;
+      if (v.includes("med")) return 2;
+      if (v.includes("low")) return 1;
+      return 0;
+    };
+    const seen = new Map<string, KeyDate>();
+    for (const d of keyDates) {
+      if (!d.due_date) continue;
+      const meta = dateTypeMeta(d.date_type);
+      const dayKey = new Date(d.due_date).toISOString().slice(0, 10);
+      const key = `${meta.label}__${dayKey}`;
+      const existing = seen.get(key);
+      if (!existing || riskRank(d.risk_level) > riskRank(existing.risk_level)) {
+        seen.set(key, d);
+      }
+    }
+    const enriched = Array.from(seen.values())
       .map((d) => {
         const due = new Date(d.due_date);
         const days = Math.round((due.getTime() - today.getTime()) / DAY_MS);
@@ -161,7 +180,7 @@ export const ContractTermGauge = ({ effectiveDate, termEndDate, keyDates }: Prop
                     style={{ left: `${pct}%` }}
                   >
                     <div className="w-1 h-5 bg-foreground rounded-full" />
-                    <div className="absolute top-6 left-1/2 -translate-x-1/2 text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap">
+                    <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap text-foreground">
                       Today
                     </div>
                   </div>
