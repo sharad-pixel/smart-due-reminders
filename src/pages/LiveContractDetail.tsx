@@ -288,15 +288,13 @@ const LiveContractDetailInner = () => {
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-2">
-          <CardContent className="p-0">
-            <ContractTermGauge
-              effectiveDate={c.effective_date}
-              termEndDate={c.term_end_date}
-              keyDates={data.dates}
-            />
-          </CardContent>
-        </Card>
+        <div className="lg:col-span-2">
+          <ContractTermGauge
+            effectiveDate={c.effective_date}
+            termEndDate={c.term_end_date}
+            keyDates={data.dates}
+          />
+        </div>
 
       </div>
 
