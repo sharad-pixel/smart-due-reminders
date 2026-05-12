@@ -29,6 +29,7 @@ import { ContractStagingPanel } from "@/components/clm/ContractStagingPanel";
 import { ContractOverviewEditor } from "@/components/clm/ContractOverviewEditor";
 import { ContractScheduleLines } from "@/components/clm/ContractScheduleLines";
 import { InvoiceDataAuditPanel } from "@/components/clm/InvoiceDataAuditPanel";
+import { ContractTermGauge } from "@/components/clm/ContractTermGauge";
 import { useQueryClient } from "@tanstack/react-query";
 
 const FIN_KEYS = new Set<string>([
@@ -288,50 +289,13 @@ const LiveContractDetailInner = () => {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <CalendarClock className="h-4 w-4 text-primary" /> Key Dates
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {data.dates.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No key dates.</p>
-            ) : (
-              <div className="space-y-2">
-                {data.dates.map((d: any) => (
-                  <div
-                    key={d.id}
-                    className="text-sm border rounded-md p-2 flex items-center justify-between"
-                  >
-                    <div>
-                      <div className="font-medium capitalize">
-                        {d.date_type.replace(/_/g, " ")}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {formatDateShort(d.due_date)}
-                      </div>
-                    </div>
-                    {d.risk_level && (
-                      <Badge
-                        variant="outline"
-                        className={`text-[10px] ${
-                          d.risk_level === "high" || d.risk_level === "critical"
-                            ? "bg-red-50 text-red-700 border-red-200"
-                            : d.risk_level === "medium"
-                              ? "bg-amber-50 text-amber-700 border-amber-200"
-                              : "bg-emerald-50 text-emerald-700 border-emerald-200"
-                        }`}
-                      >
-                        {d.risk_level}
-                      </Badge>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <div className="lg:col-span-2">
+          <ContractTermGauge
+            effectiveDate={c.effective_date}
+            termEndDate={c.term_end_date}
+            keyDates={data.dates}
+          />
+        </div>
 
       </div>
 
