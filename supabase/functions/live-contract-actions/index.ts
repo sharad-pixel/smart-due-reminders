@@ -130,9 +130,9 @@ Deno.serve(async (req) => {
       await supabase.from("live_contract_audit_log").insert({
         account_id: imp.account_id, user_id: user.id, import_id: imp.id,
         event_type: "invoices_generated",
-        event_details: { created: created.length, skipped: skipped.length, skipped_detail: skipped },
+        event_details: { created: created.length, skipped: skipped.length, duplicates: duplicates.length, skipped_detail: skipped },
       });
-      return json({ success: true, created: created.length, skipped });
+      return json({ success: true, created: created.length, duplicates: duplicates.length, skipped });
     }
 
     if (action === "set_alerts") {
