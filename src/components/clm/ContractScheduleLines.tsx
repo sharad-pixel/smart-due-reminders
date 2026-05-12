@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getInvoiceStatusColor, getInvoiceStatusLabel } from "@/lib/invoiceStatuses";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +35,29 @@ export const ContractScheduleLines = ({ schedules, defaultCurrency, onChanged }:
     expected_due_date: "",
   });
   const [saving, setSaving] = useState(false);
+  const [statusMap, setStatusMap] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const ids = schedules.map((s: any) => s.invoice_id).filter(Boolean);
+    if (ids.length === 0) {
+      setStatusMap({});
+      return;
+    }
+    let cancelled = false;
+    supabase
+      .from("invoices")
+      .select("id, status")
+      .in("id", ids)
+      .then(({ data }) => {
+        if (cancelled || !data) return;
+        const m: Record<string, string> = {};
+        data.forEach((r: any) => (m[r.id] = r.status));
+        setStatusMap(m);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [schedules]);
 
   const open = (s: any) => {
     const qty = s.quantity != null ? Number(s.quantity) : null;
@@ -109,6 +133,7 @@ export const ContractScheduleLines = ({ schedules, defaultCurrency, onChanged }:
                   <th className="text-right py-2 px-2 font-medium">Unit price</th>
                   <th className="text-right py-2 px-2 font-medium">Amount</th>
                   <th className="text-left py-2 px-2 font-medium">Scheduled</th>
+                  <th className="text-left py-2 px-2 font-medium">Status</th>
                   <th className="text-right py-2 pl-2 font-medium">Actions</th>
                 </tr>
               </thead>
@@ -149,6 +174,17 @@ export const ContractScheduleLines = ({ schedules, defaultCurrency, onChanged }:
                         {s.expected_due_date && (
                           <Badge variant="outline" className="text-[10px] mt-1">
                             Due {formatDateShort(s.expected_due_date)}
+                          </Badge>
+                        )}
+                      </td>
+                      <td className="py-2 px-2">
+                        {s.invoice_id && statusMap[s.invoice_id] ? (
+                          <Badge className={`text-[10px] ${getInvoiceStatusColor(statusMap[s.invoice_id])}`}>
+                            {getInvoiceStatusLabel(statusMap[s.invoice_id])}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[10px] text-muted-foreground">
+                            Pending
                           </Badge>
                         )}
                       </td>
