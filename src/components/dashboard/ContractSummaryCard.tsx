@@ -142,7 +142,7 @@ export const ContractSummaryCard = () => {
             </TableHeader>
             <TableBody>
               {paged.map((r) => {
-                const target = r.debtorId ? `/customers/${r.debtorId}` : `/contracts/live/${r.importId}`;
+                const target = r.debtorId ? `/debtors/${r.debtorId}` : `/contracts/live/${r.importId}`;
                 return (
                   <TableRow
                     key={r.importId}
