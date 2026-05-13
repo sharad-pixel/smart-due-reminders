@@ -188,6 +188,10 @@ const Dashboard = () => {
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [runningOutreach, setRunningOutreach] = useState(false);
   const [hideKbAgent, setHideKbAgent] = useState(() => localStorage.getItem('recouply_hide_kb_agent') === 'true');
+  const [view, setView] = useState<"ask" | "dashboard">(() =>
+    (localStorage.getItem("recouply_dashboard_view") as "ask" | "dashboard") || "ask"
+  );
+  useEffect(() => { localStorage.setItem("recouply_dashboard_view", view); }, [view]);
   const [integrationModal, setIntegrationModal] = useState<{ open: boolean; type: "stripe" | "quickbooks" | null }>({ 
     open: false, 
     type: null 
