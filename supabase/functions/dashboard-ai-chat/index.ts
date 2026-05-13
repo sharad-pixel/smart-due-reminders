@@ -7,6 +7,8 @@ const corsHeaders = {
 
 interface ChatMessage { role: "user" | "assistant" | "system"; content: string }
 
+const log = (...a: unknown[]) => console.log("[dashboard-ai-chat]", ...a);
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
@@ -38,16 +40,20 @@ Deno.serve(async (req) => {
     const messages: ChatMessage[] = Array.isArray(body.messages) ? body.messages : [];
     if (!messages.length) throw new Error("messages required");
 
+    log("user", user.id, "account", accountId, "msgs", messages.length);
+
     // ---- Aggregate account-wide context ----
-    const [
-      debtorsRes, invoicesRes, tasksRes, paymentsRes,
-    ] = await Promise.all([
+    const today = new Date();
+    const todayISO = today.toISOString().slice(0, 10);
+
+    const [debtorsRes, invoicesRes, tasksRes, paymentsRes] = await Promise.all([
       supabase.from("debtors")
-        .select("id, name, email, current_balance, total_overdue, collectability_score, ecl_amount, risk_category, average_dpd, primary_currency, status")
-        .eq("user_id", accountId).limit(200),
+        .select("id, name, email, current_balance, total_open_balance, avg_risk_score, max_risk_score, risk_tier, risk_tier_detailed, collections_health_score, collections_risk_score, health_tier, payment_score, avg_days_to_pay, max_days_past_due, open_invoices_count, disputed_invoices_count, industry, ai_sentiment_category, outreach_paused, is_archived")
+        .eq("user_id", accountId).eq("is_archived", false).limit(300),
       supabase.from("invoices")
-        .select("id, debtor_id, invoice_number, amount, balance, status, due_date, currency, days_overdue")
-        .eq("user_id", accountId).in("status", ["Open", "Overdue", "InPaymentPlan", "PartiallyPaid"]).limit(500),
+        .select("id, debtor_id, invoice_number, amount, amount_outstanding, total_amount, status, due_date, currency, aging_bucket, is_archived")
+        .eq("user_id", accountId).eq("is_archived", false)
+        .in("status", ["Open", "PartiallyPaid"]).limit(500),
       supabase.from("collection_tasks")
         .select("id, summary, task_type, priority, status, due_date, debtor_id")
         .eq("user_id", accountId).in("status", ["pending", "in_progress"]).limit(200),
@@ -56,58 +62,98 @@ Deno.serve(async (req) => {
         .eq("user_id", accountId).order("payment_date", { ascending: false }).limit(100),
     ]);
 
+    if (debtorsRes.error) log("debtors error", debtorsRes.error);
+    if (invoicesRes.error) log("invoices error", invoicesRes.error);
+    if (tasksRes.error) log("tasks error", tasksRes.error);
+    if (paymentsRes.error) log("payments error", paymentsRes.error);
+
     const debtors = debtorsRes.data || [];
     const invoices = invoicesRes.data || [];
     const tasks = tasksRes.data || [];
     const payments = paymentsRes.data || [];
 
-    // Top-line aggregates
-    const totalAR = invoices.reduce((s, i: any) => s + (Number(i.balance) || 0), 0);
-    const totalOverdue = invoices.filter((i: any) => i.status === "Overdue")
-      .reduce((s, i: any) => s + (Number(i.balance) || 0), 0);
-    const overdueCount = invoices.filter((i: any) => i.status === "Overdue").length;
-    const totalECL = debtors.reduce((s, d: any) => s + (Number(d.ecl_amount) || 0), 0);
-    const avgScore = debtors.length
-      ? debtors.reduce((s, d: any) => s + (Number(d.collectability_score) || 0), 0) / debtors.length
-      : 0;
+    log("counts", { debtors: debtors.length, invoices: invoices.length, tasks: tasks.length, payments: payments.length });
 
-    const riskBreakdown: Record<string, number> = {};
-    for (const d of debtors) {
-      const k = (d as any).risk_category || "unscored";
-      riskBreakdown[k] = (riskBreakdown[k] || 0) + 1;
+    const balOf = (i: any) => Number(i.amount_outstanding ?? i.amount ?? 0);
+    const isOverdue = (i: any) => i.due_date && i.due_date < todayISO && balOf(i) > 0.005;
+    const dpd = (i: any) => i.due_date ? Math.max(0, Math.floor((today.getTime() - new Date(i.due_date).getTime()) / 86400000)) : 0;
+
+    const totalAR = invoices.reduce((s, i: any) => s + balOf(i), 0);
+    const overdueInvoices = invoices.filter(isOverdue);
+    const totalOverdue = overdueInvoices.reduce((s, i: any) => s + balOf(i), 0);
+
+    // Aging buckets from invoices
+    const agingBuckets: Record<string, { count: number; balance: number }> = {
+      current: { count: 0, balance: 0 },
+      "1-30": { count: 0, balance: 0 },
+      "31-60": { count: 0, balance: 0 },
+      "61-90": { count: 0, balance: 0 },
+      "91-120": { count: 0, balance: 0 },
+      "120+": { count: 0, balance: 0 },
+    };
+    for (const i of invoices as any[]) {
+      const b = balOf(i);
+      if (b <= 0.005) continue;
+      const d = dpd(i);
+      const k = !i.due_date || d <= 0 ? "current" : d <= 30 ? "1-30" : d <= 60 ? "31-60" : d <= 90 ? "61-90" : d <= 120 ? "91-120" : "120+";
+      agingBuckets[k].count++;
+      agingBuckets[k].balance += b;
     }
 
-    // Top risk debtors
-    const topRisk = [...debtors]
-      .filter((d: any) => Number(d.current_balance) > 0)
-      .sort((a: any, b: any) => (Number(b.ecl_amount) || 0) - (Number(a.ecl_amount) || 0))
-      .slice(0, 15)
-      .map((d: any) => ({
-        name: d.name,
-        balance: Number(d.current_balance) || 0,
-        overdue: Number(d.total_overdue) || 0,
-        score: d.collectability_score,
-        ecl: Number(d.ecl_amount) || 0,
-        risk: d.risk_category,
-        avg_dpd: d.average_dpd,
-      }));
+    // Risk tier breakdown
+    const riskBreakdown: Record<string, number> = {};
+    let totalCollectionsRisk = 0, scoredCount = 0;
+    for (const d of debtors as any[]) {
+      const tier = d.risk_tier_detailed || d.risk_tier || d.health_tier || "unscored";
+      riskBreakdown[tier] = (riskBreakdown[tier] || 0) + 1;
+      if (d.collections_risk_score != null) {
+        totalCollectionsRisk += Number(d.collections_risk_score);
+        scoredCount++;
+      }
+    }
+    const avgRisk = scoredCount ? Math.round((totalCollectionsRisk / scoredCount) * 10) / 10 : null;
 
-    // Top open invoices
+    // Top risk accounts (highest balance + risk tier)
+    const debtorBalanceMap: Record<string, number> = {};
+    for (const i of invoices as any[]) {
+      if (!i.debtor_id) continue;
+      debtorBalanceMap[i.debtor_id] = (debtorBalanceMap[i.debtor_id] || 0) + balOf(i);
+    }
+    const topRisk = (debtors as any[])
+      .map((d) => ({
+        name: d.name,
+        balance: Math.round((debtorBalanceMap[d.id] ?? Number(d.total_open_balance ?? d.current_balance ?? 0)) * 100) / 100,
+        risk_tier: d.risk_tier_detailed || d.risk_tier || "unscored",
+        health_tier: d.health_tier,
+        risk_score: d.collections_risk_score,
+        health_score: d.collections_health_score,
+        payment_score: d.payment_score,
+        avg_days_to_pay: d.avg_days_to_pay,
+        max_dpd: d.max_days_past_due,
+        open_invoice_count: d.open_invoices_count,
+        industry: d.industry,
+        sentiment: d.ai_sentiment_category,
+      }))
+      .filter((d) => d.balance > 0)
+      .sort((a, b) => (Number(b.risk_score) || 0) * b.balance - (Number(a.risk_score) || 0) * a.balance)
+      .slice(0, 15);
+
+    // Top open invoices by balance
+    const debtorNameMap = new Map((debtors as any[]).map((d) => [d.id, d.name]));
     const topInvoices = [...invoices]
-      .sort((a: any, b: any) => (Number(b.balance) || 0) - (Number(a.balance) || 0))
+      .filter((i: any) => balOf(i) > 0)
+      .sort((a: any, b: any) => balOf(b) - balOf(a))
       .slice(0, 20)
-      .map((i: any) => {
-        const d = debtors.find((x: any) => x.id === i.debtor_id);
-        return {
-          invoice: i.invoice_number,
-          debtor: d?.name,
-          balance: Number(i.balance) || 0,
-          status: i.status,
-          due_date: i.due_date,
-          days_overdue: i.days_overdue,
-          currency: i.currency,
-        };
-      });
+      .map((i: any) => ({
+        invoice: i.invoice_number,
+        debtor: debtorNameMap.get(i.debtor_id) || "—",
+        balance: Math.round(balOf(i) * 100) / 100,
+        status: i.status,
+        due_date: i.due_date,
+        days_overdue: dpd(i),
+        currency: i.currency,
+        aging: i.aging_bucket,
+      }));
 
     const taskSummary = {
       total_open: tasks.length,
@@ -115,36 +161,56 @@ Deno.serve(async (req) => {
         acc[t.priority || "normal"] = (acc[t.priority || "normal"] || 0) + 1;
         return acc;
       }, {}),
-      sample: tasks.slice(0, 10).map((t: any) => ({
-        summary: t.summary, priority: t.priority, due_date: t.due_date,
+      sample: (tasks as any[]).slice(0, 12).map((t) => ({
+        summary: t.summary,
+        type: t.task_type,
+        priority: t.priority,
+        due_date: t.due_date,
+        debtor: debtorNameMap.get(t.debtor_id) || null,
       })),
     };
 
+    const last30 = new Date(today.getTime() - 30 * 86400000).toISOString().slice(0, 10);
+    const recent30 = (payments as any[]).filter((p) => p.payment_date >= last30);
     const paymentSummary = {
-      recent_count: payments.length,
-      recent_total: payments.reduce((s, p: any) => s + (Number(p.amount) || 0), 0),
-      last_payment_date: payments[0]?.payment_date || null,
+      total_recent_count: payments.length,
+      recent_30d_count: recent30.length,
+      recent_30d_total: Math.round(recent30.reduce((s, p) => s + Number(p.amount || 0), 0) * 100) / 100,
+      last_payment_date: (payments[0] as any)?.payment_date || null,
+    };
+
+    const portfolio = {
+      debtor_count: debtors.length,
+      active_debtors_with_balance: Object.values(debtorBalanceMap).filter((b) => b > 0).length,
+      total_ar_open: Math.round(totalAR * 100) / 100,
+      total_overdue: Math.round(totalOverdue * 100) / 100,
+      open_invoice_count: invoices.length,
+      overdue_invoice_count: overdueInvoices.length,
+      avg_collections_risk_score: avgRisk,
+      risk_tier_breakdown: riskBreakdown,
+      aging_buckets: Object.fromEntries(
+        Object.entries(agingBuckets).map(([k, v]) => [k, { count: v.count, balance: Math.round(v.balance * 100) / 100 }]),
+      ),
     };
 
     const context = {
-      portfolio: {
-        debtor_count: debtors.length,
-        total_ar_open: Math.round(totalAR * 100) / 100,
-        total_overdue: Math.round(totalOverdue * 100) / 100,
-        overdue_invoice_count: overdueCount,
-        total_expected_credit_loss: Math.round(totalECL * 100) / 100,
-        avg_collectability_score: Math.round(avgScore * 10) / 10,
-        risk_breakdown: riskBreakdown,
-      },
+      as_of: todayISO,
+      portfolio,
       top_risk_accounts: topRisk,
       top_open_invoices: topInvoices,
       tasks: taskSummary,
       recent_payments: paymentSummary,
     };
 
-    const system = `You are Recouply's Revenue Intelligence assistant. The user is asking questions about their entire AR portfolio. Use ONLY the JSON CONTEXT below to answer — do not invent numbers. Be concise, structured, and actionable. Use markdown (headings, bullets, bold). When discussing risk, reference Collectability Score (0–100, higher = better) and Expected Credit Loss (ECL). When relevant, recommend specific debtors or invoices to act on by name. If the answer is not in context, say so.
+    log("portfolio", portfolio);
 
-CONTEXT:
+    const system = `You are Recouply's Revenue Intelligence agent (persona: Nicolas). Answer the user's question about their AR portfolio using ONLY the JSON CONTEXT below — never invent numbers, debtor names, or invoices.
+
+Style: warm, expert, decisive. Use markdown (## headings, **bold**, bullet lists, tables when helpful). Reference real debtor names, invoice numbers, and dollar amounts from CONTEXT. When discussing risk, use the risk_tier and collections_risk_score (0-100, higher = riskier). When recommending actions, be specific (which debtor, which invoice, what to do, why).
+
+If the portfolio has no data (zero debtors, zero invoices), say so plainly and suggest the user import or sync data.
+
+CONTEXT (as of ${todayISO}):
 ${JSON.stringify(context)}`;
 
     const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -155,14 +221,15 @@ ${JSON.stringify(context)}`;
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
-        messages: [{ role: "system", content: system }, ...messages],
+        messages: [{ role: "system", content: system }, ...messages.slice(-12)],
       }),
     });
 
     if (!aiRes.ok) {
       const t = await aiRes.text();
+      log("ai gateway error", aiRes.status, t.slice(0, 500));
       if (aiRes.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit reached. Please retry shortly." }), {
+        return new Response(JSON.stringify({ error: "Nicolas is busy — please retry in a moment." }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -171,17 +238,23 @@ ${JSON.stringify(context)}`;
           status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      throw new Error(`AI gateway: ${aiRes.status} ${t}`);
+      throw new Error(`AI gateway: ${aiRes.status} ${t.slice(0, 200)}`);
     }
 
     const data = await aiRes.json();
-    const reply = data.choices?.[0]?.message?.content || "I couldn't form a response.";
+    const reply = data.choices?.[0]?.message?.content?.trim();
+    if (!reply) {
+      log("empty reply", JSON.stringify(data).slice(0, 500));
+      return new Response(JSON.stringify({
+        error: "Nicolas couldn't form a response. Try a more specific question.",
+      }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
-    return new Response(JSON.stringify({ reply, context_summary: context.portfolio }), {
+    return new Response(JSON.stringify({ reply, context_summary: portfolio }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("dashboard-ai-chat error:", e);
+    console.error("[dashboard-ai-chat] error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : String(e) }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
