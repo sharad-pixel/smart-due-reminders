@@ -549,6 +549,21 @@ Deno.serve(async (req) => {
       event_details: { confidence: extracted.confidence, fields: fieldRows.length, schedules: sched.length, risks: flags.length },
     });
 
+    // Fire-and-forget reconciliation against existing Recouply invoices.
+    // Tasks are NOT created until contract is published (handled inside contract-reconcile).
+    try {
+      await fetch(`${supabaseUrl}/functions/v1/contract-reconcile`, {
+        method: "POST",
+        headers: {
+          Authorization: req.headers.get("Authorization") || "",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ importId: imp.id, generateTasks: false }),
+      });
+    } catch (e) {
+      log("reconcile invoke failed", { e: String(e) });
+    }
+
     return new Response(JSON.stringify({ success: true, import_id: imp.id, confidence: extracted.confidence }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

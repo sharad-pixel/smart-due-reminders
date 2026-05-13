@@ -3012,11 +3012,13 @@ export type Database = {
           response_sent_to: string | null
           response_status: string | null
           source: string | null
+          source_ref: Json | null
           status: string
           subject: string | null
           suggested_response_body: string | null
           suggested_response_subject: string | null
           summary: string
+          task_source: string
           task_type: string
           to_email: string | null
           updated_at: string | null
@@ -3053,11 +3055,13 @@ export type Database = {
           response_sent_to?: string | null
           response_status?: string | null
           source?: string | null
+          source_ref?: Json | null
           status?: string
           subject?: string | null
           suggested_response_body?: string | null
           suggested_response_subject?: string | null
           summary: string
+          task_source?: string
           task_type: string
           to_email?: string | null
           updated_at?: string | null
@@ -3094,11 +3098,13 @@ export type Database = {
           response_sent_to?: string | null
           response_status?: string | null
           source?: string | null
+          source_ref?: Json | null
           status?: string
           subject?: string | null
           suggested_response_body?: string | null
           suggested_response_subject?: string | null
           summary?: string
+          task_source?: string
           task_type?: string
           to_email?: string | null
           updated_at?: string | null
@@ -3487,6 +3493,10 @@ export type Database = {
           amount: number | null
           attachment_source: string | null
           billing_type: string | null
+          completed_at: string | null
+          completed_by: string | null
+          completion_note: string | null
+          completion_status: string
           created_at: string
           currency: string | null
           debtor_id: string | null
@@ -3500,6 +3510,9 @@ export type Database = {
           payment_terms: string | null
           product_description: string | null
           quantity: number | null
+          reconciled_at: string | null
+          reconciliation_candidates: Json | null
+          reconciliation_status: string
           scheduled_date: string
           service_period_end: string | null
           service_period_start: string | null
@@ -3511,6 +3524,10 @@ export type Database = {
           amount?: number | null
           attachment_source?: string | null
           billing_type?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          completion_note?: string | null
+          completion_status?: string
           created_at?: string
           currency?: string | null
           debtor_id?: string | null
@@ -3524,6 +3541,9 @@ export type Database = {
           payment_terms?: string | null
           product_description?: string | null
           quantity?: number | null
+          reconciled_at?: string | null
+          reconciliation_candidates?: Json | null
+          reconciliation_status?: string
           scheduled_date: string
           service_period_end?: string | null
           service_period_start?: string | null
@@ -3535,6 +3555,10 @@ export type Database = {
           amount?: number | null
           attachment_source?: string | null
           billing_type?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          completion_note?: string | null
+          completion_status?: string
           created_at?: string
           currency?: string | null
           debtor_id?: string | null
@@ -3548,6 +3572,9 @@ export type Database = {
           payment_terms?: string | null
           product_description?: string | null
           quantity?: number | null
+          reconciled_at?: string | null
+          reconciliation_candidates?: Json | null
+          reconciliation_status?: string
           scheduled_date?: string
           service_period_end?: string | null
           service_period_start?: string | null
