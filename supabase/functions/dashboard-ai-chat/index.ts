@@ -44,16 +44,16 @@ Deno.serve(async (req) => {
     ] = await Promise.all([
       supabase.from("debtors")
         .select("id, name, email, current_balance, total_overdue, collectability_score, ecl_amount, risk_category, average_dpd, primary_currency, status")
-        .eq("account_id", accountId).limit(200),
+        .eq("user_id", accountId).limit(200),
       supabase.from("invoices")
         .select("id, debtor_id, invoice_number, amount, balance, status, due_date, currency, days_overdue")
-        .eq("account_id", accountId).in("status", ["Open", "Overdue", "InPaymentPlan", "PartiallyPaid"]).limit(500),
+        .eq("user_id", accountId).in("status", ["Open", "Overdue", "InPaymentPlan", "PartiallyPaid"]).limit(500),
       supabase.from("collection_tasks")
         .select("id, summary, task_type, priority, status, due_date, debtor_id")
-        .eq("account_id", accountId).in("status", ["pending", "in_progress"]).limit(200),
+        .eq("user_id", accountId).in("status", ["pending", "in_progress"]).limit(200),
       supabase.from("payments")
         .select("id, debtor_id, amount, payment_date, currency")
-        .eq("account_id", accountId).order("payment_date", { ascending: false }).limit(100),
+        .eq("user_id", accountId).order("payment_date", { ascending: false }).limit(100),
     ]);
 
     const debtors = debtorsRes.data || [];
