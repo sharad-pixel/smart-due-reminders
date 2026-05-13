@@ -72,14 +72,25 @@ const knowledgeBase: FAQCategory[] = knowledgeBaseData.map((category: DataFAQCat
    const totalResults = filteredCategories.reduce((sum, cat) => sum + cat.faqs.length, 0);
  
    return (
-     <MarketingLayout>
-       <SEO
-         title="Knowledge Base & FAQ | Recouply.ai Help Center"
-         description="Complete documentation for Recouply.ai - learn about AI collection agents, invoice management, payment plans, workflows, integrations, and more."
-         canonical="https://recouply.ai/knowledge-base"
-         keywords="Recouply help, FAQ, knowledge base, collection software documentation, AR automation guide"
-       />
-       
+    <MarketingLayout>
+      <SEO
+        title="Knowledge Base & FAQ | Recouply.ai Help Center"
+        description="Complete documentation for Recouply.ai - learn about AI collection agents, invoice management, payment plans, workflows, integrations, and more."
+        canonical="https://recouply.ai/knowledge-base"
+        keywords="Recouply help, FAQ, knowledge base, collection software documentation, AR automation guide"
+        structuredData={{
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: knowledgeBase.flatMap((cat) =>
+            cat.faqs.map((f) => ({
+              "@type": "Question",
+              name: f.question,
+              acceptedAnswer: { "@type": "Answer", text: f.answer },
+            }))
+          ),
+        }}
+      />
+      
        {/* Hero Section */}
        <section className="py-16 px-4 bg-gradient-to-b from-primary/5 to-background">
          <div className="container mx-auto max-w-4xl text-center">
