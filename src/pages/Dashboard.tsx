@@ -922,6 +922,9 @@ const Dashboard = () => {
         />
 
         {/* Task Detail Modal */}
+        </>
+        )}
+
         <TaskDetailModal
           task={selectedTask}
           open={taskModalOpen}
