@@ -16,7 +16,7 @@ import { COMPANY_INFO } from "@/lib/companyConfig";
                <RecouplyLogo size="lg" />
              </div>
               <p className="text-sm font-medium text-foreground mb-4">
-                Revenue Intelligence
+                Revenue Intelligence Platform
               </p>
              <a 
                href={COMPANY_INFO.social.linkedin}
