@@ -559,20 +559,44 @@ const Dashboard = () => {
               </p>
             </div>
           </div>
-          <SavedViewsManager
-            savedViews={savedViews}
-            activeView={activeView}
-            currentConfig={currentConfig}
-            onSave={saveView}
-            onUpdate={updateView}
-            onDelete={deleteView}
-            onSetDefault={setDefaultView}
-            onLoad={loadView}
-            onClear={clearActiveView}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <ContractUploadButton variant="outline" />
+            <div className="inline-flex rounded-md border bg-muted/40 p-0.5">
+              <Button
+                size="sm"
+                variant={view === "ask" ? "default" : "ghost"}
+                className="h-8"
+                onClick={() => setView("ask")}
+              >
+                <Sparkles className="h-3.5 w-3.5 mr-1.5" /> Ask AI
+              </Button>
+              <Button
+                size="sm"
+                variant={view === "dashboard" ? "default" : "ghost"}
+                className="h-8"
+                onClick={() => setView("dashboard")}
+              >
+                <LayoutDashboard className="h-3.5 w-3.5 mr-1.5" /> Dashboard
+              </Button>
+            </div>
+            <SavedViewsManager
+              savedViews={savedViews}
+              activeView={activeView}
+              currentConfig={currentConfig}
+              onSave={saveView}
+              onUpdate={updateView}
+              onDelete={deleteView}
+              onSetDefault={setDefaultView}
+              onLoad={loadView}
+              onClear={clearActiveView}
+            />
+          </div>
         </div>
 
-
+        {view === "ask" ? (
+          <DashboardAskAI />
+        ) : (
+        <>
         {/* Usage Indicator */}
         <UsageIndicator />
 
