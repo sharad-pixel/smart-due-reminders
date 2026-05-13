@@ -71,7 +71,7 @@ const Privacy = () => {
               <li>Provide and maintain our software platform and all its features</li>
               <li>Generate AI-powered collection messages, risk assessments, and payment scoring</li>
               <li>Process AI commands using third-party AI models (Google Gemini, OpenAI) to generate drafts, summaries, and recommendations</li>
-              <li>Extract invoice data from uploaded documents using AI-powered OCR and parsing</li>
+              <li>Extract invoice data from uploaded documents using AI Smart Ingestion</li>
               <li>Calculate debtor risk scores, payment behavior patterns, and credit recommendations</li>
               <li>Synchronize data with connected third-party services (Google Sheets, Google Drive, CRMs)</li>
               <li>Process subscription billing via Stripe</li>

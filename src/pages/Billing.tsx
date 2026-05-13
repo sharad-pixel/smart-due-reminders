@@ -541,7 +541,7 @@ const Billing = () => {
           {/* Monthly Usage Billing Log */}
           <UsageBillingLog />
 
-          {/* OCR Scanning Usage ($0.75/page) */}
+          {/* AI Smart Ingestion Usage ($0.75/page) */}
           <OcrUsageCard />
 
           {/* Account Hierarchy - Visual Tree */}

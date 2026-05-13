@@ -10,7 +10,7 @@ interface OcrPricingNoticeProps {
 }
 
 /**
- * Standardized callout for any UI that triggers OCR scanning.
+ * Standardized callout for any UI that triggers AI Smart Ingestion.
  * Always communicates the $0.75 / page billing rate.
  */
 export const OcrPricingNotice = ({
@@ -26,7 +26,7 @@ export const OcrPricingNotice = ({
     return (
       <p className={cn("text-xs text-muted-foreground inline-flex items-center gap-1", className)}>
         <Info className="h-3 w-3" />
-        OCR scanning is billed at ${OCR_PRICE_PER_PAGE_USD.toFixed(2)} per page
+        AI Smart Ingestion is billed at ${OCR_PRICE_PER_PAGE_USD.toFixed(2)} per page
         {estimated ? ` (${estimated})` : ""}.
       </p>
     );
@@ -42,7 +42,7 @@ export const OcrPricingNotice = ({
       <Info className="h-4 w-4 shrink-0 mt-0.5" />
       <div className="space-y-0.5">
         <div className="font-medium">
-          OCR scanning is billed at ${OCR_PRICE_PER_PAGE_USD.toFixed(2)} per page
+          AI Smart Ingestion is billed at ${OCR_PRICE_PER_PAGE_USD.toFixed(2)} per page
         </div>
         <div className="opacity-90">
           {estimated

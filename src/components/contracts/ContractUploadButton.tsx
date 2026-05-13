@@ -22,7 +22,7 @@ const ACCEPT = [".pdf", ".docx", ".txt"];
 const MAX_BYTES = 25 * 1024 * 1024;
 
 export function ContractUploadButton({
-  debtorId, debtorName, variant = "default", size = "default", label = "Upload Contract (OCR)", className,
+  debtorId, debtorName, variant = "default", size = "default", label = "AI Smart Ingestion", className,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
@@ -113,7 +113,7 @@ export function ContractUploadButton({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileSearch className="h-5 w-5 text-primary" />
-            Upload Contract for OCR
+            AI Smart Ingestion — Contract
           </DialogTitle>
           <DialogDescription>
             {debtorName

@@ -15,7 +15,7 @@ interface Props {
 
 const SOURCE_LABEL: Record<string, string> = {
   contract_intelligence: "Contract Intelligence",
-  ocr_contract: "OCR (Contract)",
+  ocr_contract: "AI Smart Ingestion (Contract)",
   ai_extract: "AI Extract",
   clm: "CLM",
   manual: "Manual",

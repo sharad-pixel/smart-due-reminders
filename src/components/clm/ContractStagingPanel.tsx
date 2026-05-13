@@ -85,12 +85,12 @@ export const ContractStagingPanel = ({
       });
       if (error) throw error;
       toast.success(
-        `OCR complete — ${data.pageCount} page${data.pageCount === 1 ? "" : "s"} · $${(data.totalCents / 100).toFixed(2)}`,
+        `AI Smart Ingestion complete — ${data.pageCount} page${data.pageCount === 1 ? "" : "s"} · $${(data.totalCents / 100).toFixed(2)}`,
       );
       onChanged();
       qc.invalidateQueries({ queryKey: ["ocr-usage"] });
     } catch (e: any) {
-      toast.error(e.message || "OCR upload failed");
+      toast.error(e.message || "AI Smart Ingestion upload failed");
     } finally {
       setUploading(false);
       setActiveScheduleId(null);
@@ -398,10 +398,10 @@ export const ContractStagingPanel = ({
                             }}
                           >
                             <Upload className="h-3.5 w-3.5 mr-1" />
-                            {uploading && activeScheduleId === s.id ? "Scanning…" : "Upload + OCR"}
+                            {uploading && activeScheduleId === s.id ? "Scanning…" : "Upload + AI Smart Ingestion"}
                           </Button>
                           <span className="text-[11px] text-muted-foreground self-center">
-                            OCR $0.75/page
+                            AI Smart Ingestion $0.75/page
                           </span>
                         </>
                       )}
