@@ -406,7 +406,7 @@ const ContractsInner = () => {
           <TabsTrigger value="templates">Templates</TabsTrigger>
           <TabsTrigger value="contracts">Contracts</TabsTrigger>
           <TabsTrigger value="live" asChild>
-            <Link to="/contracts/live">Live Contracts (OCR)</Link>
+            <Link to="/contracts/live">Live Contracts (AI Smart Ingestion)</Link>
           </TabsTrigger>
         </TabsList>
         <TabsContent value="workspaces"><WorkspacesTab /></TabsContent>

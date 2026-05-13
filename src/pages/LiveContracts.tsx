@@ -31,7 +31,7 @@ const STATUS_LABEL: Record<string, string> = {
   found: "Found",
   queued: "Queued",
   scanning: "Scanning",
-  ocr_processing: "OCR Processing",
+  ocr_processing: "AI Smart Ingestion Processing",
   ai_extracting: "AI Extracting",
   needs_review: "Needs Review",
   approved: "Approved",
@@ -184,7 +184,7 @@ function RecentScansCard({ imports }: { imports: any[] }) {
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="text-base flex items-center gap-2">
-              <FileSearch className="h-4 w-4 text-primary" /> Recently Scanned (OCR)
+              <FileSearch className="h-4 w-4 text-primary" /> Recently Scanned (AI Smart Ingestion)
             </CardTitle>
             <CardDescription>Last 10 contracts processed by Contract Intelligence.</CardDescription>
           </div>
@@ -448,7 +448,7 @@ function UploadDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o:
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><FileSearch className="h-5 w-5 text-primary" />Upload contract</DialogTitle>
           <DialogDescription>
-            Drop one or more files. Our AI will OCR, extract critical dates, commercial terms, and risk flags automatically.
+            Drop one or more files. AI Smart Ingestion will extract critical dates, commercial terms, and risk flags automatically.
           </DialogDescription>
         </DialogHeader>
 

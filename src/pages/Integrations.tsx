@@ -225,11 +225,11 @@ const Integrations = () => {
               </div>
               <h2 className="text-2xl md:text-3xl font-bold">AI Smart Ingestion</h2>
               <span className="text-xs font-semibold px-2 py-1 rounded-full bg-accent/10 text-accent border border-accent/20">
-                OCR Built-In
+                AI Smart Ingestion
               </span>
             </div>
             <p className="text-muted-foreground mb-8 max-w-2xl">
-              Connect your Google Drive folder and let AI extract invoice data from any PDF — including scanned paper invoices, photos, and low-quality images — using built-in OCR. No manual data entry required.
+              Connect your Google Drive folder and let AI extract invoice data from any PDF — including scanned paper invoices, photos, and low-quality images — using AI Smart Ingestion. No manual data entry required.
             </p>
             <Card className="border-border/50 bg-card/50 backdrop-blur-sm hover:border-primary/30 transition-all duration-300">
               <CardHeader>
@@ -246,14 +246,14 @@ const Integrations = () => {
                   </div>
                 </div>
                 <CardDescription className="text-base leading-relaxed">
-                  Recouply.ai uses Gemini AI with built-in OCR to scan and extract invoice data from any PDF in your Google Drive — digital exports, scanned paper invoices, faxed copies, or even photos snapped on a phone. Each file is analyzed for invoice numbers, amounts, dates, debtor details, and more — with a confidence score so you can review before importing.
+                  Recouply.ai uses Gemini AI with AI Smart Ingestion to scan and extract invoice data from any PDF in your Google Drive — digital exports, scanned paper invoices, faxed copies, or even photos snapped on a phone. Each file is analyzed for invoice numbers, amounts, dates, debtor details, and more — with a confidence score so you can review before importing.
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-3 mb-6">
                   {[
                     "Connect your Google Drive folder via secure OAuth",
-                    "Built-in OCR reads scanned paper invoices, photos, and low-quality PDFs",
+                    "AI Smart Ingestion reads scanned paper invoices, photos, and low-quality PDFs",
                     "AI extracts invoice number, amount, dates, and debtor info from any PDF",
                     "Confidence scoring with detailed extraction breakdown",
                     "Review queue with bulk approve, reject, and edit capabilities",

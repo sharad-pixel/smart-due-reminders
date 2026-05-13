@@ -172,16 +172,16 @@ export function IngestionDashboard() {
         </Card>
       </div>
 
-      {/* OCR Billing Counter */}
+      {/* AI Smart Ingestion Billing Counter */}
       <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div>
               <CardTitle className="text-base flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-primary" /> AI Smart Ingestion — OCR Usage & Billing
+                <DollarSign className="h-4 w-4 text-primary" /> AI Smart Ingestion — Usage & Billing
               </CardTitle>
               <CardDescription>
-                Each approved OCR scan is billed at ${SMART_INGESTION_PRICING.perFile.toFixed(2)} <strong>per page</strong> via Stripe metered usage (e.g. a 3-page invoice = ${(SMART_INGESTION_PRICING.perFile * 3).toFixed(2)}). Rejected and duplicate scans are never charged.
+                Each approved AI Smart Ingestion scan is billed at ${SMART_INGESTION_PRICING.perFile.toFixed(2)} <strong>per page</strong> via Stripe metered usage (e.g. a 3-page invoice = ${(SMART_INGESTION_PRICING.perFile * 3).toFixed(2)}). Rejected and duplicate scans are never charged.
               </CardDescription>
             </div>
             <Badge variant="outline" className="text-xs">Period: {stats.billingPeriod}</Badge>
@@ -191,7 +191,7 @@ export function IngestionDashboard() {
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="rounded-lg border bg-background/60 p-3">
               <p className="text-xs uppercase tracking-wide text-muted-foreground flex items-center gap-1">
-                <Scan className="h-3 w-3" /> OCR Pages (This Period)
+                <Scan className="h-3 w-3" /> AI Smart Ingestion Pages (This Period)
               </p>
               <p className="text-2xl font-bold text-primary mt-1">{stats.periodPageCount}</p>
               <p className="text-xs text-muted-foreground mt-1">{stats.periodScanCount} approved file{stats.periodScanCount === 1 ? "" : "s"}</p>

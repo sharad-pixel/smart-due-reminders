@@ -42,7 +42,7 @@ export const ClmQuickAccessCard = () => {
               <Sparkles className="h-5 w-5 text-primary" /> Contract Intelligence
             </h3>
             <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-              Manage live workspaces and OCR-scanned contracts with Kurt.
+              Manage live workspaces and AI Smart Ingestion contracts with Kurt.
             </p>
           </div>
           <Button asChild size="sm" variant="outline">
@@ -82,7 +82,7 @@ export const ClmQuickAccessCard = () => {
               <div>
                 <div className="flex items-center gap-2 text-sm font-medium">
                   <FileSearch className="h-4 w-4 text-primary" />
-                  OCR Contracts
+                  AI Smart Ingestion
                 </div>
                 <p className="text-2xl font-semibold mt-2">
                   {counts?.ocrTotal ?? "—"}
