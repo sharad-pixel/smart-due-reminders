@@ -17,7 +17,7 @@ type Schedule = {
   description: string | null;
   invoice_id: string | null;
   reconciliation_status: string | null;
-  reconciliation_candidates: Array<{ invoice_id: string; score: number; reason: string }> | null;
+  reconciliation_candidates: any;
   reconciled_at: string | null;
   completion_status: string | null;
 };
@@ -36,7 +36,7 @@ interface Props {
   debtorId: string | null;
   staged: boolean; // staging_status === 'staging' | 'draft'
   published: boolean;
-  schedules: Schedule[];
+  schedules: any[];
   defaultCurrency?: string;
   onChanged: () => void;
 }
