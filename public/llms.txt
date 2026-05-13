@@ -1,0 +1,33 @@
+# Recouply.ai
+
+> AI-powered Revenue Intelligence Platform for Finance & RevOps teams. Automates invoice collections, predicts payment risk, and reduces DSO with native Stripe and QuickBooks integrations.
+
+Recouply.ai deploys autonomous AI agents that orchestrate the entire accounts receivable lifecycle — from risk-scored outreach and inbound triage to payment plans and dispute escalation — with human approval at every key decision point.
+
+## Pages
+
+- [Home](/): Revenue Intelligence Platform overview and AI agent showcase.
+- [Features](/features): Risk scoring, collections workflows, audit trail.
+- [Collection Intelligence](/collection-intelligence): AI-powered collections CRM and workflow engine.
+- [Revenue Risk](/revenue-risk): Expected Credit Loss and collectability scoring (ASC 326 / IFRS 9).
+- [Pricing](/pricing): Plans from solo operators to enterprise.
+- [Integrations](/integrations): Stripe, QuickBooks, Google Sheets, NetSuite, Sage Intacct.
+- [AI Command Center](/ai-command-center): Centralized AI agent orchestration.
+- [Personas](/personas): AI collection agent personas and tone strategy.
+- [Solutions: SaaS](/solutions/saas): Subscription billing and failed payment recovery.
+- [Solutions: Professional Services](/solutions/professional-services): Retainer and milestone billing automation.
+- [Solutions: Small Business](/solutions/small-businesses): Affordable AR automation for SMBs.
+- [Enterprise](/enterprise): SOC 2 compliant enterprise AR automation.
+- [Startups](/startups): AR automation for startups.
+- [Collections Assessment](/collections-assessment): Free AR health and ROI calculator.
+- [Knowledge Base](/knowledge-base): Help center and FAQs.
+- [Blog](/blog): Insights on AR, collections, and revenue intelligence.
+- [Trust Center](/trust): Security, compliance, and data protection.
+- [Contact](/contact-us): Get in touch with the team.
+- [About / Founder](/founder): Founder story and company mission.
+
+## Optional
+
+- [Careers](/careers): Open roles.
+- [Design Partners](/design-partners): Early adopter program.
+- [Professional Services](/professional-services): Data integrity and onboarding.
