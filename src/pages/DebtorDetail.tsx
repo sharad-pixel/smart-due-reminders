@@ -849,6 +849,7 @@ const DebtorDetail = () => {
               <FileSpreadsheet className="h-4 w-4 mr-2" />
               AI Outreach
             </Button>
+            <ContractUploadButton variant="outline" debtorId={debtor.id} debtorName={debtor.name} />
             <Button variant="outline" onClick={() => setIsEditOpen(true)}>
               <Edit className="h-4 w-4 mr-2" />
               Edit
