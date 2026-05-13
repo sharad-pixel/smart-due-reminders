@@ -137,8 +137,8 @@ export const TARGET_KEYWORDS = {
 // Page-specific SEO configurations
 export const PAGE_SEO: Record<string, { title: string; description: string; keywords: string }> = {
   home: {
-    title: 'Recouply.ai | Revenue Intelligence Platform for Finance Teams',
-    description: 'Revenue Intelligence Platform for Finance Teams. Centralize receivables, prioritize by risk, and maintain a full audit trail. Reduce DSO and recover cash with AI-powered collections workflows.',
+    title: 'Recouply.ai | Revenue Intelligence Platform',
+    description: 'Revenue Intelligence Platform for Finance Teams. Centralize receivables, prioritize by risk, and reduce DSO with AI-powered collections workflows.',
     keywords: 'collections CRM, AI collections software, accounts receivable CRM, AI-powered collections workflows, risk-based prioritization, collections audit trail, centralized receivables, DSO reduction, cash flow management, collection intelligence platform',
   },
   features: {
@@ -157,7 +157,7 @@ export const PAGE_SEO: Record<string, { title: string; description: string; keyw
     keywords: 'Stripe accounts receivable integration, QuickBooks AR automation, Stripe invoice collection, Stripe payment recovery, Stripe dunning, payment reconciliation software, ERP AR integration, billing integration accounts receivable',
   },
   enterprise: {
-    title: 'Enterprise Accounts Receivable AI | SOC 2 Compliant AR Automation',
+    title: 'Enterprise AR Automation | SOC 2 AI Collections',
     description: 'Enterprise-grade AI accounts receivable automation. SOC 2 compliant, SSO, audit trails, advanced risk management, and Stripe integration for high-volume collections.',
     keywords: 'enterprise accounts receivable software, enterprise AR automation, SOC 2 AR software, enterprise AI collections, high-volume invoice management, enterprise credit risk management, enterprise Stripe integration',
   },
