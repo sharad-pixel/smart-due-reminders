@@ -33,6 +33,9 @@ import { AlertTriangle, ArrowRight, CheckCircle2 } from "lucide-react";
 import { IntegrationSetupModal } from "@/components/integrations/IntegrationSetupModal";
 import { ContractSummaryCard } from "@/components/dashboard/ContractSummaryCard";
 import { ClmQuickAccessCard } from "@/components/dashboard/ClmQuickAccessCard";
+import { DashboardAskAI } from "@/components/dashboard/DashboardAskAI";
+import { ContractUploadButton } from "@/components/contracts/ContractUploadButton";
+import { Sparkles, LayoutDashboard } from "lucide-react";
 
 
 
@@ -185,6 +188,10 @@ const Dashboard = () => {
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [runningOutreach, setRunningOutreach] = useState(false);
   const [hideKbAgent, setHideKbAgent] = useState(() => localStorage.getItem('recouply_hide_kb_agent') === 'true');
+  const [view, setView] = useState<"ask" | "dashboard">(() =>
+    (localStorage.getItem("recouply_dashboard_view") as "ask" | "dashboard") || "ask"
+  );
+  useEffect(() => { localStorage.setItem("recouply_dashboard_view", view); }, [view]);
   const [integrationModal, setIntegrationModal] = useState<{ open: boolean; type: "stripe" | "quickbooks" | null }>({ 
     open: false, 
     type: null 
@@ -552,20 +559,44 @@ const Dashboard = () => {
               </p>
             </div>
           </div>
-          <SavedViewsManager
-            savedViews={savedViews}
-            activeView={activeView}
-            currentConfig={currentConfig}
-            onSave={saveView}
-            onUpdate={updateView}
-            onDelete={deleteView}
-            onSetDefault={setDefaultView}
-            onLoad={loadView}
-            onClear={clearActiveView}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <ContractUploadButton variant="outline" />
+            <div className="inline-flex rounded-md border bg-muted/40 p-0.5">
+              <Button
+                size="sm"
+                variant={view === "ask" ? "default" : "ghost"}
+                className="h-8"
+                onClick={() => setView("ask")}
+              >
+                <Sparkles className="h-3.5 w-3.5 mr-1.5" /> Ask AI
+              </Button>
+              <Button
+                size="sm"
+                variant={view === "dashboard" ? "default" : "ghost"}
+                className="h-8"
+                onClick={() => setView("dashboard")}
+              >
+                <LayoutDashboard className="h-3.5 w-3.5 mr-1.5" /> Dashboard
+              </Button>
+            </div>
+            <SavedViewsManager
+              savedViews={savedViews}
+              activeView={activeView}
+              currentConfig={currentConfig}
+              onSave={saveView}
+              onUpdate={updateView}
+              onDelete={deleteView}
+              onSetDefault={setDefaultView}
+              onLoad={loadView}
+              onClear={clearActiveView}
+            />
+          </div>
         </div>
 
-
+        {view === "ask" ? (
+          <DashboardAskAI />
+        ) : (
+        <>
         {/* Usage Indicator */}
         <UsageIndicator />
 
@@ -891,6 +922,9 @@ const Dashboard = () => {
         />
 
         {/* Task Detail Modal */}
+        </>
+        )}
+
         <TaskDetailModal
           task={selectedTask}
           open={taskModalOpen}

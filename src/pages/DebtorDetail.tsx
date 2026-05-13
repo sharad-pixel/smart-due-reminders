@@ -43,6 +43,7 @@ import { AccountDraftsHistory } from "@/components/accounts/AccountDraftsHistory
 import { PaymentPlanModal } from "@/components/payment-plans/PaymentPlanModal";
 import { PaymentPlansList } from "@/components/payment-plans/PaymentPlansList";
 import { usePaymentPlans } from "@/hooks/usePaymentPlans";
+import { ContractUploadButton } from "@/components/contracts/ContractUploadButton";
 
 interface Debtor {
   id: string;
@@ -848,6 +849,7 @@ const DebtorDetail = () => {
               <FileSpreadsheet className="h-4 w-4 mr-2" />
               AI Outreach
             </Button>
+            <ContractUploadButton variant="outline" debtorId={debtor.id} debtorName={debtor.name} />
             <Button variant="outline" onClick={() => setIsEditOpen(true)}>
               <Edit className="h-4 w-4 mr-2" />
               Edit

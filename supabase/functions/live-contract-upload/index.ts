@@ -24,8 +24,16 @@ Deno.serve(async (req) => {
 
     const form = await req.formData();
     const file = form.get("file") as File | null;
+    const debtorIdRaw = form.get("debtor_id");
+    const debtorId = typeof debtorIdRaw === "string" && debtorIdRaw.length > 0 ? debtorIdRaw : null;
     if (!file) throw new Error("file required");
     if (file.size > 25 * 1024 * 1024) throw new Error("File too large (25MB max)");
+
+    // Verify debtor belongs to this account if provided
+    if (debtorId) {
+      const { data: d } = await supabase.from("debtors").select("id, account_id").eq("id", debtorId).maybeSingle();
+      if (!d || d.account_id !== accountId) throw new Error("Invalid debtor");
+    }
 
     const path = `${accountId}/${crypto.randomUUID()}-${file.name}`;
     const { error: upErr } = await supabase.storage.from("live-contracts").upload(path, file, {
@@ -42,6 +50,7 @@ Deno.serve(async (req) => {
       mime_type: file.type,
       file_size: file.size,
       status: "queued",
+      debtor_id: debtorId,
     }).select().single();
     if (insErr) throw insErr;
 
