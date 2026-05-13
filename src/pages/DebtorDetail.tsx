@@ -43,6 +43,7 @@ import { AccountDraftsHistory } from "@/components/accounts/AccountDraftsHistory
 import { PaymentPlanModal } from "@/components/payment-plans/PaymentPlanModal";
 import { PaymentPlansList } from "@/components/payment-plans/PaymentPlansList";
 import { usePaymentPlans } from "@/hooks/usePaymentPlans";
+import { ContractUploadButton } from "@/components/contracts/ContractUploadButton";
 
 interface Debtor {
   id: string;
