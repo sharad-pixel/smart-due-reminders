@@ -33,6 +33,9 @@ import { AlertTriangle, ArrowRight, CheckCircle2 } from "lucide-react";
 import { IntegrationSetupModal } from "@/components/integrations/IntegrationSetupModal";
 import { ContractSummaryCard } from "@/components/dashboard/ContractSummaryCard";
 import { ClmQuickAccessCard } from "@/components/dashboard/ClmQuickAccessCard";
+import { DashboardAskAI } from "@/components/dashboard/DashboardAskAI";
+import { ContractUploadButton } from "@/components/contracts/ContractUploadButton";
+import { Sparkles, LayoutDashboard } from "lucide-react";
 
 
 
