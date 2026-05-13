@@ -30,6 +30,7 @@ import { ContractOverviewEditor } from "@/components/clm/ContractOverviewEditor"
 import { ContractScheduleLines } from "@/components/clm/ContractScheduleLines";
 import { InvoiceDataAuditPanel } from "@/components/clm/InvoiceDataAuditPanel";
 import { ContractTermGauge } from "@/components/clm/ContractTermGauge";
+import { ContractReconciliationPanel } from "@/components/contracts/ContractReconciliationPanel";
 import { useQueryClient } from "@tanstack/react-query";
 
 const FIN_KEYS = new Set<string>([
@@ -300,6 +301,16 @@ const LiveContractDetailInner = () => {
       </div>
 
       <ContractScheduleLines
+        schedules={data.schedules}
+        defaultCurrency={totals.currency}
+        onChanged={() => qc.invalidateQueries({ queryKey: ["live-contract-detail", importId] })}
+      />
+
+      <ContractReconciliationPanel
+        importId={c.id}
+        debtorId={c.debtor_id || null}
+        staged={c.staging_status !== "published"}
+        published={c.staging_status === "published"}
         schedules={data.schedules}
         defaultCurrency={totals.currency}
         onChanged={() => qc.invalidateQueries({ queryKey: ["live-contract-detail", importId] })}
