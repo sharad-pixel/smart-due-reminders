@@ -15,15 +15,9 @@ import { COMPANY_INFO } from "@/lib/companyConfig";
              <div className="mb-4">
                <RecouplyLogo size="lg" />
              </div>
-              <p className="text-sm font-medium text-foreground mb-2">
-                {COMPANY_INFO.tagline}
+              <p className="text-sm font-medium text-foreground mb-4">
+                Revenue Intelligence
               </p>
-              <p className="text-sm text-muted-foreground mb-4">
-                {COMPANY_INFO.revopsStatement}
-              </p>
-             <p className="text-xs text-muted-foreground mb-4">
-               AI-powered software. Not a collection agency.
-             </p>
              <a 
                href={COMPANY_INFO.social.linkedin}
                target="_blank"
