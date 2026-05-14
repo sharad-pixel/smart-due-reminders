@@ -343,6 +343,11 @@ const LiveContractDetailInner = () => {
         onChanged={() => qc.invalidateQueries({ queryKey: ["live-contract-detail", importId] })}
       />
 
+      <ContractTasksPanel
+        debtorId={c.debtor_id || null}
+        contractName={c.contract_name}
+      />
+
       <InvoiceDataAuditPanel contractId={c.id} />
 
       {/* Parties section omitted (no contract_parties table) */}
