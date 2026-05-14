@@ -529,7 +529,10 @@ Deno.serve(async (req) => {
           billing_type: s.billing_type || null,
           payment_terms: s.payment_terms || null,
           expected_due_date: s.scheduled_date,
-          description: s.description || null,
+          description: s.description || s.product_description || null,
+          product_description: s.product_description || s.description || extracted.contract?.product_description || null,
+          quantity: s.quantity ?? null,
+          unit_price: s.unit_price ?? null,
         }));
       if (rows.length) await supabase.from("contract_invoice_schedules").insert(rows);
     }
