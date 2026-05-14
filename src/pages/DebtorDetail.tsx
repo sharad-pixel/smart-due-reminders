@@ -800,7 +800,7 @@ const DebtorDetail = () => {
               </div>
             </div>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center gap-2 flex-wrap lg:justify-end shrink-0">
             {/* Outreach Pause Toggle */}
             <Button 
               variant={debtor.outreach_paused ? "default" : "outline"} 
