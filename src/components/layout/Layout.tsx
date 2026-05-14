@@ -619,6 +619,14 @@ const Layout = ({ children }: LayoutProps) => {
                   </Link>
                 );
               })}
+              <button
+                type="button"
+                onClick={() => { setMobileMenuOpen(false); setSmartIngestionOpen(true); }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground tap-target"
+              >
+                <Sparkles className="h-5 w-5 shrink-0" />
+                <span>AI Smart Ingestion</span>
+              </button>
             </div>
           )}
         </div>
