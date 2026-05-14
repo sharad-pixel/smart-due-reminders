@@ -21,6 +21,9 @@ import {
   BarChart3,
   Shield,
   Trash2,
+  Receipt,
+  FileSignature,
+  ExternalLink,
 } from "lucide-react";
 import { Building2 } from "lucide-react";
 import { GoogleDriveIcon, GoogleSheetsIcon } from "@/components/icons/GoogleIcons";
