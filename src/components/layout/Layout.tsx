@@ -34,7 +34,8 @@ import {
   ShieldAlert,
   FileSignature,
   FileSearch,
-  Briefcase
+  Briefcase,
+  Sparkles
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -52,6 +53,7 @@ import { isImpersonating } from "@/lib/supportImpersonation";
 import { logAuditEvent } from "@/lib/auditLog";
 import { RecouplyLogo } from "@/components/layout/RecouplyLogo";
 import NicolasChat from "@/components/nicolas/NicolasChat";
+import { SmartIngestionChooserDialog } from "@/components/ingestion/SmartIngestionChooserDialog";
 import { NicolasPageTip } from "@/components/nicolas/NicolasPageTip";
 import { OnboardingWelcome } from "@/components/layout/OnboardingWelcome";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
@@ -82,6 +84,7 @@ const Layout = ({ children }: LayoutProps) => {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [trialBannerVisible, setTrialBannerVisible] = useState(false);
+  const [smartIngestionOpen, setSmartIngestionOpen] = useState(false);
   const [isFounder, setIsFounder] = useState(false);
   const { unreadCount: alertUnreadCount } = useUserAlerts();
   const { isActive: clmActive } = useClmEntitlement();
@@ -362,7 +365,15 @@ const Layout = ({ children }: LayoutProps) => {
                       <ChevronDown className="h-3 w-3 shrink-0" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-48 z-[110] bg-card border shadow-lg">
+                  <DropdownMenuContent align="start" className="w-56 z-[110] bg-card border shadow-lg">
+                    <DropdownMenuItem
+                      onSelect={(e) => { e.preventDefault(); setSmartIngestionOpen(true); }}
+                      className="flex items-center gap-2 cursor-pointer"
+                    >
+                      <Sparkles className="h-4 w-4 text-primary" />
+                      <span>AI Smart Ingestion</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
                     {aiToolsItems.map((item) => {
                       const Icon = item.icon;
                       const badge = 'badge' in item ? item.badge : undefined;
@@ -608,6 +619,14 @@ const Layout = ({ children }: LayoutProps) => {
                   </Link>
                 );
               })}
+              <button
+                type="button"
+                onClick={() => { setMobileMenuOpen(false); setSmartIngestionOpen(true); }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground tap-target"
+              >
+                <Sparkles className="h-5 w-5 shrink-0" />
+                <span>AI Smart Ingestion</span>
+              </button>
             </div>
           )}
         </div>
@@ -692,6 +711,7 @@ const Layout = ({ children }: LayoutProps) => {
       <OnboardingWelcome />
       <NicolasPageTip />
       <NicolasChat />
+      <SmartIngestionChooserDialog open={smartIngestionOpen} onOpenChange={setSmartIngestionOpen} />
       <FloatingReferralAgent />
     </div>
     </RequireSubscription>
