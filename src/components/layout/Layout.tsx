@@ -34,7 +34,8 @@ import {
   ShieldAlert,
   FileSignature,
   FileSearch,
-  Briefcase
+  Briefcase,
+  Sparkles
 } from "lucide-react";
 import {
   DropdownMenu,
