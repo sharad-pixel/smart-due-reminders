@@ -7,6 +7,50 @@ const corsHeaders = {
 
 const log = (s: string, d?: unknown) => console.log(`[LC-EXTRACT] ${s}${d ? " " + JSON.stringify(d) : ""}`);
 
+const PRICE_PER_PAGE_CENTS = 75;
+
+function detectPdfPageCount(pdfBytes: Uint8Array): number {
+  try {
+    const decoder = new TextDecoder("latin1");
+    const pdfText = decoder.decode(pdfBytes);
+    const nMatches = [...pdfText.matchAll(/\/Type\s*\/Pages[\s\S]*?\/Count\s+(\d+)/g)]
+      .map((m) => parseInt(m[1], 10))
+      .filter((n) => Number.isFinite(n) && n > 0);
+    if (nMatches.length > 0) return Math.max(...nMatches);
+    const pageMatches = pdfText.match(/\/Type\s*\/Page(?!s)/g);
+    if (pageMatches && pageMatches.length > 0) return pageMatches.length;
+  } catch (_) { /* ignore */ }
+  return 1;
+}
+
+async function recordContractUsage(
+  supabase: any,
+  args: { userId: string; accountId: string; importId: string; fileName: string | null; pageCount: number },
+) {
+  // Idempotent: only one usage event per contract import
+  const { data: existing } = await supabase
+    .from("ocr_usage_events")
+    .select("id")
+    .eq("contract_id", args.importId)
+    .maybeSingle();
+  if (existing) { log("Usage already recorded", { importId: args.importId }); return; }
+  const pages = Math.max(1, args.pageCount);
+  const totalCents = pages * PRICE_PER_PAGE_CENTS;
+  const { error } = await supabase.from("ocr_usage_events").insert({
+    user_id: args.userId,
+    account_id: args.accountId,
+    source: "contract_extract",
+    file_name: args.fileName,
+    page_count: pages,
+    unit_price_cents: PRICE_PER_PAGE_CENTS,
+    total_cents: totalCents,
+    stripe_reported: false,
+    contract_id: args.importId,
+  });
+  if (error) log("Usage insert failed", { error: error.message });
+  else log("Usage recorded", { pages, totalCents });
+}
+
 function parseJsonFromText(text: string, label: string): any {
   const cleaned = text
     .replace(/```json\s*/gi, "")
