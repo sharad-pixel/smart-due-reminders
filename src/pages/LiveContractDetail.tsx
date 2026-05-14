@@ -17,7 +17,10 @@ import {
   AlertTriangle,
   Building2,
   ExternalLink,
+  Users,
+  ShieldAlert,
 } from "lucide-react";
+import { ContractTasksPanel } from "@/components/clm/ContractTasksPanel";
 import { formatCurrency, formatDateShort } from "@/lib/formatters";
 import SEO from "@/components/seo/SEO";
 import {
