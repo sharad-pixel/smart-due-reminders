@@ -7,6 +7,50 @@ const corsHeaders = {
 
 const log = (s: string, d?: unknown) => console.log(`[LC-EXTRACT] ${s}${d ? " " + JSON.stringify(d) : ""}`);
 
+const PRICE_PER_PAGE_CENTS = 75;
+
+function detectPdfPageCount(pdfBytes: Uint8Array): number {
+  try {
+    const decoder = new TextDecoder("latin1");
+    const pdfText = decoder.decode(pdfBytes);
+    const nMatches = [...pdfText.matchAll(/\/Type\s*\/Pages[\s\S]*?\/Count\s+(\d+)/g)]
+      .map((m) => parseInt(m[1], 10))
+      .filter((n) => Number.isFinite(n) && n > 0);
+    if (nMatches.length > 0) return Math.max(...nMatches);
+    const pageMatches = pdfText.match(/\/Type\s*\/Page(?!s)/g);
+    if (pageMatches && pageMatches.length > 0) return pageMatches.length;
+  } catch (_) { /* ignore */ }
+  return 1;
+}
+
+async function recordContractUsage(
+  supabase: any,
+  args: { userId: string; accountId: string; importId: string; fileName: string | null; pageCount: number },
+) {
+  // Idempotent: only one usage event per contract import
+  const { data: existing } = await supabase
+    .from("ocr_usage_events")
+    .select("id")
+    .eq("contract_id", args.importId)
+    .maybeSingle();
+  if (existing) { log("Usage already recorded", { importId: args.importId }); return; }
+  const pages = Math.max(1, args.pageCount);
+  const totalCents = pages * PRICE_PER_PAGE_CENTS;
+  const { error } = await supabase.from("ocr_usage_events").insert({
+    user_id: args.userId,
+    account_id: args.accountId,
+    source: "contract_extract",
+    file_name: args.fileName,
+    page_count: pages,
+    unit_price_cents: PRICE_PER_PAGE_CENTS,
+    total_cents: totalCents,
+    stripe_reported: false,
+    contract_id: args.importId,
+  });
+  if (error) log("Usage insert failed", { error: error.message });
+  else log("Usage recorded", { pages, totalCents });
+}
+
 function parseJsonFromText(text: string, label: string): any {
   const cleaned = text
     .replace(/```json\s*/gi, "")
@@ -278,6 +322,7 @@ Deno.serve(async (req) => {
 
     // Get document text
     let text = "";
+    let pageCount = 1; // for AI Smart Ingestion usage tracking
     if (imp.source === "drive" && imp.drive_file_id) {
       const { data: folder } = await supabase.from("live_contract_drive_folders").select("connection_id").eq("id", imp.folder_id).single();
       const { data: conn } = await supabase.from("drive_connections").select("*").eq("id", folder!.connection_id).single();
@@ -286,6 +331,8 @@ Deno.serve(async (req) => {
         token = await refreshToken(supabase, conn, clientId, clientSecret);
       }
       text = await fetchDriveFileText(imp.drive_file_id, imp.mime_type || "", token);
+      // Estimate pages from extracted text length (~3000 chars/page) for Drive sources
+      pageCount = Math.max(1, Math.ceil((text?.length || 0) / 3000));
     } else if (imp.storage_path) {
       const { data: file } = await supabase.storage.from("live-contracts").download(imp.storage_path);
       if (file) {
@@ -297,14 +344,17 @@ Deno.serve(async (req) => {
 
         if (isPdf) {
           await supabase.from("live_contract_imports").update({ status: "ocr_processing" }).eq("id", imp.id);
+          // Detect pages from raw bytes (works even if pdf-parse fails)
+          pageCount = detectPdfPageCount(buf);
           try {
             const pdfParse = (await import("npm:pdf-parse@1.1.1/lib/pdf-parse.js")).default;
             const { Buffer } = await import("node:buffer");
             const parsed = await pdfParse(Buffer.from(buf));
             text = parsed.text || "";
-            log("PDF parsed", { len: text.length });
+            if (parsed.numpages && parsed.numpages > 0) pageCount = parsed.numpages;
+            log("PDF parsed", { len: text.length, pages: pageCount });
           } catch (e) {
-            log("pdf-parse failed", { err: String(e) });
+            log("pdf-parse failed", { err: String(e), pages: pageCount });
           }
 
           // OCR fallback via Lovable AI Gateway (Gemini multimodal) for scanned PDFs
@@ -344,8 +394,10 @@ Deno.serve(async (req) => {
         } else if (isDocx) {
           // DOCX: best-effort, decode embedded XML strings
           text = new TextDecoder("utf-8", { fatal: false }).decode(buf).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+          pageCount = Math.max(1, Math.ceil(text.length / 3000));
         } else {
           text = new TextDecoder("utf-8", { fatal: false }).decode(buf.slice(0, 200_000));
+          pageCount = Math.max(1, Math.ceil(text.length / 3000));
         }
       }
     }
@@ -546,7 +598,16 @@ Deno.serve(async (req) => {
     await supabase.from("live_contract_audit_log").insert({
       account_id: imp.account_id, user_id: user.id, import_id: imp.id,
       event_type: "ai_extraction_completed",
-      event_details: { confidence: extracted.confidence, fields: fieldRows.length, schedules: sched.length, risks: flags.length },
+      event_details: { confidence: extracted.confidence, fields: fieldRows.length, schedules: sched.length, risks: flags.length, page_count: pageCount },
+    });
+
+    // Record AI Smart Ingestion usage (idempotent per contract import)
+    await recordContractUsage(supabase, {
+      userId: imp.user_id || user.id,
+      accountId: imp.account_id,
+      importId: imp.id,
+      fileName: imp.file_name || null,
+      pageCount,
     });
 
     // Fire-and-forget reconciliation against existing Recouply invoices.
