@@ -365,7 +365,15 @@ const Layout = ({ children }: LayoutProps) => {
                       <ChevronDown className="h-3 w-3 shrink-0" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-48 z-[110] bg-card border shadow-lg">
+                  <DropdownMenuContent align="start" className="w-56 z-[110] bg-card border shadow-lg">
+                    <DropdownMenuItem
+                      onSelect={(e) => { e.preventDefault(); setSmartIngestionOpen(true); }}
+                      className="flex items-center gap-2 cursor-pointer"
+                    >
+                      <Sparkles className="h-4 w-4 text-primary" />
+                      <span>AI Smart Ingestion</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
                     {aiToolsItems.map((item) => {
                       const Icon = item.icon;
                       const badge = 'badge' in item ? item.badge : undefined;
