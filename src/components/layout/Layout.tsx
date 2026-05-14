@@ -53,6 +53,7 @@ import { isImpersonating } from "@/lib/supportImpersonation";
 import { logAuditEvent } from "@/lib/auditLog";
 import { RecouplyLogo } from "@/components/layout/RecouplyLogo";
 import NicolasChat from "@/components/nicolas/NicolasChat";
+import { SmartIngestionChooserDialog } from "@/components/ingestion/SmartIngestionChooserDialog";
 import { NicolasPageTip } from "@/components/nicolas/NicolasPageTip";
 import { OnboardingWelcome } from "@/components/layout/OnboardingWelcome";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
