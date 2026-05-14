@@ -233,7 +233,7 @@ export function DashboardAskAI() {
                 <div className={
                   m.role === "user"
                     ? "max-w-[80%] rounded-2xl rounded-tr-sm bg-primary text-primary-foreground px-4 py-2.5 text-sm whitespace-pre-wrap break-words shadow-sm"
-                    : "w-full rounded-2xl rounded-tl-sm bg-background border px-4 py-3 text-sm leading-relaxed break-words shadow-sm"
+                    : "flex-1 min-w-0 rounded-2xl rounded-tl-sm bg-background border px-4 py-3 text-sm leading-relaxed break-words shadow-sm"
                 }>
                   {m.role === "assistant" ? (
                     <NicolasMarkdown content={m.content} />
