@@ -146,7 +146,9 @@ Deno.serve(async (req) => {
       .sort((a: any, b: any) => balOf(b) - balOf(a))
       .slice(0, 20)
       .map((i: any) => ({
+        id: i.id,
         invoice: i.invoice_number,
+        debtor_id: i.debtor_id,
         debtor: debtorNameMap.get(i.debtor_id) || "—",
         balance: Math.round(balOf(i) * 100) / 100,
         status: i.status,
