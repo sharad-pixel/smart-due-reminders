@@ -23,8 +23,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   FolderPlus, RefreshCw, Upload, FileText, Sparkles, AlertTriangle, CalendarClock,
   CheckCircle2, XCircle, FileSearch, Building2, DollarSign, Receipt, Loader2,
-  ShieldAlert, Clock, ClipboardList, BellRing, Wand2, ExternalLink,
+  ShieldAlert, Clock, ClipboardList, BellRing, Wand2, ExternalLink, Trash2, RotateCw, Info,
 } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // ------- Status helpers -------
 const STATUS_LABEL: Record<string, string> = {
@@ -544,11 +549,27 @@ function ImportsTable({ imports, onReview, statusFilter }: { imports: any[]; onR
     onError: (e: any) => toast.error(e.message),
   });
 
+  const del = useMutation({
+    mutationFn: async (importId: string) => {
+      const { data, error } = await supabase.functions.invoke("live-contract-actions", {
+        body: { importId, action: "delete_import" },
+      });
+      if (error) await throwFunctionError(error, "Delete failed");
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["lc-imports"] }); toast.success("Contract deleted — you can re-upload it now"); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
+
   if (filtered.length === 0) {
     return <p className="text-sm text-muted-foreground py-8 text-center">No contracts here.</p>;
   }
 
   return (
+    <TooltipProvider delayDuration={150}>
     <Table>
       <TableHeader>
         <TableRow>
@@ -560,32 +581,99 @@ function ImportsTable({ imports, onReview, statusFilter }: { imports: any[]; onR
         </TableRow>
       </TableHeader>
       <TableBody>
-        {filtered.map((i) => (
-          <TableRow key={i.id}>
+        {filtered.map((i) => {
+          const isFailed = i.status === "failed" || i.status === "rejected";
+          const busy = del.isPending || extract.isPending;
+          return (
+          <TableRow key={i.id} className={isFailed ? "bg-destructive/5" : undefined}>
             <TableCell>
               <div className="font-medium text-sm">{i.contract_name || i.file_name}</div>
               <div className="text-xs text-muted-foreground">{i.source}</div>
-            </TableCell>
-            <TableCell className="text-sm">{i.contract_type || "—"}</TableCell>
-            <TableCell><Badge variant={STATUS_VARIANT(i.status)}>{STATUS_LABEL[i.status] || i.status}</Badge></TableCell>
-            <TableCell className="text-sm">{i.confidence ? `${Math.round(i.confidence)}%` : "—"}</TableCell>
-            <TableCell className="text-right">
-              {i.status === "found" || i.status === "queued" ? (
-                <Button size="sm" variant="outline" onClick={() => extract.mutate(i.id)} disabled={extract.isPending}>
-                  <Sparkles className="h-3.5 w-3.5 mr-1.5" /> Extract
-                </Button>
-              ) : i.status === "needs_review" ? (
-                <Button size="sm" onClick={() => onReview(i.id)}>Review</Button>
-              ) : (
-                <Button size="sm" variant="ghost" asChild>
-                  <Link to={`/contracts/live/${i.id}`}>View</Link>
-                </Button>
+              {isFailed && i.error && (
+                <div className="mt-2 flex items-start gap-1.5 rounded border border-destructive/30 bg-destructive/5 px-2 py-1.5 text-xs text-destructive max-w-md">
+                  <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                  <div className="break-words">
+                    <span className="font-medium">Failure reason:</span> {i.error}
+                  </div>
+                </div>
               )}
             </TableCell>
+            <TableCell className="text-sm">{i.contract_type || "—"}</TableCell>
+            <TableCell>
+              <div className="flex items-center gap-1.5">
+                <Badge variant={STATUS_VARIANT(i.status)}>{STATUS_LABEL[i.status] || i.status}</Badge>
+                {isFailed && i.error && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-3.5 w-3.5 text-destructive cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs"><p className="text-xs">{i.error}</p></TooltipContent>
+                  </Tooltip>
+                )}
+              </div>
+            </TableCell>
+            <TableCell className="text-sm">{i.confidence ? `${Math.round(i.confidence)}%` : "—"}</TableCell>
+            <TableCell className="text-right">
+              <div className="flex items-center justify-end gap-1.5">
+                {isFailed ? (
+                  <Button size="sm" variant="outline" onClick={() => extract.mutate(i.id)} disabled={busy}>
+                    <RotateCw className="h-3.5 w-3.5 mr-1.5" /> Retry
+                  </Button>
+                ) : i.status === "found" || i.status === "queued" ? (
+                  <Button size="sm" variant="outline" onClick={() => extract.mutate(i.id)} disabled={busy}>
+                    <Sparkles className="h-3.5 w-3.5 mr-1.5" /> Extract
+                  </Button>
+                ) : i.status === "needs_review" ? (
+                  <Button size="sm" onClick={() => onReview(i.id)}>Review</Button>
+                ) : (
+                  <Button size="sm" variant="ghost" asChild>
+                    <Link to={`/contracts/live/${i.id}`}>View</Link>
+                  </Button>
+                )}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => setConfirmDelete({ id: i.id, name: i.contract_name || i.file_name })}
+                      disabled={busy}
+                    >
+                      {del.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent><p className="text-xs">Delete contract</p></TooltipContent>
+                </Tooltip>
+              </div>
+            </TableCell>
           </TableRow>
-        ))}
+          );
+        })}
       </TableBody>
     </Table>
+
+    <AlertDialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete "{confirmDelete?.name}"?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This permanently removes the contract, its uploaded file, and all extracted fields,
+            schedules, dates, and review records. You can re-upload the contract afterwards.
+            This cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={() => { if (confirmDelete) { del.mutate(confirmDelete.id); setConfirmDelete(null); } }}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            Delete permanently
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </TooltipProvider>
   );
 }
 
