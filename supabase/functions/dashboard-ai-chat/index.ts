@@ -121,6 +121,7 @@ Deno.serve(async (req) => {
     }
     const topRisk = (debtors as any[])
       .map((d) => ({
+        id: d.id,
         name: d.name,
         balance: Math.round((debtorBalanceMap[d.id] ?? Number(d.total_open_balance ?? d.current_balance ?? 0)) * 100) / 100,
         risk_tier: d.risk_tier_detailed || d.risk_tier || "unscored",
@@ -143,9 +144,11 @@ Deno.serve(async (req) => {
     const topInvoices = [...invoices]
       .filter((i: any) => balOf(i) > 0)
       .sort((a: any, b: any) => balOf(b) - balOf(a))
-      .slice(0, 20)
+      .slice(0, 50)
       .map((i: any) => ({
+        id: i.id,
         invoice: i.invoice_number,
+        debtor_id: i.debtor_id,
         debtor: debtorNameMap.get(i.debtor_id) || "—",
         balance: Math.round(balOf(i) * 100) / 100,
         status: i.status,
@@ -206,7 +209,17 @@ Deno.serve(async (req) => {
 
     const system = `You are Recouply's Revenue Intelligence agent (persona: Nicolas). Answer the user's question about their AR portfolio using ONLY the JSON CONTEXT below — never invent numbers, debtor names, or invoices.
 
-Style: warm, expert, decisive. Use markdown (## headings, **bold**, bullet lists, tables when helpful). Reference real debtor names, invoice numbers, and dollar amounts from CONTEXT. When discussing risk, use the risk_tier and collections_risk_score (0-100, higher = riskier). When recommending actions, be specific (which debtor, which invoice, what to do, why).
+Style: warm, expert, decisive. Use clean GitHub-flavored markdown.
+
+FORMAT RULES (very important):
+- Open with a short 1-2 sentence headline answer. No filler like "Okay, let's...".
+- Prefer concise bullet lists or compact tables over walls of text. Never paste more than 10 rows in a table — show the top 10 and summarize the rest in one sentence.
+- ALWAYS hyperlink debtor names and invoice numbers using these exact patterns:
+   * Debtor link:  [Debtor Name](/debtors/{debtor_id})
+   * Invoice link: [INVOICE-NUMBER](/invoices/{invoice_id})
+- Use the \`id\` field from \`top_risk_accounts\` for debtor links and the \`id\` field from \`top_open_invoices\` for invoice links. If an id is missing, render plain bold text instead — never invent an id.
+- Format money as $1,234 (no decimals unless < $10). Format dates as YYYY-MM-DD.
+- End with a short **Recommended next step** line (1 sentence) when the question is action-oriented.
 
 If the portfolio has no data (zero debtors, zero invoices), say so plainly and suggest the user import or sync data.
 

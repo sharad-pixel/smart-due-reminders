@@ -10,11 +10,65 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { Link } from "react-router-dom";
 import { personaConfig } from "@/lib/personaConfig";
 
 interface Msg { role: "user" | "assistant"; content: string }
 
 const NICOLAS = personaConfig.nicolas;
+
+const MD_COMPONENTS = {
+  a: ({ href, children }: any) => {
+    const isInternal = typeof href === "string" && href.startsWith("/");
+    if (isInternal) {
+      return (
+        <Link
+          to={href}
+          className="inline-flex items-baseline font-medium text-primary underline decoration-primary/30 underline-offset-2 hover:decoration-primary hover:bg-primary/5 rounded px-0.5 -mx-0.5 transition"
+        >
+          {children}
+        </Link>
+      );
+    }
+    return (
+      <a href={href} target="_blank" rel="noreferrer" className="text-primary underline underline-offset-2">
+        {children}
+      </a>
+    );
+  },
+  table: ({ children }: any) => (
+    <div className="my-3 -mx-1 overflow-x-auto rounded-lg border bg-background">
+      <table className="w-full text-xs border-collapse">{children}</table>
+    </div>
+  ),
+  thead: ({ children }: any) => <thead className="bg-muted/60">{children}</thead>,
+  th: ({ children }: any) => (
+    <th className="text-left font-semibold px-2.5 py-1.5 border-b text-[11px] uppercase tracking-wider text-muted-foreground whitespace-nowrap">
+      {children}
+    </th>
+  ),
+  td: ({ children }: any) => (
+    <td className="px-2.5 py-1.5 border-b border-border/50 align-top">{children}</td>
+  ),
+  tr: ({ children }: any) => <tr className="hover:bg-muted/30 transition">{children}</tr>,
+  h2: ({ children }: any) => <h2 className="text-base font-semibold mt-3 mb-1.5">{children}</h2>,
+  h3: ({ children }: any) => <h3 className="text-sm font-semibold mt-2.5 mb-1">{children}</h3>,
+  ul: ({ children }: any) => <ul className="my-1.5 space-y-0.5 list-disc pl-5">{children}</ul>,
+  ol: ({ children }: any) => <ol className="my-1.5 space-y-0.5 list-decimal pl-5">{children}</ol>,
+  p: ({ children }: any) => <p className="my-1.5 leading-relaxed">{children}</p>,
+  code: ({ children }: any) => (
+    <code className="px-1 py-0.5 rounded bg-muted text-[12px] font-mono">{children}</code>
+  ),
+};
+
+const NicolasMarkdown = ({ content }: { content: string }) => (
+  <div className="prose prose-sm max-w-none dark:prose-invert">
+    <ReactMarkdown remarkPlugins={[remarkGfm]} components={MD_COMPONENTS}>
+      {content}
+    </ReactMarkdown>
+  </div>
+);
 
 const GREETING = `Hi, I'm **Nicolas** — your Revenue Intelligence agent. I've already pulled your portfolio: balances, ECL, overdue invoices, open tasks, and recent payments.
 
@@ -132,9 +186,7 @@ export function DashboardAskAI() {
             <div className="flex gap-3">
               <img src={NICOLAS.avatar} alt="" className="h-8 w-8 rounded-full object-cover ring-1 ring-primary/30 shrink-0 mt-0.5" />
               <div className="flex-1 rounded-2xl rounded-tl-sm bg-muted/50 border px-4 py-3 text-sm leading-relaxed">
-                <div className="prose prose-sm max-w-none dark:prose-invert prose-p:my-1.5">
-                  <ReactMarkdown>{GREETING}</ReactMarkdown>
-                </div>
+                <NicolasMarkdown content={GREETING} />
               </div>
             </div>
 
@@ -181,12 +233,10 @@ export function DashboardAskAI() {
                 <div className={
                   m.role === "user"
                     ? "max-w-[80%] rounded-2xl rounded-tr-sm bg-primary text-primary-foreground px-4 py-2.5 text-sm whitespace-pre-wrap break-words shadow-sm"
-                    : "max-w-[88%] rounded-2xl rounded-tl-sm bg-background border px-4 py-3 text-sm leading-relaxed break-words shadow-sm"
+                    : "flex-1 min-w-0 rounded-2xl rounded-tl-sm bg-background border px-4 py-3 text-sm leading-relaxed break-words shadow-sm"
                 }>
                   {m.role === "assistant" ? (
-                    <div className="prose prose-sm max-w-none dark:prose-invert prose-headings:mt-2 prose-headings:mb-1 prose-p:my-1.5 prose-ul:my-1.5 prose-ol:my-1.5">
-                      <ReactMarkdown>{m.content}</ReactMarkdown>
-                    </div>
+                    <NicolasMarkdown content={m.content} />
                   ) : m.content}
                 </div>
               </div>
