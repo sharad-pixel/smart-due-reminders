@@ -703,6 +703,7 @@ const Layout = ({ children }: LayoutProps) => {
       <OnboardingWelcome />
       <NicolasPageTip />
       <NicolasChat />
+      <SmartIngestionChooserDialog open={smartIngestionOpen} onOpenChange={setSmartIngestionOpen} />
       <FloatingReferralAgent />
     </div>
     </RequireSubscription>
