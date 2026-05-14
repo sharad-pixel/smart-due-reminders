@@ -151,7 +151,10 @@ const EXTRACTION_TOOL = {
         contract: {
           type: "object",
           properties: {
-            contract_name: { type: "string" }, contract_type: { type: "string" },
+            contract_name: { type: "string", description: "Short, human-friendly contract title (e.g. product/service + customer). Avoid concatenating multiple legal entity names." },
+            contract_type: { type: "string" },
+            product_description: { type: "string", description: "Plain-language summary of the products/services delivered under this contract (1-3 sentences)." },
+            contract_value: { type: "number", description: "Total contract value in numeric form (no currency symbol)." },
             effective_date: { type: "string" }, term_start_date: { type: "string" },
             term_end_date: { type: "string" }, initial_term: { type: "string" },
             renewal_term: { type: "string" }, auto_renewal: { type: "boolean" },
