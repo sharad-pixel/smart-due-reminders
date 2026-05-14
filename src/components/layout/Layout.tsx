@@ -84,6 +84,7 @@ const Layout = ({ children }: LayoutProps) => {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [trialBannerVisible, setTrialBannerVisible] = useState(false);
+  const [smartIngestionOpen, setSmartIngestionOpen] = useState(false);
   const [isFounder, setIsFounder] = useState(false);
   const { unreadCount: alertUnreadCount } = useUserAlerts();
   const { isActive: clmActive } = useClmEntitlement();
