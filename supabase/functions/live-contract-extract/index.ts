@@ -151,7 +151,10 @@ const EXTRACTION_TOOL = {
         contract: {
           type: "object",
           properties: {
-            contract_name: { type: "string" }, contract_type: { type: "string" },
+            contract_name: { type: "string", description: "Short, human-friendly contract title (e.g. product/service + customer). Avoid concatenating multiple legal entity names." },
+            contract_type: { type: "string" },
+            product_description: { type: "string", description: "Plain-language summary of the products/services delivered under this contract (1-3 sentences)." },
+            contract_value: { type: "number", description: "Total contract value in numeric form (no currency symbol)." },
             effective_date: { type: "string" }, term_start_date: { type: "string" },
             term_end_date: { type: "string" }, initial_term: { type: "string" },
             renewal_term: { type: "string" }, auto_renewal: { type: "boolean" },
@@ -188,6 +191,8 @@ const EXTRACTION_TOOL = {
               service_period_end: { type: "string" }, amount: { type: "number" },
               currency: { type: "string" }, billing_type: { type: "string" },
               payment_terms: { type: "string" }, description: { type: "string" },
+              product_description: { type: "string" },
+              quantity: { type: "number" }, unit_price: { type: "number" },
             },
           },
         },
@@ -524,7 +529,10 @@ Deno.serve(async (req) => {
           billing_type: s.billing_type || null,
           payment_terms: s.payment_terms || null,
           expected_due_date: s.scheduled_date,
-          description: s.description || null,
+          description: s.description || s.product_description || null,
+          product_description: s.product_description || s.description || extracted.contract?.product_description || null,
+          quantity: s.quantity ?? null,
+          unit_price: s.unit_price ?? null,
         }));
       if (rows.length) await supabase.from("contract_invoice_schedules").insert(rows);
     }
@@ -582,11 +590,25 @@ Deno.serve(async (req) => {
     }
 
     // Mark import for review
+    const rawName = (extracted.contract?.contract_name || "").trim();
+    // Guard against the model echoing concatenated party names — keep titles tidy.
+    const cleanName =
+      rawName && rawName.length <= 120
+        ? rawName
+        : rawName
+          ? rawName.split(/\s+(?:and|&|\/)\s+/i)[0].slice(0, 120).trim()
+          : (imp.file_name || "Untitled Contract");
     await supabase.from("live_contract_imports").update({
       status: "needs_review",
       confidence: extracted.confidence || null,
-      contract_name: extracted.contract?.contract_name || imp.file_name,
+      contract_name: cleanName,
       contract_type: extracted.contract?.contract_type || null,
+      product_description: extracted.contract?.product_description || null,
+      contract_value:
+        extracted.contract?.contract_value ??
+        extracted.commercial?.tcv ??
+        extracted.commercial?.acv ??
+        null,
       effective_date: extracted.contract?.effective_date || null,
       term_end_date: extracted.contract?.term_end_date || null,
     }).eq("id", imp.id);

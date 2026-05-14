@@ -754,14 +754,14 @@ const DebtorDetail = () => {
   return (
     <Layout>
       <div className="space-y-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex flex-col gap-4 2xl:flex-row 2xl:items-start 2xl:justify-between">
           <div className="flex items-start space-x-4 min-w-0 flex-1">
             <Button variant="ghost" size="icon" onClick={() => navigate("/debtors")} className="shrink-0 mt-1">
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-3 flex-wrap">
-                <h1 className="text-2xl md:text-3xl xl:text-4xl font-bold text-primary leading-tight break-words">{debtor.company_name}</h1>
+                <h1 className="text-xl md:text-2xl xl:text-3xl font-bold text-primary leading-tight break-words">{debtor.company_name}</h1>
                 {/* Payment Plan Badge - show if any active payment plans exist */}
                 {(paymentPlans && paymentPlans.some(p => ["proposed", "accepted", "active"].includes(p.status))) && (
                   <Badge className="bg-purple-100 text-purple-800 border-purple-200">
@@ -800,7 +800,7 @@ const DebtorDetail = () => {
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2 flex-wrap lg:justify-end shrink-0">
+          <div className="flex items-center gap-2 flex-wrap 2xl:justify-end shrink-0">
             {/* Outreach Pause Toggle */}
             <Button 
               variant={debtor.outreach_paused ? "default" : "outline"} 
