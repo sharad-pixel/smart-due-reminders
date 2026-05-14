@@ -322,6 +322,7 @@ Deno.serve(async (req) => {
 
     // Get document text
     let text = "";
+    let pageCount = 1; // for AI Smart Ingestion usage tracking
     if (imp.source === "drive" && imp.drive_file_id) {
       const { data: folder } = await supabase.from("live_contract_drive_folders").select("connection_id").eq("id", imp.folder_id).single();
       const { data: conn } = await supabase.from("drive_connections").select("*").eq("id", folder!.connection_id).single();
@@ -330,6 +331,8 @@ Deno.serve(async (req) => {
         token = await refreshToken(supabase, conn, clientId, clientSecret);
       }
       text = await fetchDriveFileText(imp.drive_file_id, imp.mime_type || "", token);
+      // Estimate pages from extracted text length (~3000 chars/page) for Drive sources
+      pageCount = Math.max(1, Math.ceil((text?.length || 0) / 3000));
     } else if (imp.storage_path) {
       const { data: file } = await supabase.storage.from("live-contracts").download(imp.storage_path);
       if (file) {
@@ -341,14 +344,17 @@ Deno.serve(async (req) => {
 
         if (isPdf) {
           await supabase.from("live_contract_imports").update({ status: "ocr_processing" }).eq("id", imp.id);
+          // Detect pages from raw bytes (works even if pdf-parse fails)
+          pageCount = detectPdfPageCount(buf);
           try {
             const pdfParse = (await import("npm:pdf-parse@1.1.1/lib/pdf-parse.js")).default;
             const { Buffer } = await import("node:buffer");
             const parsed = await pdfParse(Buffer.from(buf));
             text = parsed.text || "";
-            log("PDF parsed", { len: text.length });
+            if (parsed.numpages && parsed.numpages > 0) pageCount = parsed.numpages;
+            log("PDF parsed", { len: text.length, pages: pageCount });
           } catch (e) {
-            log("pdf-parse failed", { err: String(e) });
+            log("pdf-parse failed", { err: String(e), pages: pageCount });
           }
 
           // OCR fallback via Lovable AI Gateway (Gemini multimodal) for scanned PDFs
@@ -388,8 +394,10 @@ Deno.serve(async (req) => {
         } else if (isDocx) {
           // DOCX: best-effort, decode embedded XML strings
           text = new TextDecoder("utf-8", { fatal: false }).decode(buf).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+          pageCount = Math.max(1, Math.ceil(text.length / 3000));
         } else {
           text = new TextDecoder("utf-8", { fatal: false }).decode(buf.slice(0, 200_000));
+          pageCount = Math.max(1, Math.ceil(text.length / 3000));
         }
       }
     }
