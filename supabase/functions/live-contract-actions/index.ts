@@ -26,6 +26,38 @@ Deno.serve(async (req) => {
 
     const { data: imp } = await supabase.from("live_contract_imports").select("*").eq("id", importId).single();
     if (!imp) return json({ error: "Import not found" }, 404);
+
+    // Verify ownership
+    const { data: accountId } = await supabase.rpc("get_effective_account_id", { p_user_id: user.id });
+    if (!accountId || imp.account_id !== accountId) return json({ error: "Not authorized" }, 403);
+
+    if (action === "delete_import") {
+      // Best-effort cleanup of related rows + storage object, then delete import row
+      const childTables = [
+        "contract_invoice_schedules",
+        "contract_critical_dates",
+        "contract_clauses",
+        "contract_risk_flags",
+        "contract_customer_matches",
+        "contract_poc_details",
+        "contract_source_documents",
+        "live_contract_extracted_fields",
+        "live_contract_extractions",
+        "live_contract_review_queue",
+        "live_contract_audit_log",
+      ];
+      for (const t of childTables) {
+        try { await supabase.from(t).delete().eq("import_id", importId); } catch (_) { /* ignore missing tables */ }
+      }
+      if (imp.storage_path) {
+        try { await supabase.storage.from("live-contracts").remove([imp.storage_path]); } catch (_) { /* ignore */ }
+      }
+      const { error: delErr } = await supabase.from("live_contract_imports").delete().eq("id", importId);
+      if (delErr) return json({ error: delErr.message }, 500);
+      return json({ success: true });
+    }
+
+    // Actions below require a linked customer
     if (!imp.debtor_id) return json({ error: "Contract must be imported with a customer first" }, 400);
 
     if (action === "generate_invoices") {
