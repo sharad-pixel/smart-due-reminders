@@ -173,14 +173,38 @@ const LiveContractDetailInner = () => {
           c.term_end_date ? formatDateShort(c.term_end_date) : "Open"
         }${c.status ? ` · ${String(c.status).replace(/_/g, " ")}` : ""}`}
         rightSlot={
-          data.debtor && (
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            {(() => {
+              const high = data.flags.filter((f: any) => f.severity === "high" || f.severity === "critical").length;
+              const med = data.flags.filter((f: any) => f.severity === "medium").length;
+              if (!high && !med) return null;
+              return (
+                <Badge
+                  variant="outline"
+                  className={high
+                    ? "bg-red-50 text-red-700 border-red-200"
+                    : "bg-amber-50 text-amber-700 border-amber-200"}
+                >
+                  <ShieldAlert className="h-3.5 w-3.5 mr-1" />
+                  {high ? `${high} high risk` : `${med} medium risk`}
+                </Badge>
+              );
+            })()}
             <Button asChild variant="outline" size="sm">
-              <Link to={`/debtors/${data.debtor.id}`}>
-                <Building2 className="h-4 w-4 mr-1" />
-                {data.debtor.company_name || data.debtor.name}
+              <Link to="/team">
+                <Users className="h-4 w-4 mr-1" />
+                Manage team
               </Link>
             </Button>
-          )
+            {data.debtor && (
+              <Button asChild variant="outline" size="sm">
+                <Link to={`/debtors/${data.debtor.id}`}>
+                  <Building2 className="h-4 w-4 mr-1" />
+                  {data.debtor.company_name || data.debtor.name}
+                </Link>
+              </Button>
+            )}
+          </div>
         }
       />
 
