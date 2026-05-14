@@ -10,6 +10,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { Link } from "react-router-dom";
 import { personaConfig } from "@/lib/personaConfig";
 
 interface Msg { role: "user" | "assistant"; content: string }
