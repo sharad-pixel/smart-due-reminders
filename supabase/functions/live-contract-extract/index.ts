@@ -590,11 +590,25 @@ Deno.serve(async (req) => {
     }
 
     // Mark import for review
+    const rawName = (extracted.contract?.contract_name || "").trim();
+    // Guard against the model echoing concatenated party names — keep titles tidy.
+    const cleanName =
+      rawName && rawName.length <= 120
+        ? rawName
+        : rawName
+          ? rawName.split(/\s+(?:and|&|\/)\s+/i)[0].slice(0, 120).trim()
+          : (imp.file_name || "Untitled Contract");
     await supabase.from("live_contract_imports").update({
       status: "needs_review",
       confidence: extracted.confidence || null,
-      contract_name: extracted.contract?.contract_name || imp.file_name,
+      contract_name: cleanName,
       contract_type: extracted.contract?.contract_type || null,
+      product_description: extracted.contract?.product_description || null,
+      contract_value:
+        extracted.contract?.contract_value ??
+        extracted.commercial?.tcv ??
+        extracted.commercial?.acv ??
+        null,
       effective_date: extracted.contract?.effective_date || null,
       term_end_date: extracted.contract?.term_end_date || null,
     }).eq("id", imp.id);
