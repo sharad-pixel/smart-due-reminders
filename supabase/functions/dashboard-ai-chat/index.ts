@@ -121,6 +121,7 @@ Deno.serve(async (req) => {
     }
     const topRisk = (debtors as any[])
       .map((d) => ({
+        id: d.id,
         name: d.name,
         balance: Math.round((debtorBalanceMap[d.id] ?? Number(d.total_open_balance ?? d.current_balance ?? 0)) * 100) / 100,
         risk_tier: d.risk_tier_detailed || d.risk_tier || "unscored",
