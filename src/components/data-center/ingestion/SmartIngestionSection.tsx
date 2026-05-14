@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -20,6 +21,9 @@ import {
   BarChart3,
   Shield,
   Trash2,
+  Receipt,
+  FileSignature,
+  ExternalLink,
 } from "lucide-react";
 import { Building2 } from "lucide-react";
 import { GoogleDriveIcon, GoogleSheetsIcon } from "@/components/icons/GoogleIcons";
@@ -402,6 +406,49 @@ export function SmartIngestionSection() {
   return (
     <div className="space-y-4">
       <OcrPricingNotice />
+
+      {/* Document type router — invoices vs contracts */}
+      <Card className="border-primary/20 bg-gradient-to-br from-primary/5 via-background to-background">
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3 mb-3">
+            <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <Zap className="h-4 w-4 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-semibold">What are you ingesting today?</div>
+              <p className="text-xs text-muted-foreground">
+                AI Smart Ingestion runs as two specialised pipelines — pick the right one and we'll extract the right fields.
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div className="rounded-lg border bg-background p-3">
+              <div className="flex items-center gap-2 mb-1">
+                <Receipt className="h-4 w-4 text-emerald-600" />
+                <span className="text-sm font-medium">Invoices &amp; AR docs</span>
+                <Badge variant="secondary" className="text-[10px] ml-auto">Active below</Badge>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Extracts invoice #, due date, debtor, amount, line items — feeds your AR ledger.
+              </p>
+            </div>
+            <Link
+              to="/contracts/live"
+              className="group rounded-lg border bg-background p-3 hover:border-primary/40 hover:shadow-sm transition"
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <FileSignature className="h-4 w-4 text-indigo-600" />
+                <span className="text-sm font-medium">Contracts &amp; agreements</span>
+                <ExternalLink className="h-3 w-3 text-muted-foreground ml-auto group-hover:text-primary" />
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Extracts parties, term, value, renewal &amp; key clauses — routes to the CLM workspace.
+              </p>
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Connection Status & Quick Actions */}
       <Card>
         <CardHeader className="pb-3">
