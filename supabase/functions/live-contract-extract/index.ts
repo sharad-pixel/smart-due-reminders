@@ -191,6 +191,8 @@ const EXTRACTION_TOOL = {
               service_period_end: { type: "string" }, amount: { type: "number" },
               currency: { type: "string" }, billing_type: { type: "string" },
               payment_terms: { type: "string" }, description: { type: "string" },
+              product_description: { type: "string" },
+              quantity: { type: "number" }, unit_price: { type: "number" },
             },
           },
         },
