@@ -23,8 +23,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   FolderPlus, RefreshCw, Upload, FileText, Sparkles, AlertTriangle, CalendarClock,
   CheckCircle2, XCircle, FileSearch, Building2, DollarSign, Receipt, Loader2,
-  ShieldAlert, Clock, ClipboardList, BellRing, Wand2, ExternalLink,
+  ShieldAlert, Clock, ClipboardList, BellRing, Wand2, ExternalLink, Trash2, RotateCw, Info,
 } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // ------- Status helpers -------
 const STATUS_LABEL: Record<string, string> = {
