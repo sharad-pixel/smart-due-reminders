@@ -186,9 +186,7 @@ export function DashboardAskAI() {
             <div className="flex gap-3">
               <img src={NICOLAS.avatar} alt="" className="h-8 w-8 rounded-full object-cover ring-1 ring-primary/30 shrink-0 mt-0.5" />
               <div className="flex-1 rounded-2xl rounded-tl-sm bg-muted/50 border px-4 py-3 text-sm leading-relaxed">
-                <div className="prose prose-sm max-w-none dark:prose-invert prose-p:my-1.5">
-                  <ReactMarkdown>{GREETING}</ReactMarkdown>
-                </div>
+                <NicolasMarkdown content={GREETING} />
               </div>
             </div>
 
