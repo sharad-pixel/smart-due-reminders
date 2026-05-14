@@ -598,7 +598,16 @@ Deno.serve(async (req) => {
     await supabase.from("live_contract_audit_log").insert({
       account_id: imp.account_id, user_id: user.id, import_id: imp.id,
       event_type: "ai_extraction_completed",
-      event_details: { confidence: extracted.confidence, fields: fieldRows.length, schedules: sched.length, risks: flags.length },
+      event_details: { confidence: extracted.confidence, fields: fieldRows.length, schedules: sched.length, risks: flags.length, page_count: pageCount },
+    });
+
+    // Record AI Smart Ingestion usage (idempotent per contract import)
+    await recordContractUsage(supabase, {
+      userId: imp.user_id || user.id,
+      accountId: imp.account_id,
+      importId: imp.id,
+      fileName: imp.file_name || null,
+      pageCount,
     });
 
     // Fire-and-forget reconciliation against existing Recouply invoices.
