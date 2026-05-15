@@ -1239,13 +1239,48 @@ export default function LiveContracts() {
 
           <RecentScansCard imports={imports} />
 
-          <Tabs defaultValue="review">
-            <TabsList>
-              <TabsTrigger value="folders">Folders</TabsTrigger>
-              <TabsTrigger value="queue">Scan queue</TabsTrigger>
-              <TabsTrigger value="review">Review ({imports.filter((i) => i.status === "needs_review").length})</TabsTrigger>
-              <TabsTrigger value="imported">Imported</TabsTrigger>
-              <TabsTrigger value="audit">Audit</TabsTrigger>
+          <Tabs defaultValue={tabCounts.review > 0 ? "review" : "folders"}>
+            <TabsList className="w-full h-auto bg-muted/40 p-1.5 flex flex-wrap gap-1 justify-stretch">
+              <RichTab
+                value="folders"
+                icon={FolderPlus}
+                label="Assigned folders"
+                sublabel={tabCounts.folderSub}
+                count={tabCounts.folders}
+                tone="primary"
+              />
+              <RichTab
+                value="queue"
+                icon={Loader2}
+                label="Scan queue"
+                sublabel={tabCounts.queueSub}
+                count={tabCounts.queue}
+                tone="blue"
+              />
+              <RichTab
+                value="review"
+                icon={ClipboardList}
+                label="Review"
+                sublabel={tabCounts.reviewSub}
+                count={tabCounts.review}
+                tone="amber"
+                urgent
+              />
+              <RichTab
+                value="imported"
+                icon={CheckCircle2}
+                label="Imported"
+                sublabel={tabCounts.importedSub}
+                count={tabCounts.imported}
+                tone="emerald"
+              />
+              <RichTab
+                value="audit"
+                icon={Clock}
+                label="Audit trail"
+                sublabel="Activity log"
+                tone="muted"
+              />
             </TabsList>
 
             <TabsContent value="folders" className="mt-4"><FoldersTab /></TabsContent>
