@@ -91,7 +91,7 @@ export default function Asc606Credits() {
         {/* Wallet card */}
         <Card>
           <CardContent className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Stat label="Available balance" value={`${balance.toFixed(0)} credits`} sub={`≈ ${Math.floor(balance / 10)} assessments`} />
+            <Stat label="Available balance" value={`${balance.toFixed(0)} credits`} sub={`= $${balance.toFixed(2)} of usage`} />
             <Stat label="Pending overage (this month)" value={`${overage.toFixed(0)} credits`} sub={`$${(overage * 1.0).toFixed(2)} will be billed`} />
             <Stat label="Lifetime purchased" value={`${Number(wallet?.lifetime_purchased ?? 0).toFixed(0)} credits`} />
           </CardContent>
