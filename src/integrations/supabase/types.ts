@@ -537,6 +537,170 @@ export type Database = {
           },
         ]
       }
+      asc606_assessments: {
+        Row: {
+          account_id: string
+          completed_at: string | null
+          contract_id: string
+          cost_cents: number
+          cost_credits: number
+          created_at: string
+          error: string | null
+          id: string
+          model_version: string | null
+          payment_method: string | null
+          pdf_storage_path: string | null
+          report_jsonb: Json | null
+          report_markdown: string | null
+          requested_by: string
+          risk_band: string | null
+          risk_score: number | null
+          status: string
+          stripe_checkout_session_id: string | null
+          stripe_payment_intent_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          completed_at?: string | null
+          contract_id: string
+          cost_cents?: number
+          cost_credits?: number
+          created_at?: string
+          error?: string | null
+          id?: string
+          model_version?: string | null
+          payment_method?: string | null
+          pdf_storage_path?: string | null
+          report_jsonb?: Json | null
+          report_markdown?: string | null
+          requested_by: string
+          risk_band?: string | null
+          risk_score?: number | null
+          status?: string
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          completed_at?: string | null
+          contract_id?: string
+          cost_cents?: number
+          cost_credits?: number
+          created_at?: string
+          error?: string | null
+          id?: string
+          model_version?: string | null
+          payment_method?: string | null
+          pdf_storage_path?: string | null
+          report_jsonb?: Json | null
+          report_markdown?: string | null
+          requested_by?: string
+          risk_band?: string | null
+          risk_score?: number | null
+          status?: string
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asc606_assessments_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asc606_credit_ledger: {
+        Row: {
+          account_id: string
+          assessment_id: string | null
+          contract_id: string | null
+          created_at: string
+          created_by: string | null
+          delta: number
+          id: string
+          kind: string
+          note: string | null
+          stripe_checkout_session_id: string | null
+          stripe_invoice_id: string | null
+          stripe_payment_intent_id: string | null
+          unit_price_cents: number | null
+        }
+        Insert: {
+          account_id: string
+          assessment_id?: string | null
+          contract_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          delta: number
+          id?: string
+          kind: string
+          note?: string | null
+          stripe_checkout_session_id?: string | null
+          stripe_invoice_id?: string | null
+          stripe_payment_intent_id?: string | null
+          unit_price_cents?: number | null
+        }
+        Update: {
+          account_id?: string
+          assessment_id?: string | null
+          contract_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          delta?: number
+          id?: string
+          kind?: string
+          note?: string | null
+          stripe_checkout_session_id?: string | null
+          stripe_invoice_id?: string | null
+          stripe_payment_intent_id?: string | null
+          unit_price_cents?: number | null
+        }
+        Relationships: []
+      }
+      asc606_credit_wallets: {
+        Row: {
+          account_id: string
+          balance_credits: number
+          created_at: string
+          id: string
+          lifetime_consumed: number
+          lifetime_purchased: number
+          overage_enabled: boolean
+          pending_overage_credits: number
+          stripe_customer_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          balance_credits?: number
+          created_at?: string
+          id?: string
+          lifetime_consumed?: number
+          lifetime_purchased?: number
+          overage_enabled?: boolean
+          pending_overage_credits?: number
+          stripe_customer_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          balance_credits?: number
+          created_at?: string
+          id?: string
+          lifetime_consumed?: number
+          lifetime_purchased?: number
+          overage_enabled?: boolean
+          pending_overage_credits?: number
+          stripe_customer_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       assessment_events: {
         Row: {
           created_at: string
@@ -12091,6 +12255,16 @@ export type Database = {
         Args: { p_version_id: string }
         Returns: undefined
       }
+      consume_asc606_credits: {
+        Args: {
+          _account_id: string
+          _amount: number
+          _assessment_id: string
+          _contract_id: string
+          _user_id: string
+        }
+        Returns: Json
+      }
       create_default_outreach_templates: {
         Args: { p_user_id: string }
         Returns: undefined
@@ -12185,6 +12359,10 @@ export type Database = {
         Returns: boolean
       }
       is_active_support_user: { Args: { p_user_id: string }; Returns: boolean }
+      is_asc606_admin: {
+        Args: { _account_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_assigned_support_for_account: {
         Args: { p_account_id: string; p_user_id: string }
         Returns: boolean
