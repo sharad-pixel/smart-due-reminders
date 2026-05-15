@@ -416,11 +416,11 @@ const PublicInvoicePage = () => {
               </div>
             </div>
 
-            {/* Pay Now button */}
-            {!isPaid && branding.stripe_payment_link && (
+            {/* Pay Now button — routes to AR / Debtor Portal where Stripe Link + all payment options live */}
+            {!isPaid && (
               <div className="px-8 mt-6 text-center no-print">
                 <a
-                  href={branding.stripe_payment_link}
+                  href="https://recouply.ai/debtor-portal"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-block px-8 py-3 rounded-lg text-white font-semibold text-base transition-opacity hover:opacity-90"
@@ -428,6 +428,9 @@ const PublicInvoicePage = () => {
                 >
                   Pay Now
                 </a>
+                <div className="text-xs text-gray-500 mt-2">
+                  Pay via Stripe Link, card, ACH, or set up a payment plan in your secure AR portal.
+                </div>
               </div>
             )}
 
