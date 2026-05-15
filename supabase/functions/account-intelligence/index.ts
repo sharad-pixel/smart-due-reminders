@@ -272,8 +272,17 @@ async function fetchMetrics(supabase: any, debtor_id: string, debtor: any) {
     .maybeSingle();
 
   // Calculate metrics
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
   const openInvoices = invoices?.filter((i: any) => ["Open", "PartiallyPaid", "InPaymentPlan"].includes(i.status)) || [];
   const totalOpenBalance = openInvoices.reduce((sum: number, inv: any) => sum + (inv.outstanding_amount || inv.amount || 0), 0);
+
+  // Past-due exposure (invoices with due_date strictly before today). This is the
+  // figure used for "risk exposure" — invoices not yet due are NOT at risk.
+  const pastDueInvoices = openInvoices.filter((i: any) => i.due_date && new Date(i.due_date) < today);
+  const pastDueBalance = pastDueInvoices.reduce((sum: number, inv: any) => sum + (inv.outstanding_amount || inv.amount || 0), 0);
+  const notYetDueInvoices = openInvoices.filter((i: any) => !i.due_date || new Date(i.due_date) >= today);
+  const notYetDueBalance = notYetDueInvoices.reduce((sum: number, inv: any) => sum + (inv.outstanding_amount || inv.amount || 0), 0);
   
   // Calculate DSO (Days Sales Outstanding)
   const paidInvoices = invoices?.filter((i: any) => i.status === "Paid" && i.paid_at) || [];
