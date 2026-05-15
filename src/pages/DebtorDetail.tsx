@@ -754,7 +754,7 @@ const DebtorDetail = () => {
   return (
     <Layout>
       <div className="space-y-6">
-        <div className="flex flex-col gap-4 2xl:flex-row 2xl:items-start 2xl:justify-between">
+        <div className="rounded-xl border bg-gradient-to-br from-primary/5 via-background to-background p-5 shadow-sm flex flex-col gap-5">
           <div className="flex items-start space-x-4 min-w-0 flex-1">
             <Button variant="ghost" size="icon" onClick={() => navigate("/debtors")} className="shrink-0 mt-1">
               <ArrowLeft className="h-4 w-4" />
