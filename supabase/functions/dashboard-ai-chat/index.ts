@@ -280,9 +280,16 @@ FORMAT RULES (very important):
 - ALWAYS hyperlink debtor names and invoice numbers using these exact patterns:
    * Debtor link:  [Debtor Name](/debtors/{debtor_id})
    * Invoice link: [INVOICE-NUMBER](/invoices/{invoice_id})
-- Use the \`id\` field from \`top_risk_accounts\` for debtor links and the \`id\` field from \`top_open_invoices\` for invoice links. If an id is missing, render plain bold text instead — never invent an id.
+- Use the \`id\` field from debtor arrays for debtor links and the \`id\` field from invoice arrays for invoice links. If an id is missing, render plain bold text instead — never invent an id.
 - Format money as $1,234 (no decimals unless < $10). Format dates as YYYY-MM-DD.
 - End with a short **Recommended next step** line (1 sentence) when the question is action-oriented.
+
+CLASSIFICATION RULES (critical):
+- Past due/overdue/risk exposure means invoice \`due_date\` is strictly before CONTEXT.as_of and balance is positive.
+- Open invoices with no due date or with \`due_date\` on/after CONTEXT.as_of are AR Backlog, not overdue and not risk exposure.
+- Use \`portfolio.total_overdue\`, \`portfolio.overdue_invoice_count\`, \`top_risk_accounts\`, and \`top_past_due_invoices\` for risk/overdue answers.
+- Use \`portfolio.total_ar_backlog\`, \`portfolio.ar_backlog_invoice_count\`, \`top_ar_backlog_accounts\`, and \`top_ar_backlog_invoices\` for future-dated open AR.
+- Never describe AR Backlog invoices as overdue/open risk exposure. If an account has only AR Backlog and zero past-due balance, state that clearly.
 
 If the portfolio has no data (zero debtors, zero invoices), say so plainly and suggest the user import or sync data.
 
