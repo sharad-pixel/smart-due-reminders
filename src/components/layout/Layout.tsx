@@ -235,7 +235,7 @@ const Layout = ({ children }: LayoutProps) => {
   }, [user]);
 
   const _navItems = [
-    { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { path: "/dashboard", label: "Revenue Intelligence Command Center", icon: LayoutDashboard },
     { path: "/debtors", label: "Accounts", icon: Users },
     { path: "/invoices", label: "Invoices", icon: FileText },
     { path: "/settings/ai-workflows", label: "AI Workflows", icon: Workflow },
@@ -258,7 +258,7 @@ const Layout = ({ children }: LayoutProps) => {
   if (!user) return null;
 
   const coreNavItems = [
-    { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { path: "/dashboard", label: "Revenue Intelligence Command Center", icon: LayoutDashboard },
     { path: "/debtors", label: "Accounts", icon: Users },
     { path: "/invoices", label: "Invoices", icon: FileText },
     { path: "/payments", label: "Payments", icon: DollarSign },
