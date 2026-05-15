@@ -100,7 +100,8 @@ export function useRevenueRisk() {
         setLastGeneratedAt(cached.generated_at);
         setHasRefreshedToday(!canManualRefreshToday(cached.last_manual_refresh_at));
       }
-      if (cached && !cached.is_stale) {
+      const hasCurrentArClassification = !!cached?.data?.aggregate && "ar_backlog" in cached.data.aggregate;
+      if (cached && !cached.is_stale && hasCurrentArClassification) {
         return cached.data;
       }
 
