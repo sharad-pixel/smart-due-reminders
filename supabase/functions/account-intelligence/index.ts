@@ -313,6 +313,10 @@ async function fetchMetrics(supabase: any, debtor_id: string, debtor: any) {
     financials: {
       totalOpenBalance,
       openInvoicesCount: openInvoices.length,
+      pastDueBalance,
+      pastDueInvoicesCount: pastDueInvoices.length,
+      notYetDueBalance,
+      notYetDueInvoicesCount: notYetDueInvoices.length,
       totalInvoicesCount: invoices?.length || 0,
       paidInvoicesCount: paidInvoices.length,
       avgDSO,
