@@ -1,112 +1,50 @@
-## Goals
+## ASC 606 Revenue Risk Assessment — Paid Feature
 
-1. **Promote AI Smart Ingestion to a top-level tool under "Revenue Intelligence"** — separate it from CLM.
-2. **Remove "Live Contracts" from the CLM nav dropdown** — it stays accessible from the AI Tools / AI Smart Ingestion entry point only.
-3. **Improve the UI of the ingested-contracts view** (currently the bare "No contracts here" state in the screenshot looks empty and unhelpful).
-4. **Surface a total AI Smart Ingestion balance due** with a one-click "Pay now" button.
+### Pricing model
+- **Per assessment**: $9.99 one-time per contract OR debit 10 credits ($8.00 pre-paid value).
+- **Credit wallet** (1 credit = $1.00 post-paid; $0.80 pre-paid):
+  - Pre-purchase packs: **25 / 100 / 250 credits** + custom amount (min 10).
+  - Overage allowed — usage beyond wallet balance accrues at $1.00/credit and is invoiced monthly via Stripe.
+- Restricted to **Owner / Admin** roles per contract account.
 
----
+### Database (new)
+- `asc606_credit_wallets` — one row per account: `account_id`, `balance_credits` (numeric), `lifetime_purchased`, `lifetime_consumed`, `pending_overage_credits` (numeric), `stripe_customer_id`.
+- `asc606_credit_ledger` — append-only: `account_id`, `delta` (signed numeric), `kind` ('purchase' | 'consume' | 'overage_accrue' | 'overage_invoice' | 'refund' | 'adjustment'), `contract_id` (nullable), `assessment_id` (nullable), `stripe_payment_intent_id`, `stripe_invoice_id`, `unit_price_cents`, `note`, `created_by`.
+- `asc606_assessments` — `contract_id`, `account_id`, `status` ('queued' | 'running' | 'complete' | 'failed'), `report_jsonb`, `report_markdown`, `pdf_storage_path`, `risk_score`, `risk_band`, `model_version`, `cost_credits` (10), `cost_cents` (999), `payment_method` ('credits' | 'stripe_one_time' | 'overage'), `stripe_payment_intent_id`, `requested_by`, `completed_at`, `error`.
+- RLS: scoped by account membership; only Owner/Admin can INSERT assessments or trigger purchases. SECURITY DEFINER RPC `consume_asc606_credits(p_account, p_contract, p_amount)` for atomic deduct-or-overage.
 
-## Part 1 — Re-pillar AI Smart Ingestion
+### Edge functions (new)
+- `asc606-purchase-credits` — Stripe Checkout (mode=payment) for selected pack or custom amount; line item priced at $0.80/credit; metadata `{ kind: 'asc606_credits', credits, account_id }`.
+- `asc606-pay-assessment` — Stripe Checkout for $9.99 with metadata `{ kind: 'asc606_assessment', contract_id, account_id }`; success URL triggers `asc606-run-assessment`.
+- `asc606-run-assessment` — verifies entitlement (paid PI, sufficient credits, or overage allowed), atomically debits via RPC, calls Lovable AI (Gemini 2.5 Flash) with the contract document + schedule lines + ASC 606 framework prompt → returns structured 5-step revenue recognition report (Identify Contract → POs → Transaction Price → Allocation → Recognize), risk findings, and remediation. Stores JSON + markdown + generates PDF, attaches to contract.
+- `asc606-monthly-overage-invoicer` — cron (1st of month UTC); for each wallet with `pending_overage_credits > 0`, creates Stripe invoice item @ $1.00/credit, finalizes invoice, charges card on file, zeroes pending balance, ledgers `overage_invoice`.
+- Extend existing `stripe-webhook`:
+  - On `checkout.session.completed` for `asc606_credits` → credit wallet, ledger `purchase`.
+  - On `checkout.session.completed` for `asc606_assessment` → mark PI as eligible for `asc606-run-assessment` invocation.
+  - 23505 dedupe by ledger unique `(stripe_payment_intent_id, kind)`.
 
-### Nav changes (`src/components/layout/Layout.tsx`)
-- Remove `/contracts/live` from `clmItems`. CLM dropdown will only contain `/contracts` (Workspaces).
-- Keep the existing **AI Smart Ingestion** entry inside the **AI Tools** dropdown (already there at line 369–375). Update its label/description so it's clear it's a distinct tool, not a CLM feature.
-- In the AI Smart Ingestion chooser dialog, after picking **Contracts**, the upload dialog still routes the user to the contract review page at `/contracts/live/:id` — but that page no longer needs the CLM nav context.
-- Move route `/contracts/live` and `/contracts/live/:id` so they remain mounted but conceptually under the **Revenue Intelligence** pillar. Add a new persistent landing page **`/ai-ingestion`** (renamed from `/contracts/live`) so URLs reflect the new pillar. Old `/contracts/live` paths get a 301-style redirect to the new URLs to avoid breaking deep links and existing Tasks/alerts.
-- Update the `RequireClmAccess` guard on the page → replace with a lighter check that only verifies the user has Revenue Intelligence access (or just authenticated user), so non-CLM users can still use AI Smart Ingestion.
+### Frontend
+- **Contract detail (`LiveContractDetail.tsx`)**: new "ASC 606 Revenue Risk" panel.
+  - If no assessment: shows price ($9.99 or 10 credits), wallet balance, `Run Assessment` (admin only) → choice modal:
+    - Use credits (if balance ≥ 10) — instant.
+    - Pay $9.99 — Stripe Checkout in new tab.
+    - Use overage (if no credits & overage enabled) — instant, accrues.
+  - If complete: shows risk band/score, 5-step ASC 606 summary, downloadable PDF, "Re-run" option.
+  - Past assessments listed with timestamp + cost.
+- **New page `/billing/asc606-credits`**: wallet balance, pre-purchase packs (25/100/250 + custom), ledger history, current month's pending overage.
+- Sidebar: subtle entry under existing billing section.
 
-### Files affected
-- `src/components/layout/Layout.tsx` — remove from CLM, optional rename of label.
-- `src/pages/LiveContracts.tsx` — drop `RequireClmAccess`, rename header to "AI Smart Ingestion — Contracts", update breadcrumb/SEO, keep all existing functionality.
-- `src/App.tsx` — add new routes `/ai-ingestion` and `/ai-ingestion/:id` pointing at the same pages, plus redirects from the old `/contracts/live*` paths.
-- `src/pages/LiveContractDetail.tsx` — same guard change.
-- `src/components/ingestion/SmartIngestionChooserDialog.tsx` and `ContractUploadDialog.tsx` — navigate to `/ai-ingestion/:id` instead of `/contracts/live/:id`.
+### Technical details
+- Numeric/decimal types for all credit/cents columns (per project memory).
+- Lovable AI: `google/gemini-2.5-flash`, `LOVABLE_API_KEY`. Handle 429/402.
+- PDF generation reuses existing report-to-PDF utility if present, else minimal HTML→PDF via edge.
+- Cron via `pg_cron` + `pg_net` (insert tool, not migration).
+- Cost guard: if AI fails, refund credits / mark assessment `failed`, don't consume.
+- Audit log entry per assessment & purchase.
 
----
+### Out of scope (this iteration)
+- Bulk assessment across multiple contracts.
+- Custom risk model tuning per industry.
+- Credit refunds UI (admin-only ledger adjustment for now).
 
-## Part 2 — Improve the ingested-contracts view
-
-The screenshot shows a tabbed UI (Folders / Scan queue / Review / Imported / Audit) where every empty state collapses to a single grey "No contracts here." line. Improvements:
-
-### A. Empty states
-Replace the plain text empty state in `ImportsTable` with a richer empty state component:
-- Centered icon (Sparkles/FileSearch).
-- Tab-specific copy:
-  - **Review** → "Nothing waiting for your review. New contracts appear here once AI extracts them."
-  - **Scan queue** → "No active scans. Upload a contract or connect a Drive folder to get started."
-  - **Imported** → "Nothing imported yet. Approved contracts will live here."
-- Two CTAs: **Upload contract** (opens the existing UploadDialog) and **Connect Drive folder** (deep-links to the Folders tab).
-
-### B. Header / hero polish
-Above the tabs, replace the current 6-tile widget grid + "Recently Scanned" stack with a cleaner two-row hero:
-- Row 1: gradient hero card with title "AI Smart Ingestion — Contracts", short description, primary "Upload Contract" CTA, and the **balance-due summary** (Part 3, see below).
-- Row 2: keep the 6 KPI tiles but recolor with semantic tokens, add subtle hover states, and surface a Renewals ≤30d link that filters Imported tab.
-
-### C. Imports table polish
-- Add file icon + content type chip (PDF / DOCX) next to the file name.
-- Add per-row aging chip ("Scanned 2h ago", "5 days ago") instead of the bare "—".
-- Add a row hover action bar (View, Re-scan, Delete) that appears on hover.
-- Failed rows: keep the red-tinted background and the inline failure-reason banner already added in a prior turn, but add a **"Retry & view diagnostics"** link that opens the review drawer to the Audit tab.
-
-### D. Review drawer
-Add a "Quick stats" strip at the top: pages scanned, confidence score, $ AI cost for this scan, and ARR/MRR if extracted.
-
----
-
-## Part 3 — Total Ingestion Balance Due + one-click payment
-
-### Data
-We already record per-scan usage in `ocr_usage_events` at $0.75/page (see `OcrUsageCard.tsx`). What's missing is a "balance due" concept tied to Stripe metered billing.
-
-Two options for "balance due":
-- **Option A (recommended)** — sum of `ocr_usage_events` rows where `stripe_reported = false` for the current account. This is genuinely "unbilled, owed". The "Pay now" button calls a new edge function `ai-ingestion-pay-balance` that creates a Stripe one-off invoice (or PaymentIntent) for that amount and immediately attempts payment using the customer's saved card. On success it marks those events `stripe_reported = true` and stores the Stripe invoice ID.
-- **Option B** — just total month-to-date and link to the existing Stripe billing portal; no real "pay now" but simpler.
-
-I'll implement **Option A** because the user explicitly said "push of a button". Fallback: if no saved card, the button opens Stripe Checkout in a new tab.
-
-### Backend changes
-- New edge function `ai-ingestion-pay-balance`:
-  - Auth: require user JWT, resolve account, sum unbilled `ocr_usage_events`.
-  - If amount is 0 → return early.
-  - Look up the account's Stripe customer (`stripe_customers` or `account_users` linkage already used by team management).
-  - Create a one-off Stripe invoice with a single line item "AI Smart Ingestion — N pages", finalize it, and call `pay()`. Or use a PaymentIntent + ephemeral Checkout session if no payment method on file.
-  - On success, mark the source events as `stripe_reported=true`, write a row to `ocr_invoice_payments` (new table) with `stripe_invoice_id`, `amount_cents`, `paid_at`.
-  - Return `{ status: 'paid' | 'requires_action', invoice_url, hosted_invoice_url }`.
-- New table `ocr_invoice_payments` (numeric amount columns per the financial-precision rule).
-- RLS: account-scoped read, only edge function (service role) writes.
-
-### Frontend changes
-- New component `IngestionBalanceCard` placed at the top of `/ai-ingestion`:
-  - Big number: "$16.50 due" (sum of unbilled events).
-  - Subtext: "From 22 pages across 3 scans • last scan 2 days ago".
-  - Primary button: **"Pay $16.50 now"** → calls `ai-ingestion-pay-balance`. Disabled when balance is 0; shows a green "All caught up" state instead.
-  - Secondary link: "View billing history" → opens a small sheet listing past `ocr_invoice_payments` rows with hosted invoice links.
-- Reuse the existing `OcrUsageCard` for the 30-day usage breakdown (stays as supporting info, not the primary balance display).
-
-### Edge cases
-- Account on free trial / no Stripe customer yet → "Pay now" button opens the existing checkout flow to add a payment method first, then comes back and pays.
-- Concurrent scans during payment → use `FOR UPDATE` locking on the events that get rolled into the invoice so a parallel scan isn't double-billed.
-- Failed payment → leave events as `stripe_reported=false`, surface the Stripe error inline, and offer "Retry payment" / "Update card".
-
----
-
-## Open question
-
-When you say "total ingestion balance due", is it:
-
-- **(A)** What *you* owe Recouply for using AI Smart Ingestion (the $0.75/page OCR usage) — this is what the plan above implements; or
-- **(B)** The total **invoiceable balance extracted** from the scanned contracts (i.e. the sum of all upcoming invoice schedule amounts in `contract_invoice_schedules`) so that you can press a button and bulk-generate/send those invoices to your customers?
-
-If it's (B), Part 3 changes to: a "Generate & send N invoices, total $X" button that calls the existing `live-contract-actions/generate_invoices` action across all imported contracts in one shot, then optionally hands them off to the outreach engine.
-
-Let me know A or B and I'll implement.
-
----
-
-## Technical notes
-
-- All financial columns use `numeric`, never `integer`.
-- Edge function follows the standards memory: service-role auth, no module-level cache, CORS headers, `23505` treated as success.
-- AI Smart Ingestion remains gated behind subscription / RLS; no change to security posture.
-- No CLM-specific tables touched.
+I'll implement DB → edge functions → webhook extensions → UI in that order. Confirm to proceed.

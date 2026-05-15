@@ -136,7 +136,81 @@ serve(async (req) => {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
         const userId = session.metadata?.user_id;
-        logStep("Checkout completed", { sessionId: session.id, customerId: session.customer, userId });
+        const kind = session.metadata?.kind;
+        logStep("Checkout completed", { sessionId: session.id, customerId: session.customer, userId, kind });
+
+        // ============ ASC 606: credit pack purchase ============
+        if (kind === 'asc606_credits') {
+          const accountId = session.metadata?.account_id;
+          const credits = Number(session.metadata?.credits ?? 0);
+          if (accountId && credits > 0) {
+            // Idempotent insert keyed on session id
+            const { error: ledErr } = await supabase.from('asc606_credit_ledger').insert({
+              account_id: accountId,
+              delta: credits,
+              kind: 'purchase',
+              stripe_checkout_session_id: session.id,
+              stripe_payment_intent_id: session.payment_intent as string | null,
+              unit_price_cents: 80,
+              note: `Pre-paid pack: ${credits} credits`,
+              created_by: userId ?? null,
+            });
+            if (ledErr && ledErr.code !== '23505') {
+              logStep('ASC606 ledger error', { error: ledErr });
+            } else if (!ledErr) {
+              // Upsert wallet & increment
+              await supabase.from('asc606_credit_wallets').upsert({
+                account_id: accountId,
+                stripe_customer_id: session.customer as string ?? null,
+              }, { onConflict: 'account_id', ignoreDuplicates: true });
+              const { data: w } = await supabase.from('asc606_credit_wallets')
+                .select('*').eq('account_id', accountId).single();
+              if (w) {
+                await supabase.from('asc606_credit_wallets').update({
+                  balance_credits: Number(w.balance_credits) + credits,
+                  lifetime_purchased: Number(w.lifetime_purchased) + credits,
+                  stripe_customer_id: w.stripe_customer_id ?? (session.customer as string ?? null),
+                }).eq('account_id', accountId);
+              }
+              logStep('ASC606 credits added', { accountId, credits });
+            }
+          }
+          break;
+        }
+
+        // ============ ASC 606: one-time assessment payment ============
+        if (kind === 'asc606_assessment') {
+          const accountId = session.metadata?.account_id;
+          const contractId = session.metadata?.contract_id;
+          if (accountId && contractId) {
+            // Create a "paid entitlement" placeholder assessment; the run function
+            // will look it up by stripe_checkout_session_id.
+            const { error: aErr } = await supabase.from('asc606_assessments').insert({
+              contract_id: contractId,
+              account_id: accountId,
+              status: 'queued',
+              payment_method: 'stripe_one_time',
+              cost_credits: 0,
+              cost_cents: 999,
+              stripe_checkout_session_id: session.id,
+              stripe_payment_intent_id: session.payment_intent as string | null,
+              requested_by: userId,
+            });
+            if (aErr && aErr.code !== '23505') {
+              logStep('ASC606 assessment entitlement error', { error: aErr });
+            } else {
+              // Trigger run-assessment asynchronously
+              try {
+                await supabase.functions.invoke('asc606-run-assessment', {
+                  body: { contractId, paymentMethod: 'stripe_one_time', stripeSessionId: session.id },
+                });
+              } catch (invErr) {
+                logStep('ASC606 invoke run failed (non-blocking)', { error: invErr });
+              }
+            }
+          }
+          break;
+        }
 
         if (session.mode === 'subscription' && session.customer) {
           const customerId = session.customer as string;
