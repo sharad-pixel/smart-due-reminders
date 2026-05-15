@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { DollarSign, TrendingDown, Target, AlertTriangle, FileText, Users } from "lucide-react";
+import { Archive, DollarSign, TrendingDown, Target, AlertTriangle, FileText, Users } from "lucide-react";
 import type { RevenueRiskAggregate } from "@/hooks/useRevenueRisk";
 import { formatCurrency } from "@/lib/formatters";
 
@@ -42,6 +42,20 @@ export function RevenueRiskOverview({ aggregate }: Props) {
           <div className="text-xl font-bold text-orange-600">{formatCurrency(aggregate.overdue_ar)}</div>
           <div className="text-xs text-muted-foreground mt-1">
             {aggregate.pct_overdue}% of total
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* AR Backlog */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1.5">
+            <Archive className="h-3.5 w-3.5" />
+            AR Backlog
+          </div>
+          <div className="text-xl font-bold">{formatCurrency(aggregate.ar_backlog ?? 0)}</div>
+          <div className="text-xs text-muted-foreground mt-1">
+            {aggregate.ar_backlog_invoice_count ?? 0} future/current invoices
           </div>
         </CardContent>
       </Card>
