@@ -236,11 +236,53 @@ export function DashboardAskAI() {
               I've reviewed every account in your portfolio. Ask me about risk, exposure, what to do next — or hand me a debtor and I'll build you a plan.
             </p>
           </div>
-          {hasChat && (
-            <Button size="sm" variant="ghost" onClick={reset} className="shrink-0 text-xs">
-              <RotateCcw className="h-3 w-3 mr-1" /> New chat
-            </Button>
-          )}
+          <div className="flex items-center gap-1 shrink-0">
+            {history.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="ghost" className="text-xs">
+                    <History className="h-3 w-3 mr-1" /> Recent ({history.length})
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-80">
+                  <DropdownMenuLabel className="text-xs">Last {MAX_SESSIONS} chats</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {history.map((s) => (
+                    <DropdownMenuItem
+                      key={s.id}
+                      onSelect={(e) => { e.preventDefault(); loadSession(s); }}
+                      className="flex items-start gap-2 cursor-pointer"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-medium truncate">
+                          {s.id === sessionId ? "● " : ""}{s.title}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">
+                          {new Date(s.updatedAt).toLocaleString()} · {s.messages.length} msg
+                        </div>
+                      </div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); deleteSession(s.id); }}
+                        className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+                        aria-label="Delete chat"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </DropdownMenuItem>
+                  ))}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onSelect={(e) => { e.preventDefault(); clearAllHistory(); }} className="text-xs text-destructive">
+                    <Trash2 className="h-3 w-3 mr-2" /> Clear all history
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            {hasChat && (
+              <Button size="sm" variant="ghost" onClick={reset} className="text-xs">
+                <RotateCcw className="h-3 w-3 mr-1" /> New chat
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
