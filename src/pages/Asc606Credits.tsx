@@ -108,7 +108,7 @@ export default function Asc606Credits() {
                     <CardTitle>{p.credits} credits</CardTitle>
                     {p.popular && <Badge>Popular</Badge>}
                   </div>
-                  <CardDescription>{Math.floor(p.credits / 10)} assessments</CardDescription>
+                  <CardDescription>${p.credits.toFixed(2)} of usage</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold mb-1">${total.toFixed(2)}</div>
