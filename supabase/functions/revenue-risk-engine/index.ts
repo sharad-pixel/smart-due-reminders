@@ -378,7 +378,9 @@ serve(async (req) => {
         conversation_state: eng?.conversation_state || "no_response",
         invoice_count: debtorInvs.length,
       };
-    }).sort((a, b) => a.collectability_score - b.collectability_score);
+    })
+      .filter(a => a.balance > 0)
+      .sort((a, b) => a.collectability_score - b.collectability_score);
 
     // 12. Generate AI summary if requested
     let aiInsights = null;
