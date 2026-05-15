@@ -198,11 +198,11 @@ serve(async (req) => {
       if (!isPastDue) continue;
 
       const pd = getProbabilityOfDefault(collectabilityScore);
-      const ecl = isPastDue ? Math.round(amount * pd * 100) / 100 : 0;
+      const ecl = Math.round(amount * pd * 100) / 100;
 
       // Engagement-adjusted PD
-      const engagementAdjustedPd = isPastDue ? getEngagementAdjustedPD(pd, engagement) : 0;
-      const engagementAdjustedEcl = isPastDue ? Math.round(amount * engagementAdjustedPd * 100) / 100 : 0;
+      const engagementAdjustedPd = getEngagementAdjustedPD(pd, engagement);
+      const engagementAdjustedEcl = Math.round(amount * engagementAdjustedPd * 100) / 100;
 
       // Risk factors
       const riskFactors = identifyRiskFactors(daysPastDue, amount, debtor, engagement, inv.status);
