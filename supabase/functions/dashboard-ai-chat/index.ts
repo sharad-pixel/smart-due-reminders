@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
       supabase.from("invoices")
         .select("id, debtor_id, invoice_number, amount, amount_outstanding, total_amount, status, due_date, currency, aging_bucket, is_archived")
         .eq("user_id", accountId).eq("is_archived", false)
-        .in("status", ["Open", "PartiallyPaid"]).limit(500),
+        .in("status", ["Open", "PartiallyPaid", "InPaymentPlan", "Disputed"]).limit(500),
       supabase.from("collection_tasks")
         .select("id, summary, task_type, priority, status, due_date, debtor_id")
         .eq("user_id", accountId).in("status", ["pending", "in_progress"]).limit(200),
@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
 
     log("counts", { debtors: debtors.length, invoices: invoices.length, tasks: tasks.length, payments: payments.length });
 
-    const balOf = (i: any) => Number(i.amount_outstanding ?? i.balance ?? i.amount_due ?? i.amount ?? 0);
+    const balOf = (i: any) => Number(i.amount_outstanding ?? i.balance ?? i.amount_due ?? i.total_amount ?? i.amount ?? 0);
     const dueISO = (i: any) => i.due_date ? String(i.due_date).slice(0, 10) : null;
     const dueDateUtc = (i: any) => {
       const value = dueISO(i);
