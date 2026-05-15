@@ -6,7 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import {
   Send, Loader2, RotateCcw, BarChart3, Brain, TrendingUp,
   AlertTriangle, DollarSign, Sparkles, ArrowRight, Wand2, Activity,
+  History, Trash2,
 } from "lucide-react";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
