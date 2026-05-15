@@ -6,7 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import {
   Send, Loader2, RotateCcw, BarChart3, Brain, TrendingUp,
   AlertTriangle, DollarSign, Sparkles, ArrowRight, Wand2, Activity,
+  History, Trash2,
 } from "lucide-react";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
@@ -89,10 +94,28 @@ const FOLLOWUPS = [
   "Which payments came in this week?",
 ];
 
+interface ChatSession { id: string; title: string; updatedAt: number; messages: Msg[] }
+const HISTORY_KEY = "nicolas_revenuehub_history_v1";
+const MAX_SESSIONS = 5;
+
+function loadHistory(): ChatSession[] {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr.slice(0, MAX_SESSIONS) : [];
+  } catch { return []; }
+}
+function saveHistory(sessions: ChatSession[]) {
+  try { localStorage.setItem(HISTORY_KEY, JSON.stringify(sessions.slice(0, MAX_SESSIONS))); } catch {}
+}
+
 export function DashboardAskAI() {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [sessionId, setSessionId] = useState<string>(() => crypto.randomUUID());
+  const [history, setHistory] = useState<ChatSession[]>(() => loadHistory());
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -100,6 +123,22 @@ export function DashboardAskAI() {
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, sending]);
+
+  // Persist current chat to history (upsert) whenever messages change
+  useEffect(() => {
+    if (messages.length === 0) return;
+    const firstUser = messages.find((m) => m.role === "user");
+    const title = (firstUser?.content || "New chat").slice(0, 60);
+    setHistory((prev) => {
+      const others = prev.filter((s) => s.id !== sessionId);
+      const next: ChatSession[] = [
+        { id: sessionId, title, updatedAt: Date.now(), messages },
+        ...others,
+      ].slice(0, MAX_SESSIONS);
+      saveHistory(next);
+      return next;
+    });
+  }, [messages, sessionId]);
 
   const send = async (text?: string) => {
     const value = (text ?? input).trim();
@@ -126,7 +165,33 @@ export function DashboardAskAI() {
 
   const reset = () => {
     setMessages([]);
+    setSessionId(crypto.randomUUID());
     setTimeout(() => inputRef.current?.focus(), 50);
+  };
+
+  const loadSession = (s: ChatSession) => {
+    setSessionId(s.id);
+    setMessages(s.messages);
+    setTimeout(() => inputRef.current?.focus(), 50);
+  };
+
+  const deleteSession = (id: string) => {
+    setHistory((prev) => {
+      const next = prev.filter((s) => s.id !== id);
+      saveHistory(next);
+      return next;
+    });
+    if (id === sessionId) {
+      setMessages([]);
+      setSessionId(crypto.randomUUID());
+    }
+  };
+
+  const clearAllHistory = () => {
+    saveHistory([]);
+    setHistory([]);
+    setMessages([]);
+    setSessionId(crypto.randomUUID());
   };
 
   const hasChat = messages.length > 0;
@@ -171,11 +236,53 @@ export function DashboardAskAI() {
               I've reviewed every account in your portfolio. Ask me about risk, exposure, what to do next — or hand me a debtor and I'll build you a plan.
             </p>
           </div>
-          {hasChat && (
-            <Button size="sm" variant="ghost" onClick={reset} className="shrink-0 text-xs">
-              <RotateCcw className="h-3 w-3 mr-1" /> New chat
-            </Button>
-          )}
+          <div className="flex items-center gap-1 shrink-0">
+            {history.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="ghost" className="text-xs">
+                    <History className="h-3 w-3 mr-1" /> Recent ({history.length})
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-80">
+                  <DropdownMenuLabel className="text-xs">Last {MAX_SESSIONS} chats</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {history.map((s) => (
+                    <DropdownMenuItem
+                      key={s.id}
+                      onSelect={(e) => { e.preventDefault(); loadSession(s); }}
+                      className="flex items-start gap-2 cursor-pointer"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-medium truncate">
+                          {s.id === sessionId ? "● " : ""}{s.title}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">
+                          {new Date(s.updatedAt).toLocaleString()} · {s.messages.length} msg
+                        </div>
+                      </div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); deleteSession(s.id); }}
+                        className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+                        aria-label="Delete chat"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </DropdownMenuItem>
+                  ))}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onSelect={(e) => { e.preventDefault(); clearAllHistory(); }} className="text-xs text-destructive">
+                    <Trash2 className="h-3 w-3 mr-2" /> Clear all history
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            {hasChat && (
+              <Button size="sm" variant="ghost" onClick={reset} className="text-xs">
+                <RotateCcw className="h-3 w-3 mr-1" /> New chat
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
