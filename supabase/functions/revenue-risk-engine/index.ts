@@ -192,8 +192,12 @@ serve(async (req) => {
       // Collectability tier
       const collectabilityTier = getCollectabilityTier(collectabilityScore);
 
-      // ECL calculation — zeroed out for current/unbilled invoices
-      const pd = isPastDue ? getProbabilityOfDefault(collectabilityScore) : 0;
+      // Skip non-past-due invoices entirely from the risk report.
+      // ECL only applies to aged AR (past due_date). Current/unbilled invoices
+      // are excluded from credit-loss math and from invoice_scores list.
+      if (!isPastDue) continue;
+
+      const pd = getProbabilityOfDefault(collectabilityScore);
       const ecl = isPastDue ? Math.round(amount * pd * 100) / 100 : 0;
 
       // Engagement-adjusted PD
