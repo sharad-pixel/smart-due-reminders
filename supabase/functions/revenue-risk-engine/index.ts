@@ -156,21 +156,32 @@ serve(async (req) => {
 
     // 9. Score each invoice
     const now = new Date();
+    const asOfDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const amountOf = (inv: any) => Number(inv.amount_outstanding ?? inv.balance ?? inv.amount_due ?? inv.amount ?? 0);
+    const dueDateUtc = (value?: string | null) => {
+      if (!value) return null;
+      const [year, month, day] = String(value).slice(0, 10).split("-").map(Number);
+      return new Date(Date.UTC(year, month - 1, day));
+    };
+    const isInvoicePastDue = (inv: any) => {
+      const dueDate = dueDateUtc(inv.due_date);
+      return !!dueDate && dueDate.getTime() < asOfDate.getTime() && amountOf(inv) > 0;
+    };
     const invoiceResults: InvoiceRiskResult[] = [];
 
     for (const inv of allInvoices) {
       const debtor = debtorMap.get(inv.debtor_id);
       const engagement = engagementByDebtor.get(inv.debtor_id);
-      const dueDate = inv.due_date ? new Date(inv.due_date) : null;
+      const dueDate = dueDateUtc(inv.due_date);
       const rawDaysPastDue = dueDate
-        ? Math.ceil((now.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24))
+        ? Math.floor((asOfDate.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24))
         : 0;
       const daysPastDue = Math.max(0, rawDaysPastDue);
-      const amount = Number(inv.amount_outstanding || inv.amount || 0);
+      const amount = amountOf(inv);
 
       // ECL only applies to invoices that are actually past due (aged).
       // Not-yet-due or unbilled invoices are excluded from credit-loss math.
-      const isPastDue = !!dueDate && rawDaysPastDue > 0;
+      const isPastDue = isInvoicePastDue(inv);
 
       // A. Aging penalty (0-40)
       const agingPenalty = isPastDue ? calculateAgingPenalty(daysPastDue) : 0;
