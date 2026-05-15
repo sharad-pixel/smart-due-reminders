@@ -6,6 +6,8 @@ import { getCachedReport, setCachedReport, canManualRefreshToday, markManualRefr
 
 export interface RevenueRiskAggregate {
   total_ar: number;
+  past_due_ar?: number;
+  ar_backlog?: number;
   overdue_ar: number;
   pct_overdue: number;
   total_ecl: number;
@@ -13,6 +15,8 @@ export interface RevenueRiskAggregate {
   pct_at_risk: number;
   avg_collectability: number;
   invoice_count: number;
+  past_due_invoice_count?: number;
+  ar_backlog_invoice_count?: number;
   debtor_count: number;
   collectability_distribution: {
     high: number;
