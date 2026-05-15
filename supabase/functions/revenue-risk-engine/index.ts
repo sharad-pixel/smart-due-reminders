@@ -161,12 +161,19 @@ serve(async (req) => {
     for (const inv of allInvoices) {
       const debtor = debtorMap.get(inv.debtor_id);
       const engagement = engagementByDebtor.get(inv.debtor_id);
-      const dueDate = new Date(inv.due_date);
-      const daysPastDue = Math.max(0, Math.ceil((now.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
+      const dueDate = inv.due_date ? new Date(inv.due_date) : null;
+      const rawDaysPastDue = dueDate
+        ? Math.ceil((now.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24))
+        : 0;
+      const daysPastDue = Math.max(0, rawDaysPastDue);
       const amount = Number(inv.amount_outstanding || inv.amount || 0);
 
+      // ECL only applies to invoices that are actually past due (aged).
+      // Not-yet-due or unbilled invoices are excluded from credit-loss math.
+      const isPastDue = !!dueDate && rawDaysPastDue > 0;
+
       // A. Aging penalty (0-40)
-      const agingPenalty = calculateAgingPenalty(daysPastDue);
+      const agingPenalty = isPastDue ? calculateAgingPenalty(daysPastDue) : 0;
 
       // B. Behavioral penalty (0-25)
       const behavioralPenalty = calculateBehavioralPenalty(debtor);
@@ -185,13 +192,13 @@ serve(async (req) => {
       // Collectability tier
       const collectabilityTier = getCollectabilityTier(collectabilityScore);
 
-      // ECL calculation
-      const pd = getProbabilityOfDefault(collectabilityScore);
-      const ecl = Math.round(amount * pd * 100) / 100;
+      // ECL calculation — zeroed out for current/unbilled invoices
+      const pd = isPastDue ? getProbabilityOfDefault(collectabilityScore) : 0;
+      const ecl = isPastDue ? Math.round(amount * pd * 100) / 100 : 0;
 
       // Engagement-adjusted PD
-      const engagementAdjustedPd = getEngagementAdjustedPD(pd, engagement);
-      const engagementAdjustedEcl = Math.round(amount * engagementAdjustedPd * 100) / 100;
+      const engagementAdjustedPd = isPastDue ? getEngagementAdjustedPD(pd, engagement) : 0;
+      const engagementAdjustedEcl = isPastDue ? Math.round(amount * engagementAdjustedPd * 100) / 100 : 0;
 
       // Risk factors
       const riskFactors = identifyRiskFactors(daysPastDue, amount, debtor, engagement, inv.status);
