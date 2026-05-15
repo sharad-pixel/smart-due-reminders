@@ -58,7 +58,41 @@ serve(async (req) => {
       .rpc("get_effective_account_id", { p_user_id: user.id });
     const accountId = effectiveAccountId || user.id;
 
-    // Get user's Stripe subscription
+    // Parse optional quantity early — applies to both credits and Stripe paths
+    let quantity = 1;
+    let referenceId: string | null = null;
+    try {
+      if (req.headers.get("content-type")?.includes("application/json")) {
+        const body = await req.json();
+        const q = Number(body?.quantity);
+        if (Number.isFinite(q) && q >= 1) quantity = Math.floor(q);
+        if (typeof body?.reference_id === "string") referenceId = body.reference_id;
+      }
+    } catch (_e) { /* keep defaults */ }
+
+    // Try platform credit wallet first (1 credit per page)
+    try {
+      const { data: consumed, error: rpcErr } = await supabase.rpc("consume_platform_credits", {
+        _account_id: accountId,
+        _amount: quantity,
+        _service: "smart_ingestion",
+        _reference_id: referenceId,
+        _user_id: user.id,
+        _note: `Smart Ingestion · ${quantity} page${quantity === 1 ? "" : "s"}`,
+      });
+      if (!rpcErr) {
+        logStep("Charged platform credits", { quantity, consumed });
+        return new Response(
+          JSON.stringify({ success: true, reported: true, billed_via: "credits", quantity, ...(consumed as object ?? {}) }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      logStep("Credit consume blocked, falling back to Stripe metered", { error: rpcErr.message });
+    } catch (e) {
+      logStep("Credit RPC threw, falling back to Stripe metered", { err: String(e) });
+    }
+
+    // Get user's Stripe subscription (legacy metered fallback)
     const { data: profile } = await supabase
       .from("profiles")
       .select("stripe_subscription_id, email")
