@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Layout from "@/components/layout/Layout";
-import { RequireClmAccess } from "@/components/clm/RequireClmAccess";
+import IngestionBalanceCard from "@/components/ingestion/IngestionBalanceCard";
 import SEO from "@/components/seo/SEO";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -565,7 +565,7 @@ function ImportsTable({ imports, onReview, statusFilter }: { imports: any[]; onR
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
 
   if (filtered.length === 0) {
-    return <p className="text-sm text-muted-foreground py-8 text-center">No contracts here.</p>;
+    return <ImportsEmptyState statusFilter={statusFilter} />;
   }
 
   return (
