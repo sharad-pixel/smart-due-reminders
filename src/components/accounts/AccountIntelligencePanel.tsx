@@ -295,7 +295,7 @@ export function AccountIntelligencePanel({
   const tier = scorecardData?.collection_health_tier;
   const paidInvoices = scorecardData?.paid_invoices_count ?? 0;
   const overdueInvoices = scorecardData?.overdue_invoices_count ?? 0;
-  const pastDueBalance = scorecardData?.total_open_balance || scorecardData?.current_balance || 0;
+  const pastDueBalance = scorecardData?.past_due_balance ?? 0;
   const primaryCurrency = scorecardData?.primary_currency || 'USD';
   const hasInvoiceData = paidInvoices > 0 || overdueInvoices > 0 || (scorecardData?.open_invoices_count || 0) > 0;
 
