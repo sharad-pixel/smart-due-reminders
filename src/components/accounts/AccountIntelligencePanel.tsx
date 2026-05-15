@@ -45,6 +45,7 @@ interface AccountIntelligencePanelProps {
 interface Intelligence {
   riskLevel: "low" | "medium" | "high" | "critical" | "unknown";
   riskScore: number;
+  schemaVersion?: string;
   executiveSummary: string;
   keyInsights: string[];
   recommendations: string[];
@@ -52,6 +53,8 @@ interface Intelligence {
   communicationSentiment: string;
   collectionStrategy: string;
 }
+
+const INTELLIGENCE_SCHEMA_VERSION = "ar-backlog-v1";
 
 export function AccountIntelligencePanel({ 
   debtorId, 
@@ -122,8 +125,9 @@ export function AccountIntelligencePanel({
         const cacheAge = Date.now() - new Date(debtor.intelligence_report_generated_at).getTime();
         const cacheAgeHours = cacheAge / (1000 * 60 * 60);
 
-        if (cacheAgeHours < 24) {
-          setIntelligence(debtor.intelligence_report as unknown as Intelligence);
+        const report = debtor.intelligence_report as unknown as Intelligence;
+        if (cacheAgeHours < 24 && report.schemaVersion === INTELLIGENCE_SCHEMA_VERSION) {
+          setIntelligence(report);
           setGeneratedAt(debtor.intelligence_report_generated_at);
           setFromCache(true);
           setReportLoading(false);
