@@ -177,6 +177,7 @@ export interface DebtorIntelligenceWithInvoices extends CollectionIntelligenceDa
   inbound_sentiments: string[];
   has_sufficient_data: boolean;
   primary_currency: string;
+  past_due_balance: number;
 }
 
 // Hook for single debtor intelligence with real invoice AND inbound email data
