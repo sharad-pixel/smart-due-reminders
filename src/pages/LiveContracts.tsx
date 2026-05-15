@@ -1201,6 +1201,6 @@ export default function LiveContracts() {
         <UploadDialog open={uploadOpen} onOpenChange={setUploadOpen} />
         <ReviewDrawer importId={reviewId} onClose={() => setReviewId(null)} />
       </Layout>
-    </RequireClmAccess>
+    </>
   );
 }
