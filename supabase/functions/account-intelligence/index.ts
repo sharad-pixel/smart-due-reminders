@@ -109,12 +109,18 @@ Your reports should be:
 - Based on the data provided, including any user-provided customer context (industry, financial health, known issues, etc.)
 - Written in a professional tone
 
+CRITICAL — Risk exposure rules:
+- "Risk exposure", "outstanding exposure", and any past-due figures MUST use financials.pastDueBalance and financials.pastDueInvoicesCount ONLY.
+- Invoices that are open but not yet past their due_date (financials.notYetDueBalance / notYetDueInvoicesCount) are NOT at risk and MUST NOT be counted as exposure or as "open invoices" in risk language.
+- If pastDueInvoicesCount is 0, explicitly state there is no past-due exposure even when totalOpenBalance is non-zero.
+- Never aggregate past-due and not-yet-due balances into a single exposure number.
+
 When user-provided context is available, incorporate it into your analysis — it represents firsthand knowledge from the collections team about this customer.
 
 Structure your response as JSON with these fields:
 - riskLevel: "low" | "medium" | "high" | "critical"
 - riskScore: number 0-100 (100 = highest risk)
-- executiveSummary: 2-3 sentence overview
+- executiveSummary: 2-3 sentence overview (use past-due figures for exposure)
 - keyInsights: array of 3-5 bullet point insights
 - recommendations: array of 2-3 specific action items
 - paymentBehavior: brief assessment of payment patterns
