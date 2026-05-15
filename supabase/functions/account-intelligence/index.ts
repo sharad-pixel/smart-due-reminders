@@ -281,17 +281,26 @@ async function fetchMetrics(supabase: any, debtor_id: string, debtor: any) {
     .maybeSingle();
 
   // Calculate metrics
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const now = new Date();
+  const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const amountOf = (inv: any) => Number(inv.amount_outstanding ?? inv.balance ?? inv.amount_due ?? inv.outstanding_amount ?? inv.amount ?? 0);
+  const dueDateUtc = (value?: string | null) => {
+    if (!value) return null;
+    const [year, month, day] = String(value).slice(0, 10).split("-").map(Number);
+    return new Date(Date.UTC(year, month - 1, day));
+  };
   const openInvoices = invoices?.filter((i: any) => ["Open", "PartiallyPaid", "InPaymentPlan"].includes(i.status)) || [];
-  const totalOpenBalance = openInvoices.reduce((sum: number, inv: any) => sum + (inv.outstanding_amount || inv.amount || 0), 0);
+  const totalOpenBalance = openInvoices.reduce((sum: number, inv: any) => sum + amountOf(inv), 0);
 
   // Past-due exposure (invoices with due_date strictly before today). This is the
   // figure used for "risk exposure" — invoices not yet due are NOT at risk.
-  const pastDueInvoices = openInvoices.filter((i: any) => i.due_date && new Date(i.due_date) < today);
-  const pastDueBalance = pastDueInvoices.reduce((sum: number, inv: any) => sum + (inv.outstanding_amount || inv.amount || 0), 0);
-  const notYetDueInvoices = openInvoices.filter((i: any) => !i.due_date || new Date(i.due_date) >= today);
-  const notYetDueBalance = notYetDueInvoices.reduce((sum: number, inv: any) => sum + (inv.outstanding_amount || inv.amount || 0), 0);
+  const pastDueInvoices = openInvoices.filter((i: any) => {
+    const dueDate = dueDateUtc(i.due_date);
+    return !!dueDate && dueDate.getTime() < today.getTime() && amountOf(i) > 0;
+  });
+  const pastDueBalance = pastDueInvoices.reduce((sum: number, inv: any) => sum + amountOf(inv), 0);
+  const arBacklogInvoices = openInvoices.filter((i: any) => !pastDueInvoices.some((pastDue: any) => pastDue.id === i.id) && amountOf(i) > 0);
+  const arBacklogBalance = arBacklogInvoices.reduce((sum: number, inv: any) => sum + amountOf(inv), 0);
   
   // Calculate DSO (Days Sales Outstanding)
   const paidInvoices = invoices?.filter((i: any) => i.status === "Paid" && i.paid_at) || [];
@@ -324,8 +333,10 @@ async function fetchMetrics(supabase: any, debtor_id: string, debtor: any) {
       openInvoicesCount: openInvoices.length,
       pastDueBalance,
       pastDueInvoicesCount: pastDueInvoices.length,
-      notYetDueBalance,
-      notYetDueInvoicesCount: notYetDueInvoices.length,
+      arBacklogBalance,
+      arBacklogInvoicesCount: arBacklogInvoices.length,
+      notYetDueBalance: arBacklogBalance,
+      notYetDueInvoicesCount: arBacklogInvoices.length,
       totalInvoicesCount: invoices?.length || 0,
       paidInvoicesCount: paidInvoices.length,
       avgDSO,
