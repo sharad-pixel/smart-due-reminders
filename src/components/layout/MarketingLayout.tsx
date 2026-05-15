@@ -207,7 +207,7 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
 
       <MarketingFooter />
       <NicolasChat />
-      <DataVettingStickyBar />
+      
     </div>
   );
 };
