@@ -625,6 +625,8 @@ export type Database = {
           id: string
           kind: string
           note: string | null
+          reference_id: string | null
+          service: string
           stripe_checkout_session_id: string | null
           stripe_invoice_id: string | null
           stripe_payment_intent_id: string | null
@@ -640,6 +642,8 @@ export type Database = {
           id?: string
           kind: string
           note?: string | null
+          reference_id?: string | null
+          service?: string
           stripe_checkout_session_id?: string | null
           stripe_invoice_id?: string | null
           stripe_payment_intent_id?: string | null
@@ -655,6 +659,8 @@ export type Database = {
           id?: string
           kind?: string
           note?: string | null
+          reference_id?: string | null
+          service?: string
           stripe_checkout_session_id?: string | null
           stripe_invoice_id?: string | null
           stripe_payment_intent_id?: string | null
@@ -12261,6 +12267,17 @@ export type Database = {
           _amount: number
           _assessment_id: string
           _contract_id: string
+          _user_id: string
+        }
+        Returns: Json
+      }
+      consume_platform_credits: {
+        Args: {
+          _account_id: string
+          _amount: number
+          _note?: string
+          _reference_id: string
+          _service: string
           _user_id: string
         }
         Returns: Json
