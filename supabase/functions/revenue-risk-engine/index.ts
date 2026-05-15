@@ -330,7 +330,11 @@ serve(async (req) => {
       }, { onConflict: "debtor_id" });
     }
 
-    // 11. Build aggregate stats
+    // 11. Build aggregate stats. Open AR is split into date-based classes:
+    // past-due exposure for ECL, and AR Backlog for future/no-date open invoices.
+    const totalOpenAR = allInvoices.reduce((s, inv) => s + amountOf(inv), 0);
+    const arBacklogInvoices = allInvoices.filter(inv => !isInvoicePastDue(inv) && amountOf(inv) > 0);
+    const arBacklogAR = arBacklogInvoices.reduce((s, inv) => s + amountOf(inv), 0);
     const totalAR = invoiceResults.reduce((s, r) => s + r.amount, 0);
     const overdueAR = invoiceResults.filter(r => r.days_past_due > 0).reduce((s, r) => s + r.amount, 0);
     const totalECL = invoiceResults.reduce((s, r) => s + r.expected_credit_loss, 0);
@@ -391,14 +395,18 @@ serve(async (req) => {
       success: true,
       generated_at: now.toISOString(),
       aggregate: {
-        total_ar: Math.round(totalAR * 100) / 100,
+        total_ar: Math.round(totalOpenAR * 100) / 100,
+        past_due_ar: Math.round(totalAR * 100) / 100,
+        ar_backlog: Math.round(arBacklogAR * 100) / 100,
         overdue_ar: Math.round(overdueAR * 100) / 100,
-        pct_overdue: totalAR > 0 ? Math.round((overdueAR / totalAR) * 10000) / 100 : 0,
+        pct_overdue: totalOpenAR > 0 ? Math.round((overdueAR / totalOpenAR) * 10000) / 100 : 0,
         total_ecl: Math.round(totalECL * 100) / 100,
         engagement_adjusted_ecl: Math.round(totalEngAdjECL * 100) / 100,
-        pct_at_risk: totalAR > 0 ? Math.round((totalECL / totalAR) * 10000) / 100 : 0,
+        pct_at_risk: overdueAR > 0 ? Math.round((totalECL / overdueAR) * 10000) / 100 : 0,
         avg_collectability: avgCollectability,
-        invoice_count: invoiceResults.length,
+        invoice_count: allInvoices.filter(inv => amountOf(inv) > 0).length,
+        past_due_invoice_count: invoiceResults.length,
+        ar_backlog_invoice_count: arBacklogInvoices.length,
         debtor_count: debtorIds.length,
         collectability_distribution: {
           high: highCount,
