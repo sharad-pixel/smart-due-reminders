@@ -204,3 +204,44 @@ export function buildLinkedInShareUrl(link: string): string {
   const { text } = buildRandomShareText(link);
   return `https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(text)}`;
 }
+
+const BLOG_HASHTAGS = "#AccountsReceivable #Collections #Fintech #AI #CashFlow #RevenueIntelligence";
+
+export interface BlogShareInput {
+  title: string;
+  excerpt: string;
+  url: string;
+  category?: string;
+  author?: string;
+}
+
+/**
+ * Build a pre-populated LinkedIn post for a blog article.
+ * Includes title, excerpt, URL, agent signature, and hashtags.
+ */
+export function buildBlogShareText(input: BlogShareInput): { text: string; agent: ShareAgent } {
+  const agent = SHARE_AGENTS[Math.floor(Math.random() * SHARE_AGENTS.length)];
+  const categoryLine = input.category ? `📚 ${input.category}\n\n` : "";
+  const authorLine = input.author ? `\n\nWritten by ${input.author} on the Recouply.ai team.` : "";
+
+  const text = `${categoryLine}${input.title}
+
+${input.excerpt}${authorLine}
+
+Read the full article 👇
+${input.url}${signature(agent)}
+
+${BLOG_HASHTAGS}`;
+
+  return { text, agent };
+}
+
+/**
+ * Build a LinkedIn share URL pre-filled with blog content.
+ * Uses the /feed/?shareActive=true endpoint which opens the composer with text pre-populated.
+ */
+export function buildBlogLinkedInShareUrl(input: BlogShareInput): string {
+  const { text } = buildBlogShareText(input);
+  return `https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(text)}`;
+}
+

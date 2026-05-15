@@ -6,6 +6,7 @@ import { ArrowLeft, Calendar, Clock, Linkedin, Link2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import type { BlogPost } from "@/lib/blogConfig";
+import { buildBlogShareText } from "@/lib/linkedinShareMessages";
 
 interface BlogPostLayoutProps {
   post: BlogPost;
@@ -20,9 +21,24 @@ const BlogPostLayout = ({ post, children }: BlogPostLayoutProps) => {
     toast.success("Link copied to clipboard");
   };
 
-  const handleShareLinkedIn = () => {
-    const url = encodeURIComponent(window.location.href);
-    window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, '_blank');
+  const handleShareLinkedIn = async () => {
+    const url = `https://recouply.ai/blog/${post.slug}`;
+    const { text } = buildBlogShareText({
+      title: post.title,
+      excerpt: post.excerpt,
+      url,
+      category: post.category,
+      author: post.author?.name,
+    });
+    // Copy ready-made post to clipboard so users can paste if LinkedIn drops the text param
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Post copied to clipboard — paste into LinkedIn if needed");
+    } catch {
+      // ignore clipboard errors
+    }
+    const shareUrl = `https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(text)}`;
+    window.open(shareUrl, "_blank", "noopener,noreferrer");
   };
 
   const handleShareX = () => {
