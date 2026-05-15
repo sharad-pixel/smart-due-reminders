@@ -11,7 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { FileSignature, Plus, Loader2, FileText, Upload, AlertCircle, Briefcase, Building2, Users, Clock, CheckCircle2 } from "lucide-react";
+import { FileSignature, Plus, Loader2, FileText, Upload, AlertCircle, Briefcase, Building2, Users, Clock, CheckCircle2, Sparkles } from "lucide-react";
+import { Asc606AssessmentDialog } from "@/components/contracts/Asc606AssessmentDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useClmEntitlement } from "@/hooks/useClmEntitlement";
 import { useClmTemplates } from "@/hooks/useClmTemplates";
@@ -51,6 +52,7 @@ const ContractsTab = () => {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ title: "", counterparty_name: "", contract_value: "", expiry_date: "" });
+  const [asc606For, setAsc606For] = useState<Contract | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -113,7 +115,7 @@ const ContractsTab = () => {
           </div>
         ) : (
           <Table>
-            <TableHeader><TableRow><TableHead>Title</TableHead><TableHead>Counterparty</TableHead><TableHead>Status</TableHead><TableHead>Value</TableHead><TableHead>Expires</TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>Title</TableHead><TableHead>Counterparty</TableHead><TableHead>Status</TableHead><TableHead>Value</TableHead><TableHead>Expires</TableHead><TableHead className="text-right">ASC 606</TableHead></TableRow></TableHeader>
             <TableBody>
               {contracts.map((c) => (
                 <TableRow key={c.id}>
@@ -122,12 +124,26 @@ const ContractsTab = () => {
                   <TableCell><Badge variant="outline">{c.status}</Badge></TableCell>
                   <TableCell>{c.contract_value ? `${c.currency ?? "USD"} ${Number(c.contract_value).toLocaleString()}` : "—"}</TableCell>
                   <TableCell>{c.expiry_date ?? "—"}</TableCell>
+                  <TableCell className="text-right">
+                    <Button size="sm" variant="outline" onClick={() => setAsc606For(c)}>
+                      <Sparkles className="h-3.5 w-3.5 mr-1" />Assess
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         )}
       </CardContent>
+      {asc606For && accountId && (
+        <Asc606AssessmentDialog
+          open={!!asc606For}
+          onOpenChange={(v) => !v && setAsc606For(null)}
+          contractId={asc606For.id}
+          accountId={accountId}
+          contractTitle={asc606For.title}
+        />
+      )}
     </Card>
   );
 };
