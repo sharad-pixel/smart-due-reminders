@@ -534,6 +534,30 @@ function UploadDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o:
   );
 }
 
+// ------- Empty state -------
+function ImportsEmptyState({ statusFilter }: { statusFilter?: string[] }) {
+  const key = statusFilter?.includes("needs_review") ? "review"
+    : statusFilter?.includes("imported") ? "imported"
+    : statusFilter?.some((s) => ["found", "queued", "scanning", "ocr_processing", "ai_extracting"].includes(s)) ? "queue"
+    : "all";
+  const copy: Record<string, { title: string; body: string }> = {
+    review: { title: "Nothing waiting for review", body: "Once AI finishes extracting, contracts that need a human eye will appear here." },
+    imported: { title: "No imported contracts yet", body: "Approved and imported contracts will live here for ongoing management." },
+    queue: { title: "No active scans", body: "Upload a contract or connect a Drive folder to kick off AI Smart Ingestion." },
+    all: { title: "No contracts here", body: "Upload a contract to get started." },
+  };
+  const c = copy[key];
+  return (
+    <div className="flex flex-col items-center justify-center text-center py-12 px-6">
+      <div className="p-3 rounded-full bg-primary/10 text-primary mb-3">
+        <Sparkles className="h-6 w-6" />
+      </div>
+      <h3 className="font-medium text-base">{c.title}</h3>
+      <p className="text-sm text-muted-foreground mt-1 max-w-sm">{c.body}</p>
+    </div>
+  );
+}
+
 // ------- Imports/Queue table -------
 function ImportsTable({ imports, onReview, statusFilter }: { imports: any[]; onReview: (id: string) => void; statusFilter?: string[] }) {
   const qc = useQueryClient();
