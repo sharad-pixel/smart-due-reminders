@@ -94,10 +94,28 @@ const FOLLOWUPS = [
   "Which payments came in this week?",
 ];
 
+interface ChatSession { id: string; title: string; updatedAt: number; messages: Msg[] }
+const HISTORY_KEY = "nicolas_revenuehub_history_v1";
+const MAX_SESSIONS = 5;
+
+function loadHistory(): ChatSession[] {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr.slice(0, MAX_SESSIONS) : [];
+  } catch { return []; }
+}
+function saveHistory(sessions: ChatSession[]) {
+  try { localStorage.setItem(HISTORY_KEY, JSON.stringify(sessions.slice(0, MAX_SESSIONS))); } catch {}
+}
+
 export function DashboardAskAI() {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [sessionId, setSessionId] = useState<string>(() => crypto.randomUUID());
+  const [history, setHistory] = useState<ChatSession[]>(() => loadHistory());
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -105,6 +123,22 @@ export function DashboardAskAI() {
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, sending]);
+
+  // Persist current chat to history (upsert) whenever messages change
+  useEffect(() => {
+    if (messages.length === 0) return;
+    const firstUser = messages.find((m) => m.role === "user");
+    const title = (firstUser?.content || "New chat").slice(0, 60);
+    setHistory((prev) => {
+      const others = prev.filter((s) => s.id !== sessionId);
+      const next: ChatSession[] = [
+        { id: sessionId, title, updatedAt: Date.now(), messages },
+        ...others,
+      ].slice(0, MAX_SESSIONS);
+      saveHistory(next);
+      return next;
+    });
+  }, [messages, sessionId]);
 
   const send = async (text?: string) => {
     const value = (text ?? input).trim();
@@ -131,7 +165,33 @@ export function DashboardAskAI() {
 
   const reset = () => {
     setMessages([]);
+    setSessionId(crypto.randomUUID());
     setTimeout(() => inputRef.current?.focus(), 50);
+  };
+
+  const loadSession = (s: ChatSession) => {
+    setSessionId(s.id);
+    setMessages(s.messages);
+    setTimeout(() => inputRef.current?.focus(), 50);
+  };
+
+  const deleteSession = (id: string) => {
+    setHistory((prev) => {
+      const next = prev.filter((s) => s.id !== id);
+      saveHistory(next);
+      return next;
+    });
+    if (id === sessionId) {
+      setMessages([]);
+      setSessionId(crypto.randomUUID());
+    }
+  };
+
+  const clearAllHistory = () => {
+    saveHistory([]);
+    setHistory([]);
+    setMessages([]);
+    setSessionId(crypto.randomUUID());
   };
 
   const hasChat = messages.length > 0;
