@@ -71,17 +71,21 @@ export default function Asc606Credits() {
 
   return (
     <Layout>
-      <SEO title="ASC 606 Assessment Credits" description="Pre-purchase ASC 606 Revenue Risk Assessment credits at 20% off." />
+      <SEO title="Platform Credits" description="Pre-purchase platform credits at 20% off — usable across ASC 606 assessments, AI Smart Ingestion, and other paid services." />
       <div className="max-w-5xl mx-auto p-6 space-y-6">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Sparkles className="h-6 w-6 text-primary" />
-            ASC 606 Assessment Credits
+            Platform Credits
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Each ASC 606 GAAP Revenue Risk Assessment costs <strong>10 credits</strong>.
-            Pre-purchase at <strong>$0.80 / credit</strong> (20% off the $1.00 post-paid rate).
+            One wallet, used across paid services. Pre-purchase at <strong>$0.80 / credit</strong> (20% off the $1.00 post-paid rate).
           </p>
+          <ul className="text-xs text-muted-foreground mt-2 list-disc pl-5 space-y-0.5">
+            <li><strong>ASC 606 GAAP Revenue Risk Assessment</strong> — 10 credits per contract</li>
+            <li><strong>AI Smart Ingestion</strong> — 1 credit per page processed</li>
+            <li>Additional paid services as they launch</li>
+          </ul>
         </div>
 
         {/* Wallet card */}
