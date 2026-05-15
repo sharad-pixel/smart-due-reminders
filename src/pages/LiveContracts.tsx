@@ -1126,11 +1126,93 @@ function AuditTab() {
   );
 }
 
+// ------- Enhanced tab trigger -------
+function RichTab({
+  value, icon: Icon, label, sublabel, count, tone = "muted", urgent = false,
+}: {
+  value: string;
+  icon: any;
+  label: string;
+  sublabel?: string;
+  count?: number;
+  tone?: "muted" | "amber" | "emerald" | "blue" | "red" | "primary";
+  urgent?: boolean;
+}) {
+  const toneMap: Record<string, string> = {
+    muted: "bg-muted text-muted-foreground",
+    amber: "bg-amber-100 text-amber-700",
+    emerald: "bg-emerald-100 text-emerald-700",
+    blue: "bg-blue-100 text-blue-700",
+    red: "bg-red-100 text-red-700",
+    primary: "bg-primary/10 text-primary",
+  };
+  return (
+    <TabsTrigger
+      value={value}
+      className="group relative flex-1 min-w-[160px] data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:border-primary/40 border border-transparent rounded-md px-3 py-2.5 h-auto items-start text-left transition-all"
+    >
+      <div className="flex items-start gap-2.5 w-full">
+        <div className={`p-1.5 rounded-md shrink-0 ${toneMap[tone]}`}>
+          <Icon className="h-3.5 w-3.5" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5">
+            <span className="text-sm font-medium truncate">{label}</span>
+            {typeof count === "number" && (
+              <Badge
+                variant={urgent && count > 0 ? "destructive" : "secondary"}
+                className="h-5 px-1.5 text-[10px] font-semibold"
+              >
+                {count}
+              </Badge>
+            )}
+            {urgent && count > 0 && (
+              <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
+            )}
+          </div>
+          {sublabel && (
+            <div className="text-[10.5px] text-muted-foreground truncate mt-0.5">{sublabel}</div>
+          )}
+        </div>
+      </div>
+    </TabsTrigger>
+  );
+}
+
 // ------- Main page -------
 export default function LiveContracts() {
   const { data: imports = [] } = useImports();
+  const { data: folders = [] } = useFolders();
   const [reviewId, setReviewId] = useState<string | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
+
+  const tabCounts = useMemo(() => {
+    const queueStatuses = ["found", "queued", "scanning", "ocr_processing", "ai_extracting", "failed"];
+    const importedStatuses = ["imported", "duplicate", "rejected", "approved"];
+    const queue = imports.filter((i: any) => queueStatuses.includes(i.status));
+    const failedInQueue = queue.filter((i: any) => i.status === "failed").length;
+    const review = imports.filter((i: any) => i.status === "needs_review").length;
+    const imported = imports.filter((i: any) => importedStatuses.includes(i.status)).length;
+    const lastScanned = folders.reduce((max: number, f: any) => {
+      const t = f.last_scanned_at ? new Date(f.last_scanned_at).getTime() : 0;
+      return t > max ? t : max;
+    }, 0);
+    const folderSub = folders.length === 0
+      ? "None connected"
+      : lastScanned
+        ? `Last scan ${new Date(lastScanned).toLocaleDateString()}`
+        : "Never scanned";
+    return {
+      folders: folders.length,
+      folderSub,
+      queue: queue.length,
+      queueSub: failedInQueue ? `${failedInQueue} failed` : "Awaiting extraction",
+      review,
+      reviewSub: review ? "Action needed" : "All clear",
+      imported,
+      importedSub: "Approved & duplicates",
+    };
+  }, [imports, folders]);
 
   return (
     <>
@@ -1157,13 +1239,48 @@ export default function LiveContracts() {
 
           <RecentScansCard imports={imports} />
 
-          <Tabs defaultValue="review">
-            <TabsList>
-              <TabsTrigger value="folders">Folders</TabsTrigger>
-              <TabsTrigger value="queue">Scan queue</TabsTrigger>
-              <TabsTrigger value="review">Review ({imports.filter((i) => i.status === "needs_review").length})</TabsTrigger>
-              <TabsTrigger value="imported">Imported</TabsTrigger>
-              <TabsTrigger value="audit">Audit</TabsTrigger>
+          <Tabs defaultValue={tabCounts.review > 0 ? "review" : "folders"}>
+            <TabsList className="w-full h-auto bg-muted/40 p-1.5 flex flex-wrap gap-1 justify-stretch">
+              <RichTab
+                value="folders"
+                icon={FolderPlus}
+                label="Assigned folders"
+                sublabel={tabCounts.folderSub}
+                count={tabCounts.folders}
+                tone="primary"
+              />
+              <RichTab
+                value="queue"
+                icon={Loader2}
+                label="Scan queue"
+                sublabel={tabCounts.queueSub}
+                count={tabCounts.queue}
+                tone="blue"
+              />
+              <RichTab
+                value="review"
+                icon={ClipboardList}
+                label="Review"
+                sublabel={tabCounts.reviewSub}
+                count={tabCounts.review}
+                tone="amber"
+                urgent
+              />
+              <RichTab
+                value="imported"
+                icon={CheckCircle2}
+                label="Imported"
+                sublabel={tabCounts.importedSub}
+                count={tabCounts.imported}
+                tone="emerald"
+              />
+              <RichTab
+                value="audit"
+                icon={Clock}
+                label="Audit trail"
+                sublabel="Activity log"
+                tone="muted"
+              />
             </TabsList>
 
             <TabsContent value="folders" className="mt-4"><FoldersTab /></TabsContent>
