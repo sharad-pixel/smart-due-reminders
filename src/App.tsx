@@ -268,6 +268,10 @@ const App = () => (
               <Route path="/contracts/templates/:id" element={<ClmTemplateDetail />} />
               <Route path="/contracts/instances/:id" element={<ClmInstanceDetail />} />
               <Route path="/clm-portal" element={<ClmPortal />} />
+              {/* AI Smart Ingestion (Revenue Intelligence pillar) */}
+              <Route path="/ai-ingestion" element={<LiveContracts />} />
+              <Route path="/ai-ingestion/:importId" element={<LiveContractDetail />} />
+              {/* Legacy CLM URLs — kept for backwards compatibility */}
               <Route path="/contracts/live" element={<LiveContracts />} />
               <Route path="/contracts/live/:importId" element={<LiveContractDetail />} />
               <Route path="/clm/live-contracts" element={<LiveContracts />} />
