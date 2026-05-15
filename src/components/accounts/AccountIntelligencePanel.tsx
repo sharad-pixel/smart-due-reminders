@@ -65,7 +65,7 @@ export function AccountIntelligencePanel({
 
   // Find this account's risk data from the revenue risk engine
   const accountRisk = revenueRiskData?.top_risk_accounts?.find(a => a.debtor_id === debtorId);
-  const accountInvoiceScores = revenueRiskData?.invoice_scores?.filter(s => s.debtor_id === debtorId) || [];
+  const accountInvoiceScores = revenueRiskData?.invoice_scores?.filter(s => s.debtor_id === debtorId && (s.days_past_due ?? 0) > 0) || [];
   
   // Report data
   const [reportLoading, setReportLoading] = useState(true);
