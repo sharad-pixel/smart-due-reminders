@@ -156,21 +156,32 @@ serve(async (req) => {
 
     // 9. Score each invoice
     const now = new Date();
+    const asOfDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const amountOf = (inv: any) => Number(inv.amount_outstanding ?? inv.balance ?? inv.amount_due ?? inv.amount ?? 0);
+    const dueDateUtc = (value?: string | null) => {
+      if (!value) return null;
+      const [year, month, day] = String(value).slice(0, 10).split("-").map(Number);
+      return new Date(Date.UTC(year, month - 1, day));
+    };
+    const isInvoicePastDue = (inv: any) => {
+      const dueDate = dueDateUtc(inv.due_date);
+      return !!dueDate && dueDate.getTime() < asOfDate.getTime() && amountOf(inv) > 0;
+    };
     const invoiceResults: InvoiceRiskResult[] = [];
 
     for (const inv of allInvoices) {
       const debtor = debtorMap.get(inv.debtor_id);
       const engagement = engagementByDebtor.get(inv.debtor_id);
-      const dueDate = inv.due_date ? new Date(inv.due_date) : null;
+      const dueDate = dueDateUtc(inv.due_date);
       const rawDaysPastDue = dueDate
-        ? Math.ceil((now.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24))
+        ? Math.floor((asOfDate.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24))
         : 0;
       const daysPastDue = Math.max(0, rawDaysPastDue);
-      const amount = Number(inv.amount_outstanding || inv.amount || 0);
+      const amount = amountOf(inv);
 
       // ECL only applies to invoices that are actually past due (aged).
       // Not-yet-due or unbilled invoices are excluded from credit-loss math.
-      const isPastDue = !!dueDate && rawDaysPastDue > 0;
+      const isPastDue = isInvoicePastDue(inv);
 
       // A. Aging penalty (0-40)
       const agingPenalty = isPastDue ? calculateAgingPenalty(daysPastDue) : 0;
@@ -319,7 +330,11 @@ serve(async (req) => {
       }, { onConflict: "debtor_id" });
     }
 
-    // 11. Build aggregate stats
+    // 11. Build aggregate stats. Open AR is split into date-based classes:
+    // past-due exposure for ECL, and AR Backlog for future/no-date open invoices.
+    const totalOpenAR = allInvoices.reduce((s, inv) => s + amountOf(inv), 0);
+    const arBacklogInvoices = allInvoices.filter(inv => !isInvoicePastDue(inv) && amountOf(inv) > 0);
+    const arBacklogAR = arBacklogInvoices.reduce((s, inv) => s + amountOf(inv), 0);
     const totalAR = invoiceResults.reduce((s, r) => s + r.amount, 0);
     const overdueAR = invoiceResults.filter(r => r.days_past_due > 0).reduce((s, r) => s + r.amount, 0);
     const totalECL = invoiceResults.reduce((s, r) => s + r.expected_credit_loss, 0);
@@ -363,7 +378,9 @@ serve(async (req) => {
         conversation_state: eng?.conversation_state || "no_response",
         invoice_count: debtorInvs.length,
       };
-    }).sort((a, b) => a.collectability_score - b.collectability_score);
+    })
+      .filter(a => a.balance > 0)
+      .sort((a, b) => a.collectability_score - b.collectability_score);
 
     // 12. Generate AI summary if requested
     let aiInsights = null;
@@ -380,14 +397,18 @@ serve(async (req) => {
       success: true,
       generated_at: now.toISOString(),
       aggregate: {
-        total_ar: Math.round(totalAR * 100) / 100,
+        total_ar: Math.round(totalOpenAR * 100) / 100,
+        past_due_ar: Math.round(totalAR * 100) / 100,
+        ar_backlog: Math.round(arBacklogAR * 100) / 100,
         overdue_ar: Math.round(overdueAR * 100) / 100,
-        pct_overdue: totalAR > 0 ? Math.round((overdueAR / totalAR) * 10000) / 100 : 0,
+        pct_overdue: totalOpenAR > 0 ? Math.round((overdueAR / totalOpenAR) * 10000) / 100 : 0,
         total_ecl: Math.round(totalECL * 100) / 100,
         engagement_adjusted_ecl: Math.round(totalEngAdjECL * 100) / 100,
-        pct_at_risk: totalAR > 0 ? Math.round((totalECL / totalAR) * 10000) / 100 : 0,
+        pct_at_risk: overdueAR > 0 ? Math.round((totalECL / overdueAR) * 10000) / 100 : 0,
         avg_collectability: avgCollectability,
-        invoice_count: invoiceResults.length,
+        invoice_count: allInvoices.filter(inv => amountOf(inv) > 0).length,
+        past_due_invoice_count: invoiceResults.length,
+        ar_backlog_invoice_count: arBacklogInvoices.length,
         debtor_count: debtorIds.length,
         collectability_distribution: {
           high: highCount,

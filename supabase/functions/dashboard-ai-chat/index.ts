@@ -43,8 +43,9 @@ Deno.serve(async (req) => {
     log("user", user.id, "account", accountId, "msgs", messages.length);
 
     // ---- Aggregate account-wide context ----
-    const today = new Date();
-    const todayISO = today.toISOString().slice(0, 10);
+    const now = new Date();
+    const asOfDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const todayISO = asOfDate.toISOString().slice(0, 10);
 
     const [debtorsRes, invoicesRes, tasksRes, paymentsRes] = await Promise.all([
       supabase.from("debtors")
@@ -53,7 +54,7 @@ Deno.serve(async (req) => {
       supabase.from("invoices")
         .select("id, debtor_id, invoice_number, amount, amount_outstanding, total_amount, status, due_date, currency, aging_bucket, is_archived")
         .eq("user_id", accountId).eq("is_archived", false)
-        .in("status", ["Open", "PartiallyPaid"]).limit(500),
+        .in("status", ["Open", "PartiallyPaid", "InPaymentPlan", "Disputed"]).limit(500),
       supabase.from("collection_tasks")
         .select("id, summary, task_type, priority, status, due_date, debtor_id")
         .eq("user_id", accountId).in("status", ["pending", "in_progress"]).limit(200),
@@ -74,13 +75,26 @@ Deno.serve(async (req) => {
 
     log("counts", { debtors: debtors.length, invoices: invoices.length, tasks: tasks.length, payments: payments.length });
 
-    const balOf = (i: any) => Number(i.amount_outstanding ?? i.amount ?? 0);
-    const isOverdue = (i: any) => i.due_date && i.due_date < todayISO && balOf(i) > 0.005;
-    const dpd = (i: any) => i.due_date ? Math.max(0, Math.floor((today.getTime() - new Date(i.due_date).getTime()) / 86400000)) : 0;
+    const balOf = (i: any) => Number(i.amount_outstanding ?? i.balance ?? i.amount_due ?? i.total_amount ?? i.amount ?? 0);
+    const dueISO = (i: any) => i.due_date ? String(i.due_date).slice(0, 10) : null;
+    const dueDateUtc = (i: any) => {
+      const value = dueISO(i);
+      if (!value) return null;
+      const [year, month, day] = value.split("-").map(Number);
+      return new Date(Date.UTC(year, month - 1, day));
+    };
+    const isOverdue = (i: any) => !!dueISO(i) && dueISO(i)! < todayISO && balOf(i) > 0.005;
+    const isArBacklog = (i: any) => (!dueISO(i) || dueISO(i)! >= todayISO) && balOf(i) > 0.005;
+    const dpd = (i: any) => {
+      const due = dueDateUtc(i);
+      return due ? Math.max(0, Math.floor((asOfDate.getTime() - due.getTime()) / 86400000)) : 0;
+    };
 
     const totalAR = invoices.reduce((s, i: any) => s + balOf(i), 0);
     const overdueInvoices = invoices.filter(isOverdue);
+    const arBacklogInvoices = invoices.filter(isArBacklog);
     const totalOverdue = overdueInvoices.reduce((s, i: any) => s + balOf(i), 0);
+    const totalArBacklog = arBacklogInvoices.reduce((s, i: any) => s + balOf(i), 0);
 
     // Aging buckets from invoices
     const agingBuckets: Record<string, { count: number; balance: number }> = {
@@ -113,17 +127,31 @@ Deno.serve(async (req) => {
     }
     const avgRisk = scoredCount ? Math.round((totalCollectionsRisk / scoredCount) * 10) / 10 : null;
 
-    // Top risk accounts (highest balance + risk tier)
+    // Account balances split by invoice date classification.
     const debtorBalanceMap: Record<string, number> = {};
+    const debtorPastDueMap: Record<string, { balance: number; count: number }> = {};
+    const debtorBacklogMap: Record<string, { balance: number; count: number }> = {};
     for (const i of invoices as any[]) {
       if (!i.debtor_id) continue;
-      debtorBalanceMap[i.debtor_id] = (debtorBalanceMap[i.debtor_id] || 0) + balOf(i);
+      const balance = balOf(i);
+      debtorBalanceMap[i.debtor_id] = (debtorBalanceMap[i.debtor_id] || 0) + balance;
+      if (isOverdue(i)) {
+        const current = debtorPastDueMap[i.debtor_id] || { balance: 0, count: 0 };
+        debtorPastDueMap[i.debtor_id] = { balance: current.balance + balance, count: current.count + 1 };
+      } else if (isArBacklog(i)) {
+        const current = debtorBacklogMap[i.debtor_id] || { balance: 0, count: 0 };
+        debtorBacklogMap[i.debtor_id] = { balance: current.balance + balance, count: current.count + 1 };
+      }
     }
     const topRisk = (debtors as any[])
       .map((d) => ({
         id: d.id,
         name: d.name,
-        balance: Math.round((debtorBalanceMap[d.id] ?? Number(d.total_open_balance ?? d.current_balance ?? 0)) * 100) / 100,
+        balance: Math.round((debtorPastDueMap[d.id]?.balance || 0) * 100) / 100,
+        past_due_balance: Math.round((debtorPastDueMap[d.id]?.balance || 0) * 100) / 100,
+        past_due_invoice_count: debtorPastDueMap[d.id]?.count || 0,
+        ar_backlog_balance: Math.round((debtorBacklogMap[d.id]?.balance || 0) * 100) / 100,
+        ar_backlog_invoice_count: debtorBacklogMap[d.id]?.count || 0,
         risk_tier: d.risk_tier_detailed || d.risk_tier || "unscored",
         health_tier: d.health_tier,
         risk_score: d.collections_risk_score,
@@ -139,10 +167,22 @@ Deno.serve(async (req) => {
       .sort((a, b) => (Number(b.risk_score) || 0) * b.balance - (Number(a.risk_score) || 0) * a.balance)
       .slice(0, 15);
 
-    // Top open invoices by balance
+    const topArBacklogAccounts = (debtors as any[])
+      .map((d) => ({
+        id: d.id,
+        name: d.name,
+        ar_backlog_balance: Math.round((debtorBacklogMap[d.id]?.balance || 0) * 100) / 100,
+        ar_backlog_invoice_count: debtorBacklogMap[d.id]?.count || 0,
+        past_due_balance: Math.round((debtorPastDueMap[d.id]?.balance || 0) * 100) / 100,
+      }))
+      .filter((d) => d.ar_backlog_balance > 0)
+      .sort((a, b) => b.ar_backlog_balance - a.ar_backlog_balance)
+      .slice(0, 15);
+
+    // Top past-due invoices by balance
     const debtorNameMap = new Map((debtors as any[]).map((d) => [d.id, d.name]));
-    const topInvoices = [...invoices]
-      .filter((i: any) => balOf(i) > 0)
+    const topPastDueInvoices = [...invoices]
+      .filter((i: any) => isOverdue(i))
       .sort((a: any, b: any) => balOf(b) - balOf(a))
       .slice(0, 50)
       .map((i: any) => ({
@@ -156,6 +196,25 @@ Deno.serve(async (req) => {
         days_overdue: dpd(i),
         currency: i.currency,
         aging: i.aging_bucket,
+        ar_classification: "Past Due",
+      }));
+
+    const topArBacklogInvoices = [...invoices]
+      .filter((i: any) => isArBacklog(i))
+      .sort((a: any, b: any) => balOf(b) - balOf(a))
+      .slice(0, 50)
+      .map((i: any) => ({
+        id: i.id,
+        invoice: i.invoice_number,
+        debtor_id: i.debtor_id,
+        debtor: debtorNameMap.get(i.debtor_id) || "—",
+        balance: Math.round(balOf(i) * 100) / 100,
+        status: i.status,
+        due_date: i.due_date,
+        days_overdue: 0,
+        currency: i.currency,
+        aging: i.aging_bucket,
+        ar_classification: "AR Backlog",
       }));
 
     const taskSummary = {
@@ -173,7 +232,7 @@ Deno.serve(async (req) => {
       })),
     };
 
-    const last30 = new Date(today.getTime() - 30 * 86400000).toISOString().slice(0, 10);
+    const last30 = new Date(now.getTime() - 30 * 86400000).toISOString().slice(0, 10);
     const recent30 = (payments as any[]).filter((p) => p.payment_date >= last30);
     const paymentSummary = {
       total_recent_count: payments.length,
@@ -187,8 +246,10 @@ Deno.serve(async (req) => {
       active_debtors_with_balance: Object.values(debtorBalanceMap).filter((b) => b > 0).length,
       total_ar_open: Math.round(totalAR * 100) / 100,
       total_overdue: Math.round(totalOverdue * 100) / 100,
+      total_ar_backlog: Math.round(totalArBacklog * 100) / 100,
       open_invoice_count: invoices.length,
       overdue_invoice_count: overdueInvoices.length,
+      ar_backlog_invoice_count: arBacklogInvoices.length,
       avg_collections_risk_score: avgRisk,
       risk_tier_breakdown: riskBreakdown,
       aging_buckets: Object.fromEntries(
@@ -200,7 +261,9 @@ Deno.serve(async (req) => {
       as_of: todayISO,
       portfolio,
       top_risk_accounts: topRisk,
-      top_open_invoices: topInvoices,
+      top_ar_backlog_accounts: topArBacklogAccounts,
+      top_past_due_invoices: topPastDueInvoices,
+      top_ar_backlog_invoices: topArBacklogInvoices,
       tasks: taskSummary,
       recent_payments: paymentSummary,
     };
@@ -217,9 +280,16 @@ FORMAT RULES (very important):
 - ALWAYS hyperlink debtor names and invoice numbers using these exact patterns:
    * Debtor link:  [Debtor Name](/debtors/{debtor_id})
    * Invoice link: [INVOICE-NUMBER](/invoices/{invoice_id})
-- Use the \`id\` field from \`top_risk_accounts\` for debtor links and the \`id\` field from \`top_open_invoices\` for invoice links. If an id is missing, render plain bold text instead — never invent an id.
+- Use the \`id\` field from debtor arrays for debtor links and the \`id\` field from invoice arrays for invoice links. If an id is missing, render plain bold text instead — never invent an id.
 - Format money as $1,234 (no decimals unless < $10). Format dates as YYYY-MM-DD.
 - End with a short **Recommended next step** line (1 sentence) when the question is action-oriented.
+
+CLASSIFICATION RULES (critical):
+- Past due/overdue/risk exposure means invoice \`due_date\` is strictly before CONTEXT.as_of and balance is positive.
+- Open invoices with no due date or with \`due_date\` on/after CONTEXT.as_of are AR Backlog, not overdue and not risk exposure.
+- Use \`portfolio.total_overdue\`, \`portfolio.overdue_invoice_count\`, \`top_risk_accounts\`, and \`top_past_due_invoices\` for risk/overdue answers.
+- Use \`portfolio.total_ar_backlog\`, \`portfolio.ar_backlog_invoice_count\`, \`top_ar_backlog_accounts\`, and \`top_ar_backlog_invoices\` for future-dated open AR.
+- Never describe AR Backlog invoices as overdue/open risk exposure. If an account has only AR Backlog and zero past-due balance, state that clearly.
 
 If the portfolio has no data (zero debtors, zero invoices), say so plainly and suggest the user import or sync data.
 

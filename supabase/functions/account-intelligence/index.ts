@@ -7,6 +7,7 @@ const corsHeaders = {
 };
 
 const CACHE_DURATION_HOURS = 24;
+const REPORT_SCHEMA_VERSION = "ar-backlog-v1";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -62,7 +63,7 @@ serve(async (req) => {
       const cacheAge = Date.now() - new Date(cachedAt).getTime();
       const cacheAgeHours = cacheAge / (1000 * 60 * 60);
       
-      if (cacheAgeHours < CACHE_DURATION_HOURS) {
+        if (cacheAgeHours < CACHE_DURATION_HOURS && cachedReport.schemaVersion === REPORT_SCHEMA_VERSION) {
         console.log(`[INTELLIGENCE] Using cached report (${cacheAgeHours.toFixed(1)} hours old)`);
         
         // Return cached data with metrics
@@ -111,7 +112,7 @@ Your reports should be:
 
 CRITICAL — Risk exposure rules:
 - "Risk exposure", "outstanding exposure", and any past-due figures MUST use financials.pastDueBalance and financials.pastDueInvoicesCount ONLY.
-- Invoices that are open but not yet past their due_date (financials.notYetDueBalance / notYetDueInvoicesCount) are NOT at risk and MUST NOT be counted as exposure or as "open invoices" in risk language.
+- Invoices that are open but not yet past their due_date (financials.arBacklogBalance / arBacklogInvoicesCount) are AR Backlog. They are NOT at risk and MUST NOT be counted as exposure or as "open invoices" in risk language.
 - If pastDueInvoicesCount is 0, explicitly state there is no past-due exposure even when totalOpenBalance is non-zero.
 - Never aggregate past-due and not-yet-due balances into a single exposure number.
 
@@ -121,6 +122,7 @@ Structure your response as JSON with these fields:
 - riskLevel: "low" | "medium" | "high" | "critical"
 - riskScore: number 0-100 (100 = highest risk)
 - executiveSummary: 2-3 sentence overview (use past-due figures for exposure)
+- schemaVersion: "${REPORT_SCHEMA_VERSION}"
 - keyInsights: array of 3-5 bullet point insights
 - recommendations: array of 2-3 specific action items
 - paymentBehavior: brief assessment of payment patterns
@@ -140,7 +142,7 @@ Provide your analysis as a JSON object.`;
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "openai/gpt-5-mini",
+        model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
@@ -195,6 +197,7 @@ Provide your analysis as a JSON object.`;
     }
 
     const generatedAt = new Date().toISOString();
+    intelligence.schemaVersion = REPORT_SCHEMA_VERSION;
 
     // Cache the report in the debtors table
     const { error: updateError } = await supabase
@@ -278,17 +281,26 @@ async function fetchMetrics(supabase: any, debtor_id: string, debtor: any) {
     .maybeSingle();
 
   // Calculate metrics
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const now = new Date();
+  const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const amountOf = (inv: any) => Number(inv.amount_outstanding ?? inv.balance ?? inv.amount_due ?? inv.outstanding_amount ?? inv.amount ?? 0);
+  const dueDateUtc = (value?: string | null) => {
+    if (!value) return null;
+    const [year, month, day] = String(value).slice(0, 10).split("-").map(Number);
+    return new Date(Date.UTC(year, month - 1, day));
+  };
   const openInvoices = invoices?.filter((i: any) => ["Open", "PartiallyPaid", "InPaymentPlan"].includes(i.status)) || [];
-  const totalOpenBalance = openInvoices.reduce((sum: number, inv: any) => sum + (inv.outstanding_amount || inv.amount || 0), 0);
+  const totalOpenBalance = openInvoices.reduce((sum: number, inv: any) => sum + amountOf(inv), 0);
 
   // Past-due exposure (invoices with due_date strictly before today). This is the
   // figure used for "risk exposure" — invoices not yet due are NOT at risk.
-  const pastDueInvoices = openInvoices.filter((i: any) => i.due_date && new Date(i.due_date) < today);
-  const pastDueBalance = pastDueInvoices.reduce((sum: number, inv: any) => sum + (inv.outstanding_amount || inv.amount || 0), 0);
-  const notYetDueInvoices = openInvoices.filter((i: any) => !i.due_date || new Date(i.due_date) >= today);
-  const notYetDueBalance = notYetDueInvoices.reduce((sum: number, inv: any) => sum + (inv.outstanding_amount || inv.amount || 0), 0);
+  const pastDueInvoices = openInvoices.filter((i: any) => {
+    const dueDate = dueDateUtc(i.due_date);
+    return !!dueDate && dueDate.getTime() < today.getTime() && amountOf(i) > 0;
+  });
+  const pastDueBalance = pastDueInvoices.reduce((sum: number, inv: any) => sum + amountOf(inv), 0);
+  const arBacklogInvoices = openInvoices.filter((i: any) => !pastDueInvoices.some((pastDue: any) => pastDue.id === i.id) && amountOf(i) > 0);
+  const arBacklogBalance = arBacklogInvoices.reduce((sum: number, inv: any) => sum + amountOf(inv), 0);
   
   // Calculate DSO (Days Sales Outstanding)
   const paidInvoices = invoices?.filter((i: any) => i.status === "Paid" && i.paid_at) || [];
@@ -321,8 +333,10 @@ async function fetchMetrics(supabase: any, debtor_id: string, debtor: any) {
       openInvoicesCount: openInvoices.length,
       pastDueBalance,
       pastDueInvoicesCount: pastDueInvoices.length,
-      notYetDueBalance,
-      notYetDueInvoicesCount: notYetDueInvoices.length,
+      arBacklogBalance,
+      arBacklogInvoicesCount: arBacklogInvoices.length,
+      notYetDueBalance: arBacklogBalance,
+      notYetDueInvoicesCount: arBacklogInvoices.length,
       totalInvoicesCount: invoices?.length || 0,
       paidInvoicesCount: paidInvoices.length,
       avgDSO,

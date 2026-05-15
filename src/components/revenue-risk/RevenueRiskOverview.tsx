@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { DollarSign, TrendingDown, Target, AlertTriangle, FileText, Users } from "lucide-react";
+import { Archive, DollarSign, TrendingDown, Target, AlertTriangle, FileText, Users } from "lucide-react";
 import type { RevenueRiskAggregate } from "@/hooks/useRevenueRisk";
 import { formatCurrency } from "@/lib/formatters";
 
@@ -17,7 +17,7 @@ export function RevenueRiskOverview({ aggregate }: Props) {
   };
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-7 gap-3">
       {/* Total AR */}
       <Card>
         <CardContent className="p-4">
@@ -46,6 +46,20 @@ export function RevenueRiskOverview({ aggregate }: Props) {
         </CardContent>
       </Card>
 
+      {/* AR Backlog */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1.5">
+            <Archive className="h-3.5 w-3.5" />
+            AR Backlog
+          </div>
+          <div className="text-xl font-bold">{formatCurrency(aggregate.ar_backlog ?? 0)}</div>
+          <div className="text-xs text-muted-foreground mt-1">
+            {aggregate.ar_backlog_invoice_count ?? 0} future/current invoices
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Avg Collectability */}
       <Card>
         <CardContent className="p-4">
@@ -69,7 +83,7 @@ export function RevenueRiskOverview({ aggregate }: Props) {
           </div>
           <div className="text-xl font-bold text-red-600">{formatCurrency(aggregate.total_ecl)}</div>
           <div className="text-xs text-muted-foreground mt-1">
-            {aggregate.pct_at_risk}% of AR at risk
+            {aggregate.pct_at_risk}% of overdue AR
           </div>
         </CardContent>
       </Card>
@@ -101,7 +115,7 @@ export function RevenueRiskOverview({ aggregate }: Props) {
             {aggregate.collectability_distribution.at_risk + aggregate.collectability_distribution.high_risk}
           </div>
           <div className="text-xs text-muted-foreground mt-1">
-            of {aggregate.invoice_count} total
+            of {aggregate.past_due_invoice_count ?? aggregate.invoice_count} past due
           </div>
         </CardContent>
       </Card>
