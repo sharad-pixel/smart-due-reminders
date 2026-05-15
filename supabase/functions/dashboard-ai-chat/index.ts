@@ -179,10 +179,10 @@ Deno.serve(async (req) => {
       .sort((a, b) => b.ar_backlog_balance - a.ar_backlog_balance)
       .slice(0, 15);
 
-    // Top open invoices by balance
+    // Top past-due invoices by balance
     const debtorNameMap = new Map((debtors as any[]).map((d) => [d.id, d.name]));
-    const topInvoices = [...invoices]
-      .filter((i: any) => balOf(i) > 0)
+    const topPastDueInvoices = [...invoices]
+      .filter((i: any) => isOverdue(i))
       .sort((a: any, b: any) => balOf(b) - balOf(a))
       .slice(0, 50)
       .map((i: any) => ({
@@ -196,6 +196,25 @@ Deno.serve(async (req) => {
         days_overdue: dpd(i),
         currency: i.currency,
         aging: i.aging_bucket,
+        ar_classification: "Past Due",
+      }));
+
+    const topArBacklogInvoices = [...invoices]
+      .filter((i: any) => isArBacklog(i))
+      .sort((a: any, b: any) => balOf(b) - balOf(a))
+      .slice(0, 50)
+      .map((i: any) => ({
+        id: i.id,
+        invoice: i.invoice_number,
+        debtor_id: i.debtor_id,
+        debtor: debtorNameMap.get(i.debtor_id) || "—",
+        balance: Math.round(balOf(i) * 100) / 100,
+        status: i.status,
+        due_date: i.due_date,
+        days_overdue: 0,
+        currency: i.currency,
+        aging: i.aging_bucket,
+        ar_classification: "AR Backlog",
       }));
 
     const taskSummary = {
@@ -213,7 +232,7 @@ Deno.serve(async (req) => {
       })),
     };
 
-    const last30 = new Date(today.getTime() - 30 * 86400000).toISOString().slice(0, 10);
+    const last30 = new Date(now.getTime() - 30 * 86400000).toISOString().slice(0, 10);
     const recent30 = (payments as any[]).filter((p) => p.payment_date >= last30);
     const paymentSummary = {
       total_recent_count: payments.length,
@@ -227,8 +246,10 @@ Deno.serve(async (req) => {
       active_debtors_with_balance: Object.values(debtorBalanceMap).filter((b) => b > 0).length,
       total_ar_open: Math.round(totalAR * 100) / 100,
       total_overdue: Math.round(totalOverdue * 100) / 100,
+      total_ar_backlog: Math.round(totalArBacklog * 100) / 100,
       open_invoice_count: invoices.length,
       overdue_invoice_count: overdueInvoices.length,
+      ar_backlog_invoice_count: arBacklogInvoices.length,
       avg_collections_risk_score: avgRisk,
       risk_tier_breakdown: riskBreakdown,
       aging_buckets: Object.fromEntries(
@@ -240,7 +261,9 @@ Deno.serve(async (req) => {
       as_of: todayISO,
       portfolio,
       top_risk_accounts: topRisk,
-      top_open_invoices: topInvoices,
+      top_ar_backlog_accounts: topArBacklogAccounts,
+      top_past_due_invoices: topPastDueInvoices,
+      top_ar_backlog_invoices: topArBacklogInvoices,
       tasks: taskSummary,
       recent_payments: paymentSummary,
     };
