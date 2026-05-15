@@ -6,6 +6,7 @@ import { ArrowLeft, Calendar, Clock, Linkedin, Link2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import type { BlogPost } from "@/lib/blogConfig";
+import { buildBlogShareText } from "@/lib/linkedinShareMessages";
 
 interface BlogPostLayoutProps {
   post: BlogPost;
