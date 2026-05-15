@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Layout from "@/components/layout/Layout";
-import { RequireClmAccess } from "@/components/clm/RequireClmAccess";
+import IngestionBalanceCard from "@/components/ingestion/IngestionBalanceCard";
 import SEO from "@/components/seo/SEO";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -534,6 +534,30 @@ function UploadDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o:
   );
 }
 
+// ------- Empty state -------
+function ImportsEmptyState({ statusFilter }: { statusFilter?: string[] }) {
+  const key = statusFilter?.includes("needs_review") ? "review"
+    : statusFilter?.includes("imported") ? "imported"
+    : statusFilter?.some((s) => ["found", "queued", "scanning", "ocr_processing", "ai_extracting"].includes(s)) ? "queue"
+    : "all";
+  const copy: Record<string, { title: string; body: string }> = {
+    review: { title: "Nothing waiting for review", body: "Once AI finishes extracting, contracts that need a human eye will appear here." },
+    imported: { title: "No imported contracts yet", body: "Approved and imported contracts will live here for ongoing management." },
+    queue: { title: "No active scans", body: "Upload a contract or connect a Drive folder to kick off AI Smart Ingestion." },
+    all: { title: "No contracts here", body: "Upload a contract to get started." },
+  };
+  const c = copy[key];
+  return (
+    <div className="flex flex-col items-center justify-center text-center py-12 px-6">
+      <div className="p-3 rounded-full bg-primary/10 text-primary mb-3">
+        <Sparkles className="h-6 w-6" />
+      </div>
+      <h3 className="font-medium text-base">{c.title}</h3>
+      <p className="text-sm text-muted-foreground mt-1 max-w-sm">{c.body}</p>
+    </div>
+  );
+}
+
 // ------- Imports/Queue table -------
 function ImportsTable({ imports, onReview, statusFilter }: { imports: any[]; onReview: (id: string) => void; statusFilter?: string[] }) {
   const qc = useQueryClient();
@@ -565,7 +589,7 @@ function ImportsTable({ imports, onReview, statusFilter }: { imports: any[]; onR
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
 
   if (filtered.length === 0) {
-    return <p className="text-sm text-muted-foreground py-8 text-center">No contracts here.</p>;
+    return <ImportsEmptyState statusFilter={statusFilter} />;
   }
 
   return (
@@ -1109,23 +1133,25 @@ export default function LiveContracts() {
   const [uploadOpen, setUploadOpen] = useState(false);
 
   return (
-    <RequireClmAccess>
-      <SEO title="Live Contracts — Recouply" description="Ingest, extract, and review live contracts from Google Drive or upload." />
+    <>
+      <SEO title="AI Smart Ingestion — Recouply" description="Scan, extract, and validate contracts with AI Smart Ingestion." />
       <Layout>
         <div className="container mx-auto px-4 py-6 space-y-6 max-w-7xl">
-          <div className="flex items-start justify-between">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
               <h1 className="text-2xl font-semibold flex items-center gap-2">
-                <FileText className="h-6 w-6" /> Live Contracts
+                <Sparkles className="h-6 w-6 text-primary" /> AI Smart Ingestion — Contracts
               </h1>
               <p className="text-sm text-muted-foreground mt-1">
-                Scan live contracts from Google Drive or upload them, then extract critical commercial, renewal, invoice, and risk metadata before import.
+                Scan contracts from Google Drive or upload them directly. AI extracts commercial terms, invoice schedules, renewals, and risk flags for review before import.
               </p>
             </div>
             <Button onClick={() => setUploadOpen(true)}>
               <Upload className="h-4 w-4 mr-2" />Upload contract
             </Button>
           </div>
+
+          <IngestionBalanceCard />
 
           <DashboardWidgets imports={imports} />
 
@@ -1177,6 +1203,6 @@ export default function LiveContracts() {
         <UploadDialog open={uploadOpen} onOpenChange={setUploadOpen} />
         <ReviewDrawer importId={reviewId} onClose={() => setReviewId(null)} />
       </Layout>
-    </RequireClmAccess>
+    </>
   );
 }

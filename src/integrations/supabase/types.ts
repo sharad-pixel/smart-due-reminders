@@ -8922,6 +8922,54 @@ export type Database = {
           },
         ]
       }
+      ocr_invoice_payments: {
+        Row: {
+          account_id: string
+          amount: number
+          created_at: string
+          error: string | null
+          event_count: number
+          hosted_invoice_url: string | null
+          id: string
+          page_count: number
+          paid_at: string | null
+          status: string
+          stripe_invoice_id: string | null
+          stripe_payment_intent_id: string | null
+          user_id: string
+        }
+        Insert: {
+          account_id: string
+          amount: number
+          created_at?: string
+          error?: string | null
+          event_count?: number
+          hosted_invoice_url?: string | null
+          id?: string
+          page_count?: number
+          paid_at?: string | null
+          status?: string
+          stripe_invoice_id?: string | null
+          stripe_payment_intent_id?: string | null
+          user_id: string
+        }
+        Update: {
+          account_id?: string
+          amount?: number
+          created_at?: string
+          error?: string | null
+          event_count?: number
+          hosted_invoice_url?: string | null
+          id?: string
+          page_count?: number
+          paid_at?: string | null
+          status?: string
+          stripe_invoice_id?: string | null
+          stripe_payment_intent_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       ocr_usage_events: {
         Row: {
           account_id: string | null
@@ -8932,6 +8980,7 @@ export type Database = {
           invoice_id: string | null
           metadata: Json | null
           page_count: number
+          payment_id: string | null
           scanned_file_id: string | null
           source: string
           stripe_meter_event_id: string | null
@@ -8949,6 +8998,7 @@ export type Database = {
           invoice_id?: string | null
           metadata?: Json | null
           page_count?: number
+          payment_id?: string | null
           scanned_file_id?: string | null
           source?: string
           stripe_meter_event_id?: string | null
@@ -8966,6 +9016,7 @@ export type Database = {
           invoice_id?: string | null
           metadata?: Json | null
           page_count?: number
+          payment_id?: string | null
           scanned_file_id?: string | null
           source?: string
           stripe_meter_event_id?: string | null
@@ -8974,7 +9025,15 @@ export type Database = {
           unit_price_cents?: number
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ocr_usage_events_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "ocr_invoice_payments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       onboarding_progress: {
         Row: {

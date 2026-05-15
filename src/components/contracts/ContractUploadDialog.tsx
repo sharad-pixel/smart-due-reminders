@@ -106,10 +106,10 @@ export function ContractUploadDialog({ open, onOpenChange, debtorId, debtorName 
       reset();
       if (results.length === 1) {
         toast.success("Contract scanned — review and validate the extracted data.");
-        navigate(`/contracts/live/${results[0].import.id}`);
+        navigate(`/ai-ingestion/${results[0].import.id}`);
       } else {
         toast.success(`${results.length} contracts uploaded — extracting…`);
-        navigate(`/contracts/live`);
+        navigate(`/ai-ingestion`);
       }
     },
     onError: (e: any) => { toast.error(e.message); setProgress(null); },

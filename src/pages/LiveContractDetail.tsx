@@ -409,9 +409,7 @@ const KpiTile = ({ label, value }: { label: string; value: string }) => (
 
 const LiveContractDetail = () => (
   <Layout>
-    <RequireClmAccess>
-      <LiveContractDetailInner />
-    </RequireClmAccess>
+    <LiveContractDetailInner />
   </Layout>
 );
 
