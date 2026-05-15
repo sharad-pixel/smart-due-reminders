@@ -1133,23 +1133,25 @@ export default function LiveContracts() {
   const [uploadOpen, setUploadOpen] = useState(false);
 
   return (
-    <RequireClmAccess>
-      <SEO title="Live Contracts — Recouply" description="Ingest, extract, and review live contracts from Google Drive or upload." />
+    <>
+      <SEO title="AI Smart Ingestion — Recouply" description="Scan, extract, and validate contracts with AI Smart Ingestion." />
       <Layout>
         <div className="container mx-auto px-4 py-6 space-y-6 max-w-7xl">
-          <div className="flex items-start justify-between">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
               <h1 className="text-2xl font-semibold flex items-center gap-2">
-                <FileText className="h-6 w-6" /> Live Contracts
+                <Sparkles className="h-6 w-6 text-primary" /> AI Smart Ingestion — Contracts
               </h1>
               <p className="text-sm text-muted-foreground mt-1">
-                Scan live contracts from Google Drive or upload them, then extract critical commercial, renewal, invoice, and risk metadata before import.
+                Scan contracts from Google Drive or upload them directly. AI extracts commercial terms, invoice schedules, renewals, and risk flags for review before import.
               </p>
             </div>
             <Button onClick={() => setUploadOpen(true)}>
               <Upload className="h-4 w-4 mr-2" />Upload contract
             </Button>
           </div>
+
+          <IngestionBalanceCard />
 
           <DashboardWidgets imports={imports} />
 
