@@ -205,7 +205,7 @@ export const useDebtorIntelligence = (debtorId: string) => {
           .single(),
         supabase
           .from("invoices")
-          .select("id, status, due_date, currency")
+          .select("id, status, due_date, currency, amount, amount_due, balance")
           .eq("debtor_id", debtorId),
         supabase
           .from("inbound_emails")
@@ -217,15 +217,22 @@ export const useDebtorIntelligence = (debtorId: string) => {
       if (debtorResult.error) throw debtorResult.error;
 
       const debtorData = debtorResult.data;
-      const invoices = invoicesResult.data || [];
+      const invoices = (invoicesResult.data || []) as any[];
       const inboundEmails = inboundResult.data || [];
 
       const today = new Date();
-      const paidInvoices = invoices.filter(inv => inv.status === "paid" || inv.status === "Paid");
-      const overdueInvoices = invoices.filter(inv =>
+      today.setHours(0, 0, 0, 0);
+      const isPastDue = (inv: any) =>
         !["paid", "Paid", "Canceled", "Settled"].includes(inv.status) &&
-        inv.due_date && new Date(inv.due_date) < today
-      );
+        inv.due_date && new Date(inv.due_date) < today;
+
+      const paidInvoices = invoices.filter(inv => inv.status === "paid" || inv.status === "Paid");
+      const overdueInvoices = invoices.filter(isPastDue);
+
+      const pastDueBalance = overdueInvoices.reduce((sum, inv) => {
+        const open = Number(inv.balance ?? inv.amount_due ?? inv.amount ?? 0);
+        return sum + (open > 0 ? open : 0);
+      }, 0);
 
       const actualInboundCount = inboundEmails.length;
       const inboundSentiments = inboundEmails
@@ -252,6 +259,7 @@ export const useDebtorIntelligence = (debtorId: string) => {
         inbound_sentiments: inboundSentiments,
         has_sufficient_data: hasSufficientData,
         primary_currency: primaryCurrency,
+        past_due_balance: pastDueBalance,
       } as DebtorIntelligenceWithInvoices;
     },
   });
