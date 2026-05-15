@@ -372,6 +372,17 @@ const Layout = ({ children }: LayoutProps) => {
                       <Sparkles className="h-4 w-4 text-primary" />
                       <span>AI Smart Ingestion</span>
                     </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link
+                        to="/ai-ingestion"
+                        className={`flex items-center gap-2 cursor-pointer ${
+                          isActive("/ai-ingestion") || isActive("/contracts/live") ? "bg-accent" : ""
+                        }`}
+                      >
+                        <FileText className="h-4 w-4" />
+                        <span>Live Contracts</span>
+                      </Link>
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     {aiToolsItems.map((item) => {
                       const Icon = item.icon;
