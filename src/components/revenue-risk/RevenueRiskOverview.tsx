@@ -83,7 +83,7 @@ export function RevenueRiskOverview({ aggregate }: Props) {
           </div>
           <div className="text-xl font-bold text-red-600">{formatCurrency(aggregate.total_ecl)}</div>
           <div className="text-xs text-muted-foreground mt-1">
-            {aggregate.pct_at_risk}% of AR at risk
+            {aggregate.pct_at_risk}% of overdue AR
           </div>
         </CardContent>
       </Card>
@@ -115,7 +115,7 @@ export function RevenueRiskOverview({ aggregate }: Props) {
             {aggregate.collectability_distribution.at_risk + aggregate.collectability_distribution.high_risk}
           </div>
           <div className="text-xs text-muted-foreground mt-1">
-            of {aggregate.invoice_count} total
+            of {aggregate.past_due_invoice_count ?? aggregate.invoice_count} past due
           </div>
         </CardContent>
       </Card>
