@@ -144,19 +144,7 @@ serve(async (req) => {
       });
     }
 
-    // Parse optional quantity from request body (defaults to 1 page)
-    let quantity = 1;
-    try {
-      if (req.headers.get("content-type")?.includes("application/json")) {
-        const body = await req.json();
-        const q = Number(body?.quantity);
-        if (Number.isFinite(q) && q >= 1) {
-          quantity = Math.floor(q);
-        }
-      }
-    } catch (_e) {
-      // No body or invalid JSON — keep default of 1
-    }
+    // quantity already parsed above before credit attempt
 
     // Report N units of usage (1 unit per page) for this approved file
     await stripe.subscriptionItems.createUsageRecord(
