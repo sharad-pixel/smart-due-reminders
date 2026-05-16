@@ -420,7 +420,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
-          { role: "system", content: "You are a contracts analyst. Extract structured data from the contract. For unknown fields use null. Return ISO dates (YYYY-MM-DD). Flag risks like auto-renewal without clear opt-out, missing BAA/DPA/SLA, unfavorable payment terms, POC without conversion terms." },
+          { role: "system", content: "You are a contracts analyst. Extract structured data from the contract. For unknown fields use null. Return ISO dates (YYYY-MM-DD). Flag risks like auto-renewal without clear opt-out, missing BAA/DPA/SLA, unfavorable payment terms, POC without conversion terms. CRITICAL for invoice_schedule: list each scheduled invoice exactly once. Do NOT duplicate a prepaid/upfront invoice as both a one-time prepaid line and as the first period of the recurring schedule — pick one representation. Two schedule entries must never share the same scheduled_date AND amount unless the contract explicitly issues two separate invoices on that date." },
           { role: "user", content: `Contract text:\n\n${text.slice(0, 100_000)}` },
         ],
         tools: [EXTRACTION_TOOL],
@@ -517,6 +517,7 @@ Deno.serve(async (req) => {
     // Invoice schedules
     const sched = extracted.invoice_schedule || [];
     if (Array.isArray(sched) && sched.length) {
+      const seen = new Set<string>();
       const rows = sched
         .filter((s: any) => s.scheduled_date)
         .map((s: any) => ({
@@ -533,7 +534,17 @@ Deno.serve(async (req) => {
           product_description: s.product_description || s.description || extracted.contract?.product_description || null,
           quantity: s.quantity ?? null,
           unit_price: s.unit_price ?? null,
-        }));
+        }))
+        // Dedup: drop rows that share scheduled_date + amount + service_period_start.
+        // Common AI mistake: emitting a "100% prepaid Year 1" line AND the first
+        // period of the recurring schedule on the same date with the same amount.
+        .filter((r) => {
+          const amt = r.amount == null ? "null" : Number(r.amount).toFixed(2);
+          const key = `${r.scheduled_date}|${amt}|${r.service_period_start || ""}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
       if (rows.length) await supabase.from("contract_invoice_schedules").insert(rows);
     }
 
