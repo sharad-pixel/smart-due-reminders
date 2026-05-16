@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Sparkles, Send, Loader2, Lock, FileCheck2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface Props {
   contractId: string;
@@ -25,6 +27,7 @@ const SUGGESTIONS = [
 ];
 
 export function Asc606ChatPanel({ contractId, contractTitle, onOpenAssessment }: Props) {
+  const queryClient = useQueryClient();
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -47,6 +50,20 @@ export function Asc606ChatPanel({ contractId, contractTitle, onOpenAssessment }:
     },
   });
 
+  const { data: storedGuidance = [] } = useQuery({
+    queryKey: ["asc606-guidance-messages", contractId, latest?.id],
+    enabled: !!contractId && !!latest,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("asc606_guidance_messages" as any)
+        .select("id, prompt, guidance, created_at")
+        .eq("contract_id", contractId)
+        .order("created_at", { ascending: false })
+        .limit(5);
+      return (data as any[]) ?? [];
+    },
+  });
+
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, sending]);
@@ -66,6 +83,7 @@ export function Asc606ChatPanel({ contractId, contractTitle, onOpenAssessment }:
       if ((data as any)?.error) throw new Error((data as any).error);
       const reply = (data as any)?.reply ?? "";
       setMessages((m) => [...m, { role: "assistant", content: reply }]);
+      queryClient.invalidateQueries({ queryKey: ["asc606-guidance-messages", contractId] });
     } catch (e: any) {
       toast.error(e?.message ?? "Failed to get a response");
       setMessages((m) => [...m, { role: "assistant", content: "Sorry, I couldn't generate a response. Please try again." }]);
