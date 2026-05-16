@@ -20,9 +20,20 @@ serve(async (req) => {
     const { data: { user } } = await supabase.auth.getUser(token);
     if (!user?.email) throw new Error("Not authenticated");
 
-    const { data: contract, error: cErr } = await admin
-      .from("contracts").select("id, account_id, title").eq("id", contractId).single();
-    if (cErr || !contract) throw new Error("Contract not found");
+    let contract: { id: string; account_id: string; title: string | null } | null = null;
+    {
+      const { data } = await admin
+        .from("contracts").select("id, account_id, title").eq("id", contractId).maybeSingle();
+      if (data) contract = data as any;
+    }
+    if (!contract) {
+      const { data: imp } = await admin
+        .from("live_contract_imports")
+        .select("id, account_id, contract_name, file_name")
+        .eq("id", contractId).maybeSingle();
+      if (imp) contract = { id: imp.id, account_id: imp.account_id, title: imp.contract_name || imp.file_name };
+    }
+    if (!contract) throw new Error("Contract not found");
 
     const { data: isAdmin } = await admin.rpc("is_asc606_admin", { _user_id: user.id, _account_id: contract.account_id });
     if (!isAdmin) {
