@@ -40,11 +40,49 @@ serve(async (req) => {
     const { data: { user } } = await supabase.auth.getUser(token);
     if (!user) throw new Error("Not authenticated");
 
-    const { data: contract, error: cErr } = await admin
-      .from("contracts")
-      .select("*, contract_invoice_schedules(*), contract_critical_dates(*)")
-      .eq("id", contractId).single();
-    if (cErr || !contract) throw new Error("Contract not found");
+    // Try formal contracts table first, then fall back to live_contract_imports
+    let contract: any = null;
+    {
+      const { data } = await admin
+        .from("contracts")
+        .select("*, contract_invoice_schedules(*), contract_critical_dates(*)")
+        .eq("id", contractId).maybeSingle();
+      contract = data;
+    }
+    if (!contract) {
+      const { data: imp } = await admin
+        .from("live_contract_imports")
+        .select("*")
+        .eq("id", contractId).maybeSingle();
+      if (!imp) throw new Error("Contract not found");
+      const [{ data: schedules }, { data: dates }, { data: fields }] = await Promise.all([
+        admin.from("contract_invoice_schedules").select("*").eq("import_id", contractId),
+        admin.from("contract_critical_dates").select("*").eq("import_id", contractId),
+        admin.from("live_contract_extracted_fields").select("field_group, field_key, field_value, field_value_json").eq("import_id", contractId),
+      ]);
+      const extracted: Record<string, any> = {};
+      (fields || []).forEach((f: any) => {
+        extracted[f.field_group] = extracted[f.field_group] || {};
+        extracted[f.field_group][f.field_key] = f.field_value_json ?? f.field_value;
+      });
+      contract = {
+        id: imp.id,
+        account_id: imp.account_id,
+        title: imp.contract_name || imp.file_name,
+        contract_type: imp.contract_type,
+        counterparty_name: extracted.customer?.legal_name || extracted.customer?.dba_name || null,
+        contract_value: imp.contract_value,
+        currency: extracted.commercial?.currency || null,
+        effective_date: imp.effective_date,
+        expiry_date: imp.term_end_date,
+        renewal_date: extracted.dates?.renewal_date || imp.term_end_date,
+        ai_extracted_terms: extracted,
+        ai_summary: imp.product_description,
+        metadata: imp.metrics_jsonb,
+        contract_invoice_schedules: schedules || [],
+        contract_critical_dates: dates || [],
+      };
+    }
 
     const { data: isAdmin } = await admin.rpc("is_asc606_admin", { _user_id: user.id, _account_id: contract.account_id });
     if (!isAdmin) {
