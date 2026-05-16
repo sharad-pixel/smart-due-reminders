@@ -59,6 +59,8 @@ const LiveContractDetailInner = () => {
   const { importId } = useParams<{ importId: string }>();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const { accountId } = useClmEntitlement();
+  const [asc606Open, setAsc606Open] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["live-contract-detail", importId],
