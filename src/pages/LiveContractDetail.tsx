@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -34,6 +34,9 @@ import { ContractScheduleLines } from "@/components/clm/ContractScheduleLines";
 import { InvoiceDataAuditPanel } from "@/components/clm/InvoiceDataAuditPanel";
 import { ContractTermGauge } from "@/components/clm/ContractTermGauge";
 import { ContractReconciliationPanel } from "@/components/contracts/ContractReconciliationPanel";
+import { Asc606AssessmentDialog } from "@/components/contracts/Asc606AssessmentDialog";
+import { useClmEntitlement } from "@/hooks/useClmEntitlement";
+import { FileCheck2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
 const FIN_KEYS = new Set<string>([
@@ -56,6 +59,8 @@ const LiveContractDetailInner = () => {
   const { importId } = useParams<{ importId: string }>();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const { accountId } = useClmEntitlement();
+  const [asc606Open, setAsc606Open] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["live-contract-detail", importId],
@@ -190,6 +195,14 @@ const LiveContractDetailInner = () => {
                 </Badge>
               );
             })()}
+            <Button
+              size="sm"
+              onClick={() => setAsc606Open(true)}
+              className="bg-primary"
+            >
+              <FileCheck2 className="h-4 w-4 mr-1" />
+              ASC 606 Assessment
+            </Button>
             <Button asChild variant="outline" size="sm">
               <Link to="/team">
                 <Users className="h-4 w-4 mr-1" />
@@ -394,6 +407,16 @@ const LiveContractDetailInner = () => {
           </Link>
         </Button>
       </div>
+
+      {accountId && importId && (
+        <Asc606AssessmentDialog
+          open={asc606Open}
+          onOpenChange={setAsc606Open}
+          contractId={importId}
+          accountId={accountId}
+          contractTitle={c.contract_name || "Untitled Contract"}
+        />
+      )}
     </div>
   );
 };
