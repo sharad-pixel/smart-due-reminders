@@ -111,15 +111,18 @@ Deno.serve(async (req) => {
       };
 
       if (effective) push("effective_date", effective);
+      if (effective) push("term_start", effective);
       if (signed) push("signed_date", signed);
       if (termEnd) push("term_end", termEnd);
       if (renewal) push("renewal", renewal, noticeDays || undefined);
       if (optOutExplicit) {
         push("opt_out_deadline", optOutExplicit, noticeDays || undefined);
+        push("non_renewal_notice_start", optOutExplicit, noticeDays || undefined);
       } else if (renewal && noticeDays > 0) {
         const opt = new Date(renewal);
         opt.setDate(opt.getDate() - noticeDays);
         push("opt_out_deadline", opt, noticeDays);
+        push("non_renewal_notice_start", opt, noticeDays);
       }
       if (pocStart) push("poc_start", pocStart);
       if (pocEnd) push("poc_end", pocEnd);
