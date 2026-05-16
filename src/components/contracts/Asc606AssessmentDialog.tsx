@@ -3,11 +3,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, Sparkles, FileCheck2, AlertTriangle, ExternalLink, CreditCard, Wallet } from "lucide-react";
+import { Loader2, Sparkles, FileCheck2, AlertTriangle, ExternalLink, CreditCard, Wallet, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ComplianceDocsManager } from "@/components/clm/ComplianceDocsManager";
 
 type Wallet = {
   balance_credits: number;
