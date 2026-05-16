@@ -35,6 +35,7 @@ import { SalesforceSyncSection } from "@/components/data-center/SalesforceSyncSe
 import { SyncHealthDashboard } from "@/components/data-center/SyncHealthDashboard";
 import { SyncActivityLog } from "@/components/data-center/SyncActivityLog";
 import { SmartIngestionSection } from "@/components/data-center/ingestion/SmartIngestionSection";
+import { SmartIngestionButton } from "@/components/ingestion/SmartIngestionButton";
 import { ERPIntegrationSuite } from "@/components/data-center/erp/ERPIntegrationSuite";
 import { useIntegrationToggles } from "@/hooks/useIntegrationToggles";
 import { ContactSalesCard } from "@/components/data-center/ContactSalesCard";
