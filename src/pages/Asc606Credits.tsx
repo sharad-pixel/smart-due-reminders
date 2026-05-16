@@ -10,6 +10,7 @@ import { useClmEntitlement } from "@/hooks/useClmEntitlement";
 import { toast } from "sonner";
 import { useSearchParams } from "react-router-dom";
 import SEO from "@/components/seo/SEO";
+import { ComplianceDocsManager } from "@/components/clm/ComplianceDocsManager";
 
 const PACKS = [
   { credits: 25, popular: false },
