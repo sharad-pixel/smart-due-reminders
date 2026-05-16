@@ -42,18 +42,31 @@ serve(async (req) => {
     const { contractId, paymentMethod, stripeSessionId } = await req.json();
     if (!contractId) throw new Error("contractId required");
 
-    const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!);
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const existing = stripeSessionId
+      ? await findAssessmentBySession(admin, stripeSessionId)
+      : null;
 
     const token = req.headers.get("Authorization")?.replace("Bearer ", "") ?? "";
-    const { data: { user } } = await supabase.auth.getUser(token);
-    if (!user) throw new Error("Not authenticated");
+    const serviceRoleToken = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const trustedStripeRun = method === "stripe_one_time" && !!stripeSessionId && !!existing && token === serviceRoleToken;
+    let user: { id: string } | null = null;
+    if (trustedStripeRun) {
+      user = { id: existing.requested_by };
+    } else {
+      const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!);
+      const { data: { user: authUser } } = await supabase.auth.getUser(token);
+      if (!authUser) throw new Error("Not authenticated");
+      user = authUser;
+    }
     userId = user.id;
 
     contract = await loadContract(admin, contractId);
     if (!contract) throw new Error("Contract not found");
 
-    const { data: isAdmin } = await admin.rpc("is_asc606_admin", { _user_id: user.id, _account_id: contract.account_id });
+    const { data: isAdmin } = trustedStripeRun
+      ? { data: true }
+      : await admin.rpc("is_asc606_admin", { _user_id: user.id, _account_id: contract.account_id });
     if (!isAdmin) {
       return new Response(JSON.stringify({ error: "Owner or Admin role required" }), {
         status: 403,
@@ -63,10 +76,6 @@ serve(async (req) => {
 
     method = paymentMethod as "credits" | "overage" | "stripe_one_time";
     if (!["credits", "overage", "stripe_one_time"].includes(method)) throw new Error("Invalid paymentMethod");
-
-    const existing = stripeSessionId
-      ? await findAssessmentBySession(admin, stripeSessionId)
-      : null;
 
     if (existing?.status === "complete") {
       return new Response(JSON.stringify({ assessmentId: existing.id, status: existing.status, report: existing.report_jsonb }), {
