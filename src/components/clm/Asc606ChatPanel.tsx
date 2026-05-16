@@ -54,7 +54,7 @@ export function Asc606ChatPanel({ contractId, contractTitle, onOpenAssessment }:
     queryKey: ["asc606-guidance-messages", contractId, latest?.id],
     enabled: !!contractId && !!latest,
     queryFn: async () => {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("asc606_guidance_messages" as any)
         .select("id, prompt, guidance, created_at")
         .eq("contract_id", contractId)
