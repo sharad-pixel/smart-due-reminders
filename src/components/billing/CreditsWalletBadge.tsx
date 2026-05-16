@@ -49,6 +49,7 @@ export function CreditsWalletBadge() {
   const low = balance < 10;
 
   return (
+    <TooltipProvider>
     <Tooltip>
       <TooltipTrigger asChild>
         <Link
