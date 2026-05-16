@@ -259,17 +259,23 @@ const Layout = ({ children }: LayoutProps) => {
   if (!user) return null;
 
   const coreNavItems = [
-    { path: "/dashboard", label: "RevenueHub", icon: LayoutDashboard },
     { path: "/debtors", label: "Accounts", icon: Users },
-    { path: "/invoices", label: "Invoices", icon: FileText },
-    { path: "/payments", label: "Payments", icon: DollarSign },
     { path: "/data-center", label: "Data Center", icon: Database },
   ];
 
-  const clmItems = [
-    { path: "/contracts", label: "Workspaces", icon: Briefcase },
+  const revenueHubItems = [
+    { path: "/dashboard", label: "Overview", icon: LayoutDashboard },
+    { path: "/invoices", label: "Invoices", icon: FileText, section: "Collection Intelligence" },
+    { path: "/payments", label: "Payments", icon: DollarSign, section: "Collection Intelligence" },
   ];
-  const isAnyClmActive = clmItems.some(item => isActive(item.path));
+  const isAnyRevenueHubActive = revenueHubItems.some(item => isActive(item.path));
+
+  const revenueIntelligenceItems = [
+    { path: "/ai-ingestion", label: "Live Contracts", icon: FileSignature },
+    { path: "/revenue-risk", label: "Revenue Risk", icon: ShieldAlert },
+    ...(clmActive ? [{ path: "/contracts", label: "CLM Workspaces", icon: Briefcase }] : []),
+  ];
+  const isAnyRevenueIntelActive = revenueIntelligenceItems.some(item => isActive(item.path)) || isActive("/contracts/live");
 
   const aiToolsItems = [
     { path: "/settings/ai-workflows", label: "AI Workflows", icon: Workflow },
@@ -279,11 +285,10 @@ const Layout = ({ children }: LayoutProps) => {
     { path: "/daily-digest", label: "Daily Digest", icon: CalendarDays },
     { path: "/alerts", label: "Alerts", icon: Bell, badge: alertUnreadCount },
     { path: "/reports/email-delivery", label: "Email Delivery", icon: BarChart3 },
-    { path: "/revenue-risk", label: "Revenue Risk", icon: ShieldAlert },
   ];
 
   // Mobile nav items - excludes admin/settings items since they're in user dropdown
-  const mobileNavItems = [...coreNavItems, ...aiToolsItems, ...(clmActive ? clmItems : [])];
+  const mobileNavItems = [...coreNavItems, ...revenueHubItems, ...revenueIntelligenceItems, ...aiToolsItems];
 
   const isAnyAIToolActive = aiToolsItems.some(item => isActive(item.path));
 
