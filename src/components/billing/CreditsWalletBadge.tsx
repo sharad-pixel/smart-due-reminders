@@ -76,5 +76,6 @@ export function CreditsWalletBadge() {
         </div>
       </TooltipContent>
     </Tooltip>
+    </TooltipProvider>
   );
 }
