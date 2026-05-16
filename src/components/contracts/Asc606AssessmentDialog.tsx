@@ -7,6 +7,7 @@ import { Loader2, Sparkles, FileCheck2, AlertTriangle, ExternalLink, CreditCard,
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 
 type Wallet = {
   balance_credits: number;
@@ -38,6 +39,7 @@ interface Props {
 }
 
 export function Asc606AssessmentDialog({ open, onOpenChange, contractId, accountId, contractTitle }: Props) {
+  const queryClient = useQueryClient();
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,12 +62,14 @@ export function Asc606AssessmentDialog({ open, onOpenChange, contractId, account
   const runWithCredits = async (method: "credits" | "overage") => {
     setRunning(true);
     try {
-      const { data, error } = await supabase.functions.invoke("asc606-run-assessment", {
+      const { error } = await supabase.functions.invoke("asc606-run-assessment", {
         body: { contractId, paymentMethod: method },
       });
       if (error) throw error;
       toast.success("Assessment complete");
       await load();
+      queryClient.invalidateQueries({ queryKey: ["asc606-latest-assessment", contractId] });
+      queryClient.invalidateQueries({ queryKey: ["asc606-guidance-messages", contractId] });
     } catch (e: any) {
       toast.error(e?.message ?? "Failed to run assessment");
     } finally {
