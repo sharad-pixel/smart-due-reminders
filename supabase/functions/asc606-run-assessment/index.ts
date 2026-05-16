@@ -320,37 +320,78 @@ async function refundCredits(admin: any, contract: any, assessmentId: string, us
 
 function buildMarkdown(r: any, c: any): string {
   if (!r || r.raw) return r?.raw ?? "";
-  const risks = (r.key_risks ?? []).map((k: any) =>
-    `- **[${(k.severity ?? "").toUpperCase()}] ${k.title}** — ${k.detail}\n  - _Remediation:_ ${k.remediation}`
-  ).join("\n");
-  const guidance = (r.revenue_compliance_guidance ?? []).map((g: any) =>
-    `- **${g.area ?? "Revenue compliance"}** (${g.asc606_step ?? "ASC 606"}) — ${g.guidance}${g.evidence_needed ? `\n  - Evidence needed: ${g.evidence_needed}` : ""}`
-  ).join("\n");
-  const recs = (r.recommendations ?? []).map((x: string) => `- ${x}`).join("\n");
-  return `# ASC 606 Revenue Risk Assessment
-**Contract:** ${c.title}
-**Risk Score:** ${r.risk_score} / 100 — **${r.risk_band}**
+  const fmtIssues = (arr: any) =>
+    (Array.isArray(arr) ? arr : [])
+      .map((it: any) => `- ${typeof it === "string" ? it : it?.title ?? it?.detail ?? JSON.stringify(it)}`)
+      .join("\n") || "_No issues flagged._";
+  const fmtList = (arr: any) =>
+    (Array.isArray(arr) ? arr : [])
+      .map((it: any) => `- ${typeof it === "string" ? it : it?.name ?? it?.title ?? JSON.stringify(it)}`)
+      .join("\n") || "_None identified._";
 
-## Summary
+  const s1 = r.step1_identify_contract ?? {};
+  const s2 = r.step2_performance_obligations ?? {};
+  const s3 = r.step3_transaction_price ?? {};
+  const s4 = r.step4_allocate_price ?? {};
+  const s5 = r.step5_recognize_revenue ?? {};
+
+  const risks = (r.key_risks ?? []).map((k: any) =>
+    `### [${(k.severity ?? "").toUpperCase()}] ${k.title}\n${k.detail ?? ""}\n\n**Fix:** ${k.remediation ?? "—"}`
+  ).join("\n\n") || "_No material risks identified._";
+
+  const guidance = (r.revenue_compliance_guidance ?? []).map((g: any) =>
+    `### ${g.area ?? "Revenue compliance"} _(${g.asc606_step ?? "ASC 606"})_\n${g.guidance ?? ""}${g.evidence_needed ? `\n\n**Evidence needed:** ${g.evidence_needed}` : ""}`
+  ).join("\n\n") || "_No additional guidance returned._";
+
+  const recs = (r.recommendations ?? []).map((x: string) => `- ${x}`).join("\n") || "_None._";
+
+  return `# ASC 606 Revenue Risk Assessment
+
+**Contract:** ${c.title}  
+**Risk Score:** ${r.risk_score ?? "—"} / 100 — **${r.risk_band ?? "—"}**
+
+## Executive Summary
 ${r.summary ?? ""}
 
 ## Revenue Compliance Guidance
-${guidance || "No additional guidance returned."}
+${guidance}
+
+---
 
 ## Step 1 — Identify the Contract
-${JSON.stringify(r.step1_identify_contract, null, 2)}
+**Findings**
+${fmtList(s1.findings)}
+
+**Open issues / missing data**
+${fmtIssues(s1.issues)}
 
 ## Step 2 — Performance Obligations
-${JSON.stringify(r.step2_performance_obligations, null, 2)}
+**Identified obligations**
+${fmtList(s2.obligations)}
+
+**Open issues / missing data**
+${fmtIssues(s2.issues)}
 
 ## Step 3 — Transaction Price
-${JSON.stringify(r.step3_transaction_price, null, 2)}
+${s3.fixed != null ? `**Fixed consideration:** ${s3.fixed}\n` : ""}**Variable components**
+${fmtList(s3.variable_components)}
 
-## Step 4 — Allocate Price
-${JSON.stringify(r.step4_allocate_price, null, 2)}
+**Open issues / missing data**
+${fmtIssues(s3.issues)}
+
+## Step 4 — Allocate the Transaction Price
+${s4.method ? `**Method:** ${s4.method}\n` : ""}**Allocations**
+${fmtList(s4.allocations)}
+
+**Open issues / missing data**
+${fmtIssues(s4.issues)}
 
 ## Step 5 — Recognize Revenue
-${JSON.stringify(r.step5_recognize_revenue, null, 2)}
+${s5.timing ? `**Timing:** ${s5.timing}  \n` : ""}${s5.method ? `**Method:** ${s5.method}\n` : ""}
+**Open issues / missing data**
+${fmtIssues(s5.issues)}
+
+---
 
 ## Key Risks
 ${risks}
