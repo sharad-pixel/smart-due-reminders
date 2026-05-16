@@ -29,6 +29,7 @@ import {
   toNumber,
 } from "@/lib/clm/financialMetrics";
 import { ContractStagingPanel } from "@/components/clm/ContractStagingPanel";
+import { ContractReassessPanel } from "@/components/clm/ContractReassessPanel";
 import { ContractOverviewEditor } from "@/components/clm/ContractOverviewEditor";
 import { ContractScheduleLines } from "@/components/clm/ContractScheduleLines";
 import { InvoiceDataAuditPanel } from "@/components/clm/InvoiceDataAuditPanel";
@@ -302,6 +303,8 @@ const LiveContractDetailInner = () => {
           )}
         </CardContent>
       </Card>
+
+      <ContractReassessPanel importId={c.id} currentFileName={c.file_name} />
 
       <ContractOverviewEditor
         contract={c}
