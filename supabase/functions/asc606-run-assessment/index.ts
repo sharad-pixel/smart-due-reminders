@@ -41,6 +41,8 @@ serve(async (req) => {
   try {
     const { contractId, paymentMethod, stripeSessionId } = await req.json();
     if (!contractId) throw new Error("contractId required");
+    method = paymentMethod as "credits" | "overage" | "stripe_one_time";
+    if (!["credits", "overage", "stripe_one_time"].includes(method)) throw new Error("Invalid paymentMethod");
 
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const existing = stripeSessionId
@@ -73,10 +75,6 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    method = paymentMethod as "credits" | "overage" | "stripe_one_time";
-    if (!["credits", "overage", "stripe_one_time"].includes(method)) throw new Error("Invalid paymentMethod");
-
     if (existing?.status === "complete") {
       return new Response(JSON.stringify({ assessmentId: existing.id, status: existing.status, report: existing.report_jsonb }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
