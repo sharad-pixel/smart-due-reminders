@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const MODEL = "openai/gpt-5.2";
+const MODEL = "openai/gpt-5.5";
 const COST_CREDITS = 10;
 const COST_CENTS = 999;
 
