@@ -147,6 +147,8 @@ Deno.serve(async (req) => {
           (d as any).alert_enabled = pref.alert_enabled;
           (d as any).alert_lead_days = pref.alert_lead_days;
           (d as any).last_alerted_at = pref.last_alerted_at;
+          (d as any).notify_channel = pref.notify_channel;
+          (d as any).notify_emails = pref.notify_emails;
         }
       }
 
