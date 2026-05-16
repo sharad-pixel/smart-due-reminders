@@ -8394,6 +8394,8 @@ export type Database = {
           file_size: number | null
           folder_id: string | null
           id: string
+          metrics_computed_at: string | null
+          metrics_jsonb: Json | null
           mime_type: string | null
           product_description: string | null
           published_at: string | null
@@ -8424,6 +8426,8 @@ export type Database = {
           file_size?: number | null
           folder_id?: string | null
           id?: string
+          metrics_computed_at?: string | null
+          metrics_jsonb?: Json | null
           mime_type?: string | null
           product_description?: string | null
           published_at?: string | null
@@ -8454,6 +8458,8 @@ export type Database = {
           file_size?: number | null
           folder_id?: string | null
           id?: string
+          metrics_computed_at?: string | null
+          metrics_jsonb?: Json | null
           mime_type?: string | null
           product_description?: string | null
           published_at?: string | null
