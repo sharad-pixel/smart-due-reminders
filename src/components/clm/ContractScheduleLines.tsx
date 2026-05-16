@@ -13,7 +13,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Receipt, Pencil, Package2 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Receipt, Pencil, Package2, AlertCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { formatCurrency, formatDateShort } from "@/lib/formatters";
@@ -24,6 +31,27 @@ interface Props {
   onChanged: () => void;
 }
 
+const CATEGORY_OPTIONS: { value: string; label: string; revenue: "recurring" | "non_recurring" }[] = [
+  { value: "subscription", label: "Subscription (SaaS)", revenue: "recurring" },
+  { value: "platform", label: "Platform fee", revenue: "recurring" },
+  { value: "license", label: "License", revenue: "recurring" },
+  { value: "support", label: "Support", revenue: "recurring" },
+  { value: "maintenance", label: "Maintenance", revenue: "recurring" },
+  { value: "usage_minimum", label: "Usage minimum", revenue: "recurring" },
+  { value: "professional_services", label: "Professional services", revenue: "non_recurring" },
+  { value: "implementation", label: "Implementation", revenue: "non_recurring" },
+  { value: "onboarding", label: "Onboarding", revenue: "non_recurring" },
+  { value: "training", label: "Training", revenue: "non_recurring" },
+  { value: "hardware", label: "Hardware", revenue: "non_recurring" },
+  { value: "other", label: "Other", revenue: "non_recurring" },
+];
+
+const categoryLabel = (v: string | null | undefined) =>
+  CATEGORY_OPTIONS.find((o) => o.value === v)?.label || null;
+
+const revenueFor = (cat: string) =>
+  CATEGORY_OPTIONS.find((o) => o.value === cat)?.revenue || "non_recurring";
+
 export const ContractScheduleLines = ({ schedules, defaultCurrency, onChanged }: Props) => {
   const [editTarget, setEditTarget] = useState<any | null>(null);
   const [form, setForm] = useState({
@@ -33,6 +61,8 @@ export const ContractScheduleLines = ({ schedules, defaultCurrency, onChanged }:
     amount: "",
     scheduled_date: "",
     expected_due_date: "",
+    product_category: "",
+    revenue_type: "",
   });
   const [saving, setSaving] = useState(false);
   const [statusMap, setStatusMap] = useState<Record<string, string>>({});
@@ -70,6 +100,8 @@ export const ContractScheduleLines = ({ schedules, defaultCurrency, onChanged }:
       amount: s.amount != null ? String(s.amount) : "",
       scheduled_date: s.scheduled_date || "",
       expected_due_date: s.expected_due_date || "",
+      product_category: s.product_category || "",
+      revenue_type: s.revenue_type || "",
     });
   };
 
@@ -83,6 +115,10 @@ export const ContractScheduleLines = ({ schedules, defaultCurrency, onChanged }:
     }
   };
 
+  const setCategory = (v: string) => {
+    setForm((f) => ({ ...f, product_category: v, revenue_type: revenueFor(v) }));
+  };
+
   const save = async () => {
     if (!editTarget) return;
     setSaving(true);
@@ -90,6 +126,8 @@ export const ContractScheduleLines = ({ schedules, defaultCurrency, onChanged }:
       const qty = form.quantity.trim() === "" ? null : Number(form.quantity);
       const up = form.unit_price.trim() === "" ? null : Number(form.unit_price);
       const amt = form.amount.trim() === "" ? null : Number(form.amount);
+      const cat = form.product_category || null;
+      const rev = cat ? (form.revenue_type || revenueFor(cat)) : null;
       const { error } = await supabase
         .from("contract_invoice_schedules")
         .update({
@@ -100,6 +138,10 @@ export const ContractScheduleLines = ({ schedules, defaultCurrency, onChanged }:
           amount: amt,
           scheduled_date: form.scheduled_date || editTarget.scheduled_date,
           expected_due_date: form.expected_due_date || null,
+          product_category: cat,
+          revenue_type: rev,
+          // Mark as user-edited so re-classify will not overwrite.
+          category_source: cat ? "user" : null,
         } as any)
         .eq("id", editTarget.id);
       if (error) throw error;
@@ -129,6 +171,7 @@ export const ContractScheduleLines = ({ schedules, defaultCurrency, onChanged }:
               <thead className="text-xs text-muted-foreground uppercase tracking-wide">
                 <tr className="border-b">
                   <th className="text-left py-2 pr-3 font-medium">Description</th>
+                  <th className="text-left py-2 px-2 font-medium">Category</th>
                   <th className="text-right py-2 px-2 font-medium">Qty</th>
                   <th className="text-right py-2 px-2 font-medium">Unit price</th>
                   <th className="text-right py-2 px-2 font-medium">Amount</th>
@@ -142,6 +185,9 @@ export const ContractScheduleLines = ({ schedules, defaultCurrency, onChanged }:
                   const desc = s.product_description || s.description || s.billing_type || "Scheduled invoice";
                   const qty = s.quantity != null ? Number(s.quantity) : null;
                   const up = s.unit_price != null ? Number(s.unit_price) : null;
+                  const cat = s.product_category as string | null;
+                  const rev = s.revenue_type as string | null;
+                  const isRecurring = rev === "recurring";
                   return (
                     <tr key={s.id} className="border-b last:border-0 align-top">
                       <td className="py-2 pr-3">
@@ -156,6 +202,30 @@ export const ContractScheduleLines = ({ schedules, defaultCurrency, onChanged }:
                           >
                             View invoice
                           </Link>
+                        )}
+                      </td>
+                      <td className="py-2 px-2">
+                        {cat ? (
+                          <div className="space-y-0.5">
+                            <Badge
+                              className={`text-[10px] ${isRecurring ? "bg-emerald-100 text-emerald-700 border border-emerald-200" : "bg-slate-100 text-slate-700 border border-slate-200"}`}
+                            >
+                              {categoryLabel(cat)}
+                            </Badge>
+                            {s.category_source === "industry_default" && (
+                              <div className="text-[10px] text-muted-foreground">industry default</div>
+                            )}
+                          </div>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-[11px] border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100"
+                            onClick={() => open(s)}
+                          >
+                            <AlertCircle className="h-3 w-3 mr-1" />
+                            Pick a category
+                          </Button>
                         )}
                       </td>
                       <td className="text-right py-2 px-2 tabular-nums">
@@ -215,6 +285,41 @@ export const ContractScheduleLines = ({ schedules, defaultCurrency, onChanged }:
                 value={form.product_description}
                 onChange={(e) => setForm({ ...form, product_description: e.target.value })}
               />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="sl-cat">Product category</Label>
+                <Select value={form.product_category} onValueChange={setCategory}>
+                  <SelectTrigger id="sl-cat">
+                    <SelectValue placeholder="Pick a category…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CATEGORY_OPTIONS.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>
+                        {o.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="sl-rev">Revenue type</Label>
+                <Select
+                  value={form.revenue_type}
+                  onValueChange={(v) => setForm({ ...form, revenue_type: v })}
+                >
+                  <SelectTrigger id="sl-rev">
+                    <SelectValue placeholder="—" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="recurring">Recurring (SaaS / subscription)</SelectItem>
+                    <SelectItem value="non_recurring">Non-recurring (services / one-time)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground">
+                  SaaS / Software qualifies as recurring revenue. Professional services do not.
+                </p>
+              </div>
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1.5">
