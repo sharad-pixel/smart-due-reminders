@@ -423,10 +423,15 @@ Deno.serve(async (req) => {
               <p style="margin:0 0 8px">Due date: <strong>${row.due_date}</strong></p>
               <p style="margin:16px 0 0;color:#64748b;font-size:13px">You are receiving this because alerts are enabled for this key date. This is a test message.</p>
             </div>`;
-          const resp = await fetch(`${supabaseUrl}/functions/v1/send-branded-email`, {
+          const resp = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
             method: "POST",
             headers: { "Content-Type": "application/json", Authorization: authHeader },
-            body: JSON.stringify({ to, subject, html }),
+            body: JSON.stringify({
+              to,
+              from: "Recouply.ai <notifications@send.inbound.services.recouply.ai>",
+              subject,
+              html,
+            }),
           });
           emailResult = { sent: to.length, status: resp.status };
         } catch (e: any) {
