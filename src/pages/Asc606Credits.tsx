@@ -152,6 +152,9 @@ export default function Asc606Credits() {
           </CardContent>
         </Card>
 
+        {/* Compliance documents library */}
+        {accountId && <ComplianceDocsManager accountId={accountId} defaultStandard="ASC 606" />}
+
         {/* Ledger */}
         <Card>
           <CardHeader>
