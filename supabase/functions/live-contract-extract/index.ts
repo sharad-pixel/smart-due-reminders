@@ -488,18 +488,31 @@ Deno.serve(async (req) => {
     pushFields("poc", extracted.poc);
     if (fieldRows.length) await supabase.from("live_contract_extracted_fields").insert(fieldRows);
 
+    // Industry hint for line-item classification fallback
+    const industryHint =
+      extracted.contract?.industry ||
+      extracted.business?.industry ||
+      extracted.customer?.industry ||
+      extracted.commercial?.industry ||
+      null;
+
     // Critical dates with computed deadlines
     const dates: any[] = [];
     const cd = extracted.critical_dates || {};
     const noticeDays = cd.notice_period_days || 0;
+    const termStart = calcDate(extracted.contract?.effective_date);
     const termEnd = calcDate(extracted.contract?.term_end_date);
     const renewalDate = calcDate(cd.renewal_date) || termEnd;
+    if (termStart) dates.push({ account_id: imp.account_id, import_id: imp.id, date_type: "term_start", due_date: fmtDate(termStart) });
     if (renewalDate) {
       dates.push({ account_id: imp.account_id, import_id: imp.id, date_type: "renewal", due_date: fmtDate(renewalDate), notice_days: noticeDays });
       if (noticeDays > 0) {
         const optOut = new Date(renewalDate);
         optOut.setDate(optOut.getDate() - noticeDays);
         dates.push({ account_id: imp.account_id, import_id: imp.id, date_type: "opt_out_deadline", due_date: fmtDate(optOut), notice_days: noticeDays });
+        // "Non-renewal notice period start" — the open of the notice window so
+        // the team has a reminder to begin preparing the non-renewal letter.
+        dates.push({ account_id: imp.account_id, import_id: imp.id, date_type: "non_renewal_notice_start", due_date: fmtDate(optOut), notice_days: noticeDays });
       }
     }
     if (termEnd) dates.push({ account_id: imp.account_id, import_id: imp.id, date_type: "term_end", due_date: fmtDate(termEnd) });
@@ -507,12 +520,19 @@ Deno.serve(async (req) => {
       const pe = calcDate(extracted.poc.poc_end);
       if (pe) dates.push({ account_id: imp.account_id, import_id: imp.id, date_type: "poc_end", due_date: fmtDate(pe) });
     }
-    // Risk levels
-    for (const d of dates) {
+    // Risk levels + dedupe
+    const seenDate = new Set<string>();
+    const dedupedDates = dates.filter((d) => {
+      const k = `${d.date_type}|${d.due_date}`;
+      if (seenDate.has(k)) return false;
+      seenDate.add(k);
+      return true;
+    });
+    for (const d of dedupedDates) {
       const days = Math.floor((new Date(d.due_date).getTime() - Date.now()) / 86400000);
       d.risk_level = days < 30 ? "high" : days < 90 ? "medium" : "low";
     }
-    if (dates.length) await supabase.from("contract_critical_dates").insert(dates);
+    if (dedupedDates.length) await supabase.from("contract_critical_dates").insert(dedupedDates);
 
     // Invoice schedules
     const sched = extracted.invoice_schedule || [];
@@ -520,21 +540,38 @@ Deno.serve(async (req) => {
       const seen = new Set<string>();
       const rows = sched
         .filter((s: any) => s.scheduled_date)
-        .map((s: any) => ({
-          account_id: imp.account_id, import_id: imp.id,
-          scheduled_date: s.scheduled_date,
-          service_period_start: s.service_period_start || null,
-          service_period_end: s.service_period_end || null,
-          amount: s.amount || null,
-          currency: s.currency || extracted.commercial?.currency || "USD",
-          billing_type: s.billing_type || null,
-          payment_terms: s.payment_terms || null,
-          expected_due_date: s.scheduled_date,
-          description: s.description || s.product_description || null,
-          product_description: s.product_description || s.description || extracted.contract?.product_description || null,
-          quantity: s.quantity ?? null,
-          unit_price: s.unit_price ?? null,
-        }))
+        .map((s: any) => {
+          const desc = s.product_description || s.description || extracted.contract?.product_description || null;
+          // Prefer category if extractor returned one. Otherwise classify.
+          let category: string | null = s.product_category || s.category || null;
+          let categorySource: "extracted" | "industry_default" | "keyword" | null = category ? "extracted" : null;
+          if (!category) {
+            const cls = classifyLineItem({ description: desc, billing_type: s.billing_type, industry: industryHint });
+            if (cls.category) {
+              category = cls.category;
+              categorySource = cls.source === "industry" ? "industry_default" : "keyword";
+            }
+          }
+          const revenueType = category ? revenueTypeFor(category as any) : null;
+          return {
+            account_id: imp.account_id, import_id: imp.id,
+            scheduled_date: s.scheduled_date,
+            service_period_start: s.service_period_start || null,
+            service_period_end: s.service_period_end || null,
+            amount: s.amount || null,
+            currency: s.currency || extracted.commercial?.currency || "USD",
+            billing_type: s.billing_type || null,
+            payment_terms: s.payment_terms || null,
+            expected_due_date: s.scheduled_date,
+            description: s.description || s.product_description || null,
+            product_description: desc,
+            quantity: s.quantity ?? null,
+            unit_price: s.unit_price ?? null,
+            product_category: category,
+            revenue_type: revenueType,
+            category_source: categorySource,
+          };
+        })
         // Dedup: drop rows that share scheduled_date + amount + service_period_start.
         // Common AI mistake: emitting a "100% prepaid Year 1" line AND the first
         // period of the recurring schedule on the same date with the same amount.
