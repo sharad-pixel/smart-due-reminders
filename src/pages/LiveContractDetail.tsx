@@ -34,6 +34,9 @@ import { ContractScheduleLines } from "@/components/clm/ContractScheduleLines";
 import { InvoiceDataAuditPanel } from "@/components/clm/InvoiceDataAuditPanel";
 import { ContractTermGauge } from "@/components/clm/ContractTermGauge";
 import { ContractReconciliationPanel } from "@/components/contracts/ContractReconciliationPanel";
+import { Asc606AssessmentDialog } from "@/components/contracts/Asc606AssessmentDialog";
+import { useClmEntitlement } from "@/hooks/useClmEntitlement";
+import { FileCheck2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
 const FIN_KEYS = new Set<string>([
