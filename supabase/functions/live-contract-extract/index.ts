@@ -609,12 +609,19 @@ Deno.serve(async (req) => {
         : rawName
           ? rawName.split(/\s+(?:and|&|\/)\s+/i)[0].slice(0, 120).trim()
           : (imp.file_name || "Untitled Contract");
+    const industryRaw =
+      extracted.contract?.industry ||
+      extracted.business?.industry ||
+      extracted.customer?.industry ||
+      extracted.commercial?.industry ||
+      null;
     await supabase.from("live_contract_imports").update({
       status: "needs_review",
       confidence: extracted.confidence || null,
       contract_name: cleanName,
       contract_type: extracted.contract?.contract_type || null,
       product_description: extracted.contract?.product_description || null,
+      industry: industryRaw ? String(industryRaw).slice(0, 120) : null,
       contract_value:
         extracted.contract?.contract_value ??
         extracted.commercial?.tcv ??
