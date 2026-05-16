@@ -101,6 +101,7 @@ export const ContractOverviewEditor = ({ contract, onSaved }: Props) => {
         .update({
           contract_name: form.contract_name.trim() || null,
           contract_type: form.contract_type.trim() || null,
+          industry: form.industry.trim() || null,
           product_description: form.product_description.trim() || null,
           effective_date: form.effective_date || null,
           term_end_date: form.term_end_date || null,
