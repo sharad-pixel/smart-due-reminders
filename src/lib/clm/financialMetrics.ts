@@ -529,7 +529,7 @@ function bucketSchedule(schedule: InvoiceScheduleRow[]): ScheduleBucket {
     const isServices = category === "professional_services" || category === "implementation" || category === "onboarding" || category === "training";
     const isHardOneTime = (cadence === "one_time" || ONE_TIME_CATEGORIES.has(category)) && !hasServicePeriod && !looksLikePrepaidRecurring;
 
-    bucket.currency ||= row.currency;
+    if (!bucket.currency && row.currency) bucket.currency = row.currency;
     if (isServices) bucket.servicesTcv += amount;
     else if (isHardOneTime) bucket.oneTimeTcv += amount;
     else bucket.recurringTcv += amount;
