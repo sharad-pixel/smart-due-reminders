@@ -261,6 +261,7 @@ const DataCenter = () => {
             </p>
           </div>
           <div className="flex gap-2">
+            <SmartIngestionButton variant="outline" />
             <Button variant="outline" onClick={() => setCreateSourceOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
               New Source
