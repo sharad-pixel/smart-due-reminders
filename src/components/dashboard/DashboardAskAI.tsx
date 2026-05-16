@@ -23,13 +23,28 @@ interface Msg { role: "user" | "assistant"; content: string }
 
 const NICOLAS = personaConfig.nicolas;
 
+// Internal route prefixes — any link pointing to these is rewritten to a
+// relative SPA route, even if the AI mistakenly returns an absolute URL like
+// https://app.recouply.com/debtors/... (which is not a real domain).
+const INTERNAL_PREFIXES = ["/debtors/", "/invoices/", "/tasks", "/contracts/", "/outreach", "/dashboard", "/payments"];
+
+const toInternalPath = (href?: string): string | null => {
+  if (typeof href !== "string" || !href) return null;
+  let path = href.trim();
+  // Strip absolute origins so AI hallucinations (app.recouply.com, etc.) still resolve.
+  const absMatch = path.match(/^https?:\/\/[^/]+(\/.*)?$/i);
+  if (absMatch) path = absMatch[1] || "/";
+  if (!path.startsWith("/")) return null;
+  return INTERNAL_PREFIXES.some((p) => path.startsWith(p)) ? path : null;
+};
+
 const MD_COMPONENTS = {
   a: ({ href, children }: any) => {
-    const isInternal = typeof href === "string" && href.startsWith("/");
-    if (isInternal) {
+    const internal = toInternalPath(href);
+    if (internal) {
       return (
         <Link
-          to={href}
+          to={internal}
           className="inline-flex items-baseline font-medium text-primary underline decoration-primary/30 underline-offset-2 hover:decoration-primary hover:bg-primary/5 rounded px-0.5 -mx-0.5 transition"
         >
           {children}
