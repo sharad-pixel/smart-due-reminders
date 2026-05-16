@@ -34,7 +34,7 @@ import { IntegrationSetupModal } from "@/components/integrations/IntegrationSetu
 import { ContractSummaryCard } from "@/components/dashboard/ContractSummaryCard";
 import { ClmQuickAccessCard } from "@/components/dashboard/ClmQuickAccessCard";
 import { DashboardAskAI } from "@/components/dashboard/DashboardAskAI";
-import { ContractUploadButton } from "@/components/contracts/ContractUploadButton";
+import { SmartIngestionButton } from "@/components/ingestion/SmartIngestionButton";
 import { Sparkles, LayoutDashboard } from "lucide-react";
 
 
@@ -560,7 +560,7 @@ const Dashboard = () => {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <ContractUploadButton variant="outline" />
+            <SmartIngestionButton variant="outline" />
             <div className="inline-flex rounded-md border bg-muted/40 p-0.5">
               <Button
                 size="sm"

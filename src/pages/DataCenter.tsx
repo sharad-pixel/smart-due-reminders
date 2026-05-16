@@ -35,6 +35,7 @@ import { SalesforceSyncSection } from "@/components/data-center/SalesforceSyncSe
 import { SyncHealthDashboard } from "@/components/data-center/SyncHealthDashboard";
 import { SyncActivityLog } from "@/components/data-center/SyncActivityLog";
 import { SmartIngestionSection } from "@/components/data-center/ingestion/SmartIngestionSection";
+import { SmartIngestionButton } from "@/components/ingestion/SmartIngestionButton";
 import { ERPIntegrationSuite } from "@/components/data-center/erp/ERPIntegrationSuite";
 import { useIntegrationToggles } from "@/hooks/useIntegrationToggles";
 import { ContactSalesCard } from "@/components/data-center/ContactSalesCard";
@@ -261,6 +262,7 @@ const DataCenter = () => {
             </p>
           </div>
           <div className="flex gap-2">
+            <SmartIngestionButton variant="outline" />
             <Button variant="outline" onClick={() => setCreateSourceOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
               New Source
