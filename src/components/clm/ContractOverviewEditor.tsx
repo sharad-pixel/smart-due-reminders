@@ -185,6 +185,12 @@ export const ContractOverviewEditor = ({ contract, onSaved }: Props) => {
                 {contract.contract_type ? String(contract.contract_type).replace(/_/g, " ") : "—"}
               </dd>
             </div>
+            <div>
+              <dt className="text-xs text-muted-foreground uppercase tracking-wide">Industry</dt>
+              <dd className="font-medium">
+                {contract.industry || <span className="text-muted-foreground italic">Not set — drives line-item category fallback</span>}
+              </dd>
+            </div>
             <div className="sm:col-span-2">
               <dt className="text-xs text-muted-foreground uppercase tracking-wide">
                 Product / Service Description
