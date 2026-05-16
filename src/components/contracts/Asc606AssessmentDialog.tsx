@@ -3,11 +3,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, Sparkles, FileCheck2, AlertTriangle, ExternalLink, CreditCard, Wallet } from "lucide-react";
+import { Loader2, Sparkles, FileCheck2, AlertTriangle, ExternalLink, CreditCard, Wallet, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ComplianceDocsManager } from "@/components/clm/ComplianceDocsManager";
 
 type Wallet = {
   balance_credits: number;
@@ -191,15 +195,28 @@ export function Asc606AssessmentDialog({ open, onOpenChange, contractId, account
                       ))}
                     </div>
                   )}
+                  {latest.report_jsonb && <MissingDataSection report={latest.report_jsonb} />}
                   {latest.report_markdown && (
-                    <details className="mt-3 text-sm">
-                      <summary className="cursor-pointer text-muted-foreground hover:text-foreground">Full report</summary>
-                      <pre className="mt-2 whitespace-pre-wrap text-xs bg-muted p-3 rounded">{latest.report_markdown}</pre>
-                    </details>
+                    <Collapsible className="mt-3">
+                      <CollapsibleTrigger asChild>
+                        <Button variant="ghost" size="sm" className="text-xs text-muted-foreground hover:text-foreground -ml-2">
+                          <ChevronDown className="h-3.5 w-3.5 mr-1" />
+                          View full ASC 606 report
+                        </Button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <div className="mt-2 rounded-md border bg-card p-4 prose prose-sm dark:prose-invert max-w-none prose-headings:mb-2 prose-headings:mt-4 prose-p:my-2 prose-li:my-0.5 prose-pre:bg-muted prose-pre:border prose-pre:text-xs prose-code:text-xs">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{latest.report_markdown}</ReactMarkdown>
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
                   )}
                 </CardContent>
               </Card>
             )}
+
+            {/* Compliance documents library */}
+            <ComplianceDocsManager accountId={accountId} defaultStandard="ASC 606" />
 
             {latest && latest.status === "failed" && (
               <Card className="border-destructive/50">
@@ -287,4 +304,60 @@ async function functionErrorMessage(e: any, fallback: string): Promise<string> {
     // Fall through to default message.
   }
   return e?.message ?? fallback;
+}
+
+function MissingDataSection({ report }: { report: any }) {
+  const buckets = [
+    { label: "Step 1 — Contract", issues: report?.step1_identify_contract?.issues },
+    { label: "Step 2 — Performance Obligations", issues: report?.step2_performance_obligations?.issues },
+    { label: "Step 3 — Transaction Price", issues: report?.step3_transaction_price?.issues },
+    { label: "Step 4 — Allocate Price", issues: report?.step4_allocate_price?.issues },
+    { label: "Step 5 — Recognize Revenue", issues: report?.step5_recognize_revenue?.issues },
+  ].filter((b) => Array.isArray(b.issues) && b.issues.length > 0);
+
+  const guidance = Array.isArray(report?.revenue_compliance_guidance) ? report.revenue_compliance_guidance : [];
+  if (buckets.length === 0 && guidance.length === 0) return null;
+
+  return (
+    <div className="mt-4 space-y-3">
+      {buckets.length > 0 && (
+        <div className="rounded-md border bg-amber-50 dark:bg-amber-950/20 p-3">
+          <div className="text-xs font-semibold uppercase text-amber-900 dark:text-amber-200 mb-2 flex items-center gap-1">
+            <AlertTriangle className="h-3.5 w-3.5" /> Missing data & open issues
+          </div>
+          <div className="space-y-2">
+            {buckets.map((b) => (
+              <div key={b.label} className="text-sm">
+                <div className="font-medium text-foreground">{b.label}</div>
+                <ul className="mt-1 ml-4 list-disc text-xs text-muted-foreground space-y-0.5">
+                  {b.issues.map((it: any, i: number) => (
+                    <li key={i}>{typeof it === "string" ? it : it?.title ?? it?.detail ?? JSON.stringify(it)}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {guidance.length > 0 && (
+        <div className="rounded-md border bg-card p-3">
+          <div className="text-xs font-semibold uppercase text-muted-foreground mb-2">Revenue compliance guidance</div>
+          <div className="space-y-2">
+            {guidance.slice(0, 8).map((g: any, i: number) => (
+              <div key={i} className="text-sm">
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-[10px]">{g.asc606_step ?? "ASC 606"}</Badge>
+                  <span className="font-medium">{g.area ?? "Guidance"}</span>
+                </div>
+                <div className="text-xs text-muted-foreground mt-0.5">{g.guidance}</div>
+                {g.evidence_needed && (
+                  <div className="text-xs mt-0.5"><span className="font-medium">Evidence needed:</span> {g.evidence_needed}</div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
