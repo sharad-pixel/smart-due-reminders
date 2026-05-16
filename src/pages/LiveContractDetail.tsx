@@ -115,18 +115,25 @@ const LiveContractDetailInner = () => {
   });
 
   const totals = useMemo(() => {
-    // Prefer cached engine output if present (set by approval / recompute edge fns)
+    // Prefer cached engine output when healthy, but derive fresh client-side when
+    // an older cache classified prepaid recurring schedule rows as one-time.
     const cached = (data?.imp as any)?.metrics_jsonb;
     const schedules = data?.schedules || [];
     let scheduled = 0;
     schedules.forEach((s: any) => {
       scheduled += toNumber(s.amount);
     });
-    const base = cached && typeof cached === "object" && cached.source
+    const derived = computeContractTotals(data?.fields || [], data?.imp || undefined, {
+      schedule: schedules as any[],
+    });
+    const staleScheduleCache =
+      schedules.length > 0 &&
+      toNumber((cached as any)?.tcv) > 0 &&
+      toNumber((cached as any)?.recurringTcv) === 0 &&
+      toNumber((derived as any)?.recurringTcv) > 0;
+    const base = cached && typeof cached === "object" && cached.source && !staleScheduleCache
       ? cached
-      : computeContractTotals(data?.fields || [], data?.imp || undefined, {
-          schedule: schedules as any[],
-        });
+      : derived;
 
     // Reconcile schedule sum vs TCV across the life of the contract.
     // If they diverge by more than 1% (and both are present) the extraction is

@@ -101,6 +101,13 @@ export interface ContractTotals {
   ramp?: RampYear[];
 }
 
+type ScheduleBucket = {
+  recurringTcv: number;
+  servicesTcv: number;
+  oneTimeTcv: number;
+  currency?: string | null;
+};
+
 // ---------- Category buckets (matches the spec) ----------
 
 const RECURRING_CATEGORIES = new Set<ComponentCategory>([
@@ -352,10 +359,8 @@ export function computeContractTotals(
 
   // ---- Path 2: invoice schedule rows (very reliable when present) ----
   if (options.schedule && options.schedule.length > 0) {
-    const fromSchedule = componentsFromSchedule(options.schedule, termMonths);
-    if (fromSchedule.length > 0) {
-      return finalize(fromSchedule, contractValueOnly, currency, termMonths, termYears, "invoice_schedule", warnings, options.ramp);
-    }
+    const fromSchedule = finalizeSchedule(options.schedule, contractValueOnly, currency, termMonths, termYears, warnings, options.ramp);
+    if (fromSchedule.tcv > 0) return fromSchedule;
   }
 
   // ---- Path 3: explicit MRR/ARR/ACV/TCV if internally consistent ----
@@ -463,6 +468,7 @@ function componentsFromSchedule(
   schedule: InvoiceScheduleRow[],
   termMonths: number,
 ): RecurringComponent[] {
+  void termMonths;
   const recurring: RecurringComponent[] = [];
   const oneTimes: RecurringComponent[] = [];
 
@@ -507,6 +513,73 @@ function componentsFromSchedule(
   }
 
   return [...recurring, ...oneTimes];
+}
+
+function bucketSchedule(schedule: InvoiceScheduleRow[]): ScheduleBucket {
+  const bucket: ScheduleBucket = { recurringTcv: 0, servicesTcv: 0, oneTimeTcv: 0 };
+
+  for (const row of schedule) {
+    const amount = toNumber(row.amount);
+    if (amount <= 0) continue;
+    const label = `${row.description || ""} ${row.billing_type || ""}`.trim();
+    const category = classifyByKeyword(label);
+    const cadence = guessCadence(row.billing_type) || guessCadence(row.description);
+    const hasServicePeriod = monthsBetween(row.service_period_start, row.service_period_end) > 0;
+    const looksLikePrepaidRecurring = /prepaid|upfront|advance|annual|year|subscription|license|platform|saas|recurring/i.test(label);
+    const isServices = category === "professional_services" || category === "implementation" || category === "onboarding" || category === "training";
+    const isHardOneTime = (cadence === "one_time" || ONE_TIME_CATEGORIES.has(category)) && !hasServicePeriod && !looksLikePrepaidRecurring;
+
+    if (!bucket.currency && row.currency) bucket.currency = row.currency;
+    if (isServices) bucket.servicesTcv += amount;
+    else if (isHardOneTime) bucket.oneTimeTcv += amount;
+    else bucket.recurringTcv += amount;
+  }
+
+  return bucket;
+}
+
+function finalizeSchedule(
+  schedule: InvoiceScheduleRow[],
+  contractValueHint: number,
+  currency: string,
+  termMonths: number,
+  termYears: number,
+  warnings: string[],
+  ramp?: RampYear[],
+): ContractTotals {
+  const bucket = bucketSchedule(schedule);
+  const recurringTcv = bucket.recurringTcv;
+  const servicesTcv = bucket.servicesTcv;
+  const oneTimeTcv = bucket.oneTimeTcv;
+  let tcv = recurringTcv + servicesTcv + oneTimeTcv;
+  if (tcv === 0 && contractValueHint > 0) tcv = contractValueHint;
+
+  const arr = recurringTcv > 0 && termYears > 0 ? recurringTcv / termYears : 0;
+  const mrr = arr > 0 ? arr / 12 : 0;
+  const acv = arr;
+
+  if (tcv > 0 && recurringTcv === 0) {
+    warnings.push("Invoice schedule contained only one-time/service lines — recurring MRR/ARR/ACV could not be derived.");
+  }
+
+  return {
+    mrr,
+    arr,
+    acv,
+    currentAcv: acv,
+    peakAcv: acv,
+    weightedAcv: acv,
+    tcv,
+    recurringTcv,
+    servicesTcv,
+    oneTimeTcv,
+    currency: bucket.currency || currency,
+    termMonths,
+    termYears,
+    source: "invoice_schedule",
+    warnings,
+    ramp,
+  };
 }
 
 function finalize(
