@@ -35,6 +35,7 @@ import { ContractScheduleLines } from "@/components/clm/ContractScheduleLines";
 import { InvoiceDataAuditPanel } from "@/components/clm/InvoiceDataAuditPanel";
 import { ContractTermGauge } from "@/components/clm/ContractTermGauge";
 import { KeyDatesNotificationsPanel } from "@/components/clm/KeyDatesNotificationsPanel";
+import { ContractFinancialExport } from "@/components/clm/ContractFinancialExport";
 import { ContractReconciliationPanel } from "@/components/contracts/ContractReconciliationPanel";
 import { Asc606AssessmentDialog } from "@/components/contracts/Asc606AssessmentDialog";
 import { useClmEntitlement } from "@/hooks/useClmEntitlement";
@@ -320,14 +321,21 @@ const LiveContractDetailInner = () => {
               {String(totals.source || "—").replace(/_/g, " ")}
             </Badge>
           </CardTitle>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleRecompute}
-            disabled={recomputing}
-          >
-            {recomputing ? "Recalculating…" : "Recalculate"}
-          </Button>
+          <div className="flex items-center gap-2">
+            <ContractFinancialExport
+              contractName={c.contract_name || c.file_name || "Contract"}
+              customerName={data.debtor?.company_name || data.debtor?.name || null}
+              totals={totals as any}
+            />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleRecompute}
+              disabled={recomputing}
+            >
+              {recomputing ? "Recalculating…" : "Recalculate"}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-3">
           {autoReassessing && (
