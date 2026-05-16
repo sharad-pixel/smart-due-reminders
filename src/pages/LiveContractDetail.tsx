@@ -472,6 +472,8 @@ const LiveContractDetailInner = () => {
 
       </div>
 
+      <KeyDatesNotificationsPanel importId={c.id} dates={data.dates as any} />
+
       <ContractScheduleLines
         schedules={data.schedules}
         defaultCurrency={totals.currency}
