@@ -322,6 +322,12 @@ const LiveContractDetailInner = () => {
           </Button>
         </CardHeader>
         <CardContent className="space-y-3">
+          {autoReassessing && (
+            <div className="rounded-md border border-blue-200 bg-blue-50 text-blue-900 p-2 text-xs flex items-center gap-2">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              Schedule total doesn't tie to TCV — re-assessing the contract automatically…
+            </div>
+          )}
           {Array.isArray(totals.warnings) && totals.warnings.length > 0 && (
             <div className="rounded-md border border-amber-200 bg-amber-50 text-amber-900 p-2 text-xs space-y-1">
               <div className="font-medium flex items-center gap-1">
