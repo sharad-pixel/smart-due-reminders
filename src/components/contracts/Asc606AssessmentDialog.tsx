@@ -59,8 +59,26 @@ export function Asc606AssessmentDialog({ open, onOpenChange, contractId, account
 
   useEffect(() => { if (open) load(); }, [open, contractId]);
 
+  const pollForCompletion = async (cid: string, since: Date): Promise<boolean> => {
+    for (let i = 0; i < 30; i++) {
+      await new Promise((r) => setTimeout(r, 3000));
+      const { data } = await supabase
+        .from("asc606_assessments")
+        .select("id, status, created_at")
+        .eq("contract_id", cid)
+        .gte("created_at", since.toISOString())
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (data?.status === "complete") return true;
+      if (data?.status === "failed") return false;
+    }
+    return false;
+  };
+
   const runWithCredits = async (method: "credits" | "overage") => {
     setRunning(true);
+    const startedAt = new Date(Date.now() - 5000);
     try {
       const { error } = await supabase.functions.invoke("asc606-run-assessment", {
         body: { contractId, paymentMethod: method },
@@ -71,7 +89,16 @@ export function Asc606AssessmentDialog({ open, onOpenChange, contractId, account
       queryClient.invalidateQueries({ queryKey: ["asc606-latest-assessment", contractId] });
       queryClient.invalidateQueries({ queryKey: ["asc606-guidance-messages", contractId] });
     } catch (e: any) {
-      toast.error(await functionErrorMessage(e, "Failed to run assessment"));
+      // Client may have timed out while the server kept running — poll for completion before erroring.
+      const recovered = await pollForCompletion(contractId, startedAt);
+      if (recovered) {
+        toast.success("Assessment complete");
+        await load();
+        queryClient.invalidateQueries({ queryKey: ["asc606-latest-assessment", contractId] });
+        queryClient.invalidateQueries({ queryKey: ["asc606-guidance-messages", contractId] });
+      } else {
+        toast.error(await functionErrorMessage(e, "Failed to run assessment"));
+      }
     } finally {
       setRunning(false);
     }
