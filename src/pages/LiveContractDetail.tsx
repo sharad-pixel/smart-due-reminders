@@ -551,6 +551,14 @@ const LiveContractDetailInner = () => {
         </Button>
       </div>
 
+      {importId && (
+        <Asc606ChatPanel
+          contractId={importId}
+          contractTitle={c.contract_name || "Untitled Contract"}
+          onOpenAssessment={() => setAsc606Open(true)}
+        />
+      )}
+
       {accountId && importId && (
         <Asc606AssessmentDialog
           open={asc606Open}
