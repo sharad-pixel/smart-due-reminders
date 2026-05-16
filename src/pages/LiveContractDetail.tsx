@@ -35,6 +35,7 @@ import { ContractScheduleLines } from "@/components/clm/ContractScheduleLines";
 import { InvoiceDataAuditPanel } from "@/components/clm/InvoiceDataAuditPanel";
 import { ContractTermGauge } from "@/components/clm/ContractTermGauge";
 import { KeyDatesNotificationsPanel } from "@/components/clm/KeyDatesNotificationsPanel";
+import { ContractFinancialExport } from "@/components/clm/ContractFinancialExport";
 import { ContractReconciliationPanel } from "@/components/contracts/ContractReconciliationPanel";
 import { Asc606AssessmentDialog } from "@/components/contracts/Asc606AssessmentDialog";
 import { useClmEntitlement } from "@/hooks/useClmEntitlement";
