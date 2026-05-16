@@ -401,7 +401,7 @@ export const ContractStagingPanel = ({
                             {uploading && activeScheduleId === s.id ? "Scanning…" : "Upload + AI Smart Ingestion"}
                           </Button>
                           <span className="text-[11px] text-muted-foreground self-center">
-                            AI Smart Ingestion $0.75/page
+                            AI Smart Ingestion · 1 credit/page
                           </span>
                         </>
                       )}

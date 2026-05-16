@@ -523,14 +523,14 @@ Deno.serve(async (req) => {
         },
         ingestion_charges: {
           items: ingestionPageCount > 0 ? [{
-            description: `Smart Ingestion (${ingestionPageCount} pages × $0.75 across ${ingestionFileCount} file${ingestionFileCount === 1 ? "" : "s"})`,
+            description: `Smart Ingestion (${ingestionPageCount} credit${ingestionPageCount === 1 ? "" : "s"} · ${ingestionPageCount} page${ingestionPageCount === 1 ? "" : "s"} across ${ingestionFileCount} file${ingestionFileCount === 1 ? "" : "s"})`,
             amount: ingestionTotal,
             quantity: ingestionPageCount,
           }] : [],
           total: ingestionTotal,
           file_count: ingestionFileCount,
           page_count: ingestionPageCount,
-          rate_per_page: 0.75,
+          rate_per_page: 1.00,
         },
         prorations: {
           items: prorations,
@@ -547,7 +547,7 @@ Deno.serve(async (req) => {
           file_count: ingestionFileCount,
           page_count: ingestionPageCount,
           total_charges: ingestionTotal,
-          rate_per_page: 0.75,
+          rate_per_page: 1.00,
         },
         seats: {
           billable: seatCount || 0,
