@@ -290,7 +290,7 @@ export function IngestionReviewQueue() {
       const now = new Date();
       const billingPeriod = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
       const pageCount = Math.max(1, Number((item.ingestion_scanned_files as any)?.page_count || 1));
-      const PER_PAGE_RATE = 0.75;
+      const PER_PAGE_RATE = 1.00;
       const chargeAmount = Number((PER_PAGE_RATE * pageCount).toFixed(2));
       await supabase.from("ingestion_usage_charges").insert({
         user_id: accountId,
@@ -472,7 +472,7 @@ export function IngestionReviewQueue() {
           const now = new Date();
           const billingPeriod = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
           const pageCount = Math.max(1, Number((item.ingestion_scanned_files as any)?.page_count || 1));
-          const chargeAmount = Number((0.75 * pageCount).toFixed(2));
+          const chargeAmount = Number((1.00 * pageCount).toFixed(2));
           await supabase.from("ingestion_usage_charges").insert({
             user_id: accountId,
             organization_id: orgId,

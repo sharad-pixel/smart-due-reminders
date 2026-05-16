@@ -241,7 +241,7 @@ const Integrations = () => {
                     <CardTitle className="text-2xl">Google Drive PDF Extraction</CardTitle>
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary">AI-Powered</span>
-                      <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-accent/10 text-accent">$0.75/page</span>
+                      <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-accent/10 text-accent">1 credit/page</span>
                     </div>
                   </div>
                 </div>
@@ -272,7 +272,7 @@ const Integrations = () => {
                     <div>
                       <p className="text-sm font-medium mb-1">Usage-based pricing — billed per page</p>
                       <p className="text-sm text-muted-foreground">
-                        You're charged $0.75 per page when you approve an extraction in the review queue (e.g. a 3-page invoice = $2.25). Rejected or duplicate files are free. Charges are aggregated monthly on your existing billing cycle.
+                        You're charged 1 credit ($1.00) per page when you approve an extraction in the review queue (e.g. a 3-page invoice = 3 credits / $3.00). Rejected or duplicate files are free. Charges are aggregated monthly on your existing billing cycle.
                       </p>
                     </div>
                   </div>

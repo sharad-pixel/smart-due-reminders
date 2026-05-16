@@ -1,7 +1,8 @@
 import { Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export const OCR_PRICE_PER_PAGE_USD = 0.75;
+export const OCR_PRICE_PER_PAGE_USD = 1.00;
+export const OCR_PRICE_LABEL = "1 credit / page";
 
 interface OcrPricingNoticeProps {
   pageCount?: number;
@@ -11,7 +12,7 @@ interface OcrPricingNoticeProps {
 
 /**
  * Standardized callout for any UI that triggers AI Smart Ingestion.
- * Always communicates the $0.75 / page billing rate.
+ * Always communicates the 1 credit ($1.00) per page billing rate.
  */
 export const OcrPricingNotice = ({
   pageCount,
@@ -19,14 +20,14 @@ export const OcrPricingNotice = ({
   className,
 }: OcrPricingNoticeProps) => {
   const estimated = pageCount && pageCount > 0
-    ? `~$${(pageCount * OCR_PRICE_PER_PAGE_USD).toFixed(2)} for ${pageCount} page${pageCount === 1 ? "" : "s"}`
+    ? `${pageCount} credit${pageCount === 1 ? "" : "s"} for ${pageCount} page${pageCount === 1 ? "" : "s"} (~$${(pageCount * OCR_PRICE_PER_PAGE_USD).toFixed(2)})`
     : null;
 
   if (variant === "inline") {
     return (
       <p className={cn("text-xs text-muted-foreground inline-flex items-center gap-1", className)}>
         <Info className="h-3 w-3" />
-        AI Smart Ingestion is billed at ${OCR_PRICE_PER_PAGE_USD.toFixed(2)} per page
+        AI Smart Ingestion is billed at 1 credit per page
         {estimated ? ` (${estimated})` : ""}.
       </p>
     );
@@ -42,7 +43,7 @@ export const OcrPricingNotice = ({
       <Info className="h-4 w-4 shrink-0 mt-0.5" />
       <div className="space-y-0.5">
         <div className="font-medium">
-          AI Smart Ingestion is billed at ${OCR_PRICE_PER_PAGE_USD.toFixed(2)} per page
+          AI Smart Ingestion is billed at 1 credit per page
         </div>
         <div className="opacity-90">
           {estimated

@@ -158,8 +158,8 @@ const ConsumptionTracker = () => {
             fileCount,
             pageCount,
             totalCharges,
-            ratePerFile: 0.75,
-            ratePerPage: 0.75,
+            ratePerFile: 1.00,
+            ratePerPage: 1.00,
             period: currentPeriod,
           });
         }

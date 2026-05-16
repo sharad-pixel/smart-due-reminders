@@ -102,8 +102,9 @@ export const SEAT_PRICING = {
  * the per-page rate. Total charge per approved scan = perPage × page_count.
  */
 export const SMART_INGESTION_PRICING = {
-  perPage: 0.75,
-  perFile: 0.75, // legacy alias — same value, now applied per page
+  perPage: 1.00,
+  perFile: 1.00, // legacy alias — same value, now applied per page
+  creditsPerPage: 1,
   currency: 'USD',
   billingCadence: 'monthly',
   chargeOnApprovalOnly: true,

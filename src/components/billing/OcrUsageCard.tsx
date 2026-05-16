@@ -20,7 +20,7 @@ export const OcrUsageCard = () => {
           <ScanLine className="h-4 w-4 text-primary" />
           AI Smart Ingestion Usage
           <Badge variant="outline" className="ml-2 text-[10px] font-normal">
-            ${OCR_PRICE_PER_PAGE_USD.toFixed(2)} / page
+            1 credit / page
           </Badge>
         </CardTitle>
       </CardHeader>
@@ -33,7 +33,7 @@ export const OcrUsageCard = () => {
 
         {events.length === 0 ? (
           <p className="text-xs text-muted-foreground">
-            No AI Smart Ingestion scans yet. Charges of ${OCR_PRICE_PER_PAGE_USD.toFixed(2)} per page apply when you upload invoices for extraction.
+            No AI Smart Ingestion scans yet. Charges of 1 credit per page apply when you upload invoices for extraction.
           </p>
         ) : (
           <div className="border rounded-md divide-y max-h-80 overflow-y-auto">
