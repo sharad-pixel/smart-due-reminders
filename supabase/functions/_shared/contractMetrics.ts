@@ -468,6 +468,7 @@ function componentsFromSchedule(
   schedule: InvoiceScheduleRow[],
   termMonths: number,
 ): RecurringComponent[] {
+  void termMonths;
   const recurring: RecurringComponent[] = [];
   const oneTimes: RecurringComponent[] = [];
 
