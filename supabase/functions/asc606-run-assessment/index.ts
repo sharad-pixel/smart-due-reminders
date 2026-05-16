@@ -120,7 +120,7 @@ serve(async (req) => {
       status: "running",
       payment_method: method,
       cost_credits: method === "stripe_one_time" ? 0 : COST_CREDITS,
-      cost_cents: method === "stripe_one_time" ? COST_CENTS : null,
+      cost_cents: COST_CENTS,
       stripe_checkout_session_id: stripeSessionId ?? null,
       requested_by: user.id,
     }).select().single();
