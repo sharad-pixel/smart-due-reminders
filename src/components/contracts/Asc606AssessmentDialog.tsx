@@ -195,15 +195,28 @@ export function Asc606AssessmentDialog({ open, onOpenChange, contractId, account
                       ))}
                     </div>
                   )}
+                  {latest.report_jsonb && <MissingDataSection report={latest.report_jsonb} />}
                   {latest.report_markdown && (
-                    <details className="mt-3 text-sm">
-                      <summary className="cursor-pointer text-muted-foreground hover:text-foreground">Full report</summary>
-                      <pre className="mt-2 whitespace-pre-wrap text-xs bg-muted p-3 rounded">{latest.report_markdown}</pre>
-                    </details>
+                    <Collapsible className="mt-3">
+                      <CollapsibleTrigger asChild>
+                        <Button variant="ghost" size="sm" className="text-xs text-muted-foreground hover:text-foreground -ml-2">
+                          <ChevronDown className="h-3.5 w-3.5 mr-1" />
+                          View full ASC 606 report
+                        </Button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <div className="mt-2 rounded-md border bg-card p-4 prose prose-sm dark:prose-invert max-w-none prose-headings:mb-2 prose-headings:mt-4 prose-p:my-2 prose-li:my-0.5 prose-pre:bg-muted prose-pre:border prose-pre:text-xs prose-code:text-xs">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{latest.report_markdown}</ReactMarkdown>
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
                   )}
                 </CardContent>
               </Card>
             )}
+
+            {/* Compliance documents library */}
+            <ComplianceDocsManager accountId={accountId} defaultStandard="ASC 606" />
 
             {latest && latest.status === "failed" && (
               <Card className="border-destructive/50">
