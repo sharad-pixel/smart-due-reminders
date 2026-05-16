@@ -195,6 +195,14 @@ const LiveContractDetailInner = () => {
                 </Badge>
               );
             })()}
+            <Button
+              size="sm"
+              onClick={() => setAsc606Open(true)}
+              className="bg-primary"
+            >
+              <FileCheck2 className="h-4 w-4 mr-1" />
+              ASC 606 Assessment
+            </Button>
             <Button asChild variant="outline" size="sm">
               <Link to="/team">
                 <Users className="h-4 w-4 mr-1" />
