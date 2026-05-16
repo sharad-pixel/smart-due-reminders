@@ -3687,6 +3687,8 @@ export type Database = {
           import_id: string
           last_alerted_at: string | null
           notice_days: number | null
+          notify_channel: string
+          notify_emails: string[]
           risk_level: string | null
           status: string
         }
@@ -3702,6 +3704,8 @@ export type Database = {
           import_id: string
           last_alerted_at?: string | null
           notice_days?: number | null
+          notify_channel?: string
+          notify_emails?: string[]
           risk_level?: string | null
           status?: string
         }
@@ -3717,6 +3721,8 @@ export type Database = {
           import_id?: string
           last_alerted_at?: string | null
           notice_days?: number | null
+          notify_channel?: string
+          notify_emails?: string[]
           risk_level?: string | null
           status?: string
         }
@@ -3777,6 +3783,7 @@ export type Database = {
           amount: number | null
           attachment_source: string | null
           billing_type: string | null
+          category_source: string | null
           completed_at: string | null
           completed_by: string | null
           completion_note: string | null
@@ -3792,11 +3799,13 @@ export type Database = {
           invoice_id: string | null
           ocr_scanned_file_id: string | null
           payment_terms: string | null
+          product_category: string | null
           product_description: string | null
           quantity: number | null
           reconciled_at: string | null
           reconciliation_candidates: Json | null
           reconciliation_status: string
+          revenue_type: string | null
           scheduled_date: string
           service_period_end: string | null
           service_period_start: string | null
@@ -3808,6 +3817,7 @@ export type Database = {
           amount?: number | null
           attachment_source?: string | null
           billing_type?: string | null
+          category_source?: string | null
           completed_at?: string | null
           completed_by?: string | null
           completion_note?: string | null
@@ -3823,11 +3833,13 @@ export type Database = {
           invoice_id?: string | null
           ocr_scanned_file_id?: string | null
           payment_terms?: string | null
+          product_category?: string | null
           product_description?: string | null
           quantity?: number | null
           reconciled_at?: string | null
           reconciliation_candidates?: Json | null
           reconciliation_status?: string
+          revenue_type?: string | null
           scheduled_date: string
           service_period_end?: string | null
           service_period_start?: string | null
@@ -3839,6 +3851,7 @@ export type Database = {
           amount?: number | null
           attachment_source?: string | null
           billing_type?: string | null
+          category_source?: string | null
           completed_at?: string | null
           completed_by?: string | null
           completion_note?: string | null
@@ -3854,11 +3867,13 @@ export type Database = {
           invoice_id?: string | null
           ocr_scanned_file_id?: string | null
           payment_terms?: string | null
+          product_category?: string | null
           product_description?: string | null
           quantity?: number | null
           reconciled_at?: string | null
           reconciliation_candidates?: Json | null
           reconciliation_status?: string
+          revenue_type?: string | null
           scheduled_date?: string
           service_period_end?: string | null
           service_period_start?: string | null
@@ -8508,6 +8523,7 @@ export type Database = {
           file_size: number | null
           folder_id: string | null
           id: string
+          industry: string | null
           metrics_computed_at: string | null
           metrics_jsonb: Json | null
           mime_type: string | null
@@ -8540,6 +8556,7 @@ export type Database = {
           file_size?: number | null
           folder_id?: string | null
           id?: string
+          industry?: string | null
           metrics_computed_at?: string | null
           metrics_jsonb?: Json | null
           mime_type?: string | null
@@ -8572,6 +8589,7 @@ export type Database = {
           file_size?: number | null
           folder_id?: string | null
           id?: string
+          industry?: string | null
           metrics_computed_at?: string | null
           metrics_jsonb?: Json | null
           mime_type?: string | null
