@@ -3494,6 +3494,81 @@ export type Database = {
           },
         ]
       }
+      compliance_documents: {
+        Row: {
+          account_id: string
+          asc_standard: string
+          byte_size: number | null
+          created_at: string
+          credits_charged: number | null
+          doc_category: string | null
+          error: string | null
+          extracted_text: string | null
+          file_name: string
+          id: string
+          indexed_at: string | null
+          key_policies: Json | null
+          mime_type: string | null
+          model_version: string | null
+          page_count: number | null
+          payment_method: string | null
+          status: string
+          storage_path: string
+          summary: string | null
+          title: string
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          account_id: string
+          asc_standard?: string
+          byte_size?: number | null
+          created_at?: string
+          credits_charged?: number | null
+          doc_category?: string | null
+          error?: string | null
+          extracted_text?: string | null
+          file_name: string
+          id?: string
+          indexed_at?: string | null
+          key_policies?: Json | null
+          mime_type?: string | null
+          model_version?: string | null
+          page_count?: number | null
+          payment_method?: string | null
+          status?: string
+          storage_path: string
+          summary?: string | null
+          title: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          account_id?: string
+          asc_standard?: string
+          byte_size?: number | null
+          created_at?: string
+          credits_charged?: number | null
+          doc_category?: string | null
+          error?: string | null
+          extracted_text?: string | null
+          file_name?: string
+          id?: string
+          indexed_at?: string | null
+          key_policies?: Json | null
+          mime_type?: string | null
+          model_version?: string | null
+          page_count?: number | null
+          payment_method?: string | null
+          status?: string
+          storage_path?: string
+          summary?: string | null
+          title?: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: []
+      }
       contact_requests: {
         Row: {
           billing_system: string | null
