@@ -251,22 +251,55 @@ const LiveContractDetailInner = () => {
       />
 
       <Card>
-        <CardHeader className="pb-3">
+        <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
           <CardTitle className="text-base flex items-center gap-2">
             <TrendingUp className="h-4 w-4 text-primary" /> Financial Summary
+            <Badge variant="outline" className="ml-2 text-[10px] font-normal capitalize">
+              {String(totals.source || "—").replace(/_/g, " ")}
+            </Badge>
           </CardTitle>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleRecompute}
+            disabled={recomputing}
+          >
+            {recomputing ? "Recalculating…" : "Recalculate"}
+          </Button>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <KpiTile label="MRR" value={formatCurrency(totals.mrr, totals.currency)} />
-          <KpiTile label="ARR" value={formatCurrency(totals.arr, totals.currency)} />
-          <KpiTile label="ACV" value={formatCurrency(totals.acv, totals.currency)} />
-          <KpiTile
-            label={totals.tcv > 0 ? "TCV" : "Scheduled"}
-            value={formatCurrency(
-              totals.tcv > 0 ? totals.tcv : totals.scheduled,
-              totals.currency,
-            )}
-          />
+        <CardContent className="space-y-3">
+          {Array.isArray(totals.warnings) && totals.warnings.length > 0 && (
+            <div className="rounded-md border border-amber-200 bg-amber-50 text-amber-900 p-2 text-xs space-y-1">
+              <div className="font-medium flex items-center gap-1">
+                <AlertTriangle className="h-3.5 w-3.5" /> Review recommended
+              </div>
+              <ul className="list-disc pl-5 space-y-0.5">
+                {totals.warnings.slice(0, 4).map((w: string, i: number) => (
+                  <li key={i}>{w}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <KpiTile label="MRR" value={formatCurrency(totals.mrr, totals.currency)} />
+            <KpiTile label="ARR" value={formatCurrency(totals.arr, totals.currency)} />
+            <KpiTile label="ACV" value={formatCurrency(totals.acv, totals.currency)} />
+            <KpiTile
+              label={totals.tcv > 0 ? "TCV" : "Scheduled"}
+              value={formatCurrency(
+                totals.tcv > 0 ? totals.tcv : totals.scheduled,
+                totals.currency,
+              )}
+            />
+          </div>
+          {(totals.recurringTcv > 0 || totals.servicesTcv > 0 || totals.oneTimeTcv > 0) && (
+            <div className="text-[11px] text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 pt-1 border-t">
+              <span>Recurring TCV: {formatCurrency(totals.recurringTcv || 0, totals.currency)}</span>
+              <span>Services: {formatCurrency(totals.servicesTcv || 0, totals.currency)}</span>
+              <span>One-time: {formatCurrency(totals.oneTimeTcv || 0, totals.currency)}</span>
+              {totals.termMonths > 0 && <span>Term: {Math.round(totals.termMonths)} mo</span>}
+            </div>
+          )}
         </CardContent>
       </Card>
 
