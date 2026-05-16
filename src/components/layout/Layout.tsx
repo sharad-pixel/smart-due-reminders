@@ -59,6 +59,7 @@ import { OnboardingWelcome } from "@/components/layout/OnboardingWelcome";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
 import { useSubscription } from "@/hooks/useSubscription";
 import { NavProfileAvatar } from "@/components/layout/NavProfileAvatar";
+import { CreditsWalletBadge } from "@/components/billing/CreditsWalletBadge";
 import { OnboardingProgressRing } from "@/components/layout/OnboardingProgressRing";
 import { useOnboardingCompletion } from "@/hooks/useOnboardingCompletion";
 
@@ -453,6 +454,7 @@ const Layout = ({ children }: LayoutProps) => {
             </div>
             
             <div className="flex items-center space-x-2 shrink-0">
+              <CreditsWalletBadge />
               <AlertNotifications />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
