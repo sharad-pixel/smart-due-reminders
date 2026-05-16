@@ -71,7 +71,7 @@ export function Asc606AssessmentDialog({ open, onOpenChange, contractId, account
       queryClient.invalidateQueries({ queryKey: ["asc606-latest-assessment", contractId] });
       queryClient.invalidateQueries({ queryKey: ["asc606-guidance-messages", contractId] });
     } catch (e: any) {
-      toast.error(e?.message ?? "Failed to run assessment");
+      toast.error(await functionErrorMessage(e, "Failed to run assessment"));
     } finally {
       setRunning(false);
     }
@@ -86,7 +86,7 @@ export function Asc606AssessmentDialog({ open, onOpenChange, contractId, account
       if (error) throw error;
       if (data?.url) window.open(data.url, "_blank");
     } catch (e: any) {
-      toast.error(e?.message ?? "Failed to start checkout");
+      toast.error(await functionErrorMessage(e, "Failed to start checkout"));
     } finally {
       setPaying(false);
     }
@@ -247,4 +247,17 @@ function severityColor(s?: string): string {
   if (v === "high") return "hsl(var(--destructive))";
   if (v === "medium") return "hsl(var(--primary))";
   return "hsl(var(--muted-foreground))";
+}
+
+async function functionErrorMessage(e: any, fallback: string): Promise<string> {
+  try {
+    const ctx = e?.context;
+    if (ctx && typeof ctx.json === "function") {
+      const body = await ctx.clone().json();
+      return body?.message || body?.error || fallback;
+    }
+  } catch {
+    // Fall through to default message.
+  }
+  return e?.message ?? fallback;
 }
