@@ -604,15 +604,7 @@ export type Database = {
           stripe_payment_intent_id?: string | null
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "asc606_assessments_contract_id_fkey"
-            columns: ["contract_id"]
-            isOneToOne: false
-            referencedRelation: "contracts"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       asc606_credit_ledger: {
         Row: {
@@ -706,6 +698,53 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      asc606_guidance_messages: {
+        Row: {
+          account_id: string
+          assessment_id: string | null
+          contract_id: string
+          created_at: string
+          created_by: string
+          guidance: string
+          guidance_jsonb: Json | null
+          id: string
+          model_version: string | null
+          prompt: string
+        }
+        Insert: {
+          account_id: string
+          assessment_id?: string | null
+          contract_id: string
+          created_at?: string
+          created_by: string
+          guidance: string
+          guidance_jsonb?: Json | null
+          id?: string
+          model_version?: string | null
+          prompt: string
+        }
+        Update: {
+          account_id?: string
+          assessment_id?: string | null
+          contract_id?: string
+          created_at?: string
+          created_by?: string
+          guidance?: string
+          guidance_jsonb?: Json | null
+          id?: string
+          model_version?: string | null
+          prompt?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asc606_guidance_messages_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "asc606_assessments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       assessment_events: {
         Row: {
