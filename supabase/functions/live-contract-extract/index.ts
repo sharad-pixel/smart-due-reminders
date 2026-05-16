@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { classifyLineItem, revenueTypeFor } from "../_shared/contractMetrics.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
