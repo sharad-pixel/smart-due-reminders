@@ -114,13 +114,42 @@ const LiveContractDetailInner = () => {
   });
 
   const totals = useMemo(() => {
-    const t = computeContractTotals(data?.fields || [], data?.imp || undefined);
+    // Prefer cached engine output if present (set by approval / recompute edge fns)
+    const cached = (data?.imp as any)?.metrics_jsonb;
+    if (cached && typeof cached === "object" && cached.source) {
+      let scheduled = 0;
+      (data?.schedules || []).forEach((s: any) => {
+        scheduled += toNumber(s.amount);
+      });
+      return { ...cached, scheduled };
+    }
+    // Live fallback — compute from extracted fields + schedule
+    const t = computeContractTotals(data?.fields || [], data?.imp || undefined, {
+      schedule: (data?.schedules || []) as any[],
+    });
     let scheduled = 0;
     (data?.schedules || []).forEach((s: any) => {
       scheduled += toNumber(s.amount);
     });
     return { ...t, scheduled };
   }, [data]);
+
+  const [recomputing, setRecomputing] = useState(false);
+  const handleRecompute = async () => {
+    if (!importId) return;
+    setRecomputing(true);
+    try {
+      const { error } = await supabase.functions.invoke("contract-metrics-recompute", {
+        body: { import_id: importId },
+      });
+      if (error) throw error;
+      await qc.invalidateQueries({ queryKey: ["live-contract-detail", importId] });
+    } catch (e) {
+      console.error("Recompute failed", e);
+    } finally {
+      setRecomputing(false);
+    }
+  };
 
   if (isLoading) {
     return (
