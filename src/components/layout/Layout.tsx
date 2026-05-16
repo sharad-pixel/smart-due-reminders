@@ -259,17 +259,23 @@ const Layout = ({ children }: LayoutProps) => {
   if (!user) return null;
 
   const coreNavItems = [
-    { path: "/dashboard", label: "RevenueHub", icon: LayoutDashboard },
     { path: "/debtors", label: "Accounts", icon: Users },
-    { path: "/invoices", label: "Invoices", icon: FileText },
-    { path: "/payments", label: "Payments", icon: DollarSign },
     { path: "/data-center", label: "Data Center", icon: Database },
   ];
 
-  const clmItems = [
-    { path: "/contracts", label: "Workspaces", icon: Briefcase },
+  const revenueHubItems = [
+    { path: "/dashboard", label: "Overview", icon: LayoutDashboard },
+    { path: "/invoices", label: "Invoices", icon: FileText, section: "Collection Intelligence" },
+    { path: "/payments", label: "Payments", icon: DollarSign, section: "Collection Intelligence" },
   ];
-  const isAnyClmActive = clmItems.some(item => isActive(item.path));
+  const isAnyRevenueHubActive = revenueHubItems.some(item => isActive(item.path));
+
+  const revenueIntelligenceItems = [
+    { path: "/ai-ingestion", label: "Live Contracts", icon: FileSignature },
+    { path: "/revenue-risk", label: "Revenue Risk", icon: ShieldAlert },
+    ...(clmActive ? [{ path: "/contracts", label: "CLM Workspaces", icon: Briefcase }] : []),
+  ];
+  const isAnyRevenueIntelActive = revenueIntelligenceItems.some(item => isActive(item.path)) || isActive("/contracts/live");
 
   const aiToolsItems = [
     { path: "/settings/ai-workflows", label: "AI Workflows", icon: Workflow },
@@ -279,11 +285,10 @@ const Layout = ({ children }: LayoutProps) => {
     { path: "/daily-digest", label: "Daily Digest", icon: CalendarDays },
     { path: "/alerts", label: "Alerts", icon: Bell, badge: alertUnreadCount },
     { path: "/reports/email-delivery", label: "Email Delivery", icon: BarChart3 },
-    { path: "/revenue-risk", label: "Revenue Risk", icon: ShieldAlert },
   ];
 
   // Mobile nav items - excludes admin/settings items since they're in user dropdown
-  const mobileNavItems = [...coreNavItems, ...aiToolsItems, ...(clmActive ? clmItems : [])];
+  const mobileNavItems = [...coreNavItems, ...revenueHubItems, ...revenueIntelligenceItems, ...aiToolsItems];
 
   const isAnyAIToolActive = aiToolsItems.some(item => isActive(item.path));
 
@@ -330,6 +335,47 @@ const Layout = ({ children }: LayoutProps) => {
               
               {/* Desktop Navigation */}
               <div className="hidden lg:flex items-center gap-1">
+                {/* RevenueHub Dropdown */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={`flex items-center gap-1.5 px-3 py-2 h-auto text-sm font-medium ${
+                        isAnyRevenueHubActive
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                      }`}
+                    >
+                      <LayoutDashboard className="h-4 w-4 shrink-0" />
+                      <span>RevenueHub</span>
+                      <ChevronDown className="h-3 w-3 shrink-0" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-56 z-[110] bg-card border shadow-lg">
+                    <DropdownMenuItem asChild>
+                      <Link to="/dashboard" className={`flex items-center gap-2 cursor-pointer ${isActive("/dashboard") ? "bg-accent" : ""}`}>
+                        <LayoutDashboard className="h-4 w-4" />
+                        <span>Overview</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel className="text-xs text-muted-foreground">Collection Intelligence</DropdownMenuLabel>
+                    <DropdownMenuItem asChild>
+                      <Link to="/invoices" className={`flex items-center gap-2 cursor-pointer ${isActive("/invoices") ? "bg-accent" : ""}`}>
+                        <FileText className="h-4 w-4" />
+                        <span>Invoices</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/payments" className={`flex items-center gap-2 cursor-pointer ${isActive("/payments") ? "bg-accent" : ""}`}>
+                        <DollarSign className="h-4 w-4" />
+                        <span>Payments</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
                 {coreNavItems.map((item) => {
                   const Icon = item.icon;
                   return (
@@ -347,6 +393,41 @@ const Layout = ({ children }: LayoutProps) => {
                     </Link>
                   );
                 })}
+
+                {/* Revenue Intelligence Dropdown */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={`flex items-center gap-1.5 px-3 py-2 h-auto text-sm font-medium ${
+                        isAnyRevenueIntelActive
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                      }`}
+                    >
+                      <ShieldAlert className="h-4 w-4 shrink-0" />
+                      <span>Revenue Intelligence</span>
+                      <ChevronDown className="h-3 w-3 shrink-0" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-56 z-[110] bg-card border shadow-lg">
+                    {revenueIntelligenceItems.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <DropdownMenuItem key={item.path} asChild>
+                          <Link
+                            to={item.path}
+                            className={`flex items-center gap-2 cursor-pointer ${isActive(item.path) ? "bg-accent" : ""}`}
+                          >
+                            <Icon className="h-4 w-4" />
+                            <span>{item.label}</span>
+                          </Link>
+                        </DropdownMenuItem>
+                      );
+                    })}
+                  </DropdownMenuContent>
+                </DropdownMenu>
 
                 {/* AI Tools Dropdown */}
                 <DropdownMenu>
@@ -372,17 +453,6 @@ const Layout = ({ children }: LayoutProps) => {
                     >
                       <Sparkles className="h-4 w-4 text-primary" />
                       <span>AI Smart Ingestion</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link
-                        to="/ai-ingestion"
-                        className={`flex items-center gap-2 cursor-pointer ${
-                          isActive("/ai-ingestion") || isActive("/contracts/live") ? "bg-accent" : ""
-                        }`}
-                      >
-                        <FileText className="h-4 w-4" />
-                        <span>Live Contracts</span>
-                      </Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     {aiToolsItems.map((item) => {
@@ -410,49 +480,10 @@ const Layout = ({ children }: LayoutProps) => {
                       );
                     })}
                   </DropdownMenuContent>
-              </DropdownMenu>
-
-              {/* CLM Dropdown */}
-              {clmActive && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className={`flex items-center gap-1.5 px-3 py-2 h-auto text-sm font-medium ${
-                        isAnyClmActive
-                          ? "bg-primary text-primary-foreground shadow-sm"
-                          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                      }`}
-                    >
-                      <FileSignature className="h-4 w-4 shrink-0" />
-                      <span>CLM</span>
-                      <ChevronDown className="h-3 w-3 shrink-0" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-56 z-[110] bg-card border shadow-lg">
-                    {clmItems.map((item) => {
-                      const Icon = item.icon;
-                      return (
-                        <DropdownMenuItem key={item.path} asChild>
-                          <Link
-                            to={item.path}
-                            className={`flex items-center gap-2 cursor-pointer ${
-                              isActive(item.path) ? "bg-accent" : ""
-                            }`}
-                          >
-                            <Icon className="h-4 w-4" />
-                            <span>{item.label}</span>
-                          </Link>
-                        </DropdownMenuItem>
-                      );
-                    })}
-                  </DropdownMenuContent>
                 </DropdownMenu>
-              )}
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-2 shrink-0">
               <CreditsWalletBadge />
               <AlertNotifications />
