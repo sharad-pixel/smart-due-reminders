@@ -230,7 +230,14 @@ export const ContractOverviewEditor = ({ contract, onSaved }: Props) => {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="ov-eff">Effective date</Label>
+              <Label htmlFor="ov-ind">Industry</Label>
+              <Input
+                id="ov-ind"
+                placeholder="SaaS / Software, Professional Services, Hardware…"
+                value={form.industry}
+                onChange={(e) => setForm({ ...form, industry: e.target.value })}
+              />
+            </div>
               <Input
                 id="ov-eff"
                 type="date"
