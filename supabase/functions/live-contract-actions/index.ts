@@ -62,14 +62,16 @@ Deno.serve(async (req) => {
     if (action === "recalculate_dates") {
       const { data: existing } = await supabase
         .from("contract_critical_dates")
-        .select("id, date_type, due_date, alert_enabled, alert_lead_days, last_alerted_at")
+        .select("id, date_type, due_date, alert_enabled, alert_lead_days, last_alerted_at, notify_channel, notify_emails")
         .eq("import_id", importId);
-      const prefs = new Map<string, { alert_enabled: boolean; alert_lead_days: number; last_alerted_at: string | null }>();
+      const prefs = new Map<string, { alert_enabled: boolean; alert_lead_days: number; last_alerted_at: string | null; notify_channel: string; notify_emails: string[] }>();
       (existing || []).forEach((r: any) => {
         prefs.set(`${r.date_type}|${r.due_date}`, {
           alert_enabled: !!r.alert_enabled,
           alert_lead_days: r.alert_lead_days || 30,
           last_alerted_at: r.last_alerted_at || null,
+          notify_channel: r.notify_channel || "in_app",
+          notify_emails: Array.isArray(r.notify_emails) ? r.notify_emails : [],
         });
       });
 
