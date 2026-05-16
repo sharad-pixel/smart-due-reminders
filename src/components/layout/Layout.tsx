@@ -453,6 +453,7 @@ const Layout = ({ children }: LayoutProps) => {
             </div>
             
             <div className="flex items-center space-x-2 shrink-0">
+              <CreditsWalletBadge />
               <AlertNotifications />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
