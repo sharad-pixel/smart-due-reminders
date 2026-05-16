@@ -560,7 +560,7 @@ const Dashboard = () => {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <ContractUploadButton variant="outline" />
+            <SmartIngestionButton variant="outline" />
             <div className="inline-flex rounded-md border bg-muted/40 p-0.5">
               <Button
                 size="sm"
