@@ -33,9 +33,11 @@ const formatDuration = (days: number | null) => {
 export const ContractOverviewEditor = ({ contract, onSaved }: Props) => {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [reclassifying, setReclassifying] = useState(false);
   const [form, setForm] = useState({
     contract_name: "",
     contract_type: "",
+    industry: "",
     product_description: "",
     effective_date: "",
     term_end_date: "",
@@ -46,12 +48,30 @@ export const ContractOverviewEditor = ({ contract, onSaved }: Props) => {
     setForm({
       contract_name: contract.contract_name || "",
       contract_type: contract.contract_type || "",
+      industry: contract.industry || "",
       product_description: contract.product_description || "",
       effective_date: contract.effective_date || "",
       term_end_date: contract.term_end_date || "",
       contract_value: contract.contract_value != null ? String(contract.contract_value) : "",
     });
   }, [contract]);
+
+  const reclassify = async () => {
+    setReclassifying(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("live-contract-actions", {
+        body: { importId: contract.id, action: "reclassify_lines" },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+      toast.success(`Re-classified ${data?.updated || 0} line${(data?.updated || 0) === 1 ? "" : "s"}`);
+      onSaved();
+    } catch (e: any) {
+      toast.error(e?.message || "Re-classify failed");
+    } finally {
+      setReclassifying(false);
+    }
+  };
 
   const termDays = daysBetween(contract.effective_date, contract.term_end_date);
   const daysRemaining = contract.term_end_date
