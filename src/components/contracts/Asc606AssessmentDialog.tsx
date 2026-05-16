@@ -7,6 +7,7 @@ import { Loader2, Sparkles, FileCheck2, AlertTriangle, ExternalLink, CreditCard,
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 
 type Wallet = {
   balance_credits: number;
@@ -38,6 +39,7 @@ interface Props {
 }
 
 export function Asc606AssessmentDialog({ open, onOpenChange, contractId, accountId, contractTitle }: Props) {
+  const queryClient = useQueryClient();
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,14 +62,16 @@ export function Asc606AssessmentDialog({ open, onOpenChange, contractId, account
   const runWithCredits = async (method: "credits" | "overage") => {
     setRunning(true);
     try {
-      const { data, error } = await supabase.functions.invoke("asc606-run-assessment", {
+      const { error } = await supabase.functions.invoke("asc606-run-assessment", {
         body: { contractId, paymentMethod: method },
       });
       if (error) throw error;
       toast.success("Assessment complete");
       await load();
+      queryClient.invalidateQueries({ queryKey: ["asc606-latest-assessment", contractId] });
+      queryClient.invalidateQueries({ queryKey: ["asc606-guidance-messages", contractId] });
     } catch (e: any) {
-      toast.error(e?.message ?? "Failed to run assessment");
+      toast.error(await functionErrorMessage(e, "Failed to run assessment"));
     } finally {
       setRunning(false);
     }
@@ -82,7 +86,7 @@ export function Asc606AssessmentDialog({ open, onOpenChange, contractId, account
       if (error) throw error;
       if (data?.url) window.open(data.url, "_blank");
     } catch (e: any) {
-      toast.error(e?.message ?? "Failed to start checkout");
+      toast.error(await functionErrorMessage(e, "Failed to start checkout"));
     } finally {
       setPaying(false);
     }
@@ -243,4 +247,17 @@ function severityColor(s?: string): string {
   if (v === "high") return "hsl(var(--destructive))";
   if (v === "medium") return "hsl(var(--primary))";
   return "hsl(var(--muted-foreground))";
+}
+
+async function functionErrorMessage(e: any, fallback: string): Promise<string> {
+  try {
+    const ctx = e?.context;
+    if (ctx && typeof ctx.json === "function") {
+      const body = await ctx.clone().json();
+      return body?.message || body?.error || fallback;
+    }
+  } catch {
+    // Fall through to default message.
+  }
+  return e?.message ?? fallback;
 }

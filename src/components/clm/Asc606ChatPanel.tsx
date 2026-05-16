@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Sparkles, Send, Loader2, Lock, FileCheck2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface Props {
   contractId: string;
@@ -25,6 +27,7 @@ const SUGGESTIONS = [
 ];
 
 export function Asc606ChatPanel({ contractId, contractTitle, onOpenAssessment }: Props) {
+  const queryClient = useQueryClient();
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -47,6 +50,20 @@ export function Asc606ChatPanel({ contractId, contractTitle, onOpenAssessment }:
     },
   });
 
+  const { data: storedGuidance = [] } = useQuery({
+    queryKey: ["asc606-guidance-messages", contractId, latest?.id],
+    enabled: !!contractId && !!latest,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("asc606_guidance_messages" as any)
+        .select("id, prompt, guidance, created_at")
+        .eq("contract_id", contractId)
+        .order("created_at", { ascending: false })
+        .limit(5);
+      return (data as any[]) ?? [];
+    },
+  });
+
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, sending]);
@@ -66,6 +83,7 @@ export function Asc606ChatPanel({ contractId, contractTitle, onOpenAssessment }:
       if ((data as any)?.error) throw new Error((data as any).error);
       const reply = (data as any)?.reply ?? "";
       setMessages((m) => [...m, { role: "assistant", content: reply }]);
+      queryClient.invalidateQueries({ queryKey: ["asc606-guidance-messages", contractId] });
     } catch (e: any) {
       toast.error(e?.message ?? "Failed to get a response");
       setMessages((m) => [...m, { role: "assistant", content: "Sorry, I couldn't generate a response. Please try again." }]);
@@ -118,9 +136,11 @@ export function Asc606ChatPanel({ contractId, contractTitle, onOpenAssessment }:
               className="max-h-80 overflow-y-auto space-y-3 pr-1"
             >
               {messages.length === 0 ? (
-                <div className="text-xs text-muted-foreground">
-                  Ask anything about ASC 606 compliance for <span className="font-medium text-foreground">{contractTitle}</span>. Try:
-                  <div className="mt-2 flex flex-wrap gap-1.5">
+                <div className="space-y-3 text-xs text-muted-foreground">
+                  <div>
+                    Ask anything about ASC 606 compliance for <span className="font-medium text-foreground">{contractTitle}</span>. Try:
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
                     {SUGGESTIONS.map((s) => (
                       <Button
                         key={s}
@@ -134,6 +154,17 @@ export function Asc606ChatPanel({ contractId, contractTitle, onOpenAssessment }:
                       </Button>
                     ))}
                   </div>
+                  {storedGuidance.length > 0 && (
+                    <div className="rounded-md border bg-muted/20 p-3 space-y-2">
+                      <div className="font-medium text-foreground">Stored guidance</div>
+                      {storedGuidance.slice(0, 3).map((g: any) => (
+                        <div key={g.id} className="border-t first:border-t-0 pt-2 first:pt-0">
+                          <div className="font-medium text-foreground line-clamp-1">{g.prompt}</div>
+                          <div className="mt-1 text-muted-foreground line-clamp-3">{g.guidance}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ) : (
                 messages.map((m, i) => (
@@ -143,7 +174,9 @@ export function Asc606ChatPanel({ contractId, contractTitle, onOpenAssessment }:
                         {m.content}
                       </div>
                     ) : (
-                      <div className="text-sm text-foreground whitespace-pre-wrap">{m.content}</div>
+                      <div className="prose prose-sm max-w-none text-foreground dark:prose-invert">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
+                      </div>
                     )}
                   </div>
                 ))
