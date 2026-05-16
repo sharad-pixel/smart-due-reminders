@@ -136,9 +136,11 @@ export function Asc606ChatPanel({ contractId, contractTitle, onOpenAssessment }:
               className="max-h-80 overflow-y-auto space-y-3 pr-1"
             >
               {messages.length === 0 ? (
-                <div className="text-xs text-muted-foreground">
-                  Ask anything about ASC 606 compliance for <span className="font-medium text-foreground">{contractTitle}</span>. Try:
-                  <div className="mt-2 flex flex-wrap gap-1.5">
+                <div className="space-y-3 text-xs text-muted-foreground">
+                  <div>
+                    Ask anything about ASC 606 compliance for <span className="font-medium text-foreground">{contractTitle}</span>. Try:
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
                     {SUGGESTIONS.map((s) => (
                       <Button
                         key={s}
@@ -152,6 +154,17 @@ export function Asc606ChatPanel({ contractId, contractTitle, onOpenAssessment }:
                       </Button>
                     ))}
                   </div>
+                  {storedGuidance.length > 0 && (
+                    <div className="rounded-md border bg-muted/20 p-3 space-y-2">
+                      <div className="font-medium text-foreground">Stored guidance</div>
+                      {storedGuidance.slice(0, 3).map((g: any) => (
+                        <div key={g.id} className="border-t first:border-t-0 pt-2 first:pt-0">
+                          <div className="font-medium text-foreground line-clamp-1">{g.prompt}</div>
+                          <div className="mt-1 text-muted-foreground line-clamp-3">{g.guidance}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ) : (
                 messages.map((m, i) => (
@@ -161,7 +174,9 @@ export function Asc606ChatPanel({ contractId, contractTitle, onOpenAssessment }:
                         {m.content}
                       </div>
                     ) : (
-                      <div className="text-sm text-foreground whitespace-pre-wrap">{m.content}</div>
+                      <div className="prose prose-sm max-w-none text-foreground dark:prose-invert">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
+                      </div>
                     )}
                   </div>
                 ))
