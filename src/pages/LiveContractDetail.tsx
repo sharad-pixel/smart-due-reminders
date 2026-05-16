@@ -38,6 +38,7 @@ import { KeyDatesNotificationsPanel } from "@/components/clm/KeyDatesNotificatio
 import { ContractFinancialExport } from "@/components/clm/ContractFinancialExport";
 import { ContractReconciliationPanel } from "@/components/contracts/ContractReconciliationPanel";
 import { Asc606AssessmentDialog } from "@/components/contracts/Asc606AssessmentDialog";
+import { Asc606ChatPanel } from "@/components/clm/Asc606ChatPanel";
 import { useClmEntitlement } from "@/hooks/useClmEntitlement";
 import { FileCheck2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
