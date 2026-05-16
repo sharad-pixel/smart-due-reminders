@@ -280,6 +280,7 @@ FORMAT RULES (very important):
 - ALWAYS hyperlink debtor names and invoice numbers using these exact patterns:
    * Debtor link:  [Debtor Name](/debtors/{debtor_id})
    * Invoice link: [INVOICE-NUMBER](/invoices/{invoice_id})
+- Links MUST be relative paths starting with "/". NEVER prepend a domain or scheme — do not output https://, http://, recouply.ai, app.recouply.com, or any host. Just "/debtors/<uuid>" or "/invoices/<uuid>".
 - Use the \`id\` field from debtor arrays for debtor links and the \`id\` field from invoice arrays for invoice links. If an id is missing, render plain bold text instead — never invent an id.
 - Format money as $1,234 (no decimals unless < $10). Format dates as YYYY-MM-DD.
 - End with a short **Recommended next step** line (1 sentence) when the question is action-oriented.
