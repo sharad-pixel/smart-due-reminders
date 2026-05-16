@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { CalendarRange, Package, Pencil, Save, X } from "lucide-react";
+import { CalendarRange, Package, Pencil, Save, X, Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDateShort, formatCurrency } from "@/lib/formatters";
 
@@ -33,9 +33,11 @@ const formatDuration = (days: number | null) => {
 export const ContractOverviewEditor = ({ contract, onSaved }: Props) => {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [reclassifying, setReclassifying] = useState(false);
   const [form, setForm] = useState({
     contract_name: "",
     contract_type: "",
+    industry: "",
     product_description: "",
     effective_date: "",
     term_end_date: "",
@@ -46,12 +48,30 @@ export const ContractOverviewEditor = ({ contract, onSaved }: Props) => {
     setForm({
       contract_name: contract.contract_name || "",
       contract_type: contract.contract_type || "",
+      industry: contract.industry || "",
       product_description: contract.product_description || "",
       effective_date: contract.effective_date || "",
       term_end_date: contract.term_end_date || "",
       contract_value: contract.contract_value != null ? String(contract.contract_value) : "",
     });
   }, [contract]);
+
+  const reclassify = async () => {
+    setReclassifying(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("live-contract-actions", {
+        body: { importId: contract.id, action: "reclassify_lines" },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+      toast.success(`Re-classified ${data?.updated || 0} line${(data?.updated || 0) === 1 ? "" : "s"}`);
+      onSaved();
+    } catch (e: any) {
+      toast.error(e?.message || "Re-classify failed");
+    } finally {
+      setReclassifying(false);
+    }
+  };
 
   const termDays = daysBetween(contract.effective_date, contract.term_end_date);
   const daysRemaining = contract.term_end_date
@@ -81,6 +101,7 @@ export const ContractOverviewEditor = ({ contract, onSaved }: Props) => {
         .update({
           contract_name: form.contract_name.trim() || null,
           contract_type: form.contract_type.trim() || null,
+          industry: form.industry.trim() || null,
           product_description: form.product_description.trim() || null,
           effective_date: form.effective_date || null,
           term_end_date: form.term_end_date || null,
@@ -105,9 +126,15 @@ export const ContractOverviewEditor = ({ contract, onSaved }: Props) => {
           <Package className="h-4 w-4 text-primary" /> Contract Overview
         </CardTitle>
         {!editing ? (
-          <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
-            <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
-          </Button>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={reclassify} disabled={reclassifying}>
+              {reclassifying ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Sparkles className="h-3.5 w-3.5 mr-1" />}
+              Re-classify line items
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
+              <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
+            </Button>
+          </div>
         ) : (
           <div className="flex gap-2">
             <Button size="sm" variant="ghost" onClick={() => setEditing(false)} disabled={saving}>
@@ -158,6 +185,12 @@ export const ContractOverviewEditor = ({ contract, onSaved }: Props) => {
                 {contract.contract_type ? String(contract.contract_type).replace(/_/g, " ") : "—"}
               </dd>
             </div>
+            <div>
+              <dt className="text-xs text-muted-foreground uppercase tracking-wide">Industry</dt>
+              <dd className="font-medium">
+                {contract.industry || <span className="text-muted-foreground italic">Not set — drives line-item category fallback</span>}
+              </dd>
+            </div>
             <div className="sm:col-span-2">
               <dt className="text-xs text-muted-foreground uppercase tracking-wide">
                 Product / Service Description
@@ -194,6 +227,15 @@ export const ContractOverviewEditor = ({ contract, onSaved }: Props) => {
                 placeholder="MSA, SOW, Subscription…"
                 value={form.contract_type}
                 onChange={(e) => setForm({ ...form, contract_type: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ov-ind">Industry</Label>
+              <Input
+                id="ov-ind"
+                placeholder="SaaS / Software, Professional Services, Hardware…"
+                value={form.industry}
+                onChange={(e) => setForm({ ...form, industry: e.target.value })}
               />
             </div>
             <div className="space-y-1.5">

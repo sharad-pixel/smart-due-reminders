@@ -62,14 +62,16 @@ Deno.serve(async (req) => {
     if (action === "recalculate_dates") {
       const { data: existing } = await supabase
         .from("contract_critical_dates")
-        .select("id, date_type, due_date, alert_enabled, alert_lead_days, last_alerted_at")
+        .select("id, date_type, due_date, alert_enabled, alert_lead_days, last_alerted_at, notify_channel, notify_emails")
         .eq("import_id", importId);
-      const prefs = new Map<string, { alert_enabled: boolean; alert_lead_days: number; last_alerted_at: string | null }>();
+      const prefs = new Map<string, { alert_enabled: boolean; alert_lead_days: number; last_alerted_at: string | null; notify_channel: string; notify_emails: string[] }>();
       (existing || []).forEach((r: any) => {
         prefs.set(`${r.date_type}|${r.due_date}`, {
           alert_enabled: !!r.alert_enabled,
           alert_lead_days: r.alert_lead_days || 30,
           last_alerted_at: r.last_alerted_at || null,
+          notify_channel: r.notify_channel || "in_app",
+          notify_emails: Array.isArray(r.notify_emails) ? r.notify_emails : [],
         });
       });
 
@@ -111,15 +113,18 @@ Deno.serve(async (req) => {
       };
 
       if (effective) push("effective_date", effective);
+      if (effective) push("term_start", effective);
       if (signed) push("signed_date", signed);
       if (termEnd) push("term_end", termEnd);
       if (renewal) push("renewal", renewal, noticeDays || undefined);
       if (optOutExplicit) {
         push("opt_out_deadline", optOutExplicit, noticeDays || undefined);
+        push("non_renewal_notice_start", optOutExplicit, noticeDays || undefined);
       } else if (renewal && noticeDays > 0) {
         const opt = new Date(renewal);
         opt.setDate(opt.getDate() - noticeDays);
         push("opt_out_deadline", opt, noticeDays);
+        push("non_renewal_notice_start", opt, noticeDays);
       }
       if (pocStart) push("poc_start", pocStart);
       if (pocEnd) push("poc_end", pocEnd);
@@ -142,6 +147,8 @@ Deno.serve(async (req) => {
           (d as any).alert_enabled = pref.alert_enabled;
           (d as any).alert_lead_days = pref.alert_lead_days;
           (d as any).last_alerted_at = pref.last_alerted_at;
+          (d as any).notify_channel = pref.notify_channel;
+          (d as any).notify_emails = pref.notify_emails;
         }
       }
 
@@ -308,15 +315,23 @@ Deno.serve(async (req) => {
     }
 
     if (action === "set_alerts") {
-      // dates: [{id, enabled, lead_days}]
+      // dates: [{id, enabled, lead_days, channel, emails}]
       const { dates } = body;
       if (!Array.isArray(dates)) return json({ error: "dates array required" }, 400);
       const today = new Date();
       let configured = 0, fired = 0;
+      const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       for (const d of dates) {
         const lead = Number(d.lead_days) || 30;
+        const ch = ["in_app", "email", "both"].includes(d.channel) ? d.channel : "in_app";
+        const emails: string[] = Array.isArray(d.emails)
+          ? d.emails.map((e: any) => String(e).trim()).filter((e: string) => EMAIL_RE.test(e)).slice(0, 20)
+          : [];
         await supabase.from("contract_critical_dates").update({
-          alert_enabled: !!d.enabled, alert_lead_days: lead,
+          alert_enabled: !!d.enabled,
+          alert_lead_days: lead,
+          notify_channel: ch,
+          notify_emails: emails,
         }).eq("id", d.id).eq("import_id", importId);
         configured++;
 
@@ -331,8 +346,10 @@ Deno.serve(async (req) => {
               auto_renewal: "contract_renewal",
               opt_out: "contract_opt_out",
               opt_out_deadline: "contract_opt_out",
+              non_renewal_notice_start: "contract_opt_out",
               expiration: "contract_expiration",
               term_end: "contract_expiration",
+              term_start: "contract_milestone",
             };
             const alertType = typeMap[row.date_type] || "contract_milestone";
             const sev = daysUntil <= 7 ? "error" : daysUntil <= 14 ? "warning" : "info";
@@ -359,6 +376,120 @@ Deno.serve(async (req) => {
         event_details: { configured, fired },
       });
       return json({ success: true, configured, fired });
+    }
+
+    if (action === "send_test_notification") {
+      // body: { dateId }
+      const { dateId } = body;
+      if (!dateId) return json({ error: "dateId required" }, 400);
+      const { data: row } = await supabase
+        .from("contract_critical_dates")
+        .select("*")
+        .eq("id", dateId)
+        .eq("import_id", importId)
+        .single();
+      if (!row) return json({ error: "Key date not found" }, 404);
+      const recipients: string[] = Array.isArray(row.notify_emails) ? row.notify_emails : [];
+      const channel = row.notify_channel || "in_app";
+      const wantsEmail = channel === "email" || channel === "both";
+
+      // In-app
+      await supabase.from("user_alerts").insert({
+        user_id: user.id,
+        organization_id: null,
+        alert_type: "contract_milestone",
+        severity: "info",
+        title: `[TEST] ${row.date_type.replace(/_/g, " ")} alert`,
+        message: `Test notification for "${imp.contract_name || imp.file_name}" — ${row.date_type.replace(/_/g, " ")} on ${row.due_date}.`,
+        debtor_id: imp.debtor_id,
+        action_url: `/contracts/live`,
+        action_label: "Open contract",
+        metadata: { import_id: importId, critical_date_id: row.id, test: true },
+      });
+
+      let emailResult: any = { sent: 0 };
+      if (wantsEmail && recipients.length) {
+        try {
+          const { data: profile } = await supabase
+            .from("profiles").select("email").eq("user_id", user.id).maybeSingle();
+          const ownerEmail = (profile as any)?.email || null;
+          const to = Array.from(new Set([...recipients, ownerEmail].filter(Boolean)));
+          const subject = `[TEST] Contract key date — ${row.date_type.replace(/_/g, " ")}`;
+          const html = `
+            <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1e293b;padding:24px;max-width:560px">
+              <h2 style="margin:0 0 12px;color:#1e293b">Contract key date reminder (test)</h2>
+              <p style="margin:0 0 8px">Contract: <strong>${imp.contract_name || imp.file_name}</strong></p>
+              <p style="margin:0 0 8px">Event: <strong>${row.date_type.replace(/_/g, " ")}</strong></p>
+              <p style="margin:0 0 8px">Due date: <strong>${row.due_date}</strong></p>
+              <p style="margin:16px 0 0;color:#64748b;font-size:13px">You are receiving this because alerts are enabled for this key date. This is a test message.</p>
+            </div>`;
+          const resp = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: authHeader },
+            body: JSON.stringify({
+              to,
+              from: "Recouply.ai <notifications@send.inbound.services.recouply.ai>",
+              subject,
+              html,
+            }),
+          });
+          emailResult = { sent: to.length, status: resp.status };
+        } catch (e: any) {
+          emailResult = { error: e?.message || String(e) };
+        }
+      }
+      return json({ success: true, channel, emailResult });
+    }
+
+    if (action === "reclassify_lines") {
+      const { data: imp2 } = await supabase
+        .from("live_contract_imports").select("industry").eq("id", importId).single();
+      const industry = (imp2 as any)?.industry || null;
+      const { data: rows } = await supabase
+        .from("contract_invoice_schedules")
+        .select("id, product_description, description, billing_type, product_category, category_source")
+        .eq("import_id", importId);
+      let updated = 0;
+      for (const r of rows || []) {
+        // Never overwrite user picks
+        if ((r as any).category_source === "user") continue;
+        const desc = (r as any).product_description || (r as any).description || null;
+        // Lightweight classifier mirrored from contractMetrics.ts to avoid an
+        // additional shared import in the action handler.
+        const KW: Array<[RegExp, string]> = [
+          [/profess?ional[\s_-]*serv|\bps\b/i, "professional_services"],
+          [/implement/i, "implementation"],
+          [/onboard|kickoff|kick-?off/i, "onboarding"],
+          [/train/i, "training"],
+          [/hardware|device|appliance/i, "hardware"],
+          [/support/i, "support"],
+          [/maint/i, "maintenance"],
+          [/license|seat/i, "license"],
+          [/usage[\s_-]*(min|commit)/i, "usage_minimum"],
+          [/platform|access fee/i, "platform"],
+          [/subscription|saas|recurring|monthly|annual fee/i, "subscription"],
+        ];
+        const blob = `${desc || ""} ${(r as any).billing_type || ""}`;
+        let cat: string | null = null;
+        let src: "keyword" | "industry_default" | null = null;
+        for (const [re, c] of KW) { if (re.test(blob)) { cat = c; src = "keyword"; break; } }
+        if (!cat && industry) {
+          const ind = String(industry).toLowerCase();
+          if (/saas|software|technology|platform|cloud/.test(ind)) { cat = "subscription"; src = "industry_default"; }
+          else if (/professional services|consult|agency|services/.test(ind)) { cat = "professional_services"; src = "industry_default"; }
+          else if (/hardware|manufactur|device|equipment/.test(ind)) { cat = "hardware"; src = "industry_default"; }
+        }
+        if (cat) {
+          const recurring = new Set(["subscription","platform","support","maintenance","usage_minimum","license"]);
+          await supabase.from("contract_invoice_schedules").update({
+            product_category: cat,
+            revenue_type: recurring.has(cat) ? "recurring" : "non_recurring",
+            category_source: src,
+          }).eq("id", (r as any).id);
+          updated++;
+        }
+      }
+      return json({ success: true, updated });
     }
 
     return json({ error: `Unknown action: ${action}` }, 400);

@@ -257,6 +257,48 @@ const classifyByKeyword = (label?: string | null): ComponentCategory => {
   return "other";
 };
 
+export { RECURRING_CATEGORIES, ONE_TIME_CATEGORIES };
+
+export type RevenueType = "recurring" | "non_recurring";
+
+export const revenueTypeFor = (cat: ComponentCategory | null | undefined): RevenueType =>
+  cat && RECURRING_CATEGORIES.has(cat) ? "recurring" : "non_recurring";
+
+/**
+ * Classify a single contract line item.
+ * Strategy:
+ *   1. Try keyword classifier on description + billing_type (returns "other"
+ *      only when nothing matches — we surface that as "unknown" so the caller
+ *      can fall back to industry).
+ *   2. If unknown, apply industry default.
+ *   3. If still unknown, return { category: null, source: 'needs_review' }.
+ */
+export const classifyLineItem = (input: {
+  description?: string | null;
+  billing_type?: string | null;
+  industry?: string | null;
+}): { category: ComponentCategory | null; source: "keyword" | "industry" | "needs_review" } => {
+  const blob = [input.description, input.billing_type].filter(Boolean).join(" ");
+  if (blob.trim()) {
+    for (const [re, cat] of KEYWORD_TO_CATEGORY) {
+      if (re.test(blob)) return { category: cat, source: "keyword" };
+    }
+  }
+  const ind = String(input.industry || "").toLowerCase();
+  if (ind) {
+    if (/saas|software|technology|platform|cloud/.test(ind)) {
+      return { category: "subscription", source: "industry" };
+    }
+    if (/professional services|consult|agency|services/.test(ind)) {
+      return { category: "professional_services", source: "industry" };
+    }
+    if (/hardware|manufactur|device|equipment/.test(ind)) {
+      return { category: "hardware", source: "industry" };
+    }
+  }
+  return { category: null, source: "needs_review" };
+};
+
 const guessCadence = (label?: string | null): Cadence | null => {
   const s = String(label || "");
   for (const [re, cad] of CADENCE_KEYWORDS) {
