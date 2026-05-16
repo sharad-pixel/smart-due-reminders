@@ -130,6 +130,24 @@ serve(async (req) => {
       }
     }
 
+    // Load indexed compliance documents for this account (ASC 606 + ALL standards)
+    const { data: complianceDocs } = await admin
+      .from("compliance_documents")
+      .select("title, asc_standard, doc_category, summary, key_policies, extracted_text")
+      .eq("account_id", contract.account_id)
+      .eq("status", "indexed")
+      .in("asc_standard", ["ASC 606", "ALL"])
+      .order("indexed_at", { ascending: false })
+      .limit(20);
+
+    const policyContext = (complianceDocs ?? []).map((d: any) => ({
+      title: d.title,
+      category: d.doc_category,
+      summary: d.summary,
+      key_policies: d.key_policies,
+      excerpt: (d.extracted_text ?? "").slice(0, 3000),
+    }));
+
     const userPayload = {
       title: contract.title,
       contract_type: contract.contract_type,
