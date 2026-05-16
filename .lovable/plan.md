@@ -1,50 +1,158 @@
-## ASC 606 Revenue Risk Assessment — Paid Feature
+## Goal (this iteration)
 
-### Pricing model
-- **Per assessment**: $9.99 one-time per contract OR debit 10 credits ($8.00 pre-paid value).
-- **Credit wallet** (1 credit = $1.00 post-paid; $0.80 pre-paid):
-  - Pre-purchase packs: **25 / 100 / 250 credits** + custom amount (min 10).
-  - Overage allowed — usage beyond wallet balance accrues at $1.00/credit and is invoiced monthly via Stripe.
-- Restricted to **Owner / Admin** roles per contract account.
+Fix the wrong TCVs on Live Contracts and replace the current ad-hoc MRR/ARR/ACV/TCV math with a single finance-grade metrics engine. Clarify how "Revenue Intelligence" wraps Collection Intelligence + Contract Intelligence in the navigation. ASC 606 deep features (recognition schedules, RPO, deferred) remain gated behind the existing paid ASC 606 Compliance Assessment — not built into the free engine.
 
-### Database (new)
-- `asc606_credit_wallets` — one row per account: `account_id`, `balance_credits` (numeric), `lifetime_purchased`, `lifetime_consumed`, `pending_overage_credits` (numeric), `stripe_customer_id`.
-- `asc606_credit_ledger` — append-only: `account_id`, `delta` (signed numeric), `kind` ('purchase' | 'consume' | 'overage_accrue' | 'overage_invoice' | 'refund' | 'adjustment'), `contract_id` (nullable), `assessment_id` (nullable), `stripe_payment_intent_id`, `stripe_invoice_id`, `unit_price_cents`, `note`, `created_by`.
-- `asc606_assessments` — `contract_id`, `account_id`, `status` ('queued' | 'running' | 'complete' | 'failed'), `report_jsonb`, `report_markdown`, `pdf_storage_path`, `risk_score`, `risk_band`, `model_version`, `cost_credits` (10), `cost_cents` (999), `payment_method` ('credits' | 'stripe_one_time' | 'overage'), `stripe_payment_intent_id`, `requested_by`, `completed_at`, `error`.
-- RLS: scoped by account membership; only Owner/Admin can INSERT assessments or trigger purchases. SECURITY DEFINER RPC `consume_asc606_credits(p_account, p_contract, p_amount)` for atomic deduct-or-overage.
+Out of scope this round: executive dashboards, NRR/GRR/DSO panels, forecasting, validation/approval queue UI, exports to Salesforce/NetSuite/Workday, ASC 606 recognition schedules. Those become follow-up phases.
 
-### Edge functions (new)
-- `asc606-purchase-credits` — Stripe Checkout (mode=payment) for selected pack or custom amount; line item priced at $0.80/credit; metadata `{ kind: 'asc606_credits', credits, account_id }`.
-- `asc606-pay-assessment` — Stripe Checkout for $9.99 with metadata `{ kind: 'asc606_assessment', contract_id, account_id }`; success URL triggers `asc606-run-assessment`.
-- `asc606-run-assessment` — verifies entitlement (paid PI, sufficient credits, or overage allowed), atomically debits via RPC, calls Lovable AI (Gemini 2.5 Flash) with the contract document + schedule lines + ASC 606 framework prompt → returns structured 5-step revenue recognition report (Identify Contract → POs → Transaction Price → Allocation → Recognize), risk findings, and remediation. Stores JSON + markdown + generates PDF, attaches to contract.
-- `asc606-monthly-overage-invoicer` — cron (1st of month UTC); for each wallet with `pending_overage_credits > 0`, creates Stripe invoice item @ $1.00/credit, finalizes invoice, charges card on file, zeroes pending balance, ledgers `overage_invoice`.
-- Extend existing `stripe-webhook`:
-  - On `checkout.session.completed` for `asc606_credits` → credit wallet, ledger `purchase`.
-  - On `checkout.session.completed` for `asc606_assessment` → mark PI as eligible for `asc606-run-assessment` invocation.
-  - 23505 dedupe by ledger unique `(stripe_payment_intent_id, kind)`.
+---
 
-### Frontend
-- **Contract detail (`LiveContractDetail.tsx`)**: new "ASC 606 Revenue Risk" panel.
-  - If no assessment: shows price ($9.99 or 10 credits), wallet balance, `Run Assessment` (admin only) → choice modal:
-    - Use credits (if balance ≥ 10) — instant.
-    - Pay $9.99 — Stripe Checkout in new tab.
-    - Use overage (if no credits & overage enabled) — instant, accrues.
-  - If complete: shows risk band/score, 5-step ASC 606 summary, downloadable PDF, "Re-run" option.
-  - Past assessments listed with timestamp + cost.
-- **New page `/billing/asc606-credits`**: wallet balance, pre-purchase packs (25/100/250 + custom), ledger history, current month's pending overage.
-- Sidebar: subtle entry under existing billing section.
+## 1. Platform positioning (nav + labels)
 
-### Technical details
-- Numeric/decimal types for all credit/cents columns (per project memory).
-- Lovable AI: `google/gemini-2.5-flash`, `LOVABLE_API_KEY`. Handle 429/402.
-- PDF generation reuses existing report-to-PDF utility if present, else minimal HTML→PDF via edge.
-- Cron via `pg_cron` + `pg_net` (insert tool, not migration).
-- Cost guard: if AI fails, refund credits / mark assessment `failed`, don't consume.
-- Audit log entry per assessment & purchase.
+Recouply.ai = **Revenue Intelligence Platform**. Two pillars live under it:
 
-### Out of scope (this iteration)
-- Bulk assessment across multiple contracts.
-- Custom risk model tuning per industry.
-- Credit refunds UI (admin-only ledger adjustment for now).
+```text
+Revenue Intelligence  (top-level umbrella, already a nav group)
+├── Collection Intelligence       (existing — Invoices, Payments, Aging, Outreach AI)
+└── Contract Intelligence         (this work — Live Contracts, Revenue Risk, CLM)
+```
 
-I'll implement DB → edge functions → webhook extensions → UI in that order. Confirm to proceed.
+Changes in `src/components/layout/Layout.tsx`:
+- Rename the "Revenue Intelligence" dropdown's section label from generic to **"Contract Intelligence"** so the parent dropdown name + child section both read cleanly.
+- Items under it: `Live Contracts`, `Revenue Risk`, `CLM Workspaces` (unchanged otherwise).
+- No route changes.
+
+This makes the offering self-describing without inventing new pages.
+
+---
+
+## 2. TCV bug — root cause
+
+Confirmed by reading `src/lib/clm/financialMetrics.ts` and the extractor (`live-contract-extract`, `live-contract-approve`):
+
+1. The extractor stores `recurring_fees`, `subscription_fees`, `platform_fees` as **totals over the term** in some contracts and as **monthly/annual rates** in others — the AI prompt doesn't pin the unit.
+2. `computeContractTotals` then treats `RECURRING_KEYS` sum as the full-term recurring number (`tcv = recurringSum + oneTimeSum`), which double-counts when the field was already annualized, and undercounts when it was a monthly rate.
+3. `arr` derivation does `recurringSum / termYears` — wrong whenever `recurring_fees` was already an annual figure.
+4. `Math.max(tcv, ...)` against `contract_value`, `total_value`, `tcv` causes the largest noisy field to win, even when it's clearly a per-period number.
+5. Multi-year ramps and quarterly billing are not normalized at all.
+
+---
+
+## 3. New finance-grade metrics engine
+
+Single source of truth: rewrite `src/lib/clm/financialMetrics.ts` and mirror the same logic server-side in a new `supabase/functions/_shared/contractMetrics.ts` (imported by `live-contract-extract`, `live-contract-approve`, `live-contract-actions`).
+
+### 3a. Extractor schema upgrade
+
+In `live-contract-extract` JSON schema, replace flat amount fields with **explicit unit-tagged** fields so the model can't ambiguate:
+
+```text
+commercial.recurring_components[]: {
+  label, amount, cadence ('monthly'|'quarterly'|'annual'|'one_time'|'term_total'),
+  category ('subscription'|'platform'|'support'|'maintenance'|'usage_minimum'|'license'
+            |'professional_services'|'implementation'|'onboarding'|'training'|'hardware'|'other'),
+  service_period_start, service_period_end
+}
+commercial.ramp_schedule[]: { year, mrr, arr }   // optional, for ramped deals
+commercial.currency
+contract.term_months   // canonical term in months
+```
+
+Prompt is updated to require cadence + category on every $ line. Legacy flat fields stay accepted for back-compat but are deprecated in scoring.
+
+### 3b. Normalization rules (matches user spec exactly)
+
+For each component, normalize to monthly:
+- `monthly` → amount
+- `quarterly` → amount / 3
+- `annual` → amount / 12
+- `term_total` → amount / term_months
+- `one_time` → excluded from MRR/ARR/ACV, included in TCV
+
+Recurring categories (count toward MRR/ARR/ACV): `subscription, platform, support, maintenance, usage_minimum, license`.
+Non-recurring categories (TCV only): `professional_services, implementation, onboarding, training, hardware, other`.
+
+Formulas:
+```text
+MRR    = Σ normalized_monthly(recurring components)
+ARR    = MRR × 12
+ACV    = total_recurring_contract_value / term_years
+         (for ramps: weighted_acv, peak_acv, current_acv all returned)
+TCV    = total_recurring_contract_value + sum(one_time / non-recurring)
+```
+
+`computeContractTotals` returns:
+```text
+{ mrr, arr, acv, currentAcv, peakAcv, weightedAcv, tcv,
+  recurringTcv, servicesTcv, oneTimeTcv,
+  currency, termMonths, termYears,
+  source: 'components' | 'legacy_fallback' | 'explicit_overrides',
+  warnings: string[] }
+```
+
+`warnings` surfaces things like "recurring_fees field had ambiguous unit; fell back to invoice_schedule sum".
+
+### 3c. Fallback chain (for already-ingested contracts)
+
+When new component fields are absent (existing 250+ contracts), derive in this order — no more `Math.max` of noisy fields:
+1. If `invoice_schedule` exists → group by `billing_type` + `service_period_*`, classify line items via category keyword map, normalize, compute.
+2. Else if explicit `mrr`/`arr`/`acv`/`tcv` are present **and internally consistent** (ARR ≈ MRR×12 within 5%) → trust them.
+3. Else legacy fee fields, but treat `recurring_fees` as `term_total` only if `term_months > 12`, otherwise `annual`. Emit warning.
+4. Never let `contract_value` alone drive TCV unless nothing else exists.
+
+### 3d. Re-extract / recalc
+
+- New edge function `contract-metrics-recompute` (admin/owner only): takes `import_id` or "all for account", re-runs the normalization against current extracted fields + invoice schedule, writes results into `live_contract_extracted_fields` rows with `field_group='metrics'` and `source` metadata. Idempotent.
+- Bulk recompute triggered once on deploy via a manual "Recompute metrics" button on `/contracts/live` (admin only).
+- New contracts run the engine inside `live-contract-approve` (already the lock point), so MRR/ARR/ACV/TCV become **locked, audited** values from approval onward.
+
+---
+
+## 4. UI changes
+
+`LiveContractDetail.tsx`:
+- Replace the existing MRR/ARR/ACV/TCV tiles with engine output. Each tile gets a small info popover showing: components used, cadence assumptions, term, currency, and any `warnings`.
+- Add a "Recalculate" button (admin) that calls `contract-metrics-recompute` for this contract.
+- When `warnings.length > 0`, show an amber banner: "Some commercial fields were ambiguous — review and approve to lock final values." Links to the existing extracted-fields editor.
+
+`DebtorContractSummaryCard.tsx` + `ContractSummaryCard.tsx`:
+- Switch to the new `computeContractTotals` (same import path, same return shape with extra fields → drop-in).
+
+No new pages.
+
+---
+
+## 5. ASC 606 stays paid-only
+
+Confirmed per your answer: performance obligations, recognition schedules, deferred revenue, and RPO are **only** generated when a user pays for / spends credits on the existing ASC 606 Compliance Assessment (`asc606-run-assessment`). Nothing in this plan exposes those for free.
+
+The new metrics engine does, however, output the normalized recurring/non-recurring split that the ASC 606 assessment can consume — so paid assessments get more accurate, faster.
+
+---
+
+## 6. Migration / data work
+
+One migration:
+- Add `metrics_jsonb` column on `live_contract_imports` (jsonb, nullable) to cache the engine output + `metrics_computed_at` timestamptz. Avoids recomputing on every render and gives an audit point.
+- No table renames, no destructive changes.
+
+Bulk recompute is a one-click admin action, not a migration, so it runs after deploy and we can re-run if needed.
+
+---
+
+## 7. Verification
+
+- Pick 3–5 contracts that currently show wrong TCV (you can point me at IDs after the plan is approved, or I'll surface the worst offenders via a query on `live_contract_imports` where derived TCV ≠ contract_value by >25%).
+- For each: compare old vs new MRR/ARR/ACV/TCV with the engine's `warnings` and `source` shown.
+- Add unit tests for `computeContractTotals` covering: monthly billing, annual prepaid, 3-year ramp, quarterly + PS, term_total recurring_fees, contract with only `contract_value`.
+
+---
+
+## Follow-up phases (not in this iteration, listed for sequencing)
+
+1. Validation/approval queue UI per extracted field (confidence + source citation + lock).
+2. Task auto-generation from renewal/opt-out/POC milestones (extend existing tasks framework).
+3. Revenue Intelligence executive dashboard (NRR, GRR, DSO, RPO summary, renewal calendar).
+4. Forecasting + revenue waterfall.
+5. ERP/BI exports (NetSuite, Workday, Power BI).
+
+Confirm to proceed and, if convenient, drop 1–2 contract IDs with wrong TCVs so I can validate the new engine against them first.
