@@ -305,3 +305,59 @@ async function functionErrorMessage(e: any, fallback: string): Promise<string> {
   }
   return e?.message ?? fallback;
 }
+
+function MissingDataSection({ report }: { report: any }) {
+  const buckets = [
+    { label: "Step 1 — Contract", issues: report?.step1_identify_contract?.issues },
+    { label: "Step 2 — Performance Obligations", issues: report?.step2_performance_obligations?.issues },
+    { label: "Step 3 — Transaction Price", issues: report?.step3_transaction_price?.issues },
+    { label: "Step 4 — Allocate Price", issues: report?.step4_allocate_price?.issues },
+    { label: "Step 5 — Recognize Revenue", issues: report?.step5_recognize_revenue?.issues },
+  ].filter((b) => Array.isArray(b.issues) && b.issues.length > 0);
+
+  const guidance = Array.isArray(report?.revenue_compliance_guidance) ? report.revenue_compliance_guidance : [];
+  if (buckets.length === 0 && guidance.length === 0) return null;
+
+  return (
+    <div className="mt-4 space-y-3">
+      {buckets.length > 0 && (
+        <div className="rounded-md border bg-amber-50 dark:bg-amber-950/20 p-3">
+          <div className="text-xs font-semibold uppercase text-amber-900 dark:text-amber-200 mb-2 flex items-center gap-1">
+            <AlertTriangle className="h-3.5 w-3.5" /> Missing data & open issues
+          </div>
+          <div className="space-y-2">
+            {buckets.map((b) => (
+              <div key={b.label} className="text-sm">
+                <div className="font-medium text-foreground">{b.label}</div>
+                <ul className="mt-1 ml-4 list-disc text-xs text-muted-foreground space-y-0.5">
+                  {b.issues.map((it: any, i: number) => (
+                    <li key={i}>{typeof it === "string" ? it : it?.title ?? it?.detail ?? JSON.stringify(it)}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {guidance.length > 0 && (
+        <div className="rounded-md border bg-card p-3">
+          <div className="text-xs font-semibold uppercase text-muted-foreground mb-2">Revenue compliance guidance</div>
+          <div className="space-y-2">
+            {guidance.slice(0, 8).map((g: any, i: number) => (
+              <div key={i} className="text-sm">
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-[10px]">{g.asc606_step ?? "ASC 606"}</Badge>
+                  <span className="font-medium">{g.area ?? "Guidance"}</span>
+                </div>
+                <div className="text-xs text-muted-foreground mt-0.5">{g.guidance}</div>
+                {g.evidence_needed && (
+                  <div className="text-xs mt-0.5"><span className="font-medium">Evidence needed:</span> {g.evidence_needed}</div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
