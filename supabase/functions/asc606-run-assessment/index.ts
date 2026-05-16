@@ -162,11 +162,12 @@ serve(async (req) => {
       invoice_schedule: contract.contract_invoice_schedules,
       critical_dates: contract.contract_critical_dates,
       financial_metrics: contract.metadata,
+      compliance_policy_library: policyContext,
     };
 
     const report = await callAiJson([
       { role: "system", content: SYSTEM_PROMPT },
-      { role: "user", content: `Analyze this contract under ASC 606 and produce complete revenue compliance guidance:\n\n${JSON.stringify(userPayload, null, 2)}` },
+      { role: "user", content: `Analyze this contract under ASC 606 and produce complete revenue compliance guidance. Apply the customer's own indexed compliance policy library where relevant:\n\n${JSON.stringify(userPayload, null, 2)}` },
     ]);
 
     const markdown = buildMarkdown(report, contract);
