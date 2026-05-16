@@ -57,6 +57,107 @@ Deno.serve(async (req) => {
       return json({ success: true });
     }
 
+    // Recalculate key dates from existing extracted fields + contract row.
+    // No AI cost. Preserves alert_enabled/alert_lead_days for matching (date_type, due_date).
+    if (action === "recalculate_dates") {
+      const { data: existing } = await supabase
+        .from("contract_critical_dates")
+        .select("id, date_type, due_date, alert_enabled, alert_lead_days, last_alerted_at")
+        .eq("import_id", importId);
+      const prefs = new Map<string, { alert_enabled: boolean; alert_lead_days: number; last_alerted_at: string | null }>();
+      (existing || []).forEach((r: any) => {
+        prefs.set(`${r.date_type}|${r.due_date}`, {
+          alert_enabled: !!r.alert_enabled,
+          alert_lead_days: r.alert_lead_days || 30,
+          last_alerted_at: r.last_alerted_at || null,
+        });
+      });
+
+      const { data: fields } = await supabase
+        .from("live_contract_extracted_fields")
+        .select("field_group, field_key, field_value")
+        .eq("import_id", importId);
+      const get = (group: string, key: string) =>
+        (fields || []).find((f: any) => f.field_group === group && f.field_key === key)?.field_value || null;
+
+      const parseDate = (v: any): Date | null => {
+        if (!v) return null;
+        const d = new Date(v);
+        return isNaN(d.getTime()) ? null : d;
+      };
+      const fmt = (d: Date) => d.toISOString().slice(0, 10);
+
+      const effective = parseDate(imp.effective_date || get("contract", "effective_date"));
+      const termEnd = parseDate(imp.term_end_date || get("contract", "term_end_date"));
+      const signed = parseDate(get("contract", "signed_date"));
+      const renewal = parseDate(get("dates", "renewal_date")) || termEnd;
+      const optOutExplicit = parseDate(get("dates", "opt_out_deadline")) || parseDate(get("dates", "non_renewal_deadline")) || parseDate(get("dates", "termination_notice_deadline"));
+      const noticeDaysRaw = get("dates", "notice_period_days");
+      const noticeDays = noticeDaysRaw != null ? Number(noticeDaysRaw) || 0 : 0;
+      const pocEnd = parseDate(get("poc", "poc_end"));
+      const pocStart = parseDate(get("poc", "poc_start"));
+
+      const newRows: any[] = [];
+      const push = (date_type: string, d: Date | null, notice_days?: number) => {
+        if (!d) return;
+        newRows.push({
+          account_id: imp.account_id,
+          import_id: imp.id,
+          debtor_id: imp.debtor_id || null,
+          date_type,
+          due_date: fmt(d),
+          notice_days: notice_days ?? null,
+        });
+      };
+
+      if (effective) push("effective_date", effective);
+      if (signed) push("signed_date", signed);
+      if (termEnd) push("term_end", termEnd);
+      if (renewal) push("renewal", renewal, noticeDays || undefined);
+      if (optOutExplicit) {
+        push("opt_out_deadline", optOutExplicit, noticeDays || undefined);
+      } else if (renewal && noticeDays > 0) {
+        const opt = new Date(renewal);
+        opt.setDate(opt.getDate() - noticeDays);
+        push("opt_out_deadline", opt, noticeDays);
+      }
+      if (pocStart) push("poc_start", pocStart);
+      if (pocEnd) push("poc_end", pocEnd);
+
+      // Dedupe by (date_type, due_date)
+      const seen = new Set<string>();
+      const deduped = newRows.filter((r) => {
+        const k = `${r.date_type}|${r.due_date}`;
+        if (seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      });
+      // Risk levels
+      const today = Date.now();
+      for (const d of deduped) {
+        const days = Math.floor((new Date(d.due_date).getTime() - today) / 86400000);
+        (d as any).risk_level = days < 30 ? "high" : days < 90 ? "medium" : "low";
+        const pref = prefs.get(`${d.date_type}|${d.due_date}`);
+        if (pref) {
+          (d as any).alert_enabled = pref.alert_enabled;
+          (d as any).alert_lead_days = pref.alert_lead_days;
+          (d as any).last_alerted_at = pref.last_alerted_at;
+        }
+      }
+
+      await supabase.from("contract_critical_dates").delete().eq("import_id", importId);
+      if (deduped.length) {
+        await supabase.from("contract_critical_dates").insert(deduped);
+      }
+
+      await supabase.from("live_contract_audit_log").insert({
+        account_id: imp.account_id, user_id: user.id, import_id: imp.id,
+        event_type: "dates_recalculated",
+        event_details: { count: deduped.length },
+      });
+      return json({ success: true, count: deduped.length });
+    }
+
     // Actions below require a linked customer
     if (!imp.debtor_id) return json({ error: "Contract must be imported with a customer first" }, 400);
 
