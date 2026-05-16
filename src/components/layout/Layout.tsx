@@ -407,7 +407,7 @@ const Layout = ({ children }: LayoutProps) => {
                       }`}
                     >
                       <ShieldAlert className="h-4 w-4 shrink-0" />
-                      <span>Revenue Intelligence</span>
+                      <span>Contract Intelligence</span>
                       <ChevronDown className="h-3 w-3 shrink-0" />
                     </Button>
                   </DropdownMenuTrigger>
