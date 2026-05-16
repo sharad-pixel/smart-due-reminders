@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -117,22 +117,37 @@ const LiveContractDetailInner = () => {
   const totals = useMemo(() => {
     // Prefer cached engine output if present (set by approval / recompute edge fns)
     const cached = (data?.imp as any)?.metrics_jsonb;
-    if (cached && typeof cached === "object" && cached.source) {
-      let scheduled = 0;
-      (data?.schedules || []).forEach((s: any) => {
-        scheduled += toNumber(s.amount);
-      });
-      return { ...cached, scheduled };
-    }
-    // Live fallback — compute from extracted fields + schedule
-    const t = computeContractTotals(data?.fields || [], data?.imp || undefined, {
-      schedule: (data?.schedules || []) as any[],
-    });
+    const schedules = data?.schedules || [];
     let scheduled = 0;
-    (data?.schedules || []).forEach((s: any) => {
+    schedules.forEach((s: any) => {
       scheduled += toNumber(s.amount);
     });
-    return { ...t, scheduled };
+    const base = cached && typeof cached === "object" && cached.source
+      ? cached
+      : computeContractTotals(data?.fields || [], data?.imp || undefined, {
+          schedule: schedules as any[],
+        });
+
+    // Reconcile schedule sum vs TCV across the life of the contract.
+    // If they diverge by more than 1% (and both are present) the extraction is
+    // suspect — we surface a warning and the page triggers an auto re-assess.
+    const tcvVal = toNumber((base as any).tcv);
+    let scheduleVariance = 0;
+    let scheduleMismatch = false;
+    if (tcvVal > 0 && scheduled > 0) {
+      scheduleVariance = (scheduled - tcvVal) / tcvVal;
+      if (Math.abs(scheduleVariance) > 0.01) scheduleMismatch = true;
+    }
+    const warnings: string[] = Array.isArray((base as any).warnings)
+      ? [...(base as any).warnings]
+      : [];
+    if (scheduleMismatch) {
+      const direction = scheduleVariance > 0 ? "exceeds" : "is below";
+      warnings.unshift(
+        `Scheduled invoice total (${scheduled.toLocaleString(undefined, { maximumFractionDigits: 0 })}) ${direction} TCV (${tcvVal.toLocaleString(undefined, { maximumFractionDigits: 0 })}) by ${(Math.abs(scheduleVariance) * 100).toFixed(1)}% — re-assessing extraction.`,
+      );
+    }
+    return { ...base, scheduled, scheduleVariance, scheduleMismatch, warnings };
   }, [data]);
 
   const [recomputing, setRecomputing] = useState(false);
@@ -151,6 +166,44 @@ const LiveContractDetailInner = () => {
       setRecomputing(false);
     }
   };
+
+  // Auto-reassess when schedule total doesn't tie to TCV.
+  // Guard: only once per import per browser session to avoid loops / re-billing.
+  const autoReassessTriedRef = useRef(false);
+  const [autoReassessing, setAutoReassessing] = useState(false);
+  useEffect(() => {
+    if (!importId || !totals?.scheduleMismatch) return;
+    if (autoReassessTriedRef.current) return;
+    const storageKey = `contract-auto-reassess:${importId}`;
+    if (typeof window !== "undefined" && sessionStorage.getItem(storageKey)) return;
+    autoReassessTriedRef.current = true;
+    if (typeof window !== "undefined") sessionStorage.setItem(storageKey, "1");
+    (async () => {
+      setAutoReassessing(true);
+      try {
+        // First try a lightweight recompute (no AI cost).
+        await supabase.functions.invoke("contract-metrics-recompute", {
+          body: { import_id: importId },
+        });
+        await qc.invalidateQueries({ queryKey: ["live-contract-detail", importId] });
+        // If still mismatched after recompute, fall back to a full re-extract.
+        const { data: fresh } = await supabase
+          .from("live_contract_imports")
+          .select("metrics_jsonb")
+          .eq("id", importId)
+          .maybeSingle();
+        const cachedTcv = toNumber((fresh as any)?.metrics_jsonb?.tcv);
+        if (cachedTcv > 0 && totals.scheduled > 0 && Math.abs((totals.scheduled - cachedTcv) / cachedTcv) > 0.01) {
+          await supabase.functions.invoke("live-contract-extract", { body: { importId } });
+          await qc.invalidateQueries({ queryKey: ["live-contract-detail", importId] });
+        }
+      } catch (e) {
+        console.error("Auto re-assess failed", e);
+      } finally {
+        setAutoReassessing(false);
+      }
+    })();
+  }, [importId, totals?.scheduleMismatch, totals?.scheduled, qc]);
 
   if (isLoading) {
     return (
@@ -269,6 +322,12 @@ const LiveContractDetailInner = () => {
           </Button>
         </CardHeader>
         <CardContent className="space-y-3">
+          {autoReassessing && (
+            <div className="rounded-md border border-blue-200 bg-blue-50 text-blue-900 p-2 text-xs flex items-center gap-2">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              Schedule total doesn't tie to TCV — re-assessing the contract automatically…
+            </div>
+          )}
           {Array.isArray(totals.warnings) && totals.warnings.length > 0 && (
             <div className="rounded-md border border-amber-200 bg-amber-50 text-amber-900 p-2 text-xs space-y-1">
               <div className="font-medium flex items-center gap-1">
