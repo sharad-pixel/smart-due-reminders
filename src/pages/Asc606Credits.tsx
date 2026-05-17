@@ -66,6 +66,22 @@ export default function Asc606Credits() {
     }
   };
 
+  const payOverage = async () => {
+    if (!accountId) { toast.error("No active account"); return; }
+    setBusy("overage");
+    try {
+      const { data, error } = await supabase.functions.invoke("asc606-purchase-credits", {
+        body: { mode: "overage", accountId },
+      });
+      if (error) throw error;
+      if (data?.url) window.open(data.url, "_blank");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to start checkout");
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const balance = Number(wallet?.balance_credits ?? 0);
   const overage = Number(wallet?.pending_overage_credits ?? 0);
   const customN = Math.floor(Number(custom) || 0);
