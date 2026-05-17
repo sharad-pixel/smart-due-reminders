@@ -571,15 +571,21 @@ Deno.serve(async (req) => {
       if (stale.length) await supabase.from("contract_critical_dates").delete().in("id", stale);
     }
 
-    // Invoice schedules
+    // Invoice schedules — MERGE not replace. On reassessment we want to capture
+    // changes against the existing schedule, not regenerate a new event/workflow.
     const sched = extracted.invoice_schedule || [];
     if (Array.isArray(sched) && sched.length) {
+      const normDesc = (s: string | null | undefined) =>
+        (s || "").toLowerCase().replace(/\s+/g, " ").trim();
+      const keyOf = (r: { scheduled_date: string; amount: any; product_description: any; service_period_start?: any }) => {
+        const amt = r.amount == null ? "null" : Number(r.amount).toFixed(2);
+        return `${r.scheduled_date}|${amt}|${normDesc(r.product_description)}|${r.service_period_start || ""}`;
+      };
       const seen = new Set<string>();
       const rows = sched
         .filter((s: any) => s.scheduled_date)
         .map((s: any) => {
           const desc = s.product_description || s.description || extracted.contract?.product_description || null;
-          // Prefer category if extractor returned one. Otherwise classify.
           let category: string | null = s.product_category || s.category || null;
           let categorySource: "extracted" | "industry_default" | "keyword" | null = category ? "extracted" : null;
           if (!category) {
@@ -609,17 +615,92 @@ Deno.serve(async (req) => {
             category_source: categorySource,
           };
         })
-        // Dedup: drop rows that share scheduled_date + amount + service_period_start.
-        // Common AI mistake: emitting a "100% prepaid Year 1" line AND the first
-        // period of the recurring schedule on the same date with the same amount.
+        // In-batch dedup: identical (date + amount + description) collapses;
+        // also collapse a null-amount row when a same-date+description row with
+        // an amount already exists.
         .filter((r) => {
-          const amt = r.amount == null ? "null" : Number(r.amount).toFixed(2);
-          const key = `${r.scheduled_date}|${amt}|${r.service_period_start || ""}`;
+          const key = keyOf(r);
           if (seen.has(key)) return false;
           seen.add(key);
           return true;
         });
-      if (rows.length) await supabase.from("contract_invoice_schedules").insert(rows);
+
+      // Collapse null-amount duplicates that pair with a priced row on the
+      // same date + description (common AI artefact, e.g. "Prepaid Services"
+      // emitted twice — once with the amount, once as a placeholder).
+      const pricedDescDates = new Set(
+        rows.filter((r) => r.amount != null).map((r) => `${r.scheduled_date}|${normDesc(r.product_description)}`)
+      );
+      const dedupedRows = rows.filter(
+        (r) => !(r.amount == null && pricedDescDates.has(`${r.scheduled_date}|${normDesc(r.product_description)}`))
+      );
+
+      // Fetch existing rows for this import that are still editable (no invoice issued yet).
+      const { data: existing } = await supabase
+        .from("contract_invoice_schedules")
+        .select("id, scheduled_date, amount, product_description, description, service_period_start, category_source, invoice_id")
+        .eq("import_id", imp.id);
+      const existingEditable = (existing || []).filter((r: any) => !r.invoice_id);
+      const existingByKey = new Map<string, any>();
+      for (const r of existingEditable) {
+        existingByKey.set(
+          keyOf({
+            scheduled_date: r.scheduled_date,
+            amount: r.amount,
+            product_description: r.product_description || r.description,
+            service_period_start: r.service_period_start,
+          }),
+          r,
+        );
+      }
+
+      const newKeys = new Set<string>();
+      const toInsert: any[] = [];
+      for (const r of dedupedRows) {
+        const k = keyOf(r);
+        newKeys.add(k);
+        const ex = existingByKey.get(k);
+        if (ex) {
+          // Update non-user-overridden fields. Preserve category if user set it.
+          const patch: any = {
+            currency: r.currency,
+            billing_type: r.billing_type,
+            payment_terms: r.payment_terms,
+            expected_due_date: r.expected_due_date,
+            service_period_end: r.service_period_end,
+            quantity: r.quantity,
+            unit_price: r.unit_price,
+          };
+          if (ex.category_source !== "user") {
+            patch.product_category = r.product_category;
+            patch.revenue_type = r.revenue_type;
+            patch.category_source = r.category_source;
+          }
+          await supabase.from("contract_invoice_schedules").update(patch).eq("id", ex.id);
+        } else {
+          toInsert.push(r);
+        }
+      }
+      if (toInsert.length) {
+        await supabase.from("contract_invoice_schedules").insert(toInsert);
+      }
+      // Remove stale extracted rows that are no longer in the new schedule,
+      // but never touch user-edited rows or rows tied to an invoice.
+      const staleIds = existingEditable
+        .filter((r: any) => {
+          if (r.category_source === "user") return false;
+          const k = keyOf({
+            scheduled_date: r.scheduled_date,
+            amount: r.amount,
+            product_description: r.product_description || r.description,
+            service_period_start: r.service_period_start,
+          });
+          return !newKeys.has(k);
+        })
+        .map((r: any) => r.id);
+      if (staleIds.length) {
+        await supabase.from("contract_invoice_schedules").delete().in("id", staleIds);
+      }
     }
 
     // Risk flags
