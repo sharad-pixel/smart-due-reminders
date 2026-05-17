@@ -22,6 +22,7 @@ import { UsageIndicator } from "@/components/billing/UsageIndicator";
 import { TrialCountdown } from "@/components/billing/TrialCountdown";
 import UsageBillingLog from "@/components/billing/UsageBillingLog";
 import OcrUsageCard from "@/components/billing/OcrUsageCard";
+import UsageReconciliationCard from "@/components/billing/UsageReconciliationCard";
 import CreditsPanel from "@/components/billing/panels/CreditsPanel";
 // Colorful gauge component
 const _UsageGauge = ({ 
@@ -624,6 +625,9 @@ const Billing = () => {
           </TabsContent>
 
           <TabsContent value="usage" className="space-y-6 mt-0">
+            {/* Reconciles every fee to credits consumed (pre-paid vs overage). */}
+            <UsageReconciliationCard />
+
             {/* Consumption & Upcoming Charges */}
             <ConsumptionTracker />
 
