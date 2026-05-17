@@ -209,18 +209,25 @@ export default function CreditsPanel() {
             <div className="text-sm text-muted-foreground py-4 text-center">No activity yet.</div>
           ) : (
             <div className="space-y-1">
-              {ledger.map((row) => (
-                <div key={row.id} className="flex items-center justify-between text-sm border-b py-2">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-[10px] capitalize">{row.kind.replace("_", " ")}</Badge>
-                    <span className="text-muted-foreground">{new Date(row.created_at).toLocaleString()}</span>
-                    {row.note && <span className="text-xs text-muted-foreground">{row.note}</span>}
+              {ledger.map((row) => {
+                const service = row.service || "asc606";
+                const serviceLabel = service === "smart_ingestion" ? "Smart Ingestion"
+                  : service === "asc606" ? "ASC 606"
+                  : service.replace(/_/g, " ");
+                return (
+                  <div key={row.id} className="flex items-center justify-between text-sm border-b py-2 gap-3">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Badge variant="outline" className="text-[10px] capitalize shrink-0">{row.kind.replace("_", " ")}</Badge>
+                      <Badge variant="secondary" className="text-[10px] shrink-0">{serviceLabel}</Badge>
+                      <span className="text-muted-foreground text-xs shrink-0">{new Date(row.created_at).toLocaleString()}</span>
+                      {row.note && <span className="text-xs text-muted-foreground truncate">{row.note}</span>}
+                    </div>
+                    <span className={`font-mono shrink-0 ${Number(row.delta) > 0 ? "text-green-600" : Number(row.delta) < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                      {Number(row.delta) > 0 ? "+" : ""}{Number(row.delta).toFixed(0)}
+                    </span>
                   </div>
-                  <span className={`font-mono ${Number(row.delta) > 0 ? "text-green-600" : Number(row.delta) < 0 ? "text-destructive" : "text-muted-foreground"}`}>
-                    {Number(row.delta) > 0 ? "+" : ""}{Number(row.delta).toFixed(0)}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
