@@ -130,9 +130,11 @@ interface StripeSubscriptionData {
 }
 
 const Billing = () => {
-  usePageTitle("Billing");
+  usePageTitle("Subscription & Billing");
   const navigate = useNavigate();
-  
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab = searchParams.get("tab") || "plan";
+
   // Use the comprehensive account hierarchy hook
   const accountHierarchy = useAccountHierarchy();
   
