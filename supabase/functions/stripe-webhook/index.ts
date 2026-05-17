@@ -178,6 +178,38 @@ serve(async (req) => {
           break;
         }
 
+        // ============ ASC 606: overage settlement payment ============
+        if (kind === 'asc606_overage_payment') {
+          const accountId = session.metadata?.account_id;
+          const credits = Number(session.metadata?.credits ?? 0);
+          if (accountId && credits > 0) {
+            const { error: ledErr } = await supabase.from('asc606_credit_ledger').insert({
+              account_id: accountId,
+              delta: 0,
+              kind: 'overage_payment',
+              stripe_checkout_session_id: session.id,
+              stripe_payment_intent_id: session.payment_intent as string | null,
+              unit_price_cents: 100,
+              note: `Overage settled: ${credits} credits ($${(credits).toFixed(2)})`,
+              created_by: userId ?? null,
+            });
+            if (ledErr && ledErr.code !== '23505') {
+              logStep('ASC606 overage ledger error', { error: ledErr });
+            } else if (!ledErr) {
+              const { data: w } = await supabase.from('asc606_credit_wallets')
+                .select('pending_overage_credits').eq('account_id', accountId).maybeSingle();
+              if (w) {
+                const remaining = Math.max(0, Number(w.pending_overage_credits) - credits);
+                await supabase.from('asc606_credit_wallets').update({
+                  pending_overage_credits: remaining,
+                }).eq('account_id', accountId);
+                logStep('ASC606 overage settled', { accountId, credits, remaining });
+              }
+            }
+          }
+          break;
+        }
+
         // ============ ASC 606: one-time assessment payment ============
         if (kind === 'asc606_assessment') {
           const accountId = session.metadata?.account_id;

@@ -8,6 +8,7 @@ const corsHeaders = {
 };
 
 const PRE_PAID_UNIT_CENTS = 80; // $0.80 / credit (20% off post-paid $1.00)
+const OVERAGE_UNIT_CENTS = 100; // $1.00 / credit — no discount, applies to billed overages
 const ALLOWED_PACKS = [25, 100, 250];
 const MIN_CUSTOM = 10;
 const MAX_CUSTOM = 10000;
@@ -15,13 +16,10 @@ const MAX_CUSTOM = 10000;
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
-    const { credits, accountId, successUrl, cancelUrl } = await req.json();
-    const c = Math.floor(Number(credits));
-    if (!Number.isFinite(c) || c < MIN_CUSTOM || c > MAX_CUSTOM) {
-      return new Response(JSON.stringify({ error: "Invalid credit amount" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const body = await req.json();
+    const { accountId, successUrl, cancelUrl } = body;
+    const mode: "credits" | "overage" = body.mode === "overage" ? "overage" : "credits";
+
     if (!accountId) {
       return new Response(JSON.stringify({ error: "accountId required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -42,6 +40,42 @@ serve(async (req) => {
       });
     }
 
+    // Resolve credits & pricing depending on mode
+    let c: number;
+    let unitCents: number;
+    let productName: string;
+    let productDesc: string;
+    let metadataKind: string;
+
+    if (mode === "overage") {
+      const { data: w } = await admin
+        .from("asc606_credit_wallets")
+        .select("pending_overage_credits")
+        .eq("account_id", accountId)
+        .maybeSingle();
+      c = Math.ceil(Number(w?.pending_overage_credits ?? 0));
+      if (!Number.isFinite(c) || c <= 0) {
+        return new Response(JSON.stringify({ error: "No outstanding overage balance" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      unitCents = OVERAGE_UNIT_CENTS;
+      productName = "Platform Overage Settlement";
+      productDesc = "Settles outstanding usage billed at $1.00 / credit. Does not add credits to your wallet.";
+      metadataKind = "asc606_overage_payment";
+    } else {
+      c = Math.floor(Number(body.credits));
+      if (!Number.isFinite(c) || c < MIN_CUSTOM || c > MAX_CUSTOM) {
+        return new Response(JSON.stringify({ error: "Invalid credit amount" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      unitCents = PRE_PAID_UNIT_CENTS;
+      productName = "ASC 606 Assessment Credit";
+      productDesc = "Pre-paid credit (20% off). Applies to future usage only — cannot be used to pay outstanding overages.";
+      metadataKind = "asc606_credits";
+    }
+
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", { apiVersion: "2025-08-27.basil" });
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     const customerId = customers.data[0]?.id;
@@ -52,11 +86,8 @@ serve(async (req) => {
       line_items: [{
         price_data: {
           currency: "usd",
-          unit_amount: PRE_PAID_UNIT_CENTS,
-          product_data: {
-            name: "ASC 606 Assessment Credit",
-            description: "Pre-paid credit (20% off). 10 credits = 1 contract assessment.",
-          },
+          unit_amount: unitCents,
+          product_data: { name: productName, description: productDesc },
         },
         quantity: c,
       }],
@@ -64,11 +95,11 @@ serve(async (req) => {
       success_url: successUrl || `${req.headers.get("origin")}/billing/asc606-credits?purchase=success`,
       cancel_url: cancelUrl || `${req.headers.get("origin")}/billing/asc606-credits?purchase=cancelled`,
       metadata: {
-        kind: "asc606_credits",
+        kind: metadataKind,
         account_id: accountId,
         user_id: user.id,
         credits: String(c),
-        is_pack: ALLOWED_PACKS.includes(c) ? "true" : "false",
+        is_pack: mode === "credits" && ALLOWED_PACKS.includes(c) ? "true" : "false",
       },
     });
 
