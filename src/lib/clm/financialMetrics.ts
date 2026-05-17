@@ -72,6 +72,9 @@ export interface InvoiceScheduleRow {
   service_period_start?: string | null;
   service_period_end?: string | null;
   description?: string | null;
+  /** ASC 606 classification persisted on the row (preferred over keyword guess). */
+  product_category?: string | null;
+  revenue_type?: string | null;
 }
 
 export type MetricsSource =
@@ -480,11 +483,16 @@ function componentsFromSchedule(
     const amt = toNumber(row.amount);
     if (amt <= 0) continue;
     const label = row.description || row.billing_type || "";
-    const category = classifyByKeyword(label);
+    const storedCat = (row.product_category || "").toLowerCase() as ComponentCategory;
+    const validCat = RECURRING_CATEGORIES.has(storedCat) || ONE_TIME_CATEGORIES.has(storedCat);
+    const category: ComponentCategory = validCat ? storedCat : classifyByKeyword(label);
     const cad = guessCadence(row.billing_type) || guessCadence(label);
     const span = monthsBetween(row.service_period_start, row.service_period_end);
 
-    if (ONE_TIME_CATEGORIES.has(category) || cad === "one_time") {
+    const explicitNonRecurring = row.revenue_type === "non_recurring";
+    const explicitRecurring = row.revenue_type === "recurring";
+
+    if (!explicitRecurring && (explicitNonRecurring || ONE_TIME_CATEGORIES.has(category) || cad === "one_time")) {
       oneTimes.push({ label, amount: amt, cadence: "one_time", category });
       continue;
     }
@@ -522,15 +530,26 @@ function bucketSchedule(schedule: InvoiceScheduleRow[]): ScheduleBucket {
     const amount = toNumber(row.amount);
     if (amount <= 0) continue;
     const label = `${row.description || ""} ${row.billing_type || ""}`.trim();
-    const category = classifyByKeyword(label);
+    const storedCat = (row.product_category || "").toLowerCase() as ComponentCategory;
+    const validCat = RECURRING_CATEGORIES.has(storedCat) || ONE_TIME_CATEGORIES.has(storedCat);
+    const category: ComponentCategory = validCat ? storedCat : classifyByKeyword(label);
     const cadence = guessCadence(row.billing_type) || guessCadence(row.description);
     const hasServicePeriod = monthsBetween(row.service_period_start, row.service_period_end) > 0;
     const looksLikePrepaidRecurring = /prepaid|upfront|advance|annual|year|subscription|license|platform|saas|recurring/i.test(label);
     const isServices = category === "professional_services" || category === "implementation" || category === "onboarding" || category === "training";
-    const isHardOneTime = (cadence === "one_time" || ONE_TIME_CATEGORIES.has(category)) && !hasServicePeriod && !looksLikePrepaidRecurring;
+
+    const explicitNonRecurring = row.revenue_type === "non_recurring";
+    const explicitRecurring = row.revenue_type === "recurring";
+
+    const isHardOneTime =
+      !explicitRecurring &&
+      (explicitNonRecurring ||
+        ((cadence === "one_time" || ONE_TIME_CATEGORIES.has(category)) &&
+          !hasServicePeriod &&
+          !looksLikePrepaidRecurring));
 
     if (!bucket.currency && row.currency) bucket.currency = row.currency;
-    if (isServices) bucket.servicesTcv += amount;
+    if (isServices && !explicitRecurring) bucket.servicesTcv += amount;
     else if (isHardOneTime) bucket.oneTimeTcv += amount;
     else bucket.recurringTcv += amount;
   }
