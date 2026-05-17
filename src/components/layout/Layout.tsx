@@ -336,14 +336,14 @@ const Layout = ({ children }: LayoutProps) => {
               
               {/* Desktop Navigation */}
               <div className="hidden lg:flex items-center gap-1">
-                {/* RevenueHub Dropdown */}
+                {/* RevenueHub Dropdown — now includes Collection + Contract Intelligence */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="ghost"
                       size="sm"
                       className={`flex items-center gap-1.5 px-3 py-2 h-auto text-sm font-medium ${
-                        isAnyRevenueHubActive
+                        (isAnyRevenueHubActive || isAnyRevenueIntelActive)
                           ? "bg-primary text-primary-foreground shadow-sm"
                           : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                       }`}
@@ -353,7 +353,7 @@ const Layout = ({ children }: LayoutProps) => {
                       <ChevronDown className="h-3 w-3 shrink-0" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-56 z-[110] bg-card border shadow-lg">
+                  <DropdownMenuContent align="start" className="w-60 z-[110] bg-card border shadow-lg">
                     <DropdownMenuItem asChild>
                       <Link to="/dashboard" className={`flex items-center gap-2 cursor-pointer ${isActive("/dashboard") ? "bg-accent" : ""}`}>
                         <LayoutDashboard className="h-4 w-4" />
@@ -374,6 +374,22 @@ const Layout = ({ children }: LayoutProps) => {
                         <span>Payments</span>
                       </Link>
                     </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel className="text-xs text-muted-foreground">Contract Intelligence</DropdownMenuLabel>
+                    {revenueIntelligenceItems.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <DropdownMenuItem key={item.path} asChild>
+                          <Link
+                            to={item.path}
+                            className={`flex items-center gap-2 cursor-pointer ${isActive(item.path) ? "bg-accent" : ""}`}
+                          >
+                            <Icon className="h-4 w-4" />
+                            <span>{item.label}</span>
+                          </Link>
+                        </DropdownMenuItem>
+                      );
+                    })}
                   </DropdownMenuContent>
                 </DropdownMenu>
 
@@ -394,41 +410,6 @@ const Layout = ({ children }: LayoutProps) => {
                     </Link>
                   );
                 })}
-
-                {/* Revenue Intelligence Dropdown */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className={`flex items-center gap-1.5 px-3 py-2 h-auto text-sm font-medium ${
-                        isAnyRevenueIntelActive
-                          ? "bg-primary text-primary-foreground shadow-sm"
-                          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                      }`}
-                    >
-                      <ShieldAlert className="h-4 w-4 shrink-0" />
-                      <span>Contract Intelligence</span>
-                      <ChevronDown className="h-3 w-3 shrink-0" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-56 z-[110] bg-card border shadow-lg">
-                    {revenueIntelligenceItems.map((item) => {
-                      const Icon = item.icon;
-                      return (
-                        <DropdownMenuItem key={item.path} asChild>
-                          <Link
-                            to={item.path}
-                            className={`flex items-center gap-2 cursor-pointer ${isActive(item.path) ? "bg-accent" : ""}`}
-                          >
-                            <Icon className="h-4 w-4" />
-                            <span>{item.label}</span>
-                          </Link>
-                        </DropdownMenuItem>
-                      );
-                    })}
-                  </DropdownMenuContent>
-                </DropdownMenu>
 
                 {/* AI Tools Dropdown */}
                 <DropdownMenu>
@@ -596,9 +577,9 @@ const Layout = ({ children }: LayoutProps) => {
                     <Palette className="mr-2 h-4 w-4" />
                     Branding
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate("/billing/asc606-credits")}>
+                  <DropdownMenuItem onClick={() => navigate("/billing")}>
                     <CreditCard className="mr-2 h-4 w-4" />
-                    Billing & Credits
+                    Subscription & Billing
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate("/security")}>
                     <Shield className="mr-2 h-4 w-4" />
