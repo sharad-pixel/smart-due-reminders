@@ -576,15 +576,28 @@ function bucketSchedule(schedule: InvoiceScheduleRow[]): ScheduleBucket {
     const amount = toNumber(row.amount);
     if (amount <= 0) continue;
     const label = `${row.description || ""} ${row.billing_type || ""}`.trim();
-    const category = classifyByKeyword(label);
+    // ASC 606: trust the row's persisted classification first. This is what the
+    // line-item editor writes when a user confirms or overrides a category.
+    const storedCat = (row.product_category || "").toLowerCase() as ComponentCategory;
+    const validCat = RECURRING_CATEGORIES.has(storedCat) || ONE_TIME_CATEGORIES.has(storedCat);
+    const category: ComponentCategory = validCat ? storedCat : classifyByKeyword(label);
     const cadence = guessCadence(row.billing_type) || guessCadence(row.description);
     const hasServicePeriod = monthsBetween(row.service_period_start, row.service_period_end) > 0;
     const looksLikePrepaidRecurring = /prepaid|upfront|advance|annual|year|subscription|license|platform|saas|recurring/i.test(label);
     const isServices = category === "professional_services" || category === "implementation" || category === "onboarding" || category === "training";
-    const isHardOneTime = (cadence === "one_time" || ONE_TIME_CATEGORIES.has(category)) && !hasServicePeriod && !looksLikePrepaidRecurring;
+
+    const explicitNonRecurring = row.revenue_type === "non_recurring";
+    const explicitRecurring = row.revenue_type === "recurring";
+
+    const isHardOneTime =
+      !explicitRecurring &&
+      (explicitNonRecurring ||
+        ((cadence === "one_time" || ONE_TIME_CATEGORIES.has(category)) &&
+          !hasServicePeriod &&
+          !looksLikePrepaidRecurring));
 
     if (!bucket.currency && row.currency) bucket.currency = row.currency;
-    if (isServices) bucket.servicesTcv += amount;
+    if (isServices && !explicitRecurring) bucket.servicesTcv += amount;
     else if (isHardOneTime) bucket.oneTimeTcv += amount;
     else bucket.recurringTcv += amount;
   }
