@@ -35,7 +35,8 @@ import {
   FileSignature,
   FileSearch,
   Briefcase,
-  Sparkles
+  Sparkles,
+  CreditCard
 } from "lucide-react";
 import {
   DropdownMenu,
