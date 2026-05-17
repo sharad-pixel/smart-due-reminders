@@ -7,8 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CreditCard, ExternalLink, AlertTriangle, CheckCircle, Clock, Calendar, TrendingUp, Users } from "lucide-react";
+import { CreditCard, ExternalLink, AlertTriangle, CheckCircle, Clock, Calendar, TrendingUp, Users, Sparkles, Activity, Receipt } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { invokeFunction, isImpersonating } from "@/lib/supportImpersonation";
 import { toast } from "sonner";
@@ -20,6 +22,7 @@ import { UsageIndicator } from "@/components/billing/UsageIndicator";
 import { TrialCountdown } from "@/components/billing/TrialCountdown";
 import UsageBillingLog from "@/components/billing/UsageBillingLog";
 import OcrUsageCard from "@/components/billing/OcrUsageCard";
+import CreditsPanel from "@/components/billing/panels/CreditsPanel";
 // Colorful gauge component
 const _UsageGauge = ({ 
   used, 
@@ -127,9 +130,11 @@ interface StripeSubscriptionData {
 }
 
 const Billing = () => {
-  usePageTitle("Billing");
+  usePageTitle("Subscription & Billing");
   const navigate = useNavigate();
-  
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab = searchParams.get("tab") || "plan";
+
   // Use the comprehensive account hierarchy hook
   const accountHierarchy = useAccountHierarchy();
   
@@ -282,9 +287,14 @@ const Billing = () => {
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold">Billing & Subscription</h1>
+      <div className="container mx-auto px-4 py-8 max-w-5xl">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-3xl font-bold">Subscription & Billing</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Manage your plan, team seats, credits, and outstanding charges — all in one place.
+            </p>
+          </div>
           {profile?.stripe_subscription_id && canManageBilling && (
             <Button onClick={openCustomerPortal} disabled={portalLoading}>
               <CreditCard className="w-4 h-4 mr-2" />
@@ -390,9 +400,33 @@ const Billing = () => {
           </CardContent>
         </Card>
 
-        <div className="grid gap-6">
-          {/* Current Plan */}
-          <Card>
+        <Tabs
+          value={initialTab}
+          onValueChange={(v) => {
+            const next = new URLSearchParams(searchParams);
+            next.set("tab", v);
+            setSearchParams(next, { replace: true });
+          }}
+          className="w-full"
+        >
+          <TabsList className="grid grid-cols-2 md:grid-cols-4 mb-6 w-full md:w-auto">
+            <TabsTrigger value="plan" className="gap-1.5">
+              <CreditCard className="h-4 w-4" /> Plan & Seats
+            </TabsTrigger>
+            <TabsTrigger value="credits" className="gap-1.5">
+              <Sparkles className="h-4 w-4" /> Credits & Overages
+            </TabsTrigger>
+            <TabsTrigger value="usage" className="gap-1.5">
+              <Activity className="h-4 w-4" /> Usage & Activity
+            </TabsTrigger>
+            <TabsTrigger value="invoices" className="gap-1.5">
+              <Receipt className="h-4 w-4" /> Invoices
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="plan" className="space-y-6 mt-0">
+            {/* Current Plan */}
+            <Card>
             <CardHeader>
             <CardTitle className="flex items-center justify-between">
               Current Plan
@@ -535,58 +569,97 @@ const Billing = () => {
             </CardContent>
           </Card>
 
-          {/* Consumption & Upcoming Charges */}
-          <ConsumptionTracker />
+            {/* Account Hierarchy - Visual Tree (Team & Seats) */}
+            <AccountHierarchy />
 
-          {/* Monthly Usage Billing Log */}
-          <UsageBillingLog />
+            {/* Quick Actions */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Quick Actions</CardTitle>
+                {isTeamMember && (
+                  <CardDescription>
+                    Some actions are only available to the account owner.
+                  </CardDescription>
+                )}
+              </CardHeader>
+              <CardContent>
+                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <Button
+                    variant="outline"
+                    onClick={openCustomerPortal}
+                    disabled={!profile?.stripe_subscription_id || portalLoading || !canManageBilling}
+                    title={!canManageBilling ? "Only the account owner can update payment methods" : undefined}
+                  >
+                    Update Payment Method
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={openCustomerPortal}
+                    disabled={!profile?.stripe_subscription_id || portalLoading || !canManageBilling}
+                    title={!canManageBilling ? "Only the account owner can view billing history" : undefined}
+                  >
+                    View Billing History
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={openCustomerPortal}
+                    disabled={!profile?.stripe_subscription_id || portalLoading || !canManageBilling}
+                    title={!canManageBilling ? "Only the account owner can download invoices" : undefined}
+                  >
+                    Download Invoices
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate('/team')}
+                  >
+                    Manage Team Members
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-          {/* AI Smart Ingestion Usage (1 credit/page) */}
-          <OcrUsageCard />
+          <TabsContent value="credits" className="mt-0">
+            <CreditsPanel />
+          </TabsContent>
 
-          {/* Account Hierarchy - Visual Tree */}
-          <AccountHierarchy />
+          <TabsContent value="usage" className="space-y-6 mt-0">
+            {/* Consumption & Upcoming Charges */}
+            <ConsumptionTracker />
 
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-              {isTeamMember && (
+            {/* Monthly Usage Billing Log */}
+            <UsageBillingLog />
+
+            {/* AI Smart Ingestion Usage (1 credit/page) */}
+            <OcrUsageCard />
+          </TabsContent>
+
+          <TabsContent value="invoices" className="mt-0">
+            <Card>
+              <CardHeader>
+                <CardTitle>Invoices & Receipts</CardTitle>
                 <CardDescription>
-                  Some actions are only available to the account owner.
+                  Download invoices, update payment methods, and view full billing history through the secure Stripe customer portal.
                 </CardDescription>
-              )}
-            </CardHeader>
-            <CardContent>
-              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Button 
-                  variant="outline" 
-                  onClick={openCustomerPortal} 
+              </CardHeader>
+              <CardContent>
+                <Button
+                  onClick={openCustomerPortal}
                   disabled={!profile?.stripe_subscription_id || portalLoading || !canManageBilling}
-                  title={!canManageBilling ? "Only the account owner can update payment methods" : undefined}
                 >
-                  Update Payment Method
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  {portalLoading ? 'Opening...' : 'Open Billing Portal'}
+                  <ExternalLink className="w-4 h-4 ml-2" />
                 </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={openCustomerPortal} 
-                  disabled={!profile?.stripe_subscription_id || portalLoading || !canManageBilling}
-                  title={!canManageBilling ? "Only the account owner can view billing history" : undefined}
-                >
-                  View Billing History
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={openCustomerPortal} 
-                  disabled={!profile?.stripe_subscription_id || portalLoading || !canManageBilling}
-                  title={!canManageBilling ? "Only the account owner can download invoices" : undefined}
-                >
-                  Download Invoices
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+                {!canManageBilling && (
+                  <p className="text-xs text-muted-foreground mt-3">
+                    Only the account owner can manage invoices and payment methods.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </Layout>
   );
