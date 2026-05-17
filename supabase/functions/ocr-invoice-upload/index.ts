@@ -1,5 +1,4 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import Stripe from "https://esm.sh/stripe@18.5.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -18,8 +17,12 @@ const log = (step: string, details?: any) =>
     `[OCR-INVOICE-UPLOAD] ${step}${details ? ` - ${JSON.stringify(details)}` : ""}`,
   );
 
-const PRICE_PER_PAGE_CENTS = 75;
-const STRIPE_METER_EVENT_NAME = "ocr_pages";
+// Smart Ingestion is billed as 1 platform credit per page.
+// Credits are drawn from the unified asc606_credit_wallets balance
+// (pre-paid at $0.80/credit, accrued as overage at $1.00/credit).
+const CREDITS_PER_PAGE = 1;
+const UNIT_PRICE_CENTS = 100; // for activity display only
+const PRICE_PER_PAGE_CENTS = UNIT_PRICE_CENTS;
 
 function detectPageCount(pdfBytes: Uint8Array): number {
   try {
@@ -39,38 +42,8 @@ function detectPageCount(pdfBytes: Uint8Array): number {
   return 1;
 }
 
-async function reportStripeMeter(params: {
-  stripeKey: string;
-  email: string;
-  pages: number;
-}): Promise<{ id?: string; reported: boolean; error?: string }> {
-  try {
-    const stripe = new Stripe(params.stripeKey, {
-      apiVersion: "2025-08-27.basil",
-    });
-    // Resolve the customer
-    const customers = await stripe.customers.list({
-      email: params.email,
-      limit: 1,
-    });
-    if (customers.data.length === 0) {
-      return { reported: false, error: "No Stripe customer found" };
-    }
-    const customer = customers.data[0];
-    // Use modern billing meter events
-    const ev = await (stripe as any).billing.meterEvents.create({
-      event_name: STRIPE_METER_EVENT_NAME,
-      payload: {
-        stripe_customer_id: customer.id,
-        value: String(params.pages),
-      },
-    });
-    return { id: ev.identifier || ev.id, reported: true };
-  } catch (e: any) {
-    log("Stripe meter report failed", { error: e?.message || String(e) });
-    return { reported: false, error: e?.message || String(e) };
-  }
-}
+// Stripe per-page metering removed — usage is now metered via the platform
+// credits wallet (see consume_platform_credits RPC).
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
