@@ -569,58 +569,97 @@ const Billing = () => {
             </CardContent>
           </Card>
 
-          {/* Consumption & Upcoming Charges */}
-          <ConsumptionTracker />
+            {/* Account Hierarchy - Visual Tree (Team & Seats) */}
+            <AccountHierarchy />
 
-          {/* Monthly Usage Billing Log */}
-          <UsageBillingLog />
+            {/* Quick Actions */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Quick Actions</CardTitle>
+                {isTeamMember && (
+                  <CardDescription>
+                    Some actions are only available to the account owner.
+                  </CardDescription>
+                )}
+              </CardHeader>
+              <CardContent>
+                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <Button
+                    variant="outline"
+                    onClick={openCustomerPortal}
+                    disabled={!profile?.stripe_subscription_id || portalLoading || !canManageBilling}
+                    title={!canManageBilling ? "Only the account owner can update payment methods" : undefined}
+                  >
+                    Update Payment Method
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={openCustomerPortal}
+                    disabled={!profile?.stripe_subscription_id || portalLoading || !canManageBilling}
+                    title={!canManageBilling ? "Only the account owner can view billing history" : undefined}
+                  >
+                    View Billing History
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={openCustomerPortal}
+                    disabled={!profile?.stripe_subscription_id || portalLoading || !canManageBilling}
+                    title={!canManageBilling ? "Only the account owner can download invoices" : undefined}
+                  >
+                    Download Invoices
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate('/team')}
+                  >
+                    Manage Team Members
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-          {/* AI Smart Ingestion Usage (1 credit/page) */}
-          <OcrUsageCard />
+          <TabsContent value="credits" className="mt-0">
+            <CreditsPanel />
+          </TabsContent>
 
-          {/* Account Hierarchy - Visual Tree */}
-          <AccountHierarchy />
+          <TabsContent value="usage" className="space-y-6 mt-0">
+            {/* Consumption & Upcoming Charges */}
+            <ConsumptionTracker />
 
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-              {isTeamMember && (
+            {/* Monthly Usage Billing Log */}
+            <UsageBillingLog />
+
+            {/* AI Smart Ingestion Usage (1 credit/page) */}
+            <OcrUsageCard />
+          </TabsContent>
+
+          <TabsContent value="invoices" className="mt-0">
+            <Card>
+              <CardHeader>
+                <CardTitle>Invoices & Receipts</CardTitle>
                 <CardDescription>
-                  Some actions are only available to the account owner.
+                  Download invoices, update payment methods, and view full billing history through the secure Stripe customer portal.
                 </CardDescription>
-              )}
-            </CardHeader>
-            <CardContent>
-              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Button 
-                  variant="outline" 
-                  onClick={openCustomerPortal} 
+              </CardHeader>
+              <CardContent>
+                <Button
+                  onClick={openCustomerPortal}
                   disabled={!profile?.stripe_subscription_id || portalLoading || !canManageBilling}
-                  title={!canManageBilling ? "Only the account owner can update payment methods" : undefined}
                 >
-                  Update Payment Method
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  {portalLoading ? 'Opening...' : 'Open Billing Portal'}
+                  <ExternalLink className="w-4 h-4 ml-2" />
                 </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={openCustomerPortal} 
-                  disabled={!profile?.stripe_subscription_id || portalLoading || !canManageBilling}
-                  title={!canManageBilling ? "Only the account owner can view billing history" : undefined}
-                >
-                  View Billing History
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={openCustomerPortal} 
-                  disabled={!profile?.stripe_subscription_id || portalLoading || !canManageBilling}
-                  title={!canManageBilling ? "Only the account owner can download invoices" : undefined}
-                >
-                  Download Invoices
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+                {!canManageBilling && (
+                  <p className="text-xs text-muted-foreground mt-3">
+                    Only the account owner can manage invoices and payment methods.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </Layout>
   );
