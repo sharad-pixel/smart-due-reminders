@@ -357,10 +357,14 @@ const LiveContractDetailInner = () => {
               </ul>
             </div>
           )}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             <KpiTile label="MRR" value={formatCurrency(totals.mrr, totals.currency)} />
             <KpiTile label="ARR" value={formatCurrency(totals.arr, totals.currency)} />
             <KpiTile label="ACV" value={formatCurrency(totals.acv, totals.currency)} />
+            <KpiTile
+              label="Services"
+              value={formatCurrency(totals.servicesTcv || 0, totals.currency)}
+            />
             <KpiTile
               label={totals.tcv > 0 ? "TCV" : "Scheduled"}
               value={formatCurrency(
@@ -369,11 +373,16 @@ const LiveContractDetailInner = () => {
               )}
             />
           </div>
+          <p className="text-[11px] text-muted-foreground pt-1">
+            MRR, ARR, and ACV reflect <strong>recurring revenue only</strong> (ASC 606
+            performance obligations satisfied over time). Services and one-time fees are
+            tracked separately and roll into TCV.
+          </p>
           {(totals.recurringTcv > 0 || totals.servicesTcv > 0 || totals.oneTimeTcv > 0) && (
             <div className="text-[11px] text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 pt-1 border-t">
               <span>Recurring TCV: {formatCurrency(totals.recurringTcv || 0, totals.currency)}</span>
-              <span>Services: {formatCurrency(totals.servicesTcv || 0, totals.currency)}</span>
-              <span>One-time: {formatCurrency(totals.oneTimeTcv || 0, totals.currency)}</span>
+              <span>Services TCV: {formatCurrency(totals.servicesTcv || 0, totals.currency)}</span>
+              <span>One-time TCV: {formatCurrency(totals.oneTimeTcv || 0, totals.currency)}</span>
               {totals.termMonths > 0 && <span>Term: {Math.round(totals.termMonths)} mo</span>}
             </div>
           )}
