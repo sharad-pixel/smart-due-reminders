@@ -114,6 +114,45 @@ export default function Asc606Credits() {
           </CardContent>
         </Card>
 
+        {/* Outstanding overage — pay now */}
+        {overage > 0 && (
+          <Card className="border-amber-300 bg-amber-50/60">
+            <CardContent className="p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div className="flex gap-3">
+                <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+                <div>
+                  <div className="font-semibold text-amber-900">
+                    Outstanding balance due: ${overage.toFixed(2)}
+                  </div>
+                  <div className="text-xs text-amber-800 mt-1">
+                    {overage.toFixed(0)} credits of post-paid usage billed at $1.00/credit. Settle now to avoid month-end invoicing.
+                  </div>
+                </div>
+              </div>
+              <Button
+                onClick={payOverage}
+                disabled={busy === "overage"}
+                className="bg-amber-600 hover:bg-amber-700 text-white shrink-0"
+              >
+                {busy === "overage" ? <Loader2 className="h-4 w-4 animate-spin" /> : <><ExternalLink className="h-4 w-4 mr-1" />Pay ${overage.toFixed(2)} now</>}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Discount & overage policy */}
+        <div className="rounded-md border border-border bg-muted/30 p-3 flex gap-2 text-xs text-muted-foreground">
+          <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <div>
+              <strong className="text-foreground">20% discount applies to pre-paid credits only.</strong> Only usage processed against a positive pre-purchased balance qualifies for the $0.80/credit rate. Any usage that exceeds your balance is billed post-paid at $1.00/credit.
+            </div>
+            <div>
+              <strong className="text-foreground">Newly purchased credits cannot settle existing overages.</strong> They apply to future usage from the moment of purchase forward. To clear an outstanding overage balance, use <em>Pay now</em> above (or wait for the month-end invoice).
+            </div>
+          </div>
+        </div>
+
         {/* Packs */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {PACKS.map((p) => {
