@@ -625,6 +625,9 @@ const Billing = () => {
           </TabsContent>
 
           <TabsContent value="usage" className="space-y-6 mt-0">
+            {/* Reconciles every fee to credits consumed (pre-paid vs overage). */}
+            <UsageReconciliationCard />
+
             {/* Consumption & Upcoming Charges */}
             <ConsumptionTracker />
 
