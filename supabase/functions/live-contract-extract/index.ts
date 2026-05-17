@@ -8,7 +8,8 @@ const corsHeaders = {
 
 const log = (s: string, d?: unknown) => console.log(`[LC-EXTRACT] ${s}${d ? " " + JSON.stringify(d) : ""}`);
 
-const PRICE_PER_PAGE_CENTS = 75;
+const UNIT_PRICE_CENTS = 100; // $1.00/page for display; actual billing is 1 credit/page
+const CREDITS_PER_PAGE = 1;
 
 function detectPdfPageCount(pdfBytes: Uint8Array): number {
   try {
@@ -24,32 +25,63 @@ function detectPdfPageCount(pdfBytes: Uint8Array): number {
   return 1;
 }
 
+/**
+ * Records contract OCR usage as a platform-credit consumption.
+ * Idempotent per contract import.
+ */
 async function recordContractUsage(
   supabase: any,
   args: { userId: string; accountId: string; importId: string; fileName: string | null; pageCount: number },
 ) {
-  // Idempotent: only one usage event per contract import
   const { data: existing } = await supabase
     .from("ocr_usage_events")
     .select("id")
     .eq("contract_id", args.importId)
     .maybeSingle();
   if (existing) { log("Usage already recorded", { importId: args.importId }); return; }
+
   const pages = Math.max(1, args.pageCount);
-  const totalCents = pages * PRICE_PER_PAGE_CENTS;
+  const credits = pages * CREDITS_PER_PAGE;
+  const totalCents = pages * UNIT_PRICE_CENTS;
+
+  let ledgerId: string | null = null;
+  let method: string | null = null;
+  let chargeError: string | null = null;
+  try {
+    const { data: consume, error: consErr } = await supabase.rpc(
+      "consume_platform_credits",
+      {
+        _account_id: args.accountId,
+        _amount: credits,
+        _service: "smart_ingestion",
+        _user_id: args.userId,
+        _reference_id: args.importId,
+        _note: `Smart Ingestion (contract) — ${args.fileName || "document"} (${pages} pg)`,
+      },
+    );
+    if (consErr) throw consErr;
+    ledgerId = (consume as any)?.ledger_id ?? null;
+    method = (consume as any)?.method ?? null;
+  } catch (e: any) {
+    chargeError = e?.message || String(e);
+    log("Credit consume failed", { error: chargeError });
+  }
+
   const { error } = await supabase.from("ocr_usage_events").insert({
     user_id: args.userId,
     account_id: args.accountId,
     source: "contract_extract",
     file_name: args.fileName,
     page_count: pages,
-    unit_price_cents: PRICE_PER_PAGE_CENTS,
+    unit_price_cents: UNIT_PRICE_CENTS,
     total_cents: totalCents,
-    stripe_reported: false,
+    stripe_reported: ledgerId !== null,
+    ledger_id: ledgerId,
     contract_id: args.importId,
+    metadata: chargeError ? { credit_error: chargeError } : { method },
   });
   if (error) log("Usage insert failed", { error: error.message });
-  else log("Usage recorded", { pages, totalCents });
+  else log("Usage recorded", { pages, credits, method });
 }
 
 function parseJsonFromText(text: string, label: string): any {

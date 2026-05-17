@@ -47,8 +47,10 @@ export const OcrPricingNotice = ({
         </div>
         <div className="opacity-90">
           {estimated
-            ? `Estimated cost: ${estimated}. Track totals in Settings → Billing.`
-            : "Pages are detected automatically after upload. Track totals in Settings → Billing."}
+            ? `Estimated cost: ${estimated}. `
+            : "Pages are detected automatically after upload. "}
+          Drawn from your Platform Credits balance ($0.80/credit pre-paid) or accrued as overage at $1.00/credit. Manage at{" "}
+          <a className="underline" href="/billing?tab=credits">Billing → Credits</a>.
         </div>
       </div>
     </div>

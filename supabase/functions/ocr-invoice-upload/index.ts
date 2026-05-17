@@ -1,5 +1,4 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import Stripe from "https://esm.sh/stripe@18.5.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -18,8 +17,12 @@ const log = (step: string, details?: any) =>
     `[OCR-INVOICE-UPLOAD] ${step}${details ? ` - ${JSON.stringify(details)}` : ""}`,
   );
 
-const PRICE_PER_PAGE_CENTS = 75;
-const STRIPE_METER_EVENT_NAME = "ocr_pages";
+// Smart Ingestion is billed as 1 platform credit per page.
+// Credits are drawn from the unified asc606_credit_wallets balance
+// (pre-paid at $0.80/credit, accrued as overage at $1.00/credit).
+const CREDITS_PER_PAGE = 1;
+const UNIT_PRICE_CENTS = 100; // for activity display only
+const PRICE_PER_PAGE_CENTS = UNIT_PRICE_CENTS;
 
 function detectPageCount(pdfBytes: Uint8Array): number {
   try {
@@ -39,38 +42,8 @@ function detectPageCount(pdfBytes: Uint8Array): number {
   return 1;
 }
 
-async function reportStripeMeter(params: {
-  stripeKey: string;
-  email: string;
-  pages: number;
-}): Promise<{ id?: string; reported: boolean; error?: string }> {
-  try {
-    const stripe = new Stripe(params.stripeKey, {
-      apiVersion: "2025-08-27.basil",
-    });
-    // Resolve the customer
-    const customers = await stripe.customers.list({
-      email: params.email,
-      limit: 1,
-    });
-    if (customers.data.length === 0) {
-      return { reported: false, error: "No Stripe customer found" };
-    }
-    const customer = customers.data[0];
-    // Use modern billing meter events
-    const ev = await (stripe as any).billing.meterEvents.create({
-      event_name: STRIPE_METER_EVENT_NAME,
-      payload: {
-        stripe_customer_id: customer.id,
-        value: String(params.pages),
-      },
-    });
-    return { id: ev.identifier || ev.id, reported: true };
-  } catch (e: any) {
-    log("Stripe meter report failed", { error: e?.message || String(e) });
-    return { reported: false, error: e?.message || String(e) };
-  }
-}
+// Stripe per-page metering removed — usage is now metered via the platform
+// credits wallet (see consume_platform_credits RPC).
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -80,7 +53,7 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
-    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+    
 
     if (!lovableApiKey) return json({ error: "LOVABLE_API_KEY not configured" }, 500);
 
@@ -306,18 +279,33 @@ Extract: invoice_number, invoice_date (YYYY-MM-DD), due_date (YYYY-MM-DD), debto
       }
     }
 
-    // Report Stripe meter (best effort)
-    let meterResult: { id?: string; reported: boolean; error?: string } = { reported: false };
-    if (stripeKey) {
-      meterResult = await reportStripeMeter({
-        stripeKey,
-        email: user.email,
-        pages: pageCount,
-      });
+    // Charge platform credits (1 credit / page). Auto-accrues to overage if balance is empty.
+    const creditsToCharge = pageCount * CREDITS_PER_PAGE;
+    let ledgerId: string | null = null;
+    let chargeMethod: "credits" | "overage" | null = null;
+    let chargeError: string | null = null;
+    try {
+      const { data: consume, error: consErr } = await supabase.rpc(
+        "consume_platform_credits",
+        {
+          _account_id: accountId,
+          _amount: creditsToCharge,
+          _service: "smart_ingestion",
+          _user_id: user.id,
+          _reference_id: invoiceId || contractImportId || null,
+          _note: `Smart Ingestion — ${fileName || "document"} (${pageCount} pg)`,
+        },
+      );
+      if (consErr) throw consErr;
+      ledgerId = (consume as any)?.ledger_id ?? null;
+      chargeMethod = ((consume as any)?.method ?? null) as "credits" | "overage" | null;
+    } catch (e: any) {
+      chargeError = e?.message || String(e);
+      log("Credit consume failed", { error: chargeError });
     }
 
-    // Record usage event (source of truth, regardless of Stripe success)
-    const totalCents = pageCount * PRICE_PER_PAGE_CENTS;
+    // Record activity event (linked to its ledger entry)
+    const totalCents = pageCount * UNIT_PRICE_CENTS;
     const { data: usageRow } = await supabase
       .from("ocr_usage_events")
       .insert({
@@ -326,13 +314,13 @@ Extract: invoice_number, invoice_date (YYYY-MM-DD), due_date (YYYY-MM-DD), debto
         source: contractImportId ? "contract_invoice_upload" : "invoice_upload",
         file_name: fileName || null,
         page_count: pageCount,
-        unit_price_cents: PRICE_PER_PAGE_CENTS,
+        unit_price_cents: UNIT_PRICE_CENTS,
         total_cents: totalCents,
-        stripe_meter_event_id: meterResult.id || null,
-        stripe_reported: meterResult.reported,
+        stripe_reported: ledgerId !== null, // legacy flag — true once metered via credits
+        ledger_id: ledgerId,
         contract_id: contractImportId || null,
         invoice_id: invoiceId,
-        metadata: meterResult.error ? { stripe_error: meterResult.error } : null,
+        metadata: chargeError ? { credit_error: chargeError } : { method: chargeMethod },
       })
       .select()
       .single();
@@ -342,28 +330,32 @@ Extract: invoice_number, invoice_date (YYYY-MM-DD), due_date (YYYY-MM-DD), debto
       user_id: user.id,
       alert_type: "ocr_scan_completed",
       severity: "info",
-      title: `OCR scan complete — ${pageCount} page${pageCount === 1 ? "" : "s"}`,
-      message: `Scanned ${fileName || "document"}: $${(totalCents / 100).toFixed(2)} ($${(PRICE_PER_PAGE_CENTS / 100).toFixed(2)}/page).`,
+      title: `Smart Ingestion — ${pageCount} page${pageCount === 1 ? "" : "s"} (${creditsToCharge} credit${creditsToCharge === 1 ? "" : "s"})`,
+      message: chargeMethod === "overage"
+        ? `Scanned ${fileName || "document"}: ${creditsToCharge} credits accrued as overage ($${(totalCents / 100).toFixed(2)}).`
+        : `Scanned ${fileName || "document"}: ${creditsToCharge} credits drawn from your balance.`,
       action_url: contractImportId
         ? `/contracts/live/${contractImportId}`
         : invoiceId
           ? `/invoices?invoice=${invoiceId}`
-          : "/settings/billing",
-      action_label: contractImportId ? "Open contract" : invoiceId ? "View invoice" : "View usage",
+          : "/billing?tab=credits",
+      action_label: contractImportId ? "Open contract" : invoiceId ? "View invoice" : "View credits",
       invoice_id: invoiceId,
-      metadata: { page_count: pageCount, total_cents: totalCents },
+      metadata: { page_count: pageCount, credits: creditsToCharge, method: chargeMethod },
     });
 
     return json({
       success: true,
       pageCount,
+      creditsCharged: creditsToCharge,
+      method: chargeMethod,
+      ledgerId,
       totalCents,
-      pricePerPageCents: PRICE_PER_PAGE_CENTS,
+      pricePerPageCents: UNIT_PRICE_CENTS,
       extracted,
       invoiceId,
-      stripeReported: meterResult.reported,
-      stripeError: meterResult.error || null,
       usageEventId: usageRow?.id,
+      chargeError,
     });
   } catch (e: any) {
     console.error("ocr-invoice-upload error", e);

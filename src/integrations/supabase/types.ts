@@ -9286,6 +9286,7 @@ export type Database = {
           file_name: string | null
           id: string
           invoice_id: string | null
+          ledger_id: string | null
           metadata: Json | null
           page_count: number
           payment_id: string | null
@@ -9304,6 +9305,7 @@ export type Database = {
           file_name?: string | null
           id?: string
           invoice_id?: string | null
+          ledger_id?: string | null
           metadata?: Json | null
           page_count?: number
           payment_id?: string | null
@@ -9322,6 +9324,7 @@ export type Database = {
           file_name?: string | null
           id?: string
           invoice_id?: string | null
+          ledger_id?: string | null
           metadata?: Json | null
           page_count?: number
           payment_id?: string | null
@@ -9334,6 +9337,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ocr_usage_events_ledger_id_fkey"
+            columns: ["ledger_id"]
+            isOneToOne: false
+            referencedRelation: "asc606_credit_ledger"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ocr_usage_events_payment_id_fkey"
             columns: ["payment_id"]
@@ -12414,9 +12424,9 @@ export type Database = {
           _account_id: string
           _amount: number
           _note?: string
-          _reference_id: string
+          _reference_id?: string
           _service: string
-          _user_id: string
+          _user_id?: string
         }
         Returns: Json
       }
