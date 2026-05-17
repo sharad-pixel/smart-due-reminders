@@ -1,95 +1,90 @@
 ## Goal
 
-Make the line-item / product structure on imported contracts classification-aware (SaaS / Software vs Professional Services, etc.), let users override every extracted field (including the new category), and upgrade Key Dates to cover Term Start, Term End, Non-Renewal Notice Period, and a derived Opt-Out Date — with email notifications, not just in-app alerts.
+Fix the overlapping Credits chip vs AI Tools by consolidating the top nav, and merge `/billing`, `/billing/asc606-credits`, `/team` (billing pieces) and `/upgrade` into one unified **Subscription & Billing** page where users see plan, seats, credits, overages, and pay everything in one place.
 
 ---
 
-## 1. Database changes (one migration)
+## 1. Nav bar consolidation (fix overlap)
 
-`contract_invoice_schedules`
-- Add `product_category text` — values: `subscription`, `platform`, `license`, `support`, `maintenance`, `usage_minimum`, `professional_services`, `implementation`, `onboarding`, `training`, `hardware`, `other`.
-- Add `revenue_type text` — `recurring` | `non_recurring` (derived from `product_category` but persisted so finance can override independently when needed).
-- Add `category_source text` — `extracted` | `industry_default` | `user`.
+Current desktop nav: `RevenueHub ▾` · `Accounts` · `Data Center` · `Contract Intelligence ▾` · `AI Tools ▾` + right side `Credits chip` · `Alerts` · `Avatar`. On ~1280–1500px the Credits chip collides with `AI Tools`.
 
-`live_contract_imports`
-- Add `industry text` (nullable) — captured at import; used as the fallback for category inference.
+Changes in `src/components/layout/Layout.tsx`:
 
-`contract_critical_dates`
-- Add `notify_emails text[]` (recipients in addition to the owner) and `notify_channel text` default `'in_app'`, allowed values `in_app`, `email`, `both`.
-- Backfill `date_type` accepted values to also include `term_start` and `notice_period_start` (no constraint exists today, so this is just a docs note).
+- **Merge `Contract Intelligence` into `RevenueHub`** as a categorized mega-dropdown:
+  ```
+  RevenueHub ▾
+    Overview
+    — Collection Intelligence —
+      Invoices
+      Payments
+    — Contract Intelligence —
+      Live Contracts
+      Revenue Risk
+      CLM Workspaces (if clmActive)
+  ```
+  Active state = any of the merged routes. Remove the standalone `Contract Intelligence` dropdown trigger.
+- Keep `Accounts`, `Data Center`, `AI Tools ▾` as siblings. Result: 4 top-level items instead of 5.
+- Tighten right-side spacing: reduce `CreditsWalletBadge` to compact mode (`12 · −$10` icon-only when net is negative, hide the `credits` word at <1400px) and use `gap-1` instead of `space-x-2`.
+- Mobile sheet: keep the same Collection/Contract section labels under one "RevenueHub" group.
 
-No destructive changes; all new columns nullable / defaulted.
+## 2. Unified Subscription & Billing page
 
----
+New route: **`/billing`** (replaces current `/billing` and supersedes `/billing/asc606-credits` and `/upgrade`). Single page with anchor tabs:
 
-## 2. Server: classification + key-date logic
+```
+[ Plan & Subscription ] [ Team & Seats ] [ Credits & Usage ] [ Invoices & Receipts ]
+```
 
-### `supabase/functions/_shared/contractMetrics.ts`
-- Export `classifyLineItem({ description, billing_type, industry })` reusing the existing `classifyByKeyword` map and falling back to industry rules:
-  - SaaS / Software industry → default `subscription` (recurring)
-  - Professional Services industry → default `professional_services` (non-recurring)
-  - Hardware / Manufacturing → default `hardware` (non-recurring)
-  - Otherwise → `null` (means UI must prompt user)
-- Helper `revenueTypeFor(category)` → `recurring` for the existing `RECURRING_CATEGORIES`, else `non_recurring`.
+Sections (single page, sticky tab bar for in-page nav):
 
-### `live-contract-extract` and `live-contract-approve`
-- On each `invoice_schedule` row written, populate `product_category` from the extractor (already returns `category` in components) or `classifyLineItem` fallback, and set `category_source = 'extracted'` when the model returned one, else `'industry_default'` when industry rule fired, else leave NULL (user must pick).
-- Stamp `revenue_type` from `revenueTypeFor`.
-- Persist contract `industry` onto `live_contract_imports.industry` from the extractor (it already produces this in `business`/`contract` fields).
+1. **Plan & Subscription** — current plan, status, renewal date, plan comparison + upgrade/downgrade CTA (port from `Billing.tsx` + `/upgrade`). "Manage in Stripe portal" button.
+2. **Team & Seats** — billable seats, active members, pending invites, add/remove member, role chips. Port the billing portion of `/team` into a panel; keep `/team` page for admin-only member CRUD but link in/out.
+3. **Credits & Usage** — port everything from `Asc606Credits.tsx`: wallet stats, overage card with **Pay now**, packs, custom amount, policy disclaimer, ledger, AI Smart Ingestion usage card.
+4. **Invoices & Receipts** — Stripe invoice history (already in `Billing.tsx`).
 
-### `live-contract-actions` — `action: "recalculate_dates"`
-- Already emits `effective_date`, `term_end`, `renewal`, `opt_out_deadline`. Add:
-  - `term_start` (alias of effective when present — kept as its own row so it can have its own notifications).
-  - `non_renewal_notice_start` = `renewal_date - notice_period_days` (same math as opt_out but labeled distinctly so the user can have a "begin drafting non-renewal letter" reminder before the hard opt-out cutoff). When the extractor gives only `opt_out_deadline`, derive `notice_window_start = opt_out - notice_period_days` if `notice_period_days` exists.
-- Keep existing dedupe and risk leveling.
+Implementation:
+- Create `src/pages/SubscriptionBilling.tsx` composed of sub-components extracted from existing pages (no logic rewrite — re-use existing components: `OcrUsageCard`, `UsageBillingLog`, `ConsumptionTracker`, plus new `CreditsPanel`, `PlanPanel`, `SeatsPanel`).
+- Route `/billing` → `SubscriptionBilling`. Add redirects:
+  - `/billing/asc606-credits` → `/billing?tab=credits`
+  - `/upgrade` → `/billing?tab=plan`
+- Delete the standalone `Asc606Credits` page once redirect is verified (keep file as thin re-export for one release if safer).
 
-### New action: `action: "send_test_notification"` and a real cron worker
-- Add edge function `contract-key-date-notifier` (scheduled daily): scans `contract_critical_dates` where `alert_enabled=true`, `due_date - alert_lead_days <= today`, and `last_alerted_at IS NULL` (or older than 7 days for repeats). For each row:
-  - In-app alert (same as today's inline code).
-  - If `notify_channel IN ('email','both')`, send via existing branded email renderer to the contract owner + `notify_emails[]` with subject like "Action needed: Non-renewal notice window opens in N days" and a deep link to the contract.
-- Register in `supabase/config.toml` cron section.
+## 3. Pay-now everywhere cost is shown
 
-### `set_alerts` action
-- Accept `{id, enabled, lead_days, channel, emails}` and persist `notify_channel` + `notify_emails`.
+Surface the existing `payOverage` flow (already implemented via `asc606-purchase-credits` with `mode: "overage"`) wherever a user sees outstanding cost:
 
----
+- **CreditsWalletBadge tooltip**: add `Pay $X.XX now` button when `overage > 0` (small inline button, opens Stripe checkout in new tab via `supabase.functions.invoke("asc606-purchase-credits", { body: { mode: "overage", accountId } })`).
+- **Profile dropdown**: when `overage > 0`, show an amber "Outstanding: $X.XX — Pay now" row above "Billing & Credits".
+- **AI Smart Ingestion usage card**: add a `Pay now` button next to the 30-day cost when overage exists.
+- Extract a single `usePayOverage(accountId)` hook in `src/hooks/usePayOverage.ts` so all three entry points share one implementation.
 
-## 3. Client UI
+## 4. Update member-area links
 
-### `ContractScheduleLines.tsx`
-- New "Category" column showing a colored chip (Recurring = emerald, Non-recurring = slate) with the category label.
-- Edit dialog adds:
-  - `Category` select (full list above).
-  - `Revenue type` select (auto-set from category but overridable, with a tooltip explaining ASC 606 implication).
-  - A small "Industry default" hint when `category_source = 'industry_default'`.
-- When a row's `product_category` is NULL after import, render an amber inline "Pick a category" button that opens the dialog focused on the select.
+Anywhere these old paths are referenced, point to the unified page:
+- `/billing/asc606-credits` → `/billing?tab=credits`
+- `/upgrade` → `/billing?tab=plan`
+- Profile dropdown "Billing & Credits" → `/billing`
+- Team page "Manage billing" → `/billing?tab=seats`
+- Trial banner / lockout banner CTAs → `/billing?tab=plan`
+- Onboarding "Add billing" missing-item → `/billing?tab=plan`
 
-### `KeyDatesNotificationsPanel.tsx`
-- Show all five date types (Term Start, Term End, Non-Renewal Notice Period start, Opt-Out Deadline, Renewal) with a label map.
-- Each row gains:
-  - Channel toggle: `In-app` / `Email` / `Both`.
-  - Email recipients input (chip-style, comma separated, validated).
-- "Send test notification" button next to Save that calls `send_test_notification` for the configured row so the user can verify delivery.
-
-### Contract overview (already editable)
-- Add `Industry` field to `ContractOverviewEditor` so users can correct the fallback that drives category inference, and a "Re-classify line items" button that re-runs `classifyLineItem` over existing schedule rows where `category_source != 'user'`.
+Search & replace across `src/` for the two old paths.
 
 ---
 
-## 4. Verification
+## Technical notes
 
-- Upload one SaaS MSA + one Professional Services SOW.
-- Confirm SaaS lines come back with `subscription` / `recurring`; PS lines come back with `professional_services` / `non_recurring`.
-- For a contract with no obvious category in extraction, confirm the row shows the amber "Pick a category" prompt and the category persists after editing.
-- Enable email alert on the new "Non-Renewal Notice Period" row with 30-day lead and a test recipient, hit "Send test notification", confirm email arrives.
-- Run the cron once manually via curl and verify only due rows fire.
+- No DB or edge function changes required; `asc606-purchase-credits` already supports `mode: "overage"` and `stripe-webhook` already credits `pending_overage_credits` on success.
+- Tabs driven by `?tab=` query param using `useSearchParams` so deep links work.
+- Keep `Asc606Credits.tsx` content intact during extraction — move JSX into `src/components/billing/panels/CreditsPanel.tsx` and import from both the new unified page and (temporarily) the redirect shim.
+- Responsive: at <1024px nav collapses to existing mobile sheet — no change needed beyond inserting the new categorized groups.
 
----
+## Files touched
 
-## Out of scope (call out, do not build)
-
-- Pushing categories back to ERP / Salesforce.
-- Per-line tax handling.
-- Multi-currency revenue type split.
-
-Proceed?
+- `src/components/layout/Layout.tsx` — merged dropdown, compact credits chip, overage row in profile menu
+- `src/components/billing/CreditsWalletBadge.tsx` — inline Pay now button in tooltip
+- `src/pages/SubscriptionBilling.tsx` (new)
+- `src/components/billing/panels/{PlanPanel,SeatsPanel,CreditsPanel,InvoicesPanel}.tsx` (new, extracted)
+- `src/hooks/usePayOverage.ts` (new)
+- `src/App.tsx` — route + redirects
+- Link updates across pages referencing old billing paths
