@@ -72,6 +72,9 @@ export interface InvoiceScheduleRow {
   service_period_start?: string | null;
   service_period_end?: string | null;
   description?: string | null;
+  /** ASC 606 classification persisted on the row (preferred over keyword guess). */
+  product_category?: string | null;
+  revenue_type?: string | null;
 }
 
 export type MetricsSource =
