@@ -534,7 +534,42 @@ Deno.serve(async (req) => {
       const days = Math.floor((new Date(d.due_date).getTime() - Date.now()) / 86400000);
       d.risk_level = days < 30 ? "high" : days < 90 ? "medium" : "low";
     }
-    if (dedupedDates.length) await supabase.from("contract_critical_dates").insert(dedupedDates);
+    // Merge critical dates: update existing rows by (date_type, due_date) and
+    // insert only missing rows. Preserves user-configured notify_emails /
+    // notify_channel / alert_enabled / alert_lead_days.
+    {
+      const { data: existingDates } = await supabase
+        .from("contract_critical_dates")
+        .select("id, date_type, due_date, notify_emails, notify_channel, alert_enabled, alert_lead_days")
+        .eq("import_id", imp.id);
+      const existingMap = new Map<string, any>();
+      (existingDates || []).forEach((r: any) => existingMap.set(`${r.date_type}|${r.due_date}`, r));
+      const newKeys = new Set<string>();
+      const toInsert: any[] = [];
+      for (const d of dedupedDates) {
+        const key = `${d.date_type}|${d.due_date}`;
+        newKeys.add(key);
+        const existing = existingMap.get(key);
+        if (existing) {
+          await supabase.from("contract_critical_dates").update({
+            notice_days: d.notice_days ?? null,
+            risk_level: d.risk_level,
+          }).eq("id", existing.id);
+        } else {
+          toInsert.push(d);
+        }
+      }
+      if (toInsert.length) await supabase.from("contract_critical_dates").insert(toInsert);
+      // Remove stale rows ONLY if user has not configured notifications on them.
+      const stale = (existingDates || []).filter((r: any) => {
+        if (newKeys.has(`${r.date_type}|${r.due_date}`)) return false;
+        const hasCustom = (Array.isArray(r.notify_emails) && r.notify_emails.length > 0)
+          || (r.notify_channel && r.notify_channel !== "in_app")
+          || r.alert_enabled === true;
+        return !hasCustom;
+      }).map((r: any) => r.id);
+      if (stale.length) await supabase.from("contract_critical_dates").delete().in("id", stale);
+    }
 
     // Invoice schedules
     const sched = extracted.invoice_schedule || [];
