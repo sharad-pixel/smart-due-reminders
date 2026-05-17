@@ -287,9 +287,14 @@ const Billing = () => {
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold">Billing & Subscription</h1>
+      <div className="container mx-auto px-4 py-8 max-w-5xl">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-3xl font-bold">Subscription & Billing</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Manage your plan, team seats, credits, and outstanding charges — all in one place.
+            </p>
+          </div>
           {profile?.stripe_subscription_id && canManageBilling && (
             <Button onClick={openCustomerPortal} disabled={portalLoading}>
               <CreditCard className="w-4 h-4 mr-2" />
@@ -395,9 +400,33 @@ const Billing = () => {
           </CardContent>
         </Card>
 
-        <div className="grid gap-6">
-          {/* Current Plan */}
-          <Card>
+        <Tabs
+          value={initialTab}
+          onValueChange={(v) => {
+            const next = new URLSearchParams(searchParams);
+            next.set("tab", v);
+            setSearchParams(next, { replace: true });
+          }}
+          className="w-full"
+        >
+          <TabsList className="grid grid-cols-2 md:grid-cols-4 mb-6 w-full md:w-auto">
+            <TabsTrigger value="plan" className="gap-1.5">
+              <CreditCard className="h-4 w-4" /> Plan & Seats
+            </TabsTrigger>
+            <TabsTrigger value="credits" className="gap-1.5">
+              <Sparkles className="h-4 w-4" /> Credits & Overages
+            </TabsTrigger>
+            <TabsTrigger value="usage" className="gap-1.5">
+              <Activity className="h-4 w-4" /> Usage & Activity
+            </TabsTrigger>
+            <TabsTrigger value="invoices" className="gap-1.5">
+              <Receipt className="h-4 w-4" /> Invoices
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="plan" className="space-y-6 mt-0">
+            {/* Current Plan */}
+            <Card>
             <CardHeader>
             <CardTitle className="flex items-center justify-between">
               Current Plan
