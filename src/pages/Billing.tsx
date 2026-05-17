@@ -7,8 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CreditCard, ExternalLink, AlertTriangle, CheckCircle, Clock, Calendar, TrendingUp, Users } from "lucide-react";
+import { CreditCard, ExternalLink, AlertTriangle, CheckCircle, Clock, Calendar, TrendingUp, Users, Sparkles, Activity, Receipt } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { invokeFunction, isImpersonating } from "@/lib/supportImpersonation";
 import { toast } from "sonner";
@@ -20,6 +22,7 @@ import { UsageIndicator } from "@/components/billing/UsageIndicator";
 import { TrialCountdown } from "@/components/billing/TrialCountdown";
 import UsageBillingLog from "@/components/billing/UsageBillingLog";
 import OcrUsageCard from "@/components/billing/OcrUsageCard";
+import CreditsPanel from "@/components/billing/panels/CreditsPanel";
 // Colorful gauge component
 const _UsageGauge = ({ 
   used, 
