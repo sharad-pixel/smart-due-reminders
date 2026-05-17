@@ -46,12 +46,40 @@ export default function CreditsPanel() {
   useEffect(() => { load(); }, [accountId]);
 
   useEffect(() => {
+    const sessionId = params.get("session_id");
     if (params.get("purchase") === "success") {
-      toast.success("Payment received — credits will appear in a few seconds.");
-      setTimeout(load, 4000);
+      if (sessionId) {
+        (async () => {
+          try {
+            const { data, error } = await supabase.functions.invoke("verify-asc606-purchase", {
+              body: { sessionId },
+            });
+            if (error) throw error;
+            if (data?.status === "credits_applied") {
+              toast.success(`Payment confirmed — ${data.credits} credits added.`);
+            } else if (data?.status === "overage_settled") {
+              toast.success(`Payment confirmed — ${data.credits} overage credits settled.`);
+            } else if (data?.status === "already_applied") {
+              toast.success("Payment already applied.");
+            } else if (data?.status === "unpaid") {
+              toast.info("Payment is still processing — refresh in a moment.");
+            } else {
+              toast.success("Payment received.");
+            }
+          } catch (e: any) {
+            toast.error(`Could not verify payment: ${e?.message ?? "unknown error"}`);
+          } finally {
+            load();
+          }
+        })();
+      } else {
+        toast.success("Payment received — credits will appear in a few seconds.");
+        setTimeout(load, 4000);
+      }
     } else if (params.get("purchase") === "cancelled") {
       toast.info("Purchase cancelled");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params]);
 
   const buy = async (credits: number) => {
