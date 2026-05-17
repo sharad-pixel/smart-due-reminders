@@ -525,11 +525,20 @@ function componentsFromSchedule(
     const amt = toNumber(row.amount);
     if (amt <= 0) continue;
     const label = row.description || row.billing_type || "";
-    const category = classifyByKeyword(label);
+    // Prefer the persisted ASC 606 classification when present, else fall back
+    // to keyword inference. This keeps user overrides authoritative.
+    const storedCat = (row.product_category || "").toLowerCase() as ComponentCategory;
+    const validCat = RECURRING_CATEGORIES.has(storedCat) || ONE_TIME_CATEGORIES.has(storedCat);
+    const category: ComponentCategory = validCat ? storedCat : classifyByKeyword(label);
     const cad = guessCadence(row.billing_type) || guessCadence(label);
     const span = monthsBetween(row.service_period_start, row.service_period_end);
 
-    if (ONE_TIME_CATEGORIES.has(category) || cad === "one_time") {
+    // If the row is explicitly marked non-recurring, force it into the one-time bucket
+    // regardless of the category bucket (handles user overrides on edge cases).
+    const explicitNonRecurring = row.revenue_type === "non_recurring";
+    const explicitRecurring = row.revenue_type === "recurring";
+
+    if (!explicitRecurring && (explicitNonRecurring || ONE_TIME_CATEGORIES.has(category) || cad === "one_time")) {
       oneTimes.push({ label, amount: amt, cadence: "one_time", category });
       continue;
     }
