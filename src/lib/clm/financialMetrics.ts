@@ -483,11 +483,16 @@ function componentsFromSchedule(
     const amt = toNumber(row.amount);
     if (amt <= 0) continue;
     const label = row.description || row.billing_type || "";
-    const category = classifyByKeyword(label);
+    const storedCat = (row.product_category || "").toLowerCase() as ComponentCategory;
+    const validCat = RECURRING_CATEGORIES.has(storedCat) || ONE_TIME_CATEGORIES.has(storedCat);
+    const category: ComponentCategory = validCat ? storedCat : classifyByKeyword(label);
     const cad = guessCadence(row.billing_type) || guessCadence(label);
     const span = monthsBetween(row.service_period_start, row.service_period_end);
 
-    if (ONE_TIME_CATEGORIES.has(category) || cad === "one_time") {
+    const explicitNonRecurring = row.revenue_type === "non_recurring";
+    const explicitRecurring = row.revenue_type === "recurring";
+
+    if (!explicitRecurring && (explicitNonRecurring || ONE_TIME_CATEGORIES.has(category) || cad === "one_time")) {
       oneTimes.push({ label, amount: amt, cadence: "one_time", category });
       continue;
     }
