@@ -92,8 +92,8 @@ serve(async (req) => {
         quantity: c,
       }],
       mode: "payment",
-      success_url: successUrl || `${req.headers.get("origin")}/billing/asc606-credits?purchase=success`,
-      cancel_url: cancelUrl || `${req.headers.get("origin")}/billing/asc606-credits?purchase=cancelled`,
+      success_url: (successUrl || `${req.headers.get("origin")}/billing?tab=credits&purchase=success`) + `&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: cancelUrl || `${req.headers.get("origin")}/billing?tab=credits&purchase=cancelled`,
       metadata: {
         kind: metadataKind,
         account_id: accountId,
