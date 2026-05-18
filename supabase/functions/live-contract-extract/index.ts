@@ -288,6 +288,52 @@ function calcDate(d?: string): Date | null {
 
 function fmtDate(d: Date): string { return d.toISOString().slice(0, 10); }
 
+/**
+ * Parse "Net 30", "Net30", "N30", "Net 45 days", "30 days net", "due in 60 days",
+ * "due on receipt", "upon receipt", "immediate", "prepaid", etc. into a number
+ * of days. Returns 0 for receipt/prepaid/immediate, null if no terms detected.
+ */
+function parsePaymentTermDays(raw: string | null | undefined): number | null {
+  if (!raw) return null;
+  const s = String(raw).toLowerCase().trim();
+  if (!s) return null;
+  if (/(due\s+on\s+receipt|upon\s+receipt|on\s+receipt|immediate|prepaid|cod|cash\s+on\s+delivery)/i.test(s)) return 0;
+  // "net 30", "net30", "n/30", "net 30 days", "net-30"
+  const netMatch = s.match(/\bn(?:et)?[\s\-\/]*([0-9]{1,3})\b/);
+  if (netMatch) return parseInt(netMatch[1], 10);
+  // "30 days net", "due in 45 days", "payable within 60 days"
+  const daysMatch = s.match(/\b([0-9]{1,3})\s*(?:calendar\s+|business\s+)?days?\b/);
+  if (daysMatch) return parseInt(daysMatch[1], 10);
+  return null;
+}
+
+function addDays(d: Date, days: number): Date {
+  const x = new Date(d.getTime());
+  x.setUTCDate(x.getUTCDate() + days);
+  return x;
+}
+
+/** Compute expected invoice due date from a scheduled (issue) date + payment terms. */
+function computeExpectedDueDate(
+  scheduledDate: string | null | undefined,
+  lineTerms: string | null | undefined,
+  contractTerms: string | null | undefined,
+): { dueDate: string | null; termDays: number | null; appliedTerms: string | null } {
+  if (!scheduledDate) return { dueDate: null, termDays: null, appliedTerms: null };
+  const lineDays = parsePaymentTermDays(lineTerms);
+  const contractDays = parsePaymentTermDays(contractTerms);
+  const days = lineDays != null ? lineDays : contractDays;
+  const applied = lineDays != null ? (lineTerms || null) : (contractDays != null ? (contractTerms || null) : null);
+  const base = new Date(scheduledDate);
+  if (isNaN(base.getTime())) return { dueDate: scheduledDate, termDays: days, appliedTerms: applied };
+  if (days == null) {
+    // No payment terms anywhere → default to issue date (legacy behavior).
+    return { dueDate: scheduledDate, termDays: null, appliedTerms: null };
+  }
+  return { dueDate: fmtDate(addDays(base, days)), termDays: days, appliedTerms: applied };
+}
+
+
 function normalizeCompanyName(value?: string | null): string {
   return String(value || "")
     .toLowerCase()
