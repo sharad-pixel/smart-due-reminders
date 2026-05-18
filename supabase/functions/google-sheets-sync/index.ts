@@ -1041,18 +1041,26 @@ Deno.serve(async (req) => {
       });
     }
 
-    const userClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: { user } } = await userClient.auth.getUser();
-    if (!user) {
-      return new Response(JSON.stringify({ error: 'Invalid token' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
     const body = await req.json().catch(() => ({}));
-    const { sheetTemplateId, direction } = body;
+    const { sheetTemplateId, direction, scheduled, userId: bodyUserId } = body;
+
+    // Scheduled invocation path: service-role bearer + explicit userId
+    const isScheduled = scheduled === true && authHeader === `Bearer ${serviceKey}` && !!bodyUserId;
+    let user: { id: string };
+    if (isScheduled) {
+      user = { id: bodyUserId };
+    } else {
+      const userClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: { user: u } } = await userClient.auth.getUser();
+      if (!u) {
+        return new Response(JSON.stringify({ error: 'Invalid token' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      user = { id: u.id };
+    }
 
     if (!sheetTemplateId) {
       return new Response(JSON.stringify({ error: 'sheetTemplateId is required' }), {

@@ -28,7 +28,7 @@ import {
   FolderOpen,
   Sparkles,
   Trash2,
-  
+  RefreshCw,
 } from "lucide-react";
 import { GoogleSheetsIcon } from "@/components/icons/GoogleIcons";
 
@@ -310,27 +310,43 @@ export function SheetTemplatesSection() {
                 <span className="flex items-center gap-1.5">
                   <FolderOpen className="h-3.5 w-3.5" />
                   Google Drive → <span className="font-medium text-foreground/70">recouply.ai data center</span>
+                  {allCreated && <span className="text-[11px] text-muted-foreground ml-1">· Auto-syncs hourly</span>}
                 </span>
               </CardDescription>
             </div>
-            {!allCreated && (
-              <Button
-                size="sm"
-                onClick={() => createAllMutation.mutate()}
-                disabled={createAllMutation.isPending}
-                className="shrink-0"
-              >
-                {createAllMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-                ) : (
-                  <Sparkles className="h-4 w-4 mr-1.5" />
-                )}
-                {createAllMutation.isPending
-                  ? `Creating ${missingTypes.length}…`
-                  : `Create ${missingTypes.length === 3 ? 'All' : missingTypes.length} Template${missingTypes.length !== 1 ? 's' : ''}`
-                }
-              </Button>
-            )}
+            <div className="flex items-center gap-2 shrink-0">
+              {allCreated && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    (templates || []).forEach((t: any) => handleSync(t.id, 'push'));
+                  }}
+                  disabled={!!syncingId || activeSyncs.size > 0}
+                  title="Push all templates (accounts, invoices, payments) to Google Sheets"
+                >
+                  <RefreshCw className={`h-4 w-4 mr-1.5 ${activeSyncs.size > 0 ? 'animate-spin' : ''}`} />
+                  Sync All
+                </Button>
+              )}
+              {!allCreated && (
+                <Button
+                  size="sm"
+                  onClick={() => createAllMutation.mutate()}
+                  disabled={createAllMutation.isPending}
+                >
+                  {createAllMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4 mr-1.5" />
+                  )}
+                  {createAllMutation.isPending
+                    ? `Creating ${missingTypes.length}…`
+                    : `Create ${missingTypes.length === 3 ? 'All' : missingTypes.length} Template${missingTypes.length !== 1 ? 's' : ''}`
+                  }
+                </Button>
+              )}
+            </div>
           </div>
           {createAllMutation.isPending && (
             <Progress value={undefined} className="mt-3 h-1.5 animate-pulse" />
