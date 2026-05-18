@@ -199,8 +199,25 @@ const EXTRACTION_TOOL = {
             mrr: { type: "number" }, subscription_fees: { type: "number" },
             platform_fees: { type: "number" }, usage_commitment: { type: "string" },
             minimum_commitment: { type: "number" }, professional_services_fees: { type: "number" },
-            implementation_fees: { type: "number" }, one_time_fees: { type: "number" },
+            implementation_fees: { type: "number", description: "Sum of one-time implementation/setup/onboarding/kickoff/deployment fees. Include even if labeled differently (e.g. 'professional services setup', 'configuration fee', 'enablement fee')." },
+            one_time_fees: { type: "number" },
             recurring_fees: { type: "number" }, currency: { type: "string" },
+          },
+        },
+        one_time_fees_breakdown: {
+          type: "array",
+          description: "Itemized list of every one-time / non-recurring charge in the contract (implementation, setup, onboarding, kickoff, training, migration, professional services, hardware, license activation, etc.). Each row should become its own one-time invoice line.",
+          items: {
+            type: "object",
+            properties: {
+              label: { type: "string", description: "Human label as it appears in the contract (e.g. 'Implementation Fee', 'Onboarding & Setup')." },
+              amount: { type: "number" },
+              currency: { type: "string" },
+              scheduled_date: { type: "string", description: "When this fee is invoiced. Default to contract effective_date when contract says 'due at signing' / 'invoiced upon execution'." },
+              category: { type: "string", description: "implementation | setup | onboarding | professional_services | training | hardware | migration | other_one_time" },
+              notes: { type: "string" },
+            },
+            required: ["label", "amount"],
           },
         },
         critical_dates: {
