@@ -267,6 +267,19 @@ serve(async (req) => {
       if (insertError) console.error("[NOTIFY-INBOUND-TASKS] Error creating notifications:", insertError);
     }
 
+    // Fetch user branding (account owner's brand)
+    const { data: brandingRow } = await supabase
+      .from("branding_settings")
+      .select("logo_url, business_name, from_name, primary_color")
+      .eq("user_id", accountOwnerId)
+      .maybeSingle();
+
+    const userBranding = brandingRow ? {
+      logoUrl: brandingRow.logo_url || null,
+      businessName: brandingRow.business_name || brandingRow.from_name || null,
+      primaryColor: brandingRow.primary_color || null,
+    } : undefined;
+
     // Send ONE consolidated email per user
     let emailsSent = 0;
     const emailRecipients = usersToNotify.filter((user) => !user.userId || !existingNotificationUserIds.has(user.userId));
@@ -279,6 +292,7 @@ serve(async (req) => {
           inboundEmail,
           tasks,
           debtorName,
+          branding: userBranding,
         });
 
         await resend.emails.send({
