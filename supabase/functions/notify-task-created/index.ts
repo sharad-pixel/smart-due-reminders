@@ -41,8 +41,11 @@ const generateTaskEmailHtml = (params: {
   debtorName: string;
   details?: string;
   recommendedAction?: string;
+  branding?: { logoUrl?: string | null; businessName?: string | null; primaryColor?: string | null };
 }) => {
   const priorityColor = getPriorityColor(params.priority);
+  const ctaColor = params.branding?.primaryColor || BRAND.primary;
+  const businessName = params.branding?.businessName || 'Revenue Intelligence Platform';
 
   const bodyContent = `
     <h2 style="margin: 0 0 8px; font-size: 20px; font-weight: 600; color: ${BRAND.foreground};">
@@ -106,7 +109,7 @@ const generateTaskEmailHtml = (params: {
       <tr>
         <td style="text-align: center;">
           <a href="https://recouply.ai/tasks" 
-             style="display: inline-block; padding: 12px 28px; font-size: 14px; font-weight: 600; color: #ffffff; background-color: ${BRAND.primary}; text-decoration: none; border-radius: 6px;">
+             style="display: inline-block; padding: 12px 28px; font-size: 14px; font-weight: 600; color: #ffffff; background-color: ${ctaColor}; text-decoration: none; border-radius: 6px;">
             View Task in Recouply
           </a>
         </td>
@@ -117,7 +120,8 @@ const generateTaskEmailHtml = (params: {
   return wrapEnterpriseEmail(bodyContent, {
     headerStyle: 'gradient',
     title: '🎯 New Task',
-    subtitle: 'Revenue Intelligence CRM',
+    subtitle: businessName,
+    branding: params.branding,
   });
 };
 
