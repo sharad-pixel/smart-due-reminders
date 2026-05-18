@@ -585,21 +585,31 @@ Deno.serve(async (req) => {
     // Critical dates with computed deadlines
     const dates: any[] = [];
     const cd = extracted.critical_dates || {};
-    const noticeDays = cd.notice_period_days || 0;
+    // Default to a 90-day non-renewal notice window when the contract doesn't
+    // explicitly state one — every contract should have a notice-window alert.
+    const rawNoticeDays = Number(cd.notice_period_days) || 0;
+    const noticeDays = rawNoticeDays > 0 ? rawNoticeDays : 90;
+    const noticeDefaulted = rawNoticeDays <= 0;
     const termStart = calcDate(extracted.contract?.effective_date);
     const termEnd = calcDate(extracted.contract?.term_end_date);
     const renewalDate = calcDate(cd.renewal_date) || termEnd;
     if (termStart) dates.push({ account_id: imp.account_id, import_id: imp.id, date_type: "term_start", due_date: fmtDate(termStart) });
     if (renewalDate) {
       dates.push({ account_id: imp.account_id, import_id: imp.id, date_type: "renewal", due_date: fmtDate(renewalDate), notice_days: noticeDays });
-      if (noticeDays > 0) {
-        const optOut = new Date(renewalDate);
-        optOut.setDate(optOut.getDate() - noticeDays);
-        dates.push({ account_id: imp.account_id, import_id: imp.id, date_type: "opt_out_deadline", due_date: fmtDate(optOut), notice_days: noticeDays });
-        // "Non-renewal notice period start" — the open of the notice window so
-        // the team has a reminder to begin preparing the non-renewal letter.
-        dates.push({ account_id: imp.account_id, import_id: imp.id, date_type: "non_renewal_notice_start", due_date: fmtDate(optOut), notice_days: noticeDays });
-      }
+      const optOut = new Date(renewalDate);
+      optOut.setDate(optOut.getDate() - noticeDays);
+      dates.push({ account_id: imp.account_id, import_id: imp.id, date_type: "opt_out_deadline", due_date: fmtDate(optOut), notice_days: noticeDays });
+      // "Non-renewal notice period start" — opens the notice window so the team
+      // has a reminder to begin preparing the non-renewal letter. Always added
+      // (using a 90-day default) so every contract has this alert capability.
+      dates.push({
+        account_id: imp.account_id,
+        import_id: imp.id,
+        date_type: "non_renewal_notice_start",
+        due_date: fmtDate(optOut),
+        notice_days: noticeDays,
+        notice_defaulted: noticeDefaulted,
+      });
     }
     if (termEnd) dates.push({ account_id: imp.account_id, import_id: imp.id, date_type: "term_end", due_date: fmtDate(termEnd) });
     if (extracted.poc?.poc_end) {
