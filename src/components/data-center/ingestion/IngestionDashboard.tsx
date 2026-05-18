@@ -181,7 +181,7 @@ export function IngestionDashboard() {
                 <DollarSign className="h-4 w-4 text-primary" /> AI Smart Ingestion — Usage & Billing
               </CardTitle>
               <CardDescription>
-                Each approved AI Smart Ingestion scan is billed at ${SMART_INGESTION_PRICING.perFile.toFixed(2)} <strong>per page</strong> via Stripe metered usage (e.g. a 3-page invoice = ${(SMART_INGESTION_PRICING.perFile * 3).toFixed(2)}). Rejected and duplicate scans are never charged.
+                Each approved scan is billed at <strong>$1.00 per page</strong> (standard) or <strong>$0.80 per page</strong> with pre-paid credits — e.g. a 3-page invoice = $3.00 standard / $2.40 pre-paid. Rejected and duplicate scans are never charged.
               </CardDescription>
             </div>
             <Badge variant="outline" className="text-xs">Period: {stats.billingPeriod}</Badge>
