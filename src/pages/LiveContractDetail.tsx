@@ -458,6 +458,12 @@ const LiveContractDetailInner = () => {
         onChanged={() => qc.invalidateQueries({ queryKey: ["live-contract-detail", importId] })}
       />
 
+      <ContractExtractedFieldsEditor
+        importId={c.id}
+        accountId={c.account_id}
+        extractionId={(data.fields[0] as any)?.extraction_id || null}
+      />
+
       <ContractReconciliationPanel
         importId={c.id}
         debtorId={c.debtor_id || null}
