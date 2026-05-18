@@ -285,6 +285,18 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
       if (invoiceRes.error) throw invoiceRes.error;
       setInvoice(invoiceRes.data);
 
+      // Fetch contract schedule for billing terms (if invoice came from a contract)
+      if (invoiceRes.data?.source_contract_schedule_id) {
+        const { data: schedData } = await supabase
+          .from("contract_invoice_schedules")
+          .select("billing_type, revenue_type, service_period_start, service_period_end, product_category")
+          .eq("id", invoiceRes.data.source_contract_schedule_id)
+          .maybeSingle();
+        setContractSchedule(schedData);
+      } else {
+        setContractSchedule(null);
+      }
+
       // Combine outreach logs and collection activities
       const outreachFromLogs: OutreachLog[] = (outreachLogsRes.data || []).map(log => ({
         ...log,
