@@ -736,6 +736,12 @@ Deno.serve(async (req) => {
             }
           }
           const revenueType = category ? revenueTypeFor(category as any) : null;
+          const contractPaymentTerms = extracted.contract?.payment_terms || extracted.commercial?.payment_terms || null;
+          const { dueDate, appliedTerms } = computeExpectedDueDate(
+            s.scheduled_date,
+            s.payment_terms,
+            contractPaymentTerms,
+          );
           return {
             account_id: imp.account_id, import_id: imp.id,
             scheduled_date: s.scheduled_date,
@@ -744,8 +750,8 @@ Deno.serve(async (req) => {
             amount: s.amount || null,
             currency: s.currency || extracted.commercial?.currency || "USD",
             billing_type: s.billing_type || null,
-            payment_terms: s.payment_terms || null,
-            expected_due_date: s.scheduled_date,
+            payment_terms: s.payment_terms || appliedTerms || contractPaymentTerms || null,
+            expected_due_date: dueDate || s.scheduled_date,
             description: s.description || s.product_description || null,
             product_description: desc,
             quantity: s.quantity ?? null,
