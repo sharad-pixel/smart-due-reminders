@@ -608,7 +608,6 @@ Deno.serve(async (req) => {
         date_type: "non_renewal_notice_start",
         due_date: fmtDate(optOut),
         notice_days: noticeDays,
-        notice_defaulted: noticeDefaulted,
       });
     }
     if (termEnd) dates.push({ account_id: imp.account_id, import_id: imp.id, date_type: "term_end", due_date: fmtDate(termEnd) });
