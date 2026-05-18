@@ -310,6 +310,7 @@ export function SheetTemplatesSection() {
                 <span className="flex items-center gap-1.5">
                   <FolderOpen className="h-3.5 w-3.5" />
                   Google Drive → <span className="font-medium text-foreground/70">recouply.ai data center</span>
+                  {allCreated && <span className="text-[11px] text-muted-foreground ml-1">· Auto-syncs hourly</span>}
                 </span>
               </CardDescription>
             </div>
