@@ -156,6 +156,7 @@ const InvoiceDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
+  const [contractSchedule, setContractSchedule] = useState<{ billing_type: string | null; revenue_type: string | null; service_period_start: string | null; service_period_end: string | null; product_category: string | null } | null>(null);
   const [primaryContactEmail, setPrimaryContactEmail] = useState<string | null>(null);
   const [associatedWorkflow, setAssociatedWorkflow] = useState<CollectionWorkflow | null>(null);
 const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
