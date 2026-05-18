@@ -415,9 +415,15 @@ export function computeContractTotals(
         ? Math.abs(explicitArr - explicitMrr * 12) / Math.max(explicitArr, 1) < 0.05
         : true;
     if (consistent) {
-      const mrr = explicitMrr || (explicitArr > 0 ? explicitArr / 12 : 0);
-      const arr = explicitArr || mrr * 12;
-      const acv = explicitAcv || arr;
+      let mrr = explicitMrr || (explicitArr > 0 ? explicitArr / 12 : 0);
+      let arr = explicitArr || mrr * 12;
+      let acv = explicitAcv || arr;
+      if (!arr && explicitTcv > 0 && termYears > 0) {
+        acv = explicitAcv || explicitTcv / termYears;
+        arr = acv;
+        mrr = arr / 12;
+        warnings.push("MRR/ARR/ACV derived from total contract value over the contract term.");
+      }
       const recurringTcv = termYears > 0 ? arr * termYears : explicitTcv;
       const tcv = explicitTcv || recurringTcv;
       const servicesTcv = Math.max(0, tcv - recurringTcv);
