@@ -33,12 +33,8 @@ async function recordContractUsage(
   supabase: any,
   args: { userId: string; accountId: string; importId: string; fileName: string | null; pageCount: number },
 ) {
-  const { data: existing } = await supabase
-    .from("ocr_usage_events")
-    .select("id")
-    .eq("contract_id", args.importId)
-    .maybeSingle();
-  if (existing) { log("Usage already recorded", { importId: args.importId }); return; }
+  // Bill every extraction run (including re-scans / re-assessments). Each AI pass
+  // consumes a fresh page-count worth of credits.
 
   const pages = Math.max(1, args.pageCount);
   const credits = pages * CREDITS_PER_PAGE;
