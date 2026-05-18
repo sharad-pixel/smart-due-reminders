@@ -44,7 +44,7 @@ export const DebtorContractSummaryCard = ({ debtorId }: Props) => {
         return { imports: [], fields: [], dates: [], schedules: [] };
       }
 
-      const [{ data: fields }, { data: dates }, { data: schedules }] =
+      const [{ data: fields }, { data: dates }, { data: schedules }, { data: allSchedules }] =
         await Promise.all([
           supabase
             .from("live_contract_extracted_fields")
@@ -52,11 +52,11 @@ export const DebtorContractSummaryCard = ({ debtorId }: Props) => {
             .in("import_id", ids),
           supabase
             .from("contract_critical_dates")
-            .select("import_id, date_type, due_date, risk_level")
+            .select("id, import_id, date_type, due_date, risk_level, alert_enabled, alert_lead_days, notify_channel")
             .in("import_id", ids)
             .gte("due_date", new Date().toISOString().slice(0, 10))
             .order("due_date", { ascending: true })
-            .limit(5),
+            .limit(8),
           supabase
             .from("contract_invoice_schedules")
             .select(
@@ -65,6 +65,11 @@ export const DebtorContractSummaryCard = ({ debtorId }: Props) => {
             .in("import_id", ids)
             .order("scheduled_date", { ascending: true })
             .limit(5),
+          // Full schedule set for metric aggregation (not for display)
+          supabase
+            .from("contract_invoice_schedules")
+            .select("import_id, scheduled_date, amount, currency, billing_type, description, product_category, revenue_type, service_period_start, service_period_end")
+            .in("import_id", ids),
         ]);
 
       return {
@@ -72,6 +77,7 @@ export const DebtorContractSummaryCard = ({ debtorId }: Props) => {
         fields: fields ?? [],
         dates: dates ?? [],
         schedules: schedules ?? [],
+        allSchedules: allSchedules ?? [],
       };
     },
   });
@@ -80,11 +86,12 @@ export const DebtorContractSummaryCard = ({ debtorId }: Props) => {
   if (isLoading) return null;
   if (!data || data.imports.length === 0) return null;
 
-  // Aggregate financials across contracts (derives MRR/ARR/ACV/TCV from fees + term)
+  // Aggregate financials across contracts (derives MRR/ARR/ACV/TCV from fees + schedule + term)
   const totals = { mrr: 0, arr: 0, acv: 0, tcv: 0, currency: "USD" };
   for (const imp of data.imports) {
     const impFields = data.fields.filter((f: any) => f.import_id === imp.id);
-    const t = computeContractTotals(impFields, imp);
+    const impSchedules = (data.allSchedules as any[]).filter((s) => s.import_id === imp.id);
+    const t = computeContractTotals(impFields, imp, { schedule: impSchedules });
     totals.mrr += t.mrr;
     totals.arr += t.arr;
     totals.acv += t.acv;

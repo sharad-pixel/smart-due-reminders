@@ -44,7 +44,7 @@ export const ContractSummaryCard = () => {
 
       if (importIds.length === 0) return { rows: [] };
 
-      const [{ data: fields }, { data: debtors }] = await Promise.all([
+      const [{ data: fields }, { data: debtors }, { data: schedules }] = await Promise.all([
         supabase
           .from("live_contract_extracted_fields")
           .select("import_id, field_group, field_key, field_value")
@@ -55,6 +55,10 @@ export const ContractSummaryCard = () => {
               .select("id, company_name, name")
               .in("id", debtorIds)
           : Promise.resolve({ data: [] as any[] }),
+        supabase
+          .from("contract_invoice_schedules")
+          .select("import_id, scheduled_date, amount, currency, billing_type, description, product_category, revenue_type, service_period_start, service_period_end")
+          .in("import_id", importIds),
       ]);
 
       const debtorMap = new Map(
@@ -63,7 +67,8 @@ export const ContractSummaryCard = () => {
 
       const rows = (imports ?? []).map((imp: any) => {
         const impFields = (fields ?? []).filter((f: any) => f.import_id === imp.id);
-        const t = computeContractTotals(impFields, imp);
+        const impSchedules = (schedules ?? []).filter((s: any) => s.import_id === imp.id);
+        const t = computeContractTotals(impFields, imp, { schedule: impSchedules });
         return {
           importId: imp.id,
           debtorId: imp.debtor_id as string | null,
