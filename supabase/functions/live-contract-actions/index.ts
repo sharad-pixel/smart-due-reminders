@@ -190,7 +190,26 @@ Deno.serve(async (req) => {
         if (fresh?.invoice_id) { skipped.push({ id: s.id, reason: "already invoiced" }); continue; }
         if (!s.amount) { skipped.push({ id: s.id, reason: "no amount" }); continue; }
         const issue = s.scheduled_date as string;
-        const due = (s.expected_due_date as string) || issue;
+        // Compute due date from payment terms (Net X) if expected_due_date is missing or equals issue date
+        const parseNetDays = (terms?: string | null): number | null => {
+          if (!terms) return null;
+          const t = terms.toLowerCase().trim();
+          if (t.includes("receipt") || t.includes("prepaid") || t.includes("upon")) return 0;
+          const m = t.match(/(?:net\s*|n\/?)(\d{1,3})|(\d{1,3})\s*(?:days?\s*net|days?)/i);
+          if (m) return parseInt(m[1] || m[2], 10);
+          return null;
+        };
+        const addDays = (d: string, n: number) => {
+          const dt = new Date(d + "T00:00:00Z");
+          dt.setUTCDate(dt.getUTCDate() + n);
+          return dt.toISOString().slice(0, 10);
+        };
+        const termsForLine = (s.payment_terms as string | null) || null;
+        const netDays = parseNetDays(termsForLine);
+        let due = (s.expected_due_date as string) || issue;
+        if (netDays !== null && (due === issue || !s.expected_due_date)) {
+          due = addDays(issue, netDays);
+        }
 
         // Dedup: existing live_contract invoice for same debtor/date/amount
         const { data: dupes } = await supabase
