@@ -32,6 +32,8 @@ import { ContractStagingPanel } from "@/components/clm/ContractStagingPanel";
 import { ContractReassessPanel } from "@/components/clm/ContractReassessPanel";
 import { ContractOverviewEditor } from "@/components/clm/ContractOverviewEditor";
 import { ContractScheduleLines } from "@/components/clm/ContractScheduleLines";
+import { ContractExtractedFieldsEditor } from "@/components/clm/ContractExtractedFieldsEditor";
+import { ContractRiskFlagsEditor } from "@/components/clm/ContractRiskFlagsEditor";
 import { InvoiceDataAuditPanel } from "@/components/clm/InvoiceDataAuditPanel";
 import { ContractTermGauge } from "@/components/clm/ContractTermGauge";
 import { KeyDatesNotificationsPanel } from "@/components/clm/KeyDatesNotificationsPanel";
