@@ -258,6 +258,19 @@ serve(async (req) => {
       if (insertError) console.error("[NOTIFY-TASK-CREATED] Error creating notifications:", insertError);
     }
 
+    // Fetch user branding (account owner's brand)
+    const { data: brandingRow } = await supabase
+      .from("branding_settings")
+      .select("logo_url, business_name, from_name, primary_color")
+      .eq("user_id", accountOwnerId)
+      .maybeSingle();
+
+    const userBranding = brandingRow ? {
+      logoUrl: brandingRow.logo_url || null,
+      businessName: brandingRow.business_name || brandingRow.from_name || null,
+      primaryColor: brandingRow.primary_color || null,
+    } : undefined;
+
     let emailsSent = 0;
     const emailErrors: string[] = [];
 
@@ -273,6 +286,7 @@ serve(async (req) => {
           debtorName,
           details: task.details || undefined,
           recommendedAction: task.recommended_action || undefined,
+          branding: userBranding,
         });
 
         const emailResult = await resend.emails.send({
