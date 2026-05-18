@@ -59,63 +59,102 @@ function wordmark(size: number = 22, white: boolean = false): string {
 }
 
 /**
- * Clean enterprise header – two styles:
- * - 'gradient': Blue background with white text (for digest, password reset)
- * - 'light': White background with colored wordmark
+ * Optional user-specific branding overrides pulled from branding_settings.
+ * When provided, the header swaps to a co-branded layout: the user's logo +
+ * business name lead, with Recouply.ai shown as the "powered by" credit.
+ */
+export interface UserBranding {
+  logoUrl?: string | null;
+  businessName?: string | null;
+  primaryColor?: string | null;
+  accentColor?: string | null;
+}
+
+/**
+ * Co-branded enterprise header. If `branding.businessName` (or logoUrl) is
+ * provided, the user's brand is shown prominently with a small Recouply.ai
+ * credit underneath. Otherwise the standard Recouply.ai header renders.
  */
 export function enterpriseHeader(options: {
   style?: 'gradient' | 'light';
   title?: string;
   subtitle?: string;
+  branding?: UserBranding;
 } = {}): string {
-  const { style = 'gradient', title, subtitle } = options;
+  const { style = 'gradient', title, subtitle, branding } = options;
+  const primary = branding?.primaryColor || BRAND.primary;
+  const accent = branding?.accentColor || BRAND.accent;
+  const hasUserBrand = !!(branding?.logoUrl || branding?.businessName);
+
+  // Brand block (user logo + name if provided; otherwise Recouply wordmark)
+  const brandBlock = (white: boolean): string => {
+    if (hasUserBrand) {
+      const logoHtml = branding!.logoUrl
+        ? `<img src="${branding!.logoUrl}" alt="${(branding!.businessName || 'Logo').replace(/"/g, '&quot;')}" height="32" style="display:block;max-height:32px;width:auto;border-radius:6px;background:#ffffff;padding:2px;" />`
+        : logoImage(32, white);
+      const nameColor = white ? '#ffffff' : BRAND.foreground;
+      const nameHtml = branding!.businessName
+        ? `<span style="font-size:18px;font-weight:700;letter-spacing:-0.2px;font-family:${FONT_STACK};color:${nameColor};">${branding!.businessName}</span>`
+        : '';
+      return `
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto 6px;">
+          <tr>
+            <td style="padding-right: 10px; vertical-align: middle;">${logoHtml}</td>
+            <td style="vertical-align: middle;">${nameHtml}</td>
+          </tr>
+        </table>`;
+    }
+    return `
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto 8px;">
+        <tr>
+          <td style="padding-right: 8px; vertical-align: middle;">${logoImage(32, white)}</td>
+          <td style="vertical-align: middle;">${wordmark(20, white)}</td>
+        </tr>
+      </table>`;
+  };
+
+  // "Powered by Recouply.ai" credit, shown only when user branding overrides the header
+  const poweredBy = (light: boolean): string => {
+    if (!hasUserBrand) return '';
+    const color = light ? BRAND.muted : 'rgba(255,255,255,0.75)';
+    return `<p style="margin: 4px 0 0; font-size: 10px; color: ${color}; font-family: ${FONT_STACK}; letter-spacing: 0.3px;">
+      Powered by <span style="font-weight:600;">Recouply<span style="color:${accent};">.ai</span></span>
+    </p>`;
+  };
 
   if (style === 'light') {
     return `
     <div style="background: #ffffff; padding: 28px 24px 20px; text-align: center; border-bottom: 1px solid ${BRAND.border};">
-      <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
-        <tr>
-          <td style="padding-right: 8px; vertical-align: middle;">
-            ${logoImage(32)}
-          </td>
-          <td style="vertical-align: middle;">
-            ${wordmark(20, false)}
-          </td>
-        </tr>
-      </table>
-      <p style="color: ${BRAND.muted}; margin: 6px 0 0; font-size: 12px; font-family: ${FONT_STACK};">
-        Revenue Intelligence Platform
-      </p>
+      ${brandBlock(false)}
+      ${poweredBy(true)}
       ${title ? `<h1 style="color: ${BRAND.foreground}; margin: 16px 0 4px; font-size: 18px; font-weight: 700; letter-spacing: -0.3px; font-family: ${FONT_STACK};">${title}</h1>` : ''}
       ${subtitle ? `<p style="color: ${BRAND.muted}; margin: 0; font-size: 12px; font-family: ${FONT_STACK};">${subtitle}</p>` : ''}
     </div>`;
   }
 
-  // Gradient header – clean blue with white text
+  // Gradient header — uses user's primary color when provided
   return `
-    <div style="background-color: ${BRAND.primary}; padding: 24px; text-align: center;">
-      <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto 8px;">
-        <tr>
-          <td style="padding-right: 8px; vertical-align: middle;">
-            ${logoImage(32, true)}
-          </td>
-          <td style="vertical-align: middle;">
-            ${wordmark(20, true)}
-          </td>
-        </tr>
-      </table>
-      ${title ? `<h1 style="color: white; margin: 8px 0 4px; font-size: 18px; font-weight: 700; letter-spacing: -0.3px; font-family: ${FONT_STACK};">${title}</h1>` : ''}
-      ${subtitle ? `<p style="color: rgba(255,255,255,0.7); margin: 0; font-size: 12px; font-family: ${FONT_STACK};">${subtitle}</p>` : ''}
+    <div style="background-color: ${primary}; padding: 24px; text-align: center;">
+      ${brandBlock(true)}
+      ${poweredBy(false)}
+      ${title ? `<h1 style="color: white; margin: 10px 0 4px; font-size: 18px; font-weight: 700; letter-spacing: -0.3px; font-family: ${FONT_STACK};">${title}</h1>` : ''}
+      ${subtitle ? `<p style="color: rgba(255,255,255,0.85); margin: 0; font-size: 12px; font-family: ${FONT_STACK};">${subtitle}</p>` : ''}
     </div>`;
 }
 
 /**
- * Clean enterprise footer
+ * Clean enterprise footer. Always anchors Recouply.ai branding for trust
+ * and unsubscribe/support routing, regardless of user branding overrides.
  */
-export function enterpriseFooter(): string {
+export function enterpriseFooter(branding?: UserBranding): string {
   const year = new Date().getFullYear();
+  const accent = branding?.accentColor || BRAND.accent;
+  const businessLine = branding?.businessName
+    ? `<p style="color: #cbd5e1; margin: 0 0 4px; font-size: 11px; font-weight: 600; font-family: ${FONT_STACK};">Sent on behalf of ${branding.businessName}</p>`
+    : '';
   return `
     <div style="background-color: #1e293b; padding: 24px; text-align: center;">
+      ${businessLine}
       <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto 8px;">
         <tr>
           <td style="padding-right: 8px; vertical-align: middle;">
@@ -123,7 +162,7 @@ export function enterpriseFooter(): string {
           </td>
           <td style="vertical-align: middle;">
             <span style="color: rgba(255,255,255,0.9); font-size: 15px; font-weight: 700; letter-spacing: -0.3px; font-family: ${FONT_STACK};">
-              Recouply<span style="color: ${BRAND.accent};">.ai</span>
+              Recouply<span style="color: ${accent};">.ai</span>
             </span>
           </td>
         </tr>
@@ -138,7 +177,7 @@ export function enterpriseFooter(): string {
           </td>
           <td style="color: #475569; font-size: 11px;">·</td>
           <td style="padding: 0 8px;">
-            <a href="https://recouply.ai/settings" style="color: #60a5fa; font-size: 11px; text-decoration: none; font-family: ${FONT_STACK};">Settings</a>
+            <a href="https://recouply.ai/tasks" style="color: #60a5fa; font-size: 11px; text-decoration: none; font-family: ${FONT_STACK};">Tasks</a>
           </td>
           <td style="color: #475569; font-size: 11px;">·</td>
           <td style="padding: 0 8px;">
@@ -153,12 +192,14 @@ export function enterpriseFooter(): string {
 }
 
 /**
- * Full enterprise email shell – wraps body content with header + footer
+ * Full enterprise email shell – wraps body content with header + footer.
+ * Pass `branding` to apply user-specific logo, name and primary color.
  */
 export function wrapEnterpriseEmail(body: string, options: {
   headerStyle?: 'gradient' | 'light';
   title?: string;
   subtitle?: string;
+  branding?: UserBranding;
 } = {}): string {
   return `
 <!DOCTYPE html>
@@ -174,11 +215,11 @@ export function wrapEnterpriseEmail(body: string, options: {
 </head>
 <body style="font-family: ${FONT_STACK}; margin: 0; padding: 16px; background-color: ${BRAND.background};">
   <div style="max-width: 560px; margin: 0 auto; background: ${BRAND.cardBg}; border-radius: 12px; overflow: hidden; border: 1px solid ${BRAND.border};">
-    ${enterpriseHeader({ style: options.headerStyle, title: options.title, subtitle: options.subtitle })}
+    ${enterpriseHeader({ style: options.headerStyle, title: options.title, subtitle: options.subtitle, branding: options.branding })}
     <div style="padding: 24px;">
       ${body}
     </div>
-    ${enterpriseFooter()}
+    ${enterpriseFooter(options.branding)}
   </div>
 </body>
 </html>`.trim();
