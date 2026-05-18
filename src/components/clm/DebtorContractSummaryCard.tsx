@@ -86,11 +86,12 @@ export const DebtorContractSummaryCard = ({ debtorId }: Props) => {
   if (isLoading) return null;
   if (!data || data.imports.length === 0) return null;
 
-  // Aggregate financials across contracts (derives MRR/ARR/ACV/TCV from fees + term)
+  // Aggregate financials across contracts (derives MRR/ARR/ACV/TCV from fees + schedule + term)
   const totals = { mrr: 0, arr: 0, acv: 0, tcv: 0, currency: "USD" };
   for (const imp of data.imports) {
     const impFields = data.fields.filter((f: any) => f.import_id === imp.id);
-    const t = computeContractTotals(impFields, imp);
+    const impSchedules = (data.allSchedules as any[]).filter((s) => s.import_id === imp.id);
+    const t = computeContractTotals(impFields, imp, { schedule: impSchedules });
     totals.mrr += t.mrr;
     totals.arr += t.arr;
     totals.acv += t.acv;
