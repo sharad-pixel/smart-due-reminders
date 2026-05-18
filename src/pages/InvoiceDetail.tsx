@@ -156,6 +156,7 @@ const InvoiceDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
+  const [contractSchedule, setContractSchedule] = useState<{ billing_type: string | null; revenue_type: string | null; service_period_start: string | null; service_period_end: string | null; product_category: string | null } | null>(null);
   const [primaryContactEmail, setPrimaryContactEmail] = useState<string | null>(null);
   const [associatedWorkflow, setAssociatedWorkflow] = useState<CollectionWorkflow | null>(null);
 const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
@@ -284,6 +285,18 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
 
       if (invoiceRes.error) throw invoiceRes.error;
       setInvoice(invoiceRes.data);
+
+      // Fetch contract schedule for billing terms (if invoice came from a contract)
+      if (invoiceRes.data?.source_contract_schedule_id) {
+        const { data: schedData } = await supabase
+          .from("contract_invoice_schedules")
+          .select("billing_type, revenue_type, service_period_start, service_period_end, product_category")
+          .eq("id", invoiceRes.data.source_contract_schedule_id)
+          .maybeSingle();
+        setContractSchedule(schedData);
+      } else {
+        setContractSchedule(null);
+      }
 
       // Combine outreach logs and collection activities
       const outreachFromLogs: OutreachLog[] = (outreachLogsRes.data || []).map(log => ({
@@ -1387,10 +1400,40 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                     </p>
                   </div>
                 </div>
-                {invoice.payment_terms && (
-                  <div className="pt-2 border-t">
-                    <p className="text-xs text-muted-foreground">Payment Terms</p>
-                    <p className="text-sm font-medium">{invoice.payment_terms}</p>
+                {(invoice.payment_terms || invoice.payment_terms_days != null || contractSchedule) && (
+                  <div className="pt-2 border-t space-y-2">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Payment Terms</p>
+                        <p className="text-sm font-medium">
+                          {invoice.payment_terms || (invoice.payment_terms_days != null ? `Net ${invoice.payment_terms_days}` : "—")}
+                        </p>
+                        {invoice.payment_terms && invoice.payment_terms_days != null && (
+                          <p className="text-xs text-muted-foreground">{invoice.payment_terms_days} days from issue</p>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Billing Terms</p>
+                        <p className="text-sm font-medium capitalize">
+                          {contractSchedule?.billing_type
+                            ? contractSchedule.billing_type.replace(/_/g, " ")
+                            : invoice.source_contract_id
+                              ? "One-time"
+                              : "—"}
+                        </p>
+                        {contractSchedule?.revenue_type && (
+                          <p className="text-xs text-muted-foreground capitalize">{contractSchedule.revenue_type.replace(/_/g, " ")}</p>
+                        )}
+                      </div>
+                    </div>
+                    {contractSchedule?.service_period_start && contractSchedule?.service_period_end && (
+                      <div>
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Service Period</p>
+                        <p className="text-sm font-medium">
+                          {new Date(contractSchedule.service_period_start).toLocaleDateString()} – {new Date(contractSchedule.service_period_end).toLocaleDateString()}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
               </CardContent>
