@@ -438,49 +438,7 @@ const LiveContractDetailInner = () => {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-amber-600" /> Risk Profile
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {data.flags.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No risk flags identified.
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {data.flags.map((f: any) => (
-                  <div key={f.id} className="border rounded-md p-2 text-sm">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="font-medium capitalize">
-                        {(f.flag_type || "risk").replace(/_/g, " ")}
-                      </div>
-                      <Badge
-                        variant="outline"
-                        className={`text-[10px] ${
-                          f.severity === "high" || f.severity === "critical"
-                            ? "bg-red-50 text-red-700 border-red-200"
-                            : f.severity === "medium"
-                              ? "bg-amber-50 text-amber-700 border-amber-200"
-                              : "bg-emerald-50 text-emerald-700 border-emerald-200"
-                        }`}
-                      >
-                        {f.severity || "low"}
-                      </Badge>
-                    </div>
-                    {f.description && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {f.description}
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <ContractRiskFlagsEditor importId={c.id} accountId={c.account_id} />
 
         <div className="lg:col-span-2">
           <ContractTermGauge
