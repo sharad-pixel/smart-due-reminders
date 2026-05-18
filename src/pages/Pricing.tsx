@@ -586,9 +586,12 @@ const Pricing = () => {
                   </div>
                   <Badge className="ml-auto bg-primary/10 text-primary border-primary/20 hover:bg-primary/15">Add-on</Badge>
                 </div>
-                <div className="flex items-baseline gap-1 mb-3">
-                  <span className="text-4xl font-bold text-primary">{formatPrice(SMART_INGESTION_PRICING.perPage, { showCents: true })}</span>
-                  <span className="text-muted-foreground">per page</span>
+                <div className="flex items-baseline gap-2 mb-1">
+                  <span className="text-4xl font-bold text-primary">$1.00</span>
+                  <span className="text-muted-foreground">per page · standard</span>
+                </div>
+                <div className="text-sm text-muted-foreground mb-3">
+                  or <strong className="text-foreground">$0.80 per page</strong> with pre-paid credits (save 20%)
                 </div>
                 <ul className="space-y-2 text-sm text-muted-foreground mb-4">
                   <li className="flex items-center gap-2">
@@ -597,7 +600,7 @@ const Pricing = () => {
                   </li>
                   <li className="flex items-center gap-2">
                     <Check className="h-4 w-4 text-primary shrink-0" />
-                    Billed per page (e.g. a 3-page invoice = $2.25) — only on approval
+                    Billed per page on approval (e.g. a 3-page invoice = $3.00 standard, or $2.40 with pre-paid credits)
                   </li>
                   <li className="flex items-center gap-2">
                     <Check className="h-4 w-4 text-primary shrink-0" />
