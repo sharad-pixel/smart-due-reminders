@@ -43,6 +43,7 @@ serve(async (req) => {
     const accountId = session.metadata?.account_id;
     const credits = Number(session.metadata?.credits ?? 0);
     const userId = session.metadata?.user_id ?? null;
+    const service = (session.metadata?.service === "ingestion" ? "smart_ingestion" : "asc606");
     const pi = (session.payment_intent as string | null) ?? null;
 
     if (!accountId || credits <= 0 || !kind) {
@@ -74,7 +75,7 @@ serve(async (req) => {
         unit_price_cents: 80,
         note: `Pre-paid pack: ${credits} credits`,
         created_by: userId,
-        service: "asc606",
+        service,
       });
       if (ledErr && ledErr.code !== "23505") throw ledErr;
 
@@ -106,7 +107,7 @@ serve(async (req) => {
         unit_price_cents: 100,
         note: `Overage settled: ${credits} credits ($${credits.toFixed(2)})`,
         created_by: userId,
-        service: "asc606",
+        service,
       });
       if (ledErr && ledErr.code !== "23505") throw ledErr;
 
