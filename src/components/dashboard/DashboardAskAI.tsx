@@ -225,73 +225,34 @@ export function DashboardAskAI() {
         <div className="absolute inset-0 opacity-[0.04] pointer-events-none" style={{
           backgroundImage: "radial-gradient(circle at 20% 20%, hsl(var(--primary)) 0, transparent 50%), radial-gradient(circle at 80% 60%, #8b5cf6 0, transparent 50%)",
         }} />
-        <div className="relative flex items-start gap-4">
+        <div className="relative flex items-start gap-3 sm:gap-4 flex-wrap sm:flex-nowrap">
           <div className="relative shrink-0">
             <div className="absolute inset-0 rounded-full bg-primary/30 blur-xl animate-pulse" />
             <img
               src={NICOLAS.avatar}
               alt="Nicolas — Revenue Intelligence Agent"
-              className="relative h-16 w-16 sm:h-[72px] sm:w-[72px] rounded-full object-cover ring-2 ring-primary/40 shadow-xl"
+              className="relative h-12 w-12 sm:h-[72px] sm:w-[72px] rounded-full object-cover ring-2 ring-primary/40 shadow-xl"
             />
             <span className="absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full bg-emerald-500 ring-2 ring-background flex items-center justify-center">
               <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
             </span>
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-xl font-semibold tracking-tight">Nicolas</h2>
-              <Badge variant="outline" className="text-[10px] bg-primary/10 border-primary/30 text-primary">
+          <div className="flex-1 min-w-0 basis-[calc(100%-4rem)] sm:basis-auto">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <h2 className="text-lg sm:text-xl font-semibold tracking-tight">Nicolas</h2>
+              <Badge variant="outline" className="text-[10px] bg-primary/10 border-primary/30 text-primary whitespace-nowrap">
                 <BarChart3 className="h-2.5 w-2.5 mr-1" /> Revenue Intelligence Agent
               </Badge>
-              <Badge variant="outline" className="text-[10px] bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400">
+              <Badge variant="outline" className="text-[10px] bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
                 <Activity className="h-2.5 w-2.5 mr-1" /> Live
               </Badge>
             </div>
-            <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1.5 leading-relaxed">
               I've reviewed every account in your portfolio. Ask me about risk, exposure, what to do next — or hand me a debtor and I'll build you a plan.
             </p>
           </div>
-          <div className="flex items-center gap-1 shrink-0">
-            {history.length > 0 && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button size="sm" variant="ghost" className="text-xs">
-                    <History className="h-3 w-3 mr-1" /> Recent ({history.length})
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-80">
-                  <DropdownMenuLabel className="text-xs">Last {MAX_SESSIONS} chats</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  {history.map((s) => (
-                    <DropdownMenuItem
-                      key={s.id}
-                      onSelect={(e) => { e.preventDefault(); loadSession(s); }}
-                      className="flex items-start gap-2 cursor-pointer"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="text-xs font-medium truncate">
-                          {s.id === sessionId ? "● " : ""}{s.title}
-                        </div>
-                        <div className="text-[10px] text-muted-foreground">
-                          {new Date(s.updatedAt).toLocaleString()} · {s.messages.length} msg
-                        </div>
-                      </div>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); deleteSession(s.id); }}
-                        className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
-                        aria-label="Delete chat"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </button>
-                    </DropdownMenuItem>
-                  ))}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onSelect={(e) => { e.preventDefault(); clearAllHistory(); }} className="text-xs text-destructive">
-                    <Trash2 className="h-3 w-3 mr-2" /> Clear all history
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
+          <div className="flex items-center gap-1 shrink-0 w-full sm:w-auto justify-end order-3 sm:order-none -mt-1 sm:mt-0">
+...
             {hasChat && (
               <Button size="sm" variant="ghost" onClick={reset} className="text-xs">
                 <RotateCcw className="h-3 w-3 mr-1" /> New chat

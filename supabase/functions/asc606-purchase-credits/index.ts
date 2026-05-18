@@ -7,11 +7,24 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const PRE_PAID_UNIT_CENTS = 80; // $0.80 / credit (20% off post-paid $1.00)
-const OVERAGE_UNIT_CENTS = 100; // $1.00 / credit — no discount, applies to billed overages
+// Saved Stripe Prices — created via best-practice product catalog.
+// Pre-Paid = $0.80 / credit (20% off). Standard = $1.00 / credit (settles overage / on-demand).
+const PRICES = {
+  asc606: {
+    prepaid:  "price_1TYFgmBfb0dWgtCDIaaL5dvT", // prod_UXKLFadIY9f2s3 — ASC 606 Pre-Paid
+    standard: "price_1TYFglBfb0dWgtCDX9KFPLad", // prod_UXKLLQyB4mrqc0 — ASC 606 Standard
+  },
+  ingestion: {
+    prepaid:  "price_1TYFgoBfb0dWgtCDLBY0eP9X", // prod_UXKLaYtuK4nRNL — AI Smart Ingestion Pre-Paid
+    standard: "price_1TYFgnBfb0dWgtCDovv6VAkP", // prod_UXKLHoNT4kEKX3 — AI Smart Ingestion Standard
+  },
+} as const;
+
 const ALLOWED_PACKS = [25, 100, 250];
 const MIN_CUSTOM = 10;
 const MAX_CUSTOM = 10000;
+
+type Service = keyof typeof PRICES; // "asc606" | "ingestion"
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -19,6 +32,7 @@ serve(async (req) => {
     const body = await req.json();
     const { accountId, successUrl, cancelUrl } = body;
     const mode: "credits" | "overage" = body.mode === "overage" ? "overage" : "credits";
+    const service: Service = body.service === "ingestion" ? "ingestion" : "asc606";
 
     if (!accountId) {
       return new Response(JSON.stringify({ error: "accountId required" }), {
@@ -40,11 +54,9 @@ serve(async (req) => {
       });
     }
 
-    // Resolve credits & pricing depending on mode
+    // Resolve credits + price depending on mode
     let c: number;
-    let unitCents: number;
-    let productName: string;
-    let productDesc: string;
+    let priceId: string;
     let metadataKind: string;
 
     if (mode === "overage") {
@@ -59,9 +71,7 @@ serve(async (req) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      unitCents = OVERAGE_UNIT_CENTS;
-      productName = "Platform Overage Settlement";
-      productDesc = "Settles outstanding usage billed at $1.00 / credit. Does not add credits to your wallet.";
+      priceId = PRICES[service].standard;
       metadataKind = "asc606_overage_payment";
     } else {
       c = Math.floor(Number(body.credits));
@@ -70,9 +80,7 @@ serve(async (req) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      unitCents = PRE_PAID_UNIT_CENTS;
-      productName = "ASC 606 Assessment Credit";
-      productDesc = "Pre-paid credit (20% off). Applies to future usage only — cannot be used to pay outstanding overages.";
+      priceId = PRICES[service].prepaid;
       metadataKind = "asc606_credits";
     }
 
@@ -83,19 +91,13 @@ serve(async (req) => {
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
-      line_items: [{
-        price_data: {
-          currency: "usd",
-          unit_amount: unitCents,
-          product_data: { name: productName, description: productDesc },
-        },
-        quantity: c,
-      }],
+      line_items: [{ price: priceId, quantity: c }],
       mode: "payment",
       success_url: (successUrl || `${req.headers.get("origin")}/billing?tab=credits&purchase=success`) + `&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: cancelUrl || `${req.headers.get("origin")}/billing?tab=credits&purchase=cancelled`,
       metadata: {
         kind: metadataKind,
+        service,
         account_id: accountId,
         user_id: user.id,
         credits: String(c),
