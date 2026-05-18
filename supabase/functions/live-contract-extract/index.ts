@@ -491,9 +491,20 @@ Deno.serve(async (req) => {
     // NOTE: We intentionally DO NOT wipe `contract_invoice_schedules` or
     // `contract_critical_dates` here — those are merged below so user edits
     // (category overrides, notification settings, attached invoices) survive.
+    // We also DO NOT wipe risk flags the user resolved/dismissed, and we
+    // preserve user-edited extracted_fields (edited_by_user IS NOT NULL).
+    const { data: preservedFields } = await supabase
+      .from("live_contract_extracted_fields")
+      .select("field_group, field_key, field_value, field_value_json, edited_by_user, approved")
+      .eq("import_id", imp.id)
+      .not("edited_by_user", "is", null);
+    const preservedFieldKeys = new Set<string>(
+      (preservedFields || []).map((r: any) => `${r.field_group}|${r.field_key}`),
+    );
+
     await Promise.all([
       supabase.from("live_contract_extracted_fields").delete().eq("import_id", imp.id),
-      supabase.from("contract_risk_flags").delete().eq("import_id", imp.id),
+      supabase.from("contract_risk_flags").delete().eq("import_id", imp.id).eq("resolved", false),
       supabase.from("contract_poc_details").delete().eq("import_id", imp.id),
       supabase.from("contract_customer_matches").delete().eq("import_id", imp.id),
       supabase.from("live_contract_extractions").delete().eq("import_id", imp.id),
@@ -503,7 +514,7 @@ Deno.serve(async (req) => {
     const { data: extractionRow, error: extractionErr } = await supabase.from("live_contract_extractions").insert({
       account_id: imp.account_id, import_id: imp.id,
       raw_text: text.slice(0, 50_000), ai_response: extracted,
-      model: "google/gemini-2.5-flash",
+      model: "google/gemini-2.5-pro",
     }).select().single();
     if (extractionErr || !extractionRow) {
       const msg = `Failed to persist extraction: ${extractionErr?.message || "no row returned"}`;
@@ -518,6 +529,7 @@ Deno.serve(async (req) => {
       if (!obj) return;
       for (const [k, v] of Object.entries(obj)) {
         if (v === null || v === undefined || v === "") continue;
+        if (preservedFieldKeys.has(`${group}|${k}`)) continue; // user edited — skip AI overwrite
         fieldRows.push({
           account_id: imp.account_id, extraction_id: extractionRow.id, import_id: imp.id,
           field_group: group, field_key: k,
@@ -533,7 +545,34 @@ Deno.serve(async (req) => {
     pushFields("dates", extracted.critical_dates);
     pushFields("legal", extracted.legal);
     pushFields("poc", extracted.poc);
+    // Restore user-edited rows verbatim.
+    for (const r of preservedFields || []) {
+      fieldRows.push({
+        account_id: imp.account_id, extraction_id: extractionRow.id, import_id: imp.id,
+        field_group: r.field_group, field_key: r.field_key,
+        field_value: r.field_value, field_value_json: r.field_value_json,
+        confidence: null, edited_by_user: r.edited_by_user, approved: r.approved,
+      });
+    }
     if (fieldRows.length) await supabase.from("live_contract_extracted_fields").insert(fieldRows);
+
+    // Fold one_time_fees_breakdown into invoice_schedule (so each appears as its own line)
+    if (Array.isArray(extracted.one_time_fees_breakdown) && extracted.one_time_fees_breakdown.length) {
+      const fallbackDate = extracted.contract?.effective_date || extracted.contract?.signed_date || new Date().toISOString().slice(0, 10);
+      extracted.invoice_schedule = extracted.invoice_schedule || [];
+      for (const fee of extracted.one_time_fees_breakdown) {
+        if (!fee?.amount) continue;
+        extracted.invoice_schedule.push({
+          scheduled_date: fee.scheduled_date || fallbackDate,
+          amount: fee.amount,
+          currency: fee.currency || extracted.commercial?.currency || "USD",
+          billing_type: "one_time",
+          description: fee.label || "One-time fee",
+          product_description: fee.label || fee.notes || "One-time fee",
+          product_category: fee.category || "implementation",
+        });
+      }
+    }
 
     // Industry hint for line-item classification fallback
     const industryHint =
