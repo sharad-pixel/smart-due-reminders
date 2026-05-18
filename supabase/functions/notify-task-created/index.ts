@@ -41,8 +41,11 @@ const generateTaskEmailHtml = (params: {
   debtorName: string;
   details?: string;
   recommendedAction?: string;
+  branding?: { logoUrl?: string | null; businessName?: string | null; primaryColor?: string | null };
 }) => {
   const priorityColor = getPriorityColor(params.priority);
+  const ctaColor = params.branding?.primaryColor || BRAND.primary;
+  const businessName = params.branding?.businessName || 'Revenue Intelligence Platform';
 
   const bodyContent = `
     <h2 style="margin: 0 0 8px; font-size: 20px; font-weight: 600; color: ${BRAND.foreground};">
@@ -106,7 +109,7 @@ const generateTaskEmailHtml = (params: {
       <tr>
         <td style="text-align: center;">
           <a href="https://recouply.ai/tasks" 
-             style="display: inline-block; padding: 12px 28px; font-size: 14px; font-weight: 600; color: #ffffff; background-color: ${BRAND.primary}; text-decoration: none; border-radius: 6px;">
+             style="display: inline-block; padding: 12px 28px; font-size: 14px; font-weight: 600; color: #ffffff; background-color: ${ctaColor}; text-decoration: none; border-radius: 6px;">
             View Task in Recouply
           </a>
         </td>
@@ -117,7 +120,8 @@ const generateTaskEmailHtml = (params: {
   return wrapEnterpriseEmail(bodyContent, {
     headerStyle: 'gradient',
     title: '🎯 New Task',
-    subtitle: 'Revenue Intelligence CRM',
+    subtitle: businessName,
+    branding: params.branding,
   });
 };
 
@@ -254,6 +258,19 @@ serve(async (req) => {
       if (insertError) console.error("[NOTIFY-TASK-CREATED] Error creating notifications:", insertError);
     }
 
+    // Fetch user branding (account owner's brand)
+    const { data: brandingRow } = await supabase
+      .from("branding_settings")
+      .select("logo_url, business_name, from_name, primary_color")
+      .eq("user_id", accountOwnerId)
+      .maybeSingle();
+
+    const userBranding = brandingRow ? {
+      logoUrl: brandingRow.logo_url || null,
+      businessName: brandingRow.business_name || brandingRow.from_name || null,
+      primaryColor: brandingRow.primary_color || null,
+    } : undefined;
+
     let emailsSent = 0;
     const emailErrors: string[] = [];
 
@@ -269,6 +286,7 @@ serve(async (req) => {
           debtorName,
           details: task.details || undefined,
           recommendedAction: task.recommended_action || undefined,
+          branding: userBranding,
         });
 
         const emailResult = await resend.emails.send({

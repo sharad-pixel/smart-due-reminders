@@ -245,7 +245,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("[SEND-TASK-ASSIGNMENT] Sending to:", teamMemberEmail, "Name:", teamMemberName);
 
-    // Fetch branding settings
+    // Fetch branding settings (user-specific override layer)
     const { data: branding } = await supabase
       .from("branding_settings")
       .select("logo_url, business_name, from_name, email_signature, email_footer, primary_color")
@@ -253,7 +253,11 @@ const handler = async (req: Request): Promise<Response> => {
       .maybeSingle();
 
     const businessName = branding?.business_name || branding?.from_name || "Your Organization";
-    const primaryColor = branding?.primary_color || "#1e3a5f";
+    const userBranding = {
+      logoUrl: branding?.logo_url || null,
+      businessName: businessName,
+      primaryColor: branding?.primary_color || null,
+    };
 
     // Build reply-to address
     const replyTo = task.invoice_id 
@@ -318,6 +322,7 @@ const handler = async (req: Request): Promise<Response> => {
       headerStyle: 'gradient',
       title: '📋 Task Assigned',
       subtitle: businessName,
+      branding: userBranding,
     });
 
     // Send email

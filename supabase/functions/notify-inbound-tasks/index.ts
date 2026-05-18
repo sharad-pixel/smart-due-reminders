@@ -41,8 +41,11 @@ function generateConsolidatedEmailHtml(params: {
   inboundEmail: any;
   tasks: any[];
   debtorName: string;
+  branding?: { logoUrl?: string | null; businessName?: string | null; primaryColor?: string | null };
 }): string {
-  const { recipientName, inboundEmail, tasks, debtorName } = params;
+  const { recipientName, inboundEmail, tasks, debtorName, branding } = params;
+  const ctaColor = branding?.primaryColor || BRAND.primary;
+  const businessName = branding?.businessName || 'Revenue Intelligence Platform';
 
   const taskRows = tasks.map((t: any) => {
     const priorityColor = getPriorityColor(t.priority);
@@ -91,7 +94,7 @@ function generateConsolidatedEmailHtml(params: {
       <tr>
         <td style="text-align: center;">
           <a href="https://recouply.ai/tasks"
-             style="display: inline-block; padding: 12px 28px; font-size: 14px; font-weight: 600; color: #ffffff; background-color: ${BRAND.primary}; text-decoration: none; border-radius: 6px;">
+             style="display: inline-block; padding: 12px 28px; font-size: 14px; font-weight: 600; color: #ffffff; background-color: ${ctaColor}; text-decoration: none; border-radius: 6px;">
             View Tasks in Recouply →
           </a>
         </td>
@@ -102,7 +105,8 @@ function generateConsolidatedEmailHtml(params: {
   return wrapEnterpriseEmail(bodyContent, {
     headerStyle: "gradient",
     title: `📋 ${tasks.length} Task${tasks.length > 1 ? "s" : ""} from Inbound Email`,
-    subtitle: "Revenue Intelligence CRM",
+    subtitle: businessName,
+    branding,
   });
 }
 
@@ -263,6 +267,19 @@ serve(async (req) => {
       if (insertError) console.error("[NOTIFY-INBOUND-TASKS] Error creating notifications:", insertError);
     }
 
+    // Fetch user branding (account owner's brand)
+    const { data: brandingRow } = await supabase
+      .from("branding_settings")
+      .select("logo_url, business_name, from_name, primary_color")
+      .eq("user_id", accountOwnerId)
+      .maybeSingle();
+
+    const userBranding = brandingRow ? {
+      logoUrl: brandingRow.logo_url || null,
+      businessName: brandingRow.business_name || brandingRow.from_name || null,
+      primaryColor: brandingRow.primary_color || null,
+    } : undefined;
+
     // Send ONE consolidated email per user
     let emailsSent = 0;
     const emailRecipients = usersToNotify.filter((user) => !user.userId || !existingNotificationUserIds.has(user.userId));
@@ -275,6 +292,7 @@ serve(async (req) => {
           inboundEmail,
           tasks,
           debtorName,
+          branding: userBranding,
         });
 
         await resend.emails.send({
