@@ -190,6 +190,7 @@ const EXTRACTION_TOOL = {
             renewal_frequency: { type: "string" }, governing_agreement: { type: "string" },
             parent_agreement: { type: "string" }, contract_status: { type: "string" },
             signed_date: { type: "string" },
+            payment_terms: { type: "string", description: "Default payment terms for the contract (e.g. 'Net 30', 'Net 45', 'Due on receipt'). Applied to every invoice line that doesn't specify its own terms." },
           },
         },
         commercial: {
