@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getInvoiceStatusColor, getInvoiceStatusLabel } from "@/lib/invoiceStatuses";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,12 +21,32 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Receipt, Pencil, Package2, AlertCircle } from "lucide-react";
+import {
+  Receipt,
+  Pencil,
+  Package2,
+  AlertCircle,
+  ScanSearch,
+  Loader2,
+  RefreshCw,
+  CheckCircle2,
+  AlertTriangle,
+  XCircle,
+  FileX2,
+  FilePlus2,
+  Link as LinkIcon,
+  Upload,
+  Sparkles,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { formatCurrency, formatDateShort } from "@/lib/formatters";
 
 interface Props {
+  importId: string;
+  debtorId: string | null;
+  staged: boolean;
+  published: boolean;
   schedules: any[];
   defaultCurrency: string;
   onChanged: () => void;
@@ -46,13 +67,35 @@ const CATEGORY_OPTIONS: { value: string; label: string; revenue: "recurring" | "
   { value: "other", label: "Other", revenue: "non_recurring" },
 ];
 
+const STATUS_META: Record<string, { label: string; color: string; icon: any }> = {
+  matched: { label: "Matched", color: "bg-emerald-50 text-emerald-700 border-emerald-200", icon: CheckCircle2 },
+  partial: { label: "Partial", color: "bg-amber-50 text-amber-700 border-amber-200", icon: AlertTriangle },
+  unclear: { label: "Unclear", color: "bg-amber-50 text-amber-700 border-amber-200", icon: AlertTriangle },
+  missing: { label: "Missing", color: "bg-red-50 text-red-700 border-red-200", icon: XCircle },
+  extra: { label: "Extra", color: "bg-blue-50 text-blue-700 border-blue-200", icon: FileX2 },
+  pending: { label: "Pending", color: "bg-muted text-muted-foreground border-border", icon: ScanSearch },
+};
+
 const categoryLabel = (v: string | null | undefined) =>
   CATEGORY_OPTIONS.find((o) => o.value === v)?.label || null;
 
 const revenueFor = (cat: string) =>
   CATEGORY_OPTIONS.find((o) => o.value === cat)?.revenue || "non_recurring";
 
-export const ContractScheduleLines = ({ schedules, defaultCurrency, onChanged }: Props) => {
+export const ContractScheduleLines = ({
+  importId,
+  debtorId,
+  staged,
+  published,
+  schedules,
+  defaultCurrency,
+  onChanged,
+}: Props) => {
+  const qc = useQueryClient();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploadScheduleId, setUploadScheduleId] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+
   const [editTarget, setEditTarget] = useState<any | null>(null);
   const [form, setForm] = useState({
     product_description: "",
@@ -66,6 +109,21 @@ export const ContractScheduleLines = ({ schedules, defaultCurrency, onChanged }:
   });
   const [saving, setSaving] = useState(false);
   const [statusMap, setStatusMap] = useState<Record<string, string>>({});
+
+  // Live invoice list for candidate names
+  const { data: invoiceMap = {} } = useQuery({
+    enabled: !!debtorId,
+    queryKey: ["recon-invoices", debtorId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("invoices")
+        .select("id, invoice_number, amount, total_amount, due_date, status")
+        .eq("debtor_id", debtorId!)
+        .eq("is_archived", false)
+        .limit(500);
+      return Object.fromEntries((data ?? []).map((i: any) => [i.id, i]));
+    },
+  });
 
   useEffect(() => {
     const ids = schedules.map((s: any) => s.invoice_id).filter(Boolean);
@@ -88,6 +146,106 @@ export const ContractScheduleLines = ({ schedules, defaultCurrency, onChanged }:
       cancelled = true;
     };
   }, [schedules]);
+
+  const summary = useMemo(() => {
+    const s = { matched: 0, partial: 0, unclear: 0, missing: 0, pending: 0 };
+    schedules.forEach((row: any) => {
+      const k = (row.reconciliation_status || "pending") as keyof typeof s;
+      s[k] = (s[k] ?? 0) + 1;
+    });
+    return s;
+  }, [schedules]);
+
+  const totalScheduled = schedules.length;
+  const reconciledPct = totalScheduled
+    ? Math.round(((summary.matched + summary.partial) / totalScheduled) * 100)
+    : 0;
+
+  const reconcile = useMutation({
+    mutationFn: async (opts: { generateTasks?: boolean }) => {
+      const { data, error } = await supabase.functions.invoke("contract-reconcile", {
+        body: { importId, generateTasks: opts.generateTasks ?? false },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: (d: any) => {
+      toast.success(
+        `Reconciled · ${d.summary?.matched ?? 0} matched · ${d.summary?.missing ?? 0} missing · ${d.summary?.unclear ?? 0} unclear` +
+          (d.tasks_created ? ` · ${d.tasks_created} tasks created` : ""),
+      );
+      qc.invalidateQueries();
+      onChanged();
+    },
+    onError: (e: any) => toast.error(e.message || "Reconcile failed"),
+  });
+
+  const linkCandidate = useMutation({
+    mutationFn: async (args: { scheduleId: string; invoiceId: string }) => {
+      const { error } = await supabase
+        .from("contract_invoice_schedules")
+        .update({
+          invoice_id: args.invoiceId,
+          attachment_source: "linked",
+          reconciliation_status: "matched",
+          completion_status: "completed",
+          completed_at: new Date().toISOString(),
+        })
+        .eq("id", args.scheduleId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Invoice linked");
+      onChanged();
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const triggerUpload = (scheduleId: string) => {
+    setUploadScheduleId(scheduleId);
+    fileRef.current?.click();
+  };
+
+  const handleOcrUpload = async (file: File) => {
+    if (!file) return;
+    if (file.size > 25 * 1024 * 1024) {
+      toast.error("File exceeds 25MB");
+      return;
+    }
+    setUploading(true);
+    try {
+      const buf = await file.arrayBuffer();
+      let binary = "";
+      const bytes = new Uint8Array(buf);
+      const chunk = 8192;
+      for (let i = 0; i < bytes.length; i += chunk) {
+        binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+      }
+      const base64 = btoa(binary);
+      const { data, error } = await supabase.functions.invoke("ocr-invoice-upload", {
+        body: {
+          pdfBase64: base64,
+          fileName: file.name,
+          contractImportId: importId,
+          scheduleId: uploadScheduleId || null,
+          debtorId,
+        },
+      });
+      if (error) throw error;
+      toast.success(
+        `Invoice uploaded — ${data.pageCount} page${data.pageCount === 1 ? "" : "s"} · $${(data.totalCents / 100).toFixed(2)}`,
+      );
+      onChanged();
+      qc.invalidateQueries({ queryKey: ["ocr-usage"] });
+    } catch (e: any) {
+      toast.error(e.message || "Upload failed");
+    } finally {
+      setUploading(false);
+      setUploadScheduleId(null);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
 
   const open = (s: any) => {
     const qty = s.quantity != null ? Number(s.quantity) : null;
@@ -127,7 +285,7 @@ export const ContractScheduleLines = ({ schedules, defaultCurrency, onChanged }:
       const up = form.unit_price.trim() === "" ? null : Number(form.unit_price);
       const amt = form.amount.trim() === "" ? null : Number(form.amount);
       const cat = form.product_category || null;
-      const rev = cat ? (form.revenue_type || revenueFor(cat)) : null;
+      const rev = cat ? form.revenue_type || revenueFor(cat) : null;
       const { error } = await supabase
         .from("contract_invoice_schedules")
         .update({
@@ -140,7 +298,6 @@ export const ContractScheduleLines = ({ schedules, defaultCurrency, onChanged }:
           expected_due_date: form.expected_due_date || null,
           product_category: cat,
           revenue_type: rev,
-          // Mark as user-edited so re-classify will not overwrite.
           category_source: cat ? "user" : null,
         } as any)
         .eq("id", editTarget.id);
@@ -158,11 +315,80 @@ export const ContractScheduleLines = ({ schedules, defaultCurrency, onChanged }:
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-base flex items-center gap-2">
-          <Receipt className="h-4 w-4 text-primary" /> Invoice Schedule & Line Items
-        </CardTitle>
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Receipt className="h-4 w-4 text-primary" /> Invoice Schedule & Reconciliation
+            </CardTitle>
+            <CardDescription className="mt-1">
+              {totalScheduled === 0
+                ? "No scheduled billing rows yet."
+                : (
+                  <>
+                    {summary.matched + summary.partial} of {totalScheduled} reconciled · {summary.missing} missing · {summary.unclear} unclear
+                  </>
+                )}
+            </CardDescription>
+          </div>
+          {totalScheduled > 0 && debtorId && (
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => reconcile.mutate({ generateTasks: false })}
+                disabled={reconcile.isPending}
+              >
+                {reconcile.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <RefreshCw className="h-3.5 w-3.5 mr-1" />}
+                Reconcile now
+              </Button>
+              {published && (
+                <Button
+                  size="sm"
+                  onClick={() => reconcile.mutate({ generateTasks: true })}
+                  disabled={reconcile.isPending}
+                >
+                  <FilePlus2 className="h-3.5 w-3.5 mr-1" />
+                  Reconcile + create tasks
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {totalScheduled > 0 && (
+          <div className="mt-3 flex items-center gap-2 text-xs">
+            <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+              <div className="h-full bg-emerald-500 transition-all" style={{ width: `${reconciledPct}%` }} />
+            </div>
+            <span className="text-muted-foreground tabular-nums w-10 text-right">{reconciledPct}%</span>
+          </div>
+        )}
       </CardHeader>
+
       <CardContent>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="application/pdf,image/*"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) handleOcrUpload(f);
+          }}
+        />
+
+        {!debtorId && (
+          <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5 mb-3">
+            Link this contract to a customer to enable reconciliation and invoice upload/OCR.
+          </p>
+        )}
+
+        {staged && !published && debtorId && (
+          <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5 mb-3">
+            This contract is in <b>Staging</b>. Reconciliation runs read-only — tasks for missing/unclear rows will be created when you publish.
+          </p>
+        )}
+
         {schedules.length === 0 ? (
           <p className="text-sm text-muted-foreground">No scheduled invoices.</p>
         ) : (
@@ -176,7 +402,8 @@ export const ContractScheduleLines = ({ schedules, defaultCurrency, onChanged }:
                   <th className="text-right py-2 px-2 font-medium">Unit price</th>
                   <th className="text-right py-2 px-2 font-medium">Amount</th>
                   <th className="text-left py-2 px-2 font-medium">Scheduled</th>
-                  <th className="text-left py-2 px-2 font-medium">Status</th>
+                  <th className="text-left py-2 px-2 font-medium">Reconciliation</th>
+                  <th className="text-left py-2 px-2 font-medium">Best match</th>
                   <th className="text-right py-2 pl-2 font-medium">Actions</th>
                 </tr>
               </thead>
@@ -188,9 +415,16 @@ export const ContractScheduleLines = ({ schedules, defaultCurrency, onChanged }:
                   const cat = s.product_category as string | null;
                   const rev = s.revenue_type as string | null;
                   const isRecurring = rev === "recurring";
+                  const reconStatus = (s.reconciliation_status || "pending") as keyof typeof STATUS_META;
+                  const reconMeta = STATUS_META[reconStatus] || STATUS_META.pending;
+                  const ReconIcon = reconMeta.icon;
+                  const cands = s.reconciliation_candidates || [];
+                  const top = cands[0];
+                  const topInv = top ? (invoiceMap as any)[top.invoice_id] : null;
+                  const linkedInv = s.invoice_id ? (invoiceMap as any)[s.invoice_id] : null;
                   return (
                     <tr key={s.id} className="border-b last:border-0 align-top">
-                      <td className="py-2 pr-3 max-w-[320px]">
+                      <td className="py-2 pr-3 max-w-[280px]">
                         <div className="font-medium flex items-start gap-2">
                           <Package2 className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
                           <span className="whitespace-normal break-words leading-snug">{desc}</span>
@@ -248,20 +482,74 @@ export const ContractScheduleLines = ({ schedules, defaultCurrency, onChanged }:
                         )}
                       </td>
                       <td className="py-2 px-2">
-                        {s.invoice_id && statusMap[s.invoice_id] ? (
-                          <Badge className={`text-[10px] ${getInvoiceStatusColor(statusMap[s.invoice_id])}`}>
-                            {getInvoiceStatusLabel(statusMap[s.invoice_id])}
+                        <div className="space-y-1">
+                          <Badge variant="outline" className={`text-[10px] gap-1 ${reconMeta.color}`}>
+                            <ReconIcon className="h-3 w-3" />
+                            {reconMeta.label}
                           </Badge>
+                          {s.invoice_id && statusMap[s.invoice_id] && (
+                            <Badge className={`text-[10px] block w-fit ${getInvoiceStatusColor(statusMap[s.invoice_id])}`}>
+                              {getInvoiceStatusLabel(statusMap[s.invoice_id])}
+                            </Badge>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-2 px-2 text-xs">
+                        {linkedInv ? (
+                          <Link
+                            to={`/invoices/${s.invoice_id}`}
+                            className="text-primary hover:underline inline-flex items-center gap-1"
+                          >
+                            <LinkIcon className="h-3 w-3" />
+                            {linkedInv.invoice_number}
+                          </Link>
+                        ) : top && topInv ? (
+                          <div className="space-y-1">
+                            <span className="text-muted-foreground">
+                              {topInv.invoice_number} ({top.score}%)
+                            </span>
+                            {(reconStatus === "partial" || reconStatus === "unclear") && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-6 text-[10px]"
+                                onClick={() => linkCandidate.mutate({ scheduleId: s.id, invoiceId: top.invoice_id })}
+                                disabled={linkCandidate.isPending}
+                              >
+                                <CheckCircle2 className="h-3 w-3 mr-1" />
+                                Confirm
+                              </Button>
+                            )}
+                          </div>
                         ) : (
-                          <Badge variant="outline" className="text-[10px] text-muted-foreground">
-                            Pending
-                          </Badge>
+                          <span className="text-muted-foreground italic">no candidate</span>
                         )}
                       </td>
                       <td className="text-right py-2 pl-2">
-                        <Button size="sm" variant="ghost" onClick={() => open(s)}>
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
+                        <div className="flex justify-end gap-1">
+                          {!s.invoice_id && debtorId && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-[11px]"
+                              onClick={() => triggerUpload(s.id)}
+                              disabled={uploading}
+                              title="Upload or OCR an invoice for this row"
+                            >
+                              {uploading && uploadScheduleId === s.id ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <>
+                                  <Sparkles className="h-3 w-3 mr-1" />
+                                  Upload/OCR
+                                </>
+                              )}
+                            </Button>
+                          )}
+                          <Button size="sm" variant="ghost" className="h-7" onClick={() => open(s)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   );
