@@ -252,6 +252,23 @@ Deno.serve(async (req) => {
       })),
     };
 
+    const invoiceSourceBreakdown = (invoices as any[]).reduce((acc: Record<string, { count: number; balance: number }>, i: any) => {
+      const src = i.source_system || i.integration_source || "manual";
+      if (!acc[src]) acc[src] = { count: 0, balance: 0 };
+      acc[src].count += 1;
+      acc[src].balance += balOf(i);
+      return acc;
+    }, {});
+    for (const k of Object.keys(invoiceSourceBreakdown)) {
+      invoiceSourceBreakdown[k].balance = Math.round(invoiceSourceBreakdown[k].balance * 100) / 100;
+    }
+
+    const paymentSourceBreakdown = (payments as any[]).reduce((acc: Record<string, number>, p: any) => {
+      const src = p.source_system || p.integration_source || p.payment_method || "manual";
+      acc[src] = (acc[src] || 0) + 1;
+      return acc;
+    }, {});
+
     const last30 = new Date(now.getTime() - 30 * 86400000).toISOString().slice(0, 10);
     const recent30 = (payments as any[]).filter((p) => p.payment_date >= last30);
     const paymentSummary = {
