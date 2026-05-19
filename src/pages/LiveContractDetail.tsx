@@ -654,6 +654,28 @@ const LiveContractDetailInner = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={confirmArchive} onOpenChange={(o) => !archiving && setConfirmArchive(o)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Archive "{c.contract_name || c.file_name || "this contract"}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This contract has been extracted and may have generated invoices and date alerts.
+              Archiving hides it from active views and pauses future alerts, but keeps the contract,
+              its invoices, schedule lines, and audit history intact for compliance.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={archiving}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleArchive(); }}
+              disabled={archiving}
+            >
+              {archiving ? "Archiving…" : "Archive contract"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
