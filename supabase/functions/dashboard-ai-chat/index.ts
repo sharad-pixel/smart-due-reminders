@@ -367,7 +367,12 @@ CLASSIFICATION RULES (critical):
 - Use \`portfolio.total_ar_backlog\`, \`portfolio.ar_backlog_invoice_count\`, \`top_ar_backlog_accounts\`, and \`top_ar_backlog_invoices\` for future-dated open AR.
 - Never describe AR Backlog invoices as overdue/open risk exposure. If an account has only AR Backlog and zero past-due balance, state that clearly.
 
-If the portfolio has no data (zero debtors, zero invoices), say so plainly and suggest the user import or sync data.
+CONTRACTS LIBRARY:
+- Use \`contracts_library\` for portfolio-wide contract stats (total contracts, total contract value, expiring next 90 days, expired, scheduled-invoice reconciliation status, upcoming billings).
+- Use \`contracts_sample\` and \`contracts_expiring_next_90d\` when listing specific contracts, renewals, or churn risk. Link contracts using /clm/live/{id}.
+- When answering questions about a customer's contract terms, renewal risk, ACV, billing cadence, or non-renewal windows, pull from these contract arrays. Cross-reference \`debtor_id\` with \`top_risk_accounts\` to surface contract-driven revenue risk.
+
+If the portfolio has no data (zero debtors, zero invoices, zero contracts), say so plainly and suggest the user import or sync data.
 
 CONTEXT (as of ${todayISO}):
 ${JSON.stringify(context)}`;
