@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
         .select("id, summary, task_type, priority, status, due_date, debtor_id")
         .eq("user_id", accountId).in("status", ["pending", "in_progress"]).limit(200),
       supabase.from("payments")
-        .select("id, debtor_id, amount, payment_date, currency, payment_method, source_system, integration_source")
+        .select("id, debtor_id, invoice_id, amount, payment_date, currency, reference, reconciliation_status, source_system, notes")
         .eq("user_id", accountId).order("payment_date", { ascending: false }).limit(100),
       supabase.from("live_contract_imports")
         .select("id, debtor_id, contract_name, contract_type, status, staging_status, effective_date, term_end_date, contract_value, product_description, industry, confidence, file_name, metrics_jsonb, created_at")
