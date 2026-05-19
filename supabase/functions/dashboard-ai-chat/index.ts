@@ -283,7 +283,7 @@ Deno.serve(async (req) => {
     }
 
     const paymentSourceBreakdown = (payments as any[]).reduce((acc: Record<string, number>, p: any) => {
-      const src = p.source_system || p.integration_source || p.payment_method || "manual";
+      const src = p.source_system || "manual";
       acc[src] = (acc[src] || 0) + 1;
       return acc;
     }, {});
