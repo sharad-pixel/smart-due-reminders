@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
     const asOfDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
     const todayISO = asOfDate.toISOString().slice(0, 10);
 
-    const [debtorsRes, invoicesRes, tasksRes, paymentsRes, contractsRes, schedulesRes] = await Promise.all([
+    const [debtorsRes, invoicesRes, tasksRes, paymentsRes, contractsRes, schedulesRes, draftsRes, sentOutreachRes] = await Promise.all([
       supabase.from("debtors")
         .select("id, name, email, current_balance, total_open_balance, avg_risk_score, max_risk_score, risk_tier, risk_tier_detailed, collections_health_score, collections_risk_score, health_tier, payment_score, avg_days_to_pay, max_days_past_due, open_invoices_count, disputed_invoices_count, industry, ai_sentiment_category, outreach_paused, is_archived")
         .eq("user_id", accountId).eq("is_archived", false).limit(300),
@@ -71,7 +71,22 @@ Deno.serve(async (req) => {
         .eq("account_id", accountId)
         .order("scheduled_date", { ascending: true })
         .limit(500),
+      // Planned/scheduled AI outreach drafts (not yet sent)
+      supabase.from("ai_drafts")
+        .select("id, invoice_id, step_number, channel, subject, status, recommended_send_date, days_past_due, sent_at, auto_approved, created_at")
+        .eq("user_id", accountId)
+        .is("sent_at", null)
+        .in("status", ["pending_approval", "approved", "scheduled", "queued"])
+        .order("recommended_send_date", { ascending: true, nullsFirst: false })
+        .limit(300),
+      // Recent sent outreach (last 30d) for context on cadence
+      supabase.from("outreach_logs")
+        .select("id, invoice_id, debtor_id, channel, subject, status, sent_at, created_at")
+        .eq("user_id", accountId)
+        .order("created_at", { ascending: false })
+        .limit(150),
     ]);
+
 
     if (debtorsRes.error) log("debtors error", debtorsRes.error);
     if (invoicesRes.error) log("invoices error", invoicesRes.error);
