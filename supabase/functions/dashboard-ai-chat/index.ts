@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
         .select("id, name, email, current_balance, total_open_balance, avg_risk_score, max_risk_score, risk_tier, risk_tier_detailed, collections_health_score, collections_risk_score, health_tier, payment_score, avg_days_to_pay, max_days_past_due, open_invoices_count, disputed_invoices_count, industry, ai_sentiment_category, outreach_paused, is_archived")
         .eq("user_id", accountId).eq("is_archived", false).limit(300),
       supabase.from("invoices")
-        .select("id, debtor_id, invoice_number, amount, amount_outstanding, total_amount, status, due_date, issue_date, currency, aging_bucket, is_archived, source_system, integration_source, payment_method, payment_terms, billing_terms")
+        .select("id, debtor_id, invoice_number, amount, amount_outstanding, total_amount, status, due_date, issue_date, currency, aging_bucket, is_archived, source_system, integration_source, payment_method, payment_terms")
         .eq("user_id", accountId).eq("is_archived", false)
         .in("status", ["Open", "PartiallyPaid", "InPaymentPlan", "Disputed"]).limit(500),
       supabase.from("collection_tasks")
