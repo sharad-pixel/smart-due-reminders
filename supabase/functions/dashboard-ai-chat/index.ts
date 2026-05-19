@@ -271,6 +271,60 @@ Deno.serve(async (req) => {
       ),
     };
 
+    // ---- Live Contracts library summary ----
+    const todayMs = asOfDate.getTime();
+    const in90 = new Date(todayMs + 90 * 86400000).toISOString().slice(0, 10);
+    const contractsByStatus: Record<string, number> = {};
+    let totalContractValue = 0;
+    const expiringSoon: any[] = [];
+    const expiredOpen: any[] = [];
+    for (const c of contracts as any[]) {
+      const k = c.staging_status || c.status || "unknown";
+      contractsByStatus[k] = (contractsByStatus[k] || 0) + 1;
+      if (c.contract_value) totalContractValue += Number(c.contract_value) || 0;
+      if (c.term_end_date) {
+        const end = String(c.term_end_date).slice(0, 10);
+        if (end >= todayISO && end <= in90) expiringSoon.push(c);
+        else if (end < todayISO) expiredOpen.push(c);
+      }
+    }
+    const contractList = (contracts as any[]).slice(0, 25).map((c) => ({
+      id: c.id,
+      name: c.contract_name || c.file_name,
+      debtor: debtorNameMap.get(c.debtor_id) || null,
+      debtor_id: c.debtor_id,
+      type: c.contract_type,
+      status: c.staging_status || c.status,
+      effective_date: c.effective_date,
+      term_end_date: c.term_end_date,
+      contract_value: c.contract_value ? Math.round(Number(c.contract_value) * 100) / 100 : null,
+      industry: c.industry,
+      product: c.product_description,
+    }));
+
+    // Schedule reconciliation summary
+    const scheduleStatus: Record<string, number> = { matched: 0, partial: 0, unclear: 0, missing: 0, pending: 0 };
+    let upcomingBillings = 0, upcomingBillingValue = 0;
+    for (const s of schedules as any[]) {
+      const k = (s.reconciliation_status || "pending") as keyof typeof scheduleStatus;
+      scheduleStatus[k] = (scheduleStatus[k] ?? 0) + 1;
+      if (s.scheduled_date && String(s.scheduled_date).slice(0, 10) >= todayISO) {
+        upcomingBillings++;
+        upcomingBillingValue += Number(s.amount || 0);
+      }
+    }
+
+    const contractPortfolio = {
+      total_contracts: contracts.length,
+      by_status: contractsByStatus,
+      total_contract_value: Math.round(totalContractValue * 100) / 100,
+      expiring_next_90d_count: expiringSoon.length,
+      expired_count: expiredOpen.length,
+      schedule_reconciliation: scheduleStatus,
+      upcoming_billings_count: upcomingBillings,
+      upcoming_billings_value: Math.round(upcomingBillingValue * 100) / 100,
+    };
+
     const context = {
       as_of: todayISO,
       portfolio,
@@ -280,9 +334,15 @@ Deno.serve(async (req) => {
       top_ar_backlog_invoices: topArBacklogInvoices,
       tasks: taskSummary,
       recent_payments: paymentSummary,
+      contracts_library: contractPortfolio,
+      contracts_sample: contractList,
+      contracts_expiring_next_90d: expiringSoon.slice(0, 10).map((c) => ({
+        id: c.id, name: c.contract_name || c.file_name, debtor: debtorNameMap.get(c.debtor_id) || null,
+        debtor_id: c.debtor_id, term_end_date: c.term_end_date, contract_value: c.contract_value,
+      })),
     };
 
-    log("portfolio", portfolio);
+    log("portfolio", portfolio, "contracts", contractPortfolio);
 
     const system = `You are Recouply's Revenue Intelligence agent (persona: Nicolas). Answer the user's question about their AR portfolio using ONLY the JSON CONTEXT below — never invent numbers, debtor names, or invoices.
 
