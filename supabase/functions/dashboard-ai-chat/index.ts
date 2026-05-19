@@ -52,14 +52,14 @@ Deno.serve(async (req) => {
         .select("id, name, email, current_balance, total_open_balance, avg_risk_score, max_risk_score, risk_tier, risk_tier_detailed, collections_health_score, collections_risk_score, health_tier, payment_score, avg_days_to_pay, max_days_past_due, open_invoices_count, disputed_invoices_count, industry, ai_sentiment_category, outreach_paused, is_archived")
         .eq("user_id", accountId).eq("is_archived", false).limit(300),
       supabase.from("invoices")
-        .select("id, debtor_id, invoice_number, amount, amount_outstanding, total_amount, status, due_date, currency, aging_bucket, is_archived")
+        .select("id, debtor_id, invoice_number, amount, amount_outstanding, total_amount, status, due_date, issue_date, currency, aging_bucket, is_archived, source_system, integration_source, payment_method, payment_terms, billing_terms")
         .eq("user_id", accountId).eq("is_archived", false)
         .in("status", ["Open", "PartiallyPaid", "InPaymentPlan", "Disputed"]).limit(500),
       supabase.from("collection_tasks")
         .select("id, summary, task_type, priority, status, due_date, debtor_id")
         .eq("user_id", accountId).in("status", ["pending", "in_progress"]).limit(200),
       supabase.from("payments")
-        .select("id, debtor_id, amount, payment_date, currency")
+        .select("id, debtor_id, amount, payment_date, currency, payment_method, source_system, integration_source")
         .eq("user_id", accountId).order("payment_date", { ascending: false }).limit(100),
       supabase.from("live_contract_imports")
         .select("id, debtor_id, contract_name, contract_type, status, staging_status, effective_date, term_end_date, contract_value, product_description, industry, confidence, file_name, metrics_jsonb, created_at")
