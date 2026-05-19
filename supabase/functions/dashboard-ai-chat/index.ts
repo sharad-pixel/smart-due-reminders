@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
     const asOfDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
     const todayISO = asOfDate.toISOString().slice(0, 10);
 
-    const [debtorsRes, invoicesRes, tasksRes, paymentsRes] = await Promise.all([
+    const [debtorsRes, invoicesRes, tasksRes, paymentsRes, contractsRes, schedulesRes] = await Promise.all([
       supabase.from("debtors")
         .select("id, name, email, current_balance, total_open_balance, avg_risk_score, max_risk_score, risk_tier, risk_tier_detailed, collections_health_score, collections_risk_score, health_tier, payment_score, avg_days_to_pay, max_days_past_due, open_invoices_count, disputed_invoices_count, industry, ai_sentiment_category, outreach_paused, is_archived")
         .eq("user_id", accountId).eq("is_archived", false).limit(300),
@@ -61,19 +61,33 @@ Deno.serve(async (req) => {
       supabase.from("payments")
         .select("id, debtor_id, amount, payment_date, currency")
         .eq("user_id", accountId).order("payment_date", { ascending: false }).limit(100),
+      supabase.from("live_contract_imports")
+        .select("id, debtor_id, contract_name, contract_type, status, staging_status, effective_date, term_end_date, contract_value, product_description, industry, confidence, file_name, metrics_jsonb, created_at")
+        .eq("account_id", accountId)
+        .order("created_at", { ascending: false })
+        .limit(200),
+      supabase.from("contract_invoice_schedules")
+        .select("id, import_id, debtor_id, scheduled_date, expected_due_date, amount, currency, billing_type, revenue_type, product_category, product_description, description, reconciliation_status, invoice_id, completion_status")
+        .eq("account_id", accountId)
+        .order("scheduled_date", { ascending: true })
+        .limit(500),
     ]);
 
     if (debtorsRes.error) log("debtors error", debtorsRes.error);
     if (invoicesRes.error) log("invoices error", invoicesRes.error);
     if (tasksRes.error) log("tasks error", tasksRes.error);
     if (paymentsRes.error) log("payments error", paymentsRes.error);
+    if (contractsRes.error) log("contracts error", contractsRes.error);
+    if (schedulesRes.error) log("schedules error", schedulesRes.error);
 
     const debtors = debtorsRes.data || [];
     const invoices = invoicesRes.data || [];
     const tasks = tasksRes.data || [];
     const payments = paymentsRes.data || [];
+    const contracts = contractsRes.data || [];
+    const schedules = schedulesRes.data || [];
 
-    log("counts", { debtors: debtors.length, invoices: invoices.length, tasks: tasks.length, payments: payments.length });
+    log("counts", { debtors: debtors.length, invoices: invoices.length, tasks: tasks.length, payments: payments.length, contracts: contracts.length, schedules: schedules.length });
 
     const balOf = (i: any) => Number(i.amount_outstanding ?? i.balance ?? i.amount_due ?? i.total_amount ?? i.amount ?? 0);
     const dueISO = (i: any) => i.due_date ? String(i.due_date).slice(0, 10) : null;
