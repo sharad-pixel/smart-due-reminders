@@ -400,7 +400,18 @@ Deno.serve(async (req) => {
       payment_source_breakdown: paymentSourceBreakdown,
       contracts_library: contractPortfolio,
       contracts_sample: contractList,
-      contracts_expiring_next_90d: expiringSoon.slice(0, 10).map((c) => ({
+      contracts_expiring_next_90d: expiringSoon.slice(0, 25).map((c) => ({
+        id: c.id, name: c.contract_name || c.file_name, debtor: debtorNameMap.get(c.debtor_id) || null,
+        debtor_id: c.debtor_id, term_end_date: c.term_end_date, contract_value: c.contract_value,
+      })),
+      contracts_renewals_next_12mo: renewalsNext12mo.slice(0, 50).map((c) => ({
+        id: c.id, name: c.contract_name || c.file_name, debtor: debtorNameMap.get(c.debtor_id) || null,
+        debtor_id: c.debtor_id, term_end_date: c.term_end_date,
+        renewal_date: (c as any).renewal_date || (c as any).next_renewal_date || c.term_end_date,
+        auto_renewal: (c as any).auto_renewal ?? null,
+        contract_value: c.contract_value,
+      })),
+      contracts_expiring_next_24mo: expiringNext24mo.slice(0, 50).map((c) => ({
         id: c.id, name: c.contract_name || c.file_name, debtor: debtorNameMap.get(c.debtor_id) || null,
         debtor_id: c.debtor_id, term_end_date: c.term_end_date, contract_value: c.contract_value,
       })),
