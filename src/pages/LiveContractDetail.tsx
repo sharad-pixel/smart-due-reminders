@@ -19,7 +19,19 @@ import {
   ExternalLink,
   Users,
   ShieldAlert,
+  Trash2,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 import { ContractTasksPanel } from "@/components/clm/ContractTasksPanel";
 import { formatCurrency, formatDateShort } from "@/lib/formatters";
 import SEO from "@/components/seo/SEO";
@@ -67,6 +79,28 @@ const LiveContractDetailInner = () => {
   const qc = useQueryClient();
   const { accountId } = useClmEntitlement();
   const [asc606Open, setAsc606Open] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!importId) return;
+    setDeleting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("live-contract-actions", {
+        body: { importId, action: "delete_import" },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      toast.success("Contract deleted");
+      qc.invalidateQueries({ queryKey: ["lc-imports"] });
+      navigate("/contracts/live");
+    } catch (e: any) {
+      toast.error(e?.message || "Delete failed");
+    } finally {
+      setDeleting(false);
+      setConfirmDelete(false);
+    }
+  };
 
   const { data, isLoading } = useQuery({
     queryKey: ["live-contract-detail", importId],
@@ -304,6 +338,15 @@ const LiveContractDetailInner = () => {
                 Manage team
               </Link>
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setConfirmDelete(true)}
+              className="text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10"
+            >
+              <Trash2 className="h-4 w-4 mr-1" />
+              Delete
+            </Button>
             {data.debtor && (
               <Button asChild variant="outline" size="sm">
                 <Link to={`/debtors/${data.debtor.id}`}>
@@ -537,6 +580,28 @@ const LiveContractDetailInner = () => {
           contractTitle={c.contract_name || "Untitled Contract"}
         />
       )}
+
+      <AlertDialog open={confirmDelete} onOpenChange={(o) => !deleting && setConfirmDelete(o)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete "{c.contract_name || c.file_name || "this contract"}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes the contract, its extracted fields, schedule lines, risk flags,
+              and audit history. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleDelete(); }}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Deleting…" : "Delete permanently"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
