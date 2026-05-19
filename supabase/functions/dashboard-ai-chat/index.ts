@@ -357,6 +357,8 @@ Deno.serve(async (req) => {
       top_ar_backlog_invoices: topArBacklogInvoices,
       tasks: taskSummary,
       recent_payments: paymentSummary,
+      invoice_source_breakdown: invoiceSourceBreakdown,
+      payment_source_breakdown: paymentSourceBreakdown,
       contracts_library: contractPortfolio,
       contracts_sample: contractList,
       contracts_expiring_next_90d: expiringSoon.slice(0, 10).map((c) => ({
