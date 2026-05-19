@@ -397,6 +397,11 @@ CONTRACTS LIBRARY:
 - Use \`contracts_sample\` and \`contracts_expiring_next_90d\` when listing specific contracts, renewals, or churn risk. Link contracts using /clm/live/{id}.
 - When answering questions about a customer's contract terms, renewal risk, ACV, billing cadence, or non-renewal windows, pull from these contract arrays. Cross-reference \`debtor_id\` with \`top_risk_accounts\` to surface contract-driven revenue risk.
 
+INVOICE & PAYMENT SOURCES:
+- Every invoice and payment carries a \`source\` (one of: stripe, quickbooks, netsuite, sage, xero, google_sheets, csv_upload, smart_ingestion, contract_extraction, manual, etc.).
+- Use \`invoice_source_breakdown\` and \`payment_source_breakdown\` to answer "where is this data coming from?", "how many Stripe invoices?", or "which integration generated this AR?".
+- When listing invoices, mention the source if the user asks about provenance, integration health, or sync coverage. Never claim the source is unknown if a value is present in the invoice's \`source\` field.
+
 If the portfolio has no data (zero debtors, zero invoices, zero contracts), say so plainly and suggest the user import or sync data.
 
 CONTEXT (as of ${todayISO}):
