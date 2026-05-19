@@ -31,7 +31,30 @@ Deno.serve(async (req) => {
     const { data: accountId } = await supabase.rpc("get_effective_account_id", { p_user_id: user.id });
     if (!accountId || imp.account_id !== accountId) return json({ error: "Not authorized" }, 403);
 
+    // Statuses that represent contracts still in "Review" — no invoices/alerts created yet.
+    const DELETABLE_STATUSES = new Set([
+      "found", "queued", "scanning", "ocr_processing", "ai_extracting",
+      "needs_review", "failed", "rejected", "duplicate",
+    ]);
+
     if (action === "delete_import") {
+      // Guard: once a contract has been extracted/approved (invoices + alerts exist),
+      // it must be archived for audit purposes — never hard-deleted.
+      if (!DELETABLE_STATUSES.has(imp.status)) {
+        return json({
+          error: "This contract has been extracted and has invoices or alerts attached. Archive it instead to preserve the audit trail.",
+        }, 400);
+      }
+      // Extra safety: block delete if any generated invoice references this contract.
+      const { count: invCount } = await supabase
+        .from("invoices").select("id", { count: "exact", head: true })
+        .eq("source_contract_id", importId);
+      if ((invCount || 0) > 0) {
+        return json({
+          error: "Invoices have already been generated from this contract. Archive it instead to preserve the audit trail.",
+        }, 400);
+      }
+
       // Best-effort cleanup of related rows + storage object, then delete import row
       const childTables = [
         "contract_invoice_schedules",
@@ -55,6 +78,33 @@ Deno.serve(async (req) => {
       const { error: delErr } = await supabase.from("live_contract_imports").delete().eq("id", importId);
       if (delErr) return json({ error: delErr.message }, 500);
       return json({ success: true });
+    }
+
+    if (action === "archive_import") {
+      // Soft archive — keeps the contract row, generated invoices, schedules,
+      // critical dates and audit log intact for compliance / audit purposes.
+      const { error: updErr } = await supabase
+        .from("live_contract_imports")
+        .update({ status: "archived", updated_at: new Date().toISOString() })
+        .eq("id", importId);
+      if (updErr) return json({ error: updErr.message }, 500);
+
+      // Disable future alert firings on critical dates while preserving the rows.
+      try {
+        await supabase.from("contract_critical_dates")
+          .update({ alert_enabled: false })
+          .eq("import_id", importId);
+      } catch (_) { /* best effort */ }
+
+      try {
+        await supabase.from("live_contract_audit_log").insert({
+          account_id: imp.account_id, user_id: user.id, import_id: imp.id,
+          event_type: "contract_archived",
+          event_details: { previous_status: imp.status },
+        });
+      } catch (_) { /* best effort */ }
+
+      return json({ success: true, archived: true });
     }
 
     // Recalculate key dates from existing extracted fields + contract row.
