@@ -81,7 +81,9 @@ const LiveContractDetailInner = () => {
   const { accountId } = useClmEntitlement();
   const [asc606Open, setAsc606Open] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmArchive, setConfirmArchive] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [archiving, setArchiving] = useState(false);
 
   const handleDelete = async () => {
     if (!importId) return;
@@ -100,6 +102,27 @@ const LiveContractDetailInner = () => {
     } finally {
       setDeleting(false);
       setConfirmDelete(false);
+    }
+  };
+
+  const handleArchive = async () => {
+    if (!importId) return;
+    setArchiving(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("live-contract-actions", {
+        body: { importId, action: "archive_import" },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      toast.success("Contract archived — invoices and alerts preserved for audit");
+      qc.invalidateQueries({ queryKey: ["lc-imports"] });
+      qc.invalidateQueries({ queryKey: ["live-contract-detail", importId] });
+      navigate("/contracts/live");
+    } catch (e: any) {
+      toast.error(e?.message || "Archive failed");
+    } finally {
+      setArchiving(false);
+      setConfirmArchive(false);
     }
   };
 
