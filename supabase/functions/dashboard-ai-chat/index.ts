@@ -52,14 +52,14 @@ Deno.serve(async (req) => {
         .select("id, name, email, current_balance, total_open_balance, avg_risk_score, max_risk_score, risk_tier, risk_tier_detailed, collections_health_score, collections_risk_score, health_tier, payment_score, avg_days_to_pay, max_days_past_due, open_invoices_count, disputed_invoices_count, industry, ai_sentiment_category, outreach_paused, is_archived")
         .eq("user_id", accountId).eq("is_archived", false).limit(300),
       supabase.from("invoices")
-        .select("id, debtor_id, invoice_number, amount, amount_outstanding, total_amount, status, due_date, currency, aging_bucket, is_archived")
+        .select("id, debtor_id, invoice_number, amount, amount_outstanding, total_amount, status, due_date, issue_date, currency, aging_bucket, is_archived, source_system, integration_source, payment_method, payment_terms")
         .eq("user_id", accountId).eq("is_archived", false)
         .in("status", ["Open", "PartiallyPaid", "InPaymentPlan", "Disputed"]).limit(500),
       supabase.from("collection_tasks")
         .select("id, summary, task_type, priority, status, due_date, debtor_id")
         .eq("user_id", accountId).in("status", ["pending", "in_progress"]).limit(200),
       supabase.from("payments")
-        .select("id, debtor_id, amount, payment_date, currency")
+        .select("id, debtor_id, amount, payment_date, currency, payment_method, source_system, integration_source")
         .eq("user_id", accountId).order("payment_date", { ascending: false }).limit(100),
       supabase.from("live_contract_imports")
         .select("id, debtor_id, contract_name, contract_type, status, staging_status, effective_date, term_end_date, contract_value, product_description, industry, confidence, file_name, metrics_jsonb, created_at")
@@ -211,6 +211,9 @@ Deno.serve(async (req) => {
         currency: i.currency,
         aging: i.aging_bucket,
         ar_classification: "Past Due",
+        source: i.source_system || i.integration_source || "manual",
+        payment_terms: i.payment_terms,
+        issue_date: i.issue_date,
       }));
 
     const topArBacklogInvoices = [...invoices]
@@ -229,6 +232,9 @@ Deno.serve(async (req) => {
         currency: i.currency,
         aging: i.aging_bucket,
         ar_classification: "AR Backlog",
+        source: i.source_system || i.integration_source || "manual",
+        payment_terms: i.payment_terms,
+        issue_date: i.issue_date,
       }));
 
     const taskSummary = {
@@ -245,6 +251,23 @@ Deno.serve(async (req) => {
         debtor: debtorNameMap.get(t.debtor_id) || null,
       })),
     };
+
+    const invoiceSourceBreakdown = (invoices as any[]).reduce((acc: Record<string, { count: number; balance: number }>, i: any) => {
+      const src = i.source_system || i.integration_source || "manual";
+      if (!acc[src]) acc[src] = { count: 0, balance: 0 };
+      acc[src].count += 1;
+      acc[src].balance += balOf(i);
+      return acc;
+    }, {});
+    for (const k of Object.keys(invoiceSourceBreakdown)) {
+      invoiceSourceBreakdown[k].balance = Math.round(invoiceSourceBreakdown[k].balance * 100) / 100;
+    }
+
+    const paymentSourceBreakdown = (payments as any[]).reduce((acc: Record<string, number>, p: any) => {
+      const src = p.source_system || p.integration_source || p.payment_method || "manual";
+      acc[src] = (acc[src] || 0) + 1;
+      return acc;
+    }, {});
 
     const last30 = new Date(now.getTime() - 30 * 86400000).toISOString().slice(0, 10);
     const recent30 = (payments as any[]).filter((p) => p.payment_date >= last30);
@@ -334,6 +357,8 @@ Deno.serve(async (req) => {
       top_ar_backlog_invoices: topArBacklogInvoices,
       tasks: taskSummary,
       recent_payments: paymentSummary,
+      invoice_source_breakdown: invoiceSourceBreakdown,
+      payment_source_breakdown: paymentSourceBreakdown,
       contracts_library: contractPortfolio,
       contracts_sample: contractList,
       contracts_expiring_next_90d: expiringSoon.slice(0, 10).map((c) => ({
@@ -371,6 +396,11 @@ CONTRACTS LIBRARY:
 - Use \`contracts_library\` for portfolio-wide contract stats (total contracts, total contract value, expiring next 90 days, expired, scheduled-invoice reconciliation status, upcoming billings).
 - Use \`contracts_sample\` and \`contracts_expiring_next_90d\` when listing specific contracts, renewals, or churn risk. Link contracts using /clm/live/{id}.
 - When answering questions about a customer's contract terms, renewal risk, ACV, billing cadence, or non-renewal windows, pull from these contract arrays. Cross-reference \`debtor_id\` with \`top_risk_accounts\` to surface contract-driven revenue risk.
+
+INVOICE & PAYMENT SOURCES:
+- Every invoice and payment carries a \`source\` (one of: stripe, quickbooks, netsuite, sage, xero, google_sheets, csv_upload, smart_ingestion, contract_extraction, manual, etc.).
+- Use \`invoice_source_breakdown\` and \`payment_source_breakdown\` to answer "where is this data coming from?", "how many Stripe invoices?", or "which integration generated this AR?".
+- When listing invoices, mention the source if the user asks about provenance, integration health, or sync coverage. Never claim the source is unknown if a value is present in the invoice's \`source\` field.
 
 If the portfolio has no data (zero debtors, zero invoices, zero contracts), say so plainly and suggest the user import or sync data.
 
