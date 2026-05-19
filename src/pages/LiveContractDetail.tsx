@@ -338,6 +338,15 @@ const LiveContractDetailInner = () => {
                 Manage team
               </Link>
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setConfirmDelete(true)}
+              className="text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10"
+            >
+              <Trash2 className="h-4 w-4 mr-1" />
+              Delete
+            </Button>
             {data.debtor && (
               <Button asChild variant="outline" size="sm">
                 <Link to={`/debtors/${data.debtor.id}`}>
