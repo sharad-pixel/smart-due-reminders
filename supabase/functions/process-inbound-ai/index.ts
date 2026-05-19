@@ -687,7 +687,7 @@ Extract summary and actions.`;
                 status: "open",
                 summary: `Invoice ${invoiceInfo?.invoice_number || ""} is paid — close matter with customer`,
                 details: `Customer emailed regarding invoice ${invoiceInfo?.invoice_number} which is already ${invoiceInfo?.status}. Payment recorded: ${paymentLines || "See transactions"}. An auto-drafted confirmation email has been created to close this matter.`,
-                source: "ai_paid_invoice_closure",
+                source: "ai_extraction",
                 from_email: email.from_email,
                 subject: email.subject,
                 raw_email: (email.text_body || email.html_body || "").substring(0, 5000),
