@@ -406,6 +406,71 @@ Deno.serve(async (req) => {
       upcoming_billings_next_12mo_value: Math.round(upcomingBillingValue12mo * 100) / 100,
     };
 
+    // ---- Planned outreach (AI drafts not yet sent) + recent sent cadence ----
+    const invoiceById = new Map((invoices as any[]).map((i: any) => [i.id, i]));
+    const in7 = horizonDays(7);
+    const in30Out = horizonDays(30);
+    const plannedByStatus: Record<string, number> = {};
+    const plannedByDebtor: Record<string, { debtor_id: string; debtor: string | null; count: number; next_send: string | null }> = {};
+    let plannedNext7 = 0, plannedNext30 = 0, plannedOverdueToSend = 0;
+    const plannedSample = (plannedDrafts as any[])
+      .slice(0, 50)
+      .map((d: any) => {
+        const inv = invoiceById.get(d.invoice_id);
+        const debtorId = inv?.debtor_id || null;
+        plannedByStatus[d.status] = (plannedByStatus[d.status] || 0) + 1;
+        const send = d.recommended_send_date ? String(d.recommended_send_date).slice(0, 10) : null;
+        if (send && send <= in7 && send >= todayISO) plannedNext7++;
+        if (send && send <= in30Out && send >= todayISO) plannedNext30++;
+        if (send && send < todayISO) plannedOverdueToSend++;
+        if (debtorId) {
+          const existing = plannedByDebtor[debtorId];
+          if (!existing) {
+            plannedByDebtor[debtorId] = { debtor_id: debtorId, debtor: debtorNameMap.get(debtorId) || null, count: 1, next_send: send };
+          } else {
+            existing.count++;
+            if (send && (!existing.next_send || send < existing.next_send)) existing.next_send = send;
+          }
+        }
+        return {
+          id: d.id,
+          invoice_id: d.invoice_id,
+          invoice: inv?.invoice_number || null,
+          debtor_id: debtorId,
+          debtor: debtorId ? (debtorNameMap.get(debtorId) || null) : null,
+          step: d.step_number,
+          channel: d.channel,
+          subject: d.subject,
+          status: d.status,
+          recommended_send_date: send,
+          days_past_due: d.days_past_due,
+          auto_approved: d.auto_approved,
+          balance: inv ? Math.round(balOf(inv) * 100) / 100 : null,
+        };
+      });
+
+    const sentLast30Cutoff = new Date(now.getTime() - 30 * 86400000).toISOString();
+    const sentLast30 = (sentOutreach as any[]).filter((o) => (o.sent_at || o.created_at) >= sentLast30Cutoff);
+    const sentChannelBreakdown = sentLast30.reduce((acc: Record<string, number>, o: any) => {
+      acc[o.channel || "unknown"] = (acc[o.channel || "unknown"] || 0) + 1;
+      return acc;
+    }, {});
+
+    const outreachPlan = {
+      planned_total: plannedDrafts.length,
+      planned_next_7d: plannedNext7,
+      planned_next_30d: plannedNext30,
+      planned_overdue_to_send: plannedOverdueToSend,
+      planned_by_status: plannedByStatus,
+      sent_last_30d_count: sentLast30.length,
+      sent_last_30d_by_channel: sentChannelBreakdown,
+      accounts_with_planned_outreach: Object.keys(plannedByDebtor).length,
+      top_accounts_with_planned_outreach: Object.values(plannedByDebtor)
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 15),
+    };
+
+
     const context = {
       as_of: todayISO,
       portfolio,
