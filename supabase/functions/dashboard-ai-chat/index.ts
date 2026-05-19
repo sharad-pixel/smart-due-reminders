@@ -442,10 +442,12 @@ CLASSIFICATION RULES (critical):
 - Use \`portfolio.total_ar_backlog\`, \`portfolio.ar_backlog_invoice_count\`, \`top_ar_backlog_accounts\`, and \`top_ar_backlog_invoices\` for future-dated open AR.
 - Never describe AR Backlog invoices as overdue/open risk exposure. If an account has only AR Backlog and zero past-due balance, state that clearly.
 
-CONTRACTS LIBRARY:
-- Use \`contracts_library\` for portfolio-wide contract stats (total contracts, total contract value, expiring next 90 days, expired, scheduled-invoice reconciliation status, upcoming billings).
-- Use \`contracts_sample\` and \`contracts_expiring_next_90d\` when listing specific contracts, renewals, or churn risk. Link contracts using /clm/live/{id}.
-- When answering questions about a customer's contract terms, renewal risk, ACV, billing cadence, or non-renewal windows, pull from these contract arrays. Cross-reference \`debtor_id\` with \`top_risk_accounts\` to surface contract-driven revenue risk.
+CONTRACTS LIBRARY (covers full contract lifecycle, not just 90 days):
+- \`contracts_library\` contains horizon counts: expiring_next_30d, expiring_next_90d, expiring_next_180d, expiring_next_12mo, expiring_next_24mo, renewals_next_12mo, expired_count, plus upcoming billings totals (all-time and next 12mo).
+- \`contracts_sample\` includes up to 100 contracts with effective_date, term_end_date, renewal_date, and auto_renewal.
+- For "how many renewals in the next 12 months" use \`contracts_library.renewals_next_12mo_count\` and list specifics from \`contracts_renewals_next_12mo\`.
+- For multi-year horizon questions use \`contracts_expiring_next_24mo\` or filter \`contracts_sample\` by term_end_date / renewal_date.
+- Cross-reference \`debtor_id\` with \`top_risk_accounts\` to surface contract-driven revenue risk. Link contracts using /clm/live/{id}.
 
 INVOICE & PAYMENT SOURCES:
 - Every invoice and payment carries a \`source\` (one of: stripe, quickbooks, netsuite, sage, xero, google_sheets, csv_upload, smart_ingestion, contract_extraction, manual, etc.).
