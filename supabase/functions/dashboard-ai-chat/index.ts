@@ -294,24 +294,46 @@ Deno.serve(async (req) => {
       ),
     };
 
-    // ---- Live Contracts library summary ----
+    // ---- Live Contracts library summary (full lifecycle, not just 90d) ----
     const todayMs = asOfDate.getTime();
-    const in90 = new Date(todayMs + 90 * 86400000).toISOString().slice(0, 10);
+    const horizonDays = (n: number) => new Date(todayMs + n * 86400000).toISOString().slice(0, 10);
+    const in30 = horizonDays(30);
+    const in90 = horizonDays(90);
+    const in180 = horizonDays(180);
+    const in365 = horizonDays(365);
+    const in730 = horizonDays(730);
     const contractsByStatus: Record<string, number> = {};
     let totalContractValue = 0;
-    const expiringSoon: any[] = [];
+    const expiringSoon: any[] = [];          // next 90d (kept for back-compat)
+    const expiringNext30: any[] = [];
+    const expiringNext180: any[] = [];
+    const expiringNext12mo: any[] = [];      // next 365d
+    const expiringNext24mo: any[] = [];      // next 730d
     const expiredOpen: any[] = [];
+    const renewalsNext12mo: any[] = [];
     for (const c of contracts as any[]) {
       const k = c.staging_status || c.status || "unknown";
       contractsByStatus[k] = (contractsByStatus[k] || 0) + 1;
       if (c.contract_value) totalContractValue += Number(c.contract_value) || 0;
       if (c.term_end_date) {
         const end = String(c.term_end_date).slice(0, 10);
-        if (end >= todayISO && end <= in90) expiringSoon.push(c);
-        else if (end < todayISO) expiredOpen.push(c);
+        if (end < todayISO) expiredOpen.push(c);
+        else {
+          if (end <= in30) expiringNext30.push(c);
+          if (end <= in90) expiringSoon.push(c);
+          if (end <= in180) expiringNext180.push(c);
+          if (end <= in365) expiringNext12mo.push(c);
+          if (end <= in730) expiringNext24mo.push(c);
+        }
+      }
+      // Renewal detection: explicit renewal date OR term_end (proxy for renewal moment)
+      const renewalDate = (c as any).renewal_date || (c as any).next_renewal_date || c.term_end_date;
+      if (renewalDate) {
+        const r = String(renewalDate).slice(0, 10);
+        if (r >= todayISO && r <= in365) renewalsNext12mo.push(c);
       }
     }
-    const contractList = (contracts as any[]).slice(0, 25).map((c) => ({
+    const contractList = (contracts as any[]).slice(0, 100).map((c) => ({
       id: c.id,
       name: c.contract_name || c.file_name,
       debtor: debtorNameMap.get(c.debtor_id) || null,
@@ -320,20 +342,30 @@ Deno.serve(async (req) => {
       status: c.staging_status || c.status,
       effective_date: c.effective_date,
       term_end_date: c.term_end_date,
+      renewal_date: (c as any).renewal_date || (c as any).next_renewal_date || null,
+      auto_renewal: (c as any).auto_renewal ?? null,
       contract_value: c.contract_value ? Math.round(Number(c.contract_value) * 100) / 100 : null,
       industry: c.industry,
       product: c.product_description,
     }));
 
-    // Schedule reconciliation summary
+    // Schedule reconciliation summary (full lifecycle of schedule rows)
     const scheduleStatus: Record<string, number> = { matched: 0, partial: 0, unclear: 0, missing: 0, pending: 0 };
     let upcomingBillings = 0, upcomingBillingValue = 0;
+    let upcomingBillings12mo = 0, upcomingBillingValue12mo = 0;
     for (const s of schedules as any[]) {
       const k = (s.reconciliation_status || "pending") as keyof typeof scheduleStatus;
       scheduleStatus[k] = (scheduleStatus[k] ?? 0) + 1;
-      if (s.scheduled_date && String(s.scheduled_date).slice(0, 10) >= todayISO) {
-        upcomingBillings++;
-        upcomingBillingValue += Number(s.amount || 0);
+      if (s.scheduled_date) {
+        const sd = String(s.scheduled_date).slice(0, 10);
+        if (sd >= todayISO) {
+          upcomingBillings++;
+          upcomingBillingValue += Number(s.amount || 0);
+          if (sd <= in365) {
+            upcomingBillings12mo++;
+            upcomingBillingValue12mo += Number(s.amount || 0);
+          }
+        }
       }
     }
 
@@ -341,11 +373,18 @@ Deno.serve(async (req) => {
       total_contracts: contracts.length,
       by_status: contractsByStatus,
       total_contract_value: Math.round(totalContractValue * 100) / 100,
+      expiring_next_30d_count: expiringNext30.length,
       expiring_next_90d_count: expiringSoon.length,
+      expiring_next_180d_count: expiringNext180.length,
+      expiring_next_12mo_count: expiringNext12mo.length,
+      expiring_next_24mo_count: expiringNext24mo.length,
+      renewals_next_12mo_count: renewalsNext12mo.length,
       expired_count: expiredOpen.length,
       schedule_reconciliation: scheduleStatus,
       upcoming_billings_count: upcomingBillings,
       upcoming_billings_value: Math.round(upcomingBillingValue * 100) / 100,
+      upcoming_billings_next_12mo_count: upcomingBillings12mo,
+      upcoming_billings_next_12mo_value: Math.round(upcomingBillingValue12mo * 100) / 100,
     };
 
     const context = {
@@ -361,7 +400,18 @@ Deno.serve(async (req) => {
       payment_source_breakdown: paymentSourceBreakdown,
       contracts_library: contractPortfolio,
       contracts_sample: contractList,
-      contracts_expiring_next_90d: expiringSoon.slice(0, 10).map((c) => ({
+      contracts_expiring_next_90d: expiringSoon.slice(0, 25).map((c) => ({
+        id: c.id, name: c.contract_name || c.file_name, debtor: debtorNameMap.get(c.debtor_id) || null,
+        debtor_id: c.debtor_id, term_end_date: c.term_end_date, contract_value: c.contract_value,
+      })),
+      contracts_renewals_next_12mo: renewalsNext12mo.slice(0, 50).map((c) => ({
+        id: c.id, name: c.contract_name || c.file_name, debtor: debtorNameMap.get(c.debtor_id) || null,
+        debtor_id: c.debtor_id, term_end_date: c.term_end_date,
+        renewal_date: (c as any).renewal_date || (c as any).next_renewal_date || c.term_end_date,
+        auto_renewal: (c as any).auto_renewal ?? null,
+        contract_value: c.contract_value,
+      })),
+      contracts_expiring_next_24mo: expiringNext24mo.slice(0, 50).map((c) => ({
         id: c.id, name: c.contract_name || c.file_name, debtor: debtorNameMap.get(c.debtor_id) || null,
         debtor_id: c.debtor_id, term_end_date: c.term_end_date, contract_value: c.contract_value,
       })),
@@ -392,10 +442,12 @@ CLASSIFICATION RULES (critical):
 - Use \`portfolio.total_ar_backlog\`, \`portfolio.ar_backlog_invoice_count\`, \`top_ar_backlog_accounts\`, and \`top_ar_backlog_invoices\` for future-dated open AR.
 - Never describe AR Backlog invoices as overdue/open risk exposure. If an account has only AR Backlog and zero past-due balance, state that clearly.
 
-CONTRACTS LIBRARY:
-- Use \`contracts_library\` for portfolio-wide contract stats (total contracts, total contract value, expiring next 90 days, expired, scheduled-invoice reconciliation status, upcoming billings).
-- Use \`contracts_sample\` and \`contracts_expiring_next_90d\` when listing specific contracts, renewals, or churn risk. Link contracts using /clm/live/{id}.
-- When answering questions about a customer's contract terms, renewal risk, ACV, billing cadence, or non-renewal windows, pull from these contract arrays. Cross-reference \`debtor_id\` with \`top_risk_accounts\` to surface contract-driven revenue risk.
+CONTRACTS LIBRARY (covers full contract lifecycle, not just 90 days):
+- \`contracts_library\` contains horizon counts: expiring_next_30d, expiring_next_90d, expiring_next_180d, expiring_next_12mo, expiring_next_24mo, renewals_next_12mo, expired_count, plus upcoming billings totals (all-time and next 12mo).
+- \`contracts_sample\` includes up to 100 contracts with effective_date, term_end_date, renewal_date, and auto_renewal.
+- For "how many renewals in the next 12 months" use \`contracts_library.renewals_next_12mo_count\` and list specifics from \`contracts_renewals_next_12mo\`.
+- For multi-year horizon questions use \`contracts_expiring_next_24mo\` or filter \`contracts_sample\` by term_end_date / renewal_date.
+- Cross-reference \`debtor_id\` with \`top_risk_accounts\` to surface contract-driven revenue risk. Link contracts using /clm/live/{id}.
 
 INVOICE & PAYMENT SOURCES:
 - Every invoice and payment carries a \`source\` (one of: stripe, quickbooks, netsuite, sage, xero, google_sheets, csv_upload, smart_ingestion, contract_extraction, manual, etc.).
