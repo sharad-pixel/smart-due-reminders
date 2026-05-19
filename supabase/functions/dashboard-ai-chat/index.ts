@@ -211,6 +211,9 @@ Deno.serve(async (req) => {
         currency: i.currency,
         aging: i.aging_bucket,
         ar_classification: "Past Due",
+        source: i.source_system || i.integration_source || "manual",
+        payment_terms: i.payment_terms,
+        issue_date: i.issue_date,
       }));
 
     const topArBacklogInvoices = [...invoices]
@@ -229,6 +232,9 @@ Deno.serve(async (req) => {
         currency: i.currency,
         aging: i.aging_bucket,
         ar_classification: "AR Backlog",
+        source: i.source_system || i.integration_source || "manual",
+        payment_terms: i.payment_terms,
+        issue_date: i.issue_date,
       }));
 
     const taskSummary = {
