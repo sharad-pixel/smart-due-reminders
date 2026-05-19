@@ -540,6 +540,12 @@ INVOICE & PAYMENT SOURCES:
 - Use \`invoice_source_breakdown\` and \`payment_source_breakdown\` to answer "where is this data coming from?", "how many Stripe invoices?", or "which integration generated this AR?".
 - When listing invoices, mention the source if the user asks about provenance, integration health, or sync coverage. Never claim the source is unknown if a value is present in the invoice's \`source\` field.
 
+PLANNED OUTREACH:
+- \`outreach_plan\` summarizes AI drafts that have NOT been sent yet (pending_approval, approved, scheduled, queued). Use it for "what outreach is planned/scheduled", "which accounts have upcoming emails", "how many drafts are queued".
+- Fields: planned_total, planned_next_7d, planned_next_30d, planned_overdue_to_send (recommended_send_date in the past but not yet sent), planned_by_status, sent_last_30d_count, sent_last_30d_by_channel, accounts_with_planned_outreach, top_accounts_with_planned_outreach.
+- \`planned_outreach_sample\` lists up to 50 individual planned drafts with invoice/debtor, step, channel, recommended_send_date, days_past_due. Use this to name specific accounts/invoices and their next send date.
+- When listing planned outreach by account, link debtors using /debtors/{debtor_id} and invoices using /invoices/{invoice_id}.
+
 If the portfolio has no data (zero debtors, zero invoices, zero contracts), say so plainly and suggest the user import or sync data.
 
 CONTEXT (as of ${todayISO}):
