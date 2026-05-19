@@ -19,7 +19,19 @@ import {
   ExternalLink,
   Users,
   ShieldAlert,
+  Trash2,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 import { ContractTasksPanel } from "@/components/clm/ContractTasksPanel";
 import { formatCurrency, formatDateShort } from "@/lib/formatters";
 import SEO from "@/components/seo/SEO";
