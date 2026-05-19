@@ -20,6 +20,7 @@ import {
   Users,
   ShieldAlert,
   Trash2,
+  Archive,
 } from "lucide-react";
 import {
   AlertDialog,
