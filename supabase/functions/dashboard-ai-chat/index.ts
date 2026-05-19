@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
         .select("id, summary, task_type, priority, status, due_date, debtor_id")
         .eq("user_id", accountId).in("status", ["pending", "in_progress"]).limit(200),
       supabase.from("payments")
-        .select("id, debtor_id, amount, payment_date, currency, payment_method, source_system, integration_source")
+        .select("id, debtor_id, invoice_id, amount, payment_date, currency, reference, reconciliation_status, source_system, notes")
         .eq("user_id", accountId).order("payment_date", { ascending: false }).limit(100),
       supabase.from("live_contract_imports")
         .select("id, debtor_id, contract_name, contract_type, status, staging_status, effective_date, term_end_date, contract_value, product_description, industry, confidence, file_name, metrics_jsonb, created_at")
@@ -76,7 +76,7 @@ Deno.serve(async (req) => {
         .select("id, invoice_id, step_number, channel, subject, status, recommended_send_date, days_past_due, sent_at, auto_approved, created_at")
         .eq("user_id", accountId)
         .is("sent_at", null)
-        .in("status", ["pending_approval", "approved", "scheduled", "queued"])
+        .in("status", ["pending_approval", "approved"])
         .order("recommended_send_date", { ascending: true, nullsFirst: false })
         .limit(300),
       // Recent sent outreach (last 30d) for context on cadence
@@ -283,7 +283,7 @@ Deno.serve(async (req) => {
     }
 
     const paymentSourceBreakdown = (payments as any[]).reduce((acc: Record<string, number>, p: any) => {
-      const src = p.source_system || p.integration_source || p.payment_method || "manual";
+      const src = p.source_system || "manual";
       acc[src] = (acc[src] || 0) + 1;
       return acc;
     }, {});
