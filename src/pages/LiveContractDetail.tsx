@@ -453,6 +453,10 @@ const LiveContractDetailInner = () => {
       <KeyDatesNotificationsPanel importId={c.id} dates={data.dates as any} />
 
       <ContractScheduleLines
+        importId={c.id}
+        debtorId={c.debtor_id || null}
+        staged={c.staging_status !== "published"}
+        published={c.staging_status === "published"}
         schedules={data.schedules}
         defaultCurrency={totals.currency}
         onChanged={() => qc.invalidateQueries({ queryKey: ["live-contract-detail", importId] })}
@@ -462,16 +466,6 @@ const LiveContractDetailInner = () => {
         importId={c.id}
         accountId={c.account_id}
         extractionId={(data.fields[0] as any)?.extraction_id || null}
-      />
-
-      <ContractReconciliationPanel
-        importId={c.id}
-        debtorId={c.debtor_id || null}
-        staged={c.staging_status !== "published"}
-        published={c.staging_status === "published"}
-        schedules={data.schedules}
-        defaultCurrency={totals.currency}
-        onChanged={() => qc.invalidateQueries({ queryKey: ["live-contract-detail", importId] })}
       />
 
       <ContractTasksPanel
