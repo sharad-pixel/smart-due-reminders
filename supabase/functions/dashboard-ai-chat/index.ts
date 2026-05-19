@@ -499,6 +499,8 @@ Deno.serve(async (req) => {
         id: c.id, name: c.contract_name || c.file_name, debtor: debtorNameMap.get(c.debtor_id) || null,
         debtor_id: c.debtor_id, term_end_date: c.term_end_date, contract_value: c.contract_value,
       })),
+      outreach_plan: outreachPlan,
+      planned_outreach_sample: plannedSample,
     };
 
     log("portfolio", portfolio, "contracts", contractPortfolio);
