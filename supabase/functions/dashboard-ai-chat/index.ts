@@ -94,6 +94,8 @@ Deno.serve(async (req) => {
     if (paymentsRes.error) log("payments error", paymentsRes.error);
     if (contractsRes.error) log("contracts error", contractsRes.error);
     if (schedulesRes.error) log("schedules error", schedulesRes.error);
+    if (draftsRes.error) log("drafts error", draftsRes.error);
+    if (sentOutreachRes.error) log("outreach error", sentOutreachRes.error);
 
     const debtors = debtorsRes.data || [];
     const invoices = invoicesRes.data || [];
@@ -101,8 +103,10 @@ Deno.serve(async (req) => {
     const payments = paymentsRes.data || [];
     const contracts = contractsRes.data || [];
     const schedules = schedulesRes.data || [];
+    const plannedDrafts = draftsRes.data || [];
+    const sentOutreach = sentOutreachRes.data || [];
 
-    log("counts", { debtors: debtors.length, invoices: invoices.length, tasks: tasks.length, payments: payments.length, contracts: contracts.length, schedules: schedules.length });
+    log("counts", { debtors: debtors.length, invoices: invoices.length, tasks: tasks.length, payments: payments.length, contracts: contracts.length, schedules: schedules.length, plannedDrafts: plannedDrafts.length, sentOutreach: sentOutreach.length });
 
     const balOf = (i: any) => Number(i.amount_outstanding ?? i.balance ?? i.amount_due ?? i.total_amount ?? i.amount ?? 0);
     const dueISO = (i: any) => i.due_date ? String(i.due_date).slice(0, 10) : null;
