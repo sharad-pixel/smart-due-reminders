@@ -190,15 +190,15 @@ export const ContractScheduleLines = ({ schedules, defaultCurrency, onChanged }:
                   const isRecurring = rev === "recurring";
                   return (
                     <tr key={s.id} className="border-b last:border-0 align-top">
-                      <td className="py-2 pr-3">
-                        <div className="font-medium flex items-center gap-2">
-                          <Package2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                          <span className="truncate">{desc}</span>
+                      <td className="py-2 pr-3 max-w-[320px]">
+                        <div className="font-medium flex items-start gap-2">
+                          <Package2 className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
+                          <span className="whitespace-normal break-words leading-snug">{desc}</span>
                         </div>
                         {s.invoice_id && (
                           <Link
                             to={`/invoices/${s.invoice_id}`}
-                            className="text-[11px] text-primary underline hover:no-underline"
+                            className="text-[11px] text-primary underline hover:no-underline ml-5"
                           >
                             View invoice
                           </Link>
