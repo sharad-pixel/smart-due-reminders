@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
     const asOfDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
     const todayISO = asOfDate.toISOString().slice(0, 10);
 
-    const [debtorsRes, invoicesRes, tasksRes, paymentsRes] = await Promise.all([
+    const [debtorsRes, invoicesRes, tasksRes, paymentsRes, contractsRes, schedulesRes] = await Promise.all([
       supabase.from("debtors")
         .select("id, name, email, current_balance, total_open_balance, avg_risk_score, max_risk_score, risk_tier, risk_tier_detailed, collections_health_score, collections_risk_score, health_tier, payment_score, avg_days_to_pay, max_days_past_due, open_invoices_count, disputed_invoices_count, industry, ai_sentiment_category, outreach_paused, is_archived")
         .eq("user_id", accountId).eq("is_archived", false).limit(300),
@@ -61,19 +61,33 @@ Deno.serve(async (req) => {
       supabase.from("payments")
         .select("id, debtor_id, amount, payment_date, currency")
         .eq("user_id", accountId).order("payment_date", { ascending: false }).limit(100),
+      supabase.from("live_contract_imports")
+        .select("id, debtor_id, contract_name, contract_type, status, staging_status, effective_date, term_end_date, contract_value, product_description, industry, confidence, file_name, metrics_jsonb, created_at")
+        .eq("account_id", accountId)
+        .order("created_at", { ascending: false })
+        .limit(200),
+      supabase.from("contract_invoice_schedules")
+        .select("id, import_id, debtor_id, scheduled_date, expected_due_date, amount, currency, billing_type, revenue_type, product_category, product_description, description, reconciliation_status, invoice_id, completion_status")
+        .eq("account_id", accountId)
+        .order("scheduled_date", { ascending: true })
+        .limit(500),
     ]);
 
     if (debtorsRes.error) log("debtors error", debtorsRes.error);
     if (invoicesRes.error) log("invoices error", invoicesRes.error);
     if (tasksRes.error) log("tasks error", tasksRes.error);
     if (paymentsRes.error) log("payments error", paymentsRes.error);
+    if (contractsRes.error) log("contracts error", contractsRes.error);
+    if (schedulesRes.error) log("schedules error", schedulesRes.error);
 
     const debtors = debtorsRes.data || [];
     const invoices = invoicesRes.data || [];
     const tasks = tasksRes.data || [];
     const payments = paymentsRes.data || [];
+    const contracts = contractsRes.data || [];
+    const schedules = schedulesRes.data || [];
 
-    log("counts", { debtors: debtors.length, invoices: invoices.length, tasks: tasks.length, payments: payments.length });
+    log("counts", { debtors: debtors.length, invoices: invoices.length, tasks: tasks.length, payments: payments.length, contracts: contracts.length, schedules: schedules.length });
 
     const balOf = (i: any) => Number(i.amount_outstanding ?? i.balance ?? i.amount_due ?? i.total_amount ?? i.amount ?? 0);
     const dueISO = (i: any) => i.due_date ? String(i.due_date).slice(0, 10) : null;
@@ -257,6 +271,60 @@ Deno.serve(async (req) => {
       ),
     };
 
+    // ---- Live Contracts library summary ----
+    const todayMs = asOfDate.getTime();
+    const in90 = new Date(todayMs + 90 * 86400000).toISOString().slice(0, 10);
+    const contractsByStatus: Record<string, number> = {};
+    let totalContractValue = 0;
+    const expiringSoon: any[] = [];
+    const expiredOpen: any[] = [];
+    for (const c of contracts as any[]) {
+      const k = c.staging_status || c.status || "unknown";
+      contractsByStatus[k] = (contractsByStatus[k] || 0) + 1;
+      if (c.contract_value) totalContractValue += Number(c.contract_value) || 0;
+      if (c.term_end_date) {
+        const end = String(c.term_end_date).slice(0, 10);
+        if (end >= todayISO && end <= in90) expiringSoon.push(c);
+        else if (end < todayISO) expiredOpen.push(c);
+      }
+    }
+    const contractList = (contracts as any[]).slice(0, 25).map((c) => ({
+      id: c.id,
+      name: c.contract_name || c.file_name,
+      debtor: debtorNameMap.get(c.debtor_id) || null,
+      debtor_id: c.debtor_id,
+      type: c.contract_type,
+      status: c.staging_status || c.status,
+      effective_date: c.effective_date,
+      term_end_date: c.term_end_date,
+      contract_value: c.contract_value ? Math.round(Number(c.contract_value) * 100) / 100 : null,
+      industry: c.industry,
+      product: c.product_description,
+    }));
+
+    // Schedule reconciliation summary
+    const scheduleStatus: Record<string, number> = { matched: 0, partial: 0, unclear: 0, missing: 0, pending: 0 };
+    let upcomingBillings = 0, upcomingBillingValue = 0;
+    for (const s of schedules as any[]) {
+      const k = (s.reconciliation_status || "pending") as keyof typeof scheduleStatus;
+      scheduleStatus[k] = (scheduleStatus[k] ?? 0) + 1;
+      if (s.scheduled_date && String(s.scheduled_date).slice(0, 10) >= todayISO) {
+        upcomingBillings++;
+        upcomingBillingValue += Number(s.amount || 0);
+      }
+    }
+
+    const contractPortfolio = {
+      total_contracts: contracts.length,
+      by_status: contractsByStatus,
+      total_contract_value: Math.round(totalContractValue * 100) / 100,
+      expiring_next_90d_count: expiringSoon.length,
+      expired_count: expiredOpen.length,
+      schedule_reconciliation: scheduleStatus,
+      upcoming_billings_count: upcomingBillings,
+      upcoming_billings_value: Math.round(upcomingBillingValue * 100) / 100,
+    };
+
     const context = {
       as_of: todayISO,
       portfolio,
@@ -266,9 +334,15 @@ Deno.serve(async (req) => {
       top_ar_backlog_invoices: topArBacklogInvoices,
       tasks: taskSummary,
       recent_payments: paymentSummary,
+      contracts_library: contractPortfolio,
+      contracts_sample: contractList,
+      contracts_expiring_next_90d: expiringSoon.slice(0, 10).map((c) => ({
+        id: c.id, name: c.contract_name || c.file_name, debtor: debtorNameMap.get(c.debtor_id) || null,
+        debtor_id: c.debtor_id, term_end_date: c.term_end_date, contract_value: c.contract_value,
+      })),
     };
 
-    log("portfolio", portfolio);
+    log("portfolio", portfolio, "contracts", contractPortfolio);
 
     const system = `You are Recouply's Revenue Intelligence agent (persona: Nicolas). Answer the user's question about their AR portfolio using ONLY the JSON CONTEXT below — never invent numbers, debtor names, or invoices.
 
@@ -280,6 +354,7 @@ FORMAT RULES (very important):
 - ALWAYS hyperlink debtor names and invoice numbers using these exact patterns:
    * Debtor link:  [Debtor Name](/debtors/{debtor_id})
    * Invoice link: [INVOICE-NUMBER](/invoices/{invoice_id})
+   * Contract link: [Contract Name](/clm/live/{contract_id})
 - Links MUST be relative paths starting with "/". NEVER prepend a domain or scheme — do not output https://, http://, recouply.ai, app.recouply.com, or any host. Just "/debtors/<uuid>" or "/invoices/<uuid>".
 - Use the \`id\` field from debtor arrays for debtor links and the \`id\` field from invoice arrays for invoice links. If an id is missing, render plain bold text instead — never invent an id.
 - Format money as $1,234 (no decimals unless < $10). Format dates as YYYY-MM-DD.
@@ -292,7 +367,12 @@ CLASSIFICATION RULES (critical):
 - Use \`portfolio.total_ar_backlog\`, \`portfolio.ar_backlog_invoice_count\`, \`top_ar_backlog_accounts\`, and \`top_ar_backlog_invoices\` for future-dated open AR.
 - Never describe AR Backlog invoices as overdue/open risk exposure. If an account has only AR Backlog and zero past-due balance, state that clearly.
 
-If the portfolio has no data (zero debtors, zero invoices), say so plainly and suggest the user import or sync data.
+CONTRACTS LIBRARY:
+- Use \`contracts_library\` for portfolio-wide contract stats (total contracts, total contract value, expiring next 90 days, expired, scheduled-invoice reconciliation status, upcoming billings).
+- Use \`contracts_sample\` and \`contracts_expiring_next_90d\` when listing specific contracts, renewals, or churn risk. Link contracts using /clm/live/{id}.
+- When answering questions about a customer's contract terms, renewal risk, ACV, billing cadence, or non-renewal windows, pull from these contract arrays. Cross-reference \`debtor_id\` with \`top_risk_accounts\` to surface contract-driven revenue risk.
+
+If the portfolio has no data (zero debtors, zero invoices, zero contracts), say so plainly and suggest the user import or sync data.
 
 CONTEXT (as of ${todayISO}):
 ${JSON.stringify(context)}`;
