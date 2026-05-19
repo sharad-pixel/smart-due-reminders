@@ -79,6 +79,28 @@ const LiveContractDetailInner = () => {
   const qc = useQueryClient();
   const { accountId } = useClmEntitlement();
   const [asc606Open, setAsc606Open] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!importId) return;
+    setDeleting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("live-contract-actions", {
+        body: { importId, action: "delete_import" },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      toast.success("Contract deleted");
+      qc.invalidateQueries({ queryKey: ["lc-imports"] });
+      navigate("/contracts/live");
+    } catch (e: any) {
+      toast.error(e?.message || "Delete failed");
+    } finally {
+      setDeleting(false);
+      setConfirmDelete(false);
+    }
+  };
 
   const { data, isLoading } = useQuery({
     queryKey: ["live-contract-detail", importId],
