@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
     const asOfDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
     const todayISO = asOfDate.toISOString().slice(0, 10);
 
-    const [debtorsRes, invoicesRes, tasksRes, paymentsRes, contractsRes, schedulesRes] = await Promise.all([
+    const [debtorsRes, invoicesRes, tasksRes, paymentsRes, contractsRes, schedulesRes, draftsRes, sentOutreachRes] = await Promise.all([
       supabase.from("debtors")
         .select("id, name, email, current_balance, total_open_balance, avg_risk_score, max_risk_score, risk_tier, risk_tier_detailed, collections_health_score, collections_risk_score, health_tier, payment_score, avg_days_to_pay, max_days_past_due, open_invoices_count, disputed_invoices_count, industry, ai_sentiment_category, outreach_paused, is_archived")
         .eq("user_id", accountId).eq("is_archived", false).limit(300),
@@ -71,7 +71,22 @@ Deno.serve(async (req) => {
         .eq("account_id", accountId)
         .order("scheduled_date", { ascending: true })
         .limit(500),
+      // Planned/scheduled AI outreach drafts (not yet sent)
+      supabase.from("ai_drafts")
+        .select("id, invoice_id, step_number, channel, subject, status, recommended_send_date, days_past_due, sent_at, auto_approved, created_at")
+        .eq("user_id", accountId)
+        .is("sent_at", null)
+        .in("status", ["pending_approval", "approved", "scheduled", "queued"])
+        .order("recommended_send_date", { ascending: true, nullsFirst: false })
+        .limit(300),
+      // Recent sent outreach (last 30d) for context on cadence
+      supabase.from("outreach_logs")
+        .select("id, invoice_id, debtor_id, channel, subject, status, sent_at, created_at")
+        .eq("user_id", accountId)
+        .order("created_at", { ascending: false })
+        .limit(150),
     ]);
+
 
     if (debtorsRes.error) log("debtors error", debtorsRes.error);
     if (invoicesRes.error) log("invoices error", invoicesRes.error);
@@ -79,6 +94,8 @@ Deno.serve(async (req) => {
     if (paymentsRes.error) log("payments error", paymentsRes.error);
     if (contractsRes.error) log("contracts error", contractsRes.error);
     if (schedulesRes.error) log("schedules error", schedulesRes.error);
+    if (draftsRes.error) log("drafts error", draftsRes.error);
+    if (sentOutreachRes.error) log("outreach error", sentOutreachRes.error);
 
     const debtors = debtorsRes.data || [];
     const invoices = invoicesRes.data || [];
@@ -86,8 +103,10 @@ Deno.serve(async (req) => {
     const payments = paymentsRes.data || [];
     const contracts = contractsRes.data || [];
     const schedules = schedulesRes.data || [];
+    const plannedDrafts = draftsRes.data || [];
+    const sentOutreach = sentOutreachRes.data || [];
 
-    log("counts", { debtors: debtors.length, invoices: invoices.length, tasks: tasks.length, payments: payments.length, contracts: contracts.length, schedules: schedules.length });
+    log("counts", { debtors: debtors.length, invoices: invoices.length, tasks: tasks.length, payments: payments.length, contracts: contracts.length, schedules: schedules.length, plannedDrafts: plannedDrafts.length, sentOutreach: sentOutreach.length });
 
     const balOf = (i: any) => Number(i.amount_outstanding ?? i.balance ?? i.amount_due ?? i.total_amount ?? i.amount ?? 0);
     const dueISO = (i: any) => i.due_date ? String(i.due_date).slice(0, 10) : null;
@@ -387,6 +406,71 @@ Deno.serve(async (req) => {
       upcoming_billings_next_12mo_value: Math.round(upcomingBillingValue12mo * 100) / 100,
     };
 
+    // ---- Planned outreach (AI drafts not yet sent) + recent sent cadence ----
+    const invoiceById = new Map((invoices as any[]).map((i: any) => [i.id, i]));
+    const in7 = horizonDays(7);
+    const in30Out = horizonDays(30);
+    const plannedByStatus: Record<string, number> = {};
+    const plannedByDebtor: Record<string, { debtor_id: string; debtor: string | null; count: number; next_send: string | null }> = {};
+    let plannedNext7 = 0, plannedNext30 = 0, plannedOverdueToSend = 0;
+    const plannedSample = (plannedDrafts as any[])
+      .slice(0, 50)
+      .map((d: any) => {
+        const inv = invoiceById.get(d.invoice_id);
+        const debtorId = inv?.debtor_id || null;
+        plannedByStatus[d.status] = (plannedByStatus[d.status] || 0) + 1;
+        const send = d.recommended_send_date ? String(d.recommended_send_date).slice(0, 10) : null;
+        if (send && send <= in7 && send >= todayISO) plannedNext7++;
+        if (send && send <= in30Out && send >= todayISO) plannedNext30++;
+        if (send && send < todayISO) plannedOverdueToSend++;
+        if (debtorId) {
+          const existing = plannedByDebtor[debtorId];
+          if (!existing) {
+            plannedByDebtor[debtorId] = { debtor_id: debtorId, debtor: debtorNameMap.get(debtorId) || null, count: 1, next_send: send };
+          } else {
+            existing.count++;
+            if (send && (!existing.next_send || send < existing.next_send)) existing.next_send = send;
+          }
+        }
+        return {
+          id: d.id,
+          invoice_id: d.invoice_id,
+          invoice: inv?.invoice_number || null,
+          debtor_id: debtorId,
+          debtor: debtorId ? (debtorNameMap.get(debtorId) || null) : null,
+          step: d.step_number,
+          channel: d.channel,
+          subject: d.subject,
+          status: d.status,
+          recommended_send_date: send,
+          days_past_due: d.days_past_due,
+          auto_approved: d.auto_approved,
+          balance: inv ? Math.round(balOf(inv) * 100) / 100 : null,
+        };
+      });
+
+    const sentLast30Cutoff = new Date(now.getTime() - 30 * 86400000).toISOString();
+    const sentLast30 = (sentOutreach as any[]).filter((o) => (o.sent_at || o.created_at) >= sentLast30Cutoff);
+    const sentChannelBreakdown = sentLast30.reduce((acc: Record<string, number>, o: any) => {
+      acc[o.channel || "unknown"] = (acc[o.channel || "unknown"] || 0) + 1;
+      return acc;
+    }, {});
+
+    const outreachPlan = {
+      planned_total: plannedDrafts.length,
+      planned_next_7d: plannedNext7,
+      planned_next_30d: plannedNext30,
+      planned_overdue_to_send: plannedOverdueToSend,
+      planned_by_status: plannedByStatus,
+      sent_last_30d_count: sentLast30.length,
+      sent_last_30d_by_channel: sentChannelBreakdown,
+      accounts_with_planned_outreach: Object.keys(plannedByDebtor).length,
+      top_accounts_with_planned_outreach: Object.values(plannedByDebtor)
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 15),
+    };
+
+
     const context = {
       as_of: todayISO,
       portfolio,
@@ -415,6 +499,8 @@ Deno.serve(async (req) => {
         id: c.id, name: c.contract_name || c.file_name, debtor: debtorNameMap.get(c.debtor_id) || null,
         debtor_id: c.debtor_id, term_end_date: c.term_end_date, contract_value: c.contract_value,
       })),
+      outreach_plan: outreachPlan,
+      planned_outreach_sample: plannedSample,
     };
 
     log("portfolio", portfolio, "contracts", contractPortfolio);
@@ -453,6 +539,12 @@ INVOICE & PAYMENT SOURCES:
 - Every invoice and payment carries a \`source\` (one of: stripe, quickbooks, netsuite, sage, xero, google_sheets, csv_upload, smart_ingestion, contract_extraction, manual, etc.).
 - Use \`invoice_source_breakdown\` and \`payment_source_breakdown\` to answer "where is this data coming from?", "how many Stripe invoices?", or "which integration generated this AR?".
 - When listing invoices, mention the source if the user asks about provenance, integration health, or sync coverage. Never claim the source is unknown if a value is present in the invoice's \`source\` field.
+
+PLANNED OUTREACH:
+- \`outreach_plan\` summarizes AI drafts that have NOT been sent yet (pending_approval, approved, scheduled, queued). Use it for "what outreach is planned/scheduled", "which accounts have upcoming emails", "how many drafts are queued".
+- Fields: planned_total, planned_next_7d, planned_next_30d, planned_overdue_to_send (recommended_send_date in the past but not yet sent), planned_by_status, sent_last_30d_count, sent_last_30d_by_channel, accounts_with_planned_outreach, top_accounts_with_planned_outreach.
+- \`planned_outreach_sample\` lists up to 50 individual planned drafts with invoice/debtor, step, channel, recommended_send_date, days_past_due. Use this to name specific accounts/invoices and their next send date.
+- When listing planned outreach by account, link debtors using /debtors/{debtor_id} and invoices using /invoices/{invoice_id}.
 
 If the portfolio has no data (zero debtors, zero invoices, zero contracts), say so plainly and suggest the user import or sync data.
 
