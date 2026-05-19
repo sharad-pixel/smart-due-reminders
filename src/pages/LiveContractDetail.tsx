@@ -20,6 +20,7 @@ import {
   Users,
   ShieldAlert,
   Trash2,
+  Archive,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -80,7 +81,9 @@ const LiveContractDetailInner = () => {
   const { accountId } = useClmEntitlement();
   const [asc606Open, setAsc606Open] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmArchive, setConfirmArchive] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [archiving, setArchiving] = useState(false);
 
   const handleDelete = async () => {
     if (!importId) return;
@@ -99,6 +102,27 @@ const LiveContractDetailInner = () => {
     } finally {
       setDeleting(false);
       setConfirmDelete(false);
+    }
+  };
+
+  const handleArchive = async () => {
+    if (!importId) return;
+    setArchiving(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("live-contract-actions", {
+        body: { importId, action: "archive_import" },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      toast.success("Contract archived — invoices and alerts preserved for audit");
+      qc.invalidateQueries({ queryKey: ["lc-imports"] });
+      qc.invalidateQueries({ queryKey: ["live-contract-detail", importId] });
+      navigate("/contracts/live");
+    } catch (e: any) {
+      toast.error(e?.message || "Archive failed");
+    } finally {
+      setArchiving(false);
+      setConfirmArchive(false);
     }
   };
 
@@ -338,15 +362,43 @@ const LiveContractDetailInner = () => {
                 Manage team
               </Link>
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setConfirmDelete(true)}
-              className="text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10"
-            >
-              <Trash2 className="h-4 w-4 mr-1" />
-              Delete
-            </Button>
+            {(() => {
+              const DELETABLE = new Set([
+                "found", "queued", "scanning", "ocr_processing", "ai_extracting",
+                "needs_review", "failed", "rejected", "duplicate",
+              ]);
+              const canDelete = DELETABLE.has(String(c.status || ""));
+              if (canDelete) {
+                return (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setConfirmDelete(true)}
+                    className="text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10"
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    Delete
+                  </Button>
+                );
+              }
+              if (c.status === "archived") {
+                return (
+                  <Badge variant="outline" className="bg-muted text-muted-foreground">
+                    <Archive className="h-3.5 w-3.5 mr-1" /> Archived
+                  </Badge>
+                );
+              }
+              return (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setConfirmArchive(true)}
+                >
+                  <Archive className="h-4 w-4 mr-1" />
+                  Archive
+                </Button>
+              );
+            })()}
             {data.debtor && (
               <Button asChild variant="outline" size="sm">
                 <Link to={`/debtors/${data.debtor.id}`}>
@@ -598,6 +650,28 @@ const LiveContractDetailInner = () => {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleting ? "Deleting…" : "Delete permanently"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={confirmArchive} onOpenChange={(o) => !archiving && setConfirmArchive(o)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Archive "{c.contract_name || c.file_name || "this contract"}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This contract has been extracted and may have generated invoices and date alerts.
+              Archiving hides it from active views and pauses future alerts, but keeps the contract,
+              its invoices, schedule lines, and audit history intact for compliance.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={archiving}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleArchive(); }}
+              disabled={archiving}
+            >
+              {archiving ? "Archiving…" : "Archive contract"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
