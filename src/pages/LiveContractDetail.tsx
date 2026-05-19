@@ -362,15 +362,43 @@ const LiveContractDetailInner = () => {
                 Manage team
               </Link>
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setConfirmDelete(true)}
-              className="text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10"
-            >
-              <Trash2 className="h-4 w-4 mr-1" />
-              Delete
-            </Button>
+            {(() => {
+              const DELETABLE = new Set([
+                "found", "queued", "scanning", "ocr_processing", "ai_extracting",
+                "needs_review", "failed", "rejected", "duplicate",
+              ]);
+              const canDelete = DELETABLE.has(String(c.status || ""));
+              if (canDelete) {
+                return (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setConfirmDelete(true)}
+                    className="text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10"
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    Delete
+                  </Button>
+                );
+              }
+              if (c.status === "archived") {
+                return (
+                  <Badge variant="outline" className="bg-muted text-muted-foreground">
+                    <Archive className="h-3.5 w-3.5 mr-1" /> Archived
+                  </Badge>
+                );
+              }
+              return (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setConfirmArchive(true)}
+                >
+                  <Archive className="h-4 w-4 mr-1" />
+                  Archive
+                </Button>
+              );
+            })()}
             {data.debtor && (
               <Button asChild variant="outline" size="sm">
                 <Link to={`/debtors/${data.debtor.id}`}>
