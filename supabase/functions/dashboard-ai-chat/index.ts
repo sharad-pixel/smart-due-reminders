@@ -76,7 +76,7 @@ Deno.serve(async (req) => {
         .select("id, invoice_id, step_number, channel, subject, status, recommended_send_date, days_past_due, sent_at, auto_approved, created_at")
         .eq("user_id", accountId)
         .is("sent_at", null)
-        .in("status", ["pending_approval", "approved", "scheduled", "queued"])
+        .in("status", ["pending_approval", "approved"])
         .order("recommended_send_date", { ascending: true, nullsFirst: false })
         .limit(300),
       // Recent sent outreach (last 30d) for context on cadence
