@@ -380,6 +380,7 @@ function FoldersTab() {
 // ------- Upload dialog -------
 function UploadDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [files, setFiles] = useState<File[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
@@ -455,6 +456,11 @@ function UploadDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o:
         }
         qc.invalidateQueries({ queryKey: ["lc-imports"] });
       });
+      if (results.length === 1) {
+        navigate(`/ai-ingestion/${results[0].import.id}`);
+      } else if (results.length > 1) {
+        navigate("/ai-ingestion?status=scanning");
+      }
     },
     onError: (e: any) => { toast.error(e.message); setProgress(null); },
   });
