@@ -59,6 +59,7 @@ import { Asc606ChatPanel } from "@/components/clm/Asc606ChatPanel";
 import { useClmEntitlement } from "@/hooks/useClmEntitlement";
 import { FileCheck2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { AssignContractDebtor } from "@/components/contracts/AssignContractDebtor";
 
 const FIN_KEYS = new Set<string>([
   ...Array.from(AMOUNT_KEYS),
@@ -406,13 +407,25 @@ const LiveContractDetailInner = () => {
                 </Button>
               );
             })()}
-            {data.debtor && (
-              <Button asChild variant="outline" size="sm">
-                <Link to={`/debtors/${data.debtor.id}`}>
-                  <Building2 className="h-4 w-4 mr-1" />
-                  {data.debtor.company_name || data.debtor.name}
-                </Link>
-              </Button>
+            {data.debtor ? (
+              <>
+                <Button asChild variant="outline" size="sm">
+                  <Link to={`/debtors/${data.debtor.id}`}>
+                    <Building2 className="h-4 w-4 mr-1" />
+                    {data.debtor.company_name || data.debtor.name}
+                  </Link>
+                </Button>
+                <AssignContractDebtor
+                  importId={c.id}
+                  currentDebtorId={c.debtor_id || null}
+                  currentDebtorName={data.debtor.company_name || data.debtor.name}
+                />
+              </>
+            ) : (
+              <AssignContractDebtor
+                importId={c.id}
+                currentDebtorId={null}
+              />
             )}
           </div>
         }
