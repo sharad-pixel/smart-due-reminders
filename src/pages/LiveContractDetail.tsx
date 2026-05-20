@@ -406,13 +406,25 @@ const LiveContractDetailInner = () => {
                 </Button>
               );
             })()}
-            {data.debtor && (
-              <Button asChild variant="outline" size="sm">
-                <Link to={`/debtors/${data.debtor.id}`}>
-                  <Building2 className="h-4 w-4 mr-1" />
-                  {data.debtor.company_name || data.debtor.name}
-                </Link>
-              </Button>
+            {data.debtor ? (
+              <>
+                <Button asChild variant="outline" size="sm">
+                  <Link to={`/debtors/${data.debtor.id}`}>
+                    <Building2 className="h-4 w-4 mr-1" />
+                    {data.debtor.company_name || data.debtor.name}
+                  </Link>
+                </Button>
+                <AssignContractDebtor
+                  importId={c.id}
+                  currentDebtorId={c.debtor_id || null}
+                  currentDebtorName={data.debtor.company_name || data.debtor.name}
+                />
+              </>
+            ) : (
+              <AssignContractDebtor
+                importId={c.id}
+                currentDebtorId={null}
+              />
             )}
           </div>
         }
