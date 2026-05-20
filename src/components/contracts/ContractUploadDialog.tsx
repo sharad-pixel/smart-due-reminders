@@ -86,7 +86,10 @@ export function ContractUploadDialog({ open, onOpenChange, debtorId, debtorName 
       for (const r of results) {
         supabase.functions
           .invoke("live-contract-extract", { body: { importId: r.import.id } })
-          .then(() => qc.invalidateQueries({ queryKey: ["lc-imports"] }))
+          .then(() => {
+            qc.invalidateQueries({ queryKey: ["lc-imports"] });
+            qc.invalidateQueries({ queryKey: ["live-contract-detail", r.import.id] });
+          })
           .catch(() => {/* surfaced on detail page */});
       }
       return results;
@@ -100,7 +103,7 @@ export function ContractUploadDialog({ open, onOpenChange, debtorId, debtorName 
         navigate(`/ai-ingestion/${results[0].import.id}`);
       } else {
         toast.success(`${results.length} contracts uploaded — extracting…`);
-        navigate(`/ai-ingestion`);
+        navigate(`/ai-ingestion?status=scanning`);
       }
     },
     onError: (e: any) => { toast.error(e.message); setProgress(null); },
