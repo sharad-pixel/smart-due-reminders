@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Layout from "@/components/layout/Layout";
 import IngestionBalanceCard from "@/components/ingestion/IngestionBalanceCard";
@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { openFolderPicker } from "@/lib/googlePicker";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   FolderPlus, RefreshCw, Upload, FileText, Sparkles, AlertTriangle, CalendarClock,
   CheckCircle2, XCircle, FileSearch, Building2, DollarSign, Receipt, Loader2,
@@ -44,6 +45,7 @@ const STATUS_LABEL: Record<string, string> = {
   duplicate: "Duplicate",
   failed: "Failed",
   rejected: "Rejected",
+  archived: "Archived",
 };
 const STATUS_VARIANT = (s: string): "default" | "secondary" | "destructive" | "outline" => {
   if (["imported", "approved"].includes(s)) return "default";
@@ -88,7 +90,7 @@ function useImports() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("live_contract_imports")
-        .select("*")
+        .select("*, debtor:debtors(id, company_name, name)")
         .order("created_at", { ascending: false })
         .limit(200);
       if (error) throw error;
@@ -210,12 +212,16 @@ function RecentScansCard({ imports }: { imports: any[] }) {
             </TableHeader>
             <TableBody>
               {recent.map((i) => (
-                <TableRow key={i.id} className="cursor-pointer hover:bg-muted/50">
+                <TableRow
+                  key={i.id}
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => { window.location.href = `/contracts/live/${i.id}`; }}
+                >
                   <TableCell className="max-w-[280px]">
-                    <Link to={`/contracts/live/${i.id}`} className="block">
-                      <div className="font-medium text-sm truncate">{i.contract_name || i.file_name}</div>
-                      <div className="text-xs text-muted-foreground truncate">{i.source}</div>
-                    </Link>
+                    <div className="font-medium text-sm truncate">{i.contract_name || i.file_name}</div>
+                    <div className="text-xs text-muted-foreground truncate">
+                      {i.debtor?.company_name || i.debtor?.name || i.source}
+                    </div>
                   </TableCell>
                   <TableCell className="text-sm">{i.contract_type || "—"}</TableCell>
                   <TableCell>
@@ -225,7 +231,7 @@ function RecentScansCard({ imports }: { imports: any[] }) {
                   <TableCell className="text-xs text-muted-foreground">
                     {i.created_at ? new Date(i.created_at).toLocaleDateString() : "—"}
                   </TableCell>
-                  <TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
                     <Button asChild size="sm" variant="ghost">
                       <Link to={`/contracts/live/${i.id}`}>
                         <ExternalLink className="h-3.5 w-3.5" />
@@ -561,6 +567,7 @@ function ImportsEmptyState({ statusFilter }: { statusFilter?: string[] }) {
 // ------- Imports/Queue table -------
 function ImportsTable({ imports, onReview, statusFilter }: { imports: any[]; onReview: (id: string) => void; statusFilter?: string[] }) {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const filtered = statusFilter ? imports.filter((i) => statusFilter.includes(i.status)) : imports;
   const extract = useMutation({
     mutationFn: async (importId: string) => {
@@ -598,6 +605,7 @@ function ImportsTable({ imports, onReview, statusFilter }: { imports: any[]; onR
       <TableHeader>
         <TableRow>
           <TableHead>File</TableHead>
+          <TableHead>Account</TableHead>
           <TableHead>Type</TableHead>
           <TableHead>Status</TableHead>
           <TableHead>Confidence</TableHead>
@@ -609,7 +617,11 @@ function ImportsTable({ imports, onReview, statusFilter }: { imports: any[]; onR
           const isFailed = i.status === "failed" || i.status === "rejected";
           const busy = del.isPending || extract.isPending;
           return (
-          <TableRow key={i.id} className={isFailed ? "bg-destructive/5" : undefined}>
+          <TableRow
+            key={i.id}
+            className={`${isFailed ? "bg-destructive/5 " : ""}cursor-pointer hover:bg-muted/50`}
+            onClick={() => navigate(`/contracts/live/${i.id}`)}
+          >
             <TableCell>
               <div className="font-medium text-sm">{i.contract_name || i.file_name}</div>
               <div className="text-xs text-muted-foreground">{i.source}</div>
@@ -621,6 +633,9 @@ function ImportsTable({ imports, onReview, statusFilter }: { imports: any[]; onR
                   </div>
                 </div>
               )}
+            </TableCell>
+            <TableCell className="text-sm">
+              {i.debtor?.company_name || i.debtor?.name || <span className="text-muted-foreground">—</span>}
             </TableCell>
             <TableCell className="text-sm">{i.contract_type || "—"}</TableCell>
             <TableCell>
@@ -637,7 +652,7 @@ function ImportsTable({ imports, onReview, statusFilter }: { imports: any[]; onR
               </div>
             </TableCell>
             <TableCell className="text-sm">{i.confidence ? `${Math.round(i.confidence)}%` : "—"}</TableCell>
-            <TableCell className="text-right">
+            <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-end gap-1.5">
                 {isFailed ? (
                   <Button size="sm" variant="outline" onClick={() => extract.mutate(i.id)} disabled={busy}>
@@ -1185,14 +1200,49 @@ export default function LiveContracts() {
   const { data: folders = [] } = useFolders();
   const [reviewId, setReviewId] = useState<string | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [accountFilter, setAccountFilter] = useState<string>("all");
+  const [showArchived, setShowArchived] = useState(false);
+  const [searchText, setSearchText] = useState("");
+
+  // Distinct accounts present in the contract list
+  const accountOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    imports.forEach((i: any) => {
+      const id = i.debtor?.id || i.debtor_id;
+      const name = i.debtor?.company_name || i.debtor?.name;
+      if (id && name) map.set(id, name);
+    });
+    return Array.from(map.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [imports]);
+
+  // Apply filters to the shared imports list
+  const filteredImports = useMemo(() => {
+    const q = searchText.trim().toLowerCase();
+    return imports.filter((i: any) => {
+      if (!showArchived && i.status === "archived") return false;
+      if (accountFilter !== "all") {
+        const id = i.debtor?.id || i.debtor_id;
+        if (id !== accountFilter) return false;
+      }
+      if (q) {
+        const hay = `${i.contract_name || ""} ${i.file_name || ""} ${i.debtor?.company_name || ""} ${i.debtor?.name || ""} ${i.contract_type || ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [imports, accountFilter, showArchived, searchText]);
 
   const tabCounts = useMemo(() => {
     const queueStatuses = ["found", "queued", "scanning", "ocr_processing", "ai_extracting", "failed"];
-    const importedStatuses = ["imported", "duplicate", "rejected", "approved"];
-    const queue = imports.filter((i: any) => queueStatuses.includes(i.status));
+    const importedStatuses = showArchived
+      ? ["imported", "duplicate", "rejected", "approved", "archived"]
+      : ["imported", "duplicate", "rejected", "approved"];
+    const queue = filteredImports.filter((i: any) => queueStatuses.includes(i.status));
     const failedInQueue = queue.filter((i: any) => i.status === "failed").length;
-    const review = imports.filter((i: any) => i.status === "needs_review").length;
-    const imported = imports.filter((i: any) => importedStatuses.includes(i.status)).length;
+    const review = filteredImports.filter((i: any) => i.status === "needs_review").length;
+    const imported = filteredImports.filter((i: any) => importedStatuses.includes(i.status)).length;
     const lastScanned = folders.reduce((max: number, f: any) => {
       const t = f.last_scanned_at ? new Date(f.last_scanned_at).getTime() : 0;
       return t > max ? t : max;
@@ -1210,9 +1260,12 @@ export default function LiveContracts() {
       review,
       reviewSub: review ? "Action needed" : "All clear",
       imported,
-      importedSub: "Approved & duplicates",
+      importedSub: showArchived ? "Includes archived" : "Approved & duplicates",
+      importedStatuses,
     };
-  }, [imports, folders]);
+  }, [filteredImports, folders, showArchived]);
+
+  const filtersActive = accountFilter !== "all" || showArchived || searchText.trim().length > 0;
 
   return (
     <>
@@ -1235,9 +1288,57 @@ export default function LiveContracts() {
 
           <IngestionBalanceCard />
 
-          <DashboardWidgets imports={imports} />
+          {/* Filters */}
+          <Card>
+            <CardContent className="pt-4 pb-4">
+              <div className="flex flex-col md:flex-row md:items-center gap-3 flex-wrap">
+                <div className="flex-1 min-w-[200px]">
+                  <Input
+                    placeholder="Search by contract name, file, type, or account…"
+                    value={searchText}
+                    onChange={(e) => setSearchText(e.target.value)}
+                    className="h-9"
+                  />
+                </div>
+                <div className="w-full md:w-64">
+                  <Select value={accountFilter} onValueChange={setAccountFilter}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="Filter by account" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All accounts ({accountOptions.length})</SelectItem>
+                      {accountOptions.map((a) => (
+                        <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                  <Checkbox
+                    checked={showArchived}
+                    onCheckedChange={(v) => setShowArchived(!!v)}
+                  />
+                  Show archived
+                </label>
+                {filtersActive && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => { setAccountFilter("all"); setShowArchived(false); setSearchText(""); }}
+                  >
+                    Clear filters
+                  </Button>
+                )}
+                <div className="text-xs text-muted-foreground md:ml-auto">
+                  Showing {filteredImports.length} of {imports.length} contract{imports.length === 1 ? "" : "s"}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-          <RecentScansCard imports={imports} />
+          <DashboardWidgets imports={filteredImports} />
+
+          <RecentScansCard imports={filteredImports} />
 
           <Tabs defaultValue={tabCounts.review > 0 ? "review" : "folders"}>
             <TabsList className="w-full h-auto bg-muted/40 p-1.5 flex flex-wrap gap-1 justify-stretch">
@@ -1289,7 +1390,7 @@ export default function LiveContracts() {
               <Card>
                 <CardHeader><CardTitle>Scan queue</CardTitle><CardDescription>Files discovered or uploaded, awaiting extraction.</CardDescription></CardHeader>
                 <CardContent>
-                  <ImportsTable imports={imports} onReview={setReviewId}
+                  <ImportsTable imports={filteredImports} onReview={setReviewId}
                     statusFilter={["found", "queued", "scanning", "ocr_processing", "ai_extracting", "failed"]} />
                 </CardContent>
               </Card>
@@ -1299,16 +1400,18 @@ export default function LiveContracts() {
               <Card>
                 <CardHeader><CardTitle>Needs review</CardTitle><CardDescription>Confirm extracted data before importing into your account.</CardDescription></CardHeader>
                 <CardContent>
-                  <ImportsTable imports={imports} onReview={setReviewId} statusFilter={["needs_review"]} />
+                  <ImportsTable imports={filteredImports} onReview={setReviewId} statusFilter={["needs_review"]} />
                 </CardContent>
               </Card>
             </TabsContent>
 
             <TabsContent value="imported" className="mt-4">
               <Card>
-                <CardHeader><CardTitle>Imported & duplicates</CardTitle></CardHeader>
+                <CardHeader>
+                  <CardTitle>Imported & duplicates{showArchived ? " (incl. archived)" : ""}</CardTitle>
+                </CardHeader>
                 <CardContent>
-                  <ImportsTable imports={imports} onReview={setReviewId} statusFilter={["imported", "duplicate", "rejected", "approved"]} />
+                  <ImportsTable imports={filteredImports} onReview={setReviewId} statusFilter={tabCounts.importedStatuses} />
                 </CardContent>
               </Card>
             </TabsContent>
