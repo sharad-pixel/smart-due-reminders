@@ -617,7 +617,11 @@ function ImportsTable({ imports, onReview, statusFilter }: { imports: any[]; onR
           const isFailed = i.status === "failed" || i.status === "rejected";
           const busy = del.isPending || extract.isPending;
           return (
-          <TableRow key={i.id} className={isFailed ? "bg-destructive/5" : undefined}>
+          <TableRow
+            key={i.id}
+            className={`${isFailed ? "bg-destructive/5 " : ""}cursor-pointer hover:bg-muted/50`}
+            onClick={() => navigate(`/contracts/live/${i.id}`)}
+          >
             <TableCell>
               <div className="font-medium text-sm">{i.contract_name || i.file_name}</div>
               <div className="text-xs text-muted-foreground">{i.source}</div>
@@ -629,6 +633,9 @@ function ImportsTable({ imports, onReview, statusFilter }: { imports: any[]; onR
                   </div>
                 </div>
               )}
+            </TableCell>
+            <TableCell className="text-sm">
+              {i.debtor?.company_name || i.debtor?.name || <span className="text-muted-foreground">—</span>}
             </TableCell>
             <TableCell className="text-sm">{i.contract_type || "—"}</TableCell>
             <TableCell>
