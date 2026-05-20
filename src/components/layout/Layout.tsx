@@ -36,7 +36,8 @@ import {
   FileSearch,
   Briefcase,
   Sparkles,
-  CreditCard
+  CreditCard,
+  Library,
 } from "lucide-react";
 import {
   DropdownMenu,
