@@ -80,18 +80,6 @@ export function ContractUploadDialog({ open, onOpenChange, debtorId, debtorName 
       }
       if (!results.length) throw new Error("All uploads failed");
 
-      // Fire-and-forget extraction(s) — GPT-5 can take 60–90s. Navigate
-      // immediately so the user watches status update on the detail page
-      // instead of staring at a blocked dialog.
-      for (const r of results) {
-        supabase.functions
-          .invoke("live-contract-extract", { body: { importId: r.import.id } })
-          .then(() => {
-            qc.invalidateQueries({ queryKey: ["lc-imports"] });
-            qc.invalidateQueries({ queryKey: ["live-contract-detail", r.import.id] });
-          })
-          .catch(() => {/* surfaced on detail page */});
-      }
       return results;
     },
     onSuccess: (results: any[]) => {
