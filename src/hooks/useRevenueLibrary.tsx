@@ -74,7 +74,7 @@ export function useRevenueLibrary() {
 
   const upsert = useMutation({
     mutationFn: async (input: RevenueLibraryInput & { id?: string }) => {
-      if (!acct?.accountId || !acct?.userId) throw new Error("Not authenticated");
+      if (!acct.accountId || !acct.userId) throw new Error("Not authenticated");
       const payload: any = {
         account_id: acct.accountId,
         user_id: acct.userId,
