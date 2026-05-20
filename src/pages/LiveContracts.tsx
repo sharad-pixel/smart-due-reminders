@@ -88,7 +88,7 @@ function useImports() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("live_contract_imports")
-        .select("*")
+        .select("*, debtor:debtors(id, company_name, name)")
         .order("created_at", { ascending: false })
         .limit(200);
       if (error) throw error;
