@@ -212,12 +212,16 @@ function RecentScansCard({ imports }: { imports: any[] }) {
             </TableHeader>
             <TableBody>
               {recent.map((i) => (
-                <TableRow key={i.id} className="cursor-pointer hover:bg-muted/50">
+                <TableRow
+                  key={i.id}
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => { window.location.href = `/contracts/live/${i.id}`; }}
+                >
                   <TableCell className="max-w-[280px]">
-                    <Link to={`/contracts/live/${i.id}`} className="block">
-                      <div className="font-medium text-sm truncate">{i.contract_name || i.file_name}</div>
-                      <div className="text-xs text-muted-foreground truncate">{i.source}</div>
-                    </Link>
+                    <div className="font-medium text-sm truncate">{i.contract_name || i.file_name}</div>
+                    <div className="text-xs text-muted-foreground truncate">
+                      {i.debtor?.company_name || i.debtor?.name || i.source}
+                    </div>
                   </TableCell>
                   <TableCell className="text-sm">{i.contract_type || "—"}</TableCell>
                   <TableCell>
@@ -227,7 +231,7 @@ function RecentScansCard({ imports }: { imports: any[] }) {
                   <TableCell className="text-xs text-muted-foreground">
                     {i.created_at ? new Date(i.created_at).toLocaleDateString() : "—"}
                   </TableCell>
-                  <TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
                     <Button asChild size="sm" variant="ghost">
                       <Link to={`/contracts/live/${i.id}`}>
                         <ExternalLink className="h-3.5 w-3.5" />
