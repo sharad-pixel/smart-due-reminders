@@ -59,6 +59,7 @@ import { Asc606ChatPanel } from "@/components/clm/Asc606ChatPanel";
 import { useClmEntitlement } from "@/hooks/useClmEntitlement";
 import { FileCheck2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { AssignContractDebtor } from "@/components/contracts/AssignContractDebtor";
 
 const FIN_KEYS = new Set<string>([
   ...Array.from(AMOUNT_KEYS),
