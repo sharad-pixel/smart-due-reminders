@@ -101,7 +101,7 @@ const LiveContractDetailInner = () => {
       if ((data as any)?.error) throw new Error((data as any).error);
       toast.success("Contract deleted");
       qc.invalidateQueries({ queryKey: ["lc-imports"] });
-      navigate("/contracts/live");
+      navigate("/ai-ingestion");
     } catch (e: any) {
       toast.error(e?.message || "Delete failed");
     } finally {
@@ -122,7 +122,7 @@ const LiveContractDetailInner = () => {
       toast.success("Contract archived — invoices and alerts preserved for audit");
       qc.invalidateQueries({ queryKey: ["lc-imports"] });
       qc.invalidateQueries({ queryKey: ["live-contract-detail", importId] });
-      navigate("/contracts/live");
+      navigate("/ai-ingestion");
     } catch (e: any) {
       toast.error(e?.message || "Archive failed");
     } finally {
@@ -299,7 +299,7 @@ const LiveContractDetailInner = () => {
       <div className="container mx-auto py-16 text-center">
         <p className="text-muted-foreground">Contract not found.</p>
         <Button asChild variant="outline" className="mt-4">
-          <Link to="/contracts/live">Back to Live Contracts</Link>
+          <Link to="/ai-ingestion">Back to Contracts</Link>
         </Button>
       </div>
     );
@@ -325,13 +325,13 @@ const LiveContractDetailInner = () => {
         size="sm"
         onClick={() => {
           if (window.history.length > 1) navigate(-1);
-          else navigate(data.debtor ? `/debtors/${data.debtor.id}` : "/contracts/live");
+          else navigate(data.debtor ? `/debtors/${data.debtor.id}` : "/ai-ingestion");
         }}
       >
         <ArrowLeft className="h-4 w-4 mr-1" />
         {data.debtor
           ? `Back to ${data.debtor.company_name || data.debtor.name}`
-          : "Back to Live Contracts"}
+          : "Back to Contracts"}
       </Button>
 
       <ClmBrandedHeader
