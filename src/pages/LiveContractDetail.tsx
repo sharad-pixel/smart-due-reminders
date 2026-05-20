@@ -47,6 +47,7 @@ import ContractRevenueItemsPanel from "@/components/contracts/ContractRevenueIte
 import { ContractOverviewEditor } from "@/components/clm/ContractOverviewEditor";
 import { ContractScheduleLines } from "@/components/clm/ContractScheduleLines";
 import { ContractExtractedFieldsEditor } from "@/components/clm/ContractExtractedFieldsEditor";
+import { EditableFinancialTermsCard } from "@/components/clm/EditableFinancialTermsCard";
 import { ContractRiskFlagsEditor } from "@/components/clm/ContractRiskFlagsEditor";
 import { InvoiceDataAuditPanel } from "@/components/clm/InvoiceDataAuditPanel";
 import { ContractTermGauge } from "@/components/clm/ContractTermGauge";
