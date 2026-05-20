@@ -44,6 +44,7 @@ const STATUS_LABEL: Record<string, string> = {
   duplicate: "Duplicate",
   failed: "Failed",
   rejected: "Rejected",
+  archived: "Archived",
 };
 const STATUS_VARIANT = (s: string): "default" | "secondary" | "destructive" | "outline" => {
   if (["imported", "approved"].includes(s)) return "default";
