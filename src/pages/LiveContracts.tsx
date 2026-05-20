@@ -99,6 +99,17 @@ function useImports() {
       if (error) throw error;
       return data || [];
     },
+    // Poll while any contract is still mid-flight so the list reflects
+    // Scanned → Under Review → Extracted progression without a manual refresh.
+    refetchInterval: (q) => {
+      const rows: any[] = (q.state.data as any[]) || [];
+      const inFlight = rows.some((r) =>
+        ["found", "queued", "scanning", "ocr_processing", "ai_extracting", "processing", "extracting"].includes(r.status)
+      );
+      return inFlight ? 3000 : false;
+    },
+    refetchOnWindowFocus: true,
+    refetchOnMount: "always",
   });
 }
 
