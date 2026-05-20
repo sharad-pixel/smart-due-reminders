@@ -567,6 +567,7 @@ function ImportsEmptyState({ statusFilter }: { statusFilter?: string[] }) {
 // ------- Imports/Queue table -------
 function ImportsTable({ imports, onReview, statusFilter }: { imports: any[]; onReview: (id: string) => void; statusFilter?: string[] }) {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const filtered = statusFilter ? imports.filter((i) => statusFilter.includes(i.status)) : imports;
   const extract = useMutation({
     mutationFn: async (importId: string) => {
