@@ -59,6 +59,21 @@ Deno.serve(async (req) => {
       event_type: "file_uploaded", event_details: { file_name: file.name, size: file.size },
     });
 
+    const extraction = fetch(`${supabaseUrl}/functions/v1/live-contract-extract`, {
+      method: "POST",
+      headers: {
+        Authorization: authHeader,
+        apikey: anonKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ importId: imp.id }),
+    }).then(async (res) => {
+      if (!res.ok) console.error(`[LC-UPLOAD] extraction trigger failed ${res.status}: ${await res.text()}`);
+    }).catch((e) => console.error("[LC-UPLOAD] extraction trigger error", e));
+
+    const edgeRuntime = (globalThis as any).EdgeRuntime;
+    if (edgeRuntime?.waitUntil) edgeRuntime.waitUntil(extraction);
+
     return new Response(JSON.stringify({ success: true, import: imp }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
