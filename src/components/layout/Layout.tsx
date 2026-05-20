@@ -274,6 +274,7 @@ const Layout = ({ children }: LayoutProps) => {
 
   const revenueIntelligenceItems = [
     { path: "/ai-ingestion", label: "Live Contracts", icon: FileSignature },
+    { path: "/revenue-library", label: "Revenue Library", icon: Library },
     { path: "/revenue-risk", label: "Revenue Risk", icon: ShieldAlert },
     ...(clmActive ? [{ path: "/contracts", label: "CLM Workspaces", icon: Briefcase }] : []),
   ];
