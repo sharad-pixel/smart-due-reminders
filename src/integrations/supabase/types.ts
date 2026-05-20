@@ -8787,6 +8787,59 @@ export type Database = {
           },
         ]
       }
+      live_contract_supporting_docs: {
+        Row: {
+          account_id: string
+          created_at: string
+          doc_type: string
+          file_name: string
+          file_size: number | null
+          id: string
+          import_id: string
+          mime_type: string | null
+          notes: string | null
+          storage_path: string
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          doc_type?: string
+          file_name: string
+          file_size?: number | null
+          id?: string
+          import_id: string
+          mime_type?: string | null
+          notes?: string | null
+          storage_path: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          doc_type?: string
+          file_name?: string
+          file_size?: number | null
+          id?: string
+          import_id?: string
+          mime_type?: string | null
+          notes?: string | null
+          storage_path?: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_contract_supporting_docs_import_id_fkey"
+            columns: ["import_id"]
+            isOneToOne: false
+            referencedRelation: "live_contract_imports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       live_contract_watchers: {
         Row: {
           account_id: string
