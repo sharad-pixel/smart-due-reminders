@@ -1200,14 +1200,49 @@ export default function LiveContracts() {
   const { data: folders = [] } = useFolders();
   const [reviewId, setReviewId] = useState<string | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [accountFilter, setAccountFilter] = useState<string>("all");
+  const [showArchived, setShowArchived] = useState(false);
+  const [searchText, setSearchText] = useState("");
+
+  // Distinct accounts present in the contract list
+  const accountOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    imports.forEach((i: any) => {
+      const id = i.debtor?.id || i.debtor_id;
+      const name = i.debtor?.company_name || i.debtor?.name;
+      if (id && name) map.set(id, name);
+    });
+    return Array.from(map.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [imports]);
+
+  // Apply filters to the shared imports list
+  const filteredImports = useMemo(() => {
+    const q = searchText.trim().toLowerCase();
+    return imports.filter((i: any) => {
+      if (!showArchived && i.status === "archived") return false;
+      if (accountFilter !== "all") {
+        const id = i.debtor?.id || i.debtor_id;
+        if (id !== accountFilter) return false;
+      }
+      if (q) {
+        const hay = `${i.contract_name || ""} ${i.file_name || ""} ${i.debtor?.company_name || ""} ${i.debtor?.name || ""} ${i.contract_type || ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [imports, accountFilter, showArchived, searchText]);
 
   const tabCounts = useMemo(() => {
     const queueStatuses = ["found", "queued", "scanning", "ocr_processing", "ai_extracting", "failed"];
-    const importedStatuses = ["imported", "duplicate", "rejected", "approved"];
-    const queue = imports.filter((i: any) => queueStatuses.includes(i.status));
+    const importedStatuses = showArchived
+      ? ["imported", "duplicate", "rejected", "approved", "archived"]
+      : ["imported", "duplicate", "rejected", "approved"];
+    const queue = filteredImports.filter((i: any) => queueStatuses.includes(i.status));
     const failedInQueue = queue.filter((i: any) => i.status === "failed").length;
-    const review = imports.filter((i: any) => i.status === "needs_review").length;
-    const imported = imports.filter((i: any) => importedStatuses.includes(i.status)).length;
+    const review = filteredImports.filter((i: any) => i.status === "needs_review").length;
+    const imported = filteredImports.filter((i: any) => importedStatuses.includes(i.status)).length;
     const lastScanned = folders.reduce((max: number, f: any) => {
       const t = f.last_scanned_at ? new Date(f.last_scanned_at).getTime() : 0;
       return t > max ? t : max;
@@ -1225,9 +1260,12 @@ export default function LiveContracts() {
       review,
       reviewSub: review ? "Action needed" : "All clear",
       imported,
-      importedSub: "Approved & duplicates",
+      importedSub: showArchived ? "Includes archived" : "Approved & duplicates",
+      importedStatuses,
     };
-  }, [imports, folders]);
+  }, [filteredImports, folders, showArchived]);
+
+  const filtersActive = accountFilter !== "all" || showArchived || searchText.trim().length > 0;
 
   return (
     <>
