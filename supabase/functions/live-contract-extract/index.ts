@@ -561,7 +561,7 @@ Deno.serve(async (req) => {
     const { data: extractionRow, error: extractionErr } = await supabase.from("live_contract_extractions").insert({
       account_id: imp.account_id, import_id: imp.id,
       raw_text: text.slice(0, 50_000), ai_response: extracted,
-      model: "google/gemini-2.5-pro",
+      model: "openai/gpt-5",
     }).select().single();
     if (extractionErr || !extractionRow) {
       const msg = `Failed to persist extraction: ${extractionErr?.message || "no row returned"}`;
