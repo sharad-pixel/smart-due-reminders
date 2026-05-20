@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Layout from "@/components/layout/Layout";
 import IngestionBalanceCard from "@/components/ingestion/IngestionBalanceCard";
@@ -380,6 +380,7 @@ function FoldersTab() {
 // ------- Upload dialog -------
 function UploadDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [files, setFiles] = useState<File[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
@@ -438,23 +439,11 @@ function UploadDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o:
       onOpenChange(false);
       setFiles([]);
       setProgress(null);
-      // Trigger extraction in parallel
-      Promise.allSettled(
-        results.map((d: any) =>
-          supabase.functions.invoke("live-contract-extract", { body: { importId: d.import.id } })
-            .then(async ({ data, error }) => {
-              if (error) await throwFunctionError(error, "Extraction failed");
-              if (data?.error) throw new Error(data.error);
-              return data;
-            })
-        )
-      ).then((settled) => {
-        const failed = settled.filter((r) => r.status === "rejected") as PromiseRejectedResult[];
-        if (failed.length) {
-          toast.error(`Extraction failed: ${failed[0].reason?.message || String(failed[0].reason)}`);
-        }
-        qc.invalidateQueries({ queryKey: ["lc-imports"] });
-      });
+      if (results.length === 1) {
+        navigate(`/ai-ingestion/${results[0].import.id}`);
+      } else if (results.length > 1) {
+        navigate("/ai-ingestion?status=scanning");
+      }
     },
     onError: (e: any) => { toast.error(e.message); setProgress(null); },
   });
@@ -1212,11 +1201,13 @@ function RichTab({
 export default function LiveContracts() {
   const { data: imports = [] } = useImports();
   const { data: folders = [] } = useFolders();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [reviewId, setReviewId] = useState<string | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [accountFilter, setAccountFilter] = useState<string>("all");
   const [showArchived, setShowArchived] = useState(false);
   const [searchText, setSearchText] = useState("");
+  const requestedStatus = searchParams.get("status");
 
   // Distinct accounts present in the contract list
   const accountOptions = useMemo(() => {
@@ -1280,6 +1271,13 @@ export default function LiveContracts() {
   }, [filteredImports, folders, showArchived]);
 
   const filtersActive = accountFilter !== "all" || showArchived || searchText.trim().length > 0;
+  const activeTab = requestedStatus === "scanning" || requestedStatus === "queued" || requestedStatus === "failed"
+    ? "queue"
+    : requestedStatus === "needs_review"
+      ? "review"
+      : requestedStatus === "imported"
+        ? "imported"
+        : tabCounts.review > 0 ? "review" : "folders";
 
   return (
     <>
@@ -1354,7 +1352,14 @@ export default function LiveContracts() {
 
           <RecentScansCard imports={filteredImports} />
 
-          <Tabs defaultValue={tabCounts.review > 0 ? "review" : "folders"}>
+          <Tabs value={activeTab} onValueChange={(value) => {
+            const next = new URLSearchParams(searchParams);
+            if (value === "queue") next.set("status", "scanning");
+            else if (value === "review") next.set("status", "needs_review");
+            else if (value === "imported") next.set("status", "imported");
+            else next.delete("status");
+            setSearchParams(next, { replace: true });
+          }}>
             <TabsList className="w-full h-auto bg-muted/40 p-1.5 flex flex-wrap gap-1 justify-stretch">
               <RichTab
                 value="folders"
