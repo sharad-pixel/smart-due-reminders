@@ -183,8 +183,10 @@ const LiveContractDetailInner = () => {
     // Poll while AI is still extracting so the page updates the moment it lands.
     refetchInterval: (q) => {
       const s = (q.state.data as any)?.imp?.status;
-      return s && ["queued", "processing", "extracting"].includes(String(s)) ? 3000 : false;
+      return s && ["found", "queued", "scanning", "ocr_processing", "ai_extracting", "processing", "extracting"].includes(String(s)) ? 3000 : false;
     },
+    refetchOnWindowFocus: true,
+    refetchOnMount: "always",
   });
 
   const totals = useMemo(() => {
