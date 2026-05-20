@@ -605,6 +605,7 @@ function ImportsTable({ imports, onReview, statusFilter }: { imports: any[]; onR
       <TableHeader>
         <TableRow>
           <TableHead>File</TableHead>
+          <TableHead>Account</TableHead>
           <TableHead>Type</TableHead>
           <TableHead>Status</TableHead>
           <TableHead>Confidence</TableHead>
