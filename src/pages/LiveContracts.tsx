@@ -439,23 +439,6 @@ function UploadDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o:
       onOpenChange(false);
       setFiles([]);
       setProgress(null);
-      // Trigger extraction in parallel
-      Promise.allSettled(
-        results.map((d: any) =>
-          supabase.functions.invoke("live-contract-extract", { body: { importId: d.import.id } })
-            .then(async ({ data, error }) => {
-              if (error) await throwFunctionError(error, "Extraction failed");
-              if (data?.error) throw new Error(data.error);
-              return data;
-            })
-        )
-      ).then((settled) => {
-        const failed = settled.filter((r) => r.status === "rejected") as PromiseRejectedResult[];
-        if (failed.length) {
-          toast.error(`Extraction failed: ${failed[0].reason?.message || String(failed[0].reason)}`);
-        }
-        qc.invalidateQueries({ queryKey: ["lc-imports"] });
-      });
       if (results.length === 1) {
         navigate(`/ai-ingestion/${results[0].import.id}`);
       } else if (results.length > 1) {
