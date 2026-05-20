@@ -56,16 +56,16 @@ export const RECOGNITION_METHODS: { value: RecognitionMethod; label: string }[] 
 
 export function useRevenueLibrary() {
   const qc = useQueryClient();
-  const { data: acct } = useAccountId();
+  const acct = useAccountId();
 
   const list = useQuery({
-    queryKey: ["revenue-library", acct?.accountId],
-    enabled: !!acct?.accountId,
+    queryKey: ["revenue-library", acct.accountId],
+    enabled: !!acct.accountId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("revenue_library_items")
         .select("*")
-        .eq("account_id", acct!.accountId!)
+        .eq("account_id", acct.accountId!)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data || []) as RevenueLibraryItem[];
