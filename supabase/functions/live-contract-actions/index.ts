@@ -107,6 +107,33 @@ Deno.serve(async (req) => {
       return json({ success: true, archived: true });
     }
 
+    if (action === "complete_review") {
+      // Flip from "needs_review" (Under Review) → "imported" (Extracted).
+      // Idempotent: if already extracted, just return success.
+      const ALLOWED_FROM = new Set(["needs_review", "found", "scanning", "ocr_processing", "ai_extracting", "queued"]);
+      if (imp.status === "imported" || imp.status === "approved") {
+        return json({ success: true, alreadyExtracted: true });
+      }
+      if (!ALLOWED_FROM.has(imp.status)) {
+        return json({ error: `Cannot complete review from status "${imp.status}".` }, 400);
+      }
+      const { error: updErr } = await supabase
+        .from("live_contract_imports")
+        .update({ status: "imported", updated_at: new Date().toISOString() })
+        .eq("id", importId);
+      if (updErr) return json({ error: updErr.message }, 500);
+
+      try {
+        await supabase.from("live_contract_audit_log").insert({
+          account_id: imp.account_id, user_id: user.id, import_id: imp.id,
+          event_type: "review_completed",
+          event_details: { previous_status: imp.status },
+        });
+      } catch (_) { /* best effort */ }
+
+      return json({ success: true });
+    }
+
     // Recalculate key dates from existing extracted fields + contract row.
     // No AI cost. Preserves alert_enabled/alert_lead_days for matching (date_type, due_date).
     if (action === "recalculate_dates") {
