@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { openFolderPicker } from "@/lib/googlePicker";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   FolderPlus, RefreshCw, Upload, FileText, Sparkles, AlertTriangle, CalendarClock,
   CheckCircle2, XCircle, FileSearch, Building2, DollarSign, Receipt, Loader2,
