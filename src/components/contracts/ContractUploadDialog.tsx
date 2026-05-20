@@ -80,23 +80,14 @@ export function ContractUploadDialog({ open, onOpenChange, debtorId, debtorName 
       }
       if (!results.length) throw new Error("All uploads failed");
 
-      // For a single file, wait for the scan so we can land on the detail page with data.
-      if (results.length === 1) {
-        setProgress({ done: 0, total: 1, phase: "Scanning contract" });
-        try {
-          await supabase.functions.invoke("live-contract-extract", {
-            body: { importId: results[0].import.id },
-          });
-        } catch (e) {
-          // Non-fatal — detail page will display whatever was extracted (or the error).
-        }
-      } else {
-        // Fire-and-forget extractions for batch uploads.
-        Promise.allSettled(
-          results.map((d: any) =>
-            supabase.functions.invoke("live-contract-extract", { body: { importId: d.import.id } })
-          )
-        ).then(() => qc.invalidateQueries({ queryKey: ["lc-imports"] }));
+      // Fire-and-forget extraction(s) — GPT-5 can take 60–90s. Navigate
+      // immediately so the user watches status update on the detail page
+      // instead of staring at a blocked dialog.
+      for (const r of results) {
+        supabase.functions
+          .invoke("live-contract-extract", { body: { importId: r.import.id } })
+          .then(() => qc.invalidateQueries({ queryKey: ["lc-imports"] }))
+          .catch(() => {/* surfaced on detail page */});
       }
       return results;
     },
@@ -105,7 +96,7 @@ export function ContractUploadDialog({ open, onOpenChange, debtorId, debtorName 
       onOpenChange(false);
       reset();
       if (results.length === 1) {
-        toast.success("Contract scanned — review and validate the extracted data.");
+        toast.success("Contract uploaded — AI is extracting the terms now.");
         navigate(`/ai-ingestion/${results[0].import.id}`);
       } else {
         toast.success(`${results.length} contracts uploaded — extracting…`);

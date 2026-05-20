@@ -177,6 +177,11 @@ const LiveContractDetailInner = () => {
         debtor: debtorRow,
       };
     },
+    // Poll while AI is still extracting so the page updates the moment it lands.
+    refetchInterval: (q) => {
+      const s = (q.state.data as any)?.imp?.status;
+      return s && ["queued", "processing", "extracting"].includes(String(s)) ? 3000 : false;
+    },
   });
 
   const totals = useMemo(() => {
