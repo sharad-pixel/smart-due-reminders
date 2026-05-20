@@ -652,7 +652,7 @@ function ImportsTable({ imports, onReview, statusFilter }: { imports: any[]; onR
               </div>
             </TableCell>
             <TableCell className="text-sm">{i.confidence ? `${Math.round(i.confidence)}%` : "—"}</TableCell>
-            <TableCell className="text-right">
+            <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-end gap-1.5">
                 {isFailed ? (
                   <Button size="sm" variant="outline" onClick={() => extract.mutate(i.id)} disabled={busy}>
