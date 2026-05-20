@@ -616,6 +616,10 @@ const LiveContractDetailInner = () => {
         </Button>
       </div>
 
+      {importId && accountId && (
+        <ContractRevenueItemsPanel importId={importId} accountId={accountId} />
+      )}
+
       {importId && (
         <Asc606ChatPanel
           contractId={importId}
