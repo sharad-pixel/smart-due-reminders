@@ -1390,7 +1390,7 @@ export default function LiveContracts() {
               <Card>
                 <CardHeader><CardTitle>Scan queue</CardTitle><CardDescription>Files discovered or uploaded, awaiting extraction.</CardDescription></CardHeader>
                 <CardContent>
-                  <ImportsTable imports={imports} onReview={setReviewId}
+                  <ImportsTable imports={filteredImports} onReview={setReviewId}
                     statusFilter={["found", "queued", "scanning", "ocr_processing", "ai_extracting", "failed"]} />
                 </CardContent>
               </Card>
@@ -1400,16 +1400,18 @@ export default function LiveContracts() {
               <Card>
                 <CardHeader><CardTitle>Needs review</CardTitle><CardDescription>Confirm extracted data before importing into your account.</CardDescription></CardHeader>
                 <CardContent>
-                  <ImportsTable imports={imports} onReview={setReviewId} statusFilter={["needs_review"]} />
+                  <ImportsTable imports={filteredImports} onReview={setReviewId} statusFilter={["needs_review"]} />
                 </CardContent>
               </Card>
             </TabsContent>
 
             <TabsContent value="imported" className="mt-4">
               <Card>
-                <CardHeader><CardTitle>Imported & duplicates</CardTitle></CardHeader>
+                <CardHeader>
+                  <CardTitle>Imported & duplicates{showArchived ? " (incl. archived)" : ""}</CardTitle>
+                </CardHeader>
                 <CardContent>
-                  <ImportsTable imports={imports} onReview={setReviewId} statusFilter={["imported", "duplicate", "rejected", "approved"]} />
+                  <ImportsTable imports={filteredImports} onReview={setReviewId} statusFilter={tabCounts.importedStatuses} />
                 </CardContent>
               </Card>
             </TabsContent>
