@@ -60,6 +60,8 @@ import { useClmEntitlement } from "@/hooks/useClmEntitlement";
 import { FileCheck2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { AssignContractDebtor } from "@/components/contracts/AssignContractDebtor";
+import { ContractStatusStepper } from "@/components/contracts/ContractStatusStepper";
+import { ContractSupportingDocsPanel } from "@/components/contracts/ContractSupportingDocsPanel";
 
 const FIN_KEYS = new Set<string>([
   ...Array.from(AMOUNT_KEYS),
@@ -431,6 +433,8 @@ const LiveContractDetailInner = () => {
         }
       />
 
+      <ContractStatusStepper importId={c.id} status={c.status} />
+
       <Card>
         <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
           <CardTitle className="text-base flex items-center gap-2">
@@ -598,13 +602,7 @@ const LiveContractDetailInner = () => {
         onChanged={() => qc.invalidateQueries({ queryKey: ["live-contract-detail", importId] })}
       />
 
-      <div className="flex justify-end">
-        <Button variant="outline" size="sm" asChild>
-          <Link to={`/contracts/live?import=${c.id}`}>
-            Open in Review Workspace <ExternalLink className="h-3.5 w-3.5 ml-1" />
-          </Link>
-        </Button>
-      </div>
+      <ContractSupportingDocsPanel importId={c.id} accountId={c.account_id} />
 
       {importId && accountId && (
         <ContractRevenueItemsPanel importId={importId} accountId={accountId} />
