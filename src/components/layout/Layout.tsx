@@ -273,10 +273,9 @@ const Layout = ({ children }: LayoutProps) => {
   const isAnyRevenueHubActive = revenueHubItems.some(item => isActive(item.path));
 
   const revenueIntelligenceItems = [
-    { path: "/ai-ingestion", label: "Live Contracts", icon: FileSignature },
+    { path: "/ai-ingestion", label: "Contracts", icon: FileSignature },
     { path: "/revenue-library", label: "Revenue Library", icon: Library },
     { path: "/revenue-risk", label: "Revenue Risk", icon: ShieldAlert },
-    ...(clmActive ? [{ path: "/contracts", label: "CLM Workspaces", icon: Briefcase }] : []),
   ];
   const isAnyRevenueIntelActive = revenueIntelligenceItems.some(item => isActive(item.path)) || isActive("/contracts/live");
 
