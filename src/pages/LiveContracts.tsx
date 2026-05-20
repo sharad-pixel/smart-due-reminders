@@ -33,15 +33,18 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // ------- Status helpers -------
+// Lifecycle: Scanned → Under Review → Extracted
 const STATUS_LABEL: Record<string, string> = {
-  found: "Found",
-  queued: "Queued",
-  scanning: "Scanning",
-  ocr_processing: "AI Smart Ingestion Processing",
-  ai_extracting: "AI Extracting",
-  needs_review: "Needs Review",
-  approved: "Approved",
-  imported: "Imported",
+  found: "Scanned",
+  queued: "Scanned",
+  scanning: "Scanned",
+  ocr_processing: "Scanned",
+  ai_extracting: "Scanned",
+  processing: "Scanned",
+  extracting: "Scanned",
+  needs_review: "Under Review",
+  approved: "Extracted",
+  imported: "Extracted",
   duplicate: "Duplicate",
   failed: "Failed",
   rejected: "Rejected",

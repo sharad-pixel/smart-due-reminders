@@ -4,30 +4,32 @@ import { supabase } from "@/integrations/supabase/client";
 import { useClmEntitlement } from "@/hooks/useClmEntitlement";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileSignature, FileSearch, Sparkles, ArrowRight } from "lucide-react";
+import { FileSearch, Sparkles, ArrowRight, Eye, CheckCircle2 } from "lucide-react";
 
+/**
+ * Quick-access card for Contract Intelligence on the dashboard.
+ * Workspaces (CLM) UI is hidden until the module is GA — this card now
+ * focuses entirely on the AI Smart Ingestion contract repository.
+ */
 export const ClmQuickAccessCard = () => {
   const { isActive, isLoading } = useClmEntitlement();
 
   const { data: counts } = useQuery({
-    queryKey: ["clm-quick-access-counts"],
+    queryKey: ["contract-intel-quick-counts"],
     enabled: isActive,
     queryFn: async () => {
-      const [imports, instances] = await Promise.all([
-        supabase
-          .from("live_contract_imports")
-          .select("id, status", { count: "exact", head: false })
-          .limit(1000),
-        supabase
-          .from("clm_template_instances")
-          .select("id", { count: "exact", head: true }),
-      ]);
-      const rows = imports.data || [];
-      return {
-        ocrTotal: rows.length,
-        ocrNeedsReview: rows.filter((r) => r.status === "needs_review").length,
-        workspaces: instances.count || 0,
-      };
+      const { data } = await supabase
+        .from("live_contract_imports")
+        .select("id, status")
+        .neq("status", "archived")
+        .limit(1000);
+      const rows = data || [];
+      const scanning = rows.filter((r) =>
+        ["found", "queued", "scanning", "ocr_processing", "ai_extracting"].includes(String(r.status))
+      ).length;
+      const review = rows.filter((r) => r.status === "needs_review").length;
+      const extracted = rows.filter((r) => ["imported", "approved"].includes(String(r.status))).length;
+      return { total: rows.length, scanning, review, extracted };
     },
   });
 
@@ -42,59 +44,46 @@ export const ClmQuickAccessCard = () => {
               <Sparkles className="h-5 w-5 text-primary" /> Contract Intelligence
             </h3>
             <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-              Manage live workspaces and AI Smart Ingestion contracts with Kurt.
+              Upload contracts, validate AI extraction, and turn them into invoiceable revenue.
             </p>
           </div>
           <Button asChild size="sm" variant="outline">
-            <Link to="/contracts">
-              Open Kurt <ArrowRight className="h-3.5 w-3.5 ml-1" />
+            <Link to="/ai-ingestion">
+              Open repository <ArrowRight className="h-3.5 w-3.5 ml-1" />
             </Link>
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <Link
-            to="/contracts"
+            to="/ai-ingestion?status=scanning"
             className="group border rounded-lg p-4 hover:border-primary hover:bg-muted/40 transition-colors"
           >
-            <div className="flex items-start justify-between">
-              <div>
-                <div className="flex items-center gap-2 text-sm font-medium">
-                  <FileSignature className="h-4 w-4 text-primary" />
-                  Live Workspaces
-                </div>
-                <p className="text-2xl font-semibold mt-2">
-                  {counts?.workspaces ?? "—"}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Active CLM instances
-                </p>
-              </div>
-              <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <FileSearch className="h-4 w-4 text-primary" /> Scanned
             </div>
+            <p className="text-2xl font-semibold mt-2">{counts?.scanning ?? "—"}</p>
+            <p className="text-xs text-muted-foreground mt-1">AI is extracting data</p>
           </Link>
-
           <Link
-            to="/contracts/live"
+            to="/ai-ingestion?status=needs_review"
             className="group border rounded-lg p-4 hover:border-primary hover:bg-muted/40 transition-colors"
           >
-            <div className="flex items-start justify-between">
-              <div>
-                <div className="flex items-center gap-2 text-sm font-medium">
-                  <FileSearch className="h-4 w-4 text-primary" />
-                  AI Smart Ingestion
-                </div>
-                <p className="text-2xl font-semibold mt-2">
-                  {counts?.ocrTotal ?? "—"}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {counts?.ocrNeedsReview
-                    ? `${counts.ocrNeedsReview} need review`
-                    : "Scanned & extracted"}
-                </p>
-              </div>
-              <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <Eye className="h-4 w-4 text-amber-600" /> Under Review
             </div>
+            <p className="text-2xl font-semibold mt-2">{counts?.review ?? "—"}</p>
+            <p className="text-xs text-muted-foreground mt-1">Awaiting validation</p>
+          </Link>
+          <Link
+            to="/ai-ingestion?status=imported"
+            className="group border rounded-lg p-4 hover:border-primary hover:bg-muted/40 transition-colors"
+          >
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600" /> Extracted
+            </div>
+            <p className="text-2xl font-semibold mt-2">{counts?.extracted ?? "—"}</p>
+            <p className="text-xs text-muted-foreground mt-1">Validated & live</p>
           </Link>
         </div>
       </CardContent>

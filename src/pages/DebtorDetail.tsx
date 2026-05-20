@@ -33,7 +33,7 @@ import { ExpansionRiskAdvisor } from "@/components/accounts/ExpansionRiskAdvisor
 import { AccountOutreachSettings } from "@/components/outreach/AccountOutreachSettings";
 import { SalesRepCard } from "@/components/accounts/SalesRepCard";
 import { InternalAccountOwnerBadge } from "@/components/accounts/InternalAccountOwnerBadge";
-import { DebtorWorkspacesCard } from "@/components/clm/DebtorWorkspacesBadge";
+// CLM Workspaces hidden — Contract Intelligence module is not GA yet
 import { DebtorContractSummaryCard } from "@/components/clm/DebtorContractSummaryCard";
 import { OutreachDetailModal, OutreachRecord } from "@/components/outreach/OutreachDetailModal";
 import { OutreachSummaryRow } from "@/components/outreach/OutreachSummaryRow";
@@ -1112,7 +1112,7 @@ const DebtorDetail = () => {
 
         {/* CLM Contract Summary + Workspaces (only render when linked records exist) */}
         <DebtorContractSummaryCard debtorId={debtor.id} />
-        <DebtorWorkspacesCard debtorId={debtor.id} />
+        {/* CLM Workspaces card hidden — feature gated until Contract Intelligence GA */}
 
         {/* Customer Intelligence Data for AI */}
         <CustomerAIContext debtorId={debtor.id} />

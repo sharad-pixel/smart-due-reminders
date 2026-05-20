@@ -60,6 +60,8 @@ import { useClmEntitlement } from "@/hooks/useClmEntitlement";
 import { FileCheck2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { AssignContractDebtor } from "@/components/contracts/AssignContractDebtor";
+import { ContractStatusStepper } from "@/components/contracts/ContractStatusStepper";
+import { ContractSupportingDocsPanel } from "@/components/contracts/ContractSupportingDocsPanel";
 
 const FIN_KEYS = new Set<string>([
   ...Array.from(AMOUNT_KEYS),
@@ -99,7 +101,7 @@ const LiveContractDetailInner = () => {
       if ((data as any)?.error) throw new Error((data as any).error);
       toast.success("Contract deleted");
       qc.invalidateQueries({ queryKey: ["lc-imports"] });
-      navigate("/contracts/live");
+      navigate("/ai-ingestion");
     } catch (e: any) {
       toast.error(e?.message || "Delete failed");
     } finally {
@@ -120,7 +122,7 @@ const LiveContractDetailInner = () => {
       toast.success("Contract archived — invoices and alerts preserved for audit");
       qc.invalidateQueries({ queryKey: ["lc-imports"] });
       qc.invalidateQueries({ queryKey: ["live-contract-detail", importId] });
-      navigate("/contracts/live");
+      navigate("/ai-ingestion");
     } catch (e: any) {
       toast.error(e?.message || "Archive failed");
     } finally {
@@ -297,7 +299,7 @@ const LiveContractDetailInner = () => {
       <div className="container mx-auto py-16 text-center">
         <p className="text-muted-foreground">Contract not found.</p>
         <Button asChild variant="outline" className="mt-4">
-          <Link to="/contracts/live">Back to Live Contracts</Link>
+          <Link to="/ai-ingestion">Back to Contracts</Link>
         </Button>
       </div>
     );
@@ -323,13 +325,13 @@ const LiveContractDetailInner = () => {
         size="sm"
         onClick={() => {
           if (window.history.length > 1) navigate(-1);
-          else navigate(data.debtor ? `/debtors/${data.debtor.id}` : "/contracts/live");
+          else navigate(data.debtor ? `/debtors/${data.debtor.id}` : "/ai-ingestion");
         }}
       >
         <ArrowLeft className="h-4 w-4 mr-1" />
         {data.debtor
           ? `Back to ${data.debtor.company_name || data.debtor.name}`
-          : "Back to Live Contracts"}
+          : "Back to Contracts"}
       </Button>
 
       <ClmBrandedHeader
@@ -430,6 +432,8 @@ const LiveContractDetailInner = () => {
           </div>
         }
       />
+
+      <ContractStatusStepper importId={c.id} status={c.status} />
 
       <Card>
         <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
@@ -598,13 +602,7 @@ const LiveContractDetailInner = () => {
         onChanged={() => qc.invalidateQueries({ queryKey: ["live-contract-detail", importId] })}
       />
 
-      <div className="flex justify-end">
-        <Button variant="outline" size="sm" asChild>
-          <Link to={`/contracts/live?import=${c.id}`}>
-            Open in Review Workspace <ExternalLink className="h-3.5 w-3.5 ml-1" />
-          </Link>
-        </Button>
-      </div>
+      <ContractSupportingDocsPanel importId={c.id} accountId={c.account_id} />
 
       {importId && accountId && (
         <ContractRevenueItemsPanel importId={importId} accountId={accountId} />
