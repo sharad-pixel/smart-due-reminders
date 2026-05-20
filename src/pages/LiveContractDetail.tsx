@@ -43,6 +43,7 @@ import {
 } from "@/lib/clm/financialMetrics";
 import { ContractStagingPanel } from "@/components/clm/ContractStagingPanel";
 import { ContractReassessPanel } from "@/components/clm/ContractReassessPanel";
+import ContractRevenueItemsPanel from "@/components/contracts/ContractRevenueItemsPanel";
 import { ContractOverviewEditor } from "@/components/clm/ContractOverviewEditor";
 import { ContractScheduleLines } from "@/components/clm/ContractScheduleLines";
 import { ContractExtractedFieldsEditor } from "@/components/clm/ContractExtractedFieldsEditor";
@@ -614,6 +615,10 @@ const LiveContractDetailInner = () => {
           </Link>
         </Button>
       </div>
+
+      {importId && accountId && (
+        <ContractRevenueItemsPanel importId={importId} accountId={accountId} />
+      )}
 
       {importId && (
         <Asc606ChatPanel

@@ -228,10 +228,11 @@ async function loadContract(admin: any, contractId: string) {
     .maybeSingle();
   if (!imp) return null;
 
-  const [{ data: schedules }, { data: dates }, { data: fields }] = await Promise.all([
+  const [{ data: schedules }, { data: dates }, { data: fields }, { data: revenueItems }] = await Promise.all([
     admin.from("contract_invoice_schedules").select("*").eq("import_id", contractId),
     admin.from("contract_critical_dates").select("*").eq("import_id", contractId),
     admin.from("live_contract_extracted_fields").select("field_group, field_key, field_value, field_value_json").eq("import_id", contractId),
+    admin.from("contract_revenue_items").select("*, library_item:revenue_library_items(*)").eq("import_id", contractId),
   ]);
   const extracted: Record<string, any> = {};
   (fields || []).forEach((f: any) => {
@@ -254,6 +255,7 @@ async function loadContract(admin: any, contractId: string) {
     metadata: imp.metrics_jsonb,
     contract_invoice_schedules: schedules || [],
     contract_critical_dates: dates || [],
+    revenue_library_items: revenueItems || [],
   };
 }
 

@@ -3950,6 +3950,63 @@ export type Database = {
           },
         ]
       }
+      contract_revenue_items: {
+        Row: {
+          account_id: string
+          allocated_price: number | null
+          created_at: string
+          end_date: string | null
+          id: string
+          import_id: string
+          library_item_id: string
+          notes: string | null
+          quantity: number
+          start_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          allocated_price?: number | null
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          import_id: string
+          library_item_id: string
+          notes?: string | null
+          quantity?: number
+          start_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          allocated_price?: number | null
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          import_id?: string
+          library_item_id?: string
+          notes?: string | null
+          quantity?: number
+          start_date?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_revenue_items_import_id_fkey"
+            columns: ["import_id"]
+            isOneToOne: false
+            referencedRelation: "live_contract_imports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_revenue_items_library_item_id_fkey"
+            columns: ["library_item_id"]
+            isOneToOne: false
+            referencedRelation: "revenue_library_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contract_risk_flags: {
         Row: {
           account_id: string
@@ -10790,6 +10847,72 @@ export type Database = {
           referrer_id?: string
           status?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      revenue_library_items: {
+        Row: {
+          account_id: string
+          billing_frequency: string | null
+          created_at: string
+          currency: string
+          default_term_months: number | null
+          description: string | null
+          gl_account_code: string | null
+          id: string
+          is_active: boolean
+          metadata: Json | null
+          name: string
+          performance_obligation: string | null
+          recognition_method: string
+          revenue_type: string
+          sku: string | null
+          standalone_selling_price: number | null
+          tax_category: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_id: string
+          billing_frequency?: string | null
+          created_at?: string
+          currency?: string
+          default_term_months?: number | null
+          description?: string | null
+          gl_account_code?: string | null
+          id?: string
+          is_active?: boolean
+          metadata?: Json | null
+          name: string
+          performance_obligation?: string | null
+          recognition_method?: string
+          revenue_type?: string
+          sku?: string | null
+          standalone_selling_price?: number | null
+          tax_category?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_id?: string
+          billing_frequency?: string | null
+          created_at?: string
+          currency?: string
+          default_term_months?: number | null
+          description?: string | null
+          gl_account_code?: string | null
+          id?: string
+          is_active?: boolean
+          metadata?: Json | null
+          name?: string
+          performance_obligation?: string | null
+          recognition_method?: string
+          revenue_type?: string
+          sku?: string | null
+          standalone_selling_price?: number | null
+          tax_category?: string | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
