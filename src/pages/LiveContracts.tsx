@@ -1288,9 +1288,57 @@ export default function LiveContracts() {
 
           <IngestionBalanceCard />
 
-          <DashboardWidgets imports={imports} />
+          {/* Filters */}
+          <Card>
+            <CardContent className="pt-4 pb-4">
+              <div className="flex flex-col md:flex-row md:items-center gap-3 flex-wrap">
+                <div className="flex-1 min-w-[200px]">
+                  <Input
+                    placeholder="Search by contract name, file, type, or account…"
+                    value={searchText}
+                    onChange={(e) => setSearchText(e.target.value)}
+                    className="h-9"
+                  />
+                </div>
+                <div className="w-full md:w-64">
+                  <Select value={accountFilter} onValueChange={setAccountFilter}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="Filter by account" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All accounts ({accountOptions.length})</SelectItem>
+                      {accountOptions.map((a) => (
+                        <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                  <Checkbox
+                    checked={showArchived}
+                    onCheckedChange={(v) => setShowArchived(!!v)}
+                  />
+                  Show archived
+                </label>
+                {filtersActive && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => { setAccountFilter("all"); setShowArchived(false); setSearchText(""); }}
+                  >
+                    Clear filters
+                  </Button>
+                )}
+                <div className="text-xs text-muted-foreground md:ml-auto">
+                  Showing {filteredImports.length} of {imports.length} contract{imports.length === 1 ? "" : "s"}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-          <RecentScansCard imports={imports} />
+          <DashboardWidgets imports={filteredImports} />
+
+          <RecentScansCard imports={filteredImports} />
 
           <Tabs defaultValue={tabCounts.review > 0 ? "review" : "folders"}>
             <TabsList className="w-full h-auto bg-muted/40 p-1.5 flex flex-wrap gap-1 justify-stretch">
