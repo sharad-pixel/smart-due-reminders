@@ -495,44 +495,15 @@ const LiveContractDetailInner = () => {
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <FileSignature className="h-4 w-4 text-primary" /> Financial Terms
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {financialFields.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No financial terms extracted.
-              </p>
-            ) : (
-              <dl className="divide-y text-sm">
-                {financialFields.map((f: any) => {
-                  const isAmount = AMOUNT_KEYS.has(f.field_key);
-                  const numeric = isAmount ? toNumber(f.field_value) : 0;
-                  const display =
-                    isAmount && numeric > 0
-                      ? formatCurrency(numeric, totals.currency)
-                      : f.field_value || "—";
-                  return (
-                    <div
-                      key={`${f.field_key}-${f.id}`}
-                      className="flex items-start justify-between gap-3 py-2"
-                    >
-                      <dt className="text-muted-foreground capitalize">
-                        {f.field_key.replace(/_/g, " ")}
-                      </dt>
-                      <dd className="font-medium text-right break-words max-w-[60%]">
-                        {display}
-                      </dd>
-                    </div>
-                  );
-                })}
-              </dl>
-            )}
-          </CardContent>
-        </Card>
+        <EditableFinancialTermsCard
+          importId={c.id}
+          accountId={c.account_id}
+          extractionId={(data.fields[0] as any)?.extraction_id || null}
+          financialFields={financialFields as any}
+          currency={totals.currency}
+          onChanged={() => qc.invalidateQueries({ queryKey: ["live-contract-detail", importId] })}
+        />
+
 
         <ContractRiskFlagsEditor importId={c.id} accountId={c.account_id} />
 
