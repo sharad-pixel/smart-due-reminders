@@ -799,6 +799,9 @@ const AdminUserDetail = () => {
               </Card>
             </div>
 
+            {/* Platform Credits */}
+            <AdminCreditsCard accountId={user.id} />
+
             {/* Actions */}
             <Card>
               <CardHeader>
