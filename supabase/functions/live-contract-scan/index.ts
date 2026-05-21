@@ -12,6 +12,7 @@ const CONTRACT_MIMES = [
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/vnd.google-apps.document",
   "application/msword",
+  "text/plain",
 ];
 const FOLDER_MIME = "application/vnd.google-apps.folder";
 const SHORTCUT_MIME = "application/vnd.google-apps.shortcut";
@@ -66,18 +67,19 @@ async function listContractFilesRecursive(accessToken: string, rootFolderId: str
   const files: any[] = [];
   const seenFolders = new Set<string>();
   const contractMimeSet = new Set(CONTRACT_MIMES);
-  const searchableMimes = [...CONTRACT_MIMES, FOLDER_MIME, SHORTCUT_MIME];
 
   async function walk(folderId: string, depth: number) {
     if (depth > maxDepth || seenFolders.has(folderId)) return;
     seenFolders.add(folderId);
     let pageToken: string | undefined;
-    const mimeQuery = searchableMimes.map((m) => `mimeType='${m}'`).join(" or ");
     do {
       const params = new URLSearchParams({
-        q: `'${folderId}' in parents and (${mimeQuery}) and trashed=false`,
+        q: `'${folderId}' in parents and trashed=false`,
         fields: "nextPageToken,files(id,name,size,mimeType,createdTime,modifiedTime,shortcutDetails)",
-        pageSize: "100",
+        pageSize: "1000",
+        includeItemsFromAllDrives: "true",
+        supportsAllDrives: "true",
+        corpora: "allDrives",
       });
       if (pageToken) params.set("pageToken", pageToken);
       const res = await fetch(`https://www.googleapis.com/drive/v3/files?${params}`, {
@@ -88,6 +90,8 @@ async function listContractFilesRecursive(accessToken: string, rootFolderId: str
       for (const item of data.files || []) {
         if (item.mimeType === FOLDER_MIME) {
           await walk(item.id, depth + 1);
+        } else if (item.mimeType === SHORTCUT_MIME && item.shortcutDetails?.targetMimeType === FOLDER_MIME) {
+          await walk(item.shortcutDetails.targetId, depth + 1);
         } else if (item.mimeType === SHORTCUT_MIME && contractMimeSet.has(item.shortcutDetails?.targetMimeType)) {
           files.push({
             ...item,
