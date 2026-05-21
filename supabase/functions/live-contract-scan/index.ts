@@ -87,7 +87,13 @@ async function listContractFilesRecursive(accessToken: string, rootFolderId: str
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(`Drive API: ${JSON.stringify(data)}`);
+      if (!res.ok) {
+        const msg = String(data?.error?.message || data?.error || "");
+        if (res.status === 403 || msg.toLowerCase().includes("insufficient")) {
+          throw new Error("Google Drive needs updated permission to read files in this folder. Click Reconnect Drive, approve access, then scan again.");
+        }
+        throw new Error(`Drive API: ${JSON.stringify(data)}`);
+      }
       for (const item of data.files || []) {
         if (seenFiles.has(item.id)) continue;
         seenFiles.add(item.id);
@@ -133,7 +139,13 @@ async function listContractFilesFlat(accessToken: string, rootFolderId: string) 
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(`Drive flat scan failed: ${JSON.stringify(data)}`);
+    if (!res.ok) {
+      const msg = String(data?.error?.message || data?.error || "");
+      if (res.status === 403 || msg.toLowerCase().includes("insufficient")) {
+        throw new Error("Google Drive needs updated permission to read files in this folder. Click Reconnect Drive, approve access, then scan again.");
+      }
+      throw new Error(`Drive flat scan failed: ${JSON.stringify(data)}`);
+    }
 
     for (const item of data.files || []) {
       if (contractMimeSet.has(item.mimeType)) files.push(item);
