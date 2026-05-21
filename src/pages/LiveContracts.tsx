@@ -267,6 +267,7 @@ function RecentScansCard({ imports }: { imports: any[] }) {
 // ------- Folders tab -------
 function FoldersTab() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const { data: folders = [], isLoading } = useFolders();
   const [pickerOpening, setPickerOpening] = useState(false);
 
@@ -296,9 +297,7 @@ function FoldersTab() {
       qc.invalidateQueries({ queryKey: ["lc-folders"] });
       qc.invalidateQueries({ queryKey: ["lc-imports"] });
       if (d.new_files > 0 || extracting > 0) {
-        const next = new URLSearchParams(window.location.search);
-        next.set("status", "scanning");
-        window.history.replaceState(null, "", `/ai-ingestion?${next.toString()}`);
+        navigate("/ai-ingestion?status=scanning", { replace: true });
       }
     },
     onError: (e: any) => toast.error(e.message),
