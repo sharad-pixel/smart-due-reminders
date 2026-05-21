@@ -231,7 +231,7 @@ function RecentScansCard({ imports }: { imports: any[] }) {
                 <TableRow
                   key={i.id}
                   className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => { window.location.href = `/contracts/live/${i.id}`; }}
+                  onClick={() => { window.location.href = `/ai-ingestion/${i.id}`; }}
                 >
                   <TableCell className="max-w-[280px]">
                     <div className="font-medium text-sm truncate">{i.contract_name || i.file_name}</div>
@@ -249,7 +249,7 @@ function RecentScansCard({ imports }: { imports: any[] }) {
                   </TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <Button asChild size="sm" variant="ghost">
-                      <Link to={`/contracts/live/${i.id}`}>
+                      <Link to={`/ai-ingestion/${i.id}`}>
                         <ExternalLink className="h-3.5 w-3.5" />
                       </Link>
                     </Button>
@@ -652,7 +652,7 @@ function ImportsTable({ imports, onReview, statusFilter }: { imports: any[]; onR
           <TableRow
             key={i.id}
             className={`${isFailed ? "bg-destructive/5 " : ""}cursor-pointer hover:bg-muted/50`}
-            onClick={() => navigate(`/contracts/live/${i.id}`)}
+            onClick={() => navigate(`/ai-ingestion/${i.id}`)}
           >
             <TableCell>
               <div className="font-medium text-sm">{i.contract_name || i.file_name}</div>
@@ -698,7 +698,7 @@ function ImportsTable({ imports, onReview, statusFilter }: { imports: any[]; onR
                   <Button size="sm" onClick={() => onReview(i.id)}>Review</Button>
                 ) : (
                   <Button size="sm" variant="ghost" asChild>
-                    <Link to={`/contracts/live/${i.id}`}>View</Link>
+                    <Link to={`/ai-ingestion/${i.id}`}>View</Link>
                   </Button>
                 )}
                 <Tooltip>
