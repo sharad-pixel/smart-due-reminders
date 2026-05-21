@@ -14,6 +14,27 @@ const CONTRACT_MIMES = [
   "application/msword",
 ];
 
+const PENDING_STATUSES = ["found", "queued"];
+
+function triggerExtraction(args: {
+  supabaseUrl: string;
+  anonKey: string;
+  authHeader: string;
+  importId: string;
+}) {
+  return fetch(`${args.supabaseUrl}/functions/v1/live-contract-extract`, {
+    method: "POST",
+    headers: {
+      Authorization: args.authHeader,
+      apikey: args.anonKey,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ importId: args.importId }),
+  }).then(async (res) => {
+    if (!res.ok) console.error(`[LC-SCAN] extraction trigger failed ${res.status}: ${await res.text()}`);
+  }).catch((e) => console.error("[LC-SCAN] extraction trigger error", e));
+}
+
 async function refreshToken(supabase: any, conn: any, clientId: string, clientSecret: string) {
   if (!conn.refresh_token) throw new Error("No refresh token");
   const res = await fetch("https://oauth2.googleapis.com/token", {
@@ -173,10 +194,29 @@ Deno.serve(async (req) => {
         file_name: f.name,
         mime_type: f.mimeType,
         file_size: f.size ? parseInt(f.size) : null,
-        status: "found",
+        status: "queued",
       }));
       const { error: insErr } = await supabase.from("live_contract_imports").insert(rows);
       if (insErr && insErr.code !== "23505") log("Insert error", { code: insErr.code, msg: insErr.message });
+    }
+
+    const { data: pendingImports, error: pendingErr } = await supabase
+      .from("live_contract_imports")
+      .select("id, file_name, status")
+      .eq("account_id", accountId)
+      .eq("folder_id", folder.id)
+      .eq("source", "drive")
+      .in("status", PENDING_STATUSES);
+    if (pendingErr) throw pendingErr;
+
+    const extractionJobs = (pendingImports || []).map((imp: any) =>
+      triggerExtraction({ supabaseUrl, anonKey, authHeader, importId: imp.id })
+    );
+    if (extractionJobs.length) {
+      log("Triggering extraction", { count: extractionJobs.length });
+      const edgeRuntime = (globalThis as any).EdgeRuntime;
+      if (edgeRuntime?.waitUntil) extractionJobs.forEach((job) => edgeRuntime.waitUntil(job));
+      else await Promise.allSettled(extractionJobs);
     }
 
     await supabase
@@ -197,11 +237,11 @@ Deno.serve(async (req) => {
 
     await supabase.from("live_contract_audit_log").insert({
       account_id: accountId, user_id: user.id, event_type: "folder_scanned",
-      event_details: { folder_id: folder.folder_id, total: allFiles.length, new: newFiles.length, dup },
+      event_details: { folder_id: folder.folder_id, total: allFiles.length, new: newFiles.length, dup, extraction_triggered: extractionJobs.length },
     });
 
     return new Response(JSON.stringify({
-      success: true, total_files: allFiles.length, new_files: newFiles.length, duplicates: dup, job_id: jobRow.id,
+      success: true, total_files: allFiles.length, new_files: newFiles.length, duplicates: dup, extraction_triggered: extractionJobs.length, job_id: jobRow.id,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   } catch (e) {
