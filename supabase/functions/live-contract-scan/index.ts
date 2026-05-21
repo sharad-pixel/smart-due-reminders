@@ -201,24 +201,8 @@ Deno.serve(async (req) => {
 
     log("Scanning", { folderId: folder.folder_id });
 
-    const allFiles: any[] = [];
-    let pageToken: string | undefined;
-    const mimeQuery = CONTRACT_MIMES.map((m) => `mimeType='${m}'`).join(" or ");
-    do {
-      const params = new URLSearchParams({
-        q: `'${folder.folder_id}' in parents and (${mimeQuery}) and trashed=false`,
-        fields: "nextPageToken,files(id,name,size,mimeType,createdTime,modifiedTime)",
-        pageSize: "100",
-      });
-      if (pageToken) params.set("pageToken", pageToken);
-      const res = await fetch(`https://www.googleapis.com/drive/v3/files?${params}`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(`Drive API: ${JSON.stringify(data)}`);
-      allFiles.push(...(data.files || []));
-      pageToken = data.nextPageToken;
-    } while (pageToken);
+    const allFiles = await listContractFilesRecursive(accessToken, folder.folder_id);
+    const dedupedFiles = Array.from(new Map(allFiles.map((f: any) => [f.id, f])).values());
 
     const { data: existing } = await supabase
       .from("live_contract_imports")
@@ -227,8 +211,8 @@ Deno.serve(async (req) => {
       .not("drive_file_id", "is", null);
     const existingIds = new Set((existing || []).map((r: any) => r.drive_file_id));
 
-    const newFiles = allFiles.filter((f) => !existingIds.has(f.id));
-    const dup = allFiles.length - newFiles.length;
+    const newFiles = dedupedFiles.filter((f: any) => !existingIds.has(f.id));
+    const dup = dedupedFiles.length - newFiles.length;
 
     if (newFiles.length > 0) {
       const rows = newFiles.map((f) => ({
@@ -271,7 +255,7 @@ Deno.serve(async (req) => {
       .update({
         status: "completed",
         completed_at: new Date().toISOString(),
-        files_found: allFiles.length,
+        files_found: dedupedFiles.length,
         files_new: newFiles.length,
         files_duplicate: dup,
       })
@@ -284,11 +268,11 @@ Deno.serve(async (req) => {
 
     await supabase.from("live_contract_audit_log").insert({
       account_id: accountId, user_id: user.id, event_type: "folder_scanned",
-      event_details: { folder_id: folder.folder_id, total: allFiles.length, new: newFiles.length, dup, extraction_triggered: extractionJobs.length },
+      event_details: { folder_id: folder.folder_id, total: dedupedFiles.length, new: newFiles.length, dup, extraction_triggered: extractionJobs.length },
     });
 
     return new Response(JSON.stringify({
-      success: true, total_files: allFiles.length, new_files: newFiles.length, duplicates: dup, extraction_triggered: extractionJobs.length, job_id: jobRow.id,
+      success: true, total_files: dedupedFiles.length, new_files: newFiles.length, duplicates: dup, extraction_triggered: extractionJobs.length, job_id: jobRow.id,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   } catch (e) {
