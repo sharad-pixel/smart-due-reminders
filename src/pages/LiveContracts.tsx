@@ -57,6 +57,8 @@ const STATUS_VARIANT = (s: string): "default" | "secondary" | "destructive" | "o
   return "secondary";
 };
 
+const SCANNING_STATUSES = ["found", "queued", "scanning", "ocr_processing", "ai_extracting", "processing", "extracting"];
+
 async function throwFunctionError(error: any, fallback: string) {
   if (!error) return;
   let message = error.message || fallback;
@@ -104,7 +106,7 @@ function useImports() {
     refetchInterval: (q) => {
       const rows: any[] = (q.state.data as any[]) || [];
       const inFlight = rows.some((r) =>
-        ["found", "queued", "scanning", "ocr_processing", "ai_extracting", "processing", "extracting"].includes(r.status)
+        SCANNING_STATUSES.includes(r.status)
       );
       return inFlight ? 3000 : false;
     },
