@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Layout from "@/components/layout/Layout";
@@ -583,6 +583,7 @@ function ImportsTable({ imports, onReview, statusFilter }: { imports: any[]; onR
     () => filtered.filter((i) => ["found", "queued"].includes(i.status)).map((i) => i.id),
     [filtered],
   );
+  const autoStartedRef = useRef<Set<string>>(new Set());
   const extract = useMutation({
     mutationFn: async (importId: string) => {
       const { data, error } = await supabase.functions.invoke("live-contract-extract", { body: { importId } });
@@ -596,8 +597,14 @@ function ImportsTable({ imports, onReview, statusFilter }: { imports: any[]; onR
 
   useEffect(() => {
     if (pendingIds.length === 0 || extract.isPending) return;
-    pendingIds.slice(0, 3).forEach((id) => extract.mutate(id));
-  }, [extract, pendingIds]);
+    pendingIds
+      .filter((id) => !autoStartedRef.current.has(id))
+      .slice(0, 3)
+      .forEach((id) => {
+        autoStartedRef.current.add(id);
+        extract.mutate(id);
+      });
+  }, [extract.isPending, extract.mutate, pendingIds]);
 
   const del = useMutation({
     mutationFn: async (importId: string) => {
