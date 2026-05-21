@@ -580,7 +580,13 @@ function ImportsTable({ imports, onReview, statusFilter }: { imports: any[]; onR
   const navigate = useNavigate();
   const filtered = statusFilter ? imports.filter((i) => statusFilter.includes(i.status)) : imports;
   const pendingIds = useMemo(
-    () => filtered.filter((i) => ["found", "queued"].includes(i.status)).map((i) => i.id),
+    () => filtered
+      .filter((i) => {
+        if (!["found", "queued"].includes(i.status)) return false;
+        const ageMs = Date.now() - new Date(i.created_at || 0).getTime();
+        return ageMs > 30_000;
+      })
+      .map((i) => i.id),
     [filtered],
   );
   const autoStartedRef = useRef<Set<string>>(new Set());
