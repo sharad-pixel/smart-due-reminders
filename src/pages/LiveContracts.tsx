@@ -291,9 +291,15 @@ function FoldersTab() {
       return data;
     },
     onSuccess: (d: any) => {
-      toast.success(`Scan complete: ${d.new_files} new of ${d.total_files} files`);
+      const extracting = d.extraction_triggered || 0;
+      toast.success(`Scan complete: ${d.new_files} new of ${d.total_files} files${extracting ? ` — extracting ${extracting}` : ""}`);
       qc.invalidateQueries({ queryKey: ["lc-folders"] });
       qc.invalidateQueries({ queryKey: ["lc-imports"] });
+      if (d.new_files > 0 || extracting > 0) {
+        const next = new URLSearchParams(window.location.search);
+        next.set("status", "scanning");
+        window.history.replaceState(null, "", `/ai-ingestion?${next.toString()}`);
+      }
     },
     onError: (e: any) => toast.error(e.message),
   });
