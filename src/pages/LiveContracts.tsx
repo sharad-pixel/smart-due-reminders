@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Layout from "@/components/layout/Layout";
@@ -57,6 +57,8 @@ const STATUS_VARIANT = (s: string): "default" | "secondary" | "destructive" | "o
   return "secondary";
 };
 
+const SCANNING_STATUSES = ["found", "queued", "scanning", "ocr_processing", "ai_extracting", "processing", "extracting"];
+
 async function throwFunctionError(error: any, fallback: string) {
   if (!error) return;
   let message = error.message || fallback;
@@ -104,7 +106,7 @@ function useImports() {
     refetchInterval: (q) => {
       const rows: any[] = (q.state.data as any[]) || [];
       const inFlight = rows.some((r) =>
-        ["found", "queued", "scanning", "ocr_processing", "ai_extracting", "processing", "extracting"].includes(r.status)
+        SCANNING_STATUSES.includes(r.status)
       );
       return inFlight ? 3000 : false;
     },
@@ -229,7 +231,7 @@ function RecentScansCard({ imports }: { imports: any[] }) {
                 <TableRow
                   key={i.id}
                   className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => { window.location.href = `/contracts/live/${i.id}`; }}
+                  onClick={() => { window.location.href = `/ai-ingestion/${i.id}`; }}
                 >
                   <TableCell className="max-w-[280px]">
                     <div className="font-medium text-sm truncate">{i.contract_name || i.file_name}</div>
@@ -247,7 +249,7 @@ function RecentScansCard({ imports }: { imports: any[] }) {
                   </TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <Button asChild size="sm" variant="ghost">
-                      <Link to={`/contracts/live/${i.id}`}>
+                      <Link to={`/ai-ingestion/${i.id}`}>
                         <ExternalLink className="h-3.5 w-3.5" />
                       </Link>
                     </Button>
@@ -265,6 +267,7 @@ function RecentScansCard({ imports }: { imports: any[] }) {
 // ------- Folders tab -------
 function FoldersTab() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const { data: folders = [], isLoading } = useFolders();
   const [pickerOpening, setPickerOpening] = useState(false);
 
@@ -289,9 +292,13 @@ function FoldersTab() {
       return data;
     },
     onSuccess: (d: any) => {
-      toast.success(`Scan complete: ${d.new_files} new of ${d.total_files} files`);
+      const extracting = d.extraction_triggered || 0;
+      toast.success(`Scan complete: ${d.new_files} new of ${d.total_files} files${extracting ? ` — extracting ${extracting}` : ""}`);
       qc.invalidateQueries({ queryKey: ["lc-folders"] });
       qc.invalidateQueries({ queryKey: ["lc-imports"] });
+      if (d.new_files > 0 || extracting > 0) {
+        navigate("/ai-ingestion?status=scanning", { replace: true });
+      }
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -547,7 +554,7 @@ function UploadDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o:
 function ImportsEmptyState({ statusFilter }: { statusFilter?: string[] }) {
   const key = statusFilter?.includes("needs_review") ? "review"
     : statusFilter?.includes("imported") ? "imported"
-    : statusFilter?.some((s) => ["found", "queued", "scanning", "ocr_processing", "ai_extracting"].includes(s)) ? "queue"
+    : statusFilter?.some((s) => SCANNING_STATUSES.includes(s)) ? "queue"
     : "all";
   const copy: Record<string, { title: string; body: string }> = {
     review: { title: "Nothing waiting for review", body: "Once AI finishes extracting, contracts that need a human eye will appear here." },
@@ -572,6 +579,17 @@ function ImportsTable({ imports, onReview, statusFilter }: { imports: any[]; onR
   const qc = useQueryClient();
   const navigate = useNavigate();
   const filtered = statusFilter ? imports.filter((i) => statusFilter.includes(i.status)) : imports;
+  const pendingIds = useMemo(
+    () => filtered
+      .filter((i) => {
+        if (!["found", "queued"].includes(i.status)) return false;
+        const ageMs = Date.now() - new Date(i.created_at || 0).getTime();
+        return ageMs > 30_000;
+      })
+      .map((i) => i.id),
+    [filtered],
+  );
+  const autoStartedRef = useRef<Set<string>>(new Set());
   const extract = useMutation({
     mutationFn: async (importId: string) => {
       const { data, error } = await supabase.functions.invoke("live-contract-extract", { body: { importId } });
@@ -582,6 +600,17 @@ function ImportsTable({ imports, onReview, statusFilter }: { imports: any[]; onR
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["lc-imports"] }); toast.success("Extraction complete"); },
     onError: (e: any) => toast.error(e.message),
   });
+
+  useEffect(() => {
+    if (pendingIds.length === 0 || extract.isPending) return;
+    pendingIds
+      .filter((id) => !autoStartedRef.current.has(id))
+      .slice(0, 3)
+      .forEach((id) => {
+        autoStartedRef.current.add(id);
+        extract.mutate(id);
+      });
+  }, [extract.isPending, extract.mutate, pendingIds]);
 
   const del = useMutation({
     mutationFn: async (importId: string) => {
@@ -623,7 +652,7 @@ function ImportsTable({ imports, onReview, statusFilter }: { imports: any[]; onR
           <TableRow
             key={i.id}
             className={`${isFailed ? "bg-destructive/5 " : ""}cursor-pointer hover:bg-muted/50`}
-            onClick={() => navigate(`/contracts/live/${i.id}`)}
+            onClick={() => navigate(`/ai-ingestion/${i.id}`)}
           >
             <TableCell>
               <div className="font-medium text-sm">{i.contract_name || i.file_name}</div>
@@ -669,7 +698,7 @@ function ImportsTable({ imports, onReview, statusFilter }: { imports: any[]; onR
                   <Button size="sm" onClick={() => onReview(i.id)}>Review</Button>
                 ) : (
                   <Button size="sm" variant="ghost" asChild>
-                    <Link to={`/contracts/live/${i.id}`}>View</Link>
+                    <Link to={`/ai-ingestion/${i.id}`}>View</Link>
                   </Button>
                 )}
                 <Tooltip>
@@ -1240,7 +1269,7 @@ export default function LiveContracts() {
   }, [imports, accountFilter, showArchived, searchText]);
 
   const tabCounts = useMemo(() => {
-    const queueStatuses = ["found", "queued", "scanning", "ocr_processing", "ai_extracting", "failed"];
+    const queueStatuses = [...SCANNING_STATUSES, "failed"];
     const importedStatuses = showArchived
       ? ["imported", "duplicate", "rejected", "approved", "archived"]
       : ["imported", "duplicate", "rejected", "approved"];
@@ -1277,7 +1306,7 @@ export default function LiveContracts() {
       ? "review"
       : requestedStatus === "imported"
         ? "imported"
-        : tabCounts.review > 0 ? "review" : "folders";
+        : tabCounts.queue > 0 ? "queue" : tabCounts.review > 0 ? "review" : "folders";
 
   return (
     <>
@@ -1410,7 +1439,7 @@ export default function LiveContracts() {
                 <CardHeader><CardTitle>Scan queue</CardTitle><CardDescription>Files discovered or uploaded, awaiting extraction.</CardDescription></CardHeader>
                 <CardContent>
                   <ImportsTable imports={filteredImports} onReview={setReviewId}
-                    statusFilter={["found", "queued", "scanning", "ocr_processing", "ai_extracting", "failed"]} />
+                    statusFilter={[...SCANNING_STATUSES, "failed"]} />
                 </CardContent>
               </Card>
             </TabsContent>

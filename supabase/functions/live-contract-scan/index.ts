@@ -13,6 +13,29 @@ const CONTRACT_MIMES = [
   "application/vnd.google-apps.document",
   "application/msword",
 ];
+const FOLDER_MIME = "application/vnd.google-apps.folder";
+const SHORTCUT_MIME = "application/vnd.google-apps.shortcut";
+
+const PENDING_STATUSES = ["found", "queued"];
+
+function triggerExtraction(args: {
+  supabaseUrl: string;
+  anonKey: string;
+  authHeader: string;
+  importId: string;
+}) {
+  return fetch(`${args.supabaseUrl}/functions/v1/live-contract-extract`, {
+    method: "POST",
+    headers: {
+      Authorization: args.authHeader,
+      apikey: args.anonKey,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ importId: args.importId }),
+  }).then(async (res) => {
+    if (!res.ok) console.error(`[LC-SCAN] extraction trigger failed ${res.status}: ${await res.text()}`);
+  }).catch((e) => console.error("[LC-SCAN] extraction trigger error", e));
+}
 
 async function refreshToken(supabase: any, conn: any, clientId: string, clientSecret: string) {
   if (!conn.refresh_token) throw new Error("No refresh token");
@@ -37,6 +60,51 @@ async function refreshToken(supabase: any, conn: any, clientId: string, clientSe
     })
     .eq("id", conn.id);
   return data.access_token;
+}
+
+async function listContractFilesRecursive(accessToken: string, rootFolderId: string, maxDepth = 8) {
+  const files: any[] = [];
+  const seenFolders = new Set<string>();
+  const contractMimeSet = new Set(CONTRACT_MIMES);
+  const searchableMimes = [...CONTRACT_MIMES, FOLDER_MIME, SHORTCUT_MIME];
+
+  async function walk(folderId: string, depth: number) {
+    if (depth > maxDepth || seenFolders.has(folderId)) return;
+    seenFolders.add(folderId);
+    let pageToken: string | undefined;
+    const mimeQuery = searchableMimes.map((m) => `mimeType='${m}'`).join(" or ");
+    do {
+      const params = new URLSearchParams({
+        q: `'${folderId}' in parents and (${mimeQuery}) and trashed=false`,
+        fields: "nextPageToken,files(id,name,size,mimeType,createdTime,modifiedTime,shortcutDetails)",
+        pageSize: "100",
+      });
+      if (pageToken) params.set("pageToken", pageToken);
+      const res = await fetch(`https://www.googleapis.com/drive/v3/files?${params}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(`Drive API: ${JSON.stringify(data)}`);
+      for (const item of data.files || []) {
+        if (item.mimeType === FOLDER_MIME) {
+          await walk(item.id, depth + 1);
+        } else if (item.mimeType === SHORTCUT_MIME && contractMimeSet.has(item.shortcutDetails?.targetMimeType)) {
+          files.push({
+            ...item,
+            id: item.shortcutDetails.targetId,
+            mimeType: item.shortcutDetails.targetMimeType,
+            name: item.name,
+          });
+        } else if (contractMimeSet.has(item.mimeType)) {
+          files.push(item);
+        }
+      }
+      pageToken = data.nextPageToken;
+    } while (pageToken);
+  }
+
+  await walk(rootFolderId, 0);
+  return files;
 }
 
 Deno.serve(async (req) => {
@@ -133,24 +201,8 @@ Deno.serve(async (req) => {
 
     log("Scanning", { folderId: folder.folder_id });
 
-    const allFiles: any[] = [];
-    let pageToken: string | undefined;
-    const mimeQuery = CONTRACT_MIMES.map((m) => `mimeType='${m}'`).join(" or ");
-    do {
-      const params = new URLSearchParams({
-        q: `'${folder.folder_id}' in parents and (${mimeQuery}) and trashed=false`,
-        fields: "nextPageToken,files(id,name,size,mimeType,createdTime,modifiedTime)",
-        pageSize: "100",
-      });
-      if (pageToken) params.set("pageToken", pageToken);
-      const res = await fetch(`https://www.googleapis.com/drive/v3/files?${params}`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(`Drive API: ${JSON.stringify(data)}`);
-      allFiles.push(...(data.files || []));
-      pageToken = data.nextPageToken;
-    } while (pageToken);
+    const allFiles = await listContractFilesRecursive(accessToken, folder.folder_id);
+    const dedupedFiles = Array.from(new Map(allFiles.map((f: any) => [f.id, f])).values());
 
     const { data: existing } = await supabase
       .from("live_contract_imports")
@@ -159,8 +211,8 @@ Deno.serve(async (req) => {
       .not("drive_file_id", "is", null);
     const existingIds = new Set((existing || []).map((r: any) => r.drive_file_id));
 
-    const newFiles = allFiles.filter((f) => !existingIds.has(f.id));
-    const dup = allFiles.length - newFiles.length;
+    const newFiles = dedupedFiles.filter((f: any) => !existingIds.has(f.id));
+    const dup = dedupedFiles.length - newFiles.length;
 
     if (newFiles.length > 0) {
       const rows = newFiles.map((f) => ({
@@ -173,10 +225,29 @@ Deno.serve(async (req) => {
         file_name: f.name,
         mime_type: f.mimeType,
         file_size: f.size ? parseInt(f.size) : null,
-        status: "found",
+        status: "queued",
       }));
       const { error: insErr } = await supabase.from("live_contract_imports").insert(rows);
       if (insErr && insErr.code !== "23505") log("Insert error", { code: insErr.code, msg: insErr.message });
+    }
+
+    const { data: pendingImports, error: pendingErr } = await supabase
+      .from("live_contract_imports")
+      .select("id, file_name, status")
+      .eq("account_id", accountId)
+      .eq("folder_id", folder.id)
+      .eq("source", "drive")
+      .in("status", PENDING_STATUSES);
+    if (pendingErr) throw pendingErr;
+
+    const extractionJobs = (pendingImports || []).map((imp: any) =>
+      triggerExtraction({ supabaseUrl, anonKey, authHeader, importId: imp.id })
+    );
+    if (extractionJobs.length) {
+      log("Triggering extraction", { count: extractionJobs.length });
+      const edgeRuntime = (globalThis as any).EdgeRuntime;
+      if (edgeRuntime?.waitUntil) extractionJobs.forEach((job) => edgeRuntime.waitUntil(job));
+      else await Promise.allSettled(extractionJobs);
     }
 
     await supabase
@@ -184,7 +255,7 @@ Deno.serve(async (req) => {
       .update({
         status: "completed",
         completed_at: new Date().toISOString(),
-        files_found: allFiles.length,
+        files_found: dedupedFiles.length,
         files_new: newFiles.length,
         files_duplicate: dup,
       })
@@ -197,11 +268,11 @@ Deno.serve(async (req) => {
 
     await supabase.from("live_contract_audit_log").insert({
       account_id: accountId, user_id: user.id, event_type: "folder_scanned",
-      event_details: { folder_id: folder.folder_id, total: allFiles.length, new: newFiles.length, dup },
+      event_details: { folder_id: folder.folder_id, total: dedupedFiles.length, new: newFiles.length, dup, extraction_triggered: extractionJobs.length },
     });
 
     return new Response(JSON.stringify({
-      success: true, total_files: allFiles.length, new_files: newFiles.length, duplicates: dup, job_id: jobRow.id,
+      success: true, total_files: dedupedFiles.length, new_files: newFiles.length, duplicates: dup, extraction_triggered: extractionJobs.length, job_id: jobRow.id,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   } catch (e) {
