@@ -554,7 +554,7 @@ function UploadDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o:
 function ImportsEmptyState({ statusFilter }: { statusFilter?: string[] }) {
   const key = statusFilter?.includes("needs_review") ? "review"
     : statusFilter?.includes("imported") ? "imported"
-    : statusFilter?.some((s) => ["found", "queued", "scanning", "ocr_processing", "ai_extracting"].includes(s)) ? "queue"
+    : statusFilter?.some((s) => SCANNING_STATUSES.includes(s)) ? "queue"
     : "all";
   const copy: Record<string, { title: string; body: string }> = {
     review: { title: "Nothing waiting for review", body: "Once AI finishes extracting, contracts that need a human eye will appear here." },
@@ -1263,7 +1263,7 @@ export default function LiveContracts() {
   }, [imports, accountFilter, showArchived, searchText]);
 
   const tabCounts = useMemo(() => {
-    const queueStatuses = ["found", "queued", "scanning", "ocr_processing", "ai_extracting", "failed"];
+    const queueStatuses = [...SCANNING_STATUSES, "failed"];
     const importedStatuses = showArchived
       ? ["imported", "duplicate", "rejected", "approved", "archived"]
       : ["imported", "duplicate", "rejected", "approved"];
@@ -1300,7 +1300,7 @@ export default function LiveContracts() {
       ? "review"
       : requestedStatus === "imported"
         ? "imported"
-        : tabCounts.review > 0 ? "review" : "folders";
+        : tabCounts.queue > 0 ? "queue" : tabCounts.review > 0 ? "review" : "folders";
 
   return (
     <>
@@ -1433,7 +1433,7 @@ export default function LiveContracts() {
                 <CardHeader><CardTitle>Scan queue</CardTitle><CardDescription>Files discovered or uploaded, awaiting extraction.</CardDescription></CardHeader>
                 <CardContent>
                   <ImportsTable imports={filteredImports} onReview={setReviewId}
-                    statusFilter={["found", "queued", "scanning", "ocr_processing", "ai_extracting", "failed"]} />
+                    statusFilter={[...SCANNING_STATUSES, "failed"]} />
                 </CardContent>
               </Card>
             </TabsContent>
