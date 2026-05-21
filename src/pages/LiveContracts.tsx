@@ -579,6 +579,10 @@ function ImportsTable({ imports, onReview, statusFilter }: { imports: any[]; onR
   const qc = useQueryClient();
   const navigate = useNavigate();
   const filtered = statusFilter ? imports.filter((i) => statusFilter.includes(i.status)) : imports;
+  const pendingIds = useMemo(
+    () => filtered.filter((i) => ["found", "queued"].includes(i.status)).map((i) => i.id),
+    [filtered],
+  );
   const extract = useMutation({
     mutationFn: async (importId: string) => {
       const { data, error } = await supabase.functions.invoke("live-contract-extract", { body: { importId } });
@@ -589,6 +593,11 @@ function ImportsTable({ imports, onReview, statusFilter }: { imports: any[]; onR
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["lc-imports"] }); toast.success("Extraction complete"); },
     onError: (e: any) => toast.error(e.message),
   });
+
+  useEffect(() => {
+    if (pendingIds.length === 0 || extract.isPending) return;
+    pendingIds.slice(0, 3).forEach((id) => extract.mutate(id));
+  }, [extract, pendingIds]);
 
   const del = useMutation({
     mutationFn: async (importId: string) => {
