@@ -238,8 +238,15 @@ Deno.serve(async (req) => {
 
     log("Scanning", { folderId: folder.folder_id });
 
-    const allFiles = await listContractFilesRecursive(accessToken, folder.folder_id);
+    let allFiles: any[] = [];
+    try {
+      allFiles = await listContractFilesRecursive(accessToken, folder.folder_id);
+    } catch (recursiveError) {
+      log("Recursive scan failed, falling back to direct folder scan", { error: String(recursiveError) });
+      allFiles = await listContractFilesFlat(accessToken, folder.folder_id);
+    }
     const dedupedFiles = Array.from(new Map(allFiles.map((f: any) => [f.id, f])).values());
+    log("Files discovered", { count: dedupedFiles.length, names: dedupedFiles.slice(0, 10).map((f: any) => f.name) });
 
     const { data: existing } = await supabase
       .from("live_contract_imports")
@@ -265,7 +272,7 @@ Deno.serve(async (req) => {
         status: "queued",
       }));
       const { error: insErr } = await supabase.from("live_contract_imports").insert(rows);
-      if (insErr && insErr.code !== "23505") log("Insert error", { code: insErr.code, msg: insErr.message });
+      if (insErr && insErr.code !== "23505") throw insErr;
     }
 
     const { data: pendingImports, error: pendingErr } = await supabase
