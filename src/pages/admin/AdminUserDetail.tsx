@@ -41,6 +41,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format as formatDate } from "date-fns";
 import { AdminIntegrationToggles } from "@/components/admin/AdminIntegrationToggles";
 import { AdminClmToggle } from "@/components/admin/AdminClmToggle";
+import AdminCreditsCard from "@/components/admin/AdminCreditsCard";
 
 interface UserDetails {
   id: string;
