@@ -13,6 +13,8 @@ const CONTRACT_MIMES = [
   "application/vnd.google-apps.document",
   "application/msword",
 ];
+const FOLDER_MIME = "application/vnd.google-apps.folder";
+const SHORTCUT_MIME = "application/vnd.google-apps.shortcut";
 
 const PENDING_STATUSES = ["found", "queued"];
 
@@ -58,6 +60,51 @@ async function refreshToken(supabase: any, conn: any, clientId: string, clientSe
     })
     .eq("id", conn.id);
   return data.access_token;
+}
+
+async function listContractFilesRecursive(accessToken: string, rootFolderId: string, maxDepth = 8) {
+  const files: any[] = [];
+  const seenFolders = new Set<string>();
+  const contractMimeSet = new Set(CONTRACT_MIMES);
+  const searchableMimes = [...CONTRACT_MIMES, FOLDER_MIME, SHORTCUT_MIME];
+
+  async function walk(folderId: string, depth: number) {
+    if (depth > maxDepth || seenFolders.has(folderId)) return;
+    seenFolders.add(folderId);
+    let pageToken: string | undefined;
+    const mimeQuery = searchableMimes.map((m) => `mimeType='${m}'`).join(" or ");
+    do {
+      const params = new URLSearchParams({
+        q: `'${folderId}' in parents and (${mimeQuery}) and trashed=false`,
+        fields: "nextPageToken,files(id,name,size,mimeType,createdTime,modifiedTime,shortcutDetails)",
+        pageSize: "100",
+      });
+      if (pageToken) params.set("pageToken", pageToken);
+      const res = await fetch(`https://www.googleapis.com/drive/v3/files?${params}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(`Drive API: ${JSON.stringify(data)}`);
+      for (const item of data.files || []) {
+        if (item.mimeType === FOLDER_MIME) {
+          await walk(item.id, depth + 1);
+        } else if (item.mimeType === SHORTCUT_MIME && contractMimeSet.has(item.shortcutDetails?.targetMimeType)) {
+          files.push({
+            ...item,
+            id: item.shortcutDetails.targetId,
+            mimeType: item.shortcutDetails.targetMimeType,
+            name: item.name,
+          });
+        } else if (contractMimeSet.has(item.mimeType)) {
+          files.push(item);
+        }
+      }
+      pageToken = data.nextPageToken;
+    } while (pageToken);
+  }
+
+  await walk(rootFolderId, 0);
+  return files;
 }
 
 Deno.serve(async (req) => {
