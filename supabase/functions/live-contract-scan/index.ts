@@ -111,6 +111,39 @@ async function listContractFilesRecursive(accessToken: string, rootFolderId: str
   return files;
 }
 
+async function listContractFilesFlat(accessToken: string, rootFolderId: string) {
+  const files: any[] = [];
+  const contractMimeSet = new Set(CONTRACT_MIMES);
+  let pageToken: string | undefined;
+
+  do {
+    const params = new URLSearchParams({
+      q: `'${rootFolderId}' in parents and trashed=false`,
+      fields: "nextPageToken,files(id,name,size,mimeType,createdTime,modifiedTime,shortcutDetails)",
+      pageSize: "1000",
+      supportsAllDrives: "true",
+      includeItemsFromAllDrives: "true",
+    });
+    if (pageToken) params.set("pageToken", pageToken);
+
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files?${params}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(`Drive flat scan failed: ${JSON.stringify(data)}`);
+
+    for (const item of data.files || []) {
+      if (contractMimeSet.has(item.mimeType)) files.push(item);
+      if (item.mimeType === SHORTCUT_MIME && contractMimeSet.has(item.shortcutDetails?.targetMimeType)) {
+        files.push({ ...item, id: item.shortcutDetails.targetId, mimeType: item.shortcutDetails.targetMimeType, name: item.name });
+      }
+    }
+    pageToken = data.nextPageToken;
+  } while (pageToken);
+
+  return files;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
