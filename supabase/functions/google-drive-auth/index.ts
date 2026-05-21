@@ -40,13 +40,10 @@ Deno.serve(async (req) => {
     }
 
     const redirectUri = `${supabaseUrl}/functions/v1/google-drive-callback`;
-    // Use only drive.file (non-sensitive, per-file access). This covers:
-    // - Files the app creates (Sheets created via the API)
-    // - Files the user explicitly opens via the Google Picker
-    // Avoids the sensitive `spreadsheets` and `drive.readonly` scopes that require Google verification.
+    // Contract and invoice folder scans need read access to files inside a selected folder.
     const body = await req.json().catch(() => ({}));
-    // Base scope: drive.file (per-file). Optionally add documents (CLM Push to Google Docs).
-    const scopes = ['https://www.googleapis.com/auth/drive.file'];
+    // Base scopes: drive.file for Picker selections plus drive.readonly for folder discovery/download.
+    const scopes = ['https://www.googleapis.com/auth/drive.file', 'https://www.googleapis.com/auth/drive.readonly'];
     if (body.include_docs_scope) scopes.push('https://www.googleapis.com/auth/documents');
     const scope = scopes.join(' ');
     const origin = body.origin || supabaseUrl;

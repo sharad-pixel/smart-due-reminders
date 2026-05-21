@@ -31,6 +31,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 // ------- Status helpers -------
 // Lifecycle: Scanned → Under Review → Extracted
@@ -288,7 +289,8 @@ function FoldersTab() {
       const { data, error } = await supabase.functions.invoke("live-contract-scan", {
         body: { folderRowId },
       });
-      if (error) throw error;
+      if (error) await throwFunctionError(error, "Scan failed");
+      if (data?.error) throw new Error(data.error);
       return data;
     },
     onSuccess: (d: any) => {
@@ -299,6 +301,18 @@ function FoldersTab() {
       if (d.new_files > 0 || extracting > 0) {
         navigate("/ai-ingestion?status=scanning", { replace: true });
       }
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const reconnectDrive = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke("google-drive-auth", {
+        body: { origin: window.location.origin },
+      });
+      if (error) await throwFunctionError(error, "Google Drive reconnect failed");
+      if (!data?.authUrl) throw new Error("Google Drive reconnect failed");
+      window.location.href = data.authUrl;
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -349,6 +363,17 @@ function FoldersTab() {
         </div>
       </CardHeader>
       <CardContent>
+        <Alert className="mb-4">
+          <ShieldAlert className="h-4 w-4" />
+          <AlertTitle>Google Drive permission required for folder scans</AlertTitle>
+          <AlertDescription className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <span>Reconnect once to grant read access so contracts inside selected folders can be discovered and extracted.</span>
+            <Button size="sm" variant="outline" onClick={() => reconnectDrive.mutate()} disabled={reconnectDrive.isPending}>
+              {reconnectDrive.isPending ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 mr-1.5" />}
+              Reconnect Drive
+            </Button>
+          </AlertDescription>
+        </Alert>
         {isLoading ? <p className="text-sm text-muted-foreground">Loading…</p> :
           folders.length === 0 ? (
             <p className="text-sm text-muted-foreground py-8 text-center">No folders connected yet. Add one to start scanning.</p>

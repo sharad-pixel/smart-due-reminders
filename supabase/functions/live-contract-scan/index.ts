@@ -12,6 +12,7 @@ const CONTRACT_MIMES = [
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/vnd.google-apps.document",
   "application/msword",
+  "text/plain",
 ];
 const FOLDER_MIME = "application/vnd.google-apps.folder";
 const SHORTCUT_MIME = "application/vnd.google-apps.shortcut";
@@ -65,29 +66,41 @@ async function refreshToken(supabase: any, conn: any, clientId: string, clientSe
 async function listContractFilesRecursive(accessToken: string, rootFolderId: string, maxDepth = 8) {
   const files: any[] = [];
   const seenFolders = new Set<string>();
+  const seenFiles = new Set<string>();
   const contractMimeSet = new Set(CONTRACT_MIMES);
-  const searchableMimes = [...CONTRACT_MIMES, FOLDER_MIME, SHORTCUT_MIME];
 
   async function walk(folderId: string, depth: number) {
     if (depth > maxDepth || seenFolders.has(folderId)) return;
     seenFolders.add(folderId);
     let pageToken: string | undefined;
-    const mimeQuery = searchableMimes.map((m) => `mimeType='${m}'`).join(" or ");
     do {
       const params = new URLSearchParams({
-        q: `'${folderId}' in parents and (${mimeQuery}) and trashed=false`,
+        q: `'${folderId}' in parents and trashed=false`,
         fields: "nextPageToken,files(id,name,size,mimeType,createdTime,modifiedTime,shortcutDetails)",
-        pageSize: "100",
+        pageSize: "1000",
+        includeItemsFromAllDrives: "true",
+        supportsAllDrives: "true",
+        corpora: "allDrives",
       });
       if (pageToken) params.set("pageToken", pageToken);
       const res = await fetch(`https://www.googleapis.com/drive/v3/files?${params}`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(`Drive API: ${JSON.stringify(data)}`);
+      if (!res.ok) {
+        const msg = String(data?.error?.message || data?.error || "");
+        if (res.status === 403 || msg.toLowerCase().includes("insufficient")) {
+          throw new Error("Google Drive needs updated permission to read files in this folder. Click Reconnect Drive, approve access, then scan again.");
+        }
+        throw new Error(`Drive API: ${JSON.stringify(data)}`);
+      }
       for (const item of data.files || []) {
+        if (seenFiles.has(item.id)) continue;
+        seenFiles.add(item.id);
         if (item.mimeType === FOLDER_MIME) {
           await walk(item.id, depth + 1);
+        } else if (item.mimeType === SHORTCUT_MIME && item.shortcutDetails?.targetMimeType === FOLDER_MIME) {
+          await walk(item.shortcutDetails.targetId, depth + 1);
         } else if (item.mimeType === SHORTCUT_MIME && contractMimeSet.has(item.shortcutDetails?.targetMimeType)) {
           files.push({
             ...item,
@@ -104,6 +117,45 @@ async function listContractFilesRecursive(accessToken: string, rootFolderId: str
   }
 
   await walk(rootFolderId, 0);
+  return files;
+}
+
+async function listContractFilesFlat(accessToken: string, rootFolderId: string) {
+  const files: any[] = [];
+  const contractMimeSet = new Set(CONTRACT_MIMES);
+  let pageToken: string | undefined;
+
+  do {
+    const params = new URLSearchParams({
+      q: `'${rootFolderId}' in parents and trashed=false`,
+      fields: "nextPageToken,files(id,name,size,mimeType,createdTime,modifiedTime,shortcutDetails)",
+      pageSize: "1000",
+      supportsAllDrives: "true",
+      includeItemsFromAllDrives: "true",
+    });
+    if (pageToken) params.set("pageToken", pageToken);
+
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files?${params}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      const msg = String(data?.error?.message || data?.error || "");
+      if (res.status === 403 || msg.toLowerCase().includes("insufficient")) {
+        throw new Error("Google Drive needs updated permission to read files in this folder. Click Reconnect Drive, approve access, then scan again.");
+      }
+      throw new Error(`Drive flat scan failed: ${JSON.stringify(data)}`);
+    }
+
+    for (const item of data.files || []) {
+      if (contractMimeSet.has(item.mimeType)) files.push(item);
+      if (item.mimeType === SHORTCUT_MIME && contractMimeSet.has(item.shortcutDetails?.targetMimeType)) {
+        files.push({ ...item, id: item.shortcutDetails.targetId, mimeType: item.shortcutDetails.targetMimeType, name: item.name });
+      }
+    }
+    pageToken = data.nextPageToken;
+  } while (pageToken);
+
   return files;
 }
 
@@ -201,8 +253,15 @@ Deno.serve(async (req) => {
 
     log("Scanning", { folderId: folder.folder_id });
 
-    const allFiles = await listContractFilesRecursive(accessToken, folder.folder_id);
+    let allFiles: any[] = [];
+    try {
+      allFiles = await listContractFilesRecursive(accessToken, folder.folder_id);
+    } catch (recursiveError) {
+      log("Recursive scan failed, falling back to direct folder scan", { error: String(recursiveError) });
+      allFiles = await listContractFilesFlat(accessToken, folder.folder_id);
+    }
     const dedupedFiles = Array.from(new Map(allFiles.map((f: any) => [f.id, f])).values());
+    log("Files discovered", { count: dedupedFiles.length, names: dedupedFiles.slice(0, 10).map((f: any) => f.name) });
 
     const { data: existing } = await supabase
       .from("live_contract_imports")
@@ -228,7 +287,7 @@ Deno.serve(async (req) => {
         status: "queued",
       }));
       const { error: insErr } = await supabase.from("live_contract_imports").insert(rows);
-      if (insErr && insErr.code !== "23505") log("Insert error", { code: insErr.code, msg: insErr.message });
+      if (insErr && insErr.code !== "23505") throw insErr;
     }
 
     const { data: pendingImports, error: pendingErr } = await supabase
