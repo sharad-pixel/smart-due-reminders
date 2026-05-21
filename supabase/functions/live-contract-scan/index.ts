@@ -66,6 +66,7 @@ async function refreshToken(supabase: any, conn: any, clientId: string, clientSe
 async function listContractFilesRecursive(accessToken: string, rootFolderId: string, maxDepth = 8) {
   const files: any[] = [];
   const seenFolders = new Set<string>();
+  const seenFiles = new Set<string>();
   const contractMimeSet = new Set(CONTRACT_MIMES);
 
   async function walk(folderId: string, depth: number) {
@@ -88,6 +89,8 @@ async function listContractFilesRecursive(accessToken: string, rootFolderId: str
       const data = await res.json();
       if (!res.ok) throw new Error(`Drive API: ${JSON.stringify(data)}`);
       for (const item of data.files || []) {
+        if (seenFiles.has(item.id)) continue;
+        seenFiles.add(item.id);
         if (item.mimeType === FOLDER_MIME) {
           await walk(item.id, depth + 1);
         } else if (item.mimeType === SHORTCUT_MIME && item.shortcutDetails?.targetMimeType === FOLDER_MIME) {
