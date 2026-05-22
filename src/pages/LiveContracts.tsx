@@ -96,11 +96,27 @@ function useImports() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("live_contract_imports")
-        .select("*, debtor:debtors(id, company_name, name)")
+        .select("*")
         .order("created_at", { ascending: false })
         .limit(200);
       if (error) throw error;
-      return data || [];
+
+      const rows = data || [];
+      const debtorIds = Array.from(new Set(rows.map((row: any) => row.debtor_id).filter(Boolean)));
+      if (debtorIds.length === 0) return rows;
+
+      const { data: debtors, error: debtorError } = await supabase
+        .from("debtors")
+        .select("id, company_name, name")
+        .in("id", debtorIds);
+
+      if (debtorError) {
+        console.warn("Unable to hydrate contract account names", debtorError);
+        return rows;
+      }
+
+      const debtorById = new Map((debtors || []).map((debtor: any) => [debtor.id, debtor]));
+      return rows.map((row: any) => ({ ...row, debtor: row.debtor_id ? debtorById.get(row.debtor_id) || null : null }));
     },
     // Poll while any contract is still mid-flight so the list reflects
     // Scanned → Under Review → Extracted progression without a manual refresh.
