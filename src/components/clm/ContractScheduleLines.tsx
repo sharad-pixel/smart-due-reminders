@@ -52,19 +52,29 @@ interface Props {
   onChanged: () => void;
 }
 
-const CATEGORY_OPTIONS: { value: string; label: string; revenue: "recurring" | "non_recurring" }[] = [
+type RevenueKind = "recurring" | "non_recurring" | "prepaid_usage" | "other";
+
+const REVENUE_TYPE_OPTIONS: { value: RevenueKind; label: string; hint: string }[] = [
+  { value: "recurring", label: "Recurring (SaaS / subscription)", hint: "Repeats on a fixed cadence — counts toward MRR/ARR." },
+  { value: "non_recurring", label: "One-time", hint: "Single charge — implementation, hardware, services." },
+  { value: "prepaid_usage", label: "Prepaid usage", hint: "Pre-purchased usage / credits drawn down over time." },
+  { value: "other", label: "Other", hint: "Doesn't fit the categories above." },
+];
+
+const CATEGORY_OPTIONS: { value: string; label: string; revenue: RevenueKind }[] = [
   { value: "subscription", label: "Subscription (SaaS)", revenue: "recurring" },
   { value: "platform", label: "Platform fee", revenue: "recurring" },
   { value: "license", label: "License", revenue: "recurring" },
   { value: "support", label: "Support", revenue: "recurring" },
   { value: "maintenance", label: "Maintenance", revenue: "recurring" },
-  { value: "usage_minimum", label: "Usage minimum", revenue: "recurring" },
+  { value: "usage_minimum", label: "Usage minimum / commitment", revenue: "recurring" },
+  { value: "prepaid_usage", label: "Prepaid usage / credits", revenue: "prepaid_usage" },
   { value: "professional_services", label: "Professional services", revenue: "non_recurring" },
   { value: "implementation", label: "Implementation", revenue: "non_recurring" },
   { value: "onboarding", label: "Onboarding", revenue: "non_recurring" },
   { value: "training", label: "Training", revenue: "non_recurring" },
   { value: "hardware", label: "Hardware", revenue: "non_recurring" },
-  { value: "other", label: "Other", revenue: "non_recurring" },
+  { value: "other", label: "Other", revenue: "other" },
 ];
 
 const STATUS_META: Record<string, { label: string; color: string; icon: any }> = {
@@ -79,8 +89,17 @@ const STATUS_META: Record<string, { label: string; color: string; icon: any }> =
 const categoryLabel = (v: string | null | undefined) =>
   CATEGORY_OPTIONS.find((o) => o.value === v)?.label || null;
 
-const revenueFor = (cat: string) =>
+const revenueFor = (cat: string): RevenueKind =>
   CATEGORY_OPTIONS.find((o) => o.value === cat)?.revenue || "non_recurring";
+
+const revenueBadgeClass = (rev: string | null | undefined) => {
+  switch (rev) {
+    case "recurring": return "bg-emerald-100 text-emerald-700 border border-emerald-200";
+    case "prepaid_usage": return "bg-violet-100 text-violet-700 border border-violet-200";
+    case "non_recurring": return "bg-slate-100 text-slate-700 border border-slate-200";
+    default: return "bg-amber-50 text-amber-800 border border-amber-200";
+  }
+};
 
 export const ContractScheduleLines = ({
   importId,
@@ -97,6 +116,8 @@ export const ContractScheduleLines = ({
   const [uploading, setUploading] = useState(false);
 
   const [editTarget, setEditTarget] = useState<any | null>(null);
+  const [creatingNew, setCreatingNew] = useState(false);
+  const [billingId, setBillingId] = useState<string | null>(null);
   const [form, setForm] = useState({
     product_description: "",
     quantity: "",
@@ -250,6 +271,7 @@ export const ContractScheduleLines = ({
   const open = (s: any) => {
     const qty = s.quantity != null ? Number(s.quantity) : null;
     const up = s.unit_price != null ? Number(s.unit_price) : null;
+    setCreatingNew(false);
     setEditTarget(s);
     setForm({
       product_description: s.product_description || s.description || "",
@@ -260,6 +282,21 @@ export const ContractScheduleLines = ({
       expected_due_date: s.expected_due_date || "",
       product_category: s.product_category || "",
       revenue_type: s.revenue_type || "",
+    });
+  };
+
+  const openCreate = () => {
+    setEditTarget({ __new: true });
+    setCreatingNew(true);
+    setForm({
+      product_description: "",
+      quantity: "1",
+      unit_price: "",
+      amount: "",
+      scheduled_date: new Date().toISOString().slice(0, 10),
+      expected_due_date: "",
+      product_category: "",
+      revenue_type: "",
     });
   };
 
@@ -277,6 +314,28 @@ export const ContractScheduleLines = ({
     setForm((f) => ({ ...f, product_category: v, revenue_type: revenueFor(v) }));
   };
 
+  const addToBilling = async (scheduleId: string) => {
+    if (!debtorId) {
+      toast.error("Link this contract to a customer first.");
+      return;
+    }
+    setBillingId(scheduleId);
+    try {
+      const { data, error } = await supabase.functions.invoke("live-contract-actions", {
+        body: { importId, action: "generate_invoices", scheduleIds: [scheduleId] },
+      });
+      if (error) throw error;
+      if (data?.created > 0) toast.success("Invoice generated from this line");
+      else if (data?.duplicates > 0) toast.success("Linked to an existing invoice");
+      else toast.message("No invoice created", { description: data?.skipped?.[0]?.reason || "Check the row details" });
+      onChanged();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to add to billing");
+    } finally {
+      setBillingId(null);
+    }
+  };
+
   const save = async () => {
     if (!editTarget) return;
     setSaving(true);
@@ -285,25 +344,70 @@ export const ContractScheduleLines = ({
       const up = form.unit_price.trim() === "" ? null : Number(form.unit_price);
       const amt = form.amount.trim() === "" ? null : Number(form.amount);
       const cat = form.product_category || null;
-      const rev = cat ? form.revenue_type || revenueFor(cat) : null;
-      const { error } = await supabase
-        .from("contract_invoice_schedules")
-        .update({
-          product_description: form.product_description.trim() || null,
-          description: form.product_description.trim() || editTarget.description || null,
+      const rev = cat ? form.revenue_type || revenueFor(cat) : form.revenue_type || null;
+      const desc = form.product_description.trim();
+
+      if (creatingNew) {
+        if (!form.scheduled_date) {
+          toast.error("Scheduled date is required");
+          setSaving(false);
+          return;
+        }
+        if (amt == null && (qty == null || up == null)) {
+          toast.error("Provide an amount, or quantity × unit price");
+          setSaving(false);
+          return;
+        }
+        // Look up account_id from the import row (RLS-safe; user already has access).
+        const { data: imp, error: impErr } = await supabase
+          .from("live_contract_imports")
+          .select("account_id, debtor_id")
+          .eq("id", importId)
+          .single();
+        if (impErr) throw impErr;
+        const computedAmt = amt != null ? amt : (Number(qty) * Number(up));
+        const { error } = await supabase.from("contract_invoice_schedules").insert({
+          account_id: imp.account_id,
+          import_id: importId,
+          debtor_id: imp.debtor_id ?? null,
+          scheduled_date: form.scheduled_date,
+          expected_due_date: form.expected_due_date || null,
+          amount: computedAmt,
           quantity: qty,
           unit_price: up,
-          amount: amt,
-          scheduled_date: form.scheduled_date || editTarget.scheduled_date,
-          expected_due_date: form.expected_due_date || null,
+          description: desc || null,
+          product_description: desc || null,
           product_category: cat,
           revenue_type: rev,
           category_source: cat ? "user" : null,
-        } as any)
-        .eq("id", editTarget.id);
-      if (error) throw error;
-      toast.success("Schedule line updated");
+          attachment_source: "manual",
+          status: "forecast",
+          completion_status: "pending",
+          reconciliation_status: "pending",
+        } as any);
+        if (error) throw error;
+        toast.success("Line item added");
+      } else {
+        const { error } = await supabase
+          .from("contract_invoice_schedules")
+          .update({
+            product_description: desc || null,
+            description: desc || editTarget.description || null,
+            quantity: qty,
+            unit_price: up,
+            amount: amt,
+            scheduled_date: form.scheduled_date || editTarget.scheduled_date,
+            expected_due_date: form.expected_due_date || null,
+            product_category: cat,
+            revenue_type: rev,
+            category_source: cat ? "user" : null,
+          } as any)
+          .eq("id", editTarget.id);
+        if (error) throw error;
+        toast.success("Schedule line updated");
+      }
       setEditTarget(null);
+      setCreatingNew(false);
       onChanged();
     } catch (e: any) {
       toast.error(e.message || "Failed to save");
@@ -330,29 +434,34 @@ export const ContractScheduleLines = ({
                 )}
             </CardDescription>
           </div>
-          {totalScheduled > 0 && debtorId && (
-            <div className="flex items-center gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => reconcile.mutate({ generateTasks: false })}
-                disabled={reconcile.isPending}
-              >
-                {reconcile.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <RefreshCw className="h-3.5 w-3.5 mr-1" />}
-                Reconcile now
-              </Button>
-              {published && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button size="sm" variant="outline" onClick={openCreate}>
+              <FilePlus2 className="h-3.5 w-3.5 mr-1" /> Add line item
+            </Button>
+            {totalScheduled > 0 && debtorId && (
+              <>
                 <Button
                   size="sm"
-                  onClick={() => reconcile.mutate({ generateTasks: true })}
+                  variant="outline"
+                  onClick={() => reconcile.mutate({ generateTasks: false })}
                   disabled={reconcile.isPending}
                 >
-                  <FilePlus2 className="h-3.5 w-3.5 mr-1" />
-                  Reconcile + create tasks
+                  {reconcile.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <RefreshCw className="h-3.5 w-3.5 mr-1" />}
+                  Reconcile now
                 </Button>
-              )}
-            </div>
-          )}
+                {published && (
+                  <Button
+                    size="sm"
+                    onClick={() => reconcile.mutate({ generateTasks: true })}
+                    disabled={reconcile.isPending}
+                  >
+                    <FilePlus2 className="h-3.5 w-3.5 mr-1" />
+                    Reconcile + create tasks
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
         </div>
 
         {totalScheduled > 0 && (
@@ -414,7 +523,6 @@ export const ContractScheduleLines = ({
                   const up = s.unit_price != null ? Number(s.unit_price) : null;
                   const cat = s.product_category as string | null;
                   const rev = s.revenue_type as string | null;
-                  const isRecurring = rev === "recurring";
                   const reconStatus = (s.reconciliation_status || "pending") as keyof typeof STATUS_META;
                   const reconMeta = STATUS_META[reconStatus] || STATUS_META.pending;
                   const ReconIcon = reconMeta.icon;
@@ -441,11 +549,14 @@ export const ContractScheduleLines = ({
                       <td className="py-2 px-2">
                         {cat ? (
                           <div className="space-y-0.5">
-                            <Badge
-                              className={`text-[10px] ${isRecurring ? "bg-emerald-100 text-emerald-700 border border-emerald-200" : "bg-slate-100 text-slate-700 border border-slate-200"}`}
-                            >
+                            <Badge className={`text-[10px] ${revenueBadgeClass(rev)}`}>
                               {categoryLabel(cat)}
                             </Badge>
+                            {rev && (
+                              <div className="text-[10px] text-muted-foreground">
+                                {REVENUE_TYPE_OPTIONS.find((o) => o.value === rev)?.label || rev}
+                              </div>
+                            )}
                             {s.category_source === "industry_default" && (
                               <div className="text-[10px] text-muted-foreground">industry default</div>
                             )}
@@ -526,25 +637,44 @@ export const ContractScheduleLines = ({
                         )}
                       </td>
                       <td className="text-right py-2 pl-2">
-                        <div className="flex justify-end gap-1">
+                        <div className="flex justify-end gap-1 flex-wrap">
                           {!s.invoice_id && debtorId && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-7 text-[11px]"
-                              onClick={() => triggerUpload(s.id)}
-                              disabled={uploading}
-                              title="Upload or OCR an invoice for this row"
-                            >
-                              {uploading && uploadScheduleId === s.id ? (
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                              ) : (
-                                <>
-                                  <Sparkles className="h-3 w-3 mr-1" />
-                                  Upload/OCR
-                                </>
-                              )}
-                            </Button>
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-[11px]"
+                                onClick={() => addToBilling(s.id)}
+                                disabled={billingId === s.id || !s.amount}
+                                title={s.amount ? "Generate an invoice from this line" : "Add an amount before billing"}
+                              >
+                                {billingId === s.id ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <>
+                                    <Receipt className="h-3 w-3 mr-1" />
+                                    Add to billing
+                                  </>
+                                )}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-[11px]"
+                                onClick={() => triggerUpload(s.id)}
+                                disabled={uploading}
+                                title="Upload or OCR an invoice for this row"
+                              >
+                                {uploading && uploadScheduleId === s.id ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <>
+                                    <Sparkles className="h-3 w-3 mr-1" />
+                                    Upload/OCR
+                                  </>
+                                )}
+                              </Button>
+                            </>
                           )}
                           <Button size="sm" variant="ghost" className="h-7" onClick={() => open(s)}>
                             <Pencil className="h-3.5 w-3.5" />
@@ -560,16 +690,17 @@ export const ContractScheduleLines = ({
         )}
       </CardContent>
 
-      <Dialog open={!!editTarget} onOpenChange={(o) => !o && setEditTarget(null)}>
+      <Dialog open={!!editTarget} onOpenChange={(o) => { if (!o) { setEditTarget(null); setCreatingNew(false); } }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit schedule line</DialogTitle>
+            <DialogTitle>{creatingNew ? "Add line item" : "Edit schedule line"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
               <Label htmlFor="sl-desc">Product / service description</Label>
               <Input
                 id="sl-desc"
+                placeholder="e.g. Platform Fee — Annual Subscription"
                 value={form.product_description}
                 onChange={(e) => setForm({ ...form, product_description: e.target.value })}
               />
@@ -600,12 +731,14 @@ export const ContractScheduleLines = ({
                     <SelectValue placeholder="—" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="recurring">Recurring (SaaS / subscription)</SelectItem>
-                    <SelectItem value="non_recurring">Non-recurring (services / one-time)</SelectItem>
+                    {REVENUE_TYPE_OPTIONS.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <p className="text-[11px] text-muted-foreground">
-                  SaaS / Software qualifies as recurring revenue. Professional services do not.
+                  {REVENUE_TYPE_OPTIONS.find((o) => o.value === form.revenue_type)?.hint
+                    || "Recurring counts toward MRR / ARR. One-time and prepaid usage do not."}
                 </p>
               </div>
             </div>
@@ -663,11 +796,11 @@ export const ContractScheduleLines = ({
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditTarget(null)} disabled={saving}>
+            <Button variant="outline" onClick={() => { setEditTarget(null); setCreatingNew(false); }} disabled={saving}>
               Cancel
             </Button>
             <Button onClick={save} disabled={saving}>
-              {saving ? "Saving…" : "Save line"}
+              {saving ? "Saving…" : creatingNew ? "Add line" : "Save line"}
             </Button>
           </DialogFooter>
         </DialogContent>
