@@ -113,6 +113,90 @@ async function parseJsonResponse(res: Response, label: string): Promise<any> {
   return parseJsonFromText(text, label);
 }
 
+/**
+ * Per-page Vision OCR fallback.
+ *
+ * Sending the entire scanned PDF as a single base64 payload to Gemini exhausts
+ * the edge-function CPU budget (and times out on long contracts). Instead we
+ * split the PDF into single-page documents with pdf-lib and run one Vision
+ * call per page, updating `live_contract_imports.progress_pct` as we go so the
+ * `/ai-ingestion` log can show real progress.
+ */
+async function ocrPdfPerPage(args: {
+  buf: Uint8Array;
+  lovableKey: string;
+  supabase: any;
+  importId: string;
+}): Promise<string> {
+  const { buf, lovableKey, supabase, importId } = args;
+  const { PDFDocument } = await import("npm:pdf-lib@1.17.1");
+  const source = await PDFDocument.load(buf, { ignoreEncryption: true });
+  const pageCount = source.getPageCount();
+  const collected: string[] = [];
+  const PER_PAGE_LIMIT = 6 * 1024 * 1024; // single-page PDF should comfortably fit Gemini
+
+  for (let i = 0; i < pageCount; i++) {
+    let pageBytes: Uint8Array;
+    try {
+      const single = await PDFDocument.create();
+      const [copied] = await single.copyPages(source, [i]);
+      single.addPage(copied);
+      pageBytes = await single.save();
+    } catch (e) {
+      log("pdf-lib page split failed", { page: i + 1, err: String(e) });
+      continue;
+    }
+    if (pageBytes.length > PER_PAGE_LIMIT) {
+      log("Skipping oversized page", { page: i + 1, bytes: pageBytes.length });
+      continue;
+    }
+    // Chunked base64 to keep per-byte JS work small.
+    const CHUNK = 0x8000;
+    let bin = "";
+    for (let j = 0; j < pageBytes.length; j += CHUNK) {
+      bin += String.fromCharCode.apply(
+        null,
+        pageBytes.subarray(j, j + CHUNK) as unknown as number[],
+      );
+    }
+    const b64 = btoa(bin);
+    try {
+      const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [{
+            role: "user",
+            content: [
+              { type: "text", text: `Extract ALL text from page ${i + 1} of this contract PDF. Return only the raw extracted text, preserving order.` },
+              { type: "image_url", image_url: { url: `data:application/pdf;base64,${b64}` } },
+            ],
+          }],
+        }),
+      });
+      if (res.ok) {
+        const vd = await parseJsonResponse(res, "Vision OCR page");
+        const t = vd.choices?.[0]?.message?.content || "";
+        if (t) collected.push(t);
+      } else {
+        log("Vision OCR page failed", { page: i + 1, status: res.status });
+      }
+    } catch (e) {
+      log("Vision OCR page error", { page: i + 1, err: String(e) });
+    }
+    // Map OCR progress to 30% → 70% of the overall job.
+    const pct = 30 + Math.floor(((i + 1) / pageCount) * 40);
+    try {
+      await supabase
+        .from("live_contract_imports")
+        .update({ progress_pct: pct })
+        .eq("id", importId);
+    } catch (_) { /* progress update is best-effort */ }
+  }
+  return collected.join("\n\n");
+}
+
 async function refreshToken(supabase: any, conn: any, clientId: string, clientSecret: string) {
   const res = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
