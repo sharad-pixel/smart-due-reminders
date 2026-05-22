@@ -113,6 +113,90 @@ async function parseJsonResponse(res: Response, label: string): Promise<any> {
   return parseJsonFromText(text, label);
 }
 
+/**
+ * Per-page Vision OCR fallback.
+ *
+ * Sending the entire scanned PDF as a single base64 payload to Gemini exhausts
+ * the edge-function CPU budget (and times out on long contracts). Instead we
+ * split the PDF into single-page documents with pdf-lib and run one Vision
+ * call per page, updating `live_contract_imports.progress_pct` as we go so the
+ * `/ai-ingestion` log can show real progress.
+ */
+async function ocrPdfPerPage(args: {
+  buf: Uint8Array;
+  lovableKey: string;
+  supabase: any;
+  importId: string;
+}): Promise<string> {
+  const { buf, lovableKey, supabase, importId } = args;
+  const { PDFDocument } = await import("npm:pdf-lib@1.17.1");
+  const source = await PDFDocument.load(buf, { ignoreEncryption: true });
+  const pageCount = source.getPageCount();
+  const collected: string[] = [];
+  const PER_PAGE_LIMIT = 6 * 1024 * 1024; // single-page PDF should comfortably fit Gemini
+
+  for (let i = 0; i < pageCount; i++) {
+    let pageBytes: Uint8Array;
+    try {
+      const single = await PDFDocument.create();
+      const [copied] = await single.copyPages(source, [i]);
+      single.addPage(copied);
+      pageBytes = await single.save();
+    } catch (e) {
+      log("pdf-lib page split failed", { page: i + 1, err: String(e) });
+      continue;
+    }
+    if (pageBytes.length > PER_PAGE_LIMIT) {
+      log("Skipping oversized page", { page: i + 1, bytes: pageBytes.length });
+      continue;
+    }
+    // Chunked base64 to keep per-byte JS work small.
+    const CHUNK = 0x8000;
+    let bin = "";
+    for (let j = 0; j < pageBytes.length; j += CHUNK) {
+      bin += String.fromCharCode.apply(
+        null,
+        pageBytes.subarray(j, j + CHUNK) as unknown as number[],
+      );
+    }
+    const b64 = btoa(bin);
+    try {
+      const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [{
+            role: "user",
+            content: [
+              { type: "text", text: `Extract ALL text from page ${i + 1} of this contract PDF. Return only the raw extracted text, preserving order.` },
+              { type: "image_url", image_url: { url: `data:application/pdf;base64,${b64}` } },
+            ],
+          }],
+        }),
+      });
+      if (res.ok) {
+        const vd = await parseJsonResponse(res, "Vision OCR page");
+        const t = vd.choices?.[0]?.message?.content || "";
+        if (t) collected.push(t);
+      } else {
+        log("Vision OCR page failed", { page: i + 1, status: res.status });
+      }
+    } catch (e) {
+      log("Vision OCR page error", { page: i + 1, err: String(e) });
+    }
+    // Map OCR progress to 30% → 70% of the overall job.
+    const pct = 30 + Math.floor(((i + 1) / pageCount) * 40);
+    try {
+      await supabase
+        .from("live_contract_imports")
+        .update({ progress_pct: pct })
+        .eq("id", importId);
+    } catch (_) { /* progress update is best-effort */ }
+  }
+  return collected.join("\n\n");
+}
+
 async function refreshToken(supabase: any, conn: any, clientId: string, clientSecret: string) {
   const res = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
@@ -416,11 +500,21 @@ Deno.serve(async (req) => {
     const { data: imp } = await supabase.from("live_contract_imports").select("*").eq("id", importId).single();
     if (!imp) throw new Error("Import not found");
 
-    await supabase.from("live_contract_imports").update({ status: "ai_extracting" }).eq("id", imp.id);
+    await supabase
+      .from("live_contract_imports")
+      .update({ status: "ai_extracting", progress_pct: 5, error: null })
+      .eq("id", imp.id);
 
+    // Heavy lifting (download, OCR, AI extraction, DB writes) runs in the
+    // background so the HTTP request returns immediately. Edge functions have
+    // a tight CPU budget and a single-shot Vision OCR call on a 30-page PDF
+    // will blow through it — keeping the worker alive via EdgeRuntime.waitUntil
+    // lets the per-page OCR loop finish without holding the client open.
+    const runExtraction = async () => {
     // Get document text
     let text = "";
     let pageCount = 1; // for AI Smart Ingestion usage tracking
+
     if (imp.source === "drive" && imp.drive_file_id) {
       const { data: folder } = await supabase.from("live_contract_drive_folders").select("connection_id").eq("id", imp.folder_id).single();
       const { data: conn } = await supabase.from("drive_connections").select("*").eq("id", folder!.connection_id).single();
@@ -455,60 +549,30 @@ Deno.serve(async (req) => {
             log("pdf-parse failed", { err: String(e), pages: pageCount });
           }
 
-          // OCR fallback via Lovable AI Gateway (Gemini multimodal) for scanned PDFs
+          // OCR fallback via Lovable AI Gateway (Gemini multimodal) for scanned PDFs.
+          // Done one page at a time so the per-call payload stays small and we can
+          // emit real progress, instead of timing out on a single giant request.
           const letters = (text.match(/[a-zA-Z]/g) || []).length;
           if (text.length < 500 || letters < 100) {
-            // Hard cap: base64-encoding very large PDFs in-function exhausts the CPU
-            // budget. ~8 MB raw PDF is the practical ceiling — beyond that we surface
-            // a clear failure so the user can split or re-export the document.
-            const MAX_VISION_BYTES = 8 * 1024 * 1024;
-            if (buf.length > MAX_VISION_BYTES) {
-              log("Skipping vision OCR — file too large", { bytes: buf.length });
-              await supabase.from("live_contract_imports").update({
-                status: "failed",
-                error: `Scanned PDF too large for OCR (${(buf.length / 1024 / 1024).toFixed(1)} MB). Please split into files under 8 MB or upload a text-based PDF.`,
-              }).eq("id", imp.id);
-              throw new Error("Scanned PDF exceeds OCR size limit");
-            }
-            log("Native PDF text low-quality, trying vision OCR");
+            await supabase
+              .from("live_contract_imports")
+              .update({ status: "ocr_processing", progress_pct: 25 })
+              .eq("id", imp.id);
+            log("Native PDF text low-quality, starting per-page Vision OCR", { pages: pageCount });
             try {
-              // Chunked base64 — the per-byte String.fromCharCode loop on a multi-MB
-              // PDF is O(n) JS work that trips the edge-function CPU limit.
-              const CHUNK = 0x8000;
-              let bin = "";
-              for (let i = 0; i < buf.length; i += CHUNK) {
-                bin += String.fromCharCode.apply(
-                  null,
-                  buf.subarray(i, i + CHUNK) as unknown as number[],
-                );
-              }
-              const b64 = btoa(bin);
-              const visionRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-                method: "POST",
-                headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  model: "google/gemini-2.5-flash",
-                  messages: [{
-                    role: "user",
-                    content: [
-                      { type: "text", text: "Extract ALL text from this contract PDF. Return only the raw extracted text, preserving order." },
-                      { type: "image_url", image_url: { url: `data:application/pdf;base64,${b64}` } },
-                    ],
-                  }],
-                }),
+              const visionText = await ocrPdfPerPage({
+                buf,
+                lovableKey,
+                supabase,
+                importId: imp.id,
               });
-              if (visionRes.ok) {
-                const vd = await parseJsonResponse(visionRes, "Vision OCR");
-                const visionText = vd.choices?.[0]?.message?.content || "";
-                if (visionText.length > text.length) text = visionText;
-                log("Vision OCR done", { len: text.length });
-              } else {
-                log("Vision OCR failed", { status: visionRes.status, body: await visionRes.text() });
-              }
+              if (visionText.length > text.length) text = visionText;
+              log("Per-page Vision OCR done", { len: text.length });
             } catch (e) {
-              log("Vision OCR error", { err: String(e) });
+              log("Per-page Vision OCR error", { err: String(e) });
             }
           }
+
         } else if (isDocx) {
           // DOCX: best-effort, decode embedded XML strings
           text = new TextDecoder("utf-8", { fatal: false }).decode(buf).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
@@ -526,6 +590,11 @@ Deno.serve(async (req) => {
     }
 
     log("Calling AI", { textLen: text.length });
+    await supabase
+      .from("live_contract_imports")
+      .update({ status: "ai_extracting", progress_pct: 75 })
+      .eq("id", imp.id);
+
 
     const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -986,11 +1055,43 @@ Deno.serve(async (req) => {
       log("reconcile invoke failed", { e: String(e) });
     }
 
-    return new Response(JSON.stringify({ success: true, import_id: imp.id, confidence: extracted.confidence }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    await supabase
+      .from("live_contract_imports")
+      .update({ progress_pct: 100 })
+      .eq("id", imp.id);
+    }; // end runExtraction
+
+    // Fire-and-forget. EdgeRuntime.waitUntil keeps the worker alive past the
+    // HTTP response so long OCR runs can finish; clients poll
+    // live_contract_imports.status / progress_pct for completion.
+    // deno-lint-ignore no-explicit-any
+    const ert: any = (globalThis as any).EdgeRuntime;
+    const work = (async () => {
+      try {
+        await runExtraction();
+      } catch (e) {
+        log("Background extraction failed", { error: String(e) });
+        try {
+          await supabase
+            .from("live_contract_imports")
+            .update({
+              status: "failed",
+              error: String(e).slice(0, 500),
+              progress_pct: 0,
+            })
+            .eq("id", imp.id);
+        } catch (_) { /* best-effort */ }
+      }
+    })();
+    if (ert && typeof ert.waitUntil === "function") ert.waitUntil(work);
+
+    return new Response(
+      JSON.stringify({ success: true, queued: true, import_id: imp.id }),
+      { status: 202, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   } catch (e) {
     log("Error", { error: String(e) });
     return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });
+
