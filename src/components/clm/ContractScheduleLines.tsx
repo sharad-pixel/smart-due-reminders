@@ -52,19 +52,29 @@ interface Props {
   onChanged: () => void;
 }
 
-const CATEGORY_OPTIONS: { value: string; label: string; revenue: "recurring" | "non_recurring" }[] = [
+type RevenueKind = "recurring" | "non_recurring" | "prepaid_usage" | "other";
+
+const REVENUE_TYPE_OPTIONS: { value: RevenueKind; label: string; hint: string }[] = [
+  { value: "recurring", label: "Recurring (SaaS / subscription)", hint: "Repeats on a fixed cadence — counts toward MRR/ARR." },
+  { value: "non_recurring", label: "One-time", hint: "Single charge — implementation, hardware, services." },
+  { value: "prepaid_usage", label: "Prepaid usage", hint: "Pre-purchased usage / credits drawn down over time." },
+  { value: "other", label: "Other", hint: "Doesn't fit the categories above." },
+];
+
+const CATEGORY_OPTIONS: { value: string; label: string; revenue: RevenueKind }[] = [
   { value: "subscription", label: "Subscription (SaaS)", revenue: "recurring" },
   { value: "platform", label: "Platform fee", revenue: "recurring" },
   { value: "license", label: "License", revenue: "recurring" },
   { value: "support", label: "Support", revenue: "recurring" },
   { value: "maintenance", label: "Maintenance", revenue: "recurring" },
-  { value: "usage_minimum", label: "Usage minimum", revenue: "recurring" },
+  { value: "usage_minimum", label: "Usage minimum / commitment", revenue: "recurring" },
+  { value: "prepaid_usage", label: "Prepaid usage / credits", revenue: "prepaid_usage" },
   { value: "professional_services", label: "Professional services", revenue: "non_recurring" },
   { value: "implementation", label: "Implementation", revenue: "non_recurring" },
   { value: "onboarding", label: "Onboarding", revenue: "non_recurring" },
   { value: "training", label: "Training", revenue: "non_recurring" },
   { value: "hardware", label: "Hardware", revenue: "non_recurring" },
-  { value: "other", label: "Other", revenue: "non_recurring" },
+  { value: "other", label: "Other", revenue: "other" },
 ];
 
 const STATUS_META: Record<string, { label: string; color: string; icon: any }> = {
@@ -79,8 +89,17 @@ const STATUS_META: Record<string, { label: string; color: string; icon: any }> =
 const categoryLabel = (v: string | null | undefined) =>
   CATEGORY_OPTIONS.find((o) => o.value === v)?.label || null;
 
-const revenueFor = (cat: string) =>
+const revenueFor = (cat: string): RevenueKind =>
   CATEGORY_OPTIONS.find((o) => o.value === cat)?.revenue || "non_recurring";
+
+const revenueBadgeClass = (rev: string | null | undefined) => {
+  switch (rev) {
+    case "recurring": return "bg-emerald-100 text-emerald-700 border border-emerald-200";
+    case "prepaid_usage": return "bg-violet-100 text-violet-700 border border-violet-200";
+    case "non_recurring": return "bg-slate-100 text-slate-700 border border-slate-200";
+    default: return "bg-amber-50 text-amber-800 border border-amber-200";
+  }
+};
 
 export const ContractScheduleLines = ({
   importId,
