@@ -132,25 +132,32 @@ async function ocrPdfPerPage(args: {
   const { PDFDocument } = await import("npm:pdf-lib@1.17.1");
   const source = await PDFDocument.load(buf, { ignoreEncryption: true });
   const pageCount = source.getPageCount();
-  const collected: string[] = [];
-  const PER_PAGE_LIMIT = 6 * 1024 * 1024; // single-page PDF should comfortably fit Gemini
+  const collected: string[] = new Array(pageCount).fill("");
+  const PER_PAGE_LIMIT = 6 * 1024 * 1024;
+  const CONCURRENCY = 8; // parallel Gemini calls
 
+  // Pre-split all pages (fast, CPU-bound, sequential to avoid pdf-lib races).
+  const pageBuffers: (Uint8Array | null)[] = new Array(pageCount).fill(null);
   for (let i = 0; i < pageCount; i++) {
-    let pageBytes: Uint8Array;
     try {
       const single = await PDFDocument.create();
       const [copied] = await single.copyPages(source, [i]);
       single.addPage(copied);
-      pageBytes = await single.save();
+      const bytes = await single.save();
+      if (bytes.length > PER_PAGE_LIMIT) {
+        log("Skipping oversized page", { page: i + 1, bytes: bytes.length });
+        continue;
+      }
+      pageBuffers[i] = bytes;
     } catch (e) {
       log("pdf-lib page split failed", { page: i + 1, err: String(e) });
-      continue;
     }
-    if (pageBytes.length > PER_PAGE_LIMIT) {
-      log("Skipping oversized page", { page: i + 1, bytes: pageBytes.length });
-      continue;
-    }
-    // Chunked base64 to keep per-byte JS work small.
+  }
+
+  let completed = 0;
+  const processPage = async (i: number) => {
+    const pageBytes = pageBuffers[i];
+    if (!pageBytes) { completed++; return; }
     const CHUNK = 0x8000;
     let bin = "";
     for (let j = 0; j < pageBytes.length; j += CHUNK) {
@@ -177,24 +184,32 @@ async function ocrPdfPerPage(args: {
       });
       if (res.ok) {
         const vd = await parseJsonResponse(res, "Vision OCR page");
-        const t = vd.choices?.[0]?.message?.content || "";
-        if (t) collected.push(t);
+        collected[i] = vd.choices?.[0]?.message?.content || "";
       } else {
         log("Vision OCR page failed", { page: i + 1, status: res.status });
       }
     } catch (e) {
       log("Vision OCR page error", { page: i + 1, err: String(e) });
     }
-    // Map OCR progress to 30% → 70% of the overall job.
-    const pct = 30 + Math.floor(((i + 1) / pageCount) * 40);
+    completed++;
+    const pct = 30 + Math.floor((completed / pageCount) * 40);
     try {
-      await supabase
-        .from("live_contract_imports")
-        .update({ progress_pct: pct })
-        .eq("id", importId);
-    } catch (_) { /* progress update is best-effort */ }
-  }
-  return collected.join("\n\n");
+      await supabase.from("live_contract_imports").update({ progress_pct: pct }).eq("id", importId);
+    } catch (_) { /* best-effort */ }
+  };
+
+  // Worker pool: CONCURRENCY workers pulling from a shared index.
+  let next = 0;
+  const workers = Array.from({ length: Math.min(CONCURRENCY, pageCount) }, async () => {
+    while (true) {
+      const i = next++;
+      if (i >= pageCount) return;
+      await processPage(i);
+    }
+  });
+  await Promise.all(workers);
+
+  return collected.filter(Boolean).join("\n\n");
 }
 
 async function refreshToken(supabase: any, conn: any, clientId: string, clientSecret: string) {
