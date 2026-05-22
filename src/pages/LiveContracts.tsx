@@ -1262,6 +1262,7 @@ export default function LiveContracts() {
   const [showArchived, setShowArchived] = useState(false);
   const [searchText, setSearchText] = useState("");
   const requestedStatus = searchParams.get("status");
+  const requestedTab = searchParams.get("tab");
 
   // Distinct accounts present in the contract list
   const accountOptions = useMemo(() => {
@@ -1325,13 +1326,15 @@ export default function LiveContracts() {
   }, [filteredImports, folders, showArchived]);
 
   const filtersActive = accountFilter !== "all" || showArchived || searchText.trim().length > 0;
-  const activeTab = requestedStatus === "scanning" || requestedStatus === "queued" || requestedStatus === "failed"
-    ? "queue"
-    : requestedStatus === "needs_review"
-      ? "review"
-      : requestedStatus === "imported"
-        ? "imported"
-        : tabCounts.queue > 0 ? "queue" : tabCounts.review > 0 ? "review" : filteredImports.length > 0 ? "all" : "folders";
+  const activeTab = ["folders", "all", "audit"].includes(requestedTab || "")
+    ? requestedTab!
+    : requestedStatus === "scanning" || requestedStatus === "queued" || requestedStatus === "failed"
+      ? tabCounts.queue > 0 || filteredImports.length === 0 ? "queue" : "all"
+      : requestedStatus === "needs_review"
+        ? "review"
+        : requestedStatus === "imported"
+          ? "imported"
+          : filteredImports.length > 0 ? "all" : "folders";
 
   return (
     <>
@@ -1408,10 +1411,10 @@ export default function LiveContracts() {
 
           <Tabs value={activeTab} onValueChange={(value) => {
             const next = new URLSearchParams(searchParams);
-            if (value === "queue") next.set("status", "scanning");
-            else if (value === "review") next.set("status", "needs_review");
-            else if (value === "imported") next.set("status", "imported");
-            else next.delete("status");
+            if (value === "queue") { next.set("status", "scanning"); next.delete("tab"); }
+            else if (value === "review") { next.set("status", "needs_review"); next.delete("tab"); }
+            else if (value === "imported") { next.set("status", "imported"); next.delete("tab"); }
+            else { next.set("tab", value); next.delete("status"); }
             setSearchParams(next, { replace: true });
           }}>
             <TabsList className="w-full h-auto bg-muted/40 p-1.5 flex flex-wrap gap-1 justify-stretch">
