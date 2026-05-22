@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Layout from "@/components/layout/Layout";
 import IngestionBalanceCard from "@/components/ingestion/IngestionBalanceCard";
 import { ContractFileRow } from "@/components/contracts/ContractFileRow";
+import { ScanProgressGauge } from "@/components/contracts/ScanProgressGauge";
 import SEO from "@/components/seo/SEO";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -718,14 +719,8 @@ function ImportsTable({ imports, onReview, statusFilter }: { imports: any[]; onR
                 )}
               </div>
               {SCANNING_STATUSES.includes(i.status) && typeof i.progress_pct === "number" && i.progress_pct > 0 && (
-                <div className="mt-1 flex items-center gap-1.5">
-                  <div className="h-1 w-24 rounded-full bg-muted overflow-hidden">
-                    <div
-                      className="h-full bg-primary transition-all"
-                      style={{ width: `${Math.min(100, i.progress_pct)}%` }}
-                    />
-                  </div>
-                  <span className="text-[10px] text-muted-foreground tabular-nums">{i.progress_pct}%</span>
+                <div className="mt-1.5">
+                  <ScanProgressGauge value={i.progress_pct} />
                 </div>
               )}
             </TableCell>
