@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Layout from "@/components/layout/Layout";
 import IngestionBalanceCard from "@/components/ingestion/IngestionBalanceCard";
+import { ContractFileRow } from "@/components/contracts/ContractFileRow";
 import SEO from "@/components/seo/SEO";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -539,25 +540,18 @@ function UploadDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o:
         </label>
 
         {files.length > 0 && (
-          <div className="space-y-1.5 max-h-48 overflow-y-auto">
+          <div className="space-y-1.5 max-h-56 overflow-y-auto">
             {files.map((f, i) => (
-              <div key={`${f.name}-${i}`} className="flex items-center gap-2 p-2 rounded border bg-muted/30 text-sm">
-                <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <div className="truncate font-medium">{f.name}</div>
-                  <div className="text-xs text-muted-foreground">{fmtSize(f.size)}</div>
-                </div>
-                {!upload.isPending && (
-                  <button
-                    type="button"
-                    onClick={() => setFiles((prev) => prev.filter((_, idx) => idx !== i))}
-                    className="text-muted-foreground hover:text-destructive p-1"
-                    aria-label="Remove"
-                  >
-                    <XCircle className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
+              <ContractFileRow
+                key={`${f.name}-${i}-${f.size}`}
+                file={f}
+                index={i}
+                disabled={upload.isPending}
+                onRemove={(idx) => setFiles((prev) => prev.filter((_, x) => x !== idx))}
+                onReplace={(idx, replacements) =>
+                  setFiles((prev) => [...prev.slice(0, idx), ...replacements, ...prev.slice(idx + 1)])
+                }
+              />
             ))}
             <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
               <span>{files.length} file{files.length > 1 ? "s" : ""} • {fmtSize(totalBytes)}</span>

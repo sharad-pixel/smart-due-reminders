@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { Upload, Loader2, FileSearch, Sparkles, X, FileText } from "lucide-react";
+import { Upload, Loader2, FileSearch, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { ContractFileRow } from "@/components/contracts/ContractFileRow";
 
 interface Props {
   open: boolean;
@@ -97,9 +98,6 @@ export function ContractUploadDialog({ open, onOpenChange, debtorId, debtorName 
     onError: (e: any) => { toast.error(e.message); setProgress(null); },
   });
 
-  const fmtSize = (b: number) =>
-    b < 1024 * 1024 ? `${(b / 1024).toFixed(0)} KB` : `${(b / 1024 / 1024).toFixed(1)} MB`;
-
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!upload.isPending) { onOpenChange(o); if (!o) reset(); } }}>
       <DialogContent className="sm:max-w-lg">
@@ -141,19 +139,18 @@ export function ContractUploadDialog({ open, onOpenChange, debtorId, debtorName 
         </div>
 
         {files.length > 0 && (
-          <div className="space-y-1.5 max-h-40 overflow-y-auto">
+          <div className="space-y-1.5 max-h-56 overflow-y-auto">
             {files.map((f, i) => (
-              <div key={i} className="flex items-center gap-2 text-sm border rounded px-2 py-1.5">
-                <FileText className="h-4 w-4 text-muted-foreground" />
-                <span className="flex-1 truncate">{f.name}</span>
-                <span className="text-xs text-muted-foreground">{fmtSize(f.size)}</span>
-                {!upload.isPending && (
-                  <Button size="icon" variant="ghost" className="h-6 w-6"
-                    onClick={() => setFiles(files.filter((_, idx) => idx !== i))}>
-                    <X className="h-3 w-3" />
-                  </Button>
-                )}
-              </div>
+              <ContractFileRow
+                key={`${f.name}-${i}-${f.size}`}
+                file={f}
+                index={i}
+                disabled={upload.isPending}
+                onRemove={(idx) => setFiles((prev) => prev.filter((_, x) => x !== idx))}
+                onReplace={(idx, replacements) =>
+                  setFiles((prev) => [...prev.slice(0, idx), ...replacements, ...prev.slice(idx + 1)])
+                }
+              />
             ))}
           </div>
         )}
