@@ -1331,7 +1331,7 @@ export default function LiveContracts() {
       ? "review"
       : requestedStatus === "imported"
         ? "imported"
-        : tabCounts.queue > 0 ? "queue" : tabCounts.review > 0 ? "review" : "folders";
+        : tabCounts.queue > 0 ? "queue" : tabCounts.review > 0 ? "review" : filteredImports.length > 0 ? "all" : "folders";
 
   return (
     <>
