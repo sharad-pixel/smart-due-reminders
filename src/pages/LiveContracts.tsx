@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Layout from "@/components/layout/Layout";
 import IngestionBalanceCard from "@/components/ingestion/IngestionBalanceCard";
+import { ContractFileRow } from "@/components/contracts/ContractFileRow";
 import SEO from "@/components/seo/SEO";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
