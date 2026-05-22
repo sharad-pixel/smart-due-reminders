@@ -61,6 +61,13 @@ const STATUS_VARIANT = (s: string): "default" | "secondary" | "destructive" | "o
 };
 
 const SCANNING_STATUSES = ["found", "queued", "scanning", "ocr_processing", "ai_extracting", "processing", "extracting"];
+const STALE_SCAN_MS = 2 * 60 * 1000;
+
+function isStaleScan(row: any) {
+  if (!["ocr_processing", "ai_extracting", "processing", "extracting"].includes(row.status)) return false;
+  const updatedAt = new Date(row.updated_at || row.created_at || 0).getTime();
+  return Date.now() - updatedAt > STALE_SCAN_MS && Number(row.progress_pct || 0) <= 25;
+}
 
 async function throwFunctionError(error: any, fallback: string) {
   if (!error) return;
@@ -618,6 +625,7 @@ function ImportsTable({ imports, onReview, statusFilter }: { imports: any[]; onR
   const pendingIds = useMemo(
     () => filtered
       .filter((i) => {
+        if (isStaleScan(i)) return true;
         if (!["found", "queued"].includes(i.status)) return false;
         const ageMs = Date.now() - new Date(i.created_at || 0).getTime();
         return ageMs > 30_000;
@@ -732,9 +740,9 @@ function ImportsTable({ imports, onReview, statusFilter }: { imports: any[]; onR
                   <Button size="sm" variant="outline" onClick={() => extract.mutate(i.id)} disabled={busy}>
                     <RotateCw className="h-3.5 w-3.5 mr-1.5" /> Retry
                   </Button>
-                ) : i.status === "found" || i.status === "queued" ? (
+                ) : i.status === "found" || i.status === "queued" || isStaleScan(i) ? (
                   <Button size="sm" variant="outline" onClick={() => extract.mutate(i.id)} disabled={busy}>
-                    <Sparkles className="h-3.5 w-3.5 mr-1.5" /> Extract
+                    <Sparkles className="h-3.5 w-3.5 mr-1.5" /> {isStaleScan(i) ? "Retry" : "Extract"}
                   </Button>
                 ) : i.status === "needs_review" ? (
                   <Button size="sm" onClick={() => onReview(i.id)}>Review</Button>
