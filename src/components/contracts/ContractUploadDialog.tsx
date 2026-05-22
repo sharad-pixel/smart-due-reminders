@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { Upload, Loader2, FileSearch, Sparkles, X, FileText } from "lucide-react";
+import { Upload, Loader2, FileSearch, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { ContractFileRow } from "@/components/contracts/ContractFileRow";
 
 interface Props {
   open: boolean;
