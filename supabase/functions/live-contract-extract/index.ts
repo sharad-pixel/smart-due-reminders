@@ -458,10 +458,30 @@ Deno.serve(async (req) => {
           // OCR fallback via Lovable AI Gateway (Gemini multimodal) for scanned PDFs
           const letters = (text.match(/[a-zA-Z]/g) || []).length;
           if (text.length < 500 || letters < 100) {
+            // Hard cap: base64-encoding very large PDFs in-function exhausts the CPU
+            // budget. ~8 MB raw PDF is the practical ceiling — beyond that we surface
+            // a clear failure so the user can split or re-export the document.
+            const MAX_VISION_BYTES = 8 * 1024 * 1024;
+            if (buf.length > MAX_VISION_BYTES) {
+              log("Skipping vision OCR — file too large", { bytes: buf.length });
+              await supabase.from("live_contract_imports").update({
+                status: "failed",
+                error: `Scanned PDF too large for OCR (${(buf.length / 1024 / 1024).toFixed(1)} MB). Please split into files under 8 MB or upload a text-based PDF.`,
+              }).eq("id", imp.id);
+              throw new Error("Scanned PDF exceeds OCR size limit");
+            }
             log("Native PDF text low-quality, trying vision OCR");
             try {
+              // Chunked base64 — the per-byte String.fromCharCode loop on a multi-MB
+              // PDF is O(n) JS work that trips the edge-function CPU limit.
+              const CHUNK = 0x8000;
               let bin = "";
-              for (let i = 0; i < buf.length; i++) bin += String.fromCharCode(buf[i]);
+              for (let i = 0; i < buf.length; i += CHUNK) {
+                bin += String.fromCharCode.apply(
+                  null,
+                  buf.subarray(i, i + CHUNK) as unknown as number[],
+                );
+              }
               const b64 = btoa(bin);
               const visionRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
                 method: "POST",
