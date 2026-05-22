@@ -46,6 +46,8 @@ import { ContractReassessPanel } from "@/components/clm/ContractReassessPanel";
 import ContractRevenueItemsPanel from "@/components/contracts/ContractRevenueItemsPanel";
 import { ContractOverviewEditor } from "@/components/clm/ContractOverviewEditor";
 import { ContractScheduleLines } from "@/components/clm/ContractScheduleLines";
+import { ContractValueByYearCard } from "@/components/clm/ContractValueByYearCard";
+
 import { ContractExtractedFieldsEditor } from "@/components/clm/ContractExtractedFieldsEditor";
 import { EditableFinancialTermsCard } from "@/components/clm/EditableFinancialTermsCard";
 import { ContractRiskFlagsEditor } from "@/components/clm/ContractRiskFlagsEditor";
@@ -544,6 +546,12 @@ const LiveContractDetailInner = () => {
 
       <KeyDatesNotificationsPanel importId={c.id} dates={data.dates as any} />
 
+      <ContractValueByYearCard
+        schedules={data.schedules as any}
+        effectiveDate={c.effective_date}
+        defaultCurrency={totals.currency}
+      />
+
       <ContractScheduleLines
         importId={c.id}
         debtorId={c.debtor_id || null}
@@ -553,6 +561,7 @@ const LiveContractDetailInner = () => {
         defaultCurrency={totals.currency}
         onChanged={() => qc.invalidateQueries({ queryKey: ["live-contract-detail", importId] })}
       />
+
 
       <ContractExtractedFieldsEditor
         importId={c.id}
