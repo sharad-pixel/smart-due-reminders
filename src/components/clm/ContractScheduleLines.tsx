@@ -523,7 +523,6 @@ export const ContractScheduleLines = ({
                   const up = s.unit_price != null ? Number(s.unit_price) : null;
                   const cat = s.product_category as string | null;
                   const rev = s.revenue_type as string | null;
-                  const isRecurring = rev === "recurring";
                   const reconStatus = (s.reconciliation_status || "pending") as keyof typeof STATUS_META;
                   const reconMeta = STATUS_META[reconStatus] || STATUS_META.pending;
                   const ReconIcon = reconMeta.icon;
