@@ -8585,6 +8585,7 @@ export type Database = {
           metrics_jsonb: Json | null
           mime_type: string | null
           product_description: string | null
+          progress_pct: number | null
           published_at: string | null
           scan_job_id: string | null
           source: string
@@ -8618,6 +8619,7 @@ export type Database = {
           metrics_jsonb?: Json | null
           mime_type?: string | null
           product_description?: string | null
+          progress_pct?: number | null
           published_at?: string | null
           scan_job_id?: string | null
           source: string
@@ -8651,6 +8653,7 @@ export type Database = {
           metrics_jsonb?: Json | null
           mime_type?: string | null
           product_description?: string | null
+          progress_pct?: number | null
           published_at?: string | null
           scan_job_id?: string | null
           source?: string
