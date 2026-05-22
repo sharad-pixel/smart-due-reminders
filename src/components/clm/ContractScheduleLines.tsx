@@ -638,25 +638,44 @@ export const ContractScheduleLines = ({
                         )}
                       </td>
                       <td className="text-right py-2 pl-2">
-                        <div className="flex justify-end gap-1">
+                        <div className="flex justify-end gap-1 flex-wrap">
                           {!s.invoice_id && debtorId && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-7 text-[11px]"
-                              onClick={() => triggerUpload(s.id)}
-                              disabled={uploading}
-                              title="Upload or OCR an invoice for this row"
-                            >
-                              {uploading && uploadScheduleId === s.id ? (
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                              ) : (
-                                <>
-                                  <Sparkles className="h-3 w-3 mr-1" />
-                                  Upload/OCR
-                                </>
-                              )}
-                            </Button>
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-[11px]"
+                                onClick={() => addToBilling(s.id)}
+                                disabled={billingId === s.id || !s.amount}
+                                title={s.amount ? "Generate an invoice from this line" : "Add an amount before billing"}
+                              >
+                                {billingId === s.id ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <>
+                                    <Receipt className="h-3 w-3 mr-1" />
+                                    Add to billing
+                                  </>
+                                )}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-[11px]"
+                                onClick={() => triggerUpload(s.id)}
+                                disabled={uploading}
+                                title="Upload or OCR an invoice for this row"
+                              >
+                                {uploading && uploadScheduleId === s.id ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <>
+                                    <Sparkles className="h-3 w-3 mr-1" />
+                                    Upload/OCR
+                                  </>
+                                )}
+                              </Button>
+                            </>
                           )}
                           <Button size="sm" variant="ghost" className="h-7" onClick={() => open(s)}>
                             <Pencil className="h-3.5 w-3.5" />
