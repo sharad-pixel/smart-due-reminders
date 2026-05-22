@@ -142,19 +142,18 @@ export function ContractUploadDialog({ open, onOpenChange, debtorId, debtorName 
         </div>
 
         {files.length > 0 && (
-          <div className="space-y-1.5 max-h-40 overflow-y-auto">
+          <div className="space-y-1.5 max-h-56 overflow-y-auto">
             {files.map((f, i) => (
-              <div key={i} className="flex items-center gap-2 text-sm border rounded px-2 py-1.5">
-                <FileText className="h-4 w-4 text-muted-foreground" />
-                <span className="flex-1 truncate">{f.name}</span>
-                <span className="text-xs text-muted-foreground">{fmtSize(f.size)}</span>
-                {!upload.isPending && (
-                  <Button size="icon" variant="ghost" className="h-6 w-6"
-                    onClick={() => setFiles(files.filter((_, idx) => idx !== i))}>
-                    <X className="h-3 w-3" />
-                  </Button>
-                )}
-              </div>
+              <ContractFileRow
+                key={`${f.name}-${i}-${f.size}`}
+                file={f}
+                index={i}
+                disabled={upload.isPending}
+                onRemove={(idx) => setFiles((prev) => prev.filter((_, x) => x !== idx))}
+                onReplace={(idx, replacements) =>
+                  setFiles((prev) => [...prev.slice(0, idx), ...replacements, ...prev.slice(idx + 1)])
+                }
+              />
             ))}
           </div>
         )}
