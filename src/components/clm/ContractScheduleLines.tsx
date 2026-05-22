@@ -434,29 +434,34 @@ export const ContractScheduleLines = ({
                 )}
             </CardDescription>
           </div>
-          {totalScheduled > 0 && debtorId && (
-            <div className="flex items-center gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => reconcile.mutate({ generateTasks: false })}
-                disabled={reconcile.isPending}
-              >
-                {reconcile.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <RefreshCw className="h-3.5 w-3.5 mr-1" />}
-                Reconcile now
-              </Button>
-              {published && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button size="sm" variant="outline" onClick={openCreate}>
+              <FilePlus2 className="h-3.5 w-3.5 mr-1" /> Add line item
+            </Button>
+            {totalScheduled > 0 && debtorId && (
+              <>
                 <Button
                   size="sm"
-                  onClick={() => reconcile.mutate({ generateTasks: true })}
+                  variant="outline"
+                  onClick={() => reconcile.mutate({ generateTasks: false })}
                   disabled={reconcile.isPending}
                 >
-                  <FilePlus2 className="h-3.5 w-3.5 mr-1" />
-                  Reconcile + create tasks
+                  {reconcile.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <RefreshCw className="h-3.5 w-3.5 mr-1" />}
+                  Reconcile now
                 </Button>
-              )}
-            </div>
-          )}
+                {published && (
+                  <Button
+                    size="sm"
+                    onClick={() => reconcile.mutate({ generateTasks: true })}
+                    disabled={reconcile.isPending}
+                  >
+                    <FilePlus2 className="h-3.5 w-3.5 mr-1" />
+                    Reconcile + create tasks
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
         </div>
 
         {totalScheduled > 0 && (
