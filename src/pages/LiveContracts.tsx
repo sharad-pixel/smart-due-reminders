@@ -1449,12 +1449,21 @@ export default function LiveContracts() {
                 tone="emerald"
               />
               <RichTab
+                value="all"
+                icon={FileSearch}
+                label="All scans"
+                sublabel={`${filteredImports.length} total`}
+                count={filteredImports.length}
+                tone="primary"
+              />
+              <RichTab
                 value="audit"
                 icon={Clock}
                 label="Audit trail"
                 sublabel="Activity log"
                 tone="muted"
               />
+
             </TabsList>
 
             <TabsContent value="folders" className="mt-4"><FoldersTab /></TabsContent>
