@@ -550,18 +550,26 @@ Deno.serve(async (req) => {
         const isDocx = mime.includes("officedocument.wordprocessingml") || name.endsWith(".docx");
 
         if (isPdf) {
-          await supabase.from("live_contract_imports").update({ status: "ocr_processing" }).eq("id", imp.id);
-          // Detect pages from raw bytes (works even if pdf-parse fails)
+          await supabase.from("live_contract_imports").update({ status: "ocr_processing", progress_pct: 10 }).eq("id", imp.id);
+          // Detect pages from raw bytes (works even if pdf-parse fails). Avoid
+          // pdf-parse on large/scanned contracts: it can burn minutes before the
+          // OCR fallback even starts, which leaves imports stuck at 5%.
           pageCount = detectPdfPageCount(buf);
-          try {
-            const pdfParse = (await import("npm:pdf-parse@1.1.1/lib/pdf-parse.js")).default;
-            const { Buffer } = await import("node:buffer");
-            const parsed = await pdfParse(Buffer.from(buf));
-            text = parsed.text || "";
-            if (parsed.numpages && parsed.numpages > 0) pageCount = parsed.numpages;
-            log("PDF parsed", { len: text.length, pages: pageCount });
-          } catch (e) {
-            log("pdf-parse failed", { err: String(e), pages: pageCount });
+          const skipNativeParse = buf.length > 8 * 1024 * 1024 || pageCount > 20;
+          if (skipNativeParse) {
+            log("Skipping native PDF parse for large contract", { bytes: buf.length, pages: pageCount });
+          } else {
+            try {
+              await supabase.from("live_contract_imports").update({ progress_pct: 18 }).eq("id", imp.id);
+              const pdfParse = (await import("npm:pdf-parse@1.1.1/lib/pdf-parse.js")).default;
+              const { Buffer } = await import("node:buffer");
+              const parsed = await pdfParse(Buffer.from(buf));
+              text = parsed.text || "";
+              if (parsed.numpages && parsed.numpages > 0) pageCount = parsed.numpages;
+              log("PDF parsed", { len: text.length, pages: pageCount });
+            } catch (e) {
+              log("pdf-parse failed", { err: String(e), pages: pageCount });
+            }
           }
 
           // OCR fallback via Lovable AI Gateway (Gemini multimodal) for scanned PDFs.
