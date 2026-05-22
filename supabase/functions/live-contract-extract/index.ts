@@ -549,60 +549,30 @@ Deno.serve(async (req) => {
             log("pdf-parse failed", { err: String(e), pages: pageCount });
           }
 
-          // OCR fallback via Lovable AI Gateway (Gemini multimodal) for scanned PDFs
+          // OCR fallback via Lovable AI Gateway (Gemini multimodal) for scanned PDFs.
+          // Done one page at a time so the per-call payload stays small and we can
+          // emit real progress, instead of timing out on a single giant request.
           const letters = (text.match(/[a-zA-Z]/g) || []).length;
           if (text.length < 500 || letters < 100) {
-            // Hard cap: base64-encoding very large PDFs in-function exhausts the CPU
-            // budget. ~8 MB raw PDF is the practical ceiling — beyond that we surface
-            // a clear failure so the user can split or re-export the document.
-            const MAX_VISION_BYTES = 8 * 1024 * 1024;
-            if (buf.length > MAX_VISION_BYTES) {
-              log("Skipping vision OCR — file too large", { bytes: buf.length });
-              await supabase.from("live_contract_imports").update({
-                status: "failed",
-                error: `Scanned PDF too large for OCR (${(buf.length / 1024 / 1024).toFixed(1)} MB). Please split into files under 8 MB or upload a text-based PDF.`,
-              }).eq("id", imp.id);
-              throw new Error("Scanned PDF exceeds OCR size limit");
-            }
-            log("Native PDF text low-quality, trying vision OCR");
+            await supabase
+              .from("live_contract_imports")
+              .update({ status: "ocr_processing", progress_pct: 25 })
+              .eq("id", imp.id);
+            log("Native PDF text low-quality, starting per-page Vision OCR", { pages: pageCount });
             try {
-              // Chunked base64 — the per-byte String.fromCharCode loop on a multi-MB
-              // PDF is O(n) JS work that trips the edge-function CPU limit.
-              const CHUNK = 0x8000;
-              let bin = "";
-              for (let i = 0; i < buf.length; i += CHUNK) {
-                bin += String.fromCharCode.apply(
-                  null,
-                  buf.subarray(i, i + CHUNK) as unknown as number[],
-                );
-              }
-              const b64 = btoa(bin);
-              const visionRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-                method: "POST",
-                headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  model: "google/gemini-2.5-flash",
-                  messages: [{
-                    role: "user",
-                    content: [
-                      { type: "text", text: "Extract ALL text from this contract PDF. Return only the raw extracted text, preserving order." },
-                      { type: "image_url", image_url: { url: `data:application/pdf;base64,${b64}` } },
-                    ],
-                  }],
-                }),
+              const visionText = await ocrPdfPerPage({
+                buf,
+                lovableKey,
+                supabase,
+                importId: imp.id,
               });
-              if (visionRes.ok) {
-                const vd = await parseJsonResponse(visionRes, "Vision OCR");
-                const visionText = vd.choices?.[0]?.message?.content || "";
-                if (visionText.length > text.length) text = visionText;
-                log("Vision OCR done", { len: text.length });
-              } else {
-                log("Vision OCR failed", { status: visionRes.status, body: await visionRes.text() });
-              }
+              if (visionText.length > text.length) text = visionText;
+              log("Per-page Vision OCR done", { len: text.length });
             } catch (e) {
-              log("Vision OCR error", { err: String(e) });
+              log("Per-page Vision OCR error", { err: String(e) });
             }
           }
+
         } else if (isDocx) {
           // DOCX: best-effort, decode embedded XML strings
           text = new TextDecoder("utf-8", { fatal: false }).decode(buf).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
