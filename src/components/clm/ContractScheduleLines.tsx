@@ -116,6 +116,8 @@ export const ContractScheduleLines = ({
   const [uploading, setUploading] = useState(false);
 
   const [editTarget, setEditTarget] = useState<any | null>(null);
+  const [creatingNew, setCreatingNew] = useState(false);
+  const [billingId, setBillingId] = useState<string | null>(null);
   const [form, setForm] = useState({
     product_description: "",
     quantity: "",
