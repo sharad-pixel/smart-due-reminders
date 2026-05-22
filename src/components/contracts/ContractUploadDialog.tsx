@@ -98,9 +98,6 @@ export function ContractUploadDialog({ open, onOpenChange, debtorId, debtorName 
     onError: (e: any) => { toast.error(e.message); setProgress(null); },
   });
 
-  const fmtSize = (b: number) =>
-    b < 1024 * 1024 ? `${(b / 1024).toFixed(0)} KB` : `${(b / 1024 / 1024).toFixed(1)} MB`;
-
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!upload.isPending) { onOpenChange(o); if (!o) reset(); } }}>
       <DialogContent className="sm:max-w-lg">
