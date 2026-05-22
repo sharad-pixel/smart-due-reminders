@@ -46,6 +46,8 @@ import { ContractReassessPanel } from "@/components/clm/ContractReassessPanel";
 import ContractRevenueItemsPanel from "@/components/contracts/ContractRevenueItemsPanel";
 import { ContractOverviewEditor } from "@/components/clm/ContractOverviewEditor";
 import { ContractScheduleLines } from "@/components/clm/ContractScheduleLines";
+import { ContractValueByYearCard } from "@/components/clm/ContractValueByYearCard";
+
 import { ContractExtractedFieldsEditor } from "@/components/clm/ContractExtractedFieldsEditor";
 import { EditableFinancialTermsCard } from "@/components/clm/EditableFinancialTermsCard";
 import { ContractRiskFlagsEditor } from "@/components/clm/ContractRiskFlagsEditor";
