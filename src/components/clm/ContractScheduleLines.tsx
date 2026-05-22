@@ -550,11 +550,14 @@ export const ContractScheduleLines = ({
                       <td className="py-2 px-2">
                         {cat ? (
                           <div className="space-y-0.5">
-                            <Badge
-                              className={`text-[10px] ${isRecurring ? "bg-emerald-100 text-emerald-700 border border-emerald-200" : "bg-slate-100 text-slate-700 border border-slate-200"}`}
-                            >
+                            <Badge className={`text-[10px] ${revenueBadgeClass(rev)}`}>
                               {categoryLabel(cat)}
                             </Badge>
+                            {rev && (
+                              <div className="text-[10px] text-muted-foreground">
+                                {REVENUE_TYPE_OPTIONS.find((o) => o.value === rev)?.label || rev}
+                              </div>
+                            )}
                             {s.category_source === "industry_default" && (
                               <div className="text-[10px] text-muted-foreground">industry default</div>
                             )}
