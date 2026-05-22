@@ -1055,11 +1055,43 @@ Deno.serve(async (req) => {
       log("reconcile invoke failed", { e: String(e) });
     }
 
-    return new Response(JSON.stringify({ success: true, import_id: imp.id, confidence: extracted.confidence }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    await supabase
+      .from("live_contract_imports")
+      .update({ progress_pct: 100 })
+      .eq("id", imp.id);
+    }; // end runExtraction
+
+    // Fire-and-forget. EdgeRuntime.waitUntil keeps the worker alive past the
+    // HTTP response so long OCR runs can finish; clients poll
+    // live_contract_imports.status / progress_pct for completion.
+    // deno-lint-ignore no-explicit-any
+    const ert: any = (globalThis as any).EdgeRuntime;
+    const work = (async () => {
+      try {
+        await runExtraction();
+      } catch (e) {
+        log("Background extraction failed", { error: String(e) });
+        try {
+          await supabase
+            .from("live_contract_imports")
+            .update({
+              status: "failed",
+              error: String(e).slice(0, 500),
+              progress_pct: 0,
+            })
+            .eq("id", imp.id);
+        } catch (_) { /* best-effort */ }
+      }
+    })();
+    if (ert && typeof ert.waitUntil === "function") ert.waitUntil(work);
+
+    return new Response(
+      JSON.stringify({ success: true, queued: true, import_id: imp.id }),
+      { status: 202, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   } catch (e) {
     log("Error", { error: String(e) });
     return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });
+
