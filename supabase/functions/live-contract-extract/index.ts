@@ -500,11 +500,21 @@ Deno.serve(async (req) => {
     const { data: imp } = await supabase.from("live_contract_imports").select("*").eq("id", importId).single();
     if (!imp) throw new Error("Import not found");
 
-    await supabase.from("live_contract_imports").update({ status: "ai_extracting" }).eq("id", imp.id);
+    await supabase
+      .from("live_contract_imports")
+      .update({ status: "ai_extracting", progress_pct: 5, error: null })
+      .eq("id", imp.id);
 
+    // Heavy lifting (download, OCR, AI extraction, DB writes) runs in the
+    // background so the HTTP request returns immediately. Edge functions have
+    // a tight CPU budget and a single-shot Vision OCR call on a 30-page PDF
+    // will blow through it — keeping the worker alive via EdgeRuntime.waitUntil
+    // lets the per-page OCR loop finish without holding the client open.
+    const runExtraction = async () => {
     // Get document text
     let text = "";
     let pageCount = 1; // for AI Smart Ingestion usage tracking
+
     if (imp.source === "drive" && imp.drive_file_id) {
       const { data: folder } = await supabase.from("live_contract_drive_folders").select("connection_id").eq("id", imp.folder_id).single();
       const { data: conn } = await supabase.from("drive_connections").select("*").eq("id", folder!.connection_id).single();
