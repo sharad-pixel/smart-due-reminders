@@ -1331,7 +1331,7 @@ export default function LiveContracts() {
       ? "review"
       : requestedStatus === "imported"
         ? "imported"
-        : tabCounts.queue > 0 ? "queue" : tabCounts.review > 0 ? "review" : "folders";
+        : tabCounts.queue > 0 ? "queue" : tabCounts.review > 0 ? "review" : filteredImports.length > 0 ? "all" : "folders";
 
   return (
     <>
@@ -1449,12 +1449,21 @@ export default function LiveContracts() {
                 tone="emerald"
               />
               <RichTab
+                value="all"
+                icon={FileSearch}
+                label="All scans"
+                sublabel={`${filteredImports.length} total`}
+                count={filteredImports.length}
+                tone="primary"
+              />
+              <RichTab
                 value="audit"
                 icon={Clock}
                 label="Audit trail"
                 sublabel="Activity log"
                 tone="muted"
               />
+
             </TabsList>
 
             <TabsContent value="folders" className="mt-4"><FoldersTab /></TabsContent>
@@ -1489,7 +1498,20 @@ export default function LiveContracts() {
               </Card>
             </TabsContent>
 
+            <TabsContent value="all" className="mt-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>All scanned contracts</CardTitle>
+                  <CardDescription>Complete log of every contract scanned — Drive folders and direct uploads — with current status.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ImportsTable imports={filteredImports} onReview={setReviewId} />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
             <TabsContent value="audit" className="mt-4"><AuditTab /></TabsContent>
+
           </Tabs>
         </div>
 
