@@ -590,6 +590,11 @@ Deno.serve(async (req) => {
     }
 
     log("Calling AI", { textLen: text.length });
+    await supabase
+      .from("live_contract_imports")
+      .update({ status: "ai_extracting", progress_pct: 75 })
+      .eq("id", imp.id);
+
 
     const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
