@@ -271,6 +271,7 @@ export const ContractScheduleLines = ({
   const open = (s: any) => {
     const qty = s.quantity != null ? Number(s.quantity) : null;
     const up = s.unit_price != null ? Number(s.unit_price) : null;
+    setCreatingNew(false);
     setEditTarget(s);
     setForm({
       product_description: s.product_description || s.description || "",
@@ -281,6 +282,21 @@ export const ContractScheduleLines = ({
       expected_due_date: s.expected_due_date || "",
       product_category: s.product_category || "",
       revenue_type: s.revenue_type || "",
+    });
+  };
+
+  const openCreate = () => {
+    setEditTarget({ __new: true });
+    setCreatingNew(true);
+    setForm({
+      product_description: "",
+      quantity: "1",
+      unit_price: "",
+      amount: "",
+      scheduled_date: new Date().toISOString().slice(0, 10),
+      expected_due_date: "",
+      product_category: "",
+      revenue_type: "",
     });
   };
 
@@ -298,6 +314,28 @@ export const ContractScheduleLines = ({
     setForm((f) => ({ ...f, product_category: v, revenue_type: revenueFor(v) }));
   };
 
+  const addToBilling = async (scheduleId: string) => {
+    if (!debtorId) {
+      toast.error("Link this contract to a customer first.");
+      return;
+    }
+    setBillingId(scheduleId);
+    try {
+      const { data, error } = await supabase.functions.invoke("live-contract-actions", {
+        body: { importId, action: "generate_invoices", scheduleIds: [scheduleId] },
+      });
+      if (error) throw error;
+      if (data?.created > 0) toast.success("Invoice generated from this line");
+      else if (data?.duplicates > 0) toast.success("Linked to an existing invoice");
+      else toast.message("No invoice created", { description: data?.skipped?.[0]?.reason || "Check the row details" });
+      onChanged();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to add to billing");
+    } finally {
+      setBillingId(null);
+    }
+  };
+
   const save = async () => {
     if (!editTarget) return;
     setSaving(true);
@@ -306,25 +344,70 @@ export const ContractScheduleLines = ({
       const up = form.unit_price.trim() === "" ? null : Number(form.unit_price);
       const amt = form.amount.trim() === "" ? null : Number(form.amount);
       const cat = form.product_category || null;
-      const rev = cat ? form.revenue_type || revenueFor(cat) : null;
-      const { error } = await supabase
-        .from("contract_invoice_schedules")
-        .update({
-          product_description: form.product_description.trim() || null,
-          description: form.product_description.trim() || editTarget.description || null,
+      const rev = cat ? form.revenue_type || revenueFor(cat) : form.revenue_type || null;
+      const desc = form.product_description.trim();
+
+      if (creatingNew) {
+        if (!form.scheduled_date) {
+          toast.error("Scheduled date is required");
+          setSaving(false);
+          return;
+        }
+        if (amt == null && (qty == null || up == null)) {
+          toast.error("Provide an amount, or quantity × unit price");
+          setSaving(false);
+          return;
+        }
+        // Look up account_id from the import row (RLS-safe; user already has access).
+        const { data: imp, error: impErr } = await supabase
+          .from("live_contract_imports")
+          .select("account_id, debtor_id")
+          .eq("id", importId)
+          .single();
+        if (impErr) throw impErr;
+        const computedAmt = amt != null ? amt : (Number(qty) * Number(up));
+        const { error } = await supabase.from("contract_invoice_schedules").insert({
+          account_id: imp.account_id,
+          import_id: importId,
+          debtor_id: imp.debtor_id ?? null,
+          scheduled_date: form.scheduled_date,
+          expected_due_date: form.expected_due_date || null,
+          amount: computedAmt,
           quantity: qty,
           unit_price: up,
-          amount: amt,
-          scheduled_date: form.scheduled_date || editTarget.scheduled_date,
-          expected_due_date: form.expected_due_date || null,
+          description: desc || null,
+          product_description: desc || null,
           product_category: cat,
           revenue_type: rev,
           category_source: cat ? "user" : null,
-        } as any)
-        .eq("id", editTarget.id);
-      if (error) throw error;
-      toast.success("Schedule line updated");
+          attachment_source: "manual",
+          status: "forecast",
+          completion_status: "pending",
+          reconciliation_status: "pending",
+        } as any);
+        if (error) throw error;
+        toast.success("Line item added");
+      } else {
+        const { error } = await supabase
+          .from("contract_invoice_schedules")
+          .update({
+            product_description: desc || null,
+            description: desc || editTarget.description || null,
+            quantity: qty,
+            unit_price: up,
+            amount: amt,
+            scheduled_date: form.scheduled_date || editTarget.scheduled_date,
+            expected_due_date: form.expected_due_date || null,
+            product_category: cat,
+            revenue_type: rev,
+            category_source: cat ? "user" : null,
+          } as any)
+          .eq("id", editTarget.id);
+        if (error) throw error;
+        toast.success("Schedule line updated");
+      }
       setEditTarget(null);
+      setCreatingNew(false);
       onChanged();
     } catch (e: any) {
       toast.error(e.message || "Failed to save");
