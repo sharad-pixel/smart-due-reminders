@@ -1498,7 +1498,20 @@ export default function LiveContracts() {
               </Card>
             </TabsContent>
 
+            <TabsContent value="all" className="mt-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>All scanned contracts</CardTitle>
+                  <CardDescription>Complete log of every contract scanned — Drive folders and direct uploads — with current status.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ImportsTable imports={filteredImports} onReview={setReviewId} />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
             <TabsContent value="audit" className="mt-4"><AuditTab /></TabsContent>
+
           </Tabs>
         </div>
 
