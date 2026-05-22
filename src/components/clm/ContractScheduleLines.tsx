@@ -691,16 +691,17 @@ export const ContractScheduleLines = ({
         )}
       </CardContent>
 
-      <Dialog open={!!editTarget} onOpenChange={(o) => !o && setEditTarget(null)}>
+      <Dialog open={!!editTarget} onOpenChange={(o) => { if (!o) { setEditTarget(null); setCreatingNew(false); } }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit schedule line</DialogTitle>
+            <DialogTitle>{creatingNew ? "Add line item" : "Edit schedule line"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
               <Label htmlFor="sl-desc">Product / service description</Label>
               <Input
                 id="sl-desc"
+                placeholder="e.g. Platform Fee — Annual Subscription"
                 value={form.product_description}
                 onChange={(e) => setForm({ ...form, product_description: e.target.value })}
               />
@@ -731,12 +732,14 @@ export const ContractScheduleLines = ({
                     <SelectValue placeholder="—" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="recurring">Recurring (SaaS / subscription)</SelectItem>
-                    <SelectItem value="non_recurring">Non-recurring (services / one-time)</SelectItem>
+                    {REVENUE_TYPE_OPTIONS.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <p className="text-[11px] text-muted-foreground">
-                  SaaS / Software qualifies as recurring revenue. Professional services do not.
+                  {REVENUE_TYPE_OPTIONS.find((o) => o.value === form.revenue_type)?.hint
+                    || "Recurring counts toward MRR / ARR. One-time and prepaid usage do not."}
                 </p>
               </div>
             </div>
@@ -794,11 +797,11 @@ export const ContractScheduleLines = ({
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditTarget(null)} disabled={saving}>
+            <Button variant="outline" onClick={() => { setEditTarget(null); setCreatingNew(false); }} disabled={saving}>
               Cancel
             </Button>
             <Button onClick={save} disabled={saving}>
-              {saving ? "Saving…" : "Save line"}
+              {saving ? "Saving…" : creatingNew ? "Add line" : "Save line"}
             </Button>
           </DialogFooter>
         </DialogContent>
