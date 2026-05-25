@@ -391,18 +391,42 @@ Return ONLY valid JSON. No markdown, no code fences.`;
 });
 
 function buildFallback(ctx: any, openBalance: number, expansionAmount: number) {
-  const score = ctx.debtor.payment_score || 50;
+  let score = ctx.debtor.payment_score || 50;
+  const hasZeroBalance = ctx.debtor?.has_zero_open_balance === true;
+  const onTimePct = ctx.history?.on_time_pct;
+  const maxLate = ctx.history?.max_historical_days_late || 0;
+  const avgVsDue = ctx.history?.avg_payment_days_vs_due || 0;
+  const historicalContracts = ctx.contracts?.historical_contracts || 0;
+
+  // Adjust score using settlement history
+  if (onTimePct != null) {
+    if (onTimePct >= 90) score = Math.min(100, score + 5);
+    else if (onTimePct < 50) score = Math.max(0, score - 10);
+  }
+  if (maxLate >= 60) score = Math.max(0, score - 10);
+  else if (maxLate >= 30) score = Math.max(0, score - 5);
+  if (hasZeroBalance && (onTimePct ?? 0) >= 80) score = Math.min(100, score + 5);
+
   const contractedValue = ctx.contracts?.total_contracted_value || 0;
   const totalExposure = openBalance + expansionAmount + contractedValue;
   const riskLevel = score >= 80 ? "Low" : score >= 60 ? "Medium" : score >= 40 ? "High" : "Critical";
   const contractNote = contractedValue > 0
-    ? ` Existing contracted value of $${contractedValue.toLocaleString()} adds to total committed exposure.`
+    ? ` Active contracted value of $${contractedValue.toLocaleString()} adds to committed exposure.`
+    : "";
+  const historyNote = historicalContracts > 0
+    ? ` ${historicalContracts} historical contract(s) on file inform the risk picture.`
+    : "";
+  const balanceNote = hasZeroBalance
+    ? "Customer currently has zero open balance."
+    : `Current open balance is $${openBalance.toLocaleString()}.`;
+  const settlementNote = onTimePct != null
+    ? ` Settlement history: ${onTimePct}% on-time, avg ${avgVsDue > 0 ? `+${avgVsDue}` : avgVsDue} days vs due, max ${maxLate} days late.`
     : "";
 
   return {
     risk_level: riskLevel,
     risk_score: 100 - score,
-    risk_summary: `Based on the customer's payment score of ${score} and current balance of $${openBalance.toLocaleString()}, expanding by $${expansionAmount.toLocaleString()} carries ${riskLevel.toLowerCase()} risk. Total exposure would be $${totalExposure.toLocaleString()}.${contractNote}`,
+    risk_summary: `${balanceNote}${settlementNote} Expanding by $${expansionAmount.toLocaleString()} carries ${riskLevel.toLowerCase()} risk.${contractNote}${historyNote}`,
     recommended_terms: {
       payment_terms: score >= 70 ? "Net 30" : score >= 50 ? "Net 15" : "Due on Receipt or 50% upfront",
       billing_structure: score >= 70 ? "Standard invoicing" : "Milestone-based or deposit + balance",
@@ -410,16 +434,23 @@ function buildFallback(ctx: any, openBalance: number, expansionAmount: number) {
       deposit_recommendation: score >= 70 ? "No deposit needed" : score >= 50 ? "25% deposit recommended" : "50% deposit strongly recommended",
     },
     strategic_guidance: [
-      { action: "Review open balance before extending terms", rationale: "Ensure current AR is manageable before increasing exposure" },
-      { action: "Consider shorter payment cycles", rationale: "Reduces cash-at-risk window for new commitments" },
+      hasZeroBalance
+        ? { action: "Leverage clean balance for favorable terms", rationale: "No outstanding AR reduces immediate cash-at-risk; weight settlement history when sizing credit." }
+        : { action: "Review open balance before extending terms", rationale: "Ensure current AR is manageable before increasing exposure" },
+      { action: "Reference prior settlement cadence", rationale: `Avg ${avgVsDue} days vs due and max ${maxLate} days late inform pacing of new billing.` },
     ],
     conditions: score < 60
       ? ["Require deposit before fulfillment", "Set up automated payment reminders", "Monthly credit review"]
       : ["Standard credit terms apply"],
     expansion_impact: {
       total_exposure: totalExposure,
-      exposure_increase_pct: openBalance > 0 ? Math.round((expansionAmount / openBalance) * 100) : 100,
+      exposure_increase_pct: openBalance > 0
+        ? Math.round((expansionAmount / openBalance) * 100)
+        : contractedValue > 0
+          ? Math.round((expansionAmount / contractedValue) * 100)
+          : 100,
       projected_cash_at_risk: Math.round(totalExposure * ((100 - score) / 100)),
     },
   };
 }
+
