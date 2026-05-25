@@ -72,16 +72,25 @@ serve(async (req) => {
       .eq("debtor_id", debtor_id)
       .maybeSingle();
 
-    // Fetch invoice history stats
+    // Fetch invoice history stats (include settlement dates + days past due history)
     const { data: invoices } = await supabase
       .from("invoices")
-      .select("amount, amount_outstanding, status, due_date, payment_date, days_past_due")
+      .select("amount, amount_outstanding, status, due_date, payment_date, days_past_due, issue_date, created_at")
       .eq("debtor_id", debtor_id)
       .order("created_at", { ascending: false })
-      .limit(50);
+      .limit(100);
 
     const totalInvoices = invoices?.length || 0;
-    const paidInvoices = invoices?.filter(i => i.status === "Paid") || [];
+    const paidInvoices = invoices?.filter(i => i.status === "Paid" || (i.payment_date && (i.amount_outstanding ?? 0) <= 0)) || [];
+    const openInvoices = invoices?.filter(i => (i.amount_outstanding ?? 0) > 0) || [];
+    const latePaidInvoices = paidInvoices.filter(i => {
+      if (!i.payment_date || !i.due_date) return false;
+      return new Date(i.payment_date).getTime() > new Date(i.due_date).getTime();
+    });
+    const onTimePaidInvoices = paidInvoices.filter(i => {
+      if (!i.payment_date || !i.due_date) return false;
+      return new Date(i.payment_date).getTime() <= new Date(i.due_date).getTime();
+    });
     const avgPaymentDays = paidInvoices.length > 0
       ? paidInvoices.reduce((sum, i) => {
           if (i.payment_date && i.due_date) {
@@ -91,8 +100,32 @@ serve(async (req) => {
           return sum;
         }, 0) / paidInvoices.length
       : null;
+    const maxHistoricalDpd = paidInvoices.reduce((m, i) => {
+      if (!i.payment_date || !i.due_date) return m;
+      const d = Math.round((new Date(i.payment_date).getTime() - new Date(i.due_date).getTime()) / 86400000);
+      return d > m ? d : m;
+    }, 0);
     const totalPaidVolume = paidInvoices.reduce((s, i) => s + (i.amount || 0), 0);
+    const lastSettlementDate = paidInvoices
+      .map(i => i.payment_date)
+      .filter(Boolean)
+      .sort()
+      .pop() || null;
+    const recentSettlements = paidInvoices
+      .filter(i => i.payment_date)
+      .sort((a, b) => (b.payment_date! > a.payment_date! ? 1 : -1))
+      .slice(0, 10)
+      .map(i => ({
+        settled_on: i.payment_date,
+        due_date: i.due_date,
+        amount: i.amount,
+        days_late: i.payment_date && i.due_date
+          ? Math.round((new Date(i.payment_date).getTime() - new Date(i.due_date).getTime()) / 86400000)
+          : null,
+      }));
     const openBalance = debtor.current_balance || 0;
+    const hasZeroOpenBalance = openBalance <= 0 && openInvoices.length === 0;
+
 
     // ---- CLM Contract context (if entitled & contracts linked) -----------
     let contracts: any[] = [];
