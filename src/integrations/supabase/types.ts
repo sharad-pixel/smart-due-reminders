@@ -3736,6 +3736,74 @@ export type Database = {
           },
         ]
       }
+      contract_custom_triggers: {
+        Row: {
+          account_id: string
+          channel: string
+          comparator: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          import_id: string
+          is_active: boolean
+          last_fired_at: string | null
+          message: string | null
+          name: string
+          notify_emails: string[]
+          offset_days: number | null
+          source_field: string
+          threshold_value: number | null
+          trigger_type: string
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          channel?: string
+          comparator?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          import_id: string
+          is_active?: boolean
+          last_fired_at?: string | null
+          message?: string | null
+          name: string
+          notify_emails?: string[]
+          offset_days?: number | null
+          source_field: string
+          threshold_value?: number | null
+          trigger_type: string
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          channel?: string
+          comparator?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          import_id?: string
+          is_active?: boolean
+          last_fired_at?: string | null
+          message?: string | null
+          name?: string
+          notify_emails?: string[]
+          offset_days?: number | null
+          source_field?: string
+          threshold_value?: number | null
+          trigger_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_custom_triggers_import_id_fkey"
+            columns: ["import_id"]
+            isOneToOne: false
+            referencedRelation: "live_contract_imports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contract_customer_matches: {
         Row: {
           account_id: string
