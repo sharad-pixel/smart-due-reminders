@@ -142,43 +142,8 @@ serve(async (req) => {
       contracts = imports || [];
       const ids = contracts.map((c: any) => c.id);
       if (ids.length > 0) {
-        const [{ data: fields }, { data: flags }, { data: dates }] = await Promise.all([
-          supabase.from("live_contract_extracted_fields")
-            .select("import_id, field_key, field_value, field_group")
-            .in("import_id", ids),
-          supabase.from("contract_risk_flags")
-            .select("import_id, flag_type, severity, description")
-            .in("import_id", ids),
-          supabase.from("contract_critical_dates")
-            .select("import_id, date_type, due_date, risk_level")
-            .in("import_id", ids)
-            .gte("due_date", new Date().toISOString().slice(0, 10))
-            .order("due_date", { ascending: true })
-            .limit(10),
-        ]);
 
-        const num = (v: any) => {
-          if (v == null) return 0;
-          const n = parseFloat(String(v).replace(/[^0-9.\-]/g, ""));
-          return isFinite(n) ? n : 0;
-        };
-        for (const f of fields || []) {
-          if (f.field_key === "mrr") contractFinancials.mrr += num(f.field_value);
-          else if (f.field_key === "arr") contractFinancials.arr += num(f.field_value);
-          else if (f.field_key === "acv") contractFinancials.acv += num(f.field_value);
-          else if (f.field_key === "tcv" || f.field_key === "contract_value")
-            contractFinancials.tcv += num(f.field_value);
-          else if (f.field_key === "currency" && f.field_value)
-            contractFinancials.currency = f.field_value;
-        }
-        if (contractFinancials.arr === 0 && contractFinancials.mrr > 0)
-          contractFinancials.arr = contractFinancials.mrr * 12;
-        if (contractFinancials.acv === 0 && contractFinancials.arr > 0)
-          contractFinancials.acv = contractFinancials.arr;
 
-        contractRiskFlags = flags || [];
-        upcomingDates = dates || [];
-      }
         const [{ data: fields }, { data: flags }, { data: dates }] = await Promise.all([
             supabase.from("live_contract_extracted_fields")
               .select("import_id, field_key, field_value, field_group")
