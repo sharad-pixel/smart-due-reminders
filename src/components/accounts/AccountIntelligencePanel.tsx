@@ -295,13 +295,36 @@ export function AccountIntelligencePanel({
     );
   }
 
-  const score = scorecardData?.collection_intelligence_score;
-  const tier = scorecardData?.collection_health_tier;
+  const rawScore = scorecardData?.collection_intelligence_score;
+  const rawTier = scorecardData?.collection_health_tier;
+
+  // Align Revenue Intelligence Score with the AI Intelligence Report so they
+  // can never tell opposing stories (e.g. "Healthy 100" alongside "Critical Risk 95").
+  // When an AI report exists, the header score = 100 - riskScore and the tier is
+  // derived from the report's risk level. The DB-derived score is used as a fallback
+  // before any report is generated.
+  const riskLevelToTier = (level?: string | null): string | null => {
+    switch ((level || "").toLowerCase()) {
+      case "low": return "Healthy";
+      case "medium": return "Watch";
+      case "high": return "At Risk";
+      case "critical": return "Critical";
+      default: return null;
+    }
+  };
+  const score = intelligence
+    ? Math.max(0, Math.min(100, 100 - (intelligence.riskScore ?? 0)))
+    : rawScore;
+  const tier = intelligence
+    ? (riskLevelToTier(intelligence.riskLevel) ?? rawTier)
+    : rawTier;
+
   const paidInvoices = scorecardData?.paid_invoices_count ?? 0;
   const overdueInvoices = scorecardData?.overdue_invoices_count ?? 0;
   const pastDueBalance = scorecardData?.past_due_balance ?? 0;
   const primaryCurrency = scorecardData?.primary_currency || 'USD';
   const hasInvoiceData = paidInvoices > 0 || overdueInvoices > 0 || (scorecardData?.open_invoices_count || 0) > 0;
+
 
   return (
     <Card className={cn("overflow-hidden border-2 transition-all", getCardBorderStyle(tier))}>
