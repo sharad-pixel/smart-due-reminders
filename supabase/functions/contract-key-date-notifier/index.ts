@@ -135,7 +135,129 @@ Deno.serve(async (req) => {
       fired++;
     }
 
-    return json({ success: true, fired, emailed, errors });
+    // ===== Custom triggers =====
+    // Evaluate any user-defined triggers attached to contracts and fire
+    // in-app alerts / emails when their condition is met.
+    let customFired = 0;
+    try {
+      const { data: trigs } = await supabase
+        .from("contract_custom_triggers")
+        .select("*")
+        .eq("is_active", true);
+
+      for (const t of trigs || []) {
+        try {
+          // Skip if fired in the last 24h
+          if ((t as any).last_fired_at) {
+            const last = new Date((t as any).last_fired_at).getTime();
+            if (Date.now() - last < 24 * 3600 * 1000) continue;
+          }
+
+          const { data: imp } = await supabase
+            .from("live_contract_imports")
+            .select("id, user_id, contract_name, file_name, debtor_id")
+            .eq("id", (t as any).import_id)
+            .single();
+          if (!imp) continue;
+
+          const { data: field } = await supabase
+            .from("live_contract_extracted_fields")
+            .select("field_value")
+            .eq("import_id", (t as any).import_id)
+            .eq("field_key", (t as any).source_field)
+            .maybeSingle();
+          const fieldValue = (field as any)?.field_value;
+          if (!fieldValue) continue;
+
+          let shouldFire = false;
+          let reason = "";
+
+          if ((t as any).trigger_type === "date_offset") {
+            const dateStr = String(fieldValue).slice(0, 10);
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) continue;
+            const target = new Date(dateStr);
+            const daysUntil = Math.ceil((target.getTime() - today.getTime()) / 86400000);
+            const offset = Number((t as any).offset_days) || 0;
+            if (daysUntil >= 0 && daysUntil <= offset) {
+              shouldFire = true;
+              reason = `${(t as any).source_field.replace(/_/g, " ")} is ${daysUntil} day${daysUntil === 1 ? "" : "s"} away (${dateStr})`;
+            }
+          } else if ((t as any).trigger_type === "amount_threshold") {
+            const num = Number(String(fieldValue).replace(/[$,]/g, ""));
+            if (!Number.isFinite(num)) continue;
+            const th = Number((t as any).threshold_value) || 0;
+            const cmp = (t as any).comparator;
+            shouldFire =
+              (cmp === "gt" && num > th) ||
+              (cmp === "gte" && num >= th) ||
+              (cmp === "lt" && num < th) ||
+              (cmp === "lte" && num <= th) ||
+              (cmp === "eq" && num === th);
+            if (shouldFire) reason = `${(t as any).source_field.replace(/_/g, " ")} = ${num} ${cmp} ${th}`;
+          }
+
+          if (!shouldFire) continue;
+
+          const title = `Trigger: ${(t as any).name}`;
+          const message = `${(imp as any).contract_name || (imp as any).file_name} — ${reason}. ${(t as any).message || ""}`.trim();
+
+          await supabase.from("user_alerts").insert({
+            user_id: (imp as any).user_id,
+            alert_type: "contract_custom_trigger",
+            severity: "warning",
+            title,
+            message,
+            debtor_id: (imp as any).debtor_id,
+            action_url: `/contracts/live/${(imp as any).id}#triggers`,
+            action_label: "Open contract",
+            metadata: { trigger_id: (t as any).id, import_id: (imp as any).id },
+          });
+
+          const ch = (t as any).channel;
+          if (ch === "email" || ch === "both") {
+            const recipients: string[] = Array.isArray((t as any).notify_emails) ? (t as any).notify_emails : [];
+            if (recipients.length) {
+              const html = `
+                <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1e293b;padding:24px;max-width:560px;background:#ffffff">
+                  <div style="border:1px solid #e2e8f0;border-radius:8px;padding:20px">
+                    <h2 style="margin:0 0 12px;color:#1e293b;font-size:18px">${title}</h2>
+                    <p style="margin:0 0 8px"><strong>${(imp as any).contract_name || (imp as any).file_name}</strong></p>
+                    <p style="margin:0 0 6px;color:#475569">${reason}</p>
+                    ${(t as any).message ? `<p style="margin:14px 0 0;color:#475569">${(t as any).message}</p>` : ""}
+                  </div>
+                </div>`;
+              try {
+                await fetch(`${supabaseUrl}/functions/v1/send-email`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey}` },
+                  body: JSON.stringify({
+                    to: recipients,
+                    from: "Recouply.ai <notifications@send.inbound.services.recouply.ai>",
+                    subject: title,
+                    html,
+                  }),
+                });
+                emailed++;
+              } catch (e: any) {
+                errors.push(`custom_trigger email ${(t as any).id}: ${e?.message || e}`);
+              }
+            }
+          }
+
+          await supabase
+            .from("contract_custom_triggers")
+            .update({ last_fired_at: new Date().toISOString() })
+            .eq("id", (t as any).id);
+          customFired++;
+        } catch (e: any) {
+          errors.push(`custom_trigger ${(t as any).id}: ${e?.message || e}`);
+        }
+      }
+    } catch (e: any) {
+      errors.push(`custom_triggers_block: ${e?.message || e}`);
+    }
+
+    return json({ success: true, fired, customFired, emailed, errors });
   } catch (e: any) {
     console.error("contract-key-date-notifier error", e);
     return json({ error: e?.message || String(e) }, 500);

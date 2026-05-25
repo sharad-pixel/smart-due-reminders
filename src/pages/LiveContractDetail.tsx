@@ -55,6 +55,12 @@ import { InvoiceDataAuditPanel } from "@/components/clm/InvoiceDataAuditPanel";
 import { ContractTermGauge } from "@/components/clm/ContractTermGauge";
 import { KeyDatesNotificationsPanel } from "@/components/clm/KeyDatesNotificationsPanel";
 import { ContractFinancialExport } from "@/components/clm/ContractFinancialExport";
+import { ContractPageNav } from "@/components/clm/ContractPageNav";
+import { ContractPerformanceObligations } from "@/components/clm/ContractPerformanceObligations";
+import { ContractBillingRequirements } from "@/components/clm/ContractBillingRequirements";
+import { ContractInvoiceRecapture } from "@/components/clm/ContractInvoiceRecapture";
+import { ContractInvoiceBacklog } from "@/components/clm/ContractInvoiceBacklog";
+import { ContractCustomTriggersPanel } from "@/components/clm/ContractCustomTriggersPanel";
 
 import { Asc606AssessmentDialog } from "@/components/contracts/Asc606AssessmentDialog";
 import { Asc606ChatPanel } from "@/components/clm/Asc606ChatPanel";
@@ -439,89 +445,101 @@ const LiveContractDetailInner = () => {
 
       <ContractStatusStepper importId={c.id} status={c.status} />
 
-      <Card>
-        <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
-          <CardTitle className="text-base flex items-center gap-2">
-            <TrendingUp className="h-4 w-4 text-primary" /> Financial Summary
-            <Badge variant="outline" className="ml-2 text-[10px] font-normal capitalize">
-              {String(totals.source || "—").replace(/_/g, " ")}
-            </Badge>
-          </CardTitle>
-          <div className="flex items-center gap-2">
-            <ContractFinancialExport
-              contractName={c.contract_name || c.file_name || "Contract"}
-              customerName={data.debtor?.company_name || data.debtor?.name || null}
-              totals={totals as any}
-            />
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleRecompute}
-              disabled={recomputing}
-            >
-              {recomputing ? "Recalculating…" : "Recalculate"}
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {autoReassessing && (
-            <div className="rounded-md border border-blue-200 bg-blue-50 text-blue-900 p-2 text-xs flex items-center gap-2">
-              <AlertTriangle className="h-3.5 w-3.5" />
-              Schedule total doesn't tie to TCV — re-assessing the contract automatically…
+      <ContractPageNav />
+
+      {/* ============ 1. FINANCE ============ */}
+      <section id="finance" className="space-y-4 scroll-mt-16">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
+          <TrendingUp className="h-3.5 w-3.5" /> Finance
+        </h2>
+
+        <Card>
+          <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-base flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-primary" /> Financial Summary
+              <Badge variant="outline" className="ml-2 text-[10px] font-normal capitalize">
+                {String(totals.source || "—").replace(/_/g, " ")}
+              </Badge>
+            </CardTitle>
+            <div className="flex items-center gap-2">
+              <ContractFinancialExport
+                contractName={c.contract_name || c.file_name || "Contract"}
+                customerName={data.debtor?.company_name || data.debtor?.name || null}
+                totals={totals as any}
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleRecompute}
+                disabled={recomputing}
+              >
+                {recomputing ? "Recalculating…" : "Recalculate"}
+              </Button>
             </div>
-          )}
-          {Array.isArray(totals.warnings) && totals.warnings.length > 0 && (
-            <div className="rounded-md border border-amber-200 bg-amber-50 text-amber-900 p-2 text-xs space-y-1">
-              <div className="font-medium flex items-center gap-1">
-                <AlertTriangle className="h-3.5 w-3.5" /> Review recommended
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {autoReassessing && (
+              <div className="rounded-md border border-blue-200 bg-blue-50 text-blue-900 p-2 text-xs flex items-center gap-2">
+                <AlertTriangle className="h-3.5 w-3.5" />
+                Schedule total doesn't tie to TCV — re-assessing the contract automatically…
               </div>
-              <ul className="list-disc pl-5 space-y-0.5">
-                {totals.warnings.slice(0, 4).map((w: string, i: number) => (
-                  <li key={i}>{w}</li>
-                ))}
-              </ul>
+            )}
+            {Array.isArray(totals.warnings) && totals.warnings.length > 0 && (
+              <div className="rounded-md border border-amber-200 bg-amber-50 text-amber-900 p-2 text-xs space-y-1">
+                <div className="font-medium flex items-center gap-1">
+                  <AlertTriangle className="h-3.5 w-3.5" /> Review recommended
+                </div>
+                <ul className="list-disc pl-5 space-y-0.5">
+                  {totals.warnings.slice(0, 4).map((w: string, i: number) => (
+                    <li key={i}>{w}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+              <KpiTile label="MRR" value={formatCurrency(totals.mrr, totals.currency)} />
+              <KpiTile label="ARR" value={formatCurrency(totals.arr, totals.currency)} />
+              <KpiTile label="ACV" value={formatCurrency(totals.acv, totals.currency)} />
+              <KpiTile
+                label="Services"
+                value={formatCurrency(totals.servicesTcv || 0, totals.currency)}
+              />
+              <KpiTile
+                label={totals.tcv > 0 ? "TCV" : "Scheduled"}
+                value={formatCurrency(
+                  totals.tcv > 0 ? totals.tcv : totals.scheduled,
+                  totals.currency,
+                )}
+              />
             </div>
-          )}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-            <KpiTile label="MRR" value={formatCurrency(totals.mrr, totals.currency)} />
-            <KpiTile label="ARR" value={formatCurrency(totals.arr, totals.currency)} />
-            <KpiTile label="ACV" value={formatCurrency(totals.acv, totals.currency)} />
-            <KpiTile
-              label="Services"
-              value={formatCurrency(totals.servicesTcv || 0, totals.currency)}
-            />
-            <KpiTile
-              label={totals.tcv > 0 ? "TCV" : "Scheduled"}
-              value={formatCurrency(
-                totals.tcv > 0 ? totals.tcv : totals.scheduled,
-                totals.currency,
-              )}
-            />
-          </div>
-          <p className="text-[11px] text-muted-foreground pt-1">
-            MRR, ARR, and ACV reflect <strong>recurring revenue only</strong> (ASC 606
-            performance obligations satisfied over time). Services and one-time fees are
-            tracked separately and roll into TCV.
-          </p>
-          {(totals.recurringTcv > 0 || totals.servicesTcv > 0 || totals.oneTimeTcv > 0) && (
-            <div className="text-[11px] text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 pt-1 border-t">
-              <span>Recurring TCV: {formatCurrency(totals.recurringTcv || 0, totals.currency)}</span>
-              <span>Services TCV: {formatCurrency(totals.servicesTcv || 0, totals.currency)}</span>
-              <span>One-time TCV: {formatCurrency(totals.oneTimeTcv || 0, totals.currency)}</span>
-              {totals.termMonths > 0 && <span>Term: {Math.round(totals.termMonths)} mo</span>}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            <p className="text-[11px] text-muted-foreground pt-1">
+              MRR, ARR, and ACV reflect <strong>recurring revenue only</strong> (ASC 606
+              performance obligations satisfied over time). Services and one-time fees are
+              tracked separately and roll into TCV.
+            </p>
+            {(totals.recurringTcv > 0 || totals.servicesTcv > 0 || totals.oneTimeTcv > 0) && (
+              <div className="text-[11px] text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 pt-1 border-t">
+                <span>Recurring TCV: {formatCurrency(totals.recurringTcv || 0, totals.currency)}</span>
+                <span>Services TCV: {formatCurrency(totals.servicesTcv || 0, totals.currency)}</span>
+                <span>One-time TCV: {formatCurrency(totals.oneTimeTcv || 0, totals.currency)}</span>
+                {totals.termMonths > 0 && <span>Term: {Math.round(totals.termMonths)} mo</span>}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-      <ContractReassessPanel importId={c.id} currentFileName={c.file_name} />
+        <ContractPerformanceObligations
+          schedules={data.schedules as any}
+          defaultCurrency={totals.currency}
+        />
 
-      <ContractOverviewEditor
-        contract={c}
-        onSaved={() => qc.invalidateQueries({ queryKey: ["live-contract-detail", importId] })}
-      />
+        <ContractReassessPanel importId={c.id} currentFileName={c.file_name} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <ContractOverviewEditor
+          contract={c}
+          onSaved={() => qc.invalidateQueries({ queryKey: ["live-contract-detail", importId] })}
+        />
+
         <EditableFinancialTermsCard
           importId={c.id}
           accountId={c.account_id}
@@ -531,50 +549,90 @@ const LiveContractDetailInner = () => {
           onChanged={() => qc.invalidateQueries({ queryKey: ["live-contract-detail", importId] })}
         />
 
+        <ContractValueByYearCard
+          schedules={data.schedules as any}
+          effectiveDate={c.effective_date}
+          defaultCurrency={totals.currency}
+        />
+      </section>
 
+      {/* ============ 2. TERM & KEY DATES ============ */}
+      <section id="term-dates" className="space-y-4 scroll-mt-16">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
+          <CalendarClock className="h-3.5 w-3.5" /> Term & Key Dates
+        </h2>
+
+        <ContractTermGauge
+          effectiveDate={c.effective_date}
+          termEndDate={c.term_end_date}
+          keyDates={data.dates}
+        />
+
+        <KeyDatesNotificationsPanel importId={c.id} dates={data.dates as any} />
+      </section>
+
+      {/* ============ 3. RISK ============ */}
+      <section id="risk" className="space-y-4 scroll-mt-16">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
+          <ShieldAlert className="h-3.5 w-3.5" /> Risk
+        </h2>
         <ContractRiskFlagsEditor importId={c.id} accountId={c.account_id} />
+      </section>
 
-        <div className="lg:col-span-2">
-          <ContractTermGauge
-            effectiveDate={c.effective_date}
-            termEndDate={c.term_end_date}
-            keyDates={data.dates}
-          />
-        </div>
+      {/* ============ 4. INVOICING & COLLECTIBILITY ============ */}
+      <section id="invoicing" className="space-y-4 scroll-mt-16">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
+          <FileSignature className="h-3.5 w-3.5" /> Invoicing & Collectibility
+        </h2>
 
-      </div>
+        <ContractBillingRequirements fields={data.fields as any} />
 
-      <KeyDatesNotificationsPanel importId={c.id} dates={data.dates as any} />
+        <ContractInvoiceRecapture importId={c.id} debtorId={c.debtor_id || null} />
 
-      <ContractValueByYearCard
-        schedules={data.schedules as any}
-        effectiveDate={c.effective_date}
-        defaultCurrency={totals.currency}
-      />
+        <ContractInvoiceBacklog schedules={data.schedules as any} defaultCurrency={totals.currency} />
 
-      <ContractScheduleLines
-        importId={c.id}
-        debtorId={c.debtor_id || null}
-        staged={c.staging_status !== "published"}
-        published={c.staging_status === "published"}
-        schedules={data.schedules}
-        defaultCurrency={totals.currency}
-        onChanged={() => qc.invalidateQueries({ queryKey: ["live-contract-detail", importId] })}
-      />
+        <ContractScheduleLines
+          importId={c.id}
+          debtorId={c.debtor_id || null}
+          staged={c.staging_status !== "published"}
+          published={c.staging_status === "published"}
+          schedules={data.schedules}
+          defaultCurrency={totals.currency}
+          onChanged={() => qc.invalidateQueries({ queryKey: ["live-contract-detail", importId] })}
+        />
 
+        <InvoiceDataAuditPanel contractId={c.id} />
+      </section>
 
-      <ContractExtractedFieldsEditor
-        importId={c.id}
-        accountId={c.account_id}
-        extractionId={(data.fields[0] as any)?.extraction_id || null}
-      />
+      {/* ============ 5. CUSTOM TRIGGERS ============ */}
+      <section id="triggers" className="space-y-4 scroll-mt-16">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
+          <FileCheck2 className="h-3.5 w-3.5" /> Custom Triggers
+        </h2>
+        <ContractCustomTriggersPanel
+          importId={c.id}
+          accountId={c.account_id}
+          fields={data.fields as any}
+        />
+      </section>
 
-      <ContractTasksPanel
-        debtorId={c.debtor_id || null}
-        contractName={c.contract_name}
-      />
+      {/* ============ ALL EXTRACTED TERMS ============ */}
+      <section id="all-terms" className="space-y-4 scroll-mt-16">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
+          <FileSignature className="h-3.5 w-3.5" /> All Extracted Terms
+        </h2>
 
-      <InvoiceDataAuditPanel contractId={c.id} />
+        <ContractExtractedFieldsEditor
+          importId={c.id}
+          accountId={c.account_id}
+          extractionId={(data.fields[0] as any)?.extraction_id || null}
+        />
+
+        <ContractTasksPanel
+          debtorId={c.debtor_id || null}
+          contractName={c.contract_name}
+        />
+      </section>
 
       {/* Parties section omitted (no contract_parties table) */}
 

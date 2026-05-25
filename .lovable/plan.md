@@ -1,73 +1,76 @@
+
 ## Goal
 
-Today the app has two parallel billing systems:
+Turn the Contract Intelligence page (`/contracts/:importId`) into the single source of truth for every contract, organized into 5 explicit, anchored sections. Nothing extracted should be hidden; users can also add custom proactive triggers.
 
-1. **Platform Credits** (`asc606_credit_wallets` + `asc606_credit_ledger`) — pre-paid credits with 20% discount, overages settled via `asc606-purchase-credits` (mode=overage). Used by ASC 606 assessments (10 credits/contract) and compliance doc indexing.
-2. **AI Smart Ingestion** — pay-per-page Stripe invoicing via `ocr_usage_events` + `ocr_invoice_payments` + the `ai-ingestion-pay-balance` edge function. Charged $1/page directly to a Stripe customer, separate from credits.
+## New page structure
 
-The fix: make **Platform Credits the only currency** across the platform. Smart Ingestion (and any future in-app service) draws from the same wallet, accrues into the same `pending_overage_credits` when the balance is empty, and is settled by the same "Pay overage now" flow.
+```text
+Contract Header (existing)
+ ├─ 1. Finance
+ ├─ 2. Term & Key Dates
+ ├─ 3. Risk
+ ├─ 4. Invoicing & Collectibility   ← NEW behavior
+ ├─ 5. Custom Triggers              ← NEW
+ └─ All Extracted Terms (existing editor, full fields)
+```
 
-## What changes
+A sticky in-page nav (anchor links) lets users jump between sections.
 
-### 1. Database / schema
+## Section details
 
-- **No new tables.** `asc606_credit_ledger.service` already exists and is the discriminator (`'asc606'`, `'smart_ingestion'`, future services).
-- **Add `'smart_ingestion'` allowed kinds** if needed — current `kind` check allows `consume`, `overage_accrue`, `purchase`, etc., which already cover ingestion. No constraint change required, only the `service` value differs.
-- **`consume_asc606_credits` RPC**: extend signature to accept an optional `_service text` (default `'asc606'`) and an optional `_reference_id uuid` / `_note text`. Writes those onto the ledger row it creates. Logic (debit balance → accrue overage if `overage_enabled`) is unchanged.
-- **`ocr_usage_events`**: keep as the activity/audit log (per-file, per-page record with timestamps). Stop relying on `stripe_reported` / `payment_id` for billing. Add a nullable `ledger_id uuid` FK to `asc606_credit_ledger` so each scan links to its credit consumption row.
-- **`ocr_invoice_payments`** + `ai-ingestion-pay-balance`: deprecate. Existing rows remain readable for history; new scans no longer write here.
+### 1. Finance
+- Reuses existing Financial Summary KPIs: MRR, ARR, ACV, TCV, Services.
+- **New:** "Performance Obligations by Service" table built from `contract_invoice_schedules` grouped by `service_name` / `component`, showing recurring vs one-time, total value, recognition pattern (over time / point-in-time), and % of TCV. This is rendered in addition to the existing `ContractValueByYearCard`.
+- Includes existing `EditableFinancialTermsCard` (rate, billing frequency, payment terms, etc.).
 
-### 2. Edge functions
+### 2. Term & Key Dates
+- Reuses `ContractTermGauge` and `KeyDatesNotificationsPanel`.
+- **Expanded date harvest:** in addition to today's critical dates, surface every date-driven clause from `live_contract_extracted_fields` whose key matches `/date|renewal|notice|termination|opt[_ ]?out|expir|review|true[_ ]?up/i`. Each row shows: label, date, source clause text, and a "Create trigger" button (links into section 5).
+- Adds a small "Next 4 critical dates" mini-timeline at the top of the section for fast scanning.
 
-- **`ocr-invoice-upload`** and **`live-contract-extract`** (the two functions that record OCR usage):
-  - Replace the direct `ocr_usage_events` insert + Stripe meter call with one call to `consume_asc606_credits({_amount: pageCount, _service: 'smart_ingestion', _reference_id: invoiceId | contractId, _note: fileName})`.
-  - Still insert into `ocr_usage_events` for the activity feed, but stamp the returned `ledger_id` and drop the Stripe-meter fields.
-  - Return `{ pageCount, creditsCharged, balance_after, overage_accrued }` so the UI can show the impact.
-- **`asc606-purchase-credits`** (mode=overage): no logic change — it already settles the full `pending_overage_credits` regardless of which service accrued it. Update the Stripe line-item description from "ASC 606 overage" to "Platform Credits overage settlement" and include a breakdown by service (queried from the ledger) so the invoice line is transparent.
-- **`asc606-monthly-overage-invoicer`**: same wording update; no logic change.
-- **Delete / 410 `ai-ingestion-pay-balance`**: replace its body with a 410 Gone JSON response telling callers to use `asc606-purchase-credits` (kept around briefly so any open browser tab fails gracefully).
+### 3. Risk
+- Reuses `ContractRiskFlagsEditor`.
+- Adds a header summary chip-row: counts by severity (critical / high / medium / low).
+- Adds derived risks not yet in `contract_risk_flags`: schedule-vs-TCV mismatch, missing notice period, auto-renewal without termination right, currency mismatch with debtor, and any extracted field tagged `risk_*`. These are shown as system-detected items that the user can promote into a stored flag with one click.
 
-### 3. Frontend
+### 4. Invoicing & Collectibility (new behavior)
+Three stacked cards inside one section:
 
-- **`OcrPricingNotice.tsx`**: keep "1 credit / page" copy, change the link/explanation from "Track totals in Settings → Billing" to point at the unified `/billing?tab=credits` and clarify "Drawn from your Platform Credits balance; charged as overage at $1.00/credit if your balance is empty."
-- **`IngestionBalanceCard.tsx`**: delete. Anywhere it was rendered (AI Smart Ingestion page), replace with the same unified `CreditsPanel` summary block already used on `/billing?tab=credits` (balance, overage, Buy / Pay-now buttons via `usePayOverage`).
-- **`OcrUsageCard.tsx`**: keep, but relabel the "Cost (30d)" tile to "Credits (30d)" and show "$X.XX equivalent" as a sub-line. Remove the "not metered" badge — every row is now backed by a ledger entry.
-- **`CreditsPanel.tsx`**: add a second activity sub-tab (or simple service filter) so users can see ASC 606 vs Smart Ingestion vs Compliance Doc consumption from one ledger view. Source is `asc606_credit_ledger` grouped by `service`.
-- **`CreditsWalletBadge.tsx`**: no structural change — already reads wallet + overage. Tooltip copy updated to say "Covers ASC 606, Smart Ingestion, and other in-app services."
-- **`Billing.tsx` (Credits & Overages tab)**: add a "What credits cover" mini-legend listing the services and their per-unit cost (ASC 606 = 10 credits / contract assessment, Smart Ingestion = 1 credit / page, Compliance Doc Indexing = N credits / doc).
-- **All call sites of `ai-ingestion-pay-balance`** (currently the old `IngestionBalanceCard`) → removed alongside that component.
+a. **Billing Requirements** — read-only summary distilled from extracted fields: billing frequency, invoice cadence, PO requirement, invoice delivery method/email, late-fee terms, dispute window, payment terms, accepted methods.
 
-### 4. Pricing / policy copy
+b. **Recapture Source-System Invoice** — file upload (PDF/image/CSV) that POSTs to a new edge function `contract-invoice-recapture`. The function:
+   - stores the file in the existing `contracts` storage bucket under `recaptured/{importId}/...`,
+   - calls Lovable AI Gateway (`google/gemini-2.5-flash`) with vision to extract invoice_number, issue_date, due_date, amount, currency, line items,
+   - inserts an `invoices` row (status `Open`) linked to the contract's `debtor_id`, marks `integration_source = 'contract_recapture'`, and triggers existing AI collections workflow automatically (same path used by Smart Ingestion).
+   Returns a toast + link to the created invoice.
 
-- One unified rule, surfaced on the AI Smart Ingestion page, ASC 606 page, and `/billing?tab=credits`:
-  - Pre-paid credits: **$0.80/credit** (20% discount).
-  - Overage (auto-accrued when balance hits 0): billed at **$1.00/credit**, settled either monthly or via "Pay now".
-  - New purchases never retroactively discount past overages.
+c. **Upcoming Invoice Backlog (next 60 days excluded)** — table built from `contract_invoice_schedules` where `scheduled_date > now() + 60 days`. Columns: scheduled date, amount, service, status. Lets the finance team see what's queued beyond the 60-day collection window so nothing falls through the cracks.
 
-### 5. Migration of existing data
+### 5. Custom Triggers (new)
+- New table `contract_custom_triggers` with: `import_id`, `account_id`, `name`, `trigger_type` (`date_offset` | `field_change` | `amount_threshold`), `source_field` (e.g. `renewal_date`, `mrr`, `risk_score`), `offset_days` (nullable), `comparator` (`gt|lt|eq|changed`), `threshold_value` (nullable), `channel` (`email|task|alert`), `recipient_user_id` (nullable), `message`, `is_active`, `last_fired_at`.
+- UI: list existing triggers + "New trigger" dialog with a form that adapts to trigger type. Users can pick any extracted date or numeric field from this contract.
+- Evaluation: extend the existing scheduled-alerts cron (whichever function powers `KeyDatesNotificationsPanel` reminders) to also evaluate custom triggers daily — creating tasks via `collection_tasks` or sending email via existing transactional sender depending on `channel`.
 
-- One-shot script (run as part of the migration) to:
-  - For each historical `ocr_usage_events` row where `stripe_reported = true` → no action (already paid via the old Stripe meter; do NOT also accrue credits).
-  - For each row where `stripe_reported = false` AND no `ledger_id` → insert an `asc606_credit_ledger` row with `service='smart_ingestion'`, `kind='overage_accrue'`, `delta=-page_count`, increment the wallet's `pending_overage_credits`, then stamp `ledger_id` back onto the event.
-  - Result: any "not metered" pages currently showing in the screenshot become part of the user's overage balance and can be settled by the unified Pay-now button.
+## Files to add
 
-## Out of scope
+- `src/components/clm/ContractPageNav.tsx` — sticky anchor nav.
+- `src/components/clm/ContractPerformanceObligations.tsx`
+- `src/components/clm/ContractBillingRequirements.tsx`
+- `src/components/clm/ContractInvoiceRecapture.tsx`
+- `src/components/clm/ContractInvoiceBacklog.tsx`
+- `src/components/clm/ContractCustomTriggersPanel.tsx` + `NewTriggerDialog.tsx`
+- `supabase/functions/contract-invoice-recapture/index.ts`
+- Migration for `contract_custom_triggers` (RLS scoped to account membership).
 
-- No changes to credit pricing tiers or the existing Stripe products.
-- No change to compliance-doc indexing pricing — it already uses the same wallet.
-- No change to ASC 606 assessment cost (still 10 credits).
+## Files to edit
 
-## Files touched
+- `src/pages/LiveContractDetail.tsx` — reorganize JSX into the 5 sections, mount nav, slot new components.
+- `src/components/clm/KeyDatesNotificationsPanel.tsx` — add "Create trigger" affordance per row.
+- Whatever cron function handles key-date alerts — extend to evaluate custom triggers.
 
-**Migration**: 1 new SQL migration (extend `consume_asc606_credits`, add `ocr_usage_events.ledger_id`, backfill unpaid events).
+## Out of scope (this iteration)
 
-**Edge functions**: `ocr-invoice-upload`, `live-contract-extract`, `asc606-purchase-credits` (wording only), `asc606-monthly-overage-invoicer` (wording only), `ai-ingestion-pay-balance` (replace with 410).
-
-**Frontend**:
-- Edit: `OcrPricingNotice.tsx`, `OcrUsageCard.tsx`, `CreditsPanel.tsx`, `CreditsWalletBadge.tsx`, `Billing.tsx`, the AI Smart Ingestion page (swap card).
-- Delete: `IngestionBalanceCard.tsx`, `usePayOverage.ts` stays (already the unified entry point).
-
-## Risks
-
-- Backfill of legacy unpaid `ocr_usage_events` will move dollars from "Stripe invoice queue" into "credit overage". Need a confirmation prompt before running the migration in production.
-- Old browser tabs hitting `ai-ingestion-pay-balance` get a clear 410 with a redirect message — acceptable.
+- Editing the underlying ASC 606 engine.
+- Bulk invoice recapture (single-file at a time first).
+- SMS/Slack channels for triggers — email + in-app task only.
