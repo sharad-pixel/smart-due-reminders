@@ -157,46 +157,50 @@ export function AssignContractDebtor({ importId, currentDebtorId, currentDebtorN
             <CommandList>
               {isLoading && <div className="p-3 text-xs text-muted-foreground">Loading…</div>}
               {!isLoading && debtors.length === 0 && (
-                <CommandEmpty>
-                  <div className="p-2 space-y-2 text-center">
-                    <div className="text-xs text-muted-foreground">No customers found</div>
-                    <Button size="sm" variant="outline" className="w-full" onClick={openCreate}>
-                      <Plus className="h-3.5 w-3.5 mr-1" />
-                      Create "{search.trim() || "new customer"}"
-                    </Button>
-                  </div>
-                </CommandEmpty>
-              )}
-              <CommandGroup>
-                {debtors.map((d: any) => {
-                  const isCurrent = d.id === currentDebtorId;
-                  return (
-                    <CommandItem key={d.id} onSelect={() => assign(d.id)} className="cursor-pointer">
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium truncate">{d.company_name || d.name}</div>
-                        {d.email && <div className="text-xs text-muted-foreground truncate">{d.email}</div>}
-                      </div>
-                      {isCurrent && <Check className="h-4 w-4 text-primary" />}
-                    </CommandItem>
-                  );
-                })}
-              </CommandGroup>
-              {!isLoading && debtors.length > 0 && (
-                <div className="border-t p-2">
-                  <Button variant="ghost" size="sm" className="w-full justify-start" onClick={openCreate}>
-                    <Plus className="h-3.5 w-3.5 mr-1" />
-                    Create new customer
-                  </Button>
+                <div className="p-3 text-xs text-muted-foreground text-center">
+                  No customers found
                 </div>
               )}
-              {currentDebtorId && (
-                <div className="border-t p-2">
-                  <Button variant="ghost" size="sm" className="w-full justify-start text-destructive" onClick={() => assign(null)}>
-                    Remove customer link
-                  </Button>
-                </div>
+              {debtors.length > 0 && (
+                <CommandGroup>
+                  {debtors.map((d: any) => {
+                    const isCurrent = d.id === currentDebtorId;
+                    return (
+                      <CommandItem key={d.id} onSelect={() => assign(d.id)} className="cursor-pointer">
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium truncate">{d.company_name || d.name}</div>
+                          {d.email && <div className="text-xs text-muted-foreground truncate">{d.email}</div>}
+                        </div>
+                        {isCurrent && <Check className="h-4 w-4 text-primary" />}
+                      </CommandItem>
+                    );
+                  })}
+                </CommandGroup>
               )}
             </CommandList>
+            <div className="border-t p-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full justify-start"
+                onClick={openCreate}
+              >
+                <Plus className="h-3.5 w-3.5 mr-1" />
+                {search.trim()
+                  ? `Create "${search.trim()}" as new customer`
+                  : "Create new customer"}
+              </Button>
+              {currentDebtorId && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start text-destructive mt-1"
+                  onClick={() => assign(null)}
+                >
+                  Remove customer link
+                </Button>
+              )}
+            </div>
           </Command>
         </PopoverContent>
       </Popover>
