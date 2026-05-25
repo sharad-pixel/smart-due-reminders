@@ -48,6 +48,7 @@ const Home = () => {
       <EmailDemo />
       <WhyDifferent />
       <RevenueRiskTeaser />
+      <ContractIntelligenceTeaser />
       <DataVettingBadge />
       <PricingTeaser />
       <FAQAccordion />
