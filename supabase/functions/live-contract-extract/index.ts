@@ -134,7 +134,7 @@ async function ocrPdfPerPage(args: {
   const pageCount = source.getPageCount();
   const collected: string[] = new Array(pageCount).fill("");
   const PER_PAGE_LIMIT = 6 * 1024 * 1024;
-  const CONCURRENCY = 8; // parallel Gemini calls
+  const CONCURRENCY = 16; // parallel Gemini calls
 
   // Pre-split all pages (fast, CPU-bound, sequential to avoid pdf-lib races).
   const pageBuffers: (Uint8Array | null)[] = new Array(pageCount).fill(null);
