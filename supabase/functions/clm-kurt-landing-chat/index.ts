@@ -45,6 +45,7 @@ serve(async (req) => {
     const { data: instances } = await supabaseClient
       .from("clm_template_instances")
       .select("id, name, status, created_at, account_id, template_id, clm_templates(name)")
+      .not("status", "in", "(archived,deleted)")
       .order("created_at", { ascending: false })
       .limit(50);
 
