@@ -64,6 +64,7 @@ Deno.serve(async (req) => {
       supabase.from("live_contract_imports")
         .select("id, debtor_id, contract_name, contract_type, status, staging_status, effective_date, term_end_date, contract_value, product_description, industry, confidence, file_name, metrics_jsonb, created_at")
         .eq("account_id", accountId)
+        .not("status", "in", "(archived,deleted)")
         .order("created_at", { ascending: false })
         .limit(200),
       supabase.from("contract_invoice_schedules")
