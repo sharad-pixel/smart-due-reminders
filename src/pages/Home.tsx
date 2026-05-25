@@ -7,6 +7,7 @@ import EmailDemo from "@/components/marketing/EmailDemo";
 import PricingTeaser from "@/components/marketing/PricingTeaser";
 import FAQAccordion from "@/components/marketing/FAQAccordion";
 import RevenueRiskTeaser from "@/components/marketing/RevenueRiskTeaser";
+import ContractIntelligenceTeaser from "@/components/marketing/ContractIntelligenceTeaser";
 import FinalCTA from "@/components/marketing/FinalCTA";
 import ValuePropositions from "@/components/marketing/ValuePropositions";
 import FeatureGrid from "@/components/marketing/FeatureGrid";
@@ -47,6 +48,7 @@ const Home = () => {
       <EmailDemo />
       <WhyDifferent />
       <RevenueRiskTeaser />
+      <ContractIntelligenceTeaser />
       <DataVettingBadge />
       <PricingTeaser />
       <FAQAccordion />
