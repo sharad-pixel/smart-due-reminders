@@ -55,6 +55,12 @@ import { InvoiceDataAuditPanel } from "@/components/clm/InvoiceDataAuditPanel";
 import { ContractTermGauge } from "@/components/clm/ContractTermGauge";
 import { KeyDatesNotificationsPanel } from "@/components/clm/KeyDatesNotificationsPanel";
 import { ContractFinancialExport } from "@/components/clm/ContractFinancialExport";
+import { ContractPageNav } from "@/components/clm/ContractPageNav";
+import { ContractPerformanceObligations } from "@/components/clm/ContractPerformanceObligations";
+import { ContractBillingRequirements } from "@/components/clm/ContractBillingRequirements";
+import { ContractInvoiceRecapture } from "@/components/clm/ContractInvoiceRecapture";
+import { ContractInvoiceBacklog } from "@/components/clm/ContractInvoiceBacklog";
+import { ContractCustomTriggersPanel } from "@/components/clm/ContractCustomTriggersPanel";
 
 import { Asc606AssessmentDialog } from "@/components/contracts/Asc606AssessmentDialog";
 import { Asc606ChatPanel } from "@/components/clm/Asc606ChatPanel";
