@@ -289,8 +289,13 @@ const Layout = ({ children }: LayoutProps) => {
     { path: "/reports/email-delivery", label: "Email Delivery", icon: BarChart3 },
   ];
 
-  // Mobile nav items - excludes admin/settings items since they're in user dropdown
-  const mobileNavItems = [...coreNavItems, ...revenueHubItems, ...revenueIntelligenceItems, ...aiToolsItems];
+  const revenueIntelHubItem = { path: "/revenue-intelligence", label: "Revenue Intelligence", icon: Sparkles };
+  const isRevenueIntelHubActive =
+    isActive("/revenue-intelligence") || isAnyRevenueHubActive || isAnyRevenueIntelActive;
+
+  // Mobile nav items - excludes admin/settings items since they're in user dropdown.
+  // Collections + Contract Intelligence are reachable from the Revenue Intelligence hub page only.
+  const mobileNavItems = [revenueIntelHubItem, ...coreNavItems, ...aiToolsItems];
 
   const isAnyAIToolActive = aiToolsItems.some(item => isActive(item.path));
 
