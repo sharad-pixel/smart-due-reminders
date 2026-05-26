@@ -205,7 +205,7 @@ const ContractIntelligence = () => {
                 GPT-5 reads every contract so your team doesn't have to.
               </h2>
               <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
-                Upload a PDF, DOCX, or scanned image. Within seconds, Recouply CLM extracts
+                Upload a PDF, DOCX, or scanned image. Within seconds, Recouply Contract Intelligence extracts
                 parties, term length, renewal mechanics, payment schedules, liability caps,
                 indemnities, governing law, and SLAs — and surfaces what's off-market.
               </p>
