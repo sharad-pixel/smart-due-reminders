@@ -293,9 +293,15 @@ const Layout = ({ children }: LayoutProps) => {
   const isRevenueIntelHubActive =
     isActive("/revenue-intelligence") || isAnyRevenueHubActive || isAnyRevenueIntelActive;
 
-  // Mobile nav items - excludes admin/settings items since they're in user dropdown.
-  // Collections + Contract Intelligence are reachable from the Revenue Intelligence hub page only.
-  const mobileNavItems = [revenueIntelHubItem, ...coreNavItems, ...aiToolsItems];
+  // Mobile nav items - includes Collections + Contract Intelligence under Revenue Intelligence.
+  const revenueIntelMobileItems = [
+    { path: "/revenue-intelligence", label: "Revenue Intelligence", icon: Sparkles },
+    { path: "/dashboard", label: "Collections Intelligence", icon: LayoutDashboard },
+    { path: "/ai-ingestion", label: "Contract Intelligence", icon: FileSignature },
+    { path: "/revenue-risk", label: "Revenue Risk", icon: ShieldAlert },
+    { path: "/revenue-library", label: "Revenue Library", icon: Library },
+  ];
+  const mobileNavItems = [...revenueIntelMobileItems, ...coreNavItems, ...aiToolsItems];
 
   const isAnyAIToolActive = aiToolsItems.some(item => isActive(item.path));
 
