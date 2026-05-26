@@ -90,9 +90,9 @@ const ContractIntelligence = () => {
   return (
     <MarketingLayout>
       <SEOHead
-        title="Recouply CLM — Contract Lifecycle Intelligence"
-        description="An AI-native Contract Lifecycle Management module for Recouply.ai. Generate, negotiate, sign, and govern contracts — linked directly to revenue, collections, and risk."
-        keywords="CLM, contract lifecycle management, contract intelligence, AI contracts, DocuSign, contract automation, legal AI"
+        title="Recouply Contract Intelligence"
+        description="An AI-native Contract Intelligence module for Recouply.ai. Generate, negotiate, sign, and govern contracts — linked directly to revenue, collections, and risk."
+        keywords="contract intelligence, contract lifecycle, AI contracts, DocuSign, contract automation, legal AI"
         canonical="https://recouply.ai/clm"
       />
 
