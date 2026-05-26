@@ -82,7 +82,7 @@ const Inner = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <SEO title={`${instance.name} | CLM Workspace`} description="CLM collaboration workspace" />
+      <SEO title={`${instance.name} | Contract Workspace`} description="Contract Intelligence collaboration workspace" />
       <Button variant="ghost" size="sm" asChild className="mb-4">
         <Link to="/contracts"><ArrowLeft className="h-4 w-4 mr-1" />Back to Contracts</Link>
       </Button>
