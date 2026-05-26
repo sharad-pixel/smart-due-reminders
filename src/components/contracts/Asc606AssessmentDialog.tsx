@@ -276,6 +276,7 @@ export function Asc606AssessmentDialog({ open, onOpenChange, contractId, account
             )}
           </div>
         )}
+        </div>
       </DialogContent>
     </Dialog>
   );
