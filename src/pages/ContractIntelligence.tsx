@@ -229,7 +229,7 @@ const ContractIntelligence = () => {
                 <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
                   <Bot className="w-4 h-4" />
                 </div>
-                <div className="text-sm font-medium">CLM Intelligence Panel</div>
+                <div className="text-sm font-medium">Contract Intelligence Panel</div>
                 <Badge variant="secondary" className="ml-auto text-xs">GPT-5</Badge>
               </div>
               <div className="space-y-3 text-sm">
