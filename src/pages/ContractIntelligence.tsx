@@ -116,14 +116,14 @@ const ContractIntelligence = () => {
               </span>
             </h1>
             <p className="text-xl lg:text-2xl text-muted-foreground mb-10 leading-relaxed">
-              Recouply CLM is an AI-native Contract Lifecycle module that generates, negotiates,
+              Recouply Contract Intelligence is an AI-native module that generates, negotiates,
               signs, and governs every agreement — linked directly to the invoices, payments,
               and risk signals already running in Recouply.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="lg" onClick={goContact} className="gap-2 text-base px-8">
                 <CalendarClock className="w-5 h-5" />
-                Book a CLM Demo
+                Book a Contract Intelligence Demo
               </Button>
               <Button size="lg" variant="outline" onClick={goContact} className="gap-2 text-base px-8">
                 Talk to Sales
