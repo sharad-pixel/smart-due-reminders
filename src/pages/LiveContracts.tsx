@@ -1285,6 +1285,7 @@ export default function LiveContracts() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [reviewId, setReviewId] = useState<string | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [manualOpen, setManualOpen] = useState(false);
   const [accountFilter, setAccountFilter] = useState<string>("all");
   const [showArchived, setShowArchived] = useState(false);
   const [searchText, setSearchText] = useState("");
