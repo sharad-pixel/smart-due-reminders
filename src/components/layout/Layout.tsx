@@ -342,62 +342,18 @@ const Layout = ({ children }: LayoutProps) => {
               
               {/* Desktop Navigation */}
               <div className="hidden lg:flex items-center gap-1">
-                {/* RevenueHub Dropdown — now includes Collection + Contract Intelligence */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className={`flex items-center gap-1.5 px-3 py-2 h-auto text-sm font-medium ${
-                        (isAnyRevenueHubActive || isAnyRevenueIntelActive)
-                          ? "bg-primary text-primary-foreground shadow-sm"
-                          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                      }`}
-                    >
-                      <LayoutDashboard className="h-4 w-4 shrink-0" />
-                      <span>RevenueHub</span>
-                      <ChevronDown className="h-3 w-3 shrink-0" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-60 z-[110] bg-card border shadow-lg">
-                    <DropdownMenuItem asChild>
-                      <Link to="/dashboard" className={`flex items-center gap-2 cursor-pointer ${isActive("/dashboard") ? "bg-accent" : ""}`}>
-                        <LayoutDashboard className="h-4 w-4" />
-                        <span>Overview</span>
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuLabel className="text-xs text-muted-foreground">Collection Intelligence</DropdownMenuLabel>
-                    <DropdownMenuItem asChild>
-                      <Link to="/invoices" className={`flex items-center gap-2 cursor-pointer ${isActive("/invoices") ? "bg-accent" : ""}`}>
-                        <FileText className="h-4 w-4" />
-                        <span>Invoices</span>
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/payments" className={`flex items-center gap-2 cursor-pointer ${isActive("/payments") ? "bg-accent" : ""}`}>
-                        <DollarSign className="h-4 w-4" />
-                        <span>Payments</span>
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuLabel className="text-xs text-muted-foreground">Contract Intelligence</DropdownMenuLabel>
-                    {revenueIntelligenceItems.map((item) => {
-                      const Icon = item.icon;
-                      return (
-                        <DropdownMenuItem key={item.path} asChild>
-                          <Link
-                            to={item.path}
-                            className={`flex items-center gap-2 cursor-pointer ${isActive(item.path) ? "bg-accent" : ""}`}
-                          >
-                            <Icon className="h-4 w-4" />
-                            <span>{item.label}</span>
-                          </Link>
-                        </DropdownMenuItem>
-                      );
-                    })}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                {/* Single Revenue Intelligence entry — hub page links out to Collections + Contract Intelligence */}
+                <Link
+                  to="/revenue-intelligence"
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                    isRevenueIntelHubActive
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  }`}
+                >
+                  <Sparkles className="h-4 w-4 shrink-0" />
+                  <span>Revenue Intelligence</span>
+                </Link>
 
                 {coreNavItems.map((item) => {
                   const Icon = item.icon;
