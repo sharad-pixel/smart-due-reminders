@@ -342,18 +342,69 @@ const Layout = ({ children }: LayoutProps) => {
               
               {/* Desktop Navigation */}
               <div className="hidden lg:flex items-center gap-1">
-                {/* Single Revenue Intelligence entry — hub page links out to Collections + Contract Intelligence */}
-                <Link
-                  to="/revenue-intelligence"
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
-                    isRevenueIntelHubActive
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                  }`}
-                >
-                  <Sparkles className="h-4 w-4 shrink-0" />
-                  <span>Revenue Intelligence</span>
-                </Link>
+                {/* Revenue Intelligence dropdown — links to Collections + Contract Intelligence */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={`flex items-center gap-1.5 px-3 py-2 h-auto rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                        isRevenueIntelHubActive
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                      }`}
+                    >
+                      <Sparkles className="h-4 w-4 shrink-0" />
+                      <span>Revenue Intelligence</span>
+                      <ChevronDown className="h-3 w-3 shrink-0" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-64 z-[110] bg-card border shadow-lg">
+                    <DropdownMenuItem asChild>
+                      <Link to="/dashboard" className="flex items-start gap-2 cursor-pointer">
+                        <LayoutDashboard className="h-4 w-4 text-primary mt-0.5" />
+                        <div>
+                          <div className="font-medium">Collections Intelligence</div>
+                          <div className="text-xs text-muted-foreground">Invoices, payments, AI outreach</div>
+                        </div>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/ai-ingestion" className="flex items-start gap-2 cursor-pointer">
+                        <FileSignature className="h-4 w-4 text-primary mt-0.5" />
+                        <div>
+                          <div className="font-medium">Contract Intelligence</div>
+                          <div className="text-xs text-muted-foreground">Contracts, clauses, renewals</div>
+                        </div>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/revenue-risk" className="flex items-start gap-2 cursor-pointer">
+                        <ShieldAlert className="h-4 w-4 text-primary mt-0.5" />
+                        <div>
+                          <div className="font-medium">Revenue Risk</div>
+                          <div className="text-xs text-muted-foreground">ECL & risk signals</div>
+                        </div>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/revenue-library" className="flex items-start gap-2 cursor-pointer">
+                        <Library className="h-4 w-4 text-primary mt-0.5" />
+                        <div>
+                          <div className="font-medium">Revenue Library</div>
+                          <div className="text-xs text-muted-foreground">Templates & playbooks</div>
+                        </div>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link to="/revenue-intelligence" className="flex items-center gap-2 cursor-pointer text-muted-foreground">
+                        <Sparkles className="h-4 w-4" />
+                        <span>About Revenue Intelligence</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
 
                 {coreNavItems.map((item) => {
                   const Icon = item.icon;
