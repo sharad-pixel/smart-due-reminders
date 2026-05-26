@@ -44,6 +44,8 @@ import { PaymentPlanModal } from "@/components/payment-plans/PaymentPlanModal";
 import { PaymentPlansList } from "@/components/payment-plans/PaymentPlansList";
 import { usePaymentPlans } from "@/hooks/usePaymentPlans";
 import { ContractUploadButton } from "@/components/contracts/ContractUploadButton";
+import { ManualContractDialog } from "@/components/contracts/ManualContractDialog";
+import { FileSignature } from "lucide-react";
 
 interface Debtor {
   id: string;
