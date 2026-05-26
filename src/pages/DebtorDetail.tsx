@@ -176,6 +176,7 @@ const DebtorDetail = () => {
   const [isAccountSummaryOpen, setIsAccountSummaryOpen] = useState(false);
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
   const [isCreateInvoiceOpen, setIsCreateInvoiceOpen] = useState(false);
+  const [isManualContractOpen, setIsManualContractOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<CollectionTask | null>(null);
   const [isTaskDetailOpen, setIsTaskDetailOpen] = useState(false);
   const [tasks, setTasks] = useState<any[]>([]);
