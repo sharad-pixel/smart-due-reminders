@@ -25,7 +25,7 @@ export const AdminClmToggle = ({ accountId }: Props) => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <FileSignature className="h-5 w-5" />
-          Contract Intelligence (CLM) Add-on
+          Contract Intelligence Add-on
           {isActive && <Badge className="ml-2">Active</Badge>}
         </CardTitle>
         <CardDescription>
