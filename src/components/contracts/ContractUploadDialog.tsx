@@ -165,6 +165,18 @@ export function ContractUploadDialog({ open, onOpenChange, debtorId, debtorName 
           </div>
         )}
 
+        <div className="text-xs text-muted-foreground border-t pt-3">
+          Don't have a document?{" "}
+          <button
+            type="button"
+            className="text-primary hover:underline font-medium"
+            onClick={() => { onOpenChange(false); setManualOpen(true); }}
+            disabled={upload.isPending}
+          >
+            Enter contract details manually
+          </button>
+        </div>
+
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={upload.isPending}>Cancel</Button>
           <Button onClick={() => upload.mutate()} disabled={!files.length || upload.isPending}>
@@ -173,6 +185,7 @@ export function ContractUploadDialog({ open, onOpenChange, debtorId, debtorName 
           </Button>
         </DialogFooter>
       </DialogContent>
+      <ManualContractDialog open={manualOpen} onOpenChange={setManualOpen} debtorId={debtorId} debtorName={debtorName} />
     </Dialog>
   );
 }
