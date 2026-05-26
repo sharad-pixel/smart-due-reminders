@@ -357,17 +357,17 @@ const ContractIntelligence = () => {
           <Card className="max-w-4xl mx-auto p-10 lg:p-14 text-center border-2 border-primary/30 bg-gradient-to-br from-primary/5 via-card to-accent/5">
             <Badge variant="secondary" className="mb-6">Sales-Led Availability</Badge>
             <h2 className="text-4xl lg:text-5xl font-bold mb-6">
-              Ready to see Recouply CLM in action?
+              Ready to see Recouply Contract Intelligence in action?
             </h2>
             <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Recouply CLM is a separately purchased module, available exclusively through our
+              Recouply Contract Intelligence is a separately purchased module, available exclusively through our
               sales team. Book a tailored demo and we'll walk you through the platform with
               your contracts, your workflow, and your stack.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="lg" onClick={goContact} className="gap-2 text-base px-8">
                 <CalendarClock className="w-5 h-5" />
-                Book a CLM Demo
+                Book a Contract Intelligence Demo
               </Button>
               <Button size="lg" variant="outline" onClick={goContact} className="gap-2 text-base px-8">
                 Contact Sales
