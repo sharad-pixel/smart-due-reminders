@@ -17,7 +17,7 @@ const SOURCE_LABEL: Record<string, string> = {
   contract_intelligence: "Contract Intelligence",
   ocr_contract: "AI Smart Ingestion (Contract)",
   ai_extract: "AI Extract",
-  clm: "CLM",
+  clm: "Contract Intelligence",
   manual: "Manual",
 };
 
