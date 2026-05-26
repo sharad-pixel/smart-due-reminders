@@ -169,6 +169,7 @@ const ContactUs = lazy(() => import("./pages/ContactUs"));
 
 // Contract Intelligence (CLM) — sales-led marketing page
 const ContractIntelligence = lazy(() => import("./pages/ContractIntelligence"));
+const RevenueIntelligenceHub = lazy(() => import("./pages/RevenueIntelligenceHub"));
 const Contracts = lazy(() => import("./pages/Contracts"));
 const Asc606Credits = lazy(() => import("./pages/Asc606Credits"));
 const ClmTemplateDetail = lazy(() => import("./pages/ClmTemplateDetail"));
@@ -235,6 +236,7 @@ const App = () => (
               <Route path="/design-partners" element={<DesignPartners />} />
               <Route path="/features" element={<Features />} />
               <Route path="/collection-intelligence" element={<CollectionIntelligence />} />
+              <Route path="/revenue-intelligence" element={<RevenueIntelligenceHub />} />
               <Route path="/collections-assessment" element={<CollectionsAssessment />} />
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/personas" element={<Personas />} />
