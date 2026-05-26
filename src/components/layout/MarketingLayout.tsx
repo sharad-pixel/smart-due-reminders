@@ -69,7 +69,8 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const platformItems = [
-    { icon: Brain, title: "Revenue Intelligence", description: "AI-powered insights & predictions", path: "/collection-intelligence" },
+    { icon: Sparkles, title: "Revenue Intelligence", description: "Collections + Contract Intelligence — unified", path: "/revenue-intelligence" },
+    { icon: Brain, title: "Collections Intelligence", description: "AI-powered insights & predictions", path: "/collection-intelligence" },
     { icon: FileSignature, title: "Contract Intelligence", description: "AI Smart Ingestion, key dates & revenue alignment", path: "/contract-intelligence" },
     { icon: Bot, title: "AI Agents", description: "Autonomous collection personas", path: "/personas" },
     { icon: Zap, title: "Automation", description: "Workflow & outreach automation", path: "/automation" },
