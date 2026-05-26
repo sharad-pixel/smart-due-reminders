@@ -1378,9 +1378,14 @@ export default function LiveContracts() {
                 Scan contracts from Google Drive or upload them directly. AI extracts commercial terms, invoice schedules, renewals, and risk flags for review before import.
               </p>
             </div>
-            <Button onClick={() => setUploadOpen(true)}>
-              <Upload className="h-4 w-4 mr-2" />Upload contract
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setManualOpen(true)}>
+                <FileSignature className="h-4 w-4 mr-2" />Enter manually
+              </Button>
+              <Button onClick={() => setUploadOpen(true)}>
+                <Upload className="h-4 w-4 mr-2" />Upload contract
+              </Button>
+            </div>
           </div>
 
           <IngestionBalanceCard />
