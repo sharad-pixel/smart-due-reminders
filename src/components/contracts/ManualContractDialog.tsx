@@ -13,7 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Plus, Trash2, FileSignature, Building2, ChevronsUpDown, Sparkles } from "lucide-react";
+import { Loader2, Plus, Trash2, FileSignature, Building2, ChevronsUpDown, Sparkles, Upload, Paperclip, X, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
 import { toast } from "sonner";
