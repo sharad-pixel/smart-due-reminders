@@ -45,7 +45,7 @@ const isLongText = (key: string) =>
 const humanize = (s: string) =>
   s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
-export const ContractExtractedFieldsEditor = ({ importId, accountId, extractionId }: Props) => {
+export const ContractExtractedFieldsEditor = ({ importId, accountId, extractionId, debtorId, debtorName }: Props) => {
   const [rows, setRows] = useState<FieldRow[]>([]);
   const [editing, setEditing] = useState<Record<string, string>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
