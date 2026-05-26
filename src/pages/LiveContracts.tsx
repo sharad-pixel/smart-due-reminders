@@ -34,6 +34,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ManualContractDialog } from "@/components/contracts/ManualContractDialog";
+import { FileSignature } from "lucide-react";
 
 // ------- Status helpers -------
 // Lifecycle: Scanned → Under Review → Extracted
