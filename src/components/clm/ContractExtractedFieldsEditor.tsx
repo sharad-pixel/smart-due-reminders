@@ -9,6 +9,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Pencil, Save, X, FileText, Plus, Trash2, UserCheck, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import { AssignContractDebtor } from "@/components/contracts/AssignContractDebtor";
+import { CreateCustomerFromPartiesDialog } from "@/components/contracts/CreateCustomerFromPartiesDialog";
 
 interface FieldRow {
   id: string;
