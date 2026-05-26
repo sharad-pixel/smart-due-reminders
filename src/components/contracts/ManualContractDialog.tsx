@@ -453,6 +453,66 @@ export function ManualContractDialog({ open, onOpenChange, debtorId, debtorName 
 
           <Separator />
 
+          {/* Supporting documents */}
+          <section className="space-y-2">
+            <h3 className="text-sm font-semibold flex items-center gap-2">
+              <Badge variant="outline" className="text-[10px]">4</Badge>
+              <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
+              Supporting Documents
+              <span className="text-xs font-normal text-muted-foreground">— optional</span>
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Attach the signed contract, order form, addenda or any related document. Your manual fields stay the source of truth — these are kept on the contract detail page for reference.
+            </p>
+            <div
+              onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
+              onDragLeave={() => setDragActive(false)}
+              onDrop={(e) => {
+                e.preventDefault(); setDragActive(false);
+                if (e.dataTransfer.files?.length) addAttachments(e.dataTransfer.files);
+              }}
+              onClick={() => document.getElementById("manual-contract-attachments")?.click()}
+              className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition ${dragActive ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}
+            >
+              <input
+                id="manual-contract-attachments"
+                type="file"
+                multiple
+                accept={ACCEPT_DOCS.join(",")}
+                className="hidden"
+                onChange={(e) => e.target.files && addAttachments(e.target.files)}
+              />
+              <Upload className="h-5 w-5 text-primary mx-auto mb-1" />
+              <p className="text-xs font-medium">{dragActive ? "Drop to attach" : "Drag & drop or click to browse"}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">PDF, DOCX, TXT, PNG, JPG • up to 25MB each</p>
+            </div>
+            {attachments.length > 0 && (
+              <ul className="divide-y border rounded-md">
+                {attachments.map((f, i) => (
+                  <li key={`${f.name}-${i}-${f.size}`} className="flex items-center gap-2 px-3 py-2 text-sm">
+                    <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium">{f.name}</p>
+                      <p className="text-[11px] text-muted-foreground">{(f.size / 1024).toFixed(0)} KB</p>
+                    </div>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 text-destructive"
+                      onClick={(e) => { e.stopPropagation(); setAttachments((prev) => prev.filter((_, x) => x !== i)); }}
+                      disabled={create.isPending}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <Separator />
+
           <section className="space-y-1">
             <Label className="text-xs font-medium">Notes (optional)</Label>
             <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Anything else to remember about this contract…" />
