@@ -1552,6 +1552,7 @@ export default function LiveContracts() {
         </div>
 
         <UploadDialog open={uploadOpen} onOpenChange={setUploadOpen} />
+        <ManualContractDialog open={manualOpen} onOpenChange={setManualOpen} />
         <ReviewDrawer importId={reviewId} onClose={() => setReviewId(null)} />
       </Layout>
     </>
