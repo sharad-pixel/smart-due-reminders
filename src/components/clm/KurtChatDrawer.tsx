@@ -84,7 +84,7 @@ export const KurtChatDrawer = ({ instanceId, instanceName }: { instanceId: strin
                   Kurt <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
                 </SheetTitle>
                 <SheetDescription className="text-[11px]">
-                  General Counsel · CLM guidance for {instanceName || "this workspace"}
+                  General Counsel · Contract guidance for {instanceName || "this workspace"}
                 </SheetDescription>
               </div>
             </div>

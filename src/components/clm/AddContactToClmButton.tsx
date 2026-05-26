@@ -65,14 +65,14 @@ export const AddContactToClmButton = ({ contactId, debtorId }: Props) => {
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" title="Add to contract workspace">
-          <FileSignature className="h-3.5 w-3.5 mr-1" /> CLM
+          <FileSignature className="h-3.5 w-3.5 mr-1" /> Contract
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-80" align="end">
         <div className="space-y-3">
           <div>
             <p className="text-sm font-medium">Add to contract workspace</p>
-            <p className="text-xs text-muted-foreground">Make this contact a collaborator on a CLM workspace.</p>
+            <p className="text-xs text-muted-foreground">Make this contact a collaborator on a Contract Intelligence workspace.</p>
           </div>
           {isLoading ? (
             <div className="flex justify-center py-3"><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /></div>

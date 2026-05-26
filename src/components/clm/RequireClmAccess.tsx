@@ -28,7 +28,7 @@ export const RequireClmAccess = ({ children }: { children: ReactNode }) => {
               <FileSignature className="h-5 w-5" /> Contract Intelligence
             </CardTitle>
             <CardDescription>
-              The CLM module is a separately purchased Recouply.ai add-on.
+              The Contract Intelligence module is a separately purchased Recouply.ai add-on.
               Contact our team to enable Contract Intelligence for your account.
             </CardDescription>
           </CardHeader>
@@ -37,7 +37,7 @@ export const RequireClmAccess = ({ children }: { children: ReactNode }) => {
               <Link to="/contact-us?topic=clm">Talk to sales</Link>
             </Button>
             <Button variant="ghost" asChild>
-              <Link to="/clm">Learn about CLM Intelligence →</Link>
+              <Link to="/clm">Learn about Contract Intelligence →</Link>
             </Button>
           </CardContent>
         </Card>

@@ -404,14 +404,14 @@ const ContractsInner = () => {
   const [manualOpen, setManualOpen] = useState(false);
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <SEO title="Contracts | Recouply CLM" description="Contract Lifecycle Management on Recouply.ai" />
+      <SEO title="Contracts | Recouply Contract Intelligence" description="AI-native Contract Intelligence on Recouply.ai" />
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <FileSignature className="h-6 w-6 text-primary" /> Contract Intelligence
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            AI-native CLM: upload templates, sectionalize, and collaborate with accounts.
+            AI-native Contract Intelligence: upload templates, sectionalize, and collaborate with accounts.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

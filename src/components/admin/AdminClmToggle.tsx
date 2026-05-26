@@ -25,7 +25,7 @@ export const AdminClmToggle = ({ accountId }: Props) => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <FileSignature className="h-5 w-5" />
-          Contract Intelligence (CLM) Add-on
+          Contract Intelligence Add-on
           {isActive && <Badge className="ml-2">Active</Badge>}
         </CardTitle>
         <CardDescription>
@@ -40,7 +40,7 @@ export const AdminClmToggle = ({ accountId }: Props) => {
           <>
             <div className="flex items-center justify-between py-2 border-b">
               <div>
-                <Label className="text-sm font-medium">Enable CLM module</Label>
+                <Label className="text-sm font-medium">Enable Contract Intelligence module</Label>
                 <p className="text-xs text-muted-foreground">
                   Grants this account access to /contracts and Contract Intelligence features.
                 </p>
@@ -52,8 +52,8 @@ export const AdminClmToggle = ({ accountId }: Props) => {
                   toggleMutation.mutate(
                     { enabled: checked, notes: notes || undefined },
                     {
-                      onSuccess: () => toast.success(`CLM ${checked ? "enabled" : "disabled"}`),
-                      onError: (e: any) => toast.error(e?.message || "Failed to toggle CLM"),
+                      onSuccess: () => toast.success(`Contract Intelligence ${checked ? "enabled" : "disabled"}`),
+                      onError: (e: any) => toast.error(e?.message || "Failed to toggle Contract Intelligence"),
                     },
                   );
                 }}

@@ -90,9 +90,9 @@ const ContractIntelligence = () => {
   return (
     <MarketingLayout>
       <SEOHead
-        title="Recouply CLM — Contract Lifecycle Intelligence"
-        description="An AI-native Contract Lifecycle Management module for Recouply.ai. Generate, negotiate, sign, and govern contracts — linked directly to revenue, collections, and risk."
-        keywords="CLM, contract lifecycle management, contract intelligence, AI contracts, DocuSign, contract automation, legal AI"
+        title="Recouply Contract Intelligence"
+        description="An AI-native Contract Intelligence module for Recouply.ai. Generate, negotiate, sign, and govern contracts — linked directly to revenue, collections, and risk."
+        keywords="contract intelligence, contract lifecycle, AI contracts, DocuSign, contract automation, legal AI"
         canonical="https://recouply.ai/clm"
       />
 
@@ -116,14 +116,14 @@ const ContractIntelligence = () => {
               </span>
             </h1>
             <p className="text-xl lg:text-2xl text-muted-foreground mb-10 leading-relaxed">
-              Recouply CLM is an AI-native Contract Lifecycle module that generates, negotiates,
+              Recouply Contract Intelligence is an AI-native module that generates, negotiates,
               signs, and governs every agreement — linked directly to the invoices, payments,
               and risk signals already running in Recouply.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="lg" onClick={goContact} className="gap-2 text-base px-8">
                 <CalendarClock className="w-5 h-5" />
-                Book a CLM Demo
+                Book a Contract Intelligence Demo
               </Button>
               <Button size="lg" variant="outline" onClick={goContact} className="gap-2 text-base px-8">
                 Talk to Sales
@@ -141,13 +141,13 @@ const ContractIntelligence = () => {
       <section className="py-20 lg:py-28 border-b border-border">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center mb-16">
-            <Badge variant="outline" className="mb-4">Why CLM, Why Now</Badge>
+            <Badge variant="outline" className="mb-4">Why Contract Intelligence, Why Now</Badge>
             <h2 className="text-4xl lg:text-5xl font-bold mb-6">
               Your contracts are the source of every dollar you're owed.
             </h2>
             <p className="text-lg text-muted-foreground leading-relaxed">
               Yet most companies still manage them in shared drives, email threads, and spreadsheets.
-              Recouply CLM treats contracts as a first-class financial asset — extracting terms,
+              Recouply Contract Intelligence treats contracts as a first-class financial asset — extracting terms,
               tracking obligations, and connecting every clause to the revenue it represents.
             </p>
           </div>
@@ -156,7 +156,7 @@ const ContractIntelligence = () => {
             {[
               { stat: "60%", label: "of revenue leakage traces back to missed contract terms" },
               { stat: "9.2hrs", label: "average time legal teams spend per contract redline cycle" },
-              { stat: "1 hr", label: "with Recouply CLM — AI-extracted, reviewed, and signed" },
+              { stat: "1 hr", label: "with Recouply Contract Intelligence — AI-extracted, reviewed, and signed" },
             ].map((s, i) => (
               <Card key={i} className="p-8 text-center border-2 hover:border-primary/40 transition-colors">
                 <div className="text-5xl font-bold text-primary mb-3">{s.stat}</div>
@@ -205,7 +205,7 @@ const ContractIntelligence = () => {
                 GPT-5 reads every contract so your team doesn't have to.
               </h2>
               <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
-                Upload a PDF, DOCX, or scanned image. Within seconds, Recouply CLM extracts
+                Upload a PDF, DOCX, or scanned image. Within seconds, Recouply Contract Intelligence extracts
                 parties, term length, renewal mechanics, payment schedules, liability caps,
                 indemnities, governing law, and SLAs — and surfaces what's off-market.
               </p>
@@ -229,7 +229,7 @@ const ContractIntelligence = () => {
                 <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
                   <Bot className="w-4 h-4" />
                 </div>
-                <div className="text-sm font-medium">CLM Intelligence Panel</div>
+                <div className="text-sm font-medium">Contract Intelligence Panel</div>
                 <Badge variant="secondary" className="ml-auto text-xs">GPT-5</Badge>
               </div>
               <div className="space-y-3 text-sm">
@@ -273,7 +273,7 @@ const ContractIntelligence = () => {
               Contracts ↔ Invoices ↔ Collections ↔ Risk.
             </h2>
             <p className="text-lg text-muted-foreground">
-              Most CLM tools end at signature. Recouply CLM connects every executed contract
+              Most contract tools end at signature. Recouply Contract Intelligence connects every executed contract
               to the invoices it generates, the payments it produces, and the Expected Credit
               Loss it carries — closing the loop between legal and finance.
             </p>
@@ -357,17 +357,17 @@ const ContractIntelligence = () => {
           <Card className="max-w-4xl mx-auto p-10 lg:p-14 text-center border-2 border-primary/30 bg-gradient-to-br from-primary/5 via-card to-accent/5">
             <Badge variant="secondary" className="mb-6">Sales-Led Availability</Badge>
             <h2 className="text-4xl lg:text-5xl font-bold mb-6">
-              Ready to see Recouply CLM in action?
+              Ready to see Recouply Contract Intelligence in action?
             </h2>
             <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Recouply CLM is a separately purchased module, available exclusively through our
+              Recouply Contract Intelligence is a separately purchased module, available exclusively through our
               sales team. Book a tailored demo and we'll walk you through the platform with
               your contracts, your workflow, and your stack.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="lg" onClick={goContact} className="gap-2 text-base px-8">
                 <CalendarClock className="w-5 h-5" />
-                Book a CLM Demo
+                Book a Contract Intelligence Demo
               </Button>
               <Button size="lg" variant="outline" onClick={goContact} className="gap-2 text-base px-8">
                 Contact Sales

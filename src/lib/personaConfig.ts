@@ -38,7 +38,7 @@ export const personaConfig: Record<string, PersonaConfig> = {
     avatar: kurtAvatar,
     bucketMin: -999,
     bucketMax: -999,
-    description: "(Special Agent) General Counsel — CLM Guidance",
+    description: "(Special Agent) General Counsel — Contract Intelligence Guidance",
     tone: "Precise, plain-English legal commentary",
     punchline: "Read the redlines. Then read them again.",
   },
