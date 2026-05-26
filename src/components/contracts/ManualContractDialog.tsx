@@ -251,6 +251,34 @@ export function ManualContractDialog({ open, onOpenChange, debtorId, debtorName 
         });
       } catch { /* ignore */ }
 
+      // 5. Upload supporting documents (best-effort, non-blocking)
+      if (attachments.length) {
+        for (const file of attachments) {
+          try {
+            const path = `${effectiveAccountId}/${imp.id}/supporting/${crypto.randomUUID()}-${file.name}`;
+            const { error: upErr } = await supabase.storage
+              .from("live-contracts")
+              .upload(path, file, { contentType: file.type, upsert: false });
+            if (upErr) throw upErr;
+            const { error: docErr } = await supabase
+              .from("live_contract_supporting_docs")
+              .insert({
+                account_id: effectiveAccountId,
+                import_id: imp.id,
+                uploaded_by: uid,
+                doc_type: "other",
+                file_name: file.name,
+                storage_path: path,
+                mime_type: file.type,
+                file_size: file.size,
+              });
+            if (docErr) throw docErr;
+          } catch (e: any) {
+            toast.error(`${file.name}: ${e.message || "upload failed"}`);
+          }
+        }
+      }
+
       return imp;
     },
     onSuccess: (imp) => {
