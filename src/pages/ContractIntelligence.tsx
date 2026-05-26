@@ -273,7 +273,7 @@ const ContractIntelligence = () => {
               Contracts ↔ Invoices ↔ Collections ↔ Risk.
             </h2>
             <p className="text-lg text-muted-foreground">
-              Most CLM tools end at signature. Recouply CLM connects every executed contract
+              Most contract tools end at signature. Recouply Contract Intelligence connects every executed contract
               to the invoices it generates, the payments it produces, and the Expected Credit
               Loss it carries — closing the loop between legal and finance.
             </p>
