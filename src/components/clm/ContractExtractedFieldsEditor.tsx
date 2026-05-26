@@ -25,6 +25,8 @@ interface Props {
   importId: string;
   accountId: string;
   extractionId?: string | null;
+  debtorId?: string | null;
+  debtorName?: string | null;
 }
 
 const GROUPS: { id: string; label: string }[] = [
