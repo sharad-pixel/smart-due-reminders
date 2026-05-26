@@ -442,7 +442,7 @@ export function SmartIngestionSection() {
                 <ExternalLink className="h-3 w-3 text-muted-foreground ml-auto group-hover:text-primary" />
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Extracts parties, term, value, renewal &amp; key clauses — routes to the CLM workspace.
+                Extracts parties, term, value, renewal &amp; key clauses — routes to the Contract Intelligence workspace.
               </p>
             </Link>
           </div>
