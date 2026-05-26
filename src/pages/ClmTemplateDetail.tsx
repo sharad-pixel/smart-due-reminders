@@ -36,7 +36,7 @@ const Inner = () => {
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <SEO title={`${template.name} | Template`} description="CLM template breakdown" />
+      <SEO title={`${template.name} | Template`} description="Contract Intelligence template breakdown" />
       <Button variant="ghost" size="sm" asChild className="mb-4">
         <Link to="/contracts"><ArrowLeft className="h-4 w-4 mr-1" />Back to Contracts</Link>
       </Button>
