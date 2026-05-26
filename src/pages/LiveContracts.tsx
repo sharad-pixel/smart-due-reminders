@@ -34,6 +34,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ManualContractDialog } from "@/components/contracts/ManualContractDialog";
+import { FileSignature } from "lucide-react";
 
 // ------- Status helpers -------
 // Lifecycle: Scanned → Under Review → Extracted
@@ -1283,6 +1285,7 @@ export default function LiveContracts() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [reviewId, setReviewId] = useState<string | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [manualOpen, setManualOpen] = useState(false);
   const [accountFilter, setAccountFilter] = useState<string>("all");
   const [showArchived, setShowArchived] = useState(false);
   const [searchText, setSearchText] = useState("");
@@ -1375,9 +1378,14 @@ export default function LiveContracts() {
                 Scan contracts from Google Drive or upload them directly. AI extracts commercial terms, invoice schedules, renewals, and risk flags for review before import.
               </p>
             </div>
-            <Button onClick={() => setUploadOpen(true)}>
-              <Upload className="h-4 w-4 mr-2" />Upload contract
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setManualOpen(true)}>
+                <FileSignature className="h-4 w-4 mr-2" />Enter manually
+              </Button>
+              <Button onClick={() => setUploadOpen(true)}>
+                <Upload className="h-4 w-4 mr-2" />Upload contract
+              </Button>
+            </div>
           </div>
 
           <IngestionBalanceCard />
@@ -1544,6 +1552,7 @@ export default function LiveContracts() {
         </div>
 
         <UploadDialog open={uploadOpen} onOpenChange={setUploadOpen} />
+        <ManualContractDialog open={manualOpen} onOpenChange={setManualOpen} />
         <ReviewDrawer importId={reviewId} onClose={() => setReviewId(null)} />
       </Layout>
     </>

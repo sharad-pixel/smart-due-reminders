@@ -33,6 +33,7 @@ const GROUPS: { id: string; label: string }[] = [
   { id: "dates", label: "Critical Dates" },
   { id: "legal", label: "Legal Clauses" },
   { id: "poc", label: "POC / Pilot" },
+  { id: "custom", label: "Custom" },
 ];
 
 const isLongText = (key: string) =>
