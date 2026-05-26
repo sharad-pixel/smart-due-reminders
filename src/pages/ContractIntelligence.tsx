@@ -141,13 +141,13 @@ const ContractIntelligence = () => {
       <section className="py-20 lg:py-28 border-b border-border">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center mb-16">
-            <Badge variant="outline" className="mb-4">Why CLM, Why Now</Badge>
+            <Badge variant="outline" className="mb-4">Why Contract Intelligence, Why Now</Badge>
             <h2 className="text-4xl lg:text-5xl font-bold mb-6">
               Your contracts are the source of every dollar you're owed.
             </h2>
             <p className="text-lg text-muted-foreground leading-relaxed">
               Yet most companies still manage them in shared drives, email threads, and spreadsheets.
-              Recouply CLM treats contracts as a first-class financial asset — extracting terms,
+              Recouply Contract Intelligence treats contracts as a first-class financial asset — extracting terms,
               tracking obligations, and connecting every clause to the revenue it represents.
             </p>
           </div>
@@ -156,7 +156,7 @@ const ContractIntelligence = () => {
             {[
               { stat: "60%", label: "of revenue leakage traces back to missed contract terms" },
               { stat: "9.2hrs", label: "average time legal teams spend per contract redline cycle" },
-              { stat: "1 hr", label: "with Recouply CLM — AI-extracted, reviewed, and signed" },
+              { stat: "1 hr", label: "with Recouply Contract Intelligence — AI-extracted, reviewed, and signed" },
             ].map((s, i) => (
               <Card key={i} className="p-8 text-center border-2 hover:border-primary/40 transition-colors">
                 <div className="text-5xl font-bold text-primary mb-3">{s.stat}</div>
