@@ -110,7 +110,7 @@ const RevenueIntelligenceHub = () => {
             </div>
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">Two intelligences. One operating system for revenue.</h2>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              In legacy stacks, CLM and AR live in different silos. In Recouply, they share the same graph —
+              In legacy stacks, contracts and AR live in different silos. In Recouply, they share the same graph —
               so every clause feeds risk scoring, and every payment behavior feeds contract strategy.
             </p>
           </div>
