@@ -44,6 +44,8 @@ import { PaymentPlanModal } from "@/components/payment-plans/PaymentPlanModal";
 import { PaymentPlansList } from "@/components/payment-plans/PaymentPlansList";
 import { usePaymentPlans } from "@/hooks/usePaymentPlans";
 import { ContractUploadButton } from "@/components/contracts/ContractUploadButton";
+import { ManualContractDialog } from "@/components/contracts/ManualContractDialog";
+import { FileSignature } from "lucide-react";
 
 interface Debtor {
   id: string;
@@ -174,6 +176,7 @@ const DebtorDetail = () => {
   const [isAccountSummaryOpen, setIsAccountSummaryOpen] = useState(false);
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
   const [isCreateInvoiceOpen, setIsCreateInvoiceOpen] = useState(false);
+  const [isManualContractOpen, setIsManualContractOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<CollectionTask | null>(null);
   const [isTaskDetailOpen, setIsTaskDetailOpen] = useState(false);
   const [tasks, setTasks] = useState<any[]>([]);
@@ -850,6 +853,10 @@ const DebtorDetail = () => {
               AI Outreach
             </Button>
             <ContractUploadButton variant="outline" debtorId={debtor.id} debtorName={debtor.name} />
+            <Button variant="outline" onClick={() => setIsManualContractOpen(true)}>
+              <FileSignature className="h-4 w-4 mr-2" />
+              Add Contract Manually
+            </Button>
             <Button variant="outline" onClick={() => setIsEditOpen(true)}>
               <Edit className="h-4 w-4 mr-2" />
               Edit
@@ -1781,6 +1788,15 @@ const DebtorDetail = () => {
           debtorName={debtor.company_name}
           onInvoiceCreated={fetchInvoices}
         />
+
+        <ManualContractDialog
+          open={isManualContractOpen}
+          onOpenChange={setIsManualContractOpen}
+          debtorId={debtor.id}
+          debtorName={debtor.company_name || debtor.name}
+        />
+
+
 
         <TaskDetailModal
           task={selectedTask}

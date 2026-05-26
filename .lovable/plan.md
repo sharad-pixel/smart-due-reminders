@@ -1,76 +1,46 @@
+# Add Contract Manually — surface entry points + document attachments
 
-## Goal
+## Problem
 
-Turn the Contract Intelligence page (`/contracts/:importId`) into the single source of truth for every contract, organized into 5 explicit, anchored sections. Nothing extracted should be hidden; users can also add custom proactive triggers.
+1. `ManualContractDialog` only opens from `/ai-ingestion` (LiveContracts) via the "Enter manually" button. It is **not** available on:
+   - `/contracts` (Contracts.tsx — Contract Intelligence / CLM page) — the page users naturally think of as "the Contracts page".
+   - Debtor account page (`DebtorDetail.tsx`) — only the AI Smart Ingestion (upload) button is shown.
+2. The manual contract dialog has no file attachment UI, so users can't upload supporting documents (signed PDF, addenda, order forms, etc.) alongside the manually entered data.
 
-## New page structure
+## Changes
 
-```text
-Contract Header (existing)
- ├─ 1. Finance
- ├─ 2. Term & Key Dates
- ├─ 3. Risk
- ├─ 4. Invoicing & Collectibility   ← NEW behavior
- ├─ 5. Custom Triggers              ← NEW
- └─ All Extracted Terms (existing editor, full fields)
-```
+### 1. Add "Add Contract Manually" entry points
 
-A sticky in-page nav (anchor links) lets users jump between sections.
+**`src/pages/Contracts.tsx`** — In the Contract Intelligence header (around the existing `<Link to="/contracts/live">` button), add a second action: **"Add Contract Manually"** button (`FileSignature` icon, outline variant) that opens `ManualContractDialog`. Wire up local `manualOpen` state.
 
-## Section details
+**`src/pages/DebtorDetail.tsx`** — Next to the existing `<ContractUploadButton ... />` (line 852), add a second outline button **"Add Manually"** that opens `ManualContractDialog` pre-scoped to this debtor (pass `debtorId` and `debtorName`). Wire up local `manualOpen` state.
 
-### 1. Finance
-- Reuses existing Financial Summary KPIs: MRR, ARR, ACV, TCV, Services.
-- **New:** "Performance Obligations by Service" table built from `contract_invoice_schedules` grouped by `service_name` / `component`, showing recurring vs one-time, total value, recognition pattern (over time / point-in-time), and % of TCV. This is rendered in addition to the existing `ContractValueByYearCard`.
-- Includes existing `EditableFinancialTermsCard` (rate, billing frequency, payment terms, etc.).
+**`src/components/contracts/ContractUploadDialog.tsx`** — Already exposes a manual-entry link in its footer; leave as is (it's the fallback inside the AI upload flow).
 
-### 2. Term & Key Dates
-- Reuses `ContractTermGauge` and `KeyDatesNotificationsPanel`.
-- **Expanded date harvest:** in addition to today's critical dates, surface every date-driven clause from `live_contract_extracted_fields` whose key matches `/date|renewal|notice|termination|opt[_ ]?out|expir|review|true[_ ]?up/i`. Each row shows: label, date, source clause text, and a "Create trigger" button (links into section 5).
-- Adds a small "Next 4 critical dates" mini-timeline at the top of the section for fast scanning.
+### 2. Allow document attachments on manually entered contracts
 
-### 3. Risk
-- Reuses `ContractRiskFlagsEditor`.
-- Adds a header summary chip-row: counts by severity (critical / high / medium / low).
-- Adds derived risks not yet in `contract_risk_flags`: schedule-vs-TCV mismatch, missing notice period, auto-renewal without termination right, currency mismatch with debtor, and any extracted field tagged `risk_*`. These are shown as system-detected items that the user can promote into a stored flag with one click.
+**`src/components/contracts/ManualContractDialog.tsx`** — Add an optional **"Supporting Documents"** section at the bottom of the form (above the action buttons):
 
-### 4. Invoicing & Collectibility (new behavior)
-Three stacked cards inside one section:
+- Drag-and-drop / click-to-browse zone (reuse the styling pattern from `ContractUploadDialog`: dashed border, primary hover, `Upload` icon).
+- Accept `.pdf, .docx, .txt, .png, .jpg` up to 25MB each, multiple files.
+- Render selected files via the existing `ContractFileRow` component with remove support.
+- On submit, after the manual import row is created and `extracted_fields` are written, upload each attached file to the existing contract documents storage path used by `live-contract-upload` (re-use the same edge function with an `attach_to_import_id` parameter, OR upload directly to the `live-contract-imports` storage bucket under `{import_id}/attachments/{filename}` and insert a row into the contract documents table the project already uses — to be confirmed during implementation by reading the live-contract-upload function and the contracts storage schema).
+- Show a small progress indicator while attachments upload; do not block the success toast if a single attachment fails — surface a non-blocking error toast per failed file.
+- Update the dialog copy: "Optional — attach the signed contract, order form, or any supporting document. AI will not re-extract from these (your manual fields are the source of truth), but they'll be available on the contract detail page for reference."
 
-a. **Billing Requirements** — read-only summary distilled from extracted fields: billing frequency, invoice cadence, PO requirement, invoice delivery method/email, late-fee terms, dispute window, payment terms, accepted methods.
+### 3. Discovery / labeling
 
-b. **Recapture Source-System Invoice** — file upload (PDF/image/CSV) that POSTs to a new edge function `contract-invoice-recapture`. The function:
-   - stores the file in the existing `contracts` storage bucket under `recaptured/{importId}/...`,
-   - calls Lovable AI Gateway (`google/gemini-2.5-flash`) with vision to extract invoice_number, issue_date, due_date, amount, currency, line items,
-   - inserts an `invoices` row (status `Open`) linked to the contract's `debtor_id`, marks `integration_source = 'contract_recapture'`, and triggers existing AI collections workflow automatically (same path used by Smart Ingestion).
-   Returns a toast + link to the created invoice.
+- On `/contracts` and `DebtorDetail`, place "Add Contract Manually" **alongside** (not hidden behind) the AI Smart Ingestion button so both paths are visible at first glance.
+- Keep the "Enter manually" wording inside `LiveContracts` and `ContractUploadDialog` as is for consistency.
 
-c. **Upcoming Invoice Backlog (next 60 days excluded)** — table built from `contract_invoice_schedules` where `scheduled_date > now() + 60 days`. Columns: scheduled date, amount, service, status. Lets the finance team see what's queued beyond the 60-day collection window so nothing falls through the cracks.
+## Out of scope
 
-### 5. Custom Triggers (new)
-- New table `contract_custom_triggers` with: `import_id`, `account_id`, `name`, `trigger_type` (`date_offset` | `field_change` | `amount_threshold`), `source_field` (e.g. `renewal_date`, `mrr`, `risk_score`), `offset_days` (nullable), `comparator` (`gt|lt|eq|changed`), `threshold_value` (nullable), `channel` (`email|task|alert`), `recipient_user_id` (nullable), `message`, `is_active`, `last_fired_at`.
-- UI: list existing triggers + "New trigger" dialog with a form that adapts to trigger type. Users can pick any extracted date or numeric field from this contract.
-- Evaluation: extend the existing scheduled-alerts cron (whichever function powers `KeyDatesNotificationsPanel` reminders) to also evaluate custom triggers daily — creating tasks via `collection_tasks` or sending email via existing transactional sender depending on `channel`.
+- No new tables, no schema changes for standard or custom fields (already supported by existing `ManualContractDialog`).
+- No changes to the AI extraction pipeline.
+- No marketing-site changes.
 
-## Files to add
+## Technical notes
 
-- `src/components/clm/ContractPageNav.tsx` — sticky anchor nav.
-- `src/components/clm/ContractPerformanceObligations.tsx`
-- `src/components/clm/ContractBillingRequirements.tsx`
-- `src/components/clm/ContractInvoiceRecapture.tsx`
-- `src/components/clm/ContractInvoiceBacklog.tsx`
-- `src/components/clm/ContractCustomTriggersPanel.tsx` + `NewTriggerDialog.tsx`
-- `supabase/functions/contract-invoice-recapture/index.ts`
-- Migration for `contract_custom_triggers` (RLS scoped to account membership).
-
-## Files to edit
-
-- `src/pages/LiveContractDetail.tsx` — reorganize JSX into the 5 sections, mount nav, slot new components.
-- `src/components/clm/KeyDatesNotificationsPanel.tsx` — add "Create trigger" affordance per row.
-- Whatever cron function handles key-date alerts — extend to evaluate custom triggers.
-
-## Out of scope (this iteration)
-
-- Editing the underlying ASC 606 engine.
-- Bulk invoice recapture (single-file at a time first).
-- SMS/Slack channels for triggers — email + in-app task only.
+- Before wiring the attachment upload, read `supabase/functions/live-contract-upload/index.ts` and the contracts document storage code (`ContractSupportingDocsPanel.tsx`) to reuse the existing bucket + table conventions rather than introducing a new path.
+- All new UI uses semantic tokens (no hard-coded colors).
+- No business logic in the AI extractor changes; manual entries continue to mark `ai_response: { source: "manual_entry", ... }`.

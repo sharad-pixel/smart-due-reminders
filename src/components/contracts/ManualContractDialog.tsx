@@ -13,7 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Plus, Trash2, FileSignature, Building2, ChevronsUpDown, Sparkles } from "lucide-react";
+import { Loader2, Plus, Trash2, FileSignature, Building2, ChevronsUpDown, Sparkles, Upload, Paperclip, X, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
 import { toast } from "sonner";
@@ -82,6 +82,25 @@ export function ManualContractDialog({ open, onOpenChange, debtorId, debtorName 
   // Custom fields
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
 
+  // Supporting documents (optional)
+  const ACCEPT_DOCS = [".pdf", ".docx", ".txt", ".png", ".jpg", ".jpeg"];
+  const MAX_DOC_BYTES = 25 * 1024 * 1024;
+  const [attachments, setAttachments] = useState<File[]>([]);
+  const [dragActive, setDragActive] = useState(false);
+  const addAttachments = (incoming: FileList | File[]) => {
+    const arr = Array.from(incoming);
+    const ok: File[] = [];
+    const errors: string[] = [];
+    for (const f of arr) {
+      const ext = "." + (f.name.split(".").pop() || "").toLowerCase();
+      if (!ACCEPT_DOCS.includes(ext)) errors.push(`${f.name}: unsupported type`);
+      else if (f.size > MAX_DOC_BYTES) errors.push(`${f.name}: exceeds 25MB`);
+      else ok.push(f);
+    }
+    if (errors.length) toast.error(errors.join(" • "));
+    if (ok.length) setAttachments((prev) => [...prev, ...ok]);
+  };
+
   const profileDef = useMemo(() => getBusinessProfile(profile), [profile]);
 
   const { data: debtors = [] } = useQuery({
@@ -106,6 +125,7 @@ export function ManualContractDialog({ open, onOpenChange, debtorId, debtorName 
     setProductDescription(""); setNotes("");
     setProfile("saas"); setProfileMeta({});
     setCustomFields([]);
+    setAttachments([]);
     if (!debtorId) { setSelectedDebtorId(null); setSelectedDebtorName(null); }
   };
 
@@ -230,6 +250,34 @@ export function ManualContractDialog({ open, onOpenChange, debtorId, debtorName 
           event_details: { field_count: rows.length, profile },
         });
       } catch { /* ignore */ }
+
+      // 5. Upload supporting documents (best-effort, non-blocking)
+      if (attachments.length) {
+        for (const file of attachments) {
+          try {
+            const path = `${effectiveAccountId}/${imp.id}/supporting/${crypto.randomUUID()}-${file.name}`;
+            const { error: upErr } = await supabase.storage
+              .from("live-contracts")
+              .upload(path, file, { contentType: file.type, upsert: false });
+            if (upErr) throw upErr;
+            const { error: docErr } = await supabase
+              .from("live_contract_supporting_docs")
+              .insert({
+                account_id: effectiveAccountId,
+                import_id: imp.id,
+                uploaded_by: uid,
+                doc_type: "other",
+                file_name: file.name,
+                storage_path: path,
+                mime_type: file.type,
+                file_size: file.size,
+              });
+            if (docErr) throw docErr;
+          } catch (e: any) {
+            toast.error(`${file.name}: ${e.message || "upload failed"}`);
+          }
+        }
+      }
 
       return imp;
     },
@@ -400,6 +448,66 @@ export function ManualContractDialog({ open, onOpenChange, debtorId, debtorName 
                   </div>
                 ))}
               </div>
+            )}
+          </section>
+
+          <Separator />
+
+          {/* Supporting documents */}
+          <section className="space-y-2">
+            <h3 className="text-sm font-semibold flex items-center gap-2">
+              <Badge variant="outline" className="text-[10px]">4</Badge>
+              <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
+              Supporting Documents
+              <span className="text-xs font-normal text-muted-foreground">— optional</span>
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Attach the signed contract, order form, addenda or any related document. Your manual fields stay the source of truth — these are kept on the contract detail page for reference.
+            </p>
+            <div
+              onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
+              onDragLeave={() => setDragActive(false)}
+              onDrop={(e) => {
+                e.preventDefault(); setDragActive(false);
+                if (e.dataTransfer.files?.length) addAttachments(e.dataTransfer.files);
+              }}
+              onClick={() => document.getElementById("manual-contract-attachments")?.click()}
+              className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition ${dragActive ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}
+            >
+              <input
+                id="manual-contract-attachments"
+                type="file"
+                multiple
+                accept={ACCEPT_DOCS.join(",")}
+                className="hidden"
+                onChange={(e) => e.target.files && addAttachments(e.target.files)}
+              />
+              <Upload className="h-5 w-5 text-primary mx-auto mb-1" />
+              <p className="text-xs font-medium">{dragActive ? "Drop to attach" : "Drag & drop or click to browse"}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">PDF, DOCX, TXT, PNG, JPG • up to 25MB each</p>
+            </div>
+            {attachments.length > 0 && (
+              <ul className="divide-y border rounded-md">
+                {attachments.map((f, i) => (
+                  <li key={`${f.name}-${i}-${f.size}`} className="flex items-center gap-2 px-3 py-2 text-sm">
+                    <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium">{f.name}</p>
+                      <p className="text-[11px] text-muted-foreground">{(f.size / 1024).toFixed(0)} KB</p>
+                    </div>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 text-destructive"
+                      onClick={(e) => { e.stopPropagation(); setAttachments((prev) => prev.filter((_, x) => x !== i)); }}
+                      disabled={create.isPending}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </li>
+                ))}
+              </ul>
             )}
           </section>
 
