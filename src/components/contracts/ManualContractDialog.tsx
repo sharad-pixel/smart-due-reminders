@@ -82,6 +82,25 @@ export function ManualContractDialog({ open, onOpenChange, debtorId, debtorName 
   // Custom fields
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
 
+  // Supporting documents (optional)
+  const ACCEPT_DOCS = [".pdf", ".docx", ".txt", ".png", ".jpg", ".jpeg"];
+  const MAX_DOC_BYTES = 25 * 1024 * 1024;
+  const [attachments, setAttachments] = useState<File[]>([]);
+  const [dragActive, setDragActive] = useState(false);
+  const addAttachments = (incoming: FileList | File[]) => {
+    const arr = Array.from(incoming);
+    const ok: File[] = [];
+    const errors: string[] = [];
+    for (const f of arr) {
+      const ext = "." + (f.name.split(".").pop() || "").toLowerCase();
+      if (!ACCEPT_DOCS.includes(ext)) errors.push(`${f.name}: unsupported type`);
+      else if (f.size > MAX_DOC_BYTES) errors.push(`${f.name}: exceeds 25MB`);
+      else ok.push(f);
+    }
+    if (errors.length) toast.error(errors.join(" • "));
+    if (ok.length) setAttachments((prev) => [...prev, ...ok]);
+  };
+
   const profileDef = useMemo(() => getBusinessProfile(profile), [profile]);
 
   const { data: debtors = [] } = useQuery({
