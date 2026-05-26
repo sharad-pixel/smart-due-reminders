@@ -39,7 +39,7 @@ export const DebtorWorkspacesBadge = ({ debtorId }: { debtorId: string }) => {
         <Link to={`/contracts/instances/${data[0].id}`}>
           <Badge variant="secondary" className="gap-1 cursor-pointer hover:bg-secondary/80">
             <Briefcase className="h-3 w-3" />
-            {data.length} CLM {data.length === 1 ? "workspace" : "workspaces"}
+            {data.length} contract {data.length === 1 ? "workspace" : "workspaces"}
           </Badge>
         </Link>
       </HoverCardTrigger>
