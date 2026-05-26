@@ -40,7 +40,7 @@ export const AdminClmToggle = ({ accountId }: Props) => {
           <>
             <div className="flex items-center justify-between py-2 border-b">
               <div>
-                <Label className="text-sm font-medium">Enable CLM module</Label>
+                <Label className="text-sm font-medium">Enable Contract Intelligence module</Label>
                 <p className="text-xs text-muted-foreground">
                   Grants this account access to /contracts and Contract Intelligence features.
                 </p>
