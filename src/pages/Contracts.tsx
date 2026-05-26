@@ -27,6 +27,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import SEO from "@/components/seo/SEO";
 import { useEffect } from "react";
+import { ManualContractDialog } from "@/components/contracts/ManualContractDialog";
 
 interface Contract {
   id: string;
