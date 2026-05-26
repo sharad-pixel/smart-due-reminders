@@ -130,8 +130,8 @@ export function Asc606AssessmentDialog({ open, onOpenChange, contractId, account
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-3xl h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
+        <DialogHeader className="p-4 sm:p-6 pb-3 border-b shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
             ASC 606 Revenue Risk Assessment
@@ -139,6 +139,7 @@ export function Asc606AssessmentDialog({ open, onOpenChange, contractId, account
           <DialogDescription>{contractTitle}</DialogDescription>
         </DialogHeader>
 
+        <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6">
         {loading ? (
           <div className="py-10 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
         ) : (
@@ -275,6 +276,7 @@ export function Asc606AssessmentDialog({ open, onOpenChange, contractId, account
             )}
           </div>
         )}
+        </div>
       </DialogContent>
     </Dialog>
   );
