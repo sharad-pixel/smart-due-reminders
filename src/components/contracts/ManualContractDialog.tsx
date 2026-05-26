@@ -125,6 +125,7 @@ export function ManualContractDialog({ open, onOpenChange, debtorId, debtorName 
     setProductDescription(""); setNotes("");
     setProfile("saas"); setProfileMeta({});
     setCustomFields([]);
+    setAttachments([]);
     if (!debtorId) { setSelectedDebtorId(null); setSelectedDebtorName(null); }
   };
 
