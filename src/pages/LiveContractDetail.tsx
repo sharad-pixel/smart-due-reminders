@@ -626,6 +626,8 @@ const LiveContractDetailInner = () => {
           importId={c.id}
           accountId={c.account_id}
           extractionId={(data.fields[0] as any)?.extraction_id || null}
+          debtorId={c.debtor_id || null}
+          debtorName={(c as any).debtor?.company_name || (c as any).debtor?.name || null}
         />
 
         <ContractTasksPanel

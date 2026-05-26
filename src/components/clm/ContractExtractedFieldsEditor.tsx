@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Pencil, Save, X, FileText, Plus, Trash2, UserCheck } from "lucide-react";
+import { Pencil, Save, X, FileText, Plus, Trash2, UserCheck, Building2 } from "lucide-react";
 import { toast } from "sonner";
+import { AssignContractDebtor } from "@/components/contracts/AssignContractDebtor";
 
 interface FieldRow {
   id: string;
@@ -24,6 +25,8 @@ interface Props {
   importId: string;
   accountId: string;
   extractionId?: string | null;
+  debtorId?: string | null;
+  debtorName?: string | null;
 }
 
 const GROUPS: { id: string; label: string }[] = [
@@ -42,7 +45,7 @@ const isLongText = (key: string) =>
 const humanize = (s: string) =>
   s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
-export const ContractExtractedFieldsEditor = ({ importId, accountId, extractionId }: Props) => {
+export const ContractExtractedFieldsEditor = ({ importId, accountId, extractionId, debtorId, debtorName }: Props) => {
   const [rows, setRows] = useState<FieldRow[]>([]);
   const [editing, setEditing] = useState<Record<string, string>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -174,6 +177,28 @@ export const ContractExtractedFieldsEditor = ({ importId, accountId, extractionI
 
           {GROUPS.map((g) => (
             <TabsContent key={g.id} value={g.id} className="space-y-2 mt-4">
+              {g.id === "customer" && (
+                <div className="rounded-md border bg-muted/30 p-3 flex items-center justify-between gap-3 mb-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Building2 className="h-4 w-4 text-primary shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium">
+                        {debtorId ? "Linked customer" : "No customer linked"}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {debtorId
+                          ? debtorName || "Customer assigned"
+                          : "Assign this contract to a customer or create a new one."}
+                      </p>
+                    </div>
+                  </div>
+                  <AssignContractDebtor
+                    importId={importId}
+                    currentDebtorId={debtorId ?? null}
+                    currentDebtorName={debtorName ?? null}
+                  />
+                </div>
+              )}
               {(grouped[g.id] || []).length === 0 && (
                 <p className="text-sm text-muted-foreground italic py-4">No {g.label.toLowerCase()} fields extracted.</p>
               )}
