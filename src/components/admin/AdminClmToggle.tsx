@@ -52,8 +52,8 @@ export const AdminClmToggle = ({ accountId }: Props) => {
                   toggleMutation.mutate(
                     { enabled: checked, notes: notes || undefined },
                     {
-                      onSuccess: () => toast.success(`CLM ${checked ? "enabled" : "disabled"}`),
-                      onError: (e: any) => toast.error(e?.message || "Failed to toggle CLM"),
+                      onSuccess: () => toast.success(`Contract Intelligence ${checked ? "enabled" : "disabled"}`),
+                      onError: (e: any) => toast.error(e?.message || "Failed to toggle Contract Intelligence"),
                     },
                   );
                 }}
