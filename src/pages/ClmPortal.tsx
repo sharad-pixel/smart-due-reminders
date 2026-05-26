@@ -58,13 +58,13 @@ export default function ClmPortal() {
 
   return (
     <div className="min-h-screen bg-muted/30">
-      <SEO title="CLM Portal | Recouply" description="Secure contract collaboration portal" />
+      <SEO title="Contract Portal | Recouply" description="Secure contract collaboration portal" />
       <header className="bg-slate-900 text-white">
         <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <ShieldCheck className="h-5 w-5" />
             <div>
-              <p className="text-xs uppercase tracking-wide opacity-70">Recouply CLM</p>
+              <p className="text-xs uppercase tracking-wide opacity-70">Recouply Contract Intelligence</p>
               <p className="font-semibold">Secure Collaboration Portal</p>
             </div>
           </div>
