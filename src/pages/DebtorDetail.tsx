@@ -1789,6 +1789,15 @@ const DebtorDetail = () => {
           onInvoiceCreated={fetchInvoices}
         />
 
+        <ManualContractDialog
+          open={isManualContractOpen}
+          onOpenChange={setIsManualContractOpen}
+          debtorId={debtor.id}
+          debtorName={debtor.company_name || debtor.name}
+        />
+
+
+
         <TaskDetailModal
           task={selectedTask}
           open={isTaskDetailOpen}
