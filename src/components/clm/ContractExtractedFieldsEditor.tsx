@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Pencil, Save, X, FileText, Plus, Trash2, UserCheck } from "lucide-react";
+import { Pencil, Save, X, FileText, Plus, Trash2, UserCheck, Building2 } from "lucide-react";
 import { toast } from "sonner";
+import { AssignContractDebtor } from "@/components/contracts/AssignContractDebtor";
 
 interface FieldRow {
   id: string;
