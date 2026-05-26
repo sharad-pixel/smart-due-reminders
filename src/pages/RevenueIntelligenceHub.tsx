@@ -10,7 +10,7 @@ const RevenueIntelligenceHub = () => {
       <SEOHead
         title="Revenue Intelligence | Collections + Contract Intelligence — Recouply.ai"
         description="Recouply's Revenue Intelligence unifies Collections Intelligence and Contract Intelligence into one enterprise system — connecting every clause, invoice, payment, and risk signal across the revenue lifecycle."
-        keywords="revenue intelligence, collections intelligence, contract intelligence, CLM, AR intelligence, enterprise revenue platform"
+        keywords="revenue intelligence, collections intelligence, contract intelligence, AR intelligence, enterprise revenue platform"
         canonical="https://recouply.ai/revenue-intelligence"
       />
 
