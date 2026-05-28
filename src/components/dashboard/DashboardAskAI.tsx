@@ -348,15 +348,144 @@ export function DashboardAskAI() {
       </div>
 
       <CardContent className="p-0">
-        {/* Greeting + starters when empty */}
+        {/* Greeting + critical insights + starters when empty */}
         {!hasChat && (
           <div className="px-5 sm:px-7 py-6 space-y-5">
+            {/* Live monitoring strip */}
+            {agg && (
+              <div className="grid grid-cols-3 gap-2 -mt-1">
+                <div className="rounded-lg border bg-muted/30 px-3 py-2 flex items-center gap-2">
+                  <Activity className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <div className="min-w-0">
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground leading-none">Accounts</div>
+                    <div className="text-sm font-semibold tabular-nums truncate">{agg.debtor_count.toLocaleString()}</div>
+                  </div>
+                </div>
+                <div className="rounded-lg border bg-muted/30 px-3 py-2 flex items-center gap-2">
+                  <DollarSign className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <div className="min-w-0">
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground leading-none">Overdue AR</div>
+                    <div className="text-sm font-semibold tabular-nums truncate">{formatCurrency(agg.overdue_ar || 0)}</div>
+                  </div>
+                </div>
+                <div className="rounded-lg border bg-muted/30 px-3 py-2 flex items-center gap-2">
+                  <ListChecks className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                  <div className="min-w-0">
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground leading-none">Open tasks</div>
+                    <div className="text-sm font-semibold tabular-nums truncate">{urgentTasks.length}</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Welcome message */}
             <div className="flex gap-3">
               <img src={NICOLAS.avatar} alt="" className="h-8 w-8 rounded-full object-cover ring-1 ring-primary/30 shrink-0 mt-0.5" />
               <div className="flex-1 rounded-2xl rounded-tl-sm bg-muted/50 border px-4 py-3 text-sm leading-relaxed">
-                <NicolasMarkdown content={GREETING} />
+                <NicolasMarkdown content={greeting} />
               </div>
             </div>
+
+            {/* Critical right now */}
+            {(topRisks.length > 0 || urgentTasks.length > 0) && (
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    <ShieldAlert className="h-3 w-3 text-red-500" /> Critical right now
+                  </div>
+                  <Link to="/revenue-risk" className="text-[11px] text-primary hover:underline inline-flex items-center gap-0.5">
+                    Full risk view <ArrowRight className="h-3 w-3" />
+                  </Link>
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                  {/* Top risk accounts */}
+                  <div className="rounded-xl border bg-gradient-to-br from-red-500/5 to-transparent border-red-500/20 overflow-hidden">
+                    <div className="px-3 py-2 border-b border-red-500/20 bg-red-500/5 flex items-center gap-1.5">
+                      <AlertTriangle className="h-3.5 w-3.5 text-red-500" />
+                      <span className="text-xs font-semibold">Top risk accounts</span>
+                    </div>
+                    {topRisks.length === 0 ? (
+                      <div className="px-3 py-4 text-xs text-muted-foreground flex items-center gap-1.5">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> No high-risk accounts right now.
+                      </div>
+                    ) : (
+                      <ul className="divide-y">
+                        {topRisks.map((r) => (
+                          <li key={r.debtor_id} className="group flex items-center gap-2 px-3 py-2 hover:bg-red-500/5 transition">
+                            <Link to={`/debtors/${r.debtor_id}`} className="flex-1 min-w-0">
+                              <div className="text-xs font-medium truncate group-hover:text-primary transition">{r.debtor_name}</div>
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <span className="text-[10px] text-muted-foreground tabular-nums">{formatCurrency(r.balance)}</span>
+                                <span className="text-[10px] text-muted-foreground">·</span>
+                                <span className="text-[10px] text-red-600 dark:text-red-400 font-medium tabular-nums">{Math.round(r.collectability_score)} score</span>
+                              </div>
+                            </Link>
+                            <button
+                              onClick={() => send(`Walk me through ${r.debtor_name} — why is it high risk and what should I do next?`)}
+                              disabled={sending}
+                              className="opacity-0 group-hover:opacity-100 transition text-[10px] px-1.5 py-1 rounded border bg-background hover:border-primary/40 hover:text-primary inline-flex items-center gap-1 shrink-0"
+                              title="Ask Nicolas about this account"
+                            >
+                              <Sparkles className="h-2.5 w-2.5" /> Ask
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+
+                  {/* Urgent tasks */}
+                  <div className="rounded-xl border bg-gradient-to-br from-amber-500/5 to-transparent border-amber-500/20 overflow-hidden">
+                    <div className="px-3 py-2 border-b border-amber-500/20 bg-amber-500/5 flex items-center gap-1.5">
+                      <ListChecks className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                      <span className="text-xs font-semibold">Tasks needing you</span>
+                    </div>
+                    {urgentTasks.length === 0 ? (
+                      <div className="px-3 py-4 text-xs text-muted-foreground flex items-center gap-1.5">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> All caught up — no open tasks.
+                      </div>
+                    ) : (
+                      <ul className="divide-y">
+                        {urgentTasks.map((t) => {
+                          const overdue = t.due_date && new Date(t.due_date).getTime() < Date.now();
+                          return (
+                            <li key={t.id} className="group flex items-center gap-2 px-3 py-2 hover:bg-amber-500/5 transition">
+                              <Link to={`/tasks?taskId=${t.id}`} className="flex-1 min-w-0">
+                                <div className="text-xs font-medium truncate group-hover:text-primary transition">{t.summary}</div>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                  <span className={`text-[10px] uppercase tracking-wider font-semibold ${
+                                    t.priority === "urgent" ? "text-red-500" :
+                                    t.priority === "high" ? "text-amber-600 dark:text-amber-400" :
+                                    "text-muted-foreground"
+                                  }`}>{t.priority}</span>
+                                  {t.due_date && (
+                                    <>
+                                      <span className="text-[10px] text-muted-foreground">·</span>
+                                      <span className={`text-[10px] inline-flex items-center gap-0.5 ${overdue ? "text-red-500 font-medium" : "text-muted-foreground"}`}>
+                                        <Clock className="h-2.5 w-2.5" />
+                                        {new Date(t.due_date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                                      </span>
+                                    </>
+                                  )}
+                                </div>
+                              </Link>
+                              <button
+                                onClick={() => send(`Help me handle this task: "${t.summary}". What's the best next step?`)}
+                                disabled={sending}
+                                className="opacity-0 group-hover:opacity-100 transition text-[10px] px-1.5 py-1 rounded border bg-background hover:border-primary/40 hover:text-primary inline-flex items-center gap-1 shrink-0"
+                                title="Ask Nicolas about this task"
+                              >
+                                <Sparkles className="h-2.5 w-2.5" /> Ask
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div>
               <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
@@ -389,6 +518,7 @@ export function DashboardAskAI() {
             </div>
           </div>
         )}
+
 
         {/* Chat transcript */}
         {hasChat && (
