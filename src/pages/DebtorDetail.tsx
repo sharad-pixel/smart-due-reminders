@@ -624,18 +624,23 @@ const DebtorDetail = () => {
       }));
 
       // Combine and deduplicate
-      // Activities and logs can represent the same send event (both logged in send-ai-draft)
-      // Deduplicate by matching linked_draft_id (activities) with delivery_metadata.draft_id (logs)
+      // The same send event can appear in BOTH outreach_logs and collection_activities,
+      // and can even be logged multiple times within a short window. Many of these rows
+      // have no draft_id, so we cannot rely on draft_id alone.
+      // Strategy:
+      //  1. First collapse exact-same send events by draft_id when present.
+      //  2. Then collapse near-duplicate rows that share subject + channel + recipient
+      //     within a short time window (treated as the same logical outreach).
       const combinedMap = new Map<string, OutreachLog>();
       const draftIdsSeen = new Set<string>();
-      
+
       // Add activities first (they may be more comprehensive)
       activitiesFormatted.forEach(a => {
         combinedMap.set(a.id, a);
         const draftId = a.delivery_metadata?.draft_id || (a as any).linked_draft_id;
         if (draftId) draftIdsSeen.add(draftId);
       });
-      
+
       // Add logs - but skip if the same draft_id was already added via activities
       logsFormatted.forEach(log => {
         const logDraftId = log.delivery_metadata?.draft_id;
@@ -648,14 +653,31 @@ const DebtorDetail = () => {
       });
 
       // Sort combined by date (most recent first)
-      const combined = Array.from(combinedMap.values())
+      const sorted = Array.from(combinedMap.values())
         .sort((a, b) => {
           const dateA = new Date(a.sent_at || a.created_at).getTime();
           const dateB = new Date(b.sent_at || b.created_at).getTime();
           return dateB - dateA;
         });
 
-      setOutreach(combined);
+      // Collapse near-duplicate sends (same subject/channel/recipient within 5 minutes).
+      const DEDUP_WINDOW_MS = 5 * 60 * 1000;
+      const norm = (v?: string | null) => (v || "").trim().toLowerCase();
+      const kept: OutreachLog[] = [];
+      sorted.forEach(item => {
+        const itemTime = new Date(item.sent_at || item.created_at).getTime();
+        const isDup = kept.some(k => {
+          if (norm(k.subject) !== norm(item.subject)) return false;
+          if (norm(k.channel) !== norm(item.channel)) return false;
+          if (norm(k.sent_to) !== norm(item.sent_to)) return false;
+          const kTime = new Date(k.sent_at || k.created_at).getTime();
+          return Math.abs(kTime - itemTime) <= DEDUP_WINDOW_MS;
+        });
+        if (!isDup) kept.push(item);
+      });
+
+      setOutreach(kept);
+
     } catch (error: any) {
       console.error("Error fetching outreach:", error);
     }
