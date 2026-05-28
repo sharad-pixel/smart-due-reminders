@@ -157,7 +157,10 @@ export function DashboardAskAI() {
   const [sending, setSending] = useState(false);
   const [sessionId, setSessionId] = useState<string>(() => crypto.randomUUID());
   const [history, setHistory] = useState<ChatSession[]>(() => loadHistory());
+  const [firstName, setFirstName] = useState<string | null>(null);
+  const [urgentTasks, setUrgentTasks] = useState<CollectionTask[]>([]);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { setTimeout(() => inputRef.current?.focus(), 50); }, []);
