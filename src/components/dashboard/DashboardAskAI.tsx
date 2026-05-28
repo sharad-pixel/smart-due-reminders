@@ -90,9 +90,35 @@ const NicolasMarkdown = ({ content }: { content: string }) => (
   </div>
 );
 
-const GREETING = `Hi, I'm **Nicolas** — your Revenue Intelligence agent. I've already pulled your portfolio: balances, ECL, overdue invoices, open tasks, and recent payments.
+function timeGreeting(): string {
+  const h = new Date().getHours();
+  if (h < 5) return "Working late";
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  if (h < 21) return "Good evening";
+  return "Working late";
+}
 
-Where do you want to start? Pick a prompt below, or just ask me anything — I'll dig into the accounts and come back with a recommendation.`;
+function buildGreeting(firstName: string | null, stats: {
+  accounts?: number; overdue?: number; urgentTasks?: number;
+}): string {
+  const hi = `${timeGreeting()}${firstName ? `, **${firstName}**` : ""} 👋`;
+  const lines: string[] = [
+    `${hi} — I'm **Nicolas**, your Revenue Intelligence agent.`,
+  ];
+  const bits: string[] = [];
+  if (stats.accounts) bits.push(`reviewed **${stats.accounts.toLocaleString()} accounts**`);
+  if (stats.overdue && stats.overdue > 0) bits.push(`flagged **${formatCurrency(stats.overdue)}** overdue`);
+  if (stats.urgentTasks && stats.urgentTasks > 0) bits.push(`queued **${stats.urgentTasks} urgent task${stats.urgentTasks === 1 ? "" : "s"}**`);
+  if (bits.length) {
+    lines.push(`Since you last checked in, I've ${bits.join(", ")}.`);
+  } else {
+    lines.push(`I've already pulled your portfolio: balances, ECL, overdue invoices, open tasks, and recent payments.`);
+  }
+  lines.push(`Tap a card below to dive in, or just ask me anything.`);
+  return lines.join("\n\n");
+}
+
 
 const STARTERS: { icon: any; label: string; prompt: string; tone: string }[] = [
   { icon: AlertTriangle, label: "Top risk right now", prompt: "Which 5 accounts are highest risk right now and what should I do about each one?", tone: "from-red-500/10 to-red-500/0 border-red-500/20" },
