@@ -279,12 +279,29 @@ export function DashboardAskAI() {
 
   const hasChat = messages.length > 0;
 
+  // Derived intelligence stats for the welcome message + monitoring strip
+  const agg = riskData?.aggregate;
+  const topRisks = (riskData?.top_risk_accounts || []).slice(0, 3);
+  const urgentCount = useMemo(
+    () => urgentTasks.filter((t) => t.priority === "urgent" || t.priority === "high").length || urgentTasks.length,
+    [urgentTasks]
+  );
+  const greeting = useMemo(
+    () => buildGreeting(firstName, {
+      accounts: agg?.debtor_count,
+      overdue: agg?.overdue_ar,
+      urgentTasks: urgentCount,
+    }),
+    [firstName, agg?.debtor_count, agg?.overdue_ar, urgentCount]
+  );
+
   // Rotate follow-up suggestions after each reply
   const followups = useMemo(() => {
     const seed = messages.length;
     const shuffled = [...FOLLOWUPS].sort(() => 0.5 - ((seed * 9301 + 49297) % 233280) / 233280);
     return shuffled.slice(0, 3);
   }, [messages.length]);
+
 
   return (
     <Card className="overflow-hidden border-primary/20 shadow-lg">
