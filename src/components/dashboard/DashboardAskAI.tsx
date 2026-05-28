@@ -163,7 +163,46 @@ export function DashboardAskAI() {
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Risk + tasks for the welcome panel
+  const { data: riskData } = useRevenueRisk();
+  const { fetchTasks } = useCollectionTasks();
+
   useEffect(() => { setTimeout(() => inputRef.current?.focus(), 50); }, []);
+
+  // Load current user's first name once
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("name")
+        .eq("id", user.id)
+        .maybeSingle();
+      const raw = (prof?.name || user.user_metadata?.name || user.email || "").toString().trim();
+      const first = raw.split(/[\s@]/)[0];
+      if (first) setFirstName(first.charAt(0).toUpperCase() + first.slice(1));
+    })();
+  }, []);
+
+  // Load top urgent/open tasks
+  useEffect(() => {
+    (async () => {
+      try {
+        const all = await fetchTasks({ status: "open" });
+        const ranked = [...all].sort((a, b) => {
+          const p = (x: CollectionTask) => ({ urgent: 0, high: 1, normal: 2, low: 3 }[x.priority] ?? 2);
+          if (p(a) !== p(b)) return p(a) - p(b);
+          const da = a.due_date ? new Date(a.due_date).getTime() : Infinity;
+          const db = b.due_date ? new Date(b.due_date).getTime() : Infinity;
+          return da - db;
+        });
+        setUrgentTasks(ranked.slice(0, 3));
+      } catch { /* silent */ }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, sending]);
