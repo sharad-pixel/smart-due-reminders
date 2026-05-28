@@ -552,6 +552,7 @@ const LiveContractDetailInner = () => {
         <ContractValueByYearCard
           schedules={data.schedules as any}
           effectiveDate={c.effective_date}
+          termEndDate={c.term_end_date}
           defaultCurrency={totals.currency}
         />
       </section>
