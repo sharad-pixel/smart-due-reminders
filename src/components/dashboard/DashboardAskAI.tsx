@@ -6,20 +6,20 @@ import { Badge } from "@/components/ui/badge";
 import {
   Send, Loader2, RotateCcw, BarChart3, Brain, TrendingUp,
   AlertTriangle, DollarSign, Sparkles, ArrowRight, Wand2, Activity,
-  History, Trash2,
+  ShieldAlert, ListChecks, Clock, CheckCircle2,
 } from "lucide-react";
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
-  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Link } from "react-router-dom";
 import { personaConfig } from "@/lib/personaConfig";
+import { useRevenueRisk } from "@/hooks/useRevenueRisk";
+import { useCollectionTasks, type CollectionTask } from "@/hooks/useCollectionTasks";
+import { formatCurrency } from "@/lib/formatters";
 
 interface Msg { role: "user" | "assistant"; content: string }
+
 
 const NICOLAS = personaConfig.nicolas;
 
@@ -90,9 +90,35 @@ const NicolasMarkdown = ({ content }: { content: string }) => (
   </div>
 );
 
-const GREETING = `Hi, I'm **Nicolas** — your Revenue Intelligence agent. I've already pulled your portfolio: balances, ECL, overdue invoices, open tasks, and recent payments.
+function timeGreeting(): string {
+  const h = new Date().getHours();
+  if (h < 5) return "Working late";
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  if (h < 21) return "Good evening";
+  return "Working late";
+}
 
-Where do you want to start? Pick a prompt below, or just ask me anything — I'll dig into the accounts and come back with a recommendation.`;
+function buildGreeting(firstName: string | null, stats: {
+  accounts?: number; overdue?: number; urgentTasks?: number;
+}): string {
+  const hi = `${timeGreeting()}${firstName ? `, **${firstName}**` : ""} 👋`;
+  const lines: string[] = [
+    `${hi} — I'm **Nicolas**, your Revenue Intelligence agent.`,
+  ];
+  const bits: string[] = [];
+  if (stats.accounts) bits.push(`reviewed **${stats.accounts.toLocaleString()} accounts**`);
+  if (stats.overdue && stats.overdue > 0) bits.push(`flagged **${formatCurrency(stats.overdue)}** overdue`);
+  if (stats.urgentTasks && stats.urgentTasks > 0) bits.push(`queued **${stats.urgentTasks} urgent task${stats.urgentTasks === 1 ? "" : "s"}**`);
+  if (bits.length) {
+    lines.push(`Since you last checked in, I've ${bits.join(", ")}.`);
+  } else {
+    lines.push(`I've already pulled your portfolio: balances, ECL, overdue invoices, open tasks, and recent payments.`);
+  }
+  lines.push(`Tap a card below to dive in, or just ask me anything.`);
+  return lines.join("\n\n");
+}
+
 
 const STARTERS: { icon: any; label: string; prompt: string; tone: string }[] = [
   { icon: AlertTriangle, label: "Top risk right now", prompt: "Which 5 accounts are highest risk right now and what should I do about each one?", tone: "from-red-500/10 to-red-500/0 border-red-500/20" },
@@ -131,10 +157,52 @@ export function DashboardAskAI() {
   const [sending, setSending] = useState(false);
   const [sessionId, setSessionId] = useState<string>(() => crypto.randomUUID());
   const [history, setHistory] = useState<ChatSession[]>(() => loadHistory());
+  const [firstName, setFirstName] = useState<string | null>(null);
+  const [urgentTasks, setUrgentTasks] = useState<CollectionTask[]>([]);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Risk + tasks for the welcome panel
+  const { data: riskData } = useRevenueRisk();
+  const { fetchTasks } = useCollectionTasks();
+
   useEffect(() => { setTimeout(() => inputRef.current?.focus(), 50); }, []);
+
+  // Load current user's first name once
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("name")
+        .eq("id", user.id)
+        .maybeSingle();
+      const raw = (prof?.name || user.user_metadata?.name || user.email || "").toString().trim();
+      const first = raw.split(/[\s@]/)[0];
+      if (first) setFirstName(first.charAt(0).toUpperCase() + first.slice(1));
+    })();
+  }, []);
+
+  // Load top urgent/open tasks
+  useEffect(() => {
+    (async () => {
+      try {
+        const all = await fetchTasks({ status: "open" });
+        const ranked = [...all].sort((a, b) => {
+          const p = (x: CollectionTask) => ({ urgent: 0, high: 1, normal: 2, low: 3 }[x.priority] ?? 2);
+          if (p(a) !== p(b)) return p(a) - p(b);
+          const da = a.due_date ? new Date(a.due_date).getTime() : Infinity;
+          const db = b.due_date ? new Date(b.due_date).getTime() : Infinity;
+          return da - db;
+        });
+        setUrgentTasks(ranked.slice(0, 3));
+      } catch { /* silent */ }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, sending]);
@@ -211,12 +279,29 @@ export function DashboardAskAI() {
 
   const hasChat = messages.length > 0;
 
+  // Derived intelligence stats for the welcome message + monitoring strip
+  const agg = riskData?.aggregate;
+  const topRisks = (riskData?.top_risk_accounts || []).slice(0, 3);
+  const urgentCount = useMemo(
+    () => urgentTasks.filter((t) => t.priority === "urgent" || t.priority === "high").length || urgentTasks.length,
+    [urgentTasks]
+  );
+  const greeting = useMemo(
+    () => buildGreeting(firstName, {
+      accounts: agg?.debtor_count,
+      overdue: agg?.overdue_ar,
+      urgentTasks: urgentCount,
+    }),
+    [firstName, agg?.debtor_count, agg?.overdue_ar, urgentCount]
+  );
+
   // Rotate follow-up suggestions after each reply
   const followups = useMemo(() => {
     const seed = messages.length;
     const shuffled = [...FOLLOWUPS].sort(() => 0.5 - ((seed * 9301 + 49297) % 233280) / 233280);
     return shuffled.slice(0, 3);
   }, [messages.length]);
+
 
   return (
     <Card className="overflow-hidden border-primary/20 shadow-lg">
@@ -263,15 +348,144 @@ export function DashboardAskAI() {
       </div>
 
       <CardContent className="p-0">
-        {/* Greeting + starters when empty */}
+        {/* Greeting + critical insights + starters when empty */}
         {!hasChat && (
           <div className="px-5 sm:px-7 py-6 space-y-5">
+            {/* Live monitoring strip */}
+            {agg && (
+              <div className="grid grid-cols-3 gap-2 -mt-1">
+                <div className="rounded-lg border bg-muted/30 px-3 py-2 flex items-center gap-2">
+                  <Activity className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <div className="min-w-0">
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground leading-none">Accounts</div>
+                    <div className="text-sm font-semibold tabular-nums truncate">{agg.debtor_count.toLocaleString()}</div>
+                  </div>
+                </div>
+                <div className="rounded-lg border bg-muted/30 px-3 py-2 flex items-center gap-2">
+                  <DollarSign className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <div className="min-w-0">
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground leading-none">Overdue AR</div>
+                    <div className="text-sm font-semibold tabular-nums truncate">{formatCurrency(agg.overdue_ar || 0)}</div>
+                  </div>
+                </div>
+                <div className="rounded-lg border bg-muted/30 px-3 py-2 flex items-center gap-2">
+                  <ListChecks className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                  <div className="min-w-0">
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground leading-none">Open tasks</div>
+                    <div className="text-sm font-semibold tabular-nums truncate">{urgentTasks.length}</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Welcome message */}
             <div className="flex gap-3">
               <img src={NICOLAS.avatar} alt="" className="h-8 w-8 rounded-full object-cover ring-1 ring-primary/30 shrink-0 mt-0.5" />
               <div className="flex-1 rounded-2xl rounded-tl-sm bg-muted/50 border px-4 py-3 text-sm leading-relaxed">
-                <NicolasMarkdown content={GREETING} />
+                <NicolasMarkdown content={greeting} />
               </div>
             </div>
+
+            {/* Critical right now */}
+            {(topRisks.length > 0 || urgentTasks.length > 0) && (
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    <ShieldAlert className="h-3 w-3 text-red-500" /> Critical right now
+                  </div>
+                  <Link to="/revenue-risk" className="text-[11px] text-primary hover:underline inline-flex items-center gap-0.5">
+                    Full risk view <ArrowRight className="h-3 w-3" />
+                  </Link>
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                  {/* Top risk accounts */}
+                  <div className="rounded-xl border bg-gradient-to-br from-red-500/5 to-transparent border-red-500/20 overflow-hidden">
+                    <div className="px-3 py-2 border-b border-red-500/20 bg-red-500/5 flex items-center gap-1.5">
+                      <AlertTriangle className="h-3.5 w-3.5 text-red-500" />
+                      <span className="text-xs font-semibold">Top risk accounts</span>
+                    </div>
+                    {topRisks.length === 0 ? (
+                      <div className="px-3 py-4 text-xs text-muted-foreground flex items-center gap-1.5">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> No high-risk accounts right now.
+                      </div>
+                    ) : (
+                      <ul className="divide-y">
+                        {topRisks.map((r) => (
+                          <li key={r.debtor_id} className="group flex items-center gap-2 px-3 py-2 hover:bg-red-500/5 transition">
+                            <Link to={`/debtors/${r.debtor_id}`} className="flex-1 min-w-0">
+                              <div className="text-xs font-medium truncate group-hover:text-primary transition">{r.debtor_name}</div>
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <span className="text-[10px] text-muted-foreground tabular-nums">{formatCurrency(r.balance)}</span>
+                                <span className="text-[10px] text-muted-foreground">·</span>
+                                <span className="text-[10px] text-red-600 dark:text-red-400 font-medium tabular-nums">{Math.round(r.collectability_score)} score</span>
+                              </div>
+                            </Link>
+                            <button
+                              onClick={() => send(`Walk me through ${r.debtor_name} — why is it high risk and what should I do next?`)}
+                              disabled={sending}
+                              className="opacity-0 group-hover:opacity-100 transition text-[10px] px-1.5 py-1 rounded border bg-background hover:border-primary/40 hover:text-primary inline-flex items-center gap-1 shrink-0"
+                              title="Ask Nicolas about this account"
+                            >
+                              <Sparkles className="h-2.5 w-2.5" /> Ask
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+
+                  {/* Urgent tasks */}
+                  <div className="rounded-xl border bg-gradient-to-br from-amber-500/5 to-transparent border-amber-500/20 overflow-hidden">
+                    <div className="px-3 py-2 border-b border-amber-500/20 bg-amber-500/5 flex items-center gap-1.5">
+                      <ListChecks className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                      <span className="text-xs font-semibold">Tasks needing you</span>
+                    </div>
+                    {urgentTasks.length === 0 ? (
+                      <div className="px-3 py-4 text-xs text-muted-foreground flex items-center gap-1.5">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> All caught up — no open tasks.
+                      </div>
+                    ) : (
+                      <ul className="divide-y">
+                        {urgentTasks.map((t) => {
+                          const overdue = t.due_date && new Date(t.due_date).getTime() < Date.now();
+                          return (
+                            <li key={t.id} className="group flex items-center gap-2 px-3 py-2 hover:bg-amber-500/5 transition">
+                              <Link to={`/tasks?taskId=${t.id}`} className="flex-1 min-w-0">
+                                <div className="text-xs font-medium truncate group-hover:text-primary transition">{t.summary}</div>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                  <span className={`text-[10px] uppercase tracking-wider font-semibold ${
+                                    t.priority === "urgent" ? "text-red-500" :
+                                    t.priority === "high" ? "text-amber-600 dark:text-amber-400" :
+                                    "text-muted-foreground"
+                                  }`}>{t.priority}</span>
+                                  {t.due_date && (
+                                    <>
+                                      <span className="text-[10px] text-muted-foreground">·</span>
+                                      <span className={`text-[10px] inline-flex items-center gap-0.5 ${overdue ? "text-red-500 font-medium" : "text-muted-foreground"}`}>
+                                        <Clock className="h-2.5 w-2.5" />
+                                        {new Date(t.due_date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                                      </span>
+                                    </>
+                                  )}
+                                </div>
+                              </Link>
+                              <button
+                                onClick={() => send(`Help me handle this task: "${t.summary}". What's the best next step?`)}
+                                disabled={sending}
+                                className="opacity-0 group-hover:opacity-100 transition text-[10px] px-1.5 py-1 rounded border bg-background hover:border-primary/40 hover:text-primary inline-flex items-center gap-1 shrink-0"
+                                title="Ask Nicolas about this task"
+                              >
+                                <Sparkles className="h-2.5 w-2.5" /> Ask
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div>
               <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
@@ -304,6 +518,7 @@ export function DashboardAskAI() {
             </div>
           </div>
         )}
+
 
         {/* Chat transcript */}
         {hasChat && (

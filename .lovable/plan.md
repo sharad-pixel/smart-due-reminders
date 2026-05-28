@@ -1,46 +1,44 @@
-# Add Contract Manually — surface entry points + document attachments
+# Plan: Upgrade Ask AI Dashboard with Personalized Welcome + Critical Insights
 
-## Problem
+Enhance `src/components/dashboard/DashboardAskAI.tsx` so the empty state feels less like a blank chat box and more like an AI control room — greeting the user by name, surfacing the most urgent items in their portfolio with deep links, and giving Nicolas a more "AI-friendly" visual treatment.
 
-1. `ManualContractDialog` only opens from `/ai-ingestion` (LiveContracts) via the "Enter manually" button. It is **not** available on:
-   - `/contracts` (Contracts.tsx — Contract Intelligence / CLM page) — the page users naturally think of as "the Contracts page".
-   - Debtor account page (`DebtorDetail.tsx`) — only the AI Smart Ingestion (upload) button is shown.
-2. The manual contract dialog has no file attachment UI, so users can't upload supporting documents (signed PDF, addenda, order forms, etc.) alongside the manually entered data.
+## What changes
 
-## Changes
+### 1. Personalized welcome message
+- Pull the current user's first name from `profiles` (already used elsewhere) and the live time of day → "Good morning, Alex 👋".
+- Replace the static `GREETING` constant with a dynamic intro that mentions:
+  - Number of accounts reviewed
+  - Total open AR / overdue balance
+  - Number of urgent tasks waiting
+- Fall back gracefully to the current generic greeting if any data is missing or still loading.
 
-### 1. Add "Add Contract Manually" entry points
+### 2. New "Critical right now" panel (above starter prompts, only on empty state)
+A compact 2-column grid with live data pulled via existing hooks (`useRevenueRisk`, `useCollectionTasks`):
 
-**`src/pages/Contracts.tsx`** — In the Contract Intelligence header (around the existing `<Link to="/contracts/live">` button), add a second action: **"Add Contract Manually"** button (`FileSignature` icon, outline variant) that opens `ManualContractDialog`. Wire up local `manualOpen` state.
+- **Top 3 risk accounts** — name, risk tier badge, exposure, each links to `/debtors/:id`.
+- **Top 3 urgent/overdue tasks** — title, due date, priority chip, each links to `/tasks` (with task id query param so the existing modal auto-opens, consistent with the alert system memory).
+- Each card has an "Ask Nicolas about this" mini-button that pre-fills the chat with a contextual prompt (e.g. `"Walk me through {Account Name} — why is it high risk and what should I do next?"`) and sends it.
 
-**`src/pages/DebtorDetail.tsx`** — Next to the existing `<ContractUploadButton ... />` (line 852), add a second outline button **"Add Manually"** that opens `ManualContractDialog` pre-scoped to this debtor (pass `debtorId` and `debtorName`). Wire up local `manualOpen` state.
+If the user has zero risk/tasks, show a calm "All clear" state instead of empty cards.
 
-**`src/components/contracts/ContractUploadDialog.tsx`** — Already exposes a manual-entry link in its footer; leave as is (it's the fallback inside the AI upload flow).
+### 3. More AI-friendly UI polish (visual only)
+- Add a subtle animated gradient ring + soft glow behind Nicolas' avatar in the hero (CSS only, no new deps).
+- Add a thin "AI is monitoring" status strip under the hero showing 3 live metrics (Accounts, Open AR, Tasks) with the existing Live badge style.
+- Tighten the starters grid: keep the 4 existing prompts but render them with a subtle shimmer on hover and a small "Try this" affordance.
+- Use existing semantic tokens (`primary`, `muted`, `emerald-500/10`, etc.) — no new colors.
 
-### 2. Allow document attachments on manually entered contracts
+### 4. Linking behavior
+- Reuse the existing `toInternalPath` + `MD_COMPONENTS.a` so any links Nicolas returns continue to render as in-app links.
+- New cards use `<Link>` directly to `/debtors/:id`, `/tasks?taskId=...`, `/revenue-risk`.
 
-**`src/components/contracts/ManualContractDialog.tsx`** — Add an optional **"Supporting Documents"** section at the bottom of the form (above the action buttons):
+## Files touched
 
-- Drag-and-drop / click-to-browse zone (reuse the styling pattern from `ContractUploadDialog`: dashed border, primary hover, `Upload` icon).
-- Accept `.pdf, .docx, .txt, .png, .jpg` up to 25MB each, multiple files.
-- Render selected files via the existing `ContractFileRow` component with remove support.
-- On submit, after the manual import row is created and `extracted_fields` are written, upload each attached file to the existing contract documents storage path used by `live-contract-upload` (re-use the same edge function with an `attach_to_import_id` parameter, OR upload directly to the `live-contract-imports` storage bucket under `{import_id}/attachments/{filename}` and insert a row into the contract documents table the project already uses — to be confirmed during implementation by reading the live-contract-upload function and the contracts storage schema).
-- Show a small progress indicator while attachments upload; do not block the success toast if a single attachment fails — surface a non-blocking error toast per failed file.
-- Update the dialog copy: "Optional — attach the signed contract, order form, or any supporting document. AI will not re-extract from these (your manual fields are the source of truth), but they'll be available on the contract detail page for reference."
-
-### 3. Discovery / labeling
-
-- On `/contracts` and `DebtorDetail`, place "Add Contract Manually" **alongside** (not hidden behind) the AI Smart Ingestion button so both paths are visible at first glance.
-- Keep the "Enter manually" wording inside `LiveContracts` and `ContractUploadDialog` as is for consistency.
+- `src/components/dashboard/DashboardAskAI.tsx` — main edits (welcome, critical panel, polish).
+- Possibly a small new component `src/components/dashboard/AskAICriticalPanel.tsx` to keep the file readable.
+- No backend, schema, or edge function changes.
 
 ## Out of scope
 
-- No new tables, no schema changes for standard or custom fields (already supported by existing `ManualContractDialog`).
-- No changes to the AI extraction pipeline.
-- No marketing-site changes.
-
-## Technical notes
-
-- Before wiring the attachment upload, read `supabase/functions/live-contract-upload/index.ts` and the contracts document storage code (`ContractSupportingDocsPanel.tsx`) to reuse the existing bucket + table conventions rather than introducing a new path.
-- All new UI uses semantic tokens (no hard-coded colors).
-- No business logic in the AI extractor changes; manual entries continue to mark `ai_response: { source: "manual_entry", ... }`.
+- No changes to `dashboard-ai-chat` edge function or its prompts.
+- No changes to the underlying risk/task data sources.
+- No new routes or DB migrations.
