@@ -76,8 +76,6 @@ const edgeFunctionConfigs: FunctionConfig[] = [
   { name: "get-monthly-usage", category: "utility", requiresAuth: true, requiresPayload: false, expectedBehavior: "🔐 401 auth required" },
   { name: "get-effective-features", category: "utility", requiresAuth: true, requiresPayload: false, expectedBehavior: "🔐 401 auth required" },
   { name: "check-whitelist", category: "utility", requiresAuth: false, requiresPayload: true, expectedBehavior: "⚠️ 400 requires email param" },
-  { name: "encrypt-field", category: "utility", requiresAuth: true, requiresPayload: true, expectedBehavior: "⚠️ 400 requires value param (auth needed)" },
-  { name: "decrypt-field", category: "utility", requiresAuth: true, requiresPayload: true, expectedBehavior: "🔐 401 auth session required" },
   { name: "sync-subscription", category: "utility", requiresAuth: true, requiresPayload: false, expectedBehavior: "🔐 401 auth required" },
   { name: "check-access", category: "utility", requiresAuth: true, requiresPayload: false, expectedBehavior: "🔐 401 auth required" },
 ];
