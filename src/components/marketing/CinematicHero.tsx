@@ -253,7 +253,9 @@ const CinematicHero = () => {
             transition={{ duration: 0.6, delay: 0.15 }}
             className="text-base md:text-lg text-muted-foreground mb-8 leading-relaxed"
           >
-            AI-powered collections, risk intelligence, and automated outreach — all in one system of record.
+            {workflow === "contracts"
+              ? "AI that reads every MSA, SOW, and renewal — extracting terms, arming triggers, and recapturing revenue hidden in your contracts."
+              : "AI-powered collections, risk intelligence, and automated outreach — all in one system of record."}
           </motion.p>
 
           <PlanCycler navigate={navigate} />
