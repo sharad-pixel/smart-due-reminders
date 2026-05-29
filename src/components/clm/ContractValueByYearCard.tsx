@@ -91,14 +91,14 @@ export function ContractValueByYearCard({ schedules, effectiveDate, termEndDate,
   const { rows, currency, totalAll, anchor, hasAnchor } = useMemo(() => {
     const currency = (schedules.find((s) => s.currency)?.currency) || defaultCurrency || "USD";
 
-    // Anchor: effectiveDate → fallback to earliest schedule date
-    let anchorDate: Date | null = effectiveDate ? new Date(effectiveDate) : null;
-    if (!anchorDate || Number.isNaN(anchorDate.getTime())) {
+    // Anchor: effectiveDate → fallback to earliest schedule date (parsed as UTC)
+    let anchorDate: Date | null = parseUTC(effectiveDate);
+    if (!anchorDate) {
       const dates = schedules
         .map((s) => s.service_period_start || s.scheduled_date)
-        .filter(Boolean)
-        .map((d) => new Date(d as string).getTime())
-        .filter((t) => !Number.isNaN(t));
+        .map((d) => parseUTC(d as string))
+        .filter((d): d is Date => !!d)
+        .map((d) => d.getTime());
       anchorDate = dates.length ? new Date(Math.min(...dates)) : null;
     }
     const hasAnchor = !!anchorDate;
@@ -106,15 +106,11 @@ export function ContractValueByYearCard({ schedules, effectiveDate, termEndDate,
 
     const lastDate = (() => {
       const candidates: number[] = [];
-      if (termEndDate) {
-        const t = new Date(termEndDate).getTime();
-        if (!Number.isNaN(t)) candidates.push(t);
-      }
+      const te = parseUTC(termEndDate);
+      if (te) candidates.push(te.getTime());
       for (const s of schedules) {
-        const d = s.service_period_end || s.service_period_start || s.scheduled_date;
-        if (!d) continue;
-        const t = new Date(d).getTime();
-        if (!Number.isNaN(t)) candidates.push(t);
+        const d = parseUTC(s.service_period_end || s.service_period_start || s.scheduled_date);
+        if (d) candidates.push(d.getTime());
       }
       return candidates.length ? new Date(Math.max(...candidates)) : anchorDate!;
     })();
@@ -140,10 +136,13 @@ export function ContractValueByYearCard({ schedules, effectiveDate, termEndDate,
     };
 
     for (const s of schedules) {
-      const dateStr = s.service_period_start || s.scheduled_date;
-      if (!dateStr) continue;
-      const d = new Date(dateStr);
-      if (Number.isNaN(d.getTime())) continue;
+      const d = parseUTC(s.service_period_start || s.scheduled_date);
+      if (!d) continue;
+      const amt = toNum(s.amount);
+      const bucket = findBucket(d);
+      bucket.total += amt;
+      bucket.count += 1;
+
       const amt = toNum(s.amount);
       const bucket = findBucket(d);
       bucket.total += amt;
