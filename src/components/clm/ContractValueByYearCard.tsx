@@ -52,6 +52,21 @@ const addYears = (d: Date, n: number) => {
   return r;
 };
 
+// Parse a date string as UTC. "YYYY-MM-DD" is parsed as UTC midnight (already correct).
+// Other ISO strings fall back to native parsing.
+const parseUTC = (s: string | null | undefined): Date | null => {
+  if (!s) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
+  if (m) return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+  const d = new Date(s);
+  return Number.isNaN(d.getTime()) ? null : d;
+};
+
+// Render a UTC Date as "YYYY-MM-DD" so downstream formatters treat it as date-only.
+const toUTCDateStr = (d: Date) =>
+  `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+
+
 type BucketRow = {
   idx: number;
   start: Date;
