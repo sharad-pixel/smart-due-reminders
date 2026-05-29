@@ -554,6 +554,8 @@ const LiveContractDetailInner = () => {
           effectiveDate={c.effective_date}
           termEndDate={c.term_end_date}
           defaultCurrency={totals.currency}
+          importId={c.id}
+          onChanged={() => qc.invalidateQueries({ queryKey: ["live-contract-detail", importId] })}
         />
       </section>
 
