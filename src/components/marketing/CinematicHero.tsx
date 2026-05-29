@@ -1122,4 +1122,345 @@ const PlanCycler = ({ navigate }: PlanCyclerProps) => {
   );
 };
 
+/* ──────────────────────────────────────────────────────────────────────── */
+/* Workflow switcher + Contract Intelligence stage                          */
+/* ──────────────────────────────────────────────────────────────────────── */
+
+const WorkflowTab = ({
+  active,
+  onClick,
+  icon: Icon,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: typeof Brain;
+  label: string;
+}) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className={`relative flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+      active
+        ? "bg-primary/15 text-primary shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.4)]"
+        : "text-muted-foreground hover:text-foreground"
+    }`}
+  >
+    <Icon className="h-3.5 w-3.5" />
+    <span className="hidden sm:inline">{label}</span>
+    <span className="sm:hidden">{label.split(" ")[0]}</span>
+    {active && (
+      <motion.span
+        layoutId="workflow-tab-glow"
+        className="absolute inset-0 rounded-lg ring-1 ring-primary/40 pointer-events-none"
+        transition={{ type: "spring", stiffness: 380, damping: 30 }}
+      />
+    )}
+  </button>
+);
+
+const ContractTopBar = ({ phase }: { phase: Phase }) => {
+  const parsed = phase === "chaos" ? 0 : phase === "orchestration" ? 64 : 100;
+  const triggers = phase === "chaos" ? 0 : phase === "orchestration" ? 6 : 14;
+  return (
+    <div className="border-b border-primary/10 bg-[hsl(222_47%_6%)]/60 px-4 py-3 min-h-[72px] flex items-center gap-4 flex-wrap">
+      <div className="rounded-lg border border-primary/20 bg-[hsl(222_47%_6%)]/80 backdrop-blur px-3 py-2 min-w-[180px]">
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">
+            MSA · Extraction
+          </span>
+          <motion.span
+            key={parsed}
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-sm font-mono font-bold tabular-nums text-primary"
+          >
+            {parsed}%
+          </motion.span>
+        </div>
+        <div className="h-1.5 w-full rounded-full bg-muted/20 overflow-hidden">
+          <motion.div
+            className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-primary"
+            initial={false}
+            animate={{ width: `${parsed}%` }}
+            transition={{ duration: 1.2, ease: "easeOut" }}
+          />
+        </div>
+        <div className="mt-1 text-[9px] text-muted-foreground font-mono">
+          {phase === "chaos" ? "ingesting document" : phase === "orchestration" ? "parsing terms" : "indexed · searchable"}
+        </div>
+      </div>
+      <div className="h-10 w-px bg-primary/15 hidden md:block" />
+      <div className="flex items-center gap-3 text-[11px] font-mono text-foreground flex-1 min-w-0">
+        <div className="flex items-center gap-1.5">
+          <FileSignature className="h-3.5 w-3.5 text-indigo-400" />
+          <span className="text-indigo-300">Acme_MSA_v3.pdf</span>
+        </div>
+        <span className="opacity-30">·</span>
+        <span className="text-muted-foreground">{triggers} triggers armed</span>
+        <span className="opacity-30 hidden sm:inline">·</span>
+        <span className="text-emerald-400 hidden sm:inline">$1.24M TCV</span>
+      </div>
+    </div>
+  );
+};
+
+// Contract Intelligence cinematic stage
+const ContractStage = ({ phase }: { phase: Phase }) => {
+  const visible = phase !== "chaos";
+  const fields = [
+    { k: "TCV", v: "$1.24M" },
+    { k: "ARR", v: "$412K" },
+    { k: "MRR", v: "$34.3K" },
+    { k: "ACV", v: "$412K" },
+    { k: "Term", v: "36 mo · auto" },
+    { k: "Notice", v: "90 days" },
+    { k: "Escalator", v: "+5% / +5%" },
+    { k: "Payment", v: "Net 45" },
+  ];
+  const obligations = [
+    { name: "Platform license", pct: 62, amt: "$255K" },
+    { name: "Implementation", pct: 22, amt: "$92K" },
+    { name: "Premium support", pct: 16, amt: "$65K" },
+  ];
+  const triggers = [
+    { icon: CalendarClock, label: "Non-renewal · 14d", tone: "hsl(38 92% 55%)" },
+    { icon: ShieldAlert, label: "Liability cap < 1x ARR", tone: "hsl(var(--destructive))" },
+    { icon: Receipt, label: "Milestone · Phase 2", tone: "hsl(var(--primary))" },
+    { icon: Bell, label: "Backlog: $187K", tone: "hsl(142 70% 50%)" },
+  ];
+
+  return (
+    <div className="absolute inset-0 p-4 grid grid-cols-12 gap-3 overflow-hidden">
+      {/* Ambient grid */}
+      <div
+        className="absolute inset-0 opacity-[0.05] pointer-events-none"
+        style={{
+          backgroundImage:
+            "linear-gradient(hsl(var(--primary)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--primary)) 1px, transparent 1px)",
+          backgroundSize: "32px 32px",
+        }}
+      />
+
+      {/* Left: contract document being scanned */}
+      <div className="col-span-4 relative rounded-lg border border-indigo-400/25 bg-[hsl(222_47%_8%)]/70 overflow-hidden">
+        <div className="px-2.5 py-1.5 border-b border-indigo-400/20 flex items-center gap-1.5">
+          <FileSignature className="h-3 w-3 text-indigo-300" />
+          <span className="text-[9px] font-mono text-indigo-200 uppercase tracking-wider truncate">
+            Acme_MSA_v3.pdf
+          </span>
+        </div>
+        <div className="relative p-2 space-y-1">
+          {Array.from({ length: 14 }).map((_, i) => (
+            <motion.div
+              key={i}
+              className="h-1 rounded-full bg-muted-foreground/30"
+              style={{ width: `${50 + ((i * 37) % 45)}%` }}
+              initial={{ opacity: 0.2 }}
+              animate={{
+                opacity: phase === "chaos" ? [0.2, 0.6, 0.2] : phase === "orchestration" ? [0.4, 0.9, 0.4] : 0.6,
+                backgroundColor:
+                  phase === "stable" ? "hsl(var(--primary) / 0.5)" : "hsl(var(--muted-foreground) / 0.3)",
+              }}
+              transition={{ duration: 1.4, repeat: phase !== "stable" ? Infinity : 0, delay: i * 0.05 }}
+            />
+          ))}
+          {/* Scan line */}
+          {phase !== "stable" && (
+            <motion.div
+              className="absolute left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-indigo-400 to-transparent shadow-[0_0_12px_hsl(238_84%_67%)]"
+              initial={{ top: 0 }}
+              animate={{ top: ["0%", "100%", "0%"] }}
+              transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+            />
+          )}
+        </div>
+      </div>
+
+      {/* Center: AI core + flow lines */}
+      <div className="col-span-4 relative flex items-center justify-center">
+        <svg viewBox="0 0 200 300" className="absolute inset-0 w-full h-full" preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <radialGradient id="contractCore" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="hsl(238 84% 67%)" stopOpacity="0.85" />
+              <stop offset="60%" stopColor="hsl(238 84% 67%)" stopOpacity="0.15" />
+              <stop offset="100%" stopColor="hsl(238 84% 67%)" stopOpacity="0" />
+            </radialGradient>
+          </defs>
+
+          {/* Inflow lines from doc (left) */}
+          {[60, 120, 180, 240].map((y, i) => (
+            <motion.line
+              key={`in-${i}`}
+              x1={0}
+              y1={y}
+              x2={100}
+              y2={150}
+              stroke="hsl(238 84% 67%)"
+              strokeOpacity={0.45}
+              strokeWidth={1}
+              strokeDasharray="3 5"
+              initial={{ pathLength: 0 }}
+              animate={{ pathLength: visible ? 1 : 0.2 }}
+              transition={{ duration: 1, delay: i * 0.1 }}
+            />
+          ))}
+          {/* Outflow lines to triggers (right) */}
+          {[60, 120, 180, 240].map((y, i) => (
+            <motion.line
+              key={`out-${i}`}
+              x1={100}
+              y1={150}
+              x2={200}
+              y2={y}
+              stroke="hsl(var(--primary))"
+              strokeOpacity={0.45}
+              strokeWidth={1}
+              strokeDasharray="3 5"
+              initial={{ pathLength: 0 }}
+              animate={{ pathLength: phase === "stable" ? 1 : phase === "orchestration" ? 0.7 : 0 }}
+              transition={{ duration: 1, delay: 0.3 + i * 0.1 }}
+            />
+          ))}
+
+          {/* Data pulses inbound */}
+          {phase === "orchestration" &&
+            [60, 120, 180, 240].map((y, i) => (
+              <motion.circle
+                key={`pulse-in-${i}`}
+                r={2.5}
+                fill="hsl(238 84% 70%)"
+                initial={{ cx: 0, cy: y, opacity: 0 }}
+                animate={{ cx: [0, 100], cy: [y, 150], opacity: [0, 1, 0] }}
+                transition={{ duration: 1.4, delay: i * 0.2, repeat: Infinity, repeatDelay: 0.3 }}
+              />
+            ))}
+          {/* Data pulses outbound */}
+          {phase !== "chaos" &&
+            [60, 120, 180, 240].map((y, i) => (
+              <motion.circle
+                key={`pulse-out-${i}`}
+                r={2.5}
+                fill="hsl(var(--primary))"
+                initial={{ cx: 100, cy: 150, opacity: 0 }}
+                animate={{ cx: [100, 200], cy: [150, y], opacity: [0, 1, 0] }}
+                transition={{ duration: 1.4, delay: 0.4 + i * 0.2, repeat: Infinity, repeatDelay: 0.3 }}
+              />
+            ))}
+
+          {/* Core */}
+          <g transform="translate(100, 150)">
+            <motion.circle
+              r={50}
+              fill="url(#contractCore)"
+              animate={{ scale: phase === "orchestration" ? [1, 1.15, 1] : [1, 1.05, 1] }}
+              transition={{ duration: 2.4, repeat: Infinity }}
+            />
+            <motion.g animate={{ rotate: 360 }} transition={{ duration: 22, repeat: Infinity, ease: "linear" }}>
+              <circle r={32} fill="none" stroke="hsl(238 84% 67%)" strokeOpacity={0.5} strokeWidth={1} strokeDasharray="2 6" />
+            </motion.g>
+            <circle r={22} fill="hsl(222 47% 8%)" stroke="hsl(238 84% 67%)" strokeWidth={1.5} />
+            <g
+              transform="translate(-10, -10)"
+              fill="none"
+              stroke="hsl(238 84% 75%)"
+              strokeWidth={1.6}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              {/* FileSignature glyph */}
+              <path d="M14 0H4a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6Z" />
+              <path d="M14 0v6h6" />
+              <path d="M5 14c1.5-1 2.5-1 4 0s2.5 1 4 0" />
+            </g>
+          </g>
+        </svg>
+      </div>
+
+      {/* Right: extracted fields + triggers */}
+      <div className="col-span-4 relative flex flex-col gap-2 min-h-0">
+        {/* Extracted fields card */}
+        <div className="rounded-lg border border-primary/20 bg-[hsl(222_47%_8%)]/80 backdrop-blur p-2">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[9px] uppercase tracking-widest text-muted-foreground font-medium">
+              Extracted fields
+            </span>
+            <Sparkles className="h-3 w-3 text-indigo-300" />
+          </div>
+          <div className="grid grid-cols-2 gap-1">
+            {fields.slice(0, 6).map((f, i) => (
+              <motion.div
+                key={f.k}
+                initial={{ opacity: 0, x: -6 }}
+                animate={{ opacity: visible ? 1 : 0.2, x: 0 }}
+                transition={{ duration: 0.4, delay: i * 0.08 }}
+                className="flex items-center justify-between gap-1 rounded bg-muted/10 px-1.5 py-0.5"
+              >
+                <span className="text-[8px] text-muted-foreground truncate">{f.k}</span>
+                <span className="text-[8.5px] font-mono font-semibold text-foreground truncate">{f.v}</span>
+              </motion.div>
+            ))}
+          </div>
+          {/* Performance obligations */}
+          <div className="mt-2 pt-1.5 border-t border-primary/10 space-y-1">
+            {obligations.map((o, i) => (
+              <div key={o.name}>
+                <div className="flex justify-between text-[8px] mb-0.5">
+                  <span className="text-muted-foreground truncate">{o.name}</span>
+                  <span className="font-mono text-foreground/80">{o.amt}</span>
+                </div>
+                <div className="h-1 rounded-full bg-muted/20 overflow-hidden">
+                  <motion.div
+                    className="h-full bg-gradient-to-r from-indigo-500 to-primary"
+                    initial={{ width: 0 }}
+                    animate={{ width: visible ? `${o.pct}%` : "0%" }}
+                    transition={{ duration: 1.1, delay: 0.3 + i * 0.1, ease: "easeOut" }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Triggers card */}
+        <div className="rounded-lg border border-primary/20 bg-[hsl(222_47%_8%)]/80 backdrop-blur p-2 flex-1 min-h-0">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[9px] uppercase tracking-widest text-muted-foreground font-medium">
+              Custom triggers
+            </span>
+            <Bell className="h-3 w-3 text-indigo-300" />
+          </div>
+          <div className="space-y-1">
+            {triggers.map((t, i) => (
+              <motion.div
+                key={t.label}
+                initial={{ opacity: 0, x: 6 }}
+                animate={{ opacity: phase === "chaos" ? 0.2 : 1, x: 0 }}
+                transition={{ duration: 0.4, delay: 0.2 + i * 0.1 }}
+                className="flex items-center gap-1.5 rounded bg-muted/10 px-1.5 py-1"
+              >
+                <div
+                  className="h-4 w-4 rounded flex items-center justify-center shrink-0"
+                  style={{ backgroundColor: `${t.tone.replace(")", " / 0.15)")}`, color: t.tone }}
+                >
+                  <t.icon className="h-2.5 w-2.5" />
+                </div>
+                <span className="text-[9px] font-medium text-foreground truncate flex-1">{t.label}</span>
+                {phase === "stable" && (
+                  <motion.span
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.4 + i * 0.1 }}
+                    className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_hsl(142_70%_50%)]"
+                  />
+                )}
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default CinematicHero;
