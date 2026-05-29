@@ -240,7 +240,7 @@ const CinematicHero = () => {
                     transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
                     className={`block px-1 bg-gradient-to-r ${phaseGradient} bg-clip-text text-transparent transition-colors duration-700`}
                   >
-                    {HEADLINES[headlineIdx]}
+                    {activeHeadlines[headlineIdx]}
                   </motion.span>
                 </AnimatePresence>
               </h1>
