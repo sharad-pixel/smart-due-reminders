@@ -38,6 +38,20 @@ const HEADLINES: string[] = [
   "Know the Risk Before You Grow the Account",
 ];
 
+const CONTRACT_HEADLINES: string[] = [
+  "Turn Every Contract Into Recurring Revenue",
+  "Contract Intelligence — From Signature to Cash",
+  "AI That Reads Every MSA, SOW, and Renewal",
+  "Never Miss a Renewal, Milestone, or True-Up",
+  "Extract Terms. Arm Triggers. Recapture Revenue.",
+  "Your Contracts, Decoded by AI in Seconds",
+  "From PDF to Billable — Automatically",
+  "Every Clause Watched. Every Dollar Aligned.",
+  "Stop Leaking Revenue Hidden in Your Contracts",
+  "Auto-Renewals, Escalators, and Caps — All Tracked",
+];
+
+
 // Map each account node to a persona by aging bucket
 const ACCOUNTS = [
   { id: "a1", x: 110, y: 90, label: "Acme Co", invoices: 3, daysPastDue: 12, persona: "sam" },
@@ -148,15 +162,20 @@ const CinematicHero = () => {
     };
   }, [phase, prefersReduced]);
 
-  // Headline cycler — independent of phase loop
+  // Headline cycler — independent of phase loop. Reset index when workflow changes.
   const [headlineIdx, setHeadlineIdx] = useState(0);
+  const activeHeadlines = workflow === "contracts" ? CONTRACT_HEADLINES : HEADLINES;
+  useEffect(() => {
+    setHeadlineIdx(0);
+  }, [workflow]);
   useEffect(() => {
     if (prefersReduced) return;
     const id = setInterval(() => {
-      setHeadlineIdx((i) => (i + 1) % HEADLINES.length);
+      setHeadlineIdx((i) => (i + 1) % activeHeadlines.length);
     }, 4200);
     return () => clearInterval(id);
-  }, [prefersReduced]);
+  }, [prefersReduced, activeHeadlines.length]);
+
 
   // Animated metrics
   const metrics = useMemo(() => {
@@ -197,7 +216,9 @@ const CinematicHero = () => {
           >
             <Sparkles className="w-3.5 h-3.5 transition-transform duration-500 group-hover:rotate-12 group-hover:scale-110" />
             <span className="transition-colors duration-300 group-hover:text-accent">
-              AI-Powered Revenue Intelligence Command Center
+              {workflow === "contracts"
+                ? "AI-Powered Contract Intelligence Command Center"
+                : "AI-Powered Revenue Intelligence Command Center"}
             </span>
           </motion.div>
 
@@ -219,7 +240,7 @@ const CinematicHero = () => {
                     transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
                     className={`block px-1 bg-gradient-to-r ${phaseGradient} bg-clip-text text-transparent transition-colors duration-700`}
                   >
-                    {HEADLINES[headlineIdx]}
+                    {activeHeadlines[headlineIdx]}
                   </motion.span>
                 </AnimatePresence>
               </h1>
@@ -232,7 +253,9 @@ const CinematicHero = () => {
             transition={{ duration: 0.6, delay: 0.15 }}
             className="text-base md:text-lg text-muted-foreground mb-8 leading-relaxed"
           >
-            AI-powered collections, risk intelligence, and automated outreach — all in one system of record.
+            {workflow === "contracts"
+              ? "AI that reads every MSA, SOW, and renewal — extracting terms, arming triggers, and recapturing revenue hidden in your contracts."
+              : "AI-powered collections, risk intelligence, and automated outreach — all in one system of record."}
           </motion.p>
 
           <PlanCycler navigate={navigate} />
@@ -286,11 +309,23 @@ const CinematicHero = () => {
 
           {/* Phase pill */}
           <div className="mt-8 flex items-center gap-2 text-xs text-muted-foreground">
-            <PhaseDot phase={phase} target="chaos" label="Detect risk" />
-            <span className="opacity-30">→</span>
-            <PhaseDot phase={phase} target="orchestration" label="AI orchestrates" />
-            <span className="opacity-30">→</span>
-            <PhaseDot phase={phase} target="stable" label="Recover cash" />
+            {workflow === "contracts" ? (
+              <>
+                <PhaseDot phase={phase} target="chaos" label="Ingest contract" />
+                <span className="opacity-30">→</span>
+                <PhaseDot phase={phase} target="orchestration" label="Extract & arm triggers" />
+                <span className="opacity-30">→</span>
+                <PhaseDot phase={phase} target="stable" label="Recapture revenue" />
+              </>
+            ) : (
+              <>
+                <PhaseDot phase={phase} target="chaos" label="Detect risk" />
+                <span className="opacity-30">→</span>
+                <PhaseDot phase={phase} target="orchestration" label="AI orchestrates" />
+                <span className="opacity-30">→</span>
+                <PhaseDot phase={phase} target="stable" label="Recover cash" />
+              </>
+            )}
           </div>
         </div>
 
