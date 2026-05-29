@@ -92,8 +92,19 @@ const CinematicHero = () => {
   const navigate = useNavigate();
   const prefersReduced = useReducedMotion();
   const [phase, setPhase] = useState<Phase>("chaos");
+  const [workflow, setWorkflow] = useState<Workflow>("collections");
   const [hoveredAccount, setHoveredAccount] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Workflow auto-cycle (every ~13s)
+  useEffect(() => {
+    if (prefersReduced) return;
+    const id = setInterval(() => {
+      setWorkflow((w) => (w === "collections" ? "contracts" : "collections"));
+    }, 13000);
+    return () => clearInterval(id);
+  }, [prefersReduced]);
+
 
   // Phase loop
   useEffect(() => {
