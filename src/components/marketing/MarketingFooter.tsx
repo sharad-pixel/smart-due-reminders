@@ -207,11 +207,11 @@ import { COMPANY_INFO } from "@/lib/companyConfig";
                <Link to="/legal/privacy" className="text-muted-foreground hover:text-primary">
                  Privacy
                </Link>
-               <span className="text-muted-foreground/40">•</span>
+               <span aria-hidden="true" className="text-muted-foreground">•</span>
                <Link to="/legal/terms" className="text-muted-foreground hover:text-primary">
                  Terms
                </Link>
-               <span className="text-muted-foreground/40">•</span>
+               <span aria-hidden="true" className="text-muted-foreground">•</span>
                <Link to="/legal/cookies" className="text-muted-foreground hover:text-primary">
                  Cookies
                </Link>
