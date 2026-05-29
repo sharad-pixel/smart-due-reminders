@@ -68,8 +68,6 @@ export const ContractTermGauge = ({ effectiveDate, termEndDate, keyDates }: Prop
   }, [start?.getTime(), end?.getTime(), today.getTime()]);
 
   const sortedDates = useMemo(() => {
-    // AI-style dedupe: collapse entries with the same normalized label + same calendar day.
-    // Keep the highest-risk variant when multiple exist.
     const riskRank = (r?: string | null) => {
       const v = (r || "").toLowerCase();
       if (v.includes("high") || v.includes("crit")) return 3;
@@ -77,9 +75,37 @@ export const ContractTermGauge = ({ effectiveDate, termEndDate, keyDates }: Prop
       if (v.includes("low")) return 1;
       return 0;
     };
+    const isTermBoundary = (t: string) => {
+      const v = (t || "").toLowerCase();
+      return (
+        v.includes("start") ||
+        v.includes("effective") ||
+        v.includes("end") ||
+        v.includes("expir")
+      );
+    };
     const seen = new Map<string, KeyDate>();
+    // Authoritative term boundaries from contract props (avoid OCR drift in key_dates)
+    if (effectiveDate) {
+      seen.set("Term Start__" + effectiveDate.slice(0, 10), {
+        id: "synthetic-term-start",
+        date_type: "term_start",
+        due_date: effectiveDate,
+        risk_level: null,
+      });
+    }
+    if (termEndDate) {
+      seen.set("Term End__" + termEndDate.slice(0, 10), {
+        id: "synthetic-term-end",
+        date_type: "term_end",
+        due_date: termEndDate,
+        risk_level: "high",
+      });
+    }
     for (const d of keyDates) {
       if (!d.due_date) continue;
+      // Skip OCR-extracted start/end entries; use authoritative props instead
+      if (isTermBoundary(d.date_type)) continue;
       const meta = dateTypeMeta(d.date_type);
       const dayKey = new Date(d.due_date).toISOString().slice(0, 10);
       const key = `${meta.label}__${dayKey}`;
@@ -99,7 +125,8 @@ export const ContractTermGauge = ({ effectiveDate, termEndDate, keyDates }: Prop
     const upcoming = enriched.filter((d) => d.days >= 0);
     const past = enriched.filter((d) => d.days < 0).reverse();
     return { upcoming, past, all: enriched };
-  }, [keyDates, today.getTime()]);
+  }, [keyDates, today.getTime(), effectiveDate, termEndDate]);
+
 
   // Position key dates on the gauge bar (only those within term window)
   const markers = useMemo(() => {
