@@ -216,7 +216,9 @@ const CinematicHero = () => {
           >
             <Sparkles className="w-3.5 h-3.5 transition-transform duration-500 group-hover:rotate-12 group-hover:scale-110" />
             <span className="transition-colors duration-300 group-hover:text-accent">
-              AI-Powered Revenue Intelligence Command Center
+              {workflow === "contracts"
+                ? "AI-Powered Contract Intelligence Command Center"
+                : "AI-Powered Revenue Intelligence Command Center"}
             </span>
           </motion.div>
 
