@@ -38,6 +38,20 @@ const HEADLINES: string[] = [
   "Know the Risk Before You Grow the Account",
 ];
 
+const CONTRACT_HEADLINES: string[] = [
+  "Turn Every Contract Into Recurring Revenue",
+  "Contract Intelligence — From Signature to Cash",
+  "AI That Reads Every MSA, SOW, and Renewal",
+  "Never Miss a Renewal, Milestone, or True-Up",
+  "Extract Terms. Arm Triggers. Recapture Revenue.",
+  "Your Contracts, Decoded by AI in Seconds",
+  "From PDF to Billable — Automatically",
+  "Every Clause Watched. Every Dollar Aligned.",
+  "Stop Leaking Revenue Hidden in Your Contracts",
+  "Auto-Renewals, Escalators, and Caps — All Tracked",
+];
+
+
 // Map each account node to a persona by aging bucket
 const ACCOUNTS = [
   { id: "a1", x: 110, y: 90, label: "Acme Co", invoices: 3, daysPastDue: 12, persona: "sam" },
