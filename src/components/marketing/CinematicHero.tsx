@@ -162,15 +162,20 @@ const CinematicHero = () => {
     };
   }, [phase, prefersReduced]);
 
-  // Headline cycler — independent of phase loop
+  // Headline cycler — independent of phase loop. Reset index when workflow changes.
   const [headlineIdx, setHeadlineIdx] = useState(0);
+  const activeHeadlines = workflow === "contracts" ? CONTRACT_HEADLINES : HEADLINES;
+  useEffect(() => {
+    setHeadlineIdx(0);
+  }, [workflow]);
   useEffect(() => {
     if (prefersReduced) return;
     const id = setInterval(() => {
-      setHeadlineIdx((i) => (i + 1) % HEADLINES.length);
+      setHeadlineIdx((i) => (i + 1) % activeHeadlines.length);
     }, 4200);
     return () => clearInterval(id);
-  }, [prefersReduced]);
+  }, [prefersReduced, activeHeadlines.length]);
+
 
   // Animated metrics
   const metrics = useMemo(() => {
