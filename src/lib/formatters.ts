@@ -66,15 +66,20 @@ export function formatDecimal(amount: number | null | undefined): string {
 export function formatDateShort(dateString: string | null | undefined): string {
   if (!dateString) return 'N/A';
   try {
+    // YYYY-MM-DD (date-only) → format in UTC to avoid timezone shifting the day
+    // (e.g. "2025-12-30" parsed as UTC midnight would display as Dec 29 in negative offsets).
+    const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(dateString);
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
+      ...(dateOnly ? { timeZone: 'UTC' } : {}),
     });
   } catch {
     return 'N/A';
   }
 }
+
 
 /**
  * Format a date string to include time: "MMM d, yyyy h:mm a"

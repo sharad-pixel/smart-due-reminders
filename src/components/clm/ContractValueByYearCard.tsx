@@ -52,6 +52,21 @@ const addYears = (d: Date, n: number) => {
   return r;
 };
 
+// Parse a date string as UTC. "YYYY-MM-DD" is parsed as UTC midnight (already correct).
+// Other ISO strings fall back to native parsing.
+const parseUTC = (s: string | null | undefined): Date | null => {
+  if (!s) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
+  if (m) return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+  const d = new Date(s);
+  return Number.isNaN(d.getTime()) ? null : d;
+};
+
+// Render a UTC Date as "YYYY-MM-DD" so downstream formatters treat it as date-only.
+const toUTCDateStr = (d: Date) =>
+  `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+
+
 type BucketRow = {
   idx: number;
   start: Date;
@@ -76,14 +91,14 @@ export function ContractValueByYearCard({ schedules, effectiveDate, termEndDate,
   const { rows, currency, totalAll, anchor, hasAnchor } = useMemo(() => {
     const currency = (schedules.find((s) => s.currency)?.currency) || defaultCurrency || "USD";
 
-    // Anchor: effectiveDate → fallback to earliest schedule date
-    let anchorDate: Date | null = effectiveDate ? new Date(effectiveDate) : null;
-    if (!anchorDate || Number.isNaN(anchorDate.getTime())) {
+    // Anchor: effectiveDate → fallback to earliest schedule date (parsed as UTC)
+    let anchorDate: Date | null = parseUTC(effectiveDate);
+    if (!anchorDate) {
       const dates = schedules
         .map((s) => s.service_period_start || s.scheduled_date)
-        .filter(Boolean)
-        .map((d) => new Date(d as string).getTime())
-        .filter((t) => !Number.isNaN(t));
+        .map((d) => parseUTC(d as string))
+        .filter((d): d is Date => !!d)
+        .map((d) => d.getTime());
       anchorDate = dates.length ? new Date(Math.min(...dates)) : null;
     }
     const hasAnchor = !!anchorDate;
@@ -91,15 +106,11 @@ export function ContractValueByYearCard({ schedules, effectiveDate, termEndDate,
 
     const lastDate = (() => {
       const candidates: number[] = [];
-      if (termEndDate) {
-        const t = new Date(termEndDate).getTime();
-        if (!Number.isNaN(t)) candidates.push(t);
-      }
+      const te = parseUTC(termEndDate);
+      if (te) candidates.push(te.getTime());
       for (const s of schedules) {
-        const d = s.service_period_end || s.service_period_start || s.scheduled_date;
-        if (!d) continue;
-        const t = new Date(d).getTime();
-        if (!Number.isNaN(t)) candidates.push(t);
+        const d = parseUTC(s.service_period_end || s.service_period_start || s.scheduled_date);
+        if (d) candidates.push(d.getTime());
       }
       return candidates.length ? new Date(Math.max(...candidates)) : anchorDate!;
     })();
@@ -125,14 +136,13 @@ export function ContractValueByYearCard({ schedules, effectiveDate, termEndDate,
     };
 
     for (const s of schedules) {
-      const dateStr = s.service_period_start || s.scheduled_date;
-      if (!dateStr) continue;
-      const d = new Date(dateStr);
-      if (Number.isNaN(d.getTime())) continue;
+      const d = parseUTC(s.service_period_start || s.scheduled_date);
+      if (!d) continue;
       const amt = toNum(s.amount);
       const bucket = findBucket(d);
       bucket.total += amt;
       bucket.count += 1;
+
       if (s.id) bucket.scheduleIds.push(s.id);
       switch (s.revenue_type) {
         case "recurring": bucket.recurring += amt; break;
@@ -213,8 +223,8 @@ export function ContractValueByYearCard({ schedules, effectiveDate, termEndDate,
               account_id: imp.account_id,
               import_id: importId,
               debtor_id: imp.debtor_id ?? null,
-              scheduled_date: editTarget.start.toISOString().slice(0, 10),
-              expected_due_date: editTarget.start.toISOString().slice(0, 10),
+              scheduled_date: toUTCDateStr(editTarget.start),
+              expected_due_date: toUTCDateStr(editTarget.start),
               amount: amt,
               description: `Annualized total — Year ${editTarget.idx} (manual override)`,
               product_description: `Annualized total — Year ${editTarget.idx}`,
@@ -250,7 +260,7 @@ export function ContractValueByYearCard({ schedules, effectiveDate, termEndDate,
               Term-year buckets anchored to the contract effective date — not calendar years.
               {anchor && (
                 <span className="ml-1">
-                  Effective <strong>{formatDateShort(anchor.toISOString())}</strong>
+                  Effective <strong>{formatDateShort(toUTCDateStr(anchor))}</strong>
                   {termEndDate && <> · ends <strong>{formatDateShort(termEndDate)}</strong></>}
                 </span>
               )}
@@ -318,7 +328,7 @@ export function ContractValueByYearCard({ schedules, effectiveDate, termEndDate,
                   <TableRow key={r.idx}>
                     <TableCell className="font-medium whitespace-nowrap">Year {r.idx}</TableCell>
                     <TableCell className="text-xs whitespace-nowrap">
-                      {formatDateShort(r.start.toISOString())} → {formatDateShort(r.end.toISOString())}
+                      {formatDateShort(toUTCDateStr(r.start))} → {formatDateShort(toUTCDateStr(r.end))}
                     </TableCell>
                     <TableCell className="text-right font-semibold">{formatCurrency(r.total, currency)}</TableCell>
                     <TableCell className="text-right text-sm">{pct.toFixed(1)}%</TableCell>
@@ -372,7 +382,7 @@ export function ContractValueByYearCard({ schedules, effectiveDate, termEndDate,
               <ul className="list-disc pl-5 space-y-0.5">
                 {ramps.map((r) => (
                   <li key={r.idx}>
-                    <strong>Year {r.idx}</strong> ({formatDateShort(r.start.toISOString())} → {formatDateShort(r.end.toISOString())}):{" "}
+                    <strong>Year {r.idx}</strong> ({formatDateShort(toUTCDateStr(r.start))} → {formatDateShort(toUTCDateStr(r.end))}):{" "}
                     {r.yoyPct! > 0 ? "ramp-up" : "step-down"} of{" "}
                     {(r.yoyPct! * 100).toFixed(1)}%{" "}
                     ({r.yoyAbs >= 0 ? "+" : ""}{formatCurrency(r.yoyAbs, currency)}) vs Year {r.idx - 1}
@@ -394,7 +404,7 @@ export function ContractValueByYearCard({ schedules, effectiveDate, termEndDate,
               <DialogDescription>
                 {editTarget && (
                   <>
-                    Period: {formatDateShort(editTarget.start.toISOString())} → {formatDateShort(editTarget.end.toISOString())}
+                    Period: {formatDateShort(toUTCDateStr(editTarget.start))} → {formatDateShort(toUTCDateStr(editTarget.end))}
                     {" · "}
                     Current: <strong>{formatCurrency(editTarget.total, currency)}</strong>
                     {" · "}
@@ -429,7 +439,7 @@ export function ContractValueByYearCard({ schedules, effectiveDate, termEndDate,
                         <span className="font-medium">Replace with one consolidated line</span>
                         <p className="text-xs text-muted-foreground mt-0.5">
                           Removes the {editTarget.count} OCR-extracted line{editTarget.count === 1 ? "" : "s"} for this year
-                          and inserts a single recurring line dated {formatDateShort(editTarget.start.toISOString())}.
+                          and inserts a single recurring line dated {formatDateShort(toUTCDateStr(editTarget.start))}.
                           Best when OCR misread the line items.
                         </p>
                       </Label>
