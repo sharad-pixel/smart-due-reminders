@@ -103,30 +103,43 @@ serve(async (req) => {
     }
 
     // Check if there are any active payment plans OR open invoices for these debtors.
-    // Note: Invoice "overdue" is derived from due_date (DPD), not a database status.
+    // Chunk debtorIds to avoid URL length limits (644+ ids causes 400 Bad Request).
+    const chunk = <T,>(arr: T[], size: number): T[][] => {
+      const out: T[][] = [];
+      for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+      return out;
+    };
+    const debtorIdChunks = chunk(debtorIds, 100);
 
-    const { data: activePlans, error: plansError } = await supabase
-      .from("payment_plans")
-      .select("id, debtor_id, user_id")
-      .in("debtor_id", debtorIds)
-      .in("status", ["proposed", "accepted", "active"]);
-
-    if (plansError) {
-      console.error("[DEBTOR-PORTAL-LINK] Error checking plans:", plansError);
-      throw plansError;
+    const activePlans: any[] = [];
+    for (const ids of debtorIdChunks) {
+      const { data, error } = await supabase
+        .from("payment_plans")
+        .select("id, debtor_id, user_id")
+        .in("debtor_id", ids)
+        .in("status", ["proposed", "accepted", "active"]);
+      if (error) {
+        console.error("[DEBTOR-PORTAL-LINK] Error checking plans:", error);
+        throw error;
+      }
+      if (data) activePlans.push(...data);
     }
 
-    const { data: openInvoices, error: invoicesError } = await supabase
-      .from("invoices")
-      .select("id, debtor_id, user_id, status, is_on_payment_plan")
-      .in("debtor_id", debtorIds)
-      .in("status", ["Open", "PartiallyPaid"])
-      .eq("is_on_payment_plan", false);
-
-    if (invoicesError) {
-      console.error("[DEBTOR-PORTAL-LINK] Error checking invoices:", invoicesError);
-      throw invoicesError;
+    const openInvoices: any[] = [];
+    for (const ids of debtorIdChunks) {
+      const { data, error } = await supabase
+        .from("invoices")
+        .select("id, debtor_id, user_id, status, is_on_payment_plan")
+        .in("debtor_id", ids)
+        .in("status", ["Open", "PartiallyPaid"])
+        .eq("is_on_payment_plan", false);
+      if (error) {
+        console.error("[DEBTOR-PORTAL-LINK] Error checking invoices:", error);
+        throw error;
+      }
+      if (data) openInvoices.push(...data);
     }
+
 
     const hasPlans = (activePlans?.length || 0) > 0;
     const hasInvoices = (openInvoices?.length || 0) > 0;
