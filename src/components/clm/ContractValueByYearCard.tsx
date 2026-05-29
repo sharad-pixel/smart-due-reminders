@@ -143,10 +143,6 @@ export function ContractValueByYearCard({ schedules, effectiveDate, termEndDate,
       bucket.total += amt;
       bucket.count += 1;
 
-      const amt = toNum(s.amount);
-      const bucket = findBucket(d);
-      bucket.total += amt;
-      bucket.count += 1;
       if (s.id) bucket.scheduleIds.push(s.id);
       switch (s.revenue_type) {
         case "recurring": bucket.recurring += amt; break;
