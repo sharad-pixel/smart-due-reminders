@@ -88,6 +88,31 @@ const PERFORMANCE_ITEMS = [
   { primary: "Disputes Resolved", secondary: "94% within SLA" },
 ];
 
+const CONTRACT_EXTRACTION_ITEMS = [
+  { primary: "Acme_MSA_v3.pdf", secondary: "TCV $1.24M · 100% parsed" },
+  { primary: "Globex_Order_2026.pdf", secondary: "ARR $412K · Net 45" },
+  { primary: "Initech_SOW.docx", secondary: "3 perf obligations identified" },
+  { primary: "Wayne_Renewal.pdf", secondary: "+5% escalator yr 2 / yr 3" },
+  { primary: "Stark_Ind_MSA.pdf", secondary: "Auto-renew · 90d notice" },
+];
+
+const CONTRACT_TRIGGER_ITEMS = [
+  { primary: "Acme · Non-renewal in 14d", secondary: "Notify CSM + Finance" },
+  { primary: "Globex · Milestone due", secondary: "Phase 2 · $92K recapture" },
+  { primary: "Initech · True-up window", secondary: "+18% usage detected" },
+  { primary: "Wayne · Price escalator", secondary: "+$20.6K MRR yr 2" },
+  { primary: "Stark · Liability cap flag", secondary: "Legal review queued" },
+];
+
+const CONTRACT_REVENUE_ITEMS = [
+  { primary: "Backlog Recaptured", secondary: "$187K not yet billed" },
+  { primary: "ARR Aligned", secondary: "$2.4M synced to AR" },
+  { primary: "Missed Bills Found", secondary: "12 invoices · $64K" },
+  { primary: "Renewals Watched", secondary: "47 contracts · auto" },
+  { primary: "Audit Trail", secondary: "100% extraction logged" },
+];
+
+
 const CinematicHero = () => {
   const navigate = useNavigate();
   const prefersReduced = useReducedMotion();
