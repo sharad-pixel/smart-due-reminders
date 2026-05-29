@@ -1,22 +1,25 @@
+import { lazy, Suspense } from "react";
 import MarketingLayout from "@/components/layout/MarketingLayout";
 import CinematicHero from "@/components/marketing/CinematicHero";
-import ScrollPipeline from "@/components/marketing/ScrollPipeline";
-import AnimatedMetrics from "@/components/marketing/AnimatedMetrics";
-import CollectionIntelligenceShowcase from "@/components/marketing/CollectionIntelligenceShowcase";
-import EmailDemo from "@/components/marketing/EmailDemo";
-import PricingTeaser from "@/components/marketing/PricingTeaser";
-import FAQAccordion from "@/components/marketing/FAQAccordion";
-import RevenueRiskTeaser from "@/components/marketing/RevenueRiskTeaser";
-import ContractIntelligenceTeaser from "@/components/marketing/ContractIntelligenceTeaser";
-import FinalCTA from "@/components/marketing/FinalCTA";
-import ValuePropositions from "@/components/marketing/ValuePropositions";
-import FeatureGrid from "@/components/marketing/FeatureGrid";
-import AIAgentsSection from "@/components/marketing/AIAgentsSection";
-import WhyDifferent from "@/components/marketing/WhyDifferent";
-import DataVettingBadge from "@/components/marketing/DataVettingBadge";
 import SEOHead from "@/components/seo/SEOHead";
 import { PAGE_SEO, generateFAQSchema } from "@/lib/seoConfig";
-import AssessmentCTA from "@/components/marketing/AssessmentCTA";
+
+// Lazy-load below-the-fold sections so the hero (LCP) paints faster on first load.
+const AssessmentCTA = lazy(() => import("@/components/marketing/AssessmentCTA"));
+const ScrollPipeline = lazy(() => import("@/components/marketing/ScrollPipeline"));
+const CollectionIntelligenceShowcase = lazy(() => import("@/components/marketing/CollectionIntelligenceShowcase"));
+const AnimatedMetrics = lazy(() => import("@/components/marketing/AnimatedMetrics"));
+const ValuePropositions = lazy(() => import("@/components/marketing/ValuePropositions"));
+const FeatureGrid = lazy(() => import("@/components/marketing/FeatureGrid"));
+const AIAgentsSection = lazy(() => import("@/components/marketing/AIAgentsSection"));
+const EmailDemo = lazy(() => import("@/components/marketing/EmailDemo"));
+const WhyDifferent = lazy(() => import("@/components/marketing/WhyDifferent"));
+const RevenueRiskTeaser = lazy(() => import("@/components/marketing/RevenueRiskTeaser"));
+const ContractIntelligenceTeaser = lazy(() => import("@/components/marketing/ContractIntelligenceTeaser"));
+const DataVettingBadge = lazy(() => import("@/components/marketing/DataVettingBadge"));
+const PricingTeaser = lazy(() => import("@/components/marketing/PricingTeaser"));
+const FAQAccordion = lazy(() => import("@/components/marketing/FAQAccordion"));
+const FinalCTA = lazy(() => import("@/components/marketing/FinalCTA"));
 
 const Home = () => {
   const homeFaqs = [
@@ -38,21 +41,23 @@ const Home = () => {
         structuredData={generateFAQSchema(homeFaqs)}
       />
       <CinematicHero />
-      <AssessmentCTA />
-      <ScrollPipeline />
-      <CollectionIntelligenceShowcase />
-      <AnimatedMetrics />
-      <ValuePropositions />
-      <FeatureGrid />
-      <AIAgentsSection />
-      <EmailDemo />
-      <WhyDifferent />
-      <RevenueRiskTeaser />
-      <ContractIntelligenceTeaser />
-      <DataVettingBadge />
-      <PricingTeaser />
-      <FAQAccordion />
-      <FinalCTA />
+      <Suspense fallback={null}>
+        <AssessmentCTA />
+        <ScrollPipeline />
+        <CollectionIntelligenceShowcase />
+        <AnimatedMetrics />
+        <ValuePropositions />
+        <FeatureGrid />
+        <AIAgentsSection />
+        <EmailDemo />
+        <WhyDifferent />
+        <RevenueRiskTeaser />
+        <ContractIntelligenceTeaser />
+        <DataVettingBadge />
+        <PricingTeaser />
+        <FAQAccordion />
+        <FinalCTA />
+      </Suspense>
     </MarketingLayout>
   );
 };
