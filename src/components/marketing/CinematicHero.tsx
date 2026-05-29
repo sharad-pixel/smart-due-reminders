@@ -963,7 +963,8 @@ const FloatingStat = ({
       ? "border-emerald-500/30 shadow-emerald-500/10"
       : "border-primary/20 shadow-primary/10";
   const iconClass = accent === "emerald" ? "text-emerald-400" : "text-primary";
-  const item = items[idx];
+  const safeIdx = items.length > 0 ? idx % items.length : 0;
+  const item = items[safeIdx] ?? { primary: "", secondary: "" };
 
   return (
     <div
