@@ -309,11 +309,23 @@ const CinematicHero = () => {
 
           {/* Phase pill */}
           <div className="mt-8 flex items-center gap-2 text-xs text-muted-foreground">
-            <PhaseDot phase={phase} target="chaos" label="Detect risk" />
-            <span className="opacity-30">→</span>
-            <PhaseDot phase={phase} target="orchestration" label="AI orchestrates" />
-            <span className="opacity-30">→</span>
-            <PhaseDot phase={phase} target="stable" label="Recover cash" />
+            {workflow === "contracts" ? (
+              <>
+                <PhaseDot phase={phase} target="chaos" label="Ingest contract" />
+                <span className="opacity-30">→</span>
+                <PhaseDot phase={phase} target="orchestration" label="Extract & arm triggers" />
+                <span className="opacity-30">→</span>
+                <PhaseDot phase={phase} target="stable" label="Recapture revenue" />
+              </>
+            ) : (
+              <>
+                <PhaseDot phase={phase} target="chaos" label="Detect risk" />
+                <span className="opacity-30">→</span>
+                <PhaseDot phase={phase} target="orchestration" label="AI orchestrates" />
+                <span className="opacity-30">→</span>
+                <PhaseDot phase={phase} target="stable" label="Recover cash" />
+              </>
+            )}
           </div>
         </div>
 
