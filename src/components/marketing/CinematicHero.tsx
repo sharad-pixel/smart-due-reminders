@@ -2,9 +2,11 @@ import { useEffect, useRef, useState, useMemo } from "react";
 import { motion, useReducedMotion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 
-import { ArrowRight, Brain, TrendingUp, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, Brain, TrendingUp, ShieldCheck, Sparkles, FileSignature, CalendarClock, Receipt, ShieldAlert, Bell } from "lucide-react";
 import { personaConfig } from "@/lib/personaConfig";
 import StripeLogo from "@/components/brand/StripeLogo";
+
+type Workflow = "collections" | "contracts";
 
 /**
  * CinematicHero
