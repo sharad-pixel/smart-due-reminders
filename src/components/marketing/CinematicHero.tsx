@@ -271,6 +271,22 @@ const CinematicHero = () => {
 
         {/* Right: Cinematic SVG Stage */}
         <div className="relative">
+          {/* Workflow switcher */}
+          <div className="mb-3 flex items-center gap-1 p-1 rounded-xl border border-primary/20 bg-[hsl(222_47%_7%)]/80 backdrop-blur w-fit">
+            <WorkflowTab
+              active={workflow === "collections"}
+              onClick={() => setWorkflow("collections")}
+              icon={Brain}
+              label="Collections Intelligence"
+            />
+            <WorkflowTab
+              active={workflow === "contracts"}
+              onClick={() => setWorkflow("contracts")}
+              icon={FileSignature}
+              label="Contract Intelligence"
+            />
+          </div>
+
           <div className="relative rounded-2xl border border-primary/20 bg-[hsl(222_47%_7%)]/80 backdrop-blur-xl shadow-2xl shadow-primary/10 overflow-hidden">
             {/* Top bar (command center chrome) */}
             <div className="flex items-center justify-between px-4 py-2.5 border-b border-primary/10 bg-[hsl(222_47%_8%)]/80">
@@ -279,7 +295,7 @@ const CinematicHero = () => {
                 <div className="w-2 h-2 rounded-full bg-amber-500/70" />
                 <div className="w-2 h-2 rounded-full bg-emerald-500/70" />
                 <span className="ml-3 text-[11px] uppercase tracking-widest text-muted-foreground font-mono">
-                  recouply.ai · live
+                  recouply.ai · {workflow === "contracts" ? "contracts" : "live"}
                 </span>
               </div>
               <div className="flex items-center gap-2 text-[11px] font-mono text-primary">
@@ -288,32 +304,40 @@ const CinematicHero = () => {
                   animate={{ opacity: [1, 0.3, 1] }}
                   transition={{ duration: 1.4, repeat: Infinity }}
                 />
-                {phase === "chaos" && "scanning AR"}
-                {phase === "orchestration" && "AI orchestrating"}
-                {phase === "stable" && "cash flow stable"}
+                {workflow === "contracts"
+                  ? phase === "chaos" ? "ingesting MSA" : phase === "orchestration" ? "extracting terms" : "triggers armed"
+                  : phase === "chaos" ? "scanning AR" : phase === "orchestration" ? "AI orchestrating" : "cash flow stable"}
               </div>
             </div>
 
-            {/* Top bar — Risk score + Hover panel ABOVE the stage (fixed height to prevent layout shift) */}
-            <div className="border-b border-primary/10 bg-[hsl(222_47%_6%)]/60 px-4 py-3 min-h-[72px] flex items-center gap-4 flex-wrap">
-              <RiskScoreMeter score={metrics.score} phase={phase} />
-              <div className="h-10 w-px bg-primary/15 hidden md:block" />
-              <div className="flex-1 min-w-0">
-                <HoverPanel hovered={hoveredAccount} phase={phase} />
-              </div>
-            </div>
-
-            {/* Stage */}
-            <div className="relative aspect-[16/10] w-full">
-              <Stage phase={phase} hovered={hoveredAccount} setHovered={setHoveredAccount} />
-
-              {/* Top-right: metric chips (stacked vertically to avoid overlap) */}
-              <div className="absolute top-3 right-3 flex flex-col items-end gap-1.5 pointer-events-none">
-                <MetricChip label="Recovered" value={`$${formatNum(metrics.recovered)}`} tone="emerald" />
-                <MetricChip label="At-Risk Accts" value={`${metrics.atRisk}`} tone={metrics.atRisk > 10 ? "red" : "amber"} />
-                <MetricChip label="AI Actions" value={`${metrics.actions}`} tone="primary" />
-              </div>
-            </div>
+            <AnimatePresence mode="wait">
+              {workflow === "collections" ? (
+                <motion.div key="collections" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.35 }}>
+                  <div className="border-b border-primary/10 bg-[hsl(222_47%_6%)]/60 px-4 py-3 min-h-[72px] flex items-center gap-4 flex-wrap">
+                    <RiskScoreMeter score={metrics.score} phase={phase} />
+                    <div className="h-10 w-px bg-primary/15 hidden md:block" />
+                    <div className="flex-1 min-w-0">
+                      <HoverPanel hovered={hoveredAccount} phase={phase} />
+                    </div>
+                  </div>
+                  <div className="relative aspect-[16/10] w-full">
+                    <Stage phase={phase} hovered={hoveredAccount} setHovered={setHoveredAccount} />
+                    <div className="absolute top-3 right-3 flex flex-col items-end gap-1.5 pointer-events-none">
+                      <MetricChip label="Recovered" value={`$${formatNum(metrics.recovered)}`} tone="emerald" />
+                      <MetricChip label="At-Risk Accts" value={`${metrics.atRisk}`} tone={metrics.atRisk > 10 ? "red" : "amber"} />
+                      <MetricChip label="AI Actions" value={`${metrics.actions}`} tone="primary" />
+                    </div>
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div key="contracts" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.35 }}>
+                  <ContractTopBar phase={phase} />
+                  <div className="relative aspect-[16/10] w-full">
+                    <ContractStage phase={phase} />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* Auto-scrolling activity cards — below the live stage */}
@@ -323,9 +347,19 @@ const CinematicHero = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.6 }}
           >
-            <FloatingStat icon={Brain} label="AI Agents" items={AGENT_ITEMS} accent="primary" />
-            <FloatingStat icon={ShieldCheck} label="Expansion Risk Mitigated" items={EXPANSION_ITEMS} accent="emerald" />
-            <FloatingStat icon={TrendingUp} label="Performance" items={PERFORMANCE_ITEMS} accent="primary" />
+            {workflow === "collections" ? (
+              <>
+                <FloatingStat icon={Brain} label="AI Agents" items={AGENT_ITEMS} accent="primary" />
+                <FloatingStat icon={ShieldCheck} label="Expansion Risk Mitigated" items={EXPANSION_ITEMS} accent="emerald" />
+                <FloatingStat icon={TrendingUp} label="Performance" items={PERFORMANCE_ITEMS} accent="primary" />
+              </>
+            ) : (
+              <>
+                <FloatingStat icon={Sparkles} label="AI Extraction" items={CONTRACT_EXTRACTION_ITEMS} accent="primary" />
+                <FloatingStat icon={CalendarClock} label="Key Date Triggers" items={CONTRACT_TRIGGER_ITEMS} accent="emerald" />
+                <FloatingStat icon={Receipt} label="Revenue Recapture" items={CONTRACT_REVENUE_ITEMS} accent="primary" />
+              </>
+            )}
           </motion.div>
         </div>
       </div>
