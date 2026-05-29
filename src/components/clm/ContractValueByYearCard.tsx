@@ -223,8 +223,8 @@ export function ContractValueByYearCard({ schedules, effectiveDate, termEndDate,
               account_id: imp.account_id,
               import_id: importId,
               debtor_id: imp.debtor_id ?? null,
-              scheduled_date: editTarget.start.toISOString().slice(0, 10),
-              expected_due_date: editTarget.start.toISOString().slice(0, 10),
+              scheduled_date: toUTCDateStr(editTarget.start),
+              expected_due_date: toUTCDateStr(editTarget.start),
               amount: amt,
               description: `Annualized total — Year ${editTarget.idx} (manual override)`,
               product_description: `Annualized total — Year ${editTarget.idx}`,
@@ -260,7 +260,7 @@ export function ContractValueByYearCard({ schedules, effectiveDate, termEndDate,
               Term-year buckets anchored to the contract effective date — not calendar years.
               {anchor && (
                 <span className="ml-1">
-                  Effective <strong>{formatDateShort(anchor.toISOString())}</strong>
+                  Effective <strong>{formatDateShort(toUTCDateStr(anchor))}</strong>
                   {termEndDate && <> · ends <strong>{formatDateShort(termEndDate)}</strong></>}
                 </span>
               )}
@@ -328,7 +328,7 @@ export function ContractValueByYearCard({ schedules, effectiveDate, termEndDate,
                   <TableRow key={r.idx}>
                     <TableCell className="font-medium whitespace-nowrap">Year {r.idx}</TableCell>
                     <TableCell className="text-xs whitespace-nowrap">
-                      {formatDateShort(r.start.toISOString())} → {formatDateShort(r.end.toISOString())}
+                      {formatDateShort(toUTCDateStr(r.start))} → {formatDateShort(toUTCDateStr(r.end))}
                     </TableCell>
                     <TableCell className="text-right font-semibold">{formatCurrency(r.total, currency)}</TableCell>
                     <TableCell className="text-right text-sm">{pct.toFixed(1)}%</TableCell>
@@ -382,7 +382,7 @@ export function ContractValueByYearCard({ schedules, effectiveDate, termEndDate,
               <ul className="list-disc pl-5 space-y-0.5">
                 {ramps.map((r) => (
                   <li key={r.idx}>
-                    <strong>Year {r.idx}</strong> ({formatDateShort(r.start.toISOString())} → {formatDateShort(r.end.toISOString())}):{" "}
+                    <strong>Year {r.idx}</strong> ({formatDateShort(toUTCDateStr(r.start))} → {formatDateShort(toUTCDateStr(r.end))}):{" "}
                     {r.yoyPct! > 0 ? "ramp-up" : "step-down"} of{" "}
                     {(r.yoyPct! * 100).toFixed(1)}%{" "}
                     ({r.yoyAbs >= 0 ? "+" : ""}{formatCurrency(r.yoyAbs, currency)}) vs Year {r.idx - 1}
@@ -404,7 +404,7 @@ export function ContractValueByYearCard({ schedules, effectiveDate, termEndDate,
               <DialogDescription>
                 {editTarget && (
                   <>
-                    Period: {formatDateShort(editTarget.start.toISOString())} → {formatDateShort(editTarget.end.toISOString())}
+                    Period: {formatDateShort(toUTCDateStr(editTarget.start))} → {formatDateShort(toUTCDateStr(editTarget.end))}
                     {" · "}
                     Current: <strong>{formatCurrency(editTarget.total, currency)}</strong>
                     {" · "}
@@ -439,7 +439,7 @@ export function ContractValueByYearCard({ schedules, effectiveDate, termEndDate,
                         <span className="font-medium">Replace with one consolidated line</span>
                         <p className="text-xs text-muted-foreground mt-0.5">
                           Removes the {editTarget.count} OCR-extracted line{editTarget.count === 1 ? "" : "s"} for this year
-                          and inserts a single recurring line dated {formatDateShort(editTarget.start.toISOString())}.
+                          and inserts a single recurring line dated {formatDateShort(toUTCDateStr(editTarget.start))}.
                           Best when OCR misread the line items.
                         </p>
                       </Label>
