@@ -77,6 +77,7 @@ function classify(
     const invAmt = Number(inv.total_amount || inv.amount || 0);
     const dDate = dayDiff(target, inv.due_date || inv.issue_date);
     const aMatch = amountMatches(targetAmount, invAmt);
+    const isSettled = SETTLED_STATUSES.has((inv.status || "").toLowerCase());
     let score = 0;
     const reasons: string[] = [];
     if (aMatch) {
@@ -89,6 +90,12 @@ function classify(
     } else if (dDate <= TERM_WINDOW_DAYS) {
       score += 15;
       reasons.push(`due date within ${TERM_WINDOW_DAYS}d`);
+    }
+    // Boost: if the invoice is already settled and amount matches exactly,
+    // treat it as a confident match regardless of date drift (monthly cadence).
+    if (aMatch && isSettled) {
+      score += 30;
+      reasons.push(`invoice settled (${inv.status})`);
     }
     if (score > 0) {
       candidates.push({
