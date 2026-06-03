@@ -29,8 +29,10 @@ import {
   Sparkles,
   Trash2,
   RefreshCw,
+  Settings2,
 } from "lucide-react";
 import { GoogleSheetsIcon } from "@/components/icons/GoogleIcons";
+import { TemplateColumnsDialog } from "./TemplateColumnsDialog";
 
 
 const TEMPLATE_TYPES = [
