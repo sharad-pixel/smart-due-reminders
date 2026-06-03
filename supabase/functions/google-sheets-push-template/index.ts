@@ -85,6 +85,57 @@ function buildDataRow(cells: (string | number)[], numberCols: number[] = []) {
   };
 }
 
+/**
+ * Apply a saved column_config to a built sheets array.
+ * - Drops sub-sheets whose title is not in `config.objects` (when provided).
+ * - For each remaining sheet, filters columns by header string against `config.columns[title]`.
+ * Required identifier columns are force-included so syncs still match rows correctly.
+ */
+function applyColumnConfig(sheets: any[], config: any): any[] {
+  if (!config || typeof config !== 'object') return sheets;
+  const allowedTitles: Set<string> | null = Array.isArray(config.objects) && config.objects.length > 0
+    ? new Set(config.objects)
+    : null;
+  const columnMap: Record<string, string[]> = (config.columns && typeof config.columns === 'object') ? config.columns : {};
+
+  const ALWAYS_KEEP = new Set([
+    'RAID', 'Account RAID', 'Account Name', 'SS Invoice #',
+    'Recouply Invoice Ref (DO NOT EDIT)', 'Recouply Payment Ref (DO NOT EDIT)',
+    'Recouply Contract Ref (DO NOT EDIT)', 'Recouply Contract Ref',
+    'Primary Contract Ref', 'Linked Contract Ref', 'Contract Name',
+  ]);
+
+  return sheets
+    .filter((s) => !allowedTitles || allowedTitles.has(s.properties?.title))
+    .map((s) => {
+      const title = s.properties?.title;
+      const allowed = columnMap[title];
+      if (!Array.isArray(allowed) || allowed.length === 0) return s;
+      const allowedSet = new Set<string>([...allowed, ...Array.from(ALWAYS_KEEP)]);
+
+      const rowData = s.data?.[0]?.rowData ?? [];
+      if (rowData.length === 0) return s;
+      const headerRow = rowData[0];
+      const headerStrings: string[] = (headerRow.values || []).map(
+        (v: any) => v.userEnteredValue?.stringValue ?? '',
+      );
+      const keepIdx: number[] = headerStrings
+        .map((h, i) => (allowedSet.has(h) ? i : -1))
+        .filter((i) => i >= 0);
+      if (keepIdx.length === 0 || keepIdx.length === headerStrings.length) return s;
+
+      const filterRow = (row: any) => ({
+        values: keepIdx.map((i) => row.values?.[i] ?? { userEnteredValue: { stringValue: '' } }),
+      });
+      const newRowData = rowData.map(filterRow);
+
+      return {
+        ...s,
+        data: [{ ...s.data[0], rowData: newRowData }],
+      };
+    });
+}
+
 // Shared contract sheet builder used by both push-template and incremental sync.
 export async function buildContractsSheets(supabase: any, userId: string, _businessName: string) {
   const { data: contracts } = await supabase
@@ -492,9 +543,14 @@ Deno.serve(async (req) => {
         ];
       } else if (currentType === 'contracts') {
         sheetTitle = `${businessName} - Contracts Master`;
-        const built = await buildContractsSheets(supabase, user.id, businessName);
-        sheets = built.sheets;
-        rowCount = built.rowCount;
+        try {
+          const built = await buildContractsSheets(supabase, user.id, businessName);
+          sheets = built.sheets;
+          rowCount = built.rowCount;
+        } catch (err: any) {
+          console.error('buildContractsSheets failed:', err?.message || err, err?.stack);
+          throw new Error(`Contracts builder error: ${err?.message || String(err)}`);
+        }
       } else {
         sheetTitle = `${businessName} - Payments Master`;
 
@@ -598,6 +654,26 @@ Deno.serve(async (req) => {
         ];
       }
 
+      // Apply previously-saved column_config (from any prior soft-deleted template of same type)
+      let savedConfig: any = null;
+      try {
+        const { data: prior } = await supabase
+          .from('google_sheet_templates')
+          .select('column_config')
+          .eq('user_id', user.id)
+          .eq('template_type', currentType)
+          .not('column_config', 'is', null)
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (prior?.column_config && Object.keys(prior.column_config).length > 0) {
+          savedConfig = prior.column_config;
+          sheets = applyColumnConfig(sheets, savedConfig);
+        }
+      } catch (cfgErr) {
+        console.warn('column_config lookup failed (non-fatal):', cfgErr);
+      }
+
       // Create Google Sheet
       const createRes = await fetch('https://sheets.googleapis.com/v4/spreadsheets', {
         method: 'POST',
@@ -644,6 +720,7 @@ Deno.serve(async (req) => {
         rows_synced: rowCount,
         folder_path: folderPath,
         last_push_at: new Date().toISOString(),
+        column_config: savedConfig ?? {},
       });
 
       // Audit log

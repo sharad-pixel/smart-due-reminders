@@ -29,8 +29,10 @@ import {
   Sparkles,
   Trash2,
   RefreshCw,
+  Settings2,
 } from "lucide-react";
 import { GoogleSheetsIcon } from "@/components/icons/GoogleIcons";
+import { TemplateColumnsDialog } from "./TemplateColumnsDialog";
 
 
 const TEMPLATE_TYPES = [
@@ -52,6 +54,7 @@ export function SheetTemplatesSection() {
   const queryClient = useQueryClient();
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; label: string } | null>(null);
+  const [configTarget, setConfigTarget] = useState<{ id: string; type: string; label: string; config: any } | null>(null);
   const [activeSyncs, setActiveSyncs] = useState<Map<string, SyncProgress>>(new Map());
   const pollIntervals = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map());
 
@@ -429,6 +432,15 @@ export function SheetTemplatesSection() {
                     <Button
                       size="icon"
                       variant="ghost"
+                      className="h-7 w-7"
+                      title="Configure fields & objects"
+                      onClick={() => tmpl && setConfigTarget({ id: tmpl.id, type: key, label, config: (tmpl as any).column_config || {} })}
+                    >
+                      <Settings2 className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
                       className="h-7 w-7 text-muted-foreground hover:text-destructive"
                       title="Remove template"
                       onClick={() => tmpl && setDeleteTarget({ id: tmpl.id, label })}
@@ -483,6 +495,17 @@ export function SheetTemplatesSection() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {configTarget && (
+        <TemplateColumnsDialog
+          open={!!configTarget}
+          onOpenChange={(o) => !o && setConfigTarget(null)}
+          templateId={configTarget.id}
+          templateType={configTarget.type}
+          templateLabel={configTarget.label}
+          initialConfig={configTarget.config}
+        />
+      )}
     </>
   );
 }
