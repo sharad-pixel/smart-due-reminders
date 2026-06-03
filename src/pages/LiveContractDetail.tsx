@@ -70,6 +70,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { AssignContractDebtor } from "@/components/contracts/AssignContractDebtor";
 import { ContractStatusStepper } from "@/components/contracts/ContractStatusStepper";
 import { ContractSupportingDocsPanel } from "@/components/contracts/ContractSupportingDocsPanel";
+import { ContractLinksPanel } from "@/components/clm/ContractLinksPanel";
+import { ContractComplianceChecklist } from "@/components/clm/ContractComplianceChecklist";
 
 const FIN_KEYS = new Set<string>([
   ...Array.from(AMOUNT_KEYS),
@@ -574,11 +576,24 @@ const LiveContractDetailInner = () => {
         <KeyDatesNotificationsPanel importId={c.id} dates={data.dates as any} />
       </section>
 
-      {/* ============ 3. RISK ============ */}
+      {/* ============ 3. RISK & READINESS ============ */}
       <section id="risk" className="space-y-4 scroll-mt-16">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
-          <ShieldAlert className="h-3.5 w-3.5" /> Risk
+          <ShieldAlert className="h-3.5 w-3.5" /> Risk & Readiness
         </h2>
+        <ContractComplianceChecklist
+          importId={c.id}
+          accountId={c.account_id}
+          contract={c}
+          fields={data.fields as any[]}
+          schedules={data.schedules as any[]}
+          flags={data.flags as any[]}
+        />
+        <ContractLinksPanel
+          importId={c.id}
+          accountId={c.account_id}
+          debtorId={c.debtor_id || null}
+        />
         <ContractRiskFlagsEditor importId={c.id} accountId={c.account_id} />
       </section>
 

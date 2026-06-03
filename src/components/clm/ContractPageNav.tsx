@@ -3,7 +3,7 @@ import { TrendingUp, CalendarClock, ShieldAlert, FileText, Zap, ListTree } from 
 const SECTIONS = [
   { id: "finance", label: "Finance", icon: TrendingUp },
   { id: "term-dates", label: "Term & Dates", icon: CalendarClock },
-  { id: "risk", label: "Risk", icon: ShieldAlert },
+  { id: "risk", label: "Risk & Readiness", icon: ShieldAlert },
   { id: "invoicing", label: "Invoicing & Collectibility", icon: FileText },
   { id: "triggers", label: "Custom Triggers", icon: Zap },
   { id: "all-terms", label: "All Terms", icon: ListTree },
