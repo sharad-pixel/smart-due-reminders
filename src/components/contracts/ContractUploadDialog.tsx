@@ -31,6 +31,7 @@ export function ContractUploadDialog({ open, onOpenChange, debtorId, debtorName 
   const [dragActive, setDragActive] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number; phase: string } | null>(null);
   const [manualOpen, setManualOpen] = useState(false);
+  const [classify, setClassify] = useState<{ importId: string; accountId: string; debtorId: string | null; contractName: string | null } | null>(null);
   const qc = useQueryClient();
   const navigate = useNavigate();
 
