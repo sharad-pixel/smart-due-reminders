@@ -343,7 +343,7 @@ export function SheetTemplatesSection() {
                   )}
                   {createAllMutation.isPending
                     ? `Creating ${missingTypes.length}…`
-                    : `Create ${missingTypes.length === 3 ? 'All' : missingTypes.length} Template${missingTypes.length !== 1 ? 's' : ''}`
+                    : `Create ${missingTypes.length === TEMPLATE_TYPES.length ? 'All' : missingTypes.length} Template${missingTypes.length !== 1 ? 's' : ''}`
                   }
                 </Button>
               )}
