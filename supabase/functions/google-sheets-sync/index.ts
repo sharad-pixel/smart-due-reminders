@@ -1308,6 +1308,7 @@ Deno.serve(async (req) => {
         if (template.template_type === 'accounts') result = await pushAccounts(supabase, accessToken, template, user.id);
         else if (template.template_type === 'invoices') result = await pushInvoices(supabase, accessToken, template, user.id);
         else if (template.template_type === 'payments') result = await pushPayments(supabase, accessToken, template, user.id);
+        else if (template.template_type === 'contracts') result = await pushContracts(supabase, accessToken, template, user.id);
 
         await supabase.from('google_sheet_templates').update({
           sync_status: 'completed',
