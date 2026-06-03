@@ -70,6 +70,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { AssignContractDebtor } from "@/components/contracts/AssignContractDebtor";
 import { ContractStatusStepper } from "@/components/contracts/ContractStatusStepper";
 import { ContractSupportingDocsPanel } from "@/components/contracts/ContractSupportingDocsPanel";
+import { ContractLinksPanel } from "@/components/clm/ContractLinksPanel";
+import { ContractComplianceChecklist } from "@/components/clm/ContractComplianceChecklist";
 
 const FIN_KEYS = new Set<string>([
   ...Array.from(AMOUNT_KEYS),
