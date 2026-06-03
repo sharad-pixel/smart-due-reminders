@@ -8482,6 +8482,56 @@ export type Database = {
           },
         ]
       }
+      live_contract_checklist_items: {
+        Row: {
+          account_id: string
+          created_at: string
+          evidence: string | null
+          id: string
+          import_id: string
+          item_key: string
+          notes: string | null
+          source: string
+          status: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          evidence?: string | null
+          id?: string
+          import_id: string
+          item_key: string
+          notes?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          evidence?: string | null
+          id?: string
+          import_id?: string
+          item_key?: string
+          notes?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_contract_checklist_items_import_id_fkey"
+            columns: ["import_id"]
+            isOneToOne: false
+            referencedRelation: "live_contract_imports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       live_contract_drive_folders: {
         Row: {
           account_id: string
@@ -8754,6 +8804,57 @@ export type Database = {
             columns: ["scan_job_id"]
             isOneToOne: false
             referencedRelation: "live_contract_scan_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_contract_links: {
+        Row: {
+          account_id: string
+          created_at: string
+          created_by: string
+          id: string
+          link_type: string
+          linked_import_id: string
+          notes: string | null
+          primary_import_id: string
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          created_by: string
+          id?: string
+          link_type?: string
+          linked_import_id: string
+          notes?: string | null
+          primary_import_id: string
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          link_type?: string
+          linked_import_id?: string
+          notes?: string | null
+          primary_import_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_contract_links_linked_import_id_fkey"
+            columns: ["linked_import_id"]
+            isOneToOne: false
+            referencedRelation: "live_contract_imports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_contract_links_primary_import_id_fkey"
+            columns: ["primary_import_id"]
+            isOneToOne: false
+            referencedRelation: "live_contract_imports"
             referencedColumns: ["id"]
           },
         ]
