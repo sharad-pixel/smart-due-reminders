@@ -6615,6 +6615,7 @@ export type Database = {
       }
       google_sheet_templates: {
         Row: {
+          column_config: Json
           connection_id: string | null
           created_at: string
           debtor_id: string | null
@@ -6639,6 +6640,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          column_config?: Json
           connection_id?: string | null
           created_at?: string
           debtor_id?: string | null
@@ -6663,6 +6665,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          column_config?: Json
           connection_id?: string | null
           created_at?: string
           debtor_id?: string | null
