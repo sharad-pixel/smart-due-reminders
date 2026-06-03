@@ -48,21 +48,20 @@ export function TemplateColumnsDialog({
   // Hydrate state when dialog opens
   useEffect(() => {
     if (!open || !entry) return;
+    const titleToKey = new Map(entry.objects.map((o) => [o.sheetTitle, o.key]));
+    const storedObjectKeys = (initialConfig?.objects ?? []).map((t) => titleToKey.get(t) ?? t);
     const objs = new Set<string>(
-      initialConfig?.objects && initialConfig.objects.length > 0
-        ? initialConfig.objects
-        : entry.objects.map((o) => o.key),
+      storedObjectKeys.length > 0 ? storedObjectKeys : entry.objects.map((o) => o.key),
     );
-    // Required objects always included
     entry.objects.forEach((o) => { if (o.required) objs.add(o.key); });
 
     const cols: Record<string, Set<string>> = {};
     for (const obj of entry.objects) {
-      const configCols = initialConfig?.columns?.[obj.key];
+      // Look up stored columns by either tab title or legacy obj key
+      const configCols = initialConfig?.columns?.[obj.sheetTitle] ?? initialConfig?.columns?.[obj.key];
       const set = new Set<string>(
         configCols && configCols.length > 0 ? configCols : obj.columns.map((c) => c.key),
       );
-      // Required columns always included
       obj.columns.forEach((c) => { if (c.required) set.add(c.key); });
       cols[obj.key] = set;
     }
