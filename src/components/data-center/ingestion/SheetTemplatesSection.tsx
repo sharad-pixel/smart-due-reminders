@@ -495,6 +495,17 @@ export function SheetTemplatesSection() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {configTarget && (
+        <TemplateColumnsDialog
+          open={!!configTarget}
+          onOpenChange={(o) => !o && setConfigTarget(null)}
+          templateId={configTarget.id}
+          templateType={configTarget.type}
+          templateLabel={configTarget.label}
+          initialConfig={configTarget.config}
+        />
+      )}
     </>
   );
 }
