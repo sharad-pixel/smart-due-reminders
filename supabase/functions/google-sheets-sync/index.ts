@@ -382,6 +382,189 @@ async function pushPayments(supabase: any, accessToken: string, template: any, u
   return { templatePushed: templateRows.length, recordedPushed: recordedRows.length, templateResult, recordedResult };
 }
 
+async function pushContracts(supabase: any, accessToken: string, template: any, userId: string) {
+  const { data: contracts } = await supabase
+    .from('live_contract_imports')
+    .select('id, account_id, contract_name, file_name, contract_type, status, staging_status, debtor_id, contract_value, effective_date, term_end_date, industry, product_description, confidence, metrics_jsonb, created_at, updated_at, published_at, debtors(reference_id, company_name)')
+    .eq('account_id', userId)
+    .order('created_at', { ascending: false });
+
+  const ids = (contracts || []).map((c: any) => c.id);
+  const fieldsByImport = new Map<string, Map<string, string>>();
+  const schedulesByImport = new Map<string, any[]>();
+  const flagsByImport = new Map<string, any[]>();
+  const datesByImport = new Map<string, any[]>();
+  const checklistByImport = new Map<string, Map<string, any>>();
+
+  for (let i = 0; i < ids.length; i += 100) {
+    const chunk = ids.slice(i, i + 100);
+    const [f, s, fl, d, ch] = await Promise.all([
+      supabase.from('live_contract_extracted_fields').select('import_id, field_key, field_value').in('import_id', chunk),
+      supabase.from('contract_invoice_schedules').select('import_id, scheduled_date, expected_due_date, amount, currency, billing_type, description, status, service_period_start, service_period_end, payment_terms').in('import_id', chunk).order('scheduled_date', { ascending: true }),
+      supabase.from('contract_risk_flags').select('import_id, flag_type, severity, description, resolved, source_field, created_at').in('import_id', chunk),
+      supabase.from('contract_critical_dates').select('import_id, date_type, due_date, status, risk_level, notice_days, alert_enabled, alert_lead_days').in('import_id', chunk).order('due_date', { ascending: true }),
+      supabase.from('live_contract_checklist_items').select('import_id, item_key, status, source, evidence, notes').in('import_id', chunk),
+    ]);
+    for (const r of (f.data || [])) {
+      if (!fieldsByImport.has(r.import_id)) fieldsByImport.set(r.import_id, new Map());
+      fieldsByImport.get(r.import_id)!.set(r.field_key, r.field_value);
+    }
+    for (const r of (s.data || [])) {
+      if (!schedulesByImport.has(r.import_id)) schedulesByImport.set(r.import_id, []);
+      schedulesByImport.get(r.import_id)!.push(r);
+    }
+    for (const r of (fl.data || [])) {
+      if (!flagsByImport.has(r.import_id)) flagsByImport.set(r.import_id, []);
+      flagsByImport.get(r.import_id)!.push(r);
+    }
+    for (const r of (d.data || [])) {
+      if (!datesByImport.has(r.import_id)) datesByImport.set(r.import_id, []);
+      datesByImport.get(r.import_id)!.push(r);
+    }
+    for (const r of (ch.data || [])) {
+      if (!checklistByImport.has(r.import_id)) checklistByImport.set(r.import_id, new Map());
+      checklistByImport.get(r.import_id)!.set(r.item_key, r);
+    }
+  }
+
+  const { data: links } = ids.length
+    ? await supabase.from('live_contract_links').select('primary_import_id, linked_import_id, link_type, notes, created_at').or(`primary_import_id.in.(${ids.join(',')}),linked_import_id.in.(${ids.join(',')})`)
+    : { data: [] as any[] };
+  const primaryOf = new Map<string, { id: string; type: string }>();
+  for (const l of (links || [])) primaryOf.set(l.linked_import_id, { id: l.primary_import_id, type: l.link_type });
+  const nameById = new Map((contracts || []).map((c: any) => [c.id, c.contract_name || c.file_name || '']));
+  const CHECKLIST_KEYS = ['fully_executed', 'terms_identified', 'performance_obligations_defined', 'term_dates_defined', 'risk_factors_assessed'];
+
+  // ---- Master ----
+  const masterHeaders = [
+    'Recouply Contract Ref (DO NOT EDIT)', 'Contract Name', 'File Name', 'Contract Type', 'Status', 'Staging Status',
+    'Account RAID', 'Account Name', 'Industry',
+    'Counterparty', 'Contract Value', 'Currency',
+    'Effective Date', 'Term End Date', 'Term (Months)',
+    'MRR', 'ARR', 'ACV', 'TCV', 'Recurring TCV', 'Services TCV', 'One-time TCV',
+    'Payment Terms', 'Billing Frequency', 'Auto Renewal', 'Renewal Term', 'Notice Period',
+    'Primary Contract Ref', 'Link Type to Primary',
+    'High/Critical Risks', 'Medium Risks', 'Total Risks',
+    'Readiness: Fully Executed', 'Readiness: Terms', 'Readiness: Performance Obligations', 'Readiness: Term Dates', 'Readiness: Risk Factors', 'Readiness %',
+    'Schedule Lines Count', 'Critical Dates Count',
+    'AI Confidence', 'Product/Description', 'Created At', 'Updated At', 'Published At'
+  ];
+  const masterRows = (contracts || []).map((c: any) => {
+    const f = fieldsByImport.get(c.id) || new Map();
+    const m = c.metrics_jsonb || {};
+    const flags = flagsByImport.get(c.id) || [];
+    const unresolved = flags.filter((x: any) => !x.resolved);
+    const high = unresolved.filter((x: any) => x.severity === 'high' || x.severity === 'critical').length;
+    const med = unresolved.filter((x: any) => x.severity === 'medium').length;
+    const ch = checklistByImport.get(c.id) || new Map();
+    const checkVal = (k: string) => {
+      const it = ch.get(k);
+      return it ? `${it.status}${it.source === 'manual' ? ' (manual)' : ''}` : 'unknown';
+    };
+    const passCount = CHECKLIST_KEYS.filter((k) => ch.get(k)?.status === 'pass').length;
+    const readinessPct = Math.round((passCount / CHECKLIST_KEYS.length) * 100);
+    const link = primaryOf.get(c.id);
+    let termMonths: string | number = '';
+    if (c.effective_date && c.term_end_date) {
+      const a = new Date(c.effective_date), b = new Date(c.term_end_date);
+      termMonths = Math.max(0, Math.round((b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24 * 30.44)));
+    }
+    return [
+      c.id || '', c.contract_name || '', c.file_name || '', c.contract_type || '', c.status || '', c.staging_status || '',
+      c.debtors?.reference_id || '', c.debtors?.company_name || '', c.industry || '',
+      f.get('counterparty') || f.get('customer_name') || c.debtors?.company_name || '',
+      Number(c.contract_value || m.tcv || 0), m.currency || f.get('currency') || 'USD',
+      c.effective_date || '', c.term_end_date || '', termMonths,
+      Number(m.mrr || 0), Number(m.arr || 0), Number(m.acv || 0),
+      Number(m.tcv || 0), Number(m.recurringTcv || 0), Number(m.servicesTcv || 0), Number(m.oneTimeTcv || 0),
+      f.get('payment_terms') || '', f.get('billing_frequency') || '',
+      f.get('auto_renewal') || '', f.get('renewal_term') || '', f.get('notice_period') || '',
+      link ? link.id : '', link ? link.type : '',
+      high, med, flags.length,
+      checkVal('fully_executed'), checkVal('terms_identified'), checkVal('performance_obligations_defined'),
+      checkVal('term_dates_defined'), checkVal('risk_factors_assessed'), readinessPct,
+      (schedulesByImport.get(c.id) || []).length,
+      (datesByImport.get(c.id) || []).length,
+      Number(c.confidence || 0), c.product_description || '',
+      c.created_at || '', c.updated_at || '', c.published_at || '',
+    ];
+  });
+
+  // ---- Performance Obligations ----
+  const schedHeaders = ['Recouply Contract Ref', 'Contract Name', 'Account Name', 'Line #', 'Scheduled Date', 'Expected Due Date', 'Service Start', 'Service End', 'Amount', 'Currency', 'Billing Type', 'Description', 'Payment Terms', 'Status', 'Schedule Key (DO NOT EDIT)'];
+  const schedRows: any[][] = [];
+  for (const c of (contracts || [])) {
+    const items = schedulesByImport.get(c.id) || [];
+    items.forEach((s: any, i: number) => {
+      schedRows.push([
+        c.id, c.contract_name || c.file_name || '', c.debtors?.company_name || '',
+        i + 1, s.scheduled_date || '', s.expected_due_date || '',
+        s.service_period_start || '', s.service_period_end || '',
+        Number(s.amount || 0), s.currency || 'USD', s.billing_type || '',
+        s.description || '', s.payment_terms || '', s.status || '',
+        `${c.id}:${i + 1}`,
+      ]);
+    });
+  }
+
+  // ---- Risk Flags ----
+  const riskHeaders = ['Recouply Contract Ref', 'Contract Name', 'Account Name', 'Flag Type', 'Severity', 'Resolved', 'Description', 'Source', 'Created At', 'Risk Key (DO NOT EDIT)'];
+  const riskRows: any[][] = [];
+  for (const c of (contracts || [])) {
+    const items = flagsByImport.get(c.id) || [];
+    items.forEach((r: any, i: number) => {
+      riskRows.push([
+        c.id, c.contract_name || c.file_name || '', c.debtors?.company_name || '',
+        r.flag_type || '', r.severity || '', r.resolved ? 'Yes' : 'No',
+        r.description || '', r.source_field || '', r.created_at || '',
+        `${c.id}:${r.flag_type}:${i + 1}`,
+      ]);
+    });
+  }
+
+  // ---- Key Dates ----
+  const dateHeaders = ['Recouply Contract Ref', 'Contract Name', 'Account Name', 'Date Type', 'Due Date', 'Status', 'Risk Level', 'Notice Days', 'Alert Enabled', 'Alert Lead Days', 'Date Key (DO NOT EDIT)'];
+  const dateRows: any[][] = [];
+  for (const c of (contracts || [])) {
+    const items = datesByImport.get(c.id) || [];
+    items.forEach((r: any, i: number) => {
+      dateRows.push([
+        c.id, c.contract_name || c.file_name || '', c.debtors?.company_name || '',
+        r.date_type || '', r.due_date || '', r.status || '', r.risk_level || '',
+        Number(r.notice_days || 0), r.alert_enabled ? 'Yes' : 'No', Number(r.alert_lead_days || 0),
+        `${c.id}:${r.date_type}:${i + 1}`,
+      ]);
+    });
+  }
+
+  // ---- Linked Contracts ----
+  const linkHeaders = ['Primary Contract Ref', 'Primary Contract Name', 'Linked Contract Ref', 'Linked Contract Name', 'Link Type', 'Notes', 'Created At', 'Link Key (DO NOT EDIT)'];
+  const linkRows: any[][] = (links || []).map((l: any) => [
+    l.primary_import_id, nameById.get(l.primary_import_id) || '',
+    l.linked_import_id, nameById.get(l.linked_import_id) || '',
+    l.link_type || '', l.notes || '', l.created_at || '',
+    `${l.primary_import_id}:${l.linked_import_id}`,
+  ]);
+
+  const [m1, m2, m3, m4, m5] = await Promise.all([
+    incrementalPush(accessToken, template.sheet_id, 'Contracts', 'A:AR', masterHeaders, masterRows, 0),
+    incrementalPush(accessToken, template.sheet_id, 'Performance Obligations', 'A:O', schedHeaders, schedRows, 14),
+    incrementalPush(accessToken, template.sheet_id, 'Risk Flags', 'A:J', riskHeaders, riskRows, 9),
+    incrementalPush(accessToken, template.sheet_id, 'Key Dates', 'A:K', dateHeaders, dateRows, 10),
+    incrementalPush(accessToken, template.sheet_id, 'Linked Contracts', 'A:H', linkHeaders, linkRows, 7),
+  ]);
+
+  return {
+    contracts: masterRows.length,
+    obligations: schedRows.length,
+    risks: riskRows.length,
+    keyDates: dateRows.length,
+    links: linkRows.length,
+    pushed: masterRows.length,
+    results: { master: m1, obligations: m2, risks: m3, keyDates: m4, links: m5 },
+  };
+
+
 async function pullAccounts(
   supabase: any, accessToken: string, template: any, userId: string, orgId: string,
   updateProgress: (status: string, progress: Record<string, any>) => Promise<void>
