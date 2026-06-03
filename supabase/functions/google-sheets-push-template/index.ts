@@ -492,9 +492,14 @@ Deno.serve(async (req) => {
         ];
       } else if (currentType === 'contracts') {
         sheetTitle = `${businessName} - Contracts Master`;
-        const built = await buildContractsSheets(supabase, user.id, businessName);
-        sheets = built.sheets;
-        rowCount = built.rowCount;
+        try {
+          const built = await buildContractsSheets(supabase, user.id, businessName);
+          sheets = built.sheets;
+          rowCount = built.rowCount;
+        } catch (err: any) {
+          console.error('buildContractsSheets failed:', err?.message || err, err?.stack);
+          throw new Error(`Contracts builder error: ${err?.message || String(err)}`);
+        }
       } else {
         sheetTitle = `${businessName} - Payments Master`;
 
