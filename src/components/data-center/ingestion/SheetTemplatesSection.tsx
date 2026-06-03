@@ -54,6 +54,7 @@ export function SheetTemplatesSection() {
   const queryClient = useQueryClient();
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; label: string } | null>(null);
+  const [configTarget, setConfigTarget] = useState<{ id: string; type: string; label: string; config: any } | null>(null);
   const [activeSyncs, setActiveSyncs] = useState<Map<string, SyncProgress>>(new Map());
   const pollIntervals = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map());
 
