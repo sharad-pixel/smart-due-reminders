@@ -654,6 +654,26 @@ Deno.serve(async (req) => {
         ];
       }
 
+      // Apply previously-saved column_config (from any prior soft-deleted template of same type)
+      let savedConfig: any = null;
+      try {
+        const { data: prior } = await supabase
+          .from('google_sheet_templates')
+          .select('column_config')
+          .eq('user_id', user.id)
+          .eq('template_type', currentType)
+          .not('column_config', 'is', null)
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (prior?.column_config && Object.keys(prior.column_config).length > 0) {
+          savedConfig = prior.column_config;
+          sheets = applyColumnConfig(sheets, savedConfig);
+        }
+      } catch (cfgErr) {
+        console.warn('column_config lookup failed (non-fatal):', cfgErr);
+      }
+
       // Create Google Sheet
       const createRes = await fetch('https://sheets.googleapis.com/v4/spreadsheets', {
         method: 'POST',
