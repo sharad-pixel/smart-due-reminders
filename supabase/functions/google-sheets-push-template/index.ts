@@ -85,6 +85,218 @@ function buildDataRow(cells: (string | number)[], numberCols: number[] = []) {
   };
 }
 
+// Shared contract sheet builder used by both push-template and incremental sync.
+export async function buildContractsSheets(supabase: any, userId: string, _businessName: string) {
+  const { data: contracts } = await supabase
+    .from('live_contract_imports')
+    .select('id, account_id, contract_name, file_name, contract_type, status, staging_status, debtor_id, contract_value, effective_date, term_end_date, industry, product_description, confidence, metrics_jsonb, created_at, updated_at, published_at, debtors(reference_id, company_name)')
+    .eq('account_id', userId)
+    .order('created_at', { ascending: false });
+
+  const ids = (contracts || []).map((c: any) => c.id);
+  const fieldsByImport = new Map<string, Map<string, string>>();
+  const schedulesByImport = new Map<string, any[]>();
+  const flagsByImport = new Map<string, any[]>();
+  const datesByImport = new Map<string, any[]>();
+  const checklistByImport = new Map<string, Map<string, any>>();
+
+  for (let i = 0; i < ids.length; i += 100) {
+    const chunk = ids.slice(i, i + 100);
+    const [f, s, fl, d, ch] = await Promise.all([
+      supabase.from('live_contract_extracted_fields').select('import_id, field_key, field_value').in('import_id', chunk),
+      supabase.from('contract_invoice_schedules').select('import_id, scheduled_date, expected_due_date, amount, currency, billing_type, description, status, service_period_start, service_period_end, payment_terms').in('import_id', chunk).order('scheduled_date', { ascending: true }),
+      supabase.from('contract_risk_flags').select('import_id, flag_type, severity, description, resolved, source_field, created_at').in('import_id', chunk),
+      supabase.from('contract_critical_dates').select('import_id, date_type, due_date, status, risk_level, notice_days, alert_enabled, alert_lead_days').in('import_id', chunk).order('due_date', { ascending: true }),
+      supabase.from('live_contract_checklist_items').select('import_id, item_key, status, source, evidence, notes').in('import_id', chunk),
+    ]);
+    for (const r of (f.data || [])) {
+      if (!fieldsByImport.has(r.import_id)) fieldsByImport.set(r.import_id, new Map());
+      fieldsByImport.get(r.import_id)!.set(r.field_key, r.field_value);
+    }
+    for (const r of (s.data || [])) {
+      if (!schedulesByImport.has(r.import_id)) schedulesByImport.set(r.import_id, []);
+      schedulesByImport.get(r.import_id)!.push(r);
+    }
+    for (const r of (fl.data || [])) {
+      if (!flagsByImport.has(r.import_id)) flagsByImport.set(r.import_id, []);
+      flagsByImport.get(r.import_id)!.push(r);
+    }
+    for (const r of (d.data || [])) {
+      if (!datesByImport.has(r.import_id)) datesByImport.set(r.import_id, []);
+      datesByImport.get(r.import_id)!.push(r);
+    }
+    for (const r of (ch.data || [])) {
+      if (!checklistByImport.has(r.import_id)) checklistByImport.set(r.import_id, new Map());
+      checklistByImport.get(r.import_id)!.set(r.item_key, r);
+    }
+  }
+
+  // Links: get all where primary OR linked matches our contracts
+  const { data: links } = ids.length
+    ? await supabase.from('live_contract_links').select('primary_import_id, linked_import_id, link_type, notes, created_at').or(`primary_import_id.in.(${ids.join(',')}),linked_import_id.in.(${ids.join(',')})`)
+    : { data: [] as any[] };
+
+  const primaryOf = new Map<string, { id: string; type: string }>();
+  for (const l of (links || [])) {
+    primaryOf.set(l.linked_import_id, { id: l.primary_import_id, type: l.link_type });
+  }
+  const nameById = new Map((contracts || []).map((c: any) => [c.id, c.contract_name || c.file_name || '']));
+
+  const CHECKLIST_KEYS = ['fully_executed', 'terms_identified', 'performance_obligations_defined', 'term_dates_defined', 'risk_factors_assessed'];
+
+  // ========= 1) Contracts Master =========
+  const masterHeaders = [
+    'Recouply Contract Ref (DO NOT EDIT)', 'Contract Name', 'File Name', 'Contract Type', 'Status', 'Staging Status',
+    'Account RAID', 'Account Name', 'Industry',
+    'Counterparty', 'Contract Value', 'Currency',
+    'Effective Date', 'Term End Date', 'Term (Months)',
+    'MRR', 'ARR', 'ACV', 'TCV', 'Recurring TCV', 'Services TCV', 'One-time TCV',
+    'Payment Terms', 'Billing Frequency', 'Auto Renewal', 'Renewal Term', 'Notice Period',
+    'Primary Contract Ref', 'Link Type to Primary',
+    'High/Critical Risks', 'Medium Risks', 'Total Risks',
+    'Readiness: Fully Executed', 'Readiness: Terms', 'Readiness: Performance Obligations', 'Readiness: Term Dates', 'Readiness: Risk Factors', 'Readiness %',
+    'Schedule Lines Count', 'Critical Dates Count',
+    'AI Confidence', 'Product/Description', 'Created At', 'Updated At', 'Published At'
+  ];
+  const masterNumberCols = [10, 14, 15, 16, 17, 18, 19, 20, 21, 29, 30, 31, 37, 38, 39, 40];
+
+  const masterRows = (contracts || []).map((c: any) => {
+    const f = fieldsByImport.get(c.id) || new Map();
+    const m = c.metrics_jsonb || {};
+    const flags = flagsByImport.get(c.id) || [];
+    const unresolved = flags.filter((x: any) => !x.resolved);
+    const high = unresolved.filter((x: any) => x.severity === 'high' || x.severity === 'critical').length;
+    const med = unresolved.filter((x: any) => x.severity === 'medium').length;
+    const ch = checklistByImport.get(c.id) || new Map();
+    const checkVal = (k: string) => {
+      const it = ch.get(k);
+      return it ? `${it.status}${it.source === 'manual' ? ' (manual)' : ''}` : 'unknown';
+    };
+    const passCount = CHECKLIST_KEYS.filter((k) => ch.get(k)?.status === 'pass').length;
+    const readinessPct = Math.round((passCount / CHECKLIST_KEYS.length) * 100);
+    const link = primaryOf.get(c.id);
+    let termMonths = '';
+    if (c.effective_date && c.term_end_date) {
+      const a = new Date(c.effective_date), b = new Date(c.term_end_date);
+      termMonths = String(Math.max(0, Math.round((b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24 * 30.44))));
+    }
+
+    return [
+      c.id || '', c.contract_name || '', c.file_name || '', c.contract_type || '', c.status || '', c.staging_status || '',
+      c.debtors?.reference_id || '', c.debtors?.company_name || '', c.industry || '',
+      f.get('counterparty') || f.get('customer_name') || c.debtors?.company_name || '',
+      Number(c.contract_value || m.tcv || 0), m.currency || f.get('currency') || 'USD',
+      c.effective_date || '', c.term_end_date || '', termMonths,
+      Number(m.mrr || 0), Number(m.arr || 0), Number(m.acv || 0),
+      Number(m.tcv || 0), Number(m.recurringTcv || 0), Number(m.servicesTcv || 0), Number(m.oneTimeTcv || 0),
+      f.get('payment_terms') || '', f.get('billing_frequency') || '',
+      f.get('auto_renewal') || '', f.get('renewal_term') || '', f.get('notice_period') || '',
+      link ? link.id : '', link ? link.type : '',
+      high, med, flags.length,
+      checkVal('fully_executed'), checkVal('terms_identified'), checkVal('performance_obligations_defined'),
+      checkVal('term_dates_defined'), checkVal('risk_factors_assessed'), readinessPct,
+      (schedulesByImport.get(c.id) || []).length,
+      (datesByImport.get(c.id) || []).length,
+      Number(c.confidence || 0), c.product_description || '',
+      c.created_at || '', c.updated_at || '', c.published_at || '',
+    ];
+  });
+
+  // ========= 2) Schedule Lines / Performance Obligations =========
+  const schedHeaders = ['Recouply Contract Ref', 'Contract Name', 'Account Name', 'Line #', 'Scheduled Date', 'Expected Due Date', 'Service Start', 'Service End', 'Amount', 'Currency', 'Billing Type', 'Description', 'Payment Terms', 'Status'];
+  const schedNumberCols = [3, 8];
+  const schedRows: (string | number)[][] = [];
+  for (const c of (contracts || [])) {
+    const items = schedulesByImport.get(c.id) || [];
+    items.forEach((s: any, i: number) => {
+      schedRows.push([
+        c.id, c.contract_name || c.file_name || '', c.debtors?.company_name || '',
+        i + 1, s.scheduled_date || '', s.expected_due_date || '',
+        s.service_period_start || '', s.service_period_end || '',
+        Number(s.amount || 0), s.currency || 'USD', s.billing_type || '',
+        s.description || '', s.payment_terms || '', s.status || '',
+      ]);
+    });
+  }
+
+  // ========= 3) Risk Flags =========
+  const riskHeaders = ['Recouply Contract Ref', 'Contract Name', 'Account Name', 'Flag Type', 'Severity', 'Resolved', 'Description', 'Source', 'Created At'];
+  const riskRows: (string | number)[][] = [];
+  for (const c of (contracts || [])) {
+    const items = flagsByImport.get(c.id) || [];
+    for (const r of items) {
+      riskRows.push([
+        c.id, c.contract_name || c.file_name || '', c.debtors?.company_name || '',
+        r.flag_type || '', r.severity || '', r.resolved ? 'Yes' : 'No',
+        r.description || '', r.source_field || '', r.created_at || '',
+      ]);
+    }
+  }
+
+  // ========= 4) Key Dates =========
+  const dateHeaders = ['Recouply Contract Ref', 'Contract Name', 'Account Name', 'Date Type', 'Due Date', 'Status', 'Risk Level', 'Notice Days', 'Alert Enabled', 'Alert Lead Days'];
+  const dateNumberCols = [7, 9];
+  const dateRows: (string | number)[][] = [];
+  for (const c of (contracts || [])) {
+    const items = datesByImport.get(c.id) || [];
+    for (const r of items) {
+      dateRows.push([
+        c.id, c.contract_name || c.file_name || '', c.debtors?.company_name || '',
+        r.date_type || '', r.due_date || '', r.status || '', r.risk_level || '',
+        Number(r.notice_days || 0), r.alert_enabled ? 'Yes' : 'No', Number(r.alert_lead_days || 0),
+      ]);
+    }
+  }
+
+  // ========= 5) Linked Contracts =========
+  const linkHeaders = ['Primary Contract Ref', 'Primary Contract Name', 'Linked Contract Ref', 'Linked Contract Name', 'Link Type', 'Notes', 'Created At'];
+  const linkRows: (string | number)[][] = (links || []).map((l: any) => [
+    l.primary_import_id, nameById.get(l.primary_import_id) || '',
+    l.linked_import_id, nameById.get(l.linked_import_id) || '',
+    l.link_type || '', l.notes || '', l.created_at || '',
+  ]);
+
+  const sheets = [
+    {
+      properties: { title: 'Contracts', gridProperties: { frozenRowCount: 1 } },
+      data: [{ startRow: 0, startColumn: 0, rowData: [
+        buildHeaderRow(masterHeaders),
+        ...masterRows.map((r) => buildDataRow(r, masterNumberCols)),
+      ]}],
+    },
+    {
+      properties: { title: 'Performance Obligations', gridProperties: { frozenRowCount: 1 } },
+      data: [{ startRow: 0, startColumn: 0, rowData: [
+        buildHeaderRow(schedHeaders),
+        ...schedRows.map((r) => buildDataRow(r, schedNumberCols)),
+      ]}],
+    },
+    {
+      properties: { title: 'Risk Flags', gridProperties: { frozenRowCount: 1 } },
+      data: [{ startRow: 0, startColumn: 0, rowData: [
+        buildHeaderRow(riskHeaders),
+        ...riskRows.map((r) => buildDataRow(r, [])),
+      ]}],
+    },
+    {
+      properties: { title: 'Key Dates', gridProperties: { frozenRowCount: 1 } },
+      data: [{ startRow: 0, startColumn: 0, rowData: [
+        buildHeaderRow(dateHeaders),
+        ...dateRows.map((r) => buildDataRow(r, dateNumberCols)),
+      ]}],
+    },
+    {
+      properties: { title: 'Linked Contracts', gridProperties: { frozenRowCount: 1 } },
+      data: [{ startRow: 0, startColumn: 0, rowData: [
+        buildHeaderRow(linkHeaders),
+        ...linkRows.map((r) => buildDataRow(r, [])),
+      ]}],
+    },
+  ];
+
+  return { sheets, rowCount: masterRows.length };
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -116,15 +328,16 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { templateType, templateTypes } = body;
 
-    // Support batch: templateTypes = ['accounts','invoices','payments'] or single templateType
+    // Support batch: templateTypes = ['accounts','invoices','payments','contracts'] or single templateType
+    const VALID_TYPES = ['accounts', 'invoices', 'payments', 'contracts'];
     const typesToCreate: string[] = templateTypes 
-      ? templateTypes.filter((t: string) => ['accounts', 'invoices', 'payments'].includes(t))
-      : templateType && ['accounts', 'invoices', 'payments'].includes(templateType) 
+      ? templateTypes.filter((t: string) => VALID_TYPES.includes(t))
+      : templateType && VALID_TYPES.includes(templateType) 
         ? [templateType] 
         : [];
 
     if (typesToCreate.length === 0) {
-      return new Response(JSON.stringify({ error: 'templateType(s) must be accounts, invoices, or payments' }), {
+      return new Response(JSON.stringify({ error: 'templateType(s) must be accounts, invoices, payments, or contracts' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -277,6 +490,11 @@ Deno.serve(async (req) => {
             ]}],
           },
         ];
+      } else if (currentType === 'contracts') {
+        sheetTitle = `${businessName} - Contracts Master`;
+        const built = await buildContractsSheets(supabase, user.id, businessName);
+        sheets = built.sheets;
+        rowCount = built.rowCount;
       } else {
         sheetTitle = `${businessName} - Payments Master`;
 
