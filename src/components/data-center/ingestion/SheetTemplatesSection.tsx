@@ -432,6 +432,15 @@ export function SheetTemplatesSection() {
                     <Button
                       size="icon"
                       variant="ghost"
+                      className="h-7 w-7"
+                      title="Configure fields & objects"
+                      onClick={() => tmpl && setConfigTarget({ id: tmpl.id, type: key, label, config: (tmpl as any).column_config || {} })}
+                    >
+                      <Settings2 className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
                       className="h-7 w-7 text-muted-foreground hover:text-destructive"
                       title="Remove template"
                       onClick={() => tmpl && setDeleteTarget({ id: tmpl.id, label })}
