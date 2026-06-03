@@ -371,10 +371,24 @@ const Layout = ({ children }: LayoutProps) => {
                         <LayoutDashboard className="h-4 w-4 text-primary mt-0.5" />
                         <div>
                           <div className="font-medium">Collections Intelligence</div>
-                          <div className="text-xs text-muted-foreground">Invoices, payments, AI outreach</div>
+                          <div className="text-xs text-muted-foreground">Dashboard overview</div>
                         </div>
                       </Link>
                     </DropdownMenuItem>
+                    <div className="pl-6 space-y-1">
+                      <DropdownMenuItem asChild>
+                        <Link to="/invoices" className="flex items-center gap-2 cursor-pointer text-sm">
+                          <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span>Invoices</span>
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/payments" className="flex items-center gap-2 cursor-pointer text-sm">
+                          <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span>Payments</span>
+                        </Link>
+                      </DropdownMenuItem>
+                    </div>
                     <DropdownMenuItem asChild>
                       <Link to="/ai-ingestion" className="flex items-start gap-2 cursor-pointer">
                         <FileSignature className="h-4 w-4 text-primary mt-0.5" />
