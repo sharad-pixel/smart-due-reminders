@@ -93,10 +93,12 @@ export function TemplateColumnsDialog({
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!entry) return;
+      // Persist keyed by Google Sheet tab title — that's what the edge function filters on.
+      const titleByKey = new Map(entry.objects.map((o) => [o.key, o.sheetTitle]));
       const config: TemplateColumnConfig = {
-        objects: Array.from(selectedObjects),
+        objects: Array.from(selectedObjects).map((k) => titleByKey.get(k) || k),
         columns: Object.fromEntries(
-          Object.entries(selectedColumns).map(([k, v]) => [k, Array.from(v)]),
+          Object.entries(selectedColumns).map(([k, v]) => [titleByKey.get(k) || k, Array.from(v)]),
         ),
       };
       const { error } = await supabase
