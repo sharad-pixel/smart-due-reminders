@@ -297,6 +297,8 @@ const Layout = ({ children }: LayoutProps) => {
   const revenueIntelMobileItems = [
     { path: "/revenue-intelligence", label: "Revenue Intelligence", icon: Sparkles },
     { path: "/dashboard", label: "Collections Intelligence", icon: LayoutDashboard },
+    { path: "/invoices", label: "Invoices", icon: FileText },
+    { path: "/payments", label: "Payments", icon: DollarSign },
     { path: "/ai-ingestion", label: "Contract Intelligence", icon: FileSignature },
     { path: "/revenue-risk", label: "Revenue Risk", icon: ShieldAlert },
     { path: "/revenue-library", label: "Revenue Library", icon: Library },
