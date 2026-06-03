@@ -8684,6 +8684,7 @@ export type Database = {
       live_contract_imports: {
         Row: {
           account_id: string
+          awaiting_primary: boolean
           confidence: number | null
           contract_name: string | null
           contract_type: string | null
@@ -8702,6 +8703,7 @@ export type Database = {
           metrics_computed_at: string | null
           metrics_jsonb: Json | null
           mime_type: string | null
+          primary_role: string | null
           product_description: string | null
           progress_pct: number | null
           published_at: string | null
@@ -8712,12 +8714,16 @@ export type Database = {
           staging_status: string
           status: string
           storage_path: string | null
+          superseded_at: string | null
+          superseded_by_id: string | null
+          supersedes_reason: string | null
           term_end_date: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           account_id: string
+          awaiting_primary?: boolean
           confidence?: number | null
           contract_name?: string | null
           contract_type?: string | null
@@ -8736,6 +8742,7 @@ export type Database = {
           metrics_computed_at?: string | null
           metrics_jsonb?: Json | null
           mime_type?: string | null
+          primary_role?: string | null
           product_description?: string | null
           progress_pct?: number | null
           published_at?: string | null
@@ -8746,12 +8753,16 @@ export type Database = {
           staging_status?: string
           status?: string
           storage_path?: string | null
+          superseded_at?: string | null
+          superseded_by_id?: string | null
+          supersedes_reason?: string | null
           term_end_date?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           account_id?: string
+          awaiting_primary?: boolean
           confidence?: number | null
           contract_name?: string | null
           contract_type?: string | null
@@ -8770,6 +8781,7 @@ export type Database = {
           metrics_computed_at?: string | null
           metrics_jsonb?: Json | null
           mime_type?: string | null
+          primary_role?: string | null
           product_description?: string | null
           progress_pct?: number | null
           published_at?: string | null
@@ -8780,6 +8792,9 @@ export type Database = {
           staging_status?: string
           status?: string
           storage_path?: string | null
+          superseded_at?: string | null
+          superseded_by_id?: string | null
+          supersedes_reason?: string | null
           term_end_date?: string | null
           updated_at?: string
           user_id?: string
@@ -8804,6 +8819,13 @@ export type Database = {
             columns: ["scan_job_id"]
             isOneToOne: false
             referencedRelation: "live_contract_scan_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_contract_imports_superseded_by_id_fkey"
+            columns: ["superseded_by_id"]
+            isOneToOne: false
+            referencedRelation: "live_contract_imports"
             referencedColumns: ["id"]
           },
         ]
