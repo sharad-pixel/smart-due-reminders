@@ -278,6 +278,11 @@ Deno.serve(async (req) => {
             ]}],
           },
         ];
+      } else if (currentType === 'contracts') {
+        sheetTitle = `${businessName} - Contracts Master`;
+        const built = await buildContractsSheets(supabase, user.id, businessName);
+        sheets = built.sheets;
+        rowCount = built.rowCount;
       } else {
         sheetTitle = `${businessName} - Payments Master`;
 
