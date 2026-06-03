@@ -85,6 +85,57 @@ function buildDataRow(cells: (string | number)[], numberCols: number[] = []) {
   };
 }
 
+/**
+ * Apply a saved column_config to a built sheets array.
+ * - Drops sub-sheets whose title is not in `config.objects` (when provided).
+ * - For each remaining sheet, filters columns by header string against `config.columns[title]`.
+ * Required identifier columns are force-included so syncs still match rows correctly.
+ */
+function applyColumnConfig(sheets: any[], config: any): any[] {
+  if (!config || typeof config !== 'object') return sheets;
+  const allowedTitles: Set<string> | null = Array.isArray(config.objects) && config.objects.length > 0
+    ? new Set(config.objects)
+    : null;
+  const columnMap: Record<string, string[]> = (config.columns && typeof config.columns === 'object') ? config.columns : {};
+
+  const ALWAYS_KEEP = new Set([
+    'RAID', 'Account RAID', 'Account Name', 'SS Invoice #',
+    'Recouply Invoice Ref (DO NOT EDIT)', 'Recouply Payment Ref (DO NOT EDIT)',
+    'Recouply Contract Ref (DO NOT EDIT)', 'Recouply Contract Ref',
+    'Primary Contract Ref', 'Linked Contract Ref', 'Contract Name',
+  ]);
+
+  return sheets
+    .filter((s) => !allowedTitles || allowedTitles.has(s.properties?.title))
+    .map((s) => {
+      const title = s.properties?.title;
+      const allowed = columnMap[title];
+      if (!Array.isArray(allowed) || allowed.length === 0) return s;
+      const allowedSet = new Set<string>([...allowed, ...Array.from(ALWAYS_KEEP)]);
+
+      const rowData = s.data?.[0]?.rowData ?? [];
+      if (rowData.length === 0) return s;
+      const headerRow = rowData[0];
+      const headerStrings: string[] = (headerRow.values || []).map(
+        (v: any) => v.userEnteredValue?.stringValue ?? '',
+      );
+      const keepIdx: number[] = headerStrings
+        .map((h, i) => (allowedSet.has(h) ? i : -1))
+        .filter((i) => i >= 0);
+      if (keepIdx.length === 0 || keepIdx.length === headerStrings.length) return s;
+
+      const filterRow = (row: any) => ({
+        values: keepIdx.map((i) => row.values?.[i] ?? { userEnteredValue: { stringValue: '' } }),
+      });
+      const newRowData = rowData.map(filterRow);
+
+      return {
+        ...s,
+        data: [{ ...s.data[0], rowData: newRowData }],
+      };
+    });
+}
+
 // Shared contract sheet builder used by both push-template and incremental sync.
 export async function buildContractsSheets(supabase: any, userId: string, _businessName: string) {
   const { data: contracts } = await supabase
