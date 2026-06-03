@@ -116,15 +116,16 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { templateType, templateTypes } = body;
 
-    // Support batch: templateTypes = ['accounts','invoices','payments'] or single templateType
+    // Support batch: templateTypes = ['accounts','invoices','payments','contracts'] or single templateType
+    const VALID_TYPES = ['accounts', 'invoices', 'payments', 'contracts'];
     const typesToCreate: string[] = templateTypes 
-      ? templateTypes.filter((t: string) => ['accounts', 'invoices', 'payments'].includes(t))
-      : templateType && ['accounts', 'invoices', 'payments'].includes(templateType) 
+      ? templateTypes.filter((t: string) => VALID_TYPES.includes(t))
+      : templateType && VALID_TYPES.includes(templateType) 
         ? [templateType] 
         : [];
 
     if (typesToCreate.length === 0) {
-      return new Response(JSON.stringify({ error: 'templateType(s) must be accounts, invoices, or payments' }), {
+      return new Response(JSON.stringify({ error: 'templateType(s) must be accounts, invoices, payments, or contracts' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
