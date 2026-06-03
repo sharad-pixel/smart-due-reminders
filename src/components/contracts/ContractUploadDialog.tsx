@@ -194,6 +194,16 @@ export function ContractUploadDialog({ open, onOpenChange, debtorId, debtorName 
         </DialogFooter>
       </DialogContent>
       <ManualContractDialog open={manualOpen} onOpenChange={setManualOpen} debtorId={debtorId} debtorName={debtorName} />
+      {classify && (
+        <ContractClassifyDialog
+          open={!!classify}
+          onOpenChange={(o) => { if (!o) setClassify(null); }}
+          importId={classify.importId}
+          accountId={classify.accountId}
+          debtorId={classify.debtorId}
+          contractName={classify.contractName}
+        />
+      )}
     </Dialog>
   );
 }
