@@ -37,6 +37,7 @@ const TEMPLATE_TYPES = [
   { key: 'accounts', label: 'Accounts', icon: Users, description: 'Customer accounts with RAID, contacts & balances' },
   { key: 'invoices', label: 'Invoices', icon: FileText, description: 'Open & Paid invoices with auto tab management' },
   { key: 'payments', label: 'Payments', icon: CreditCard, description: 'Pre-populated reconciliation template — just add payment amounts, references & dates' },
+  { key: 'contracts', label: 'Contracts', icon: FileText, description: 'Full contract data: master, performance obligations, risk flags, key dates & links (push-only)' },
 ] as const;
 
 interface SyncProgress {
