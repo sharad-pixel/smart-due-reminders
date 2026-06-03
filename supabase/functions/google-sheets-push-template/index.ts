@@ -720,6 +720,7 @@ Deno.serve(async (req) => {
         rows_synced: rowCount,
         folder_path: folderPath,
         last_push_at: new Date().toISOString(),
+        column_config: savedConfig ?? {},
       });
 
       // Audit log
