@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ContractFileRow } from "@/components/contracts/ContractFileRow";
 import { ManualContractDialog } from "@/components/contracts/ManualContractDialog";
+import { ContractClassifyDialog } from "@/components/contracts/ContractClassifyDialog";
 
 interface Props {
   open: boolean;
@@ -30,6 +31,7 @@ export function ContractUploadDialog({ open, onOpenChange, debtorId, debtorName 
   const [dragActive, setDragActive] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number; phase: string } | null>(null);
   const [manualOpen, setManualOpen] = useState(false);
+  const [classify, setClassify] = useState<{ importId: string; accountId: string; debtorId: string | null; contractName: string | null } | null>(null);
   const qc = useQueryClient();
   const navigate = useNavigate();
 
@@ -85,13 +87,35 @@ export function ContractUploadDialog({ open, onOpenChange, debtorId, debtorName 
 
       return results;
     },
-    onSuccess: (results: any[]) => {
+    onSuccess: async (results: any[]) => {
       qc.invalidateQueries({ queryKey: ["lc-imports"] });
       onOpenChange(false);
       reset();
       if (results.length === 1) {
-        toast.success("Contract uploaded — AI is extracting the terms now.");
-        navigate(`/ai-ingestion/${results[0].import.id}`);
+        const imp = results[0].import;
+        let accountIdResolved: string | null = imp.account_id ?? null;
+        let debtorIdResolved: string | null = imp.debtor_id ?? debtorId ?? null;
+        if (!accountIdResolved) {
+          const { data } = await supabase
+            .from("live_contract_imports")
+            .select("account_id, debtor_id, contract_name, file_name")
+            .eq("id", imp.id)
+            .maybeSingle();
+          accountIdResolved = (data as any)?.account_id ?? null;
+          debtorIdResolved = debtorIdResolved ?? (data as any)?.debtor_id ?? null;
+        }
+        if (!accountIdResolved) {
+          toast.success("Contract uploaded — opening review.");
+          navigate(`/ai-ingestion/${imp.id}`);
+          return;
+        }
+        toast.success("Contract uploaded — classify it so AI workflows treat it correctly.");
+        setClassify({
+          importId: imp.id,
+          accountId: accountIdResolved,
+          debtorId: debtorIdResolved,
+          contractName: imp.contract_name ?? imp.file_name ?? null,
+        });
       } else {
         toast.success(`${results.length} contracts uploaded — extracting…`);
         navigate(`/ai-ingestion?status=scanning`);
@@ -186,6 +210,16 @@ export function ContractUploadDialog({ open, onOpenChange, debtorId, debtorName 
         </DialogFooter>
       </DialogContent>
       <ManualContractDialog open={manualOpen} onOpenChange={setManualOpen} debtorId={debtorId} debtorName={debtorName} />
+      {classify && (
+        <ContractClassifyDialog
+          open={!!classify}
+          onOpenChange={(o) => { if (!o) setClassify(null); }}
+          importId={classify.importId}
+          accountId={classify.accountId}
+          debtorId={classify.debtorId}
+          contractName={classify.contractName}
+        />
+      )}
     </Dialog>
   );
 }
