@@ -563,6 +563,130 @@ async function pushContracts(supabase: any, accessToken: string, template: any, 
     pushed: masterRows.length,
     results: { master: m1, obligations: m2, risks: m3, keyDates: m4, links: m5 },
   };
+}
+
+async function pullContracts(
+  supabase: any, accessToken: string, template: any, userId: string,
+  updateProgress: (status: string, progress: Record<string, any>) => Promise<void>
+) {
+  await updateProgress('syncing', { phase: 'reading_sheet', percent: 10, direction: 'pull' });
+
+  // Validate ownership: only update contracts owned by this user
+  const { data: owned } = await supabase
+    .from('live_contract_imports')
+    .select('id')
+    .eq('account_id', userId);
+  const ownedIds = new Set((owned || []).map((r: any) => r.id));
+
+  let masterUpdated = 0, risksUpdated = 0, datesUpdated = 0, linksUpdated = 0, skipped = 0;
+
+  // ---- Master: status / staging_status ----
+  await updateProgress('syncing', { phase: 'master', percent: 25, direction: 'pull' });
+  const masterRows = await readSheet(accessToken, template.sheet_id, "'Contracts'!A1:AR5000");
+  if (masterRows.length > 1) {
+    const h = masterRows[0].map((x: string) => String(x || '').toLowerCase().trim());
+    const refIdx = h.findIndex((x: string) => x.includes('recouply contract ref'));
+    const statusIdx = h.indexOf('status');
+    const stagingIdx = h.indexOf('staging status');
+    for (let i = 1; i < masterRows.length; i++) {
+      const row = masterRows[i];
+      const id = getVal(row, refIdx);
+      if (!id || !ownedIds.has(id)) { if (id) skipped++; continue; }
+      const patch: any = {};
+      const st = getVal(row, statusIdx); if (st) patch.status = st;
+      const sg = getVal(row, stagingIdx); if (sg) patch.staging_status = sg;
+      if (Object.keys(patch).length === 0) continue;
+      patch.updated_at = new Date().toISOString();
+      const { error } = await supabase.from('live_contract_imports').update(patch).eq('id', id);
+      if (!error) masterUpdated++;
+    }
+  }
+
+  // ---- Risk Flags: resolved ----
+  await updateProgress('syncing', { phase: 'risks', percent: 45, direction: 'pull' });
+  const riskRows = await readSheet(accessToken, template.sheet_id, "'Risk Flags'!A1:J5000");
+  if (riskRows.length > 1) {
+    const h = riskRows[0].map((x: string) => String(x || '').toLowerCase().trim());
+    const refIdx = h.indexOf('recouply contract ref');
+    const flagTypeIdx = h.indexOf('flag type');
+    const resolvedIdx = h.indexOf('resolved');
+    for (let i = 1; i < riskRows.length; i++) {
+      const row = riskRows[i];
+      const id = getVal(row, refIdx);
+      const flagType = getVal(row, flagTypeIdx);
+      if (!id || !flagType || !ownedIds.has(id)) continue;
+      const resolved = /^(yes|true|1|y)$/i.test(getVal(row, resolvedIdx));
+      const { error } = await supabase
+        .from('contract_risk_flags')
+        .update({ resolved })
+        .eq('import_id', id)
+        .eq('flag_type', flagType);
+      if (!error) risksUpdated++;
+    }
+  }
+
+  // ---- Key Dates: status / notice_days / alert_enabled / alert_lead_days ----
+  await updateProgress('syncing', { phase: 'key_dates', percent: 65, direction: 'pull' });
+  const dateRows = await readSheet(accessToken, template.sheet_id, "'Key Dates'!A1:K5000");
+  if (dateRows.length > 1) {
+    const h = dateRows[0].map((x: string) => String(x || '').toLowerCase().trim());
+    const refIdx = h.indexOf('recouply contract ref');
+    const dateTypeIdx = h.indexOf('date type');
+    const statusIdx = h.indexOf('status');
+    const noticeIdx = h.indexOf('notice days');
+    const alertEnIdx = h.indexOf('alert enabled');
+    const alertLeadIdx = h.indexOf('alert lead days');
+    for (let i = 1; i < dateRows.length; i++) {
+      const row = dateRows[i];
+      const id = getVal(row, refIdx);
+      const dateType = getVal(row, dateTypeIdx);
+      if (!id || !dateType || !ownedIds.has(id)) continue;
+      const patch: any = {};
+      const st = getVal(row, statusIdx); if (st) patch.status = st;
+      const nd = parseFloat(getVal(row, noticeIdx)); if (!isNaN(nd)) patch.notice_days = nd;
+      const aeRaw = getVal(row, alertEnIdx); if (aeRaw) patch.alert_enabled = /^(yes|true|1|y)$/i.test(aeRaw);
+      const ald = parseFloat(getVal(row, alertLeadIdx)); if (!isNaN(ald)) patch.alert_lead_days = ald;
+      if (Object.keys(patch).length === 0) continue;
+      const { error } = await supabase
+        .from('contract_critical_dates')
+        .update(patch)
+        .eq('import_id', id)
+        .eq('date_type', dateType);
+      if (!error) datesUpdated++;
+    }
+  }
+
+  // ---- Linked Contracts: link_type / notes ----
+  await updateProgress('syncing', { phase: 'links', percent: 85, direction: 'pull' });
+  const linkRows = await readSheet(accessToken, template.sheet_id, "'Linked Contracts'!A1:H5000");
+  if (linkRows.length > 1) {
+    const h = linkRows[0].map((x: string) => String(x || '').toLowerCase().trim());
+    const primIdx = h.indexOf('primary contract ref');
+    const linkedIdx = h.indexOf('linked contract ref');
+    const typeIdx = h.indexOf('link type');
+    const notesIdx = h.indexOf('notes');
+    for (let i = 1; i < linkRows.length; i++) {
+      const row = linkRows[i];
+      const primary = getVal(row, primIdx);
+      const linked = getVal(row, linkedIdx);
+      if (!primary || !linked) continue;
+      if (!ownedIds.has(primary) || !ownedIds.has(linked)) { skipped++; continue; }
+      const patch: any = {};
+      const lt = getVal(row, typeIdx); if (lt) patch.link_type = lt;
+      const nt = getVal(row, notesIdx); patch.notes = nt || null;
+      const { error } = await supabase
+        .from('live_contract_links')
+        .update(patch)
+        .eq('primary_import_id', primary)
+        .eq('linked_import_id', linked);
+      if (!error) linksUpdated++;
+    }
+  }
+
+  return { masterUpdated, risksUpdated, datesUpdated, linksUpdated, skipped, pulled: masterUpdated + risksUpdated + datesUpdated + linksUpdated };
+}
+
+
 
 
 async function pullAccounts(
@@ -1322,7 +1446,7 @@ Deno.serve(async (req) => {
         if (template.template_type === 'accounts') result = await pullAccounts(supabase, accessToken, template, user.id, orgId, updateProgress);
         else if (template.template_type === 'invoices') result = await pullInvoices(supabase, accessToken, template, user.id, orgId, updateProgress);
         else if (template.template_type === 'payments') result = await pullPayments(supabase, accessToken, template, user.id, orgId, updateProgress);
-        else if (template.template_type === 'contracts') result = { skipped: true, reason: 'Contracts are AI-derived and read-only from Sheets — use the Push direction to refresh.' };
+        else if (template.template_type === 'contracts') result = await pullContracts(supabase, accessToken, template, user.id, updateProgress);
 
         await supabase.from('google_sheet_templates').update({
           sync_status: 'completed',
