@@ -92,8 +92,14 @@ export function ContractUploadDialog({ open, onOpenChange, debtorId, debtorName 
       onOpenChange(false);
       reset();
       if (results.length === 1) {
-        toast.success("Contract uploaded — AI is extracting the terms now.");
-        navigate(`/ai-ingestion/${results[0].import.id}`);
+        const imp = results[0].import;
+        toast.success("Contract uploaded — classify it so AI workflows treat it correctly.");
+        setClassify({
+          importId: imp.id,
+          accountId: imp.account_id,
+          debtorId: imp.debtor_id ?? debtorId ?? null,
+          contractName: imp.contract_name ?? imp.file_name ?? null,
+        });
       } else {
         toast.success(`${results.length} contracts uploaded — extracting…`);
         navigate(`/ai-ingestion?status=scanning`);
