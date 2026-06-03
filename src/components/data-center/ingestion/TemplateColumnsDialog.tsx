@@ -210,7 +210,7 @@ export function TemplateColumnsDialog({
                               );
                             })}
                           </div>
-                          {groupName !== Object.keys(grouped).at(-1) && <Separator className="mt-2" />}
+                          {groupName !== Object.keys(grouped)[Object.keys(grouped).length - 1] && <Separator className="mt-2" />}
                         </div>
                       ))}
                     </div>
