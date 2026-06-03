@@ -1322,7 +1322,7 @@ Deno.serve(async (req) => {
         if (template.template_type === 'accounts') result = await pullAccounts(supabase, accessToken, template, user.id, orgId, updateProgress);
         else if (template.template_type === 'invoices') result = await pullInvoices(supabase, accessToken, template, user.id, orgId, updateProgress);
         else if (template.template_type === 'payments') result = await pullPayments(supabase, accessToken, template, user.id, orgId, updateProgress);
-        else if (template.template_type === 'contracts') result = { skipped: true, reason: 'Contracts are AI-derived and read-only from Sheets — use the Push direction to refresh.' };
+        else if (template.template_type === 'contracts') result = await pullContracts(supabase, accessToken, template, user.id, updateProgress);
 
         await supabase.from('google_sheet_templates').update({
           sync_status: 'completed',
