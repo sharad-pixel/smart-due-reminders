@@ -73,7 +73,15 @@
          {/* Desktop Navigation */}
          <nav className="hidden lg:flex items-center gap-6">
            <NavDropdown label="Platform" items={platformItems} navigate={navigate} />
-           <NavDropdown label="Solutions" items={solutionsItems} navigate={navigate} />
+            <NavDropdown label="Solutions" items={solutionsItems} navigate={navigate} />
+            <NavDropdown
+              label="ROI"
+              navigate={navigate}
+              items={[
+                { icon: Calculator, title: "Collections ROI Calculator", description: "Cost of delay & write-off risk estimator", path: "/roi-calculator" },
+                { icon: FileSignature, title: "Contract Intelligence ROI", description: "Revenue leakage from signed agreements", path: "/contract-roi-calculator" },
+              ]}
+            />
            <button 
              onClick={() => navigate("/integrations")}
              className="text-foreground hover:text-primary transition-colors py-2"
