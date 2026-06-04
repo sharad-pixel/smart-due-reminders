@@ -92,12 +92,12 @@ export function SmartIngestionSection() {
       const accountId = (_eff as string | null) || user?.id;
       if (!user) return null;
       const { data } = await supabase
-        .from("drive_connections")
+        .from("drive_connections_safe" as any)
         .select("*")
         .eq("user_id", accountId)
         .eq("is_active", true)
         .maybeSingle();
-      return data;
+      return data as any;
     },
   });
 
@@ -365,7 +365,7 @@ export function SmartIngestionSection() {
   }
 
   // Token auto-refreshes server-side, so we only flag if there's no refresh token (truly broken)
-  const isTokenExpired = connection && !connection.refresh_token;
+  const isTokenExpired = connection && !connection.has_refresh_token;
 
   // Not connected state
   if (!connection) {
@@ -509,7 +509,7 @@ export function SmartIngestionSection() {
                 <Clock className="h-3 w-3" /> Connected: {new Date(connection.created_at).toLocaleDateString()}
               </span>
             )}
-            {connection.refresh_token && (
+            {connection.has_refresh_token && (
               <span className="flex items-center gap-1">
                 <RefreshCw className="h-3 w-3" /> Token auto-refreshes
               </span>

@@ -117,38 +117,42 @@ serve(async (req) => {
     });
   }
 
-  // Verify webhook signature if headers are present (Resend webhook events)
+  // Require Svix signature on every request — no unauthenticated bypass.
   const svixId = req.headers.get("svix-id");
   const svixTimestamp = req.headers.get("svix-timestamp");
   const svixSignature = req.headers.get("svix-signature");
-  
-  if (svixId && svixTimestamp && svixSignature) {
-    const webhookSecret = Deno.env.get("RESEND_WEBHOOK_SECRET");
-    if (!webhookSecret) {
-      console.error("RESEND_WEBHOOK_SECRET not configured");
-      return new Response(JSON.stringify({ error: "Webhook secret not configured" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
 
-    try {
-      const wh = new Webhook(webhookSecret);
-      wh.verify(rawBody, {
-        "svix-id": svixId,
-        "svix-timestamp": svixTimestamp,
-        "svix-signature": svixSignature,
-      });
-      console.log("Webhook signature verified successfully");
-    } catch (err) {
-      console.error("Webhook signature verification failed:", err);
-      return new Response(JSON.stringify({ error: "Invalid webhook signature" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-  } else {
-    console.log("No svix headers present - accepting as direct inbound email routing");
+  if (!svixId || !svixTimestamp || !svixSignature) {
+    console.warn("Rejecting inbound webhook: missing Svix headers");
+    return new Response(JSON.stringify({ error: "Missing webhook signature" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const webhookSecret = Deno.env.get("RESEND_WEBHOOK_SECRET");
+  if (!webhookSecret) {
+    console.error("RESEND_WEBHOOK_SECRET not configured");
+    return new Response(JSON.stringify({ error: "Webhook secret not configured" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  try {
+    const wh = new Webhook(webhookSecret);
+    wh.verify(rawBody, {
+      "svix-id": svixId,
+      "svix-timestamp": svixTimestamp,
+      "svix-signature": svixSignature,
+    });
+    console.log("Webhook signature verified successfully");
+  } catch (err) {
+    console.error("Webhook signature verification failed:", err);
+    return new Response(JSON.stringify({ error: "Invalid webhook signature" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   const eventType = rawPayload.type || "direct";
