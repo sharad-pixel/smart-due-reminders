@@ -110,6 +110,13 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
               Pricing
             </button>
             <button 
+              onClick={() => navigate("/roi-calculator")}
+              className="text-foreground hover:text-primary transition-colors py-2 flex items-center gap-1.5"
+            >
+              <Calculator className="h-3.5 w-3.5" />
+              ROI Calculator
+            </button>
+            <button 
               onClick={() => navigate("/about")}
               className="text-foreground hover:text-primary transition-colors py-2"
             >
