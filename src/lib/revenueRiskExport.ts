@@ -143,14 +143,14 @@ export function printRevenueRiskReport(data: RevenueRiskData) {
     .map(
       (a) => `
     <tr>
-      <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;font-size:11px;">${a.debtor_name}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;font-size:11px;">${escHtml(a.debtor_name)}</td>
       <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;text-align:right;font-size:11px;">${fmt(a.balance)}</td>
       <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;text-align:center;font-size:11px;">${a.collectability_score}%</td>
       <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;font-size:11px;">${tierLabel(a.collectability_score)}</td>
       <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;font-size:11px;">${engLabel(a.engagement_level)}</td>
       <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;text-align:right;font-size:11px;">${fmt(a.ecl)}</td>
       <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;text-align:right;font-size:11px;">${fmt(a.engagement_adjusted_ecl)}</td>
-      <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;font-size:11px;">${a.recommended_action}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;font-size:11px;">${escHtml(a.recommended_action)}</td>
     </tr>`
     )
     .join("");
@@ -179,7 +179,7 @@ export function printRevenueRiskReport(data: RevenueRiskData) {
       </div>
       <div style="background:#fef3c7;padding:10px;border-radius:4px;">
         <h3 style="font-size:12px;margin:0 0 4px;color:#92400e;font-weight:600;">Rationale</h3>
-        <p style="font-size:11px;color:#78716c;margin:0;line-height:1.5;">${data.ai_insights.reserve_rationale || "Based on ECL calculations and engagement-adjusted risk analysis."}</p>
+        <p style="font-size:11px;color:#78716c;margin:0;line-height:1.5;">${escHtml(data.ai_insights.reserve_rationale || "Based on ECL calculations and engagement-adjusted risk analysis.")}</p>
       </div>
     </div>`
     : "";
@@ -193,23 +193,23 @@ export function printRevenueRiskReport(data: RevenueRiskData) {
 
     <div style="background:#f8fafc;padding:14px;border-radius:6px;margin-bottom:12px;">
       <h3 style="font-size:13px;margin:0 0 6px;color:#b45309;">Risk Summary</h3>
-      <p style="font-size:11px;color:#555;margin:0;">${data.ai_insights.risk_summary}</p>
+      <p style="font-size:11px;color:#555;margin:0;">${escHtml(data.ai_insights.risk_summary)}</p>
     </div>
     <div style="background:#f8fafc;padding:14px;border-radius:6px;margin-bottom:12px;">
       <h3 style="font-size:13px;margin:0 0 6px;color:#ca8a04;">Engagement Insight</h3>
-      <p style="font-size:11px;color:#555;margin:0;">${data.ai_insights.engagement_insight}</p>
+      <p style="font-size:11px;color:#555;margin:0;">${escHtml(data.ai_insights.engagement_insight)}</p>
     </div>
     <div style="display:flex;gap:20px;">
       <div style="flex:1;">
         <h3 style="font-size:13px;margin:0 0 8px;color:#dc2626;">Key Risk Drivers</h3>
         <ul style="font-size:11px;color:#555;margin:0;padding-left:18px;">
-          ${data.ai_insights.key_drivers.map((d) => `<li style="margin-bottom:3px;">${d}</li>`).join("")}
+          ${data.ai_insights.key_drivers.map((d) => `<li style="margin-bottom:3px;">${escHtml(d)}</li>`).join("")}
         </ul>
       </div>
       <div style="flex:1;">
         <h3 style="font-size:13px;margin:0 0 8px;color:#16a34a;">Recommendations</h3>
         <ul style="font-size:11px;color:#555;margin:0;padding-left:18px;">
-          ${data.ai_insights.recommendations.map((r) => `<li style="margin-bottom:3px;">${r}</li>`).join("")}
+          ${data.ai_insights.recommendations.map((r) => `<li style="margin-bottom:3px;">${escHtml(r)}</li>`).join("")}
         </ul>
       </div>
     </div>
@@ -342,7 +342,7 @@ export function printRevenueRiskReport(data: RevenueRiskData) {
   <!-- Footer -->
   <div style="margin-top:30px;padding-top:10px;border-top:1px solid #e5e7eb;display:flex;justify-content:space-between;">
     <p style="font-size:9px;color:#aaa;margin:0;">Recouply.ai — Revenue Risk & Collectability Intelligence · Report generated ${date} at ${time}</p>
-    <p style="font-size:9px;color:#b45309;margin:0;font-style:italic;">${data.disclaimer}</p>
+    <p style="font-size:9px;color:#b45309;margin:0;font-style:italic;">${escHtml(data.disclaimer)}</p>
   </div>
 </body>
 </html>`;
