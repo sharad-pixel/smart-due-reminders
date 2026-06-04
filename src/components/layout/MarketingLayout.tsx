@@ -114,7 +114,14 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
               className="text-foreground hover:text-primary transition-colors py-2 flex items-center gap-1.5"
             >
               <Calculator className="h-3.5 w-3.5" />
-              ROI Calculator
+              ROI
+            </button>
+            <button 
+              onClick={() => navigate("/contract-roi-calculator")}
+              className="text-foreground hover:text-primary transition-colors py-2 flex items-center gap-1.5"
+            >
+              <FileSignature className="h-3.5 w-3.5" />
+              Contract ROI
             </button>
             <button 
               onClick={() => navigate("/about")}
