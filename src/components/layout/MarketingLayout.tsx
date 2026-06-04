@@ -5,6 +5,7 @@ import NicolasChat from "@/components/nicolas/NicolasChat";
 import MarketingFooter from "@/components/marketing/MarketingFooter";
 
 import { Brain, Bot, BarChart3, Zap, Building2, Rocket, Users, ChevronDown, Menu, X, User, CreditCard, FileSignature, Sparkles, Calculator } from "lucide-react";
+import { useState } from "react";
 
 interface MarketingLayoutProps {
   children: React.ReactNode;
