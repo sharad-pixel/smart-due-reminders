@@ -516,7 +516,7 @@ FORMAT RULES (very important):
 - ALWAYS hyperlink debtor names and invoice numbers using these exact patterns:
    * Debtor link:  [Debtor Name](/debtors/{debtor_id})
    * Invoice link: [INVOICE-NUMBER](/invoices/{invoice_id})
-   * Contract link: [Contract Name](/clm/live/{contract_id})
+   * Contract link: [Contract Name](/contracts/live/{contract_id})
 - Links MUST be relative paths starting with "/". NEVER prepend a domain or scheme — do not output https://, http://, recouply.ai, app.recouply.com, or any host. Just "/debtors/<uuid>" or "/invoices/<uuid>".
 - Use the \`id\` field from debtor arrays for debtor links and the \`id\` field from invoice arrays for invoice links. If an id is missing, render plain bold text instead — never invent an id.
 - Format money as $1,234 (no decimals unless < $10). Format dates as YYYY-MM-DD.
@@ -534,7 +534,7 @@ CONTRACTS LIBRARY (covers full contract lifecycle, not just 90 days):
 - \`contracts_sample\` includes up to 100 contracts with effective_date, term_end_date, renewal_date, and auto_renewal.
 - For "how many renewals in the next 12 months" use \`contracts_library.renewals_next_12mo_count\` and list specifics from \`contracts_renewals_next_12mo\`.
 - For multi-year horizon questions use \`contracts_expiring_next_24mo\` or filter \`contracts_sample\` by term_end_date / renewal_date.
-- Cross-reference \`debtor_id\` with \`top_risk_accounts\` to surface contract-driven revenue risk. Link contracts using /clm/live/{id}.
+- Cross-reference \`debtor_id\` with \`top_risk_accounts\` to surface contract-driven revenue risk. Link contracts using /contracts/live/{id}.
 
 INVOICE & PAYMENT SOURCES:
 - Every invoice and payment carries a \`source\` (one of: stripe, quickbooks, netsuite, sage, xero, google_sheets, csv_upload, smart_ingestion, contract_extraction, manual, etc.).
