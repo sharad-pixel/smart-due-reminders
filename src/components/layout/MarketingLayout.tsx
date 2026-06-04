@@ -192,6 +192,10 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
               <div className="flex flex-col gap-2 pt-2 border-t">
                 <button onClick={() => { navigate("/integrations"); setMobileMenuOpen(false); }} className="text-left py-2 text-sm">Integrations</button>
                 <button onClick={() => { navigate("/pricing"); setMobileMenuOpen(false); }} className="text-left py-2 text-sm">Pricing</button>
+                <button onClick={() => { navigate("/roi-calculator"); setMobileMenuOpen(false); }} className="text-left py-2 text-sm flex items-center gap-2">
+                  <Calculator className="h-4 w-4 text-primary" />
+                  ROI Calculator
+                </button>
                 <button onClick={() => { navigate("/about"); setMobileMenuOpen(false); }} className="text-left py-2 text-sm">About</button>
                 <button onClick={() => { navigate("/blog"); setMobileMenuOpen(false); }} className="text-left py-2 text-sm">Blog</button>
                 <button onClick={() => { navigate("/debtor-portal"); setMobileMenuOpen(false); }} className="text-left py-2 text-sm flex items-center gap-2">
