@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Brain, ArrowRight, TrendingUp, Calculator } from "lucide-react";
+import { ArrowRight, Calculator, FileSignature } from "lucide-react";
 
 const AssessmentCTA = () => {
   const navigate = useNavigate();
