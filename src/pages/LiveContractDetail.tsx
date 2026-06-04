@@ -625,11 +625,13 @@ const LiveContractDetailInner = () => {
           schedules={data.schedules as any[]}
           flags={data.flags as any[]}
         />
-        <ContractLinksPanel
-          importId={c.id}
-          accountId={c.account_id}
-          debtorId={c.debtor_id || null}
-        />
+        <div id="contract-links" className="scroll-mt-16">
+          <ContractLinksPanel
+            importId={c.id}
+            accountId={c.account_id}
+            debtorId={c.debtor_id || null}
+          />
+        </div>
         <ContractRiskFlagsEditor importId={c.id} accountId={c.account_id} />
       </section>
 
