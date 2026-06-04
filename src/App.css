@@ -5,6 +5,8 @@
   text-align: center;
 }
 
+/* Publish trigger: keeps generated app styles unchanged. */
+
 .logo {
   height: 6em;
   padding: 1.5em;
