@@ -1,7 +1,7 @@
  import { Button } from "@/components/ui/button";
  import { useNavigate } from "react-router-dom";
  import { RecouplyLogo } from "@/components/layout/RecouplyLogo";
- import { Brain, Bot, BarChart3, Zap, Building2, Rocket, Users, ChevronDown, Menu, X, User, CreditCard } from "lucide-react";
+ import { Brain, Bot, BarChart3, Zap, Building2, Rocket, Users, ChevronDown, Menu, X, User, CreditCard, Calculator, FileSignature } from "lucide-react";
  import { useState } from "react";
  
  const NavDropdown = ({ 
@@ -73,7 +73,15 @@
          {/* Desktop Navigation */}
          <nav className="hidden lg:flex items-center gap-6">
            <NavDropdown label="Platform" items={platformItems} navigate={navigate} />
-           <NavDropdown label="Solutions" items={solutionsItems} navigate={navigate} />
+            <NavDropdown label="Solutions" items={solutionsItems} navigate={navigate} />
+            <NavDropdown
+              label="ROI"
+              navigate={navigate}
+              items={[
+                { icon: Calculator, title: "Collections ROI Calculator", description: "Cost of delay & write-off risk estimator", path: "/roi-calculator" },
+                { icon: FileSignature, title: "Contract Intelligence ROI", description: "Revenue leakage from signed agreements", path: "/contract-roi-calculator" },
+              ]}
+            />
            <button 
              onClick={() => navigate("/integrations")}
              className="text-foreground hover:text-primary transition-colors py-2"
@@ -161,7 +169,18 @@
              </div>
              <div className="flex flex-col gap-2 pt-2 border-t">
                <button onClick={() => { navigate("/integrations"); setMobileMenuOpen(false); }} className="text-left py-2 text-sm">Integrations</button>
-               <button onClick={() => { navigate("/pricing"); setMobileMenuOpen(false); }} className="text-left py-2 text-sm">Pricing</button>
+                <button onClick={() => { navigate("/pricing"); setMobileMenuOpen(false); }} className="text-left py-2 text-sm">Pricing</button>
+                <div>
+                  <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 mt-2">ROI</div>
+                  <button onClick={() => { navigate("/roi-calculator"); setMobileMenuOpen(false); }} className="w-full text-left px-3 py-2 hover:bg-muted rounded-lg flex items-center gap-3">
+                    <Calculator className="h-4 w-4 text-primary" />
+                    <span className="text-sm">Collections ROI</span>
+                  </button>
+                  <button onClick={() => { navigate("/contract-roi-calculator"); setMobileMenuOpen(false); }} className="w-full text-left px-3 py-2 hover:bg-muted rounded-lg flex items-center gap-3">
+                    <FileSignature className="h-4 w-4 text-accent" />
+                    <span className="text-sm">Contract ROI</span>
+                  </button>
+                </div>
                <button onClick={() => { navigate("/about"); setMobileMenuOpen(false); }} className="text-left py-2 text-sm">About</button>
                <button onClick={() => { navigate("/blog"); setMobileMenuOpen(false); }} className="text-left py-2 text-sm">Blog</button>
                <button onClick={() => { navigate("/debtor-portal"); setMobileMenuOpen(false); }} className="text-left py-2 text-sm flex items-center gap-2">
