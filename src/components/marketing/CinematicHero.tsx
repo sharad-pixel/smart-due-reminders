@@ -1135,7 +1135,7 @@ const PlanCycler = ({ navigate }: PlanCyclerProps) => {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.24 }}
-        className="flex flex-wrap items-center gap-2 mb-8"
+        className="flex flex-wrap items-center gap-2 mb-4"
       >
         {PLANS.map((p, i) => (
           <button
@@ -1153,6 +1153,28 @@ const PlanCycler = ({ navigate }: PlanCyclerProps) => {
             {p.name}
           </button>
         ))}
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.26 }}
+        className="flex flex-wrap items-center gap-3 mb-8"
+      >
+        <button
+          onClick={() => navigate("/signup")}
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground font-semibold text-sm shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:bg-primary/90 transition-all"
+        >
+          Get Started Free
+          <ArrowRight className="h-4 w-4" />
+        </button>
+        <button
+          onClick={() => navigate("/roi-calculator")}
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-primary/30 text-primary font-semibold text-sm hover:bg-primary/10 hover:border-primary/50 transition-all"
+        >
+          <TrendingUp className="h-4 w-4" />
+          Calculate Your ROI
+        </button>
       </motion.div>
     </>
   );

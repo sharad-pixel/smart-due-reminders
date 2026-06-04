@@ -4,7 +4,7 @@ import { RecouplyLogo } from "@/components/layout/RecouplyLogo";
 import NicolasChat from "@/components/nicolas/NicolasChat";
 import MarketingFooter from "@/components/marketing/MarketingFooter";
 
-import { Brain, Bot, BarChart3, Zap, Building2, Rocket, Users, ChevronDown, Menu, X, User, CreditCard, FileSignature, Sparkles } from "lucide-react";
+import { Brain, Bot, BarChart3, Zap, Building2, Rocket, Users, ChevronDown, Menu, X, User, CreditCard, FileSignature, Sparkles, Calculator } from "lucide-react";
 import { useState } from "react";
 
 interface MarketingLayoutProps {
@@ -110,6 +110,13 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
               Pricing
             </button>
             <button 
+              onClick={() => navigate("/roi-calculator")}
+              className="text-foreground hover:text-primary transition-colors py-2 flex items-center gap-1.5"
+            >
+              <Calculator className="h-3.5 w-3.5" />
+              ROI Calculator
+            </button>
+            <button 
               onClick={() => navigate("/about")}
               className="text-foreground hover:text-primary transition-colors py-2"
             >
@@ -185,6 +192,10 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
               <div className="flex flex-col gap-2 pt-2 border-t">
                 <button onClick={() => { navigate("/integrations"); setMobileMenuOpen(false); }} className="text-left py-2 text-sm">Integrations</button>
                 <button onClick={() => { navigate("/pricing"); setMobileMenuOpen(false); }} className="text-left py-2 text-sm">Pricing</button>
+                <button onClick={() => { navigate("/roi-calculator"); setMobileMenuOpen(false); }} className="text-left py-2 text-sm flex items-center gap-2">
+                  <Calculator className="h-4 w-4 text-primary" />
+                  ROI Calculator
+                </button>
                 <button onClick={() => { navigate("/about"); setMobileMenuOpen(false); }} className="text-left py-2 text-sm">About</button>
                 <button onClick={() => { navigate("/blog"); setMobileMenuOpen(false); }} className="text-left py-2 text-sm">Blog</button>
                 <button onClick={() => { navigate("/debtor-portal"); setMobileMenuOpen(false); }} className="text-left py-2 text-sm flex items-center gap-2">
