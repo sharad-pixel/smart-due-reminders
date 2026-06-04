@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   ArrowLeft,
   FileSignature,
@@ -72,6 +73,7 @@ import { ContractStatusStepper } from "@/components/contracts/ContractStatusStep
 import { ContractSupportingDocsPanel } from "@/components/contracts/ContractSupportingDocsPanel";
 import { ContractLinksPanel } from "@/components/clm/ContractLinksPanel";
 import { ContractComplianceChecklist } from "@/components/clm/ContractComplianceChecklist";
+import { ContractDetailSubHeader } from "@/components/clm/ContractDetailSubHeader";
 
 const FIN_KEYS = new Set<string>([
   ...Array.from(AMOUNT_KEYS),
@@ -99,6 +101,7 @@ const LiveContractDetailInner = () => {
   const [confirmArchive, setConfirmArchive] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [archiving, setArchiving] = useState(false);
+  const [revFilter, setRevFilter] = useState<"all" | "recurring" | "services" | "fixed">("all");
 
   const handleDelete = async () => {
     if (!importId) return;
@@ -326,7 +329,7 @@ const LiveContractDetailInner = () => {
   );
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="container mx-auto py-4 space-y-4">
       <SEO
         title={`${c.contract_name || "Contract"} — Contract Intelligence`}
         description="Financial terms and risk profile for this contract."
@@ -445,25 +448,46 @@ const LiveContractDetailInner = () => {
         }
       />
 
+      <ContractDetailSubHeader
+        importId={c.id}
+        initialContractType={c.contract_type}
+        onChanged={() => qc.invalidateQueries({ queryKey: ["live-contract-detail", importId] })}
+        onScrollToLinks={() => {
+          const el = document.getElementById("contract-links");
+          if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+        }}
+      />
+
       <ContractStatusStepper importId={c.id} status={c.status} />
 
       <ContractPageNav />
 
       {/* ============ 1. FINANCE ============ */}
-      <section id="finance" className="space-y-4 scroll-mt-16">
+      <section id="finance" className="space-y-3 scroll-mt-16">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
           <TrendingUp className="h-3.5 w-3.5" /> Finance
         </h2>
 
         <Card>
-          <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between gap-2 space-y-0 flex-wrap">
             <CardTitle className="text-base flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-primary" /> Financial Summary
               <Badge variant="outline" className="ml-2 text-[10px] font-normal capitalize">
                 {String(totals.source || "—").replace(/_/g, " ")}
               </Badge>
             </CardTitle>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Select value={revFilter} onValueChange={(v: any) => setRevFilter(v)}>
+                <SelectTrigger className="h-8 w-[170px] text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all" className="text-xs">All revenue</SelectItem>
+                  <SelectItem value="recurring" className="text-xs">Recurring only</SelectItem>
+                  <SelectItem value="services" className="text-xs">Professional Services</SelectItem>
+                  <SelectItem value="fixed" className="text-xs">Fixed / One-time</SelectItem>
+                </SelectContent>
+              </Select>
               <ContractFinancialExport
                 contractName={c.contract_name || c.file_name || "Contract"}
                 customerName={data.debtor?.company_name || data.debtor?.name || null}
@@ -479,7 +503,7 @@ const LiveContractDetailInner = () => {
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-2">
             {autoReassessing && (
               <div className="rounded-md border border-blue-200 bg-blue-50 text-blue-900 p-2 text-xs flex items-center gap-2">
                 <AlertTriangle className="h-3.5 w-3.5" />
@@ -498,26 +522,37 @@ const LiveContractDetailInner = () => {
                 </ul>
               </div>
             )}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-              <KpiTile label="MRR" value={formatCurrency(totals.mrr, totals.currency)} />
-              <KpiTile label="ARR" value={formatCurrency(totals.arr, totals.currency)} />
-              <KpiTile label="ACV" value={formatCurrency(totals.acv, totals.currency)} />
-              <KpiTile
-                label="Services"
-                value={formatCurrency(totals.servicesTcv || 0, totals.currency)}
-              />
-              <KpiTile
-                label={totals.tcv > 0 ? "TCV" : "Scheduled"}
-                value={formatCurrency(
-                  totals.tcv > 0 ? totals.tcv : totals.scheduled,
-                  totals.currency,
-                )}
-              />
-            </div>
+            {(() => {
+              const years = totals.termYears > 0 ? totals.termYears : 0;
+              const recTcv = totals.recurringTcv || 0;
+              const svcTcv = totals.servicesTcv || 0;
+              const fixedTcv = totals.oneTimeTcv || 0;
+              const totalTcv = totals.tcv > 0 ? totals.tcv : recTcv + svcTcv + fixedTcv;
+              let sliceTcv = totalTcv;
+              let sliceLabel = "Annualized Revenue";
+              if (revFilter === "recurring") { sliceTcv = recTcv; sliceLabel = "Annualized Recurring"; }
+              else if (revFilter === "services") { sliceTcv = svcTcv; sliceLabel = "Annualized Services"; }
+              else if (revFilter === "fixed") { sliceTcv = fixedTcv; sliceLabel = "Annualized Fixed"; }
+              const annualized = years > 0 && sliceTcv > 0 ? sliceTcv / years : (revFilter === "all" || revFilter === "recurring" ? totals.arr : 0);
+              const monthly = annualized > 0 ? annualized / 12 : 0;
+              return (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+                  <KpiTile label="MRR" value={formatCurrency(monthly, totals.currency)} />
+                  <KpiTile label={sliceLabel} value={formatCurrency(annualized, totals.currency)} />
+                  <KpiTile label="ACV" value={formatCurrency(annualized, totals.currency)} />
+                  <KpiTile label="Slice TCV" value={formatCurrency(sliceTcv, totals.currency)} />
+                  <KpiTile
+                    label={totals.tcv > 0 ? "TCV" : "Scheduled"}
+                    value={formatCurrency(
+                      totals.tcv > 0 ? totals.tcv : totals.scheduled,
+                      totals.currency,
+                    )}
+                  />
+                </div>
+              );
+            })()}
             <p className="text-[11px] text-muted-foreground pt-1">
-              MRR, ARR, and ACV reflect <strong>recurring revenue only</strong> (ASC 606
-              performance obligations satisfied over time). Services and one-time fees are
-              tracked separately and roll into TCV.
+              Filter switches the annualized view between Recurring (ASC 606 over-time), Professional Services, and Fixed/One-time. TCV always reflects the full contract.
             </p>
             {(totals.recurringTcv > 0 || totals.servicesTcv > 0 || totals.oneTimeTcv > 0) && (
               <div className="text-[11px] text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 pt-1 border-t">
@@ -529,6 +564,7 @@ const LiveContractDetailInner = () => {
             )}
           </CardContent>
         </Card>
+
 
         <ContractPerformanceObligations
           schedules={data.schedules as any}
@@ -562,7 +598,7 @@ const LiveContractDetailInner = () => {
       </section>
 
       {/* ============ 2. TERM & KEY DATES ============ */}
-      <section id="term-dates" className="space-y-4 scroll-mt-16">
+      <section id="term-dates" className="space-y-3 scroll-mt-16">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
           <CalendarClock className="h-3.5 w-3.5" /> Term & Key Dates
         </h2>
@@ -577,7 +613,7 @@ const LiveContractDetailInner = () => {
       </section>
 
       {/* ============ 3. RISK & READINESS ============ */}
-      <section id="risk" className="space-y-4 scroll-mt-16">
+      <section id="risk" className="space-y-3 scroll-mt-16">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
           <ShieldAlert className="h-3.5 w-3.5" /> Risk & Readiness
         </h2>
@@ -589,16 +625,18 @@ const LiveContractDetailInner = () => {
           schedules={data.schedules as any[]}
           flags={data.flags as any[]}
         />
-        <ContractLinksPanel
-          importId={c.id}
-          accountId={c.account_id}
-          debtorId={c.debtor_id || null}
-        />
+        <div id="contract-links" className="scroll-mt-16">
+          <ContractLinksPanel
+            importId={c.id}
+            accountId={c.account_id}
+            debtorId={c.debtor_id || null}
+          />
+        </div>
         <ContractRiskFlagsEditor importId={c.id} accountId={c.account_id} />
       </section>
 
       {/* ============ 4. INVOICING & COLLECTIBILITY ============ */}
-      <section id="invoicing" className="space-y-4 scroll-mt-16">
+      <section id="invoicing" className="space-y-3 scroll-mt-16">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
           <FileSignature className="h-3.5 w-3.5" /> Invoicing & Collectibility
         </h2>
@@ -623,7 +661,7 @@ const LiveContractDetailInner = () => {
       </section>
 
       {/* ============ 5. CUSTOM TRIGGERS ============ */}
-      <section id="triggers" className="space-y-4 scroll-mt-16">
+      <section id="triggers" className="space-y-3 scroll-mt-16">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
           <FileCheck2 className="h-3.5 w-3.5" /> Custom Triggers
         </h2>
@@ -635,7 +673,7 @@ const LiveContractDetailInner = () => {
       </section>
 
       {/* ============ ALL EXTRACTED TERMS ============ */}
-      <section id="all-terms" className="space-y-4 scroll-mt-16">
+      <section id="all-terms" className="space-y-3 scroll-mt-16">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
           <FileSignature className="h-3.5 w-3.5" /> All Extracted Terms
         </h2>
@@ -763,11 +801,11 @@ const LiveContractDetailInner = () => {
 };
 
 const KpiTile = ({ label, value }: { label: string; value: string }) => (
-  <div className="border rounded-md p-3 bg-muted/30">
-    <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+  <div className="border rounded-md px-2.5 py-2 bg-muted/30">
+    <div className="text-[10px] uppercase tracking-wide text-muted-foreground truncate">
       {label}
     </div>
-    <div className="text-lg font-semibold mt-1 truncate">{value}</div>
+    <div className="text-base font-semibold mt-0.5 truncate">{value}</div>
   </div>
 );
 
