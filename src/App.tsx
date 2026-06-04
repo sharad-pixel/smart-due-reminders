@@ -239,6 +239,8 @@ const App = () => (
               <Route path="/collection-intelligence" element={<CollectionIntelligence />} />
               <Route path="/revenue-intelligence" element={<RevenueIntelligenceHub />} />
               <Route path="/collections-assessment" element={<CollectionsAssessment />} />
+              <Route path="/roi-calculator" element={<RoiCalculator />} />
+              <Route path="/roi" element={<RoiCalculator />} />
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/personas" element={<Personas />} />
               <Route path="/ai-command-center" element={<AICommandCenter />} />
