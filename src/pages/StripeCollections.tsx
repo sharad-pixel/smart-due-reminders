@@ -102,8 +102,8 @@ const Hero = () => (
         <Reveal delay={300}>
           <div className="flex flex-col sm:flex-row gap-3 justify-center mb-8">
             <Button asChild size="lg" className="text-base px-8 h-12 shadow-lg shadow-primary/20">
-              <Link to="/collections-assessment">
-                Run Free Assessment <ArrowRight className="ml-1 h-4 w-4" />
+              <Link to="/roi-calculator">
+                Calculate Your ROI <ArrowRight className="ml-1 h-4 w-4" />
               </Link>
             </Button>
             <Button asChild variant="outline" size="lg" className="text-base px-8 h-12 gap-2">
@@ -461,8 +461,8 @@ const FinalCTA = () => (
           <Reveal delay={200}>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button asChild size="lg" variant="secondary" className="text-base px-8 h-12">
-                <Link to="/collections-assessment">
-                  Run Free Assessment <ArrowRight className="ml-1 h-4 w-4" />
+                <Link to="/roi-calculator">
+                  Calculate Your ROI <ArrowRight className="ml-1 h-4 w-4" />
                 </Link>
               </Button>
               <Button

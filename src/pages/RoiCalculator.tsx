@@ -334,7 +334,7 @@ const RoiCalculator = () => {
                         variant="ghost"
                         className="text-primary-foreground hover:bg-primary-foreground/10"
                       >
-                        <Link to="/collections-assessment">
+                        <Link to="/roi-calculator">
                           Get full AI assessment
                         </Link>
                       </Button>
@@ -386,7 +386,7 @@ const RoiCalculator = () => {
           <p className="text-xs text-muted-foreground mt-6">
             Estimates only. Real results depend on customer mix, payment terms, and how
             quickly you act. Get a personalized breakdown with our{" "}
-            <Link to="/collections-assessment" className="text-primary underline">
+            <Link to="/roi-calculator" className="text-primary underline">
               free AI assessment
             </Link>
             .

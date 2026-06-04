@@ -78,7 +78,7 @@ const RevenueRiskFeature = () => {
               </Link>
             </Button>
             <Button size="lg" variant="outline" asChild>
-              <Link to="/collections-assessment">See Your Risk Score</Link>
+              <Link to="/roi-calculator">See Your Risk Score</Link>
             </Button>
           </motion.div>
         </div>
