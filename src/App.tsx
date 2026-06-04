@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { lazy, Suspense, useEffect } from "react";
 import ScrollToTop from "./components/layout/ScrollToTop";
 import { CookieConsentProvider } from "./components/cookies/CookieConsentProvider";
@@ -62,6 +62,7 @@ const StripeSyncDiagnostics = lazy(() => import("./pages/StripeSyncDiagnostics")
 const CollectionIntelligence = lazy(() => import("./pages/CollectionIntelligence"));
 const CollectionsAssessment = lazy(() => import("./pages/CollectionsAssessment"));
 const RoiCalculator = lazy(() => import("./pages/RoiCalculator"));
+const ContractRoiCalculator = lazy(() => import("./pages/ContractRoiCalculator"));
 const WhyCollectionsMatter = lazy(() => import("./pages/WhyCollectionsMatter"));
 const Personas = lazy(() => import("./pages/Personas"));
 const AICommandCenter = lazy(() => import("./pages/AICommandCenter"));
@@ -238,9 +239,13 @@ const App = () => (
               <Route path="/features" element={<Features />} />
               <Route path="/collection-intelligence" element={<CollectionIntelligence />} />
               <Route path="/revenue-intelligence" element={<RevenueIntelligenceHub />} />
-              <Route path="/collections-assessment" element={<CollectionsAssessment />} />
+              {/* Legacy: revenue assessment replaced by ROI calculator */}
+              <Route path="/collections-assessment" element={<Navigate to="/roi-calculator" replace />} />
               <Route path="/roi-calculator" element={<RoiCalculator />} />
               <Route path="/roi" element={<RoiCalculator />} />
+              <Route path="/contract-roi-calculator" element={<ContractRoiCalculator />} />
+              <Route path="/contract-roi" element={<ContractRoiCalculator />} />
+              <Route path="/clm-roi" element={<ContractRoiCalculator />} />
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/personas" element={<Personas />} />
               <Route path="/ai-command-center" element={<AICommandCenter />} />

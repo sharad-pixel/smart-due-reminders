@@ -114,7 +114,14 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
               className="text-foreground hover:text-primary transition-colors py-2 flex items-center gap-1.5"
             >
               <Calculator className="h-3.5 w-3.5" />
-              ROI Calculator
+              ROI
+            </button>
+            <button 
+              onClick={() => navigate("/contract-roi-calculator")}
+              className="text-foreground hover:text-primary transition-colors py-2 flex items-center gap-1.5"
+            >
+              <FileSignature className="h-3.5 w-3.5" />
+              Contract ROI
             </button>
             <button 
               onClick={() => navigate("/about")}
@@ -194,7 +201,11 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
                 <button onClick={() => { navigate("/pricing"); setMobileMenuOpen(false); }} className="text-left py-2 text-sm">Pricing</button>
                 <button onClick={() => { navigate("/roi-calculator"); setMobileMenuOpen(false); }} className="text-left py-2 text-sm flex items-center gap-2">
                   <Calculator className="h-4 w-4 text-primary" />
-                  ROI Calculator
+                  Collections ROI
+                </button>
+                <button onClick={() => { navigate("/contract-roi-calculator"); setMobileMenuOpen(false); }} className="text-left py-2 text-sm flex items-center gap-2">
+                  <FileSignature className="h-4 w-4 text-accent" />
+                  Contract ROI
                 </button>
                 <button onClick={() => { navigate("/about"); setMobileMenuOpen(false); }} className="text-left py-2 text-sm">About</button>
                 <button onClick={() => { navigate("/blog"); setMobileMenuOpen(false); }} className="text-left py-2 text-sm">Blog</button>

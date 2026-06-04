@@ -19,7 +19,8 @@ Recouply.ai deploys autonomous AI agents that orchestrate the entire accounts re
 - [Solutions: Small Business](/solutions/small-businesses): Affordable AR automation for SMBs.
 - [Enterprise](/enterprise): SOC 2 compliant enterprise AR automation.
 - [Startups](/startups): AR automation for startups.
-- [Collections Assessment](/collections-assessment): Free AR health and ROI calculator.
+- [Collections ROI Calculator](/roi-calculator): Free interactive ROI calculator for overdue AR, cost of delay, and write-off risk.
+- [Contract Intelligence ROI Calculator](/contract-roi-calculator): Free ROI calculator for legal time, contract cycle compression, and revenue leakage.
 - [Knowledge Base](/knowledge-base): Help center and FAQs.
 - [Blog](/blog): Insights on AR, collections, and revenue intelligence.
 - [Trust Center](/trust): Security, compliance, and data protection.
