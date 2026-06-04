@@ -801,11 +801,11 @@ const LiveContractDetailInner = () => {
 };
 
 const KpiTile = ({ label, value }: { label: string; value: string }) => (
-  <div className="border rounded-md p-3 bg-muted/30">
-    <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+  <div className="border rounded-md px-2.5 py-2 bg-muted/30">
+    <div className="text-[10px] uppercase tracking-wide text-muted-foreground truncate">
       {label}
     </div>
-    <div className="text-lg font-semibold mt-1 truncate">{value}</div>
+    <div className="text-base font-semibold mt-0.5 truncate">{value}</div>
   </div>
 );
 
