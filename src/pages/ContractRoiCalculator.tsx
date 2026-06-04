@@ -11,13 +11,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   ArrowRight,
-  FileSignature,
-  Clock,
-  DollarSign,
-  Scale,
+  CalendarClock,
+  AlertTriangle,
+  ShieldAlert,
+  Sparkles,
   Zap,
   CheckCircle2,
   TrendingDown,
+  RefreshCw,
+  FileSearch,
+  BellRing,
 } from "lucide-react";
 
 const fmt = (n: number) =>
@@ -33,66 +36,80 @@ const fmtMultiple = (n: number) => {
   return `${n.toFixed(1)}x`;
 };
 
-// Recouply Contract Intelligence pricing model (per-contract credit).
-// Tuned to mid-market; mirrors $1.99 / invoice from collections ROI.
-const COST_PER_CONTRACT = 12; // bundled cost of AI extraction + clause review per executed contract
+// Recouply Contract Intelligence: post-signature monitoring of signed
+// agreements. Priced as a per-active-contract intelligence credit.
+const COST_PER_CONTRACT = 12;
 
 const ContractRoiCalculator = () => {
-  const [contractsPerYear, setContractsPerYear] = useState(120);
+  const [activeContracts, setActiveContracts] = useState(180);
   const [avgContractValue, setAvgContractValue] = useState(85000);
-  const [legalHoursPerContract, setLegalHoursPerContract] = useState(6);
-  const [hourlyLegalCost, setHourlyLegalCost] = useState(180);
-  const [cycleDays, setCycleDays] = useState(14);
-  const [leakagePct, setLeakagePct] = useState(3); // % of contract value lost to missed terms, auto-renewals, etc.
+  const [autoRenewalPct, setAutoRenewalPct] = useState(40); // % of contracts with auto-renew
+  const [silentRenewalRate, setSilentRenewalRate] = useState(15); // % rolling silently each year
+  const [leakagePct, setLeakagePct] = useState(3); // missed escalators / SLA credits / overages
+  const [riskExposurePct, setRiskExposurePct] = useState(8); // % of ACV exposed to unflagged risk clauses
 
   const results = useMemo(() => {
-    // Legal time recovered: Contract Intelligence cuts ~70% of clause review + extraction time
-    const legalHoursSaved = contractsPerYear * legalHoursPerContract * 0.7;
-    const legalCostSaved = legalHoursSaved * hourlyLegalCost;
+    const portfolioValue = activeContracts * avgContractValue;
 
-    // Cycle compression: ~60% faster signature → revenue recognized sooner
-    const daysCompressed = cycleDays * 0.6;
-    const annualContractedRevenue = contractsPerYear * avgContractValue;
-    // Value of pulling revenue forward, using 18% cost of capital
-    const cycleValue = (annualContractedRevenue * 0.18 * daysCompressed) / 365;
+    // Renewal radar — surface every renewal date 90/60/30 days out.
+    // Silent auto-renewals on bad terms are caught and renegotiated.
+    // Conservatively: 70% of silent renewals get intercepted, 8% uplift on those.
+    const renewalsAtRisk = activeContracts * (autoRenewalPct / 100) *
+      (silentRenewalRate / 100);
+    const renewalValueSaved = renewalsAtRisk * avgContractValue * 0.08 * 0.7;
 
-    // Revenue leakage recovered: catches missed price escalators, auto-renewals,
-    // SLA credits, off-template terms. Recouply recovers ~60% of leakage.
-    const leakageRecovered =
-      annualContractedRevenue * (leakagePct / 100) * 0.6;
+    // Key date intelligence — termination windows, price-step dates, notice
+    // periods, SLA review dates. Assume ~4 critical dates per contract,
+    // historically ~12% missed, AI catches 90% of those.
+    const keyDatesTracked = activeContracts * 4;
+    const keyDatesCaught = keyDatesTracked * 0.12 * 0.9;
+    const keyDateValueSaved = keyDatesCaught * (avgContractValue * 0.015);
 
-    const totalImpact = legalCostSaved + cycleValue + leakageRecovered;
-    const platformCost = contractsPerYear * COST_PER_CONTRACT;
+    // AI risk assessments — flags unusual liability caps, missing indemnities,
+    // open-ended SLAs, off-template language. Recovers 60% of risk-weighted exposure.
+    const riskExposureValue = portfolioValue * (riskExposurePct / 100);
+    const riskMitigated = riskExposureValue * 0.6;
+
+    // Revenue leakage — escalators not invoiced, SLA credits not claimed,
+    // usage overages missed. AI clause monitoring recovers ~60%.
+    const leakageRecovered = portfolioValue * (leakagePct / 100) * 0.6;
+
+    const totalImpact =
+      renewalValueSaved + keyDateValueSaved + riskMitigated + leakageRecovered;
+    const platformCost = activeContracts * COST_PER_CONTRACT;
     const netSavings = totalImpact - platformCost;
     const roiMultiple = platformCost > 0 ? totalImpact / platformCost : 0;
 
     return {
-      legalHoursSaved,
-      legalCostSaved,
-      daysCompressed,
-      cycleValue,
+      portfolioValue,
+      renewalsAtRisk,
+      renewalValueSaved,
+      keyDatesTracked,
+      keyDatesCaught,
+      keyDateValueSaved,
+      riskExposureValue,
+      riskMitigated,
       leakageRecovered,
       totalImpact,
       platformCost,
       netSavings,
       roiMultiple,
-      annualContractedRevenue,
     };
   }, [
-    contractsPerYear,
+    activeContracts,
     avgContractValue,
-    legalHoursPerContract,
-    hourlyLegalCost,
-    cycleDays,
+    autoRenewalPct,
+    silentRenewalRate,
     leakagePct,
+    riskExposurePct,
   ]);
 
   return (
     <MarketingLayout>
       <SEOHead
-        title="Contract Intelligence ROI Calculator | CLM Savings — Recouply.ai"
-        description="Free ROI calculator for Contract Intelligence & CLM. See the legal time, cycle days, and revenue leakage you'd recover with AI-powered contract review — in seconds."
-        keywords="contract intelligence ROI, CLM ROI calculator, contract review savings, AI contract review, legal automation ROI, contract lifecycle management"
+        title="Contract Risk & Renewal ROI Calculator — Recouply.ai"
+        description="See what missed renewals, unflagged risk clauses, and overlooked key dates are costing you. AI intelligence for signed agreements — quantified in seconds."
+        keywords="contract risk ROI, renewal management ROI, contract intelligence, key date tracking, auto-renewal risk, AI contract risk assessment, signed agreement monitoring"
         canonical="https://recouply.ai/contract-roi-calculator"
       />
 
@@ -107,17 +124,37 @@ const ContractRoiCalculator = () => {
             className="max-w-3xl mx-auto text-center"
           >
             <Badge variant="secondary" className="mb-4">
-              <Zap className="w-3 h-3 mr-1" /> Free · No signup required
+              <Sparkles className="w-3 h-3 mr-1" /> AI intelligence for signed agreements
             </Badge>
             <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-4">
-              What are slow contracts <span className="text-accent">costing you?</span>
+              What are missed renewals & risk clauses{" "}
+              <span className="text-accent">costing you?</span>
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground">
-              Move the sliders. See your legal hours, cycle drag, and revenue
-              leakage — and the savings you'd unlock with Recouply Contract
-              Intelligence.
+              This isn't CLM. Once a contract is signed, Recouply reads it,
+              tracks every key date, and flags the risks your team would
+              otherwise discover the hard way. See the value in seconds.
             </p>
           </motion.div>
+
+          {/* Capability strip */}
+          <div className="max-w-4xl mx-auto mt-10 grid sm:grid-cols-4 gap-3">
+            {[
+              { icon: CalendarClock, label: "Renewal radar", sub: "90 / 60 / 30 day alerts" },
+              { icon: BellRing, label: "Key date tracking", sub: "Notice & price-step dates" },
+              { icon: FileSearch, label: "AI clause review", sub: "Risk-scored on ingest" },
+              { icon: ShieldAlert, label: "Risk callouts", sub: "Liability, SLA, indemnity" },
+            ].map(({ icon: Icon, label, sub }) => (
+              <div
+                key={label}
+                className="rounded-lg border bg-background/60 backdrop-blur-sm p-3 text-left"
+              >
+                <Icon className="w-4 h-4 text-accent mb-1.5" />
+                <div className="text-sm font-semibold">{label}</div>
+                <div className="text-xs text-muted-foreground">{sub}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -129,46 +166,43 @@ const ContractRoiCalculator = () => {
             <Card className="lg:col-span-2 border-2">
               <CardContent className="p-6 space-y-6">
                 <div>
-                  <h2 className="text-xl font-semibold mb-1">Your contract snapshot</h2>
+                  <h2 className="text-xl font-semibold mb-1">Your signed contract portfolio</h2>
                   <p className="text-sm text-muted-foreground">
-                    Rough estimates work — refine later with a sample upload.
+                    Active agreements you've already signed — what's the AI watching?
                   </p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="contracts-year">Contracts signed per year</Label>
+                  <Label htmlFor="active-contracts">Active contracts under management</Label>
                   <Input
-                    id="contracts-year"
+                    id="active-contracts"
                     type="number"
                     className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    value={contractsPerYear}
+                    value={activeContracts}
                     onChange={(e) =>
-                      setContractsPerYear(Math.max(0, Number(e.target.value)))
+                      setActiveContracts(Math.max(0, Number(e.target.value)))
                     }
                   />
                   <Slider
-                    value={[contractsPerYear]}
-                    onValueChange={([v]) => setContractsPerYear(v)}
+                    value={[activeContracts]}
+                    onValueChange={([v]) => setActiveContracts(v)}
                     min={10}
-                    max={2000}
+                    max={3000}
                     step={10}
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="acv">Average contract value</Label>
-                  <div className="relative">
-                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      id="acv"
-                      type="number"
-                      className="pl-9 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                      value={avgContractValue}
-                      onChange={(e) =>
-                        setAvgContractValue(Math.max(0, Number(e.target.value)))
-                      }
-                    />
-                  </div>
+                  <Input
+                    id="acv"
+                    type="number"
+                    className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    value={avgContractValue}
+                    onChange={(e) =>
+                      setAvgContractValue(Math.max(0, Number(e.target.value)))
+                    }
+                  />
                   <Slider
                     value={[avgContractValue]}
                     onValueChange={([v]) => setAvgContractValue(v)}
@@ -179,65 +213,70 @@ const ContractRoiCalculator = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="legal-hours">Legal review hours / contract</Label>
-                  <Input
-                    id="legal-hours"
-                    type="number"
-                    className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    value={legalHoursPerContract}
-                    onChange={(e) =>
-                      setLegalHoursPerContract(Math.max(0, Number(e.target.value)))
-                    }
-                  />
-                  <Slider
-                    value={[legalHoursPerContract]}
-                    onValueChange={([v]) => setLegalHoursPerContract(v)}
-                    min={1}
-                    max={40}
-                    step={1}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Hourly legal cost (loaded)</Label>
+                  <Label>% of contracts with auto-renewal</Label>
                   <div className="grid grid-cols-4 gap-1">
-                    {[120, 180, 280, 450].map((r) => (
+                    {[20, 40, 60, 80].map((p) => (
                       <button
-                        key={r}
+                        key={p}
                         type="button"
-                        onClick={() => setHourlyLegalCost(r)}
+                        onClick={() => setAutoRenewalPct(p)}
                         className={`text-xs py-2 px-1 rounded-md border transition-colors ${
-                          hourlyLegalCost === r
+                          autoRenewalPct === p
                             ? "bg-accent text-accent-foreground border-accent"
                             : "bg-background hover:bg-muted border-border"
                         }`}
                       >
-                        ${r}/hr
+                        {p}%
                       </button>
                     ))}
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="cycle">Avg contract cycle (days)</Label>
-                  <Input
-                    id="cycle"
-                    type="number"
-                    className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    value={cycleDays}
-                    onChange={(e) => setCycleDays(Math.max(0, Number(e.target.value)))}
-                  />
-                  <Slider
-                    value={[cycleDays]}
-                    onValueChange={([v]) => setCycleDays(v)}
-                    min={1}
-                    max={90}
-                    step={1}
-                  />
+                  <Label>% rolling silently each year (missed notice window)</Label>
+                  <div className="grid grid-cols-4 gap-1">
+                    {[5, 10, 15, 25].map((p) => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => setSilentRenewalRate(p)}
+                        className={`text-xs py-2 px-1 rounded-md border transition-colors ${
+                          silentRenewalRate === p
+                            ? "bg-accent text-accent-foreground border-accent"
+                            : "bg-background hover:bg-muted border-border"
+                        }`}
+                      >
+                        {p}%
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Estimated revenue leakage (missed escalators, auto-renewals, SLA credits)</Label>
+                  <Label>Portfolio exposure to risky / off-template clauses</Label>
+                  <div className="grid grid-cols-4 gap-1">
+                    {[3, 8, 12, 18].map((p) => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => setRiskExposurePct(p)}
+                        className={`text-xs py-2 px-1 rounded-md border transition-colors ${
+                          riskExposurePct === p
+                            ? "bg-accent text-accent-foreground border-accent"
+                            : "bg-background hover:bg-muted border-border"
+                        }`}
+                      >
+                        {p}%
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Uncapped liability, weak indemnity, open-ended SLAs, missing audit rights.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Revenue leakage (missed escalators, SLA credits, overages)</Label>
                   <div className="grid grid-cols-4 gap-1">
                     {[1, 3, 5, 8].map((p) => (
                       <button
@@ -269,58 +308,73 @@ const ContractRoiCalculator = () => {
                 <Card className="border-2 border-accent/40 bg-gradient-to-br from-accent/5 to-primary/5">
                   <CardContent className="p-6 md:p-8">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                      <TrendingDown className="w-4 h-4" /> Hidden cost of slow contracts
+                      <TrendingDown className="w-4 h-4" /> Hidden cost of un-watched contracts
                     </div>
                     <div className="text-5xl md:text-6xl font-bold text-accent mb-2">
                       {fmt(results.totalImpact)}
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      Annual value of legal time, faster cycles, and recovered
-                      leakage on {contractsPerYear.toLocaleString()} contracts
-                      ({fmt(results.annualContractedRevenue)} contracted).
+                      Annual value of caught renewals, tracked key dates,
+                      mitigated risk, and recovered leakage across{" "}
+                      {activeContracts.toLocaleString()} contracts
+                      ({fmt(results.portfolioValue)} portfolio).
                     </p>
                   </CardContent>
                 </Card>
               </motion.div>
 
-              <div className="grid sm:grid-cols-3 gap-4">
+              <div className="grid sm:grid-cols-2 gap-4">
                 <Card>
                   <CardContent className="p-5">
                     <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground mb-1">
-                      <Scale className="w-3.5 h-3.5" /> Legal time
+                      <RefreshCw className="w-3.5 h-3.5" /> Renewals intercepted
                     </div>
                     <div className="text-2xl font-bold">
-                      {fmt(results.legalCostSaved)}
+                      {fmt(results.renewalValueSaved)}
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {Math.round(results.legalHoursSaved).toLocaleString()} hrs/yr
-                      saved (70%)
+                      {Math.round(results.renewalsAtRisk).toLocaleString()} silent
+                      auto-renewals surfaced before notice deadline
                     </p>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="p-5">
                     <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground mb-1">
-                      <Clock className="w-3.5 h-3.5" /> Cycle value
+                      <CalendarClock className="w-3.5 h-3.5" /> Key dates caught
                     </div>
                     <div className="text-2xl font-bold">
-                      {fmt(results.cycleValue)}
+                      {fmt(results.keyDateValueSaved)}
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
-                      ~{Math.round(results.daysCompressed)} days faster to revenue
+                      ~{Math.round(results.keyDatesCaught).toLocaleString()} critical
+                      dates surfaced (of {results.keyDatesTracked.toLocaleString()} tracked)
                     </p>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="p-5">
                     <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground mb-1">
-                      <FileSignature className="w-3.5 h-3.5" /> Leakage recovered
+                      <ShieldAlert className="w-3.5 h-3.5" /> AI risk mitigated
+                    </div>
+                    <div className="text-2xl font-bold">
+                      {fmt(results.riskMitigated)}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Of {fmt(results.riskExposureValue)} portfolio exposure flagged on ingest
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-5">
+                    <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground mb-1">
+                      <AlertTriangle className="w-3.5 h-3.5" /> Leakage recovered
                     </div>
                     <div className="text-2xl font-bold">
                       {fmt(results.leakageRecovered)}
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Missed terms caught & enforced
+                      Escalators billed, SLA credits enforced, overages invoiced
                     </p>
                   </CardContent>
                 </Card>
@@ -337,7 +391,7 @@ const ContractRoiCalculator = () => {
                         {fmt(results.platformCost)}/yr
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        {contractsPerYear.toLocaleString()} contracts × ${COST_PER_CONTRACT}/contract
+                        {activeContracts.toLocaleString()} contracts × ${COST_PER_CONTRACT}/contract
                       </p>
                     </div>
                     <div className="text-right">
@@ -357,7 +411,7 @@ const ContractRoiCalculator = () => {
                   <div className="flex items-center justify-between gap-4 flex-wrap">
                     <div>
                       <div className="text-sm opacity-90 mb-1">
-                        Estimated ROI with Contract Intelligence
+                        Estimated ROI on signed-contract intelligence
                       </div>
                       <div className="text-4xl font-bold">
                         {fmtMultiple(results.roiMultiple)}
@@ -390,8 +444,8 @@ const ContractRoiCalculator = () => {
               <div className="grid sm:grid-cols-3 gap-3 pt-2">
                 {[
                   "Upload any PDF / DOCX",
-                  "AI clause extraction",
-                  "Linked to revenue & AR",
+                  "AI clause + risk extraction",
+                  "Renewal & key-date alerts",
                 ].map((t) => (
                   <div
                     key={t}
@@ -406,31 +460,111 @@ const ContractRoiCalculator = () => {
         </div>
       </section>
 
+      {/* What the AI watches */}
+      <section className="py-12 md:py-16 border-t bg-muted/20">
+        <div className="container mx-auto px-4 max-w-6xl">
+          <div className="text-center max-w-2xl mx-auto mb-10">
+            <Badge variant="outline" className="mb-3">
+              <Zap className="w-3 h-3 mr-1" /> Post-signature intelligence
+            </Badge>
+            <h2 className="text-3xl font-bold mb-3">
+              What Recouply watches in every signed agreement
+            </h2>
+            <p className="text-muted-foreground">
+              Drop in your executed PDFs. Within minutes, every contract is
+              read, scored, and wired into a calendar of risk and revenue events.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-5">
+            {[
+              {
+                icon: CalendarClock,
+                title: "Renewal & key dates",
+                points: [
+                  "Auto-renewal & notice windows",
+                  "Termination & opt-out dates",
+                  "Price-step & escalator dates",
+                  "SLA review & true-up periods",
+                ],
+              },
+              {
+                icon: FileSearch,
+                title: "AI clause review",
+                points: [
+                  "Liability caps & carve-outs",
+                  "Indemnification scope",
+                  "Data, IP & confidentiality terms",
+                  "Off-template language flagged",
+                ],
+              },
+              {
+                icon: ShieldAlert,
+                title: "Risk assessments & callouts",
+                points: [
+                  "Per-contract risk score",
+                  "Portfolio risk heatmap",
+                  "Unusual obligations surfaced",
+                  "Action queue with owner & due date",
+                ],
+              },
+            ].map(({ icon: Icon, title, points }) => (
+              <Card key={title} className="border-2">
+                <CardContent className="p-6">
+                  <div className="w-10 h-10 rounded-lg bg-accent/10 text-accent flex items-center justify-center mb-3">
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-3">{title}</h3>
+                  <ul className="space-y-2">
+                    {points.map((p) => (
+                      <li
+                        key={p}
+                        className="flex items-start gap-2 text-sm text-muted-foreground"
+                      >
+                        <CheckCircle2 className="w-4 h-4 text-accent mt-0.5 shrink-0" />
+                        <span>{p}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Methodology */}
       <section className="py-12 bg-muted/30 border-t">
         <div className="container mx-auto px-4 max-w-4xl">
           <h2 className="text-2xl font-bold mb-4">How we calculate it</h2>
-          <div className="grid md:grid-cols-3 gap-6 text-sm text-muted-foreground">
+          <div className="grid md:grid-cols-2 gap-6 text-sm text-muted-foreground">
             <div>
-              <div className="font-semibold text-foreground mb-1">Legal time saved</div>
-              Contracts × review hours × hourly cost × 70%. Contract Intelligence
-              extracts clauses, redlines, and obligations automatically — your team
-              reviews exceptions, not entire documents.
+              <div className="font-semibold text-foreground mb-1">Renewals intercepted</div>
+              Auto-renewal share × silent-rollover rate × 70% intercept rate × 8%
+              negotiation uplift on intercepted contracts. AI surfaces every
+              upcoming renewal at 90 / 60 / 30 days before the notice window closes.
             </div>
             <div>
-              <div className="font-semibold text-foreground mb-1">Cycle compression</div>
-              60% faster signature, valued at your cost of capital (18%) against
-              annual contracted revenue. Faster contracts = faster revenue recognition.
+              <div className="font-semibold text-foreground mb-1">Key dates caught</div>
+              ~4 critical dates per contract (notice, price-step, SLA review,
+              termination). Industry baseline: 12% missed. AI calendar catches
+              90% and converts each into a 1.5% value event.
+            </div>
+            <div>
+              <div className="font-semibold text-foreground mb-1">AI risk mitigated</div>
+              Portfolio value × risk-exposed share × 60% recovery. AI scores
+              every clause on ingest — uncapped liability, weak indemnity,
+              open-ended SLAs — and routes findings into the action queue.
             </div>
             <div>
               <div className="font-semibold text-foreground mb-1">Leakage recovered</div>
-              60% of estimated revenue leakage (missed price escalators,
-              silent auto-renewals, unclaimed SLA credits) caught by AI clause
+              60% of estimated revenue leakage — missed price escalators,
+              unclaimed SLA credits, un-invoiced overages — caught by AI clause
               monitoring linked to your invoices.
             </div>
           </div>
           <p className="text-xs text-muted-foreground mt-6">
-            Estimates only. Real results depend on contract mix, template
+            Estimates only. Real results depend on contract mix, clause
             standardization, and team workflow. Get a personalized walkthrough
             on a{" "}
             <Link to="/contract-intelligence" className="text-accent underline">
