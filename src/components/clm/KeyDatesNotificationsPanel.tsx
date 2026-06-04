@@ -295,21 +295,71 @@ export const KeyDatesNotificationsPanel = ({ importId, dates }: Props) => {
                     />
                   </div>
                   {c.enabled && wantsEmail && (
-                    <div className="flex items-center gap-2 pl-1">
-                      <Mail className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                      <Input
-                        placeholder="teammate@company.com, finance@company.com"
-                        value={c.emails}
-                        onChange={(e) =>
-                          setCfg({ ...cfg, [d.id]: { ...c, emails: e.target.value } })
-                        }
-                        className="h-7 text-xs flex-1"
-                      />
+                    <div className="flex items-start gap-2 pl-1">
+                      <Mail className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-1.5" />
+                      <div className="flex-1 min-w-0">
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 w-full justify-between text-xs font-normal"
+                            >
+                              <span className="flex items-center gap-1.5 min-w-0 truncate">
+                                <Users className="h-3 w-3 shrink-0" />
+                                {c.emails.length === 0
+                                  ? "Select teammates…"
+                                  : `${c.emails.length} teammate${c.emails.length === 1 ? "" : "s"}: ${c.emails.slice(0, 2).join(", ")}${c.emails.length > 2 ? ` +${c.emails.length - 2}` : ""}`}
+                              </span>
+                              <ChevronDown className="h-3 w-3 opacity-50 shrink-0" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[320px] p-2" align="start">
+                            {teamMembers.length === 0 ? (
+                              <div className="p-3 text-xs text-muted-foreground space-y-2">
+                                <p>No teammates invited yet.</p>
+                                <Button asChild size="sm" variant="outline" className="w-full h-7 text-xs">
+                                  <a href="/team">Invite team members</a>
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="max-h-64 overflow-y-auto space-y-1">
+                                {teamMembers.map((m) => {
+                                  const checked = c.emails.includes(m.email);
+                                  return (
+                                    <label
+                                      key={m.email}
+                                      className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer text-xs"
+                                    >
+                                      <Checkbox
+                                        checked={checked}
+                                        onCheckedChange={(v) => {
+                                          const next = v
+                                            ? Array.from(new Set([...c.emails, m.email]))
+                                            : c.emails.filter((e) => e !== m.email);
+                                          setCfg({ ...cfg, [d.id]: { ...c, emails: next } });
+                                        }}
+                                      />
+                                      <span className="flex-1 truncate">{m.email}</span>
+                                      {m.role && (
+                                        <span className="text-[10px] text-muted-foreground capitalize">
+                                          {String(m.role).replace(/_/g, " ")}
+                                        </span>
+                                      )}
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </PopoverContent>
+                        </Popover>
+                      </div>
                       <Button
                         size="sm"
                         variant="outline"
-                        className="h-7 text-xs"
+                        className="h-8 text-xs"
                         onClick={() => sendTest(d.id)}
+                        disabled={c.emails.length === 0}
                       >
                         <Send className="h-3 w-3 mr-1" />
                         Test
