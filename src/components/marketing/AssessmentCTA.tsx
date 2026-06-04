@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Brain, ArrowRight, TrendingUp } from "lucide-react";
+import { Brain, ArrowRight, TrendingUp, Calculator } from "lucide-react";
 
 const AssessmentCTA = () => {
   const navigate = useNavigate();
@@ -26,17 +26,31 @@ const AssessmentCTA = () => {
           <p className="text-muted-foreground mb-8 text-base md:text-lg">
             Answer 5 questions and our AI agents calculate your risk tier, expected credit loss, and a personalized recovery plan — instantly.
           </p>
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.98 }}>
-            <Button
-              size="lg"
-              onClick={() => navigate("/collections-assessment")}
-              className="text-lg px-8 py-6 shadow-lg shadow-primary/20 group"
-            >
-              <Brain className="h-5 w-5 mr-2" />
-              Get Your Risk Assessment
-              <ArrowRight className="h-5 w-5 ml-2 group-hover:translate-x-1 transition-transform" />
-            </Button>
-          </motion.div>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.98 }}>
+              <Button
+                size="lg"
+                onClick={() => navigate("/collections-assessment")}
+                className="text-lg px-8 py-6 shadow-lg shadow-primary/20 group"
+              >
+                <Brain className="h-5 w-5 mr-2" />
+                Get Your Risk Assessment
+                <ArrowRight className="h-5 w-5 ml-2 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </motion.div>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.98 }}>
+              <Button
+                size="lg"
+                variant="outline"
+                onClick={() => navigate("/roi-calculator")}
+                className="text-lg px-8 py-6 group border-primary/30"
+              >
+                <Calculator className="h-5 w-5 mr-2" />
+                Calculate Your ROI
+                <ArrowRight className="h-5 w-5 ml-2 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </motion.div>
+          </div>
           <p className="mt-4 text-sm text-muted-foreground">
             AI-powered revenue risk scoring • ECL estimates • Personalized recovery playbook
           </p>
