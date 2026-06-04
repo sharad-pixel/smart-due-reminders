@@ -181,11 +181,20 @@ import { COMPANY_INFO } from "@/lib/companyConfig";
                 </li>
                 <li>
                   <button 
-                    onClick={() => navigate("/collections-assessment")}
+                    onClick={() => navigate("/roi-calculator")}
                     className="text-muted-foreground hover:text-primary flex items-center gap-1"
                   >
                     <ClipboardCheck className="h-3 w-3" />
-                    Free Assessment
+                    ROI Calculator
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => navigate("/contract-roi-calculator")}
+                    className="text-muted-foreground hover:text-primary flex items-center gap-1"
+                  >
+                    <ClipboardCheck className="h-3 w-3" />
+                    Contract ROI
                   </button>
                 </li>
               </ul>
