@@ -4,6 +4,16 @@
  */
 import type { RevenueRiskData, TopRiskAccount, InvoiceScore } from "@/hooks/useRevenueRisk";
 
+// HTML escape helper — prevents stored XSS via debtor names or AI-generated text
+// when interpolated into the print template below.
+const escHtml = (s: unknown): string =>
+  String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
 // ===== CSV EXPORT =====
 
 function escapeCsv(value: string | number | boolean | null | undefined): string {

@@ -92,7 +92,7 @@ export function SmartIngestionSection() {
       const accountId = (_eff as string | null) || user?.id;
       if (!user) return null;
       const { data } = await supabase
-        .from("drive_connections")
+        .from("drive_connections_safe" as any)
         .select("*")
         .eq("user_id", accountId)
         .eq("is_active", true)
