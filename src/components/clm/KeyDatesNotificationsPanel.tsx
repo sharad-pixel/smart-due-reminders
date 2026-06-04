@@ -54,11 +54,38 @@ const labelFor = (t: string) =>
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-type Cfg = { enabled: boolean; lead: number; channel: "in_app" | "email" | "both"; emails: string };
+type Cfg = { enabled: boolean; lead: number; channel: "in_app" | "email" | "both"; emails: string[] };
+
+type TeamMember = { email: string; label: string; role?: string | null };
 
 export const KeyDatesNotificationsPanel = ({ importId, dates }: Props) => {
   const qc = useQueryClient();
+  const { accountId } = useClmEntitlement();
   const [cfg, setCfg] = useState<Record<string, Cfg>>({});
+
+  const { data: teamMembers = [] } = useQuery<TeamMember[]>({
+    queryKey: ["clm-team-members", accountId],
+    enabled: !!accountId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("account_users")
+        .select("email, role, status, user_id")
+        .eq("account_id", accountId!)
+        .in("status", ["active", "pending"])
+        .not("email", "is", null);
+      const rows = (data || []).filter((r: any) => r.email);
+      // De-dupe by email
+      const seen = new Set<string>();
+      const list: TeamMember[] = [];
+      for (const r of rows) {
+        const email = String(r.email).trim().toLowerCase();
+        if (!email || seen.has(email)) continue;
+        seen.add(email);
+        list.push({ email, label: email, role: r.role });
+      }
+      return list.sort((a, b) => a.email.localeCompare(b.email));
+    },
+  });
 
   useEffect(() => {
     const init: Record<string, Cfg> = {};
@@ -69,7 +96,7 @@ export const KeyDatesNotificationsPanel = ({ importId, dates }: Props) => {
         channel: (["in_app", "email", "both"] as const).includes(d.notify_channel as any)
           ? (d.notify_channel as any)
           : "in_app",
-        emails: Array.isArray(d.notify_emails) ? d.notify_emails.join(", ") : "",
+        emails: Array.isArray(d.notify_emails) ? d.notify_emails.filter(Boolean) : [],
       };
     });
     setCfg(init);
@@ -79,9 +106,6 @@ export const KeyDatesNotificationsPanel = ({ importId, dates }: Props) => {
     () => [...dates].sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime()),
     [dates]
   );
-
-  const parseEmails = (s: string) =>
-    s.split(/[,\s;]+/).map((e) => e.trim()).filter(Boolean);
 
   const recalc = useMutation({
     mutationFn: async () => {
@@ -102,10 +126,9 @@ export const KeyDatesNotificationsPanel = ({ importId, dates }: Props) => {
   const save = useMutation({
     mutationFn: async () => {
       const payload = Object.entries(cfg).map(([id, v]) => {
-        const emails = parseEmails(v.emails);
-        const invalid = emails.filter((e) => !EMAIL_RE.test(e));
-        if (invalid.length) {
-          throw new Error(`Invalid email${invalid.length === 1 ? "" : "s"}: ${invalid.join(", ")}`);
+        const emails = (v.emails || []).map((e) => e.trim().toLowerCase()).filter((e) => EMAIL_RE.test(e));
+        if ((v.channel === "email" || v.channel === "both") && v.enabled && emails.length === 0) {
+          throw new Error("Select at least one teammate when notifying by email.");
         }
         return { id, enabled: v.enabled, lead_days: v.lead, channel: v.channel, emails };
       });
