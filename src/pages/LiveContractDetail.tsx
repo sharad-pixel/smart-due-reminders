@@ -72,6 +72,7 @@ import { ContractStatusStepper } from "@/components/contracts/ContractStatusStep
 import { ContractSupportingDocsPanel } from "@/components/contracts/ContractSupportingDocsPanel";
 import { ContractLinksPanel } from "@/components/clm/ContractLinksPanel";
 import { ContractComplianceChecklist } from "@/components/clm/ContractComplianceChecklist";
+import { ContractDetailSubHeader } from "@/components/clm/ContractDetailSubHeader";
 
 const FIN_KEYS = new Set<string>([
   ...Array.from(AMOUNT_KEYS),
