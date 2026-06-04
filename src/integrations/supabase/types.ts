@@ -5694,6 +5694,13 @@ export type Database = {
             referencedRelation: "email_sending_profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "dns_verification_logs_email_profile_id_fkey"
+            columns: ["email_profile_id"]
+            isOneToOne: false
+            referencedRelation: "email_sending_profiles_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       document_access_log: {
@@ -6364,6 +6371,13 @@ export type Database = {
             referencedRelation: "email_accounts"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "email_connection_logs_email_account_id_fkey"
+            columns: ["email_account_id"]
+            isOneToOne: false
+            referencedRelation: "email_accounts_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       email_sending_profiles: {
@@ -6695,6 +6709,13 @@ export type Database = {
             columns: ["connection_id"]
             isOneToOne: false
             referencedRelation: "drive_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "google_sheet_templates_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "drive_connections_safe"
             referencedColumns: ["id"]
           },
           {
@@ -7182,6 +7203,13 @@ export type Database = {
             columns: ["connection_id"]
             isOneToOne: false
             referencedRelation: "drive_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingestion_scanned_files_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "drive_connections_safe"
             referencedColumns: ["id"]
           },
           {
@@ -12454,6 +12482,268 @@ export type Database = {
           user_id: string | null
         }
         Relationships: []
+      }
+      drive_connections_safe: {
+        Row: {
+          created_at: string | null
+          folder_id: string | null
+          folder_name: string | null
+          id: string | null
+          is_active: boolean | null
+          last_sync_at: string | null
+          organization_id: string | null
+          provider: string | null
+          sync_frequency: string | null
+          token_expires_at: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          folder_id?: string | null
+          folder_name?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          last_sync_at?: string | null
+          organization_id?: string | null
+          provider?: string | null
+          sync_frequency?: string | null
+          token_expires_at?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          folder_id?: string | null
+          folder_name?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          last_sync_at?: string | null
+          organization_id?: string | null
+          provider?: string | null
+          sync_frequency?: string | null
+          token_expires_at?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drive_connections_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_accounts_safe: {
+        Row: {
+          auth_method: string | null
+          connection_status: string | null
+          created_at: string | null
+          display_name: string | null
+          dkim_status: string | null
+          email_address: string | null
+          email_type: string | null
+          error_message: string | null
+          id: string | null
+          imap_host: string | null
+          imap_port: number | null
+          imap_use_tls: boolean | null
+          imap_username: string | null
+          is_active: boolean | null
+          is_primary: boolean | null
+          is_verified: boolean | null
+          last_successful_send: string | null
+          last_sync_at: string | null
+          last_verified_at: string | null
+          provider: string | null
+          smtp_host: string | null
+          smtp_port: number | null
+          smtp_use_tls: boolean | null
+          smtp_username: string | null
+          spf_status: string | null
+          token_expires_at: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          auth_method?: string | null
+          connection_status?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          dkim_status?: string | null
+          email_address?: string | null
+          email_type?: string | null
+          error_message?: string | null
+          id?: string | null
+          imap_host?: string | null
+          imap_port?: number | null
+          imap_use_tls?: boolean | null
+          imap_username?: string | null
+          is_active?: boolean | null
+          is_primary?: boolean | null
+          is_verified?: boolean | null
+          last_successful_send?: string | null
+          last_sync_at?: string | null
+          last_verified_at?: string | null
+          provider?: string | null
+          smtp_host?: string | null
+          smtp_port?: number | null
+          smtp_use_tls?: boolean | null
+          smtp_username?: string | null
+          spf_status?: string | null
+          token_expires_at?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          auth_method?: string | null
+          connection_status?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          dkim_status?: string | null
+          email_address?: string | null
+          email_type?: string | null
+          error_message?: string | null
+          id?: string | null
+          imap_host?: string | null
+          imap_port?: number | null
+          imap_use_tls?: boolean | null
+          imap_username?: string | null
+          is_active?: boolean | null
+          is_primary?: boolean | null
+          is_verified?: boolean | null
+          last_successful_send?: string | null
+          last_sync_at?: string | null
+          last_verified_at?: string | null
+          provider?: string | null
+          smtp_host?: string | null
+          smtp_port?: number | null
+          smtp_use_tls?: boolean | null
+          smtp_username?: string | null
+          spf_status?: string | null
+          token_expires_at?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_accounts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_accounts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_admin_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_accounts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_team_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_sending_profiles_safe: {
+        Row: {
+          bounce_rate: number | null
+          created_at: string | null
+          dkim_record: string | null
+          dkim_validated: boolean | null
+          dmarc_record: string | null
+          dmarc_validated: boolean | null
+          domain: string | null
+          domain_reputation: string | null
+          id: string | null
+          is_active: boolean | null
+          last_verified_at: string | null
+          return_path_record: string | null
+          sender_email: string | null
+          sender_name: string | null
+          spam_complaint_rate: number | null
+          spf_record: string | null
+          spf_validated: boolean | null
+          updated_at: string | null
+          use_recouply_domain: boolean | null
+          user_id: string | null
+          verification_status: string | null
+        }
+        Insert: {
+          bounce_rate?: number | null
+          created_at?: string | null
+          dkim_record?: string | null
+          dkim_validated?: boolean | null
+          dmarc_record?: string | null
+          dmarc_validated?: boolean | null
+          domain?: string | null
+          domain_reputation?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          last_verified_at?: string | null
+          return_path_record?: string | null
+          sender_email?: string | null
+          sender_name?: string | null
+          spam_complaint_rate?: number | null
+          spf_record?: string | null
+          spf_validated?: boolean | null
+          updated_at?: string | null
+          use_recouply_domain?: boolean | null
+          user_id?: string | null
+          verification_status?: string | null
+        }
+        Update: {
+          bounce_rate?: number | null
+          created_at?: string | null
+          dkim_record?: string | null
+          dkim_validated?: boolean | null
+          dmarc_record?: string | null
+          dmarc_validated?: boolean | null
+          domain?: string | null
+          domain_reputation?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          last_verified_at?: string | null
+          return_path_record?: string | null
+          sender_email?: string | null
+          sender_name?: string | null
+          spam_complaint_rate?: number | null
+          spf_record?: string | null
+          spf_validated?: boolean | null
+          updated_at?: string | null
+          use_recouply_domain?: boolean | null
+          user_id?: string | null
+          verification_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_sending_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_sending_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_admin_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_sending_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_team_safe"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles_admin_safe: {
         Row: {
