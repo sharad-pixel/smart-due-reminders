@@ -62,6 +62,7 @@ const StripeSyncDiagnostics = lazy(() => import("./pages/StripeSyncDiagnostics")
 const CollectionIntelligence = lazy(() => import("./pages/CollectionIntelligence"));
 const CollectionsAssessment = lazy(() => import("./pages/CollectionsAssessment"));
 const RoiCalculator = lazy(() => import("./pages/RoiCalculator"));
+const ContractRoiCalculator = lazy(() => import("./pages/ContractRoiCalculator"));
 const WhyCollectionsMatter = lazy(() => import("./pages/WhyCollectionsMatter"));
 const Personas = lazy(() => import("./pages/Personas"));
 const AICommandCenter = lazy(() => import("./pages/AICommandCenter"));
