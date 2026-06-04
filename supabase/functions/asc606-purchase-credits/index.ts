@@ -9,14 +9,18 @@ const corsHeaders = {
 
 // Saved Stripe Prices — created via best-practice product catalog.
 // Pre-Paid = $0.80 / credit (20% off). Standard = $1.00 / credit (settles overage / on-demand).
+// Overage settlement uses a unified "Overage Usage Credits" product across services
+// so the Stripe Checkout line item reads clearly regardless of service.
+const OVERAGE_PRICE = "price_1TePtGBfb0dWgtCDci2IbxQR"; // prod_UdhHUkm9C5fkA9 — Overage Usage Credits ($1.00/credit)
+
 const PRICES = {
   asc606: {
     prepaid:  "price_1TYFgmBfb0dWgtCDIaaL5dvT", // prod_UXKLFadIY9f2s3 — ASC 606 Pre-Paid
-    standard: "price_1TYFglBfb0dWgtCDX9KFPLad", // prod_UXKLLQyB4mrqc0 — ASC 606 Standard
+    standard: OVERAGE_PRICE,
   },
   ingestion: {
     prepaid:  "price_1TYFgoBfb0dWgtCDLBY0eP9X", // prod_UXKLaYtuK4nRNL — AI Smart Ingestion Pre-Paid
-    standard: "price_1TYFgnBfb0dWgtCDovv6VAkP", // prod_UXKLHoNT4kEKX3 — AI Smart Ingestion Standard
+    standard: OVERAGE_PRICE,
   },
 } as const;
 
