@@ -109,20 +109,14 @@ const MarketingLayout = ({ children }: MarketingLayoutProps) => {
             >
               Pricing
             </button>
-            <button 
-              onClick={() => navigate("/roi-calculator")}
-              className="text-foreground hover:text-primary transition-colors py-2 flex items-center gap-1.5"
-            >
-              <Calculator className="h-3.5 w-3.5" />
-              ROI
-            </button>
-            <button 
-              onClick={() => navigate("/contract-roi-calculator")}
-              className="text-foreground hover:text-primary transition-colors py-2 flex items-center gap-1.5"
-            >
-              <FileSignature className="h-3.5 w-3.5" />
-              Contract ROI
-            </button>
+            <NavDropdown
+              label="ROI"
+              navigate={navigate}
+              items={[
+                { icon: Calculator, title: "Collections ROI Calculator", description: "Cost of delay & write-off risk estimator", path: "/roi-calculator" },
+                { icon: FileSignature, title: "Contract Intelligence ROI", description: "Revenue leakage from signed agreements", path: "/contract-roi-calculator" },
+              ]}
+            />
             <button 
               onClick={() => navigate("/about")}
               className="text-foreground hover:text-primary transition-colors py-2"
