@@ -12488,6 +12488,7 @@ export type Database = {
           created_at: string | null
           folder_id: string | null
           folder_name: string | null
+          has_refresh_token: boolean | null
           id: string | null
           is_active: boolean | null
           last_sync_at: string | null
@@ -12502,6 +12503,7 @@ export type Database = {
           created_at?: string | null
           folder_id?: string | null
           folder_name?: string | null
+          has_refresh_token?: never
           id?: string | null
           is_active?: boolean | null
           last_sync_at?: string | null
@@ -12516,6 +12518,7 @@ export type Database = {
           created_at?: string | null
           folder_id?: string | null
           folder_name?: string | null
+          has_refresh_token?: never
           id?: string | null
           is_active?: boolean | null
           last_sync_at?: string | null
