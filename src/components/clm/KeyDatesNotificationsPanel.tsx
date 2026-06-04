@@ -217,7 +217,7 @@ export const KeyDatesNotificationsPanel = ({ importId, dates }: Props) => {
         ) : (
           <div className="space-y-2">
             {sorted.map((d) => {
-              const c = cfg[d.id] || { enabled: false, lead: 30, channel: "in_app" as const, emails: "" };
+              const c: Cfg = cfg[d.id] || { enabled: false, lead: 30, channel: "in_app", emails: [] };
               const daysUntil = Math.ceil(
                 (new Date(d.due_date).getTime() - today) / 86400000
               );
