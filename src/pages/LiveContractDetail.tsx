@@ -446,6 +446,16 @@ const LiveContractDetailInner = () => {
         }
       />
 
+      <ContractDetailSubHeader
+        importId={c.id}
+        initialContractType={c.contract_type}
+        onChanged={() => qc.invalidateQueries({ queryKey: ["live-contract-detail", importId] })}
+        onScrollToLinks={() => {
+          const el = document.getElementById("contract-links");
+          if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+        }}
+      />
+
       <ContractStatusStepper importId={c.id} status={c.status} />
 
       <ContractPageNav />
