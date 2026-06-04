@@ -598,7 +598,7 @@ const LiveContractDetailInner = () => {
       </section>
 
       {/* ============ 2. TERM & KEY DATES ============ */}
-      <section id="term-dates" className="space-y-4 scroll-mt-16">
+      <section id="term-dates" className="space-y-3 scroll-mt-16">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
           <CalendarClock className="h-3.5 w-3.5" /> Term & Key Dates
         </h2>
@@ -613,7 +613,7 @@ const LiveContractDetailInner = () => {
       </section>
 
       {/* ============ 3. RISK & READINESS ============ */}
-      <section id="risk" className="space-y-4 scroll-mt-16">
+      <section id="risk" className="space-y-3 scroll-mt-16">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
           <ShieldAlert className="h-3.5 w-3.5" /> Risk & Readiness
         </h2>
@@ -636,7 +636,7 @@ const LiveContractDetailInner = () => {
       </section>
 
       {/* ============ 4. INVOICING & COLLECTIBILITY ============ */}
-      <section id="invoicing" className="space-y-4 scroll-mt-16">
+      <section id="invoicing" className="space-y-3 scroll-mt-16">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
           <FileSignature className="h-3.5 w-3.5" /> Invoicing & Collectibility
         </h2>
@@ -661,7 +661,7 @@ const LiveContractDetailInner = () => {
       </section>
 
       {/* ============ 5. CUSTOM TRIGGERS ============ */}
-      <section id="triggers" className="space-y-4 scroll-mt-16">
+      <section id="triggers" className="space-y-3 scroll-mt-16">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
           <FileCheck2 className="h-3.5 w-3.5" /> Custom Triggers
         </h2>
@@ -673,7 +673,7 @@ const LiveContractDetailInner = () => {
       </section>
 
       {/* ============ ALL EXTRACTED TERMS ============ */}
-      <section id="all-terms" className="space-y-4 scroll-mt-16">
+      <section id="all-terms" className="space-y-3 scroll-mt-16">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
           <FileSignature className="h-3.5 w-3.5" /> All Extracted Terms
         </h2>
