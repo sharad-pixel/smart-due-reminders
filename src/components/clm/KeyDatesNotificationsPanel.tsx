@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useClmEntitlement } from "@/hooks/useClmEntitlement";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -13,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { BellRing, CalendarClock, Loader2, RefreshCw, CheckCircle2, Send, Mail } from "lucide-react";
+import { BellRing, CalendarClock, Loader2, RefreshCw, CheckCircle2, Send, Mail, Users, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { formatDateShort } from "@/lib/formatters";
 
@@ -51,11 +54,38 @@ const labelFor = (t: string) =>
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-type Cfg = { enabled: boolean; lead: number; channel: "in_app" | "email" | "both"; emails: string };
+type Cfg = { enabled: boolean; lead: number; channel: "in_app" | "email" | "both"; emails: string[] };
+
+type TeamMember = { email: string; label: string; role?: string | null };
 
 export const KeyDatesNotificationsPanel = ({ importId, dates }: Props) => {
   const qc = useQueryClient();
+  const { accountId } = useClmEntitlement();
   const [cfg, setCfg] = useState<Record<string, Cfg>>({});
+
+  const { data: teamMembers = [] } = useQuery<TeamMember[]>({
+    queryKey: ["clm-team-members", accountId],
+    enabled: !!accountId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("account_users")
+        .select("email, role, status, user_id")
+        .eq("account_id", accountId!)
+        .in("status", ["active", "pending"])
+        .not("email", "is", null);
+      const rows = (data || []).filter((r: any) => r.email);
+      // De-dupe by email
+      const seen = new Set<string>();
+      const list: TeamMember[] = [];
+      for (const r of rows) {
+        const email = String(r.email).trim().toLowerCase();
+        if (!email || seen.has(email)) continue;
+        seen.add(email);
+        list.push({ email, label: email, role: r.role });
+      }
+      return list.sort((a, b) => a.email.localeCompare(b.email));
+    },
+  });
 
   useEffect(() => {
     const init: Record<string, Cfg> = {};
@@ -66,7 +96,7 @@ export const KeyDatesNotificationsPanel = ({ importId, dates }: Props) => {
         channel: (["in_app", "email", "both"] as const).includes(d.notify_channel as any)
           ? (d.notify_channel as any)
           : "in_app",
-        emails: Array.isArray(d.notify_emails) ? d.notify_emails.join(", ") : "",
+        emails: Array.isArray(d.notify_emails) ? d.notify_emails.filter(Boolean) : [],
       };
     });
     setCfg(init);
@@ -76,9 +106,6 @@ export const KeyDatesNotificationsPanel = ({ importId, dates }: Props) => {
     () => [...dates].sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime()),
     [dates]
   );
-
-  const parseEmails = (s: string) =>
-    s.split(/[,\s;]+/).map((e) => e.trim()).filter(Boolean);
 
   const recalc = useMutation({
     mutationFn: async () => {
@@ -99,10 +126,9 @@ export const KeyDatesNotificationsPanel = ({ importId, dates }: Props) => {
   const save = useMutation({
     mutationFn: async () => {
       const payload = Object.entries(cfg).map(([id, v]) => {
-        const emails = parseEmails(v.emails);
-        const invalid = emails.filter((e) => !EMAIL_RE.test(e));
-        if (invalid.length) {
-          throw new Error(`Invalid email${invalid.length === 1 ? "" : "s"}: ${invalid.join(", ")}`);
+        const emails = (v.emails || []).map((e) => e.trim().toLowerCase()).filter((e) => EMAIL_RE.test(e));
+        if ((v.channel === "email" || v.channel === "both") && v.enabled && emails.length === 0) {
+          throw new Error("Select at least one teammate when notifying by email.");
         }
         return { id, enabled: v.enabled, lead_days: v.lead, channel: v.channel, emails };
       });
@@ -191,7 +217,7 @@ export const KeyDatesNotificationsPanel = ({ importId, dates }: Props) => {
         ) : (
           <div className="space-y-2">
             {sorted.map((d) => {
-              const c = cfg[d.id] || { enabled: false, lead: 30, channel: "in_app" as const, emails: "" };
+              const c: Cfg = cfg[d.id] || { enabled: false, lead: 30, channel: "in_app", emails: [] };
               const daysUntil = Math.ceil(
                 (new Date(d.due_date).getTime() - today) / 86400000
               );
@@ -269,21 +295,71 @@ export const KeyDatesNotificationsPanel = ({ importId, dates }: Props) => {
                     />
                   </div>
                   {c.enabled && wantsEmail && (
-                    <div className="flex items-center gap-2 pl-1">
-                      <Mail className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                      <Input
-                        placeholder="teammate@company.com, finance@company.com"
-                        value={c.emails}
-                        onChange={(e) =>
-                          setCfg({ ...cfg, [d.id]: { ...c, emails: e.target.value } })
-                        }
-                        className="h-7 text-xs flex-1"
-                      />
+                    <div className="flex items-start gap-2 pl-1">
+                      <Mail className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-1.5" />
+                      <div className="flex-1 min-w-0">
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 w-full justify-between text-xs font-normal"
+                            >
+                              <span className="flex items-center gap-1.5 min-w-0 truncate">
+                                <Users className="h-3 w-3 shrink-0" />
+                                {c.emails.length === 0
+                                  ? "Select teammates…"
+                                  : `${c.emails.length} teammate${c.emails.length === 1 ? "" : "s"}: ${c.emails.slice(0, 2).join(", ")}${c.emails.length > 2 ? ` +${c.emails.length - 2}` : ""}`}
+                              </span>
+                              <ChevronDown className="h-3 w-3 opacity-50 shrink-0" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[320px] p-2" align="start">
+                            {teamMembers.length === 0 ? (
+                              <div className="p-3 text-xs text-muted-foreground space-y-2">
+                                <p>No teammates invited yet.</p>
+                                <Button asChild size="sm" variant="outline" className="w-full h-7 text-xs">
+                                  <a href="/team">Invite team members</a>
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="max-h-64 overflow-y-auto space-y-1">
+                                {teamMembers.map((m) => {
+                                  const checked = c.emails.includes(m.email);
+                                  return (
+                                    <label
+                                      key={m.email}
+                                      className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer text-xs"
+                                    >
+                                      <Checkbox
+                                        checked={checked}
+                                        onCheckedChange={(v) => {
+                                          const next = v
+                                            ? Array.from(new Set([...c.emails, m.email]))
+                                            : c.emails.filter((e) => e !== m.email);
+                                          setCfg({ ...cfg, [d.id]: { ...c, emails: next } });
+                                        }}
+                                      />
+                                      <span className="flex-1 truncate">{m.email}</span>
+                                      {m.role && (
+                                        <span className="text-[10px] text-muted-foreground capitalize">
+                                          {String(m.role).replace(/_/g, " ")}
+                                        </span>
+                                      )}
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </PopoverContent>
+                        </Popover>
+                      </div>
                       <Button
                         size="sm"
                         variant="outline"
-                        className="h-7 text-xs"
+                        className="h-8 text-xs"
                         onClick={() => sendTest(d.id)}
+                        disabled={c.emails.length === 0}
                       >
                         <Send className="h-3 w-3 mr-1" />
                         Test
