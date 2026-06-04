@@ -238,9 +238,13 @@ const App = () => (
               <Route path="/features" element={<Features />} />
               <Route path="/collection-intelligence" element={<CollectionIntelligence />} />
               <Route path="/revenue-intelligence" element={<RevenueIntelligenceHub />} />
-              <Route path="/collections-assessment" element={<CollectionsAssessment />} />
+              {/* Legacy: revenue assessment replaced by ROI calculator */}
+              <Route path="/collections-assessment" element={<Navigate to="/roi-calculator" replace />} />
               <Route path="/roi-calculator" element={<RoiCalculator />} />
               <Route path="/roi" element={<RoiCalculator />} />
+              <Route path="/contract-roi-calculator" element={<ContractRoiCalculator />} />
+              <Route path="/contract-roi" element={<ContractRoiCalculator />} />
+              <Route path="/clm-roi" element={<ContractRoiCalculator />} />
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/personas" element={<Personas />} />
               <Route path="/ai-command-center" element={<AICommandCenter />} />
