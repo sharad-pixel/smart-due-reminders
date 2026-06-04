@@ -100,6 +100,7 @@ const LiveContractDetailInner = () => {
   const [confirmArchive, setConfirmArchive] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [archiving, setArchiving] = useState(false);
+  const [revFilter, setRevFilter] = useState<"all" | "recurring" | "services" | "fixed">("all");
 
   const handleDelete = async () => {
     if (!importId) return;
