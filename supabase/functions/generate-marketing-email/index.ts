@@ -207,13 +207,32 @@ Generate the email content now.`;
       }
     }
 
-    // Add CTA button if provided
+    // Add CTA button if provided — validate URL scheme and escape text to prevent XSS
     if (cta_text && cta_link) {
-      emailContent.body_html += `
+      const escapeHtml = (s: string) =>
+        String(s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      let safeLink = "";
+      try {
+        const parsed = new URL(String(cta_link));
+        if (parsed.protocol === "https:" || parsed.protocol === "http:" || parsed.protocol === "mailto:") {
+          safeLink = parsed.toString();
+        }
+      } catch {
+        safeLink = "";
+      }
+      if (safeLink) {
+        const safeText = escapeHtml(cta_text);
+        emailContent.body_html += `
 <p style="text-align: center; margin-top: 24px;">
-  <a href="${cta_link}" style="display: inline-block; background-color: #1e3a5f; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600;">${cta_text}</a>
+  <a href="${escapeHtml(safeLink)}" style="display: inline-block; background-color: #1e3a5f; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600;">${safeText}</a>
 </p>`;
-      emailContent.body_text += `\n\n${cta_text}: ${cta_link}`;
+        emailContent.body_text += `\n\n${cta_text}: ${safeLink}`;
+      }
     }
 
     console.log("Marketing email generated successfully");
