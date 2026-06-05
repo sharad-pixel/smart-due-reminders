@@ -428,7 +428,7 @@ export const BroadcastActionsCard = ({
               )}
               <div
                 className="p-4 border rounded-lg bg-white prose prose-sm max-w-none"
-                dangerouslySetInnerHTML={{ __html: previewBroadcast.body_html }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(previewBroadcast.body_html) }}
               />
             </div>
           )}
