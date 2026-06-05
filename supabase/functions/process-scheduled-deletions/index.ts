@@ -18,24 +18,26 @@ Deno.serve(async (req) => {
       auth: { persistSession: false }
     });
 
-    // Verify caller is admin or service role
+    // Auth is REQUIRED. Allow service-role key directly, otherwise require admin JWT.
     const authHeader = req.headers.get('Authorization');
-    if (authHeader) {
-      const token = authHeader.replace('Bearer ', '');
-      // Allow service role key directly
-      if (token !== serviceRoleKey) {
-        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-        if (authError || !user) {
-          return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-            status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
-        const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single();
-        if (!profile?.is_admin) {
-          return new Response(JSON.stringify({ error: 'Admin access required' }), {
-            status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const token = authHeader.replace('Bearer ', '');
+    if (token !== serviceRoleKey) {
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      if (authError || !user) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single();
+      if (!profile?.is_admin) {
+        return new Response(JSON.stringify({ error: 'Admin access required' }), {
+          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
       }
     }
 
