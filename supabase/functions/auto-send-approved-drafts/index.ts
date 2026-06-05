@@ -354,7 +354,7 @@ Deno.serve(async (req) => {
       accountDraftsError = error;
     } else {
       // For automated runs: include NULL recommended_send_date (immediate) OR date <= today
-      let nullQ = supabaseAdmin
+      let nullQ: any = supabaseAdmin
         .from('ai_drafts')
         .select(`
           id,
@@ -371,11 +371,13 @@ Deno.serve(async (req) => {
         .eq('status', 'approved')
         .is('sent_at', null)
         .is('invoice_id', null)
-        .is('recommended_send_date', null)
+        .is('recommended_send_date', null);
+      if (scopedUserId) nullQ = nullQ.eq('user_id', scopedUserId);
+      const { data: nullDateDrafts, error: nullError } = await nullQ
         .order('created_at', { ascending: true })
         .limit(ACCOUNT_BATCH_SIZE);
 
-      const { data: scheduledDrafts, error: scheduledError } = await supabaseAdmin
+      let schedQ: any = supabaseAdmin
         .from('ai_drafts')
         .select(`
           id,
@@ -393,7 +395,9 @@ Deno.serve(async (req) => {
         .is('sent_at', null)
         .is('invoice_id', null)
         .not('recommended_send_date', 'is', null)
-        .lte('recommended_send_date', cutoffDate)
+        .lte('recommended_send_date', cutoffDate);
+      if (scopedUserId) schedQ = schedQ.eq('user_id', scopedUserId);
+      const { data: scheduledDrafts, error: scheduledError } = await schedQ
         .order('recommended_send_date', { ascending: true })
         .limit(ACCOUNT_BATCH_SIZE);
 
