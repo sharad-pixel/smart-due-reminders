@@ -1531,7 +1531,7 @@ export default function AdminLeadOutreach() {
             </DialogHeader>
             <div
               className="mt-4 p-4 border rounded-lg bg-white"
-              dangerouslySetInnerHTML={{ __html: emailForm.body_html }}
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(emailForm.body_html) }}
             />
           </DialogContent>
         </Dialog>
