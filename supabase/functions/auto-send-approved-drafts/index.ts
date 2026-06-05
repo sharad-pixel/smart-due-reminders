@@ -304,6 +304,9 @@ Deno.serve(async (req) => {
     } else {
       invoiceDraftQuery = invoiceDraftQuery.lte('recommended_send_date', cutoffDate);
     }
+    if (scopedUserId) {
+      invoiceDraftQuery = invoiceDraftQuery.eq('user_id', scopedUserId);
+    }
 
     const { data: invoiceDrafts, error: invoiceDraftsError } = await invoiceDraftQuery
       .order('recommended_send_date', { ascending: true })
