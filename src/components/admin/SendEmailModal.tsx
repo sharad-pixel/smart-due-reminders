@@ -380,7 +380,7 @@ export function SendEmailModal({
                 <p className="font-medium mb-2">{emailForm.subject}</p>
                 <div 
                   className="text-sm text-muted-foreground prose prose-sm max-w-none"
-                  dangerouslySetInnerHTML={{ __html: emailForm.body_html }}
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(emailForm.body_html) }}
                 />
               </div>
             )}
