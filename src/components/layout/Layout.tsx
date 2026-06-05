@@ -372,8 +372,8 @@ const Layout = ({ children }: LayoutProps) => {
                       <Link to="/dashboard" className="flex items-start gap-2 cursor-pointer">
                         <LayoutDashboard className="h-4 w-4 text-primary mt-0.5" />
                         <div>
-                          <div className="font-medium">Collections Intelligence</div>
-                          <div className="text-xs text-muted-foreground">Dashboard overview</div>
+                          <div className="font-medium">Dashboard</div>
+                          <div className="text-xs text-muted-foreground">Your landing page</div>
                         </div>
                       </Link>
                     </DropdownMenuItem>
