@@ -168,6 +168,46 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // ---- Authentication ----
+  // Accept either a cron credential (CRON_SECRET header or service-role bearer)
+  // or a valid user JWT. User callers are scoped to their own drafts only.
+  const cronSecret = Deno.env.get('CRON_SECRET');
+  const xCronSecret = req.headers.get('X-Cron-Secret');
+  const authHeader = req.headers.get('Authorization') ?? '';
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+  let scopedUserId: string | null = null;
+  const isCron =
+    (cronSecret && xCronSecret && xCronSecret === cronSecret) ||
+    (serviceKey && authHeader === `Bearer ${serviceKey}`);
+  if (!isCron) {
+    if (!authHeader.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    try {
+      const authClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+        { global: { headers: { Authorization: authHeader } } }
+      );
+      const { data, error } = await authClient.auth.getUser();
+      if (error || !data?.user) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      scopedUserId = data.user.id;
+    } catch {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+  }
+
   try {
     // Parse request body to check for specific draft IDs
     let requestedDraftIds: string[] | null = null;
