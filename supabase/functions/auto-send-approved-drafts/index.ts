@@ -328,7 +328,7 @@ Deno.serve(async (req) => {
 
     if (requestedDraftIds && requestedDraftIds.length > 0) {
       // When specific IDs requested, just filter by those
-      const { data, error } = await supabaseAdmin
+      let q = supabaseAdmin
         .from('ai_drafts')
         .select(`
           id,
@@ -345,14 +345,16 @@ Deno.serve(async (req) => {
         .eq('status', 'approved')
         .is('sent_at', null)
         .is('invoice_id', null)
-        .in('id', requestedDraftIds)
+        .in('id', requestedDraftIds);
+      if (scopedUserId) q = q.eq('user_id', scopedUserId);
+      const { data, error } = await q
         .order('recommended_send_date', { ascending: true, nullsFirst: true })
         .limit(ACCOUNT_BATCH_SIZE);
       accountDrafts = data || [];
       accountDraftsError = error;
     } else {
       // For automated runs: include NULL recommended_send_date (immediate) OR date <= today
-      const { data: nullDateDrafts, error: nullError } = await supabaseAdmin
+      let nullQ = supabaseAdmin
         .from('ai_drafts')
         .select(`
           id,
