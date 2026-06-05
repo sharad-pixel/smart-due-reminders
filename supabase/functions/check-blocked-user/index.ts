@@ -61,19 +61,33 @@ Deno.serve(async (req) => {
 
       console.log(`Email ${email} is blocked. Reason: ${blockedUser.reason}`);
 
-      // If userId is provided, delete the newly created auth user to prevent access
+      // If userId is provided, verify it actually belongs to the blocked email
+      // before deleting, to prevent attackers from deleting arbitrary accounts
+      // by supplying any victim's UUID alongside a known blocked email.
       if (userId) {
-        console.log(`Deleting blocked user's auth account: ${userId}`);
-        
-        // Delete profile first
-        await supabase.from('profiles').delete().eq('id', userId);
-        
-        // Delete auth user
-        const { error: deleteError } = await supabase.auth.admin.deleteUser(userId);
-        if (deleteError) {
-          console.error('Error deleting blocked user:', deleteError);
+        const { data: targetProfile } = await supabase
+          .from('profiles')
+          .select('id, email')
+          .eq('id', userId)
+          .maybeSingle();
+
+        const emailsMatch =
+          targetProfile?.email &&
+          targetProfile.email.toLowerCase() === email.toLowerCase();
+
+        if (!emailsMatch) {
+          console.warn(
+            `Refusing to delete userId ${userId}: profile email does not match blocked email ${email}`
+          );
         } else {
-          console.log(`Successfully deleted auth account for blocked user: ${email}`);
+          console.log(`Deleting blocked user's auth account: ${userId}`);
+          await supabase.from('profiles').delete().eq('id', userId);
+          const { error: deleteError } = await supabase.auth.admin.deleteUser(userId);
+          if (deleteError) {
+            console.error('Error deleting blocked user:', deleteError);
+          } else {
+            console.log(`Successfully deleted auth account for blocked user: ${email}`);
+          }
         }
       }
 

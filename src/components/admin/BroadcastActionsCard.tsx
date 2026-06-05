@@ -1,4 +1,5 @@
 import { useState } from "react";
+import DOMPurify from "dompurify";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -427,7 +428,7 @@ export const BroadcastActionsCard = ({
               )}
               <div
                 className="p-4 border rounded-lg bg-white prose prose-sm max-w-none"
-                dangerouslySetInnerHTML={{ __html: previewBroadcast.body_html }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(previewBroadcast.body_html) }}
               />
             </div>
           )}

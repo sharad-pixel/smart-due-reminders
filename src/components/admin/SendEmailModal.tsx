@@ -1,4 +1,5 @@
 import { useState } from "react";
+import DOMPurify from "dompurify";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -379,7 +380,7 @@ export function SendEmailModal({
                 <p className="font-medium mb-2">{emailForm.subject}</p>
                 <div 
                   className="text-sm text-muted-foreground prose prose-sm max-w-none"
-                  dangerouslySetInnerHTML={{ __html: emailForm.body_html }}
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(emailForm.body_html) }}
                 />
               </div>
             )}

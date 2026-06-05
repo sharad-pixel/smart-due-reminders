@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
+import DOMPurify from "dompurify";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -1530,7 +1531,7 @@ export default function AdminLeadOutreach() {
             </DialogHeader>
             <div
               className="mt-4 p-4 border rounded-lg bg-white"
-              dangerouslySetInnerHTML={{ __html: emailForm.body_html }}
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(emailForm.body_html) }}
             />
           </DialogContent>
         </Dialog>

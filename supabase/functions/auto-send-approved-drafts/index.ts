@@ -168,6 +168,46 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // ---- Authentication ----
+  // Accept either a cron credential (CRON_SECRET header or service-role bearer)
+  // or a valid user JWT. User callers are scoped to their own drafts only.
+  const cronSecret = Deno.env.get('CRON_SECRET');
+  const xCronSecret = req.headers.get('X-Cron-Secret');
+  const authHeader = req.headers.get('Authorization') ?? '';
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+  let scopedUserId: string | null = null;
+  const isCron =
+    (cronSecret && xCronSecret && xCronSecret === cronSecret) ||
+    (serviceKey && authHeader === `Bearer ${serviceKey}`);
+  if (!isCron) {
+    if (!authHeader.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    try {
+      const authClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+        { global: { headers: { Authorization: authHeader } } }
+      );
+      const { data, error } = await authClient.auth.getUser();
+      if (error || !data?.user) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      scopedUserId = data.user.id;
+    } catch {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+  }
+
   try {
     // Parse request body to check for specific draft IDs
     let requestedDraftIds: string[] | null = null;
@@ -264,6 +304,9 @@ Deno.serve(async (req) => {
     } else {
       invoiceDraftQuery = invoiceDraftQuery.lte('recommended_send_date', cutoffDate);
     }
+    if (scopedUserId) {
+      invoiceDraftQuery = invoiceDraftQuery.eq('user_id', scopedUserId);
+    }
 
     const { data: invoiceDrafts, error: invoiceDraftsError } = await invoiceDraftQuery
       .order('recommended_send_date', { ascending: true })
@@ -285,7 +328,7 @@ Deno.serve(async (req) => {
 
     if (requestedDraftIds && requestedDraftIds.length > 0) {
       // When specific IDs requested, just filter by those
-      const { data, error } = await supabaseAdmin
+      let q = supabaseAdmin
         .from('ai_drafts')
         .select(`
           id,
@@ -302,14 +345,16 @@ Deno.serve(async (req) => {
         .eq('status', 'approved')
         .is('sent_at', null)
         .is('invoice_id', null)
-        .in('id', requestedDraftIds)
+        .in('id', requestedDraftIds);
+      if (scopedUserId) q = q.eq('user_id', scopedUserId);
+      const { data, error } = await q
         .order('recommended_send_date', { ascending: true, nullsFirst: true })
         .limit(ACCOUNT_BATCH_SIZE);
       accountDrafts = data || [];
       accountDraftsError = error;
     } else {
       // For automated runs: include NULL recommended_send_date (immediate) OR date <= today
-      const { data: nullDateDrafts, error: nullError } = await supabaseAdmin
+      let nullQ: any = supabaseAdmin
         .from('ai_drafts')
         .select(`
           id,
@@ -326,11 +371,13 @@ Deno.serve(async (req) => {
         .eq('status', 'approved')
         .is('sent_at', null)
         .is('invoice_id', null)
-        .is('recommended_send_date', null)
+        .is('recommended_send_date', null);
+      if (scopedUserId) nullQ = nullQ.eq('user_id', scopedUserId);
+      const { data: nullDateDrafts, error: nullError } = await nullQ
         .order('created_at', { ascending: true })
         .limit(ACCOUNT_BATCH_SIZE);
 
-      const { data: scheduledDrafts, error: scheduledError } = await supabaseAdmin
+      let schedQ: any = supabaseAdmin
         .from('ai_drafts')
         .select(`
           id,
@@ -348,7 +395,9 @@ Deno.serve(async (req) => {
         .is('sent_at', null)
         .is('invoice_id', null)
         .not('recommended_send_date', 'is', null)
-        .lte('recommended_send_date', cutoffDate)
+        .lte('recommended_send_date', cutoffDate);
+      if (scopedUserId) schedQ = schedQ.eq('user_id', scopedUserId);
+      const { data: scheduledDrafts, error: scheduledError } = await schedQ
         .order('recommended_send_date', { ascending: true })
         .limit(ACCOUNT_BATCH_SIZE);
 
