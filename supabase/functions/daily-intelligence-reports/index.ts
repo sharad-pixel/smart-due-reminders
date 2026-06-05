@@ -40,9 +40,9 @@ serve(async (req) => {
     // Determine if this is a cron/service-role call or a user-initiated call
     let targetUserIds: string[] = [];
 
-    // Check if token is the service role key (cron job) or anon key
-    const isServiceCall = token === supabaseServiceKey || 
-      token === Deno.env.get("SUPABASE_ANON_KEY");
+    // Only the service-role key is treated as a privileged cron caller.
+    // The public anon key MUST NOT grant service-level access.
+    const isServiceCall = token === supabaseServiceKey;
 
     if (isServiceCall) {
       // Cron job: process all users who have active debtors
