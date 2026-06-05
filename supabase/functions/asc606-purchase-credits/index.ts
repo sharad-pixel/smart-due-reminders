@@ -7,10 +7,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Unified "Overage Usage Credits" product (prod_UdhHUkm9C5fkA9) for both pre-paid and on-demand.
-// Pre-Paid = $0.80 / credit (20% off). Standard = $1.00 / credit.
-const OVERAGE_PRICE_STANDARD = "price_1TePtGBfb0dWgtCDci2IbxQR"; // $1.00/credit
-const OVERAGE_PRICE_PREPAID  = "price_1TeQ1SBfb0dWgtCDQ6SPQUNk"; // $0.80/credit
+// Dedicated ASC 606 Assessment Credits products.
+// Pre-Paid (prod_UeKNmWGVsxDe0E) = $0.80/credit (20% off).
+// Overage  (prod_UeKNtASW5yOmfV) = $1.00/credit (standard / post-paid).
+const OVERAGE_PRICE_STANDARD = "price_1Tf1j9Bfb0dWgtCD6KcElfX4"; // $1.00/credit (Overage)
+const OVERAGE_PRICE_PREPAID  = "price_1Tf1j7Bfb0dWgtCDFnr16iPS"; // $0.80/credit (Pre-Paid)
 
 const PRICES = {
   asc606: {
