@@ -13,65 +13,42 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { PLAN_CONFIGS, SEAT_PRICING, ANNUAL_DISCOUNT_RATE, INVOICE_PRICING, SMART_INGESTION_PRICING, formatPrice } from "@/lib/subscriptionConfig";
+import { PLAN_CONFIGS, SEAT_PRICING, ANNUAL_DISCOUNT_RATE, CREDIT_PRICING, LIVE_CONTRACTS_PRICING, SMART_INGESTION_PRICING, formatPrice } from "@/lib/subscriptionConfig";
 import { CostComparisonSection } from "@/components/marketing/CostComparisonSection";
 import SEOHead from "@/components/seo/SEOHead";
 import { PAGE_SEO, generateFAQSchema } from "@/lib/seoConfig";
 
 /**
- * Pricing page with monthly/annual billing toggle
- * Annual billing = 20% discount on monthly pricing
+ * Pricing page — Credit Economy v2
+ * Platform Access Fee + Included Credits + Metered Add-Ons (Twilio-style)
+ * 1 invoice processed/month = 1 credit. Overage: $0.80 pre-paid / $1.00 on-demand.
+ * Live Contracts metered at $5/contract/mo (includes alerts + standard risk).
+ * Annual billing = 20% discount.
  */
 
+const planMeta = (key: 'launch' | 'starter' | 'growth' | 'professional') => {
+  const c = PLAN_CONFIGS[key];
+  return {
+    name: c.displayName,
+    monthlyPrice: c.monthlyPrice,
+    annualPrice: c.annualPrice,
+    equivalentMonthly: c.equivalentMonthly,
+    period: "/month",
+    invoiceLimit: `${c.creditAllotment} credits/month included`,
+    contractLimit: c.includedContracts > 0
+      ? `${c.includedContracts} Live Contracts included`
+      : `Live Contracts add-on: $${LIVE_CONTRACTS_PRICING.pricePerContractPerMonth.toFixed(2)}/ea/mo`,
+    seatLimit: `${c.includedSeats} team seat${c.includedSeats === 1 ? '' : 's'} included`,
+    cta: "Start 7-Day Trial",
+    planType: key,
+  };
+};
+
 const plans = [
-  {
-    name: "Solo Pro",
-    monthlyPrice: PLAN_CONFIGS.solo_pro.monthlyPrice,
-    annualPrice: PLAN_CONFIGS.solo_pro.annualPrice,
-    equivalentMonthly: PLAN_CONFIGS.solo_pro.equivalentMonthly,
-    period: "/month",
-    invoiceLimit: "Up to 25 active invoices/month",
-    description: "Perfect for independent operators and sole proprietors.",
-    cta: "Start 7-Day Trial",
-    planType: "solo_pro",
-    popular: false
-  },
-  {
-    name: "Starter",
-    monthlyPrice: PLAN_CONFIGS.starter.monthlyPrice,
-    annualPrice: PLAN_CONFIGS.starter.annualPrice,
-    equivalentMonthly: PLAN_CONFIGS.starter.equivalentMonthly,
-    period: "/month",
-    invoiceLimit: "Up to 100 active invoices/month",
-    description: "Perfect for small businesses seeking visibility into cash outcomes.",
-    cta: "Start 7-Day Trial",
-    planType: "starter",
-    popular: false
-  },
-  {
-    name: "Growth",
-    monthlyPrice: PLAN_CONFIGS.growth.monthlyPrice,
-    annualPrice: PLAN_CONFIGS.growth.annualPrice,
-    equivalentMonthly: PLAN_CONFIGS.growth.equivalentMonthly,
-    period: "/month",
-    invoiceLimit: "Up to 300 active invoices/month",
-    description: "Ideal for scaling teams needing risk-aware workflows.",
-    cta: "Start 7-Day Trial",
-    planType: "growth",
-    popular: true
-  },
-  {
-    name: "Professional",
-    monthlyPrice: PLAN_CONFIGS.professional.monthlyPrice,
-    annualPrice: PLAN_CONFIGS.professional.annualPrice,
-    equivalentMonthly: PLAN_CONFIGS.professional.equivalentMonthly,
-    period: "/month",
-    invoiceLimit: "Up to 500 active invoices/month",
-    description: "Built for high-volume operations seeking proactive intelligence.",
-    cta: "Start 7-Day Trial",
-    planType: "professional",
-    popular: false
-  },
+  { ...planMeta('launch'), description: "Low-floor entry for independents — keep your costs flexible.", popular: false },
+  { ...planMeta('starter'), description: "Small AR teams with predictable contract monitoring.", popular: false },
+  { ...planMeta('growth'), description: "Scaling SaaS / mid-market with risk-aware workflows.", popular: true },
+  { ...planMeta('professional'), description: "High-volume operations with bundled contract intelligence.", popular: false },
   {
     name: "Enterprise / Custom",
     monthlyPrice: 0,
