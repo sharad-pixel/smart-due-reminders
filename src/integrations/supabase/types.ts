@@ -10561,6 +10561,7 @@ export type Database = {
       profiles: {
         Row: {
           account_locked_at: string | null
+          active_contract_count: number | null
           address_autocomplete_enabled: boolean | null
           address_autocomplete_provider: string | null
           admin_override: boolean | null
@@ -10581,12 +10582,14 @@ export type Database = {
           cancel_at_period_end: boolean | null
           company_name: string | null
           created_at: string | null
+          credit_allotment: number | null
           current_period_end: string | null
           daily_digest_email_enabled: boolean | null
           email: string | null
           email_verification_token_expires_at: string | null
           email_verified: boolean | null
           id: string
+          included_contracts: number | null
           invoice_limit: number | null
           is_account_locked: boolean | null
           is_admin: boolean | null
@@ -10623,6 +10626,7 @@ export type Database = {
         }
         Insert: {
           account_locked_at?: string | null
+          active_contract_count?: number | null
           address_autocomplete_enabled?: boolean | null
           address_autocomplete_provider?: string | null
           admin_override?: boolean | null
@@ -10643,12 +10647,14 @@ export type Database = {
           cancel_at_period_end?: boolean | null
           company_name?: string | null
           created_at?: string | null
+          credit_allotment?: number | null
           current_period_end?: string | null
           daily_digest_email_enabled?: boolean | null
           email?: string | null
           email_verification_token_expires_at?: string | null
           email_verified?: boolean | null
           id: string
+          included_contracts?: number | null
           invoice_limit?: number | null
           is_account_locked?: boolean | null
           is_admin?: boolean | null
@@ -10685,6 +10691,7 @@ export type Database = {
         }
         Update: {
           account_locked_at?: string | null
+          active_contract_count?: number | null
           address_autocomplete_enabled?: boolean | null
           address_autocomplete_provider?: string | null
           admin_override?: boolean | null
@@ -10705,12 +10712,14 @@ export type Database = {
           cancel_at_period_end?: boolean | null
           company_name?: string | null
           created_at?: string | null
+          credit_allotment?: number | null
           current_period_end?: string | null
           daily_digest_email_enabled?: boolean | null
           email?: string | null
           email_verification_token_expires_at?: string | null
           email_verified?: boolean | null
           id?: string
+          included_contracts?: number | null
           invoice_limit?: number | null
           is_account_locked?: boolean | null
           is_admin?: boolean | null
@@ -13351,6 +13360,7 @@ export type Database = {
         | "pro"
         | "professional"
         | "solo_pro"
+        | "launch"
       tone_type: "friendly" | "firm" | "neutral"
     }
     CompositeTypes: {
@@ -13550,6 +13560,7 @@ export const Constants = {
         "pro",
         "professional",
         "solo_pro",
+        "launch",
       ],
       tone_type: ["friendly", "firm", "neutral"],
     },
