@@ -22,25 +22,51 @@ const logStep = (step: string, details?: any) => {
   console.log(`[SYNC-SUBSCRIPTION] ${step}${detailsStr}`);
 };
 
-// Price ID to plan mapping - Updated December 2024
+// Price ID to plan mapping — Credit Economy v2 (Jun 2026) + legacy grandfathering
 const PRICE_TO_PLAN_MAP: Record<string, string> = {
-  // Current monthly prices ($199 / $499 / $799)
+  // v2 — new credit-economy plans
+  'price_1TfDx6Bfb0dWgtCDc3HpAtye': 'launch',         // $29/mo
+  'price_1TfDx6Bfb0dWgtCDfcEwQEEt': 'launch',         // annual
+  'price_1TfDx7Bfb0dWgtCDNkLduVxc': 'starter',        // $99/mo
+  'price_1TfDx8Bfb0dWgtCDCnnclvGu': 'starter',        // annual
+  'price_1TfDx9Bfb0dWgtCDp94E6iNn': 'growth',         // $299/mo
+  'price_1TfDxABfb0dWgtCDt6aAIuH9': 'growth',         // annual
+  'price_1TfDxBBfb0dWgtCD4ObmfoEW': 'professional',   // $699/mo
+  'price_1TfDxDBfb0dWgtCDNjPFUgaG': 'professional',   // annual
+  // v1 — grandfathered
+  'price_1SvLJHBfb0dWgtCDMHCSyVWo': 'solo_pro',
+  'price_1SvLJMBfb0dWgtCDxlaprYD9': 'solo_pro',
   'price_1ScbGXBfb0dWgtCDpDqTtrC7': 'starter',
   'price_1ScbGbBfb0dWgtCDLjXblCw4': 'growth',
   'price_1ScbGeBfb0dWgtCDrtiXDKiJ': 'professional',
-  // Current annual prices
   'price_1ScbGZBfb0dWgtCDvfg6hyy6': 'starter',
   'price_1ScbGcBfb0dWgtCDQpH6uB7A': 'growth',
   'price_1ScbGfBfb0dWgtCDhCxrFPE4': 'professional',
-  // Legacy monthly prices (old pricing)
+  // Legacy v0
   'price_1SaNQ5FaeMMSBqcli04PsmKX': 'starter',
   'price_1SaNQKFaeMMSBqclWKbyVTSv': 'growth',
   'price_1SaNVyFaeMMSBqclrcAXjUmm': 'professional',
-  // Legacy annual prices
   'price_1SaNWBFaeMMSBqcl6EK9frSv': 'starter',
   'price_1SaNWTFaeMMSBqclXYovl2Hj': 'growth',
   'price_1SaNXGFaeMMSBqcl08sXmTEm': 'professional',
 };
+
+// Plan -> Credit Economy v2 allotments (credit_allotment, included_contracts, included_seats)
+const PLAN_ALLOTMENTS: Record<string, { credits: number; contracts: number; seats: number }> = {
+  launch:       { credits: 50,   contracts: 0,  seats: 1 },
+  starter:      { credits: 150,  contracts: 5,  seats: 2 },
+  growth:       { credits: 500,  contracts: 20, seats: 5 },
+  professional: { credits: 1500, contracts: 75, seats: 10 },
+  enterprise:   { credits: -1,   contracts: -1, seats: -1 },
+  // Legacy grandfathered — keep original invoice limits as credit allotment
+  solo_pro:     { credits: 25,   contracts: 0,  seats: 1 },
+  pro:          { credits: 25,   contracts: 0,  seats: 1 },
+  free:         { credits: 5,    contracts: 0,  seats: 1 },
+};
+
+function getAllotments(planType: string) {
+  return PLAN_ALLOTMENTS[planType] ?? PLAN_ALLOTMENTS.free;
+}
 
 // Seat price IDs - $75/user/month
 const SEAT_PRICE_IDS = [
@@ -286,6 +312,7 @@ serve(async (req) => {
     });
 
     // Update profile with subscription data (using accountId, not user.id)
+    const allot = getAllotments(planType);
     const { error: updateError } = await supabase
       .from('profiles')
       .update({
@@ -301,6 +328,9 @@ serve(async (req) => {
           ? new Date(subscription.trial_end * 1000).toISOString() 
           : null,
         cancel_at_period_end: subscription.cancel_at_period_end,
+        credit_allotment: allot.credits,
+        invoice_limit: allot.credits,
+        included_contracts: allot.contracts,
       })
       .eq('id', accountId);
 

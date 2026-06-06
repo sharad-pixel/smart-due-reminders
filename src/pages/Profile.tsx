@@ -279,7 +279,7 @@ const Profile = () => {
         .single();
 
       if (profileError) throw profileError;
-      setProfile(profileData);
+      setProfile(profileData as unknown as UserProfile);
       setDailyDigestEmailEnabled(profileData.daily_digest_email_enabled !== false);
 
       // Get membership (check if user is part of an organization)
