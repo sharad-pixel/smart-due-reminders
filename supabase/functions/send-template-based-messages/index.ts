@@ -254,10 +254,16 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Restrict to cron secret or service-role bearer — this endpoint sends mass emails
+  if (!(await isAuthorizedCronRequest(req))) {
+    return unauthorizedResponse(corsHeaders);
+  }
+
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+
 
     // Parse request body for optional limit parameter
     let limit = 50; // Default limit per run to prevent timeout
