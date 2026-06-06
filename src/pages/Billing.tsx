@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CreditCard, ExternalLink, AlertTriangle, CheckCircle, Clock, Calendar, TrendingUp, Users, Sparkles, Activity, Receipt } from "lucide-react";
+import { CreditCard, ExternalLink, AlertTriangle, CheckCircle, Clock, Calendar, TrendingUp, Users, Sparkles, Activity, Receipt, Wallet } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSearchParams } from "react-router-dom";
@@ -131,7 +131,7 @@ interface StripeSubscriptionData {
 }
 
 const Billing = () => {
-  usePageTitle("Subscription & Billing");
+  usePageTitle("Wallet");
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialTab = searchParams.get("tab") || "plan";
@@ -291,10 +291,13 @@ const Billing = () => {
       <div className="container mx-auto px-4 py-8 max-w-5xl">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-bold">Subscription & Billing</h1>
+            <h1 className="text-3xl font-bold flex items-center gap-2">
+              <Wallet className="w-7 h-7 text-primary" /> Wallet
+            </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Manage your plan, team seats, credits, and outstanding charges — all in one place.
+              Manage your plan, credits, team seats, and add-ons — all in one place.
             </p>
+
           </div>
           {profile?.stripe_subscription_id && canManageBilling && (
             <Button onClick={openCustomerPortal} disabled={portalLoading}>

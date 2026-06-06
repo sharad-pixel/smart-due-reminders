@@ -37,6 +37,7 @@ import {
   Briefcase,
   Sparkles,
   CreditCard,
+  Wallet,
   Library,
 } from "lucide-react";
 import {
@@ -613,9 +614,10 @@ const Layout = ({ children }: LayoutProps) => {
                     Branding
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate("/billing")}>
-                    <CreditCard className="mr-2 h-4 w-4" />
-                    Subscription & Billing
+                    <Wallet className="mr-2 h-4 w-4" />
+                    Wallet
                   </DropdownMenuItem>
+
                   <DropdownMenuItem onClick={() => navigate("/security")}>
                     <Shield className="mr-2 h-4 w-4" />
                     Security Settings
