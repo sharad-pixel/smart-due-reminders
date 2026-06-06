@@ -1,131 +1,174 @@
 /**
- * Stripe Subscription Configuration
- * 
- * PRICING STRUCTURE (Updated January 2025):
- * - Solo Pro: $49/month (25 invoices)
- * - Starter: $199/month
- * - Growth: $499/month
- * - Professional: $799/month
- * - Per Seat: $75/user/month
- * - Per Invoice: $1.99/invoice
- * 
- * Annual billing = 20% discount on monthly price
- * Formula: annual_price = monthly_price * 12 * 0.8
+ * Stripe Subscription Configuration — Credit Economy v2 (Jun 2026)
+ *
+ * PRICING MODEL: Platform Access Fee + Included Credits + Metered Add-Ons (Twilio-style)
+ * - 1 invoice processed/month = 1 credit (1:1 conversion).
+ * - Overage credits: $0.80 pre-paid / $1.00 on-demand (matches ASC 606 Credits).
+ * - Live Contracts: $5.00 / active contract / month (metered add-on, includes alerts + standard risk).
+ *
+ * PLANS (v2):
+ * - Launch:       $29/mo   — 50 credits,  0 contracts, 1 seat
+ * - Starter:      $99/mo   — 150 credits, 5 contracts, 2 seats
+ * - Growth:       $299/mo  — 500 credits, 20 contracts, 5 seats
+ * - Professional: $699/mo  — 1,500 credits, 75 contracts, 10 seats
+ * - Enterprise:   Custom
+ *
+ * Annual billing = 20% discount.
+ *
+ * Legacy v1 price IDs and Solo Pro tier are retained for grandfathering existing
+ * subscribers; new signups use v2 prices below.
  */
 
 // ============================================================================
-// STRIPE PRICE IDs - These are the LIVE mode price IDs
+// STRIPE PRICE IDs
 // ============================================================================
 
 export const STRIPE_PRICES = {
   monthly: {
-    solo_pro: 'price_1SvLJHBfb0dWgtCDMHCSyVWo',     // $49/month - 25 invoices
-    starter: 'price_1ScbGXBfb0dWgtCDpDqTtrC7',      // $199/month - 100 invoices
-    growth: 'price_1ScbGbBfb0dWgtCDLjXblCw4',       // $499/month - 300 invoices
-    professional: 'price_1ScbGeBfb0dWgtCDrtiXDKiJ', // $799/month - 500 invoices
+    // v2 (new credit-economy plans — active for new signups)
+    launch: 'price_1TfDx6Bfb0dWgtCDc3HpAtye',         // $29/mo
+    starter: 'price_1TfDx7Bfb0dWgtCDNkLduVxc',        // $99/mo
+    growth: 'price_1TfDx9Bfb0dWgtCDp94E6iNn',         // $299/mo
+    professional: 'price_1TfDxBBfb0dWgtCD4ObmfoEW',   // $699/mo
+    // v1 legacy (grandfathered — checkout no longer points here)
+    solo_pro: 'price_1SvLJHBfb0dWgtCDMHCSyVWo',       // $49/mo legacy
   },
   annual: {
-    solo_pro: 'price_1SvLJMBfb0dWgtCDxlaprYD9',     // $470.40/year - 25 invoices
-    starter: 'price_1ScbGZBfb0dWgtCDvfg6hyy6',      // $1,910.40/year - 100 invoices
-    growth: 'price_1ScbGcBfb0dWgtCDQpH6uB7A',       // $4,790.40/year - 300 invoices
-    professional: 'price_1ScbGfBfb0dWgtCDhCxrFPE4', // $7,670.40/year - 500 invoices
+    launch: 'price_1TfDx6Bfb0dWgtCDfcEwQEEt',         // $278.40/yr
+    starter: 'price_1TfDx8Bfb0dWgtCDCnnclvGu',        // $950.40/yr
+    growth: 'price_1TfDxABfb0dWgtCDt6aAIuH9',         // $2,870.40/yr
+    professional: 'price_1TfDxDBfb0dWgtCDNjPFUgaG',   // $6,710.40/yr
+    solo_pro: 'price_1SvLJMBfb0dWgtCDxlaprYD9',       // legacy
   },
-  invoice: 'price_1SbvzMBqszPdRiQv0AM0GDrv',        // $1.99 per invoice (keep existing)
-  
-  // Team seat add-on pricing
-  seat: {
-    monthly: 'price_1ScbGhBfb0dWgtCDZukktOuA',      // $75/user/month
-    annual: 'price_1ScbGiBfb0dWgtCDOrLwli7A',       // $720/year per user
+  // Legacy v1 platform prices retained for grandfathering only:
+  legacyMonthly: {
+    starter: 'price_1ScbGXBfb0dWgtCDpDqTtrC7',
+    growth: 'price_1ScbGbBfb0dWgtCDLjXblCw4',
+    professional: 'price_1ScbGeBfb0dWgtCDrtiXDKiJ',
+  },
+  legacyAnnual: {
+    starter: 'price_1ScbGZBfb0dWgtCDvfg6hyy6',
+    growth: 'price_1ScbGcBfb0dWgtCDQpH6uB7A',
+    professional: 'price_1ScbGfBfb0dWgtCDhCxrFPE4',
   },
 
-  // AI Smart Ingestion - metered usage pricing
-  smartIngestion: 'price_1THHe6Bfb0dWgtCDh4iTrzAe',  // $0.75/file/month (metered)
+  invoice: 'price_1SbvzMBqszPdRiQv0AM0GDrv',          // legacy per-invoice $1.99 (deprecated)
+
+  // Team seat add-on
+  seat: {
+    monthly: 'price_1ScbGhBfb0dWgtCDZukktOuA',        // $75/user/mo
+    annual: 'price_1ScbGiBfb0dWgtCDOrLwli7A',         // $720/user/yr
+  },
+
+  // AI Smart Ingestion (metered, $1/page on-demand)
+  smartIngestion: 'price_1THHe6Bfb0dWgtCDh4iTrzAe',
+
+  // Live Contracts (metered, $5/contract/mo)
+  liveContracts: 'price_1TfDxEBfb0dWgtCDuatQBO3l',
+
+  // ASC 606 / unified credit packs (pre-paid $0.80, on-demand $1.00)
+  creditsPrepaid: 'price_1Tf1j7Bfb0dWgtCDFnr16iPS',
+  creditsOverage: 'price_1Tf1j9Bfb0dWgtCD6KcElfX4',
 } as const;
 
 export const STRIPE_PRODUCTS = {
+  // v2
+  launch: 'prod_UeX1XZQFfZGCMF',
+  launchAnnual: 'prod_UeX1Oi8BdbpQFU',
+  starter: 'prod_UeX15gUYhfTCxs',
+  starterAnnual: 'prod_UeX1MQmgcf3OB2',
+  growth: 'prod_UeX1TBBTQp8uHZ',
+  growthAnnual: 'prod_UeX1gbjN3Pm0In',
+  professional: 'prod_UeX1JM6f5lUa2g',
+  professionalAnnual: 'prod_UeX13mdZC77FAi',
+  liveContracts: 'prod_UeX1TpGXrDCCb3',
+
+  // v1 legacy (grandfathered)
   solo_pro: 'prod_Tt7YjFBzHHYQop',
   solo_proAnnual: 'prod_Tt7Y4h6hvnrUzF',
-  starter: 'prod_TZkmWC1MyKQXpP',
-  starterAnnual: 'prod_TZkm7G0Mg8x9se',
-  growth: 'prod_TZkmds8B5fChZF',
-  growthAnnual: 'prod_TZkmtYIr8uLZl8',
-  professional: 'prod_TZkm0viKFTgHDi',
-  professionalAnnual: 'prod_TZkmtqnzjaZaoY',
+  legacyStarter: 'prod_TZkmWC1MyKQXpP',
+  legacyStarterAnnual: 'prod_TZkm7G0Mg8x9se',
+  legacyGrowth: 'prod_TZkmds8B5fChZF',
+  legacyGrowthAnnual: 'prod_TZkmtYIr8uLZl8',
+  legacyProfessional: 'prod_TZkm0viKFTgHDi',
+  legacyProfessionalAnnual: 'prod_TZkmtqnzjaZaoY',
+
   seat: 'prod_TZkmoqr5xpSBtV',
   seatAnnual: 'prod_TZkmyzUeLp2SmA',
   invoice: 'prod_TZ47dBqm7afkzi',
   smartIngestion: 'prod_UFnEUWvQL0RlJ0',
+  creditsPrepaid: 'prod_UeKNmWGVsxDe0E',
+  creditsOverage: 'prod_UeKNtASW5yOmfV',
 } as const;
 
 // ============================================================================
-// PRICING CONFIGURATION - SINGLE SOURCE OF TRUTH
+// PRICING CONFIG
 // ============================================================================
 
-/**
- * Annual Discount Rate
- * Annual billing receives 20% discount: annual = monthly * 12 * (1 - ANNUAL_DISCOUNT)
- */
-export const ANNUAL_DISCOUNT_RATE = 0.20; // 20% discount
+export const ANNUAL_DISCOUNT_RATE = 0.20;
 
-/**
- * Trial Configuration
- * 7-day trial with 5 invoice limit
- */
 export const TRIAL_CONFIG = {
   trialDays: 7,
-  invoiceLimit: 5,
-  defaultPlan: 'starter' as const,
-  requirePaymentUpfront: true, // Require payment info before accessing app
+  invoiceLimit: 5,           // credits during trial
+  creditLimit: 5,
+  defaultPlan: 'launch' as const,
+  requirePaymentUpfront: true,
 } as const;
 
-/**
- * Per-invoice pricing (standardized across all plans)
- */
-export const INVOICE_PRICING = {
-  perInvoice: 1.99,
+/** Unified credit pricing (replaces legacy per-invoice rate). */
+export const CREDIT_PRICING = {
+  prepaidPerCredit: 0.80,
+  overagePerCredit: 1.00,
   currency: 'USD',
 } as const;
 
-/**
- * Per-seat pricing (standardized across all plans)
- */
+/** Legacy alias — kept so existing code referencing INVOICE_PRICING.perInvoice
+ *  continues to compile. Maps to on-demand credit rate ($1.00/credit). */
+export const INVOICE_PRICING = {
+  perInvoice: CREDIT_PRICING.overagePerCredit,
+  currency: 'USD',
+} as const;
+
 export const SEAT_PRICING = {
   monthlyPrice: 75.00,
-  annualPrice: 720.00, // $75 * 12 * 0.8 = $720/year (20% discount)
+  annualPrice: 720.00,
   currency: 'USD',
   ownerIncludedFree: true,
 } as const;
 
-/**
- * AI Smart Ingestion pricing (per-page, usage-based).
- * `perFile` is kept as an alias for backwards compatibility — it represents
- * the per-page rate. Total charge per approved scan = perPage × page_count.
- */
 export const SMART_INGESTION_PRICING = {
   perPage: 1.00,
-  perFile: 1.00, // legacy alias — same value, now applied per page
+  perFile: 1.00,
   creditsPerPage: 1,
   currency: 'USD',
   billingCadence: 'monthly',
   chargeOnApprovalOnly: true,
 } as const;
 
-/**
- * Calculate annual price from monthly price
- * Formula: monthly * 12 * 0.8 (20% discount)
- */
+/** Live Contracts metered add-on. Charged per active contract per month
+ *  (counted nightly, pro-rated). Includes alerts + standard risk assessments. */
+export const LIVE_CONTRACTS_PRICING = {
+  pricePerContractPerMonth: 5.00,
+  currency: 'USD',
+  includes: ['alerts', 'standard risk assessments'] as const,
+} as const;
+
 export function calculateAnnualPrice(monthlyPrice: number): number {
   return Math.round(monthlyPrice * 12 * (1 - ANNUAL_DISCOUNT_RATE) * 100) / 100;
 }
 
-/**
- * Calculate equivalent monthly price for annual billing
- */
 export function calculateEquivalentMonthly(annualPrice: number): number {
   return Math.round((annualPrice / 12) * 100) / 100;
 }
 
-export type PlanType = 'free' | 'solo_pro' | 'starter' | 'growth' | 'professional' | 'enterprise';
+export type PlanType =
+  | 'free'
+  | 'launch'
+  | 'solo_pro'        // legacy v1, grandfathered
+  | 'starter'
+  | 'growth'
+  | 'professional'
+  | 'enterprise';
 export type BillingInterval = 'month' | 'year';
 
 export interface PlanConfig {
@@ -134,147 +177,175 @@ export interface PlanConfig {
   monthlyPrice: number;
   annualPrice: number;
   equivalentMonthly: number;
+  /** Monthly credit allotment included with the plan (1 credit = 1 invoice). */
+  creditAllotment: number;
+  /** Legacy alias — same value as creditAllotment. */
   invoiceLimit: number;
+  /** Live Contracts included before $5/ea overage kicks in. */
+  includedContracts: number;
+  /** Team seats included before $75/seat/mo overage. */
+  includedSeats: number;
   perInvoiceRate: number;
   maxAgents: number;
   features: string[];
   highlighted?: boolean;
+  legacy?: boolean;
 }
 
-// Plan configurations with updated pricing
+const mk = (cfg: Omit<PlanConfig, 'annualPrice' | 'equivalentMonthly' | 'invoiceLimit' | 'perInvoiceRate'> & { perInvoiceRate?: number }): PlanConfig => ({
+  ...cfg,
+  annualPrice: calculateAnnualPrice(cfg.monthlyPrice),
+  equivalentMonthly: calculateEquivalentMonthly(calculateAnnualPrice(cfg.monthlyPrice)),
+  invoiceLimit: cfg.creditAllotment,
+  perInvoiceRate: cfg.perInvoiceRate ?? CREDIT_PRICING.overagePerCredit,
+});
+
 export const PLAN_CONFIGS: Record<Exclude<PlanType, 'free'>, PlanConfig> = {
-  solo_pro: {
-    name: 'solo_pro',
-    displayName: 'Solo Pro',
-    monthlyPrice: 49,
-    annualPrice: calculateAnnualPrice(49),          // $470.40/year
-    equivalentMonthly: calculateEquivalentMonthly(calculateAnnualPrice(49)), // $39.20/month
-    invoiceLimit: 25,
-    perInvoiceRate: INVOICE_PRICING.perInvoice,
+  launch: mk({
+    name: 'launch',
+    displayName: 'Launch',
+    monthlyPrice: 29,
+    creditAllotment: 50,
+    includedContracts: 0,
+    includedSeats: 1,
     maxAgents: 6,
     features: [
-      'Up to 25 invoices/month',
+      '50 credits/month included',
       'All 6 AI collection agents',
       'Stripe & QuickBooks integrations',
-      'Email campaigns',
-      'Full automation suite',
-      'Collection intelligence dashboard',
+      'Email campaigns & full automation',
+      'Add Live Contracts at $5/contract/mo',
+      'Overage credits: $0.80 pre-paid / $1.00 on-demand',
     ],
-  },
-  starter: {
+  }),
+  starter: mk({
     name: 'starter',
     displayName: 'Starter',
-    monthlyPrice: 199,
-    annualPrice: calculateAnnualPrice(199),         // $1,910.40/year
-    equivalentMonthly: calculateEquivalentMonthly(calculateAnnualPrice(199)), // $159.20/month
-    invoiceLimit: 100,
-    perInvoiceRate: INVOICE_PRICING.perInvoice,
+    monthlyPrice: 99,
+    creditAllotment: 150,
+    includedContracts: 5,
+    includedSeats: 2,
     maxAgents: 6,
     features: [
-      'Up to 100 invoices/month',
+      '150 credits/month included',
+      '5 Live Contracts included ($25 value)',
+      '2 team seats included',
       'All 6 AI collection agents',
-      'Stripe & QuickBooks integrations',
-      'Email campaigns',
-      'Full automation suite',
       'Collection intelligence dashboard',
+      'Overage: $0.80 pre-paid / $1.00 on-demand',
     ],
-  },
-  growth: {
+  }),
+  growth: mk({
     name: 'growth',
     displayName: 'Growth',
-    monthlyPrice: 499,
-    annualPrice: calculateAnnualPrice(499),         // $4,790.40/year
-    equivalentMonthly: calculateEquivalentMonthly(calculateAnnualPrice(499)), // $399.20/month
-    invoiceLimit: 300,
-    perInvoiceRate: INVOICE_PRICING.perInvoice,
+    monthlyPrice: 299,
+    creditAllotment: 500,
+    includedContracts: 20,
+    includedSeats: 5,
     maxAgents: 6,
     highlighted: true,
     features: [
-      'Up to 300 invoices/month',
+      '500 credits/month included',
+      '20 Live Contracts included ($100 value)',
+      '5 team seats included',
       'All 6 AI collection agents',
-      'Stripe & QuickBooks integrations',
-      'Email campaigns',
-      'Full automation suite',
-      'Collection intelligence dashboard',
+      'Advanced revenue risk + ECL intelligence',
+      'Overage: $0.80 pre-paid / $1.00 on-demand',
     ],
-  },
-  professional: {
+  }),
+  professional: mk({
     name: 'professional',
     displayName: 'Professional',
-    monthlyPrice: 799,
-    annualPrice: calculateAnnualPrice(799),         // $7,670.40/year
-    equivalentMonthly: calculateEquivalentMonthly(calculateAnnualPrice(799)), // $639.20/month
-    invoiceLimit: 500,
-    perInvoiceRate: INVOICE_PRICING.perInvoice,
+    monthlyPrice: 699,
+    creditAllotment: 1500,
+    includedContracts: 75,
+    includedSeats: 10,
     maxAgents: 6,
     features: [
-      'Up to 500 invoices/month',
+      '1,500 credits/month included',
+      '75 Live Contracts included ($375 value)',
+      '10 team seats included',
       'All 6 AI collection agents',
-      'Stripe & QuickBooks integrations',
-      'Email campaigns',
-      'Full automation suite',
-      'Collection intelligence dashboard',
+      'Priority AI throughput + dedicated CSM',
+      'Overage: $0.80 pre-paid / $1.00 on-demand',
     ],
-  },
+  }),
+  // Legacy — grandfathered only, hidden from checkout UI
+  solo_pro: mk({
+    name: 'solo_pro',
+    displayName: 'Solo Pro (Legacy)',
+    monthlyPrice: 49,
+    creditAllotment: 25,
+    includedContracts: 0,
+    includedSeats: 1,
+    maxAgents: 6,
+    legacy: true,
+    features: ['25 credits/month (legacy plan)', 'All 6 AI collection agents'],
+  }),
   enterprise: {
     name: 'enterprise',
     displayName: 'Enterprise',
     monthlyPrice: 0,
     annualPrice: 0,
     equivalentMonthly: 0,
-    invoiceLimit: -1, // Unlimited
+    creditAllotment: -1,
+    invoiceLimit: -1,
+    includedContracts: -1,
+    includedSeats: -1,
     perInvoiceRate: 0,
     maxAgents: 6,
     features: [
-      'Unlimited invoices',
-      'All 6 AI collection agents',
-      'Stripe & QuickBooks integrations',
-      'Custom enterprise integrations',
-      'Dedicated account manager',
-      'SLA guarantee',
+      'Unlimited credits + contracts pool',
+      'Custom volume pricing',
+      'Dedicated account manager + SLA',
+      'SSO, audit log export, custom DPA',
       'White-label options',
     ],
   },
 };
 
-/**
- * Get plan type from Stripe price ID
- */
+/** New-signup plans displayed in marketing/checkout (excludes legacy + free). */
+export const ACTIVE_PLAN_KEYS: Array<Exclude<PlanType, 'free' | 'solo_pro' | 'enterprise'>> = [
+  'launch',
+  'starter',
+  'growth',
+  'professional',
+];
+
 export function getPlanByPriceId(priceId: string): { plan: PlanType; interval: BillingInterval } | null {
-  // Check monthly prices
   for (const [plan, id] of Object.entries(STRIPE_PRICES.monthly)) {
     if (id === priceId) return { plan: plan as PlanType, interval: 'month' };
   }
-  // Check annual prices
   for (const [plan, id] of Object.entries(STRIPE_PRICES.annual)) {
+    if (id === priceId) return { plan: plan as PlanType, interval: 'year' };
+  }
+  for (const [plan, id] of Object.entries(STRIPE_PRICES.legacyMonthly)) {
+    if (id === priceId) return { plan: plan as PlanType, interval: 'month' };
+  }
+  for (const [plan, id] of Object.entries(STRIPE_PRICES.legacyAnnual)) {
     if (id === priceId) return { plan: plan as PlanType, interval: 'year' };
   }
   return null;
 }
 
-/**
- * Get price ID for a plan and billing interval
- */
-export function getPriceId(plan: Exclude<PlanType, 'free' | 'enterprise'>, interval: BillingInterval): string {
-  return interval === 'year' 
-    ? STRIPE_PRICES.annual[plan] 
-    : STRIPE_PRICES.monthly[plan];
+export function getPriceId(
+  plan: Exclude<PlanType, 'free' | 'enterprise'>,
+  interval: BillingInterval,
+): string {
+  const bucket = interval === 'year' ? STRIPE_PRICES.annual : STRIPE_PRICES.monthly;
+  return (bucket as Record<string, string>)[plan];
 }
 
-/**
- * Get seat price ID for billing interval
- */
 export function getSeatPriceId(interval: BillingInterval): string {
-  return interval === 'year' 
-    ? STRIPE_PRICES.seat.annual 
-    : STRIPE_PRICES.seat.monthly;
+  return interval === 'year' ? STRIPE_PRICES.seat.annual : STRIPE_PRICES.seat.monthly;
 }
 
-/**
- * Get invoice price ID (same for all plans)
- */
 export function getInvoicePriceId(): string {
   return STRIPE_PRICES.invoice;
+}
+
+export function getLiveContractsPriceId(): string {
+  return STRIPE_PRICES.liveContracts;
 }
 
 export function getPlanConfig(plan: PlanType): PlanConfig | null {
@@ -290,23 +361,18 @@ export function canAccessFeature(plan: PlanType, feature: string): boolean {
 }
 
 export function getInvoiceLimit(plan: PlanType, isTrial: boolean = false): number {
-  if (isTrial) return TRIAL_CONFIG.invoiceLimit; // 5 invoices during trial
-  if (plan === 'free') return 5; // Free tier now has same limit as trial
-  if (plan === 'enterprise') return -1; // Unlimited
-  const config = PLAN_CONFIGS[plan];
-  return config?.invoiceLimit || 5;
+  if (isTrial) return TRIAL_CONFIG.invoiceLimit;
+  if (plan === 'free') return 5;
+  if (plan === 'enterprise') return -1;
+  return PLAN_CONFIGS[plan]?.creditAllotment ?? 5;
 }
 
 export function getMaxAgents(plan: PlanType): number {
   if (plan === 'free') return 2;
   if (plan === 'enterprise') return 6;
-  const config = PLAN_CONFIGS[plan];
-  return config?.maxAgents || 2;
+  return PLAN_CONFIGS[plan]?.maxAgents ?? 2;
 }
 
-/**
- * Calculate billable seats for an account
- */
 export function calculateBillableSeats(activeUsers: number, ownerCount: number = 1): number {
   if (SEAT_PRICING.ownerIncludedFree) {
     return Math.max(0, activeUsers - ownerCount);
@@ -314,19 +380,19 @@ export function calculateBillableSeats(activeUsers: number, ownerCount: number =
   return activeUsers;
 }
 
-/**
- * Calculate seat cost based on billing interval
- */
 export function calculateSeatCost(billableSeats: number, interval: BillingInterval = 'month'): number {
-  const pricePerSeat = interval === 'year' 
-    ? SEAT_PRICING.annualPrice 
-    : SEAT_PRICING.monthlyPrice;
+  const pricePerSeat = interval === 'year' ? SEAT_PRICING.annualPrice : SEAT_PRICING.monthlyPrice;
   return billableSeats * pricePerSeat;
 }
 
-/**
- * Format price for display
- */
+/** Compute Live Contracts monthly charge given an active count and plan allotment. */
+export function calculateLiveContractsCost(activeContracts: number, plan: PlanType): number {
+  const allotment = PLAN_CONFIGS[plan as Exclude<PlanType, 'free'>]?.includedContracts ?? 0;
+  if (allotment < 0) return 0; // enterprise / unlimited
+  const billable = Math.max(0, activeContracts - allotment);
+  return billable * LIVE_CONTRACTS_PRICING.pricePerContractPerMonth;
+}
+
 export function formatPrice(amount: number, options?: { showCents?: boolean }): string {
   if (options?.showCents || amount % 1 !== 0) {
     return `$${amount.toFixed(2)}`;
