@@ -2,13 +2,31 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Check, ArrowRight, Sparkles } from "lucide-react";
-import { PLAN_CONFIGS, INVOICE_PRICING, SEAT_PRICING, formatPrice } from "@/lib/subscriptionConfig";
+import { PLAN_CONFIGS, CREDIT_PRICING, LIVE_CONTRACTS_PRICING, SEAT_PRICING, formatPrice } from "@/lib/subscriptionConfig";
 
-// Use centralized pricing config - Business plans only (excludes Solo Pro for teaser)
+// Credit-economy plans (Launch shown via "See all plans" link)
 const plans = [
-  { name: "Starter", price: PLAN_CONFIGS.starter.monthlyPrice, invoices: "100", highlight: false },
-  { name: "Growth", price: PLAN_CONFIGS.growth.monthlyPrice, invoices: "300", highlight: true },
-  { name: "Professional", price: PLAN_CONFIGS.professional.monthlyPrice, invoices: "500", highlight: false },
+  {
+    name: PLAN_CONFIGS.starter.displayName,
+    price: PLAN_CONFIGS.starter.monthlyPrice,
+    credits: PLAN_CONFIGS.starter.creditAllotment,
+    contracts: PLAN_CONFIGS.starter.includedContracts,
+    highlight: false,
+  },
+  {
+    name: PLAN_CONFIGS.growth.displayName,
+    price: PLAN_CONFIGS.growth.monthlyPrice,
+    credits: PLAN_CONFIGS.growth.creditAllotment,
+    contracts: PLAN_CONFIGS.growth.includedContracts,
+    highlight: true,
+  },
+  {
+    name: PLAN_CONFIGS.professional.displayName,
+    price: PLAN_CONFIGS.professional.monthlyPrice,
+    credits: PLAN_CONFIGS.professional.creditAllotment,
+    contracts: PLAN_CONFIGS.professional.includedContracts,
+    highlight: false,
+  },
 ];
 
 const PricingTeaser = () => {
