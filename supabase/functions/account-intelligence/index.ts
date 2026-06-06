@@ -36,6 +36,17 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Verify caller identity from JWT
+    const token = authHeader.replace("Bearer ", "");
+    const { data: userData, error: userError } = await supabase.auth.getUser(token);
+    if (userError || !userData?.user) {
+      return new Response(JSON.stringify({ error: "Not authenticated" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const callerUserId = userData.user.id;
+
     console.log(`[ACCOUNT-INTELLIGENCE] Starting for debtor_id: ${debtor_id}, force_regenerate: ${force_regenerate}`);
 
     // Fetch debtor details
@@ -52,6 +63,24 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Ownership check: caller must own the debtor (direct or via account membership)
+    let allowed = debtor.user_id === callerUserId;
+    if (!allowed && debtor.user_id) {
+      const { data: access } = await supabase.rpc("can_access_account_data", {
+        _user_id: callerUserId,
+        _account_id: debtor.user_id,
+      });
+      allowed = access === true;
+    }
+    if (!allowed) {
+      console.warn(`[ACCOUNT-INTELLIGENCE] Forbidden: user ${callerUserId} requested debtor ${debtor_id} owned by ${debtor.user_id}`);
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     
     console.log(`[ACCOUNT-INTELLIGENCE] Found debtor: ${debtor.company_name || debtor.name}`);
 

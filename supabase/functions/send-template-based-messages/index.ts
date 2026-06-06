@@ -8,6 +8,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getOutreachContacts } from "../_shared/contactUtils.ts";
 import { generateBrandedEmail, getEmailFromAddress } from "../_shared/emailSignature.ts";
+import { isAuthorizedCronRequest, unauthorizedResponse } from "../_shared/cronAuth.ts";
 import { INBOUND_EMAIL_DOMAIN } from "../_shared/emailConfig.ts";
 
 const corsHeaders = {
@@ -254,10 +255,16 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Restrict to cron secret or service-role bearer — this endpoint sends mass emails
+  if (!(await isAuthorizedCronRequest(req))) {
+    return unauthorizedResponse(corsHeaders);
+  }
+
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+
 
     // Parse request body for optional limit parameter
     let limit = 50; // Default limit per run to prevent timeout
