@@ -282,6 +282,9 @@ serve(async (req) => {
             stripe_customer_id: customerId,
             stripe_subscription_id: subscriptionId,
             plan_type: planType,
+            credit_allotment: getAllotments(planType).credits,
+            invoice_limit: getAllotments(planType).credits,
+            included_contracts: getAllotments(planType).contracts,
             billing_interval: billingInterval,
             subscription_status: subscription.status,
             current_period_end: subscription.current_period_end 
@@ -415,6 +418,9 @@ serve(async (req) => {
           .update({
             stripe_subscription_id: subscription.id,
             plan_type: planType,
+            credit_allotment: getAllotments(planType).credits,
+            invoice_limit: getAllotments(planType).credits,
+            included_contracts: getAllotments(planType).contracts,
             billing_interval: billingInterval,
             current_period_end: subscription.current_period_end 
               ? new Date(subscription.current_period_end * 1000).toISOString() 
@@ -517,6 +523,9 @@ serve(async (req) => {
             .update({
               stripe_subscription_id: subscriptionId,
               plan_type: planType,
+              credit_allotment: getAllotments(planType).credits,
+              invoice_limit: getAllotments(planType).credits,
+              included_contracts: getAllotments(planType).contracts,
               billing_interval: billingInterval,
               subscription_status: 'active',
               is_account_locked: false,

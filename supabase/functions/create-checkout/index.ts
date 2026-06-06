@@ -23,18 +23,21 @@ const corsHeaders = {
 };
 
 // Updated price IDs - January 2025
+// Credit Economy v2 price IDs (Jun 2026) — new signups land here
 const PRICE_IDS: Record<string, Record<string, string>> = {
   month: {
-    solo_pro: 'price_1SvLJHBfb0dWgtCDMHCSyVWo',     // $49/month
-    starter: 'price_1ScbGXBfb0dWgtCDpDqTtrC7',      // $199/month
-    growth: 'price_1ScbGbBfb0dWgtCDLjXblCw4',       // $499/month
-    professional: 'price_1ScbGeBfb0dWgtCDrtiXDKiJ', // $799/month
+    launch: 'price_1TfDx6Bfb0dWgtCDc3HpAtye',        // $29/month
+    starter: 'price_1TfDx7Bfb0dWgtCDNkLduVxc',       // $99/month
+    growth: 'price_1TfDx9Bfb0dWgtCDp94E6iNn',        // $299/month
+    professional: 'price_1TfDxBBfb0dWgtCD4ObmfoEW',  // $699/month
+    solo_pro: 'price_1SvLJHBfb0dWgtCDMHCSyVWo',      // legacy $49/month
   },
   year: {
-    solo_pro: 'price_1SvLJMBfb0dWgtCDxlaprYD9',     // $470.40/year (annual)
-    starter: 'price_1ScbGZBfb0dWgtCDvfg6hyy6',      // $1,910.40/year (annual)
-    growth: 'price_1ScbGcBfb0dWgtCDQpH6uB7A',       // $4,790.40/year (annual)
-    professional: 'price_1ScbGfBfb0dWgtCDhCxrFPE4', // $7,670.40/year (annual)
+    launch: 'price_1TfDx6Bfb0dWgtCDfcEwQEEt',        // $278.40/year
+    starter: 'price_1TfDx8Bfb0dWgtCDCnnclvGu',       // $950.40/year
+    growth: 'price_1TfDxABfb0dWgtCDt6aAIuH9',        // $2,870.40/year
+    professional: 'price_1TfDxDBfb0dWgtCDNjPFUgaG',  // $6,710.40/year
+    solo_pro: 'price_1SvLJMBfb0dWgtCDxlaprYD9',      // legacy
   }
 };
 
