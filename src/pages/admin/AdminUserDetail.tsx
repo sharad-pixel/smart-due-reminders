@@ -40,7 +40,7 @@ import { ArrowLeft, Loader2, User, CreditCard, Users, Crown, Clock, AlertCircle,
 import { supabase } from "@/integrations/supabase/client";
 import { format as formatDate } from "date-fns";
 import { AdminIntegrationToggles } from "@/components/admin/AdminIntegrationToggles";
-import { AdminClmToggle } from "@/components/admin/AdminClmToggle";
+
 import AdminCreditsCard from "@/components/admin/AdminCreditsCard";
 
 interface UserDetails {
@@ -1291,9 +1291,6 @@ const AdminUserDetail = () => {
               accountId={accountRelationships.find(r => r.is_owner)?.account_id || userId || null}
             />
 
-            <AdminClmToggle
-              accountId={accountRelationships.find(r => r.is_owner)?.account_id || userId || null}
-            />
 
             <Card>
               <CardHeader>
