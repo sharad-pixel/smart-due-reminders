@@ -140,7 +140,7 @@ const PricingTeaser = () => {
 
         <div className="text-center mt-8">
           <p className="text-sm text-muted-foreground mb-4">
-            Per invoice: <span className="font-semibold">{formatPrice(INVOICE_PRICING.perInvoice, { showCents: true })}</span> | Additional users: <span className="font-semibold">{formatPrice(SEAT_PRICING.monthlyPrice)}/user/month</span>
+            Overage credits: <span className="font-semibold">{formatPrice(CREDIT_PRICING.prepaidPerCredit, { showCents: true })} pre-paid / {formatPrice(CREDIT_PRICING.overagePerCredit, { showCents: true })} on-demand</span> · Extra seats: <span className="font-semibold">{formatPrice(SEAT_PRICING.monthlyPrice)}/user/mo</span> · Live Contracts: <span className="font-semibold">{formatPrice(LIVE_CONTRACTS_PRICING.pricePerContractPerMonth, { showCents: true })}/contract/mo</span>
           </p>
           <Button variant="ghost" onClick={() => navigate("/pricing")} className="group">
             View Full Pricing Details
