@@ -107,7 +107,7 @@ const PricingTeaser = () => {
                     <span className="text-muted-foreground">/mo</span>
                   </div>
                   <p className="text-sm text-muted-foreground mt-2">
-                    Up to {plan.invoices} invoices
+                    {plan.credits} credits/mo{plan.contracts > 0 ? ` · ${plan.contracts} live contracts` : ""}
                   </p>
                 </div>
 
