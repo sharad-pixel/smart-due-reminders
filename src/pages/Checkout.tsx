@@ -7,68 +7,46 @@ import { Check, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-// Stripe plan configuration - includes all plans for checkout
+import { STRIPE_PRICES, STRIPE_PRODUCTS, PLAN_CONFIGS } from "@/lib/subscriptionConfig";
+
+// Stripe plan configuration — Credit Economy v2 (Jun 2026)
 const STRIPE_PLANS = [
   {
-    id: 'solo_pro',
-    name: 'Solo Pro',
-    priceId: 'price_1SvLJHBfb0dWgtCDMHCSyVWo',
-    productId: 'prod_Tt7YjFBzHHYQop',
-    price: 49,
-    description: '25 invoices per month with AI-powered collections',
-    features: [
-      "Up to 25 invoices per month",
-      "All 6 AI collection agents",
-      "Stripe & QuickBooks integrations",
-      "Email campaigns",
-      "Full automation suite"
-    ]
+    id: 'launch',
+    name: PLAN_CONFIGS.launch.displayName,
+    priceId: STRIPE_PRICES.monthly.launch,
+    productId: STRIPE_PRODUCTS.launch,
+    price: PLAN_CONFIGS.launch.monthlyPrice,
+    description: `${PLAN_CONFIGS.launch.creditAllotment} credits/month — Live Contracts $5/contract/mo add-on`,
+    features: PLAN_CONFIGS.launch.features,
   },
   {
     id: 'starter',
-    name: 'Starter Plan',
-    priceId: 'price_1ScbGXBfb0dWgtCDpDqTtrC7',
-    productId: 'prod_TZkmWC1MyKQXpP',
-    price: 199,
-    description: '100 invoices per month with AI-powered collections',
-    features: [
-      "Up to 100 invoices per month",
-      "All 6 AI collection agents",
-      "Stripe & QuickBooks integrations",
-      "Email campaigns",
-      "Full automation suite"
-    ]
+    name: PLAN_CONFIGS.starter.displayName,
+    priceId: STRIPE_PRICES.monthly.starter,
+    productId: STRIPE_PRODUCTS.starter,
+    price: PLAN_CONFIGS.starter.monthlyPrice,
+    description: `${PLAN_CONFIGS.starter.creditAllotment} credits/month · ${PLAN_CONFIGS.starter.includedContracts} live contracts included`,
+    features: PLAN_CONFIGS.starter.features,
   },
   {
     id: 'growth',
-    name: 'Growth Plan',
-    priceId: 'price_1ScbGbBfb0dWgtCDLjXblCw4',
-    productId: 'prod_TZkmds8B5fChZF',
-    price: 499,
-    description: '300 invoices per month with AI-powered collections',
-    features: [
-      "Up to 300 invoices per month",
-      "All 6 AI collection agents",
-      "Multi-user support",
-      "Promise-to-pay tracking",
-      "Advanced analytics"
-    ]
+    name: PLAN_CONFIGS.growth.displayName,
+    priceId: STRIPE_PRICES.monthly.growth,
+    productId: STRIPE_PRODUCTS.growth,
+    price: PLAN_CONFIGS.growth.monthlyPrice,
+    description: `${PLAN_CONFIGS.growth.creditAllotment} credits/month · ${PLAN_CONFIGS.growth.includedContracts} live contracts included`,
+    features: PLAN_CONFIGS.growth.features,
   },
   {
     id: 'professional',
-    name: 'Professional Plan',
-    priceId: 'price_1ScbGeBfb0dWgtCDrtiXDKiJ',
-    productId: 'prod_TZkm0viKFTgHDi',
-    price: 799,
-    description: '500 invoices per month with AI-powered collections and team features',
-    features: [
-      "Up to 500 invoices per month",
-      "Team permissions",
-      "Priority AI throughput",
-      "Advanced CRM integration",
-      "Dedicated support"
-    ]
-  }
+    name: PLAN_CONFIGS.professional.displayName,
+    priceId: STRIPE_PRICES.monthly.professional,
+    productId: STRIPE_PRODUCTS.professional,
+    price: PLAN_CONFIGS.professional.monthlyPrice,
+    description: `${PLAN_CONFIGS.professional.creditAllotment} credits/month · ${PLAN_CONFIGS.professional.includedContracts} live contracts included`,
+    features: PLAN_CONFIGS.professional.features,
+  },
 ];
 
 const Checkout = () => {
