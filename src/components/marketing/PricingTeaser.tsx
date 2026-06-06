@@ -68,7 +68,7 @@ const PricingTeaser = () => {
             AI-Powered Revenue Intelligence Platform for Less Than One Employee
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-            Recouply.ai has a plan to suit businesses of any size — starts at ${PLAN_CONFIGS.solo_pro.monthlyPrice}/mo for independents, with business plans from ${PLAN_CONFIGS.starter.monthlyPrice}/mo.{" "}
+            Recouply.ai scales with you — start at ${PLAN_CONFIGS.launch.monthlyPrice}/mo with {PLAN_CONFIGS.launch.creditAllotment} credits included. Add Live Contracts at ${LIVE_CONTRACTS_PRICING.pricePerContractPerMonth.toFixed(2)}/contract/mo.{" "}
             <button
               onClick={() => navigate("/pricing")}
               className="text-primary font-semibold hover:underline underline-offset-4"
