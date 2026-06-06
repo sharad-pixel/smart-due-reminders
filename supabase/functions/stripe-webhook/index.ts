@@ -32,26 +32,47 @@ const logStep = (step: string, details?: any) => {
 // New pricing: Solo Pro $49, Starter $199, Growth $499, Professional $799
 // ============================================================================
 const PRICE_TO_PLAN_MAP: Record<string, string> = {
-  // Solo Pro prices (January 2025)
-  'price_1SvLJHBfb0dWgtCDMHCSyVWo': 'solo_pro',    // $49/month
-  'price_1SvLJMBfb0dWgtCDxlaprYD9': 'solo_pro',    // annual
-  // Current monthly prices (December 2024)
-  'price_1ScbGXBfb0dWgtCDpDqTtrC7': 'starter',      // $199/month
-  'price_1ScbGbBfb0dWgtCDLjXblCw4': 'growth',       // $499/month
-  'price_1ScbGeBfb0dWgtCDrtiXDKiJ': 'professional', // $799/month
-  // Current annual prices
-  'price_1ScbGZBfb0dWgtCDvfg6hyy6': 'starter',      // annual
-  'price_1ScbGcBfb0dWgtCDQpH6uB7A': 'growth',       // annual
-  'price_1ScbGfBfb0dWgtCDhCxrFPE4': 'professional', // annual
-  // Legacy monthly prices (old pricing)
+  // v2 — Credit Economy (Jun 2026)
+  'price_1TfDx6Bfb0dWgtCDc3HpAtye': 'launch',
+  'price_1TfDx6Bfb0dWgtCDfcEwQEEt': 'launch',
+  'price_1TfDx7Bfb0dWgtCDNkLduVxc': 'starter',
+  'price_1TfDx8Bfb0dWgtCDCnnclvGu': 'starter',
+  'price_1TfDx9Bfb0dWgtCDp94E6iNn': 'growth',
+  'price_1TfDxABfb0dWgtCDt6aAIuH9': 'growth',
+  'price_1TfDxBBfb0dWgtCD4ObmfoEW': 'professional',
+  'price_1TfDxDBfb0dWgtCDNjPFUgaG': 'professional',
+  // v1 — legacy / grandfathered
+  'price_1SvLJHBfb0dWgtCDMHCSyVWo': 'solo_pro',
+  'price_1SvLJMBfb0dWgtCDxlaprYD9': 'solo_pro',
+  'price_1ScbGXBfb0dWgtCDpDqTtrC7': 'starter',
+  'price_1ScbGbBfb0dWgtCDLjXblCw4': 'growth',
+  'price_1ScbGeBfb0dWgtCDrtiXDKiJ': 'professional',
+  'price_1ScbGZBfb0dWgtCDvfg6hyy6': 'starter',
+  'price_1ScbGcBfb0dWgtCDQpH6uB7A': 'growth',
+  'price_1ScbGfBfb0dWgtCDhCxrFPE4': 'professional',
+  // Legacy v0
   'price_1SaNQ5FaeMMSBqcli04PsmKX': 'starter',
   'price_1SaNQKFaeMMSBqclWKbyVTSv': 'growth',
   'price_1SaNVyFaeMMSBqclrcAXjUmm': 'professional',
-  // Legacy annual prices (20% discount)
   'price_1SaNWBFaeMMSBqcl6EK9frSv': 'starter',
   'price_1SaNWTFaeMMSBqclXYovl2Hj': 'growth',
   'price_1SaNXGFaeMMSBqcl08sXmTEm': 'professional',
 };
+
+// Plan -> Credit Economy v2 allotments
+const PLAN_ALLOTMENTS: Record<string, { credits: number; contracts: number }> = {
+  launch:       { credits: 50,   contracts: 0 },
+  starter:      { credits: 150,  contracts: 5 },
+  growth:       { credits: 500,  contracts: 20 },
+  professional: { credits: 1500, contracts: 75 },
+  enterprise:   { credits: -1,   contracts: -1 },
+  solo_pro:     { credits: 25,   contracts: 0 },
+  pro:          { credits: 25,   contracts: 0 },
+  free:         { credits: 5,    contracts: 0 },
+};
+function getAllotments(planType: string) {
+  return PLAN_ALLOTMENTS[planType] ?? PLAN_ALLOTMENTS.free;
+}
 
 // Seat price IDs (not mapped to plans, used for identification) - $75/seat/month
 const SEAT_PRICE_IDS = [
