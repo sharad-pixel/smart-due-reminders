@@ -2,9 +2,11 @@ import { useDemoContext } from "@/contexts/DemoContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion } from "framer-motion";
-import { ArrowRight, Users, FileText, Brain, Send, DollarSign, BarChart3, Database, Link, CalendarRange, History, Download, Sparkles, BrainCircuit, PlayCircle } from "lucide-react";
+import { ArrowRight, Users, FileText, Brain, Send, DollarSign, BarChart3, Database, Link, CalendarRange, History, Download, Sparkles, BrainCircuit, PlayCircle, FileSignature } from "lucide-react";
 import { DemoTutorialCallout } from "./DemoTutorialCallout";
 import { Link as RouterLink } from "react-router-dom";
+import sharadAvatar from "@/assets/founder-sharad.jpg";
+import { founderConfig } from "@/lib/founderConfig";
 
 const FEATURE_STEPS = [
   { icon: Users, label: "Account Setup", desc: "25 customer accounts loaded", step: "setup_accounts" as const },
@@ -34,7 +36,7 @@ export const DemoWelcome = () => {
           animate={{ opacity: 1, y: 0 }}
           className="text-3xl md:text-4xl font-bold text-foreground"
         >
-          Your AI-Powered Revenue Intelligence Platform
+          Welcome to Recouply.ai — let me show you around.
         </motion.h1>
         <motion.p
           initial={{ opacity: 0 }}
@@ -42,13 +44,38 @@ export const DemoWelcome = () => {
           transition={{ delay: 0.2 }}
           className="text-muted-foreground text-lg"
         >
-          {demoEmail ? `Great to have you! ` : ""}See how AI-powered collections workflows replace manual follow-ups — centralizing every receivable, every interaction, and every outcome in one system of record.
+          {demoEmail ? `Great to have you! ` : ""}This demo walks you through how AI-powered <strong>Collections Intelligence</strong> and <strong>Contract Intelligence</strong> work side-by-side — replacing manual follow-ups and lost renewals with one source of truth.
         </motion.p>
       </div>
 
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+      >
+        <Card className="border-primary/20 bg-gradient-to-r from-primary/5 via-primary/3 to-transparent">
+          <CardContent className="p-5 flex gap-4 items-start">
+            <img
+              src={sharadAvatar}
+              alt={`${founderConfig.name}, ${founderConfig.title}`}
+              className="h-14 w-14 rounded-full object-cover border-2 border-primary/30 shrink-0"
+            />
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-foreground mb-1">
+                A personal note from {founderConfig.name}, {founderConfig.title}
+              </p>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Hey — Sharad here. After 15+ years building revenue and billing systems at Workday, ServiceTitan, and Contentful, I built Recouply to give finance teams two superpowers in one platform: <strong>Collections Intelligence</strong> and <strong>Contract Intelligence</strong>. Click through the demo, and email me at{' '}
+                <a href={`mailto:${founderConfig.email}`} className="underline hover:text-foreground">{founderConfig.email}</a> with anything you want to see next.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
       <DemoTutorialCallout
-        title="How AI-Powered Collections Workflows Work"
-        description="Each step showcases how Recouply.ai's six AI agents orchestrate collections — from risk-based prioritization to autonomous outreach, with a full audit trail of every action."
+        title="How Recouply Works — Collections + Contract Intelligence"
+        description="Six AI collections agents orchestrate risk-based outreach, while Contract Intelligence keeps every engagement, template, and renewal tracked from day one. Every action is auditable, every send is yours to approve."
         variant="info"
         steps={[
           { title: "AI agents handle repeatable workflows", description: "Each agent adapts tone and cadence to invoice aging — consistent outreach, risk-aware prioritization, full audit trail." },
