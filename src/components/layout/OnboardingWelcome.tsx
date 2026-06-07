@@ -4,32 +4,39 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useNicolasPreferences } from '@/hooks/useNicolasPreferences';
 import { useNavigate } from 'react-router-dom';
-import { Database, Bot, Mail, CheckSquare, ArrowRight, Sparkles } from 'lucide-react';
-import nicolasAvatar from '@/assets/personas/nicolas.png';
+import { Database, Bot, Mail, CheckSquare, FileSignature, ArrowRight, Sparkles, Mail as MailIcon } from 'lucide-react';
+import sharadAvatar from '@/assets/founder-sharad.jpg';
+import { founderConfig } from '@/lib/founderConfig';
 
 const ONBOARDING_STEPS = [
   {
     icon: Database,
     title: 'Import Your Data',
-    description: 'Start by uploading your accounts, invoices, and payments through the Data Center.',
+    description: 'Start in the Data Center — pull accounts, invoices, and payments from CSV, Stripe, QuickBooks, NetSuite, Sage, or Google Sheets.',
     path: '/data-center',
+  },
+  {
+    icon: FileSignature,
+    title: 'Set Up Contract Intelligence',
+    description: 'Spin up your first engagement workspace, load a template, and let watchers track every renewal and signature.',
+    path: '/contracts',
   },
   {
     icon: Bot,
     title: 'Configure AI Workflows',
-    description: 'Set up automated collection outreach with our AI personas for each aging bucket.',
+    description: 'Pick tone, cadence, and which AI agent handles each aging bucket. Your team stays in control of every send.',
     path: '/settings/ai-workflows',
   },
   {
     icon: Mail,
     title: 'Review & Approve Drafts',
-    description: 'AI generates personalized collection messages. Review and approve before sending.',
+    description: 'AI writes tone-matched outreach. You review, refine, and approve — nothing leaves without you.',
     path: '/outreach',
   },
   {
     icon: CheckSquare,
     title: 'Track Tasks & Responses',
-    description: 'Monitor inbound responses and manage follow-up tasks from one place.',
+    description: 'Every inbound reply, every follow-up — managed in one Kanban board so nothing slips.',
     path: '/tasks',
   },
 ];
@@ -39,27 +46,17 @@ export const OnboardingWelcome = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const navigate = useNavigate();
 
-  // Don't show if loaded and onboarding completed or assistant disabled
   if (!isLoaded || preferences.onboardingCompleted || !preferences.assistantEnabled) {
     return null;
   }
 
   const handleNext = () => {
-    if (currentStep < ONBOARDING_STEPS.length - 1) {
-      setCurrentStep(currentStep + 1);
-    }
+    if (currentStep < ONBOARDING_STEPS.length - 1) setCurrentStep(currentStep + 1);
   };
-
   const handlePrev = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
-    }
+    if (currentStep > 0) setCurrentStep(currentStep - 1);
   };
-
-  const handleComplete = () => {
-    completeOnboarding();
-  };
-
+  const handleComplete = () => completeOnboarding();
   const handleGoToStep = (path: string) => {
     completeOnboarding();
     navigate(path);
@@ -73,25 +70,35 @@ export const OnboardingWelcome = () => {
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <div className="flex items-center gap-3 mb-2">
-            <img 
-              src={nicolasAvatar} 
-              alt="Nicolas" 
+            <img
+              src={sharadAvatar}
+              alt={`${founderConfig.name}, ${founderConfig.title}`}
               className="h-12 w-12 rounded-full object-cover border-2 border-primary/20"
             />
             <div>
-              <DialogTitle className="text-xl">Welcome to Recouply.ai!</DialogTitle>
+              <DialogTitle className="text-xl">Welcome to Recouply.ai — I'm glad you're here.</DialogTitle>
               <Badge variant="secondary" className="mt-1">
                 <Sparkles className="h-3 w-3 mr-1" />
-                Hi, I'm Nicolas - your collection assistant
+                A personal note from {founderConfig.name}, {founderConfig.title}
               </Badge>
             </div>
           </div>
-          <DialogDescription className="text-base">
-            I'll help you get started and guide you through the platform. Here's a quick overview of how to get the most out of Recouply.ai.
+          <DialogDescription className="text-base leading-relaxed space-y-3">
+            <span className="block">
+              Hey — Sharad here. I built Recouply.ai after 15+ years inside revenue and billing teams at Workday, ServiceTitan, Contentful, and Chegg, watching brilliant finance folks drown in spreadsheets and lose contracts in email threads. You deserve better tooling, and that's what we're handing you today.
+            </span>
+            <span className="block">
+              Recouply is your <strong>Revenue Intelligence Platform</strong> — two services, one source of truth:
+            </span>
+            <span className="block pl-3 border-l-2 border-primary/30">
+              <strong>Collections Intelligence</strong> — AI agents prioritize by risk and draft tone-matched outreach. You stay in the loop.
+            </span>
+            <span className="block pl-3 border-l-2 border-emerald-500/40">
+              <strong>Contract Intelligence</strong> — engagement workspaces, templates, signatures, and renewal watchers so no contract slips through.
+            </span>
           </DialogDescription>
         </DialogHeader>
 
-        {/* Step progress */}
         <div className="flex items-center justify-center gap-2 my-4">
           {ONBOARDING_STEPS.map((_, index) => (
             <div
@@ -107,7 +114,6 @@ export const OnboardingWelcome = () => {
           ))}
         </div>
 
-        {/* Current step content */}
         <div className="bg-muted/30 rounded-lg p-6 text-center">
           <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
             <StepIcon className="h-8 w-8 text-primary" />
@@ -115,52 +121,39 @@ export const OnboardingWelcome = () => {
           <h3 className="text-lg font-semibold mb-2">
             Step {currentStep + 1}: {currentStepData.title}
           </h3>
-          <p className="text-muted-foreground">
-            {currentStepData.description}
-          </p>
+          <p className="text-muted-foreground">{currentStepData.description}</p>
           <Button
             variant="outline"
             size="sm"
             className="mt-4"
             onClick={() => handleGoToStep(currentStepData.path)}
           >
-            Go to {currentStepData.title.split(' ')[0]}
+            Take me there
             <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
         </div>
 
-        {/* Navigation */}
         <div className="flex items-center justify-between mt-4">
-          <Button
-            variant="ghost"
-            onClick={handlePrev}
-            disabled={currentStep === 0}
-          >
+          <Button variant="ghost" onClick={handlePrev} disabled={currentStep === 0}>
             Previous
           </Button>
-          
           <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              onClick={handleComplete}
-            >
-              Skip Tour
-            </Button>
+            <Button variant="ghost" onClick={handleComplete}>Skip Tour</Button>
             {currentStep < ONBOARDING_STEPS.length - 1 ? (
-              <Button onClick={handleNext}>
-                Next
-              </Button>
+              <Button onClick={handleNext}>Next</Button>
             ) : (
-              <Button onClick={handleComplete}>
-                Get Started
-              </Button>
+              <Button onClick={handleComplete}>Let's go</Button>
             )}
           </div>
         </div>
 
-        {/* Help note */}
-        <p className="text-xs text-center text-muted-foreground mt-2">
-          I'll be available on every page to help. Look for me in the bottom-right corner!
+        <p className="text-xs text-center text-muted-foreground mt-3 flex items-center justify-center gap-1">
+          <MailIcon className="h-3 w-3" />
+          If anything feels off, email me directly at{' '}
+          <a href={`mailto:${founderConfig.email}`} className="underline hover:text-foreground">
+            {founderConfig.email}
+          </a>
+          {' '}— I read every note. — Sharad
         </p>
       </DialogContent>
     </Dialog>
