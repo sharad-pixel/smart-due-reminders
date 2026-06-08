@@ -73,15 +73,20 @@ const Invoices = () => {
   
   const queryClient = useQueryClient();
 
-  // Determine if we need to fetch closed invoices based on the selected status filter.
-  // Active statuses are fetched by default; selecting a closed status (Paid, Canceled, etc.)
-  // or "all" should include closed invoices so search/filter can find them.
-  const savedStatusFilter = typeof window !== "undefined"
-    ? localStorage.getItem("invoiceStatusFilter") || "all"
-    : "all";
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>(() => {
+    const saved = localStorage.getItem("invoiceStatusFilter");
+    return saved || "all";
+  });
+  const [ageBucketFilter, setAgeBucketFilter] = useState<string>(agingFromUrl === '60plus' ? '60plus' : 'all');
+  const [debtorFilter, setDebtorFilter] = useState<string>(debtorIdFromUrl || "all");
+  const [sourceFilter, setSourceFilter] = useState<string>("all");
+  const [currencyFilter, setCurrencyFilter] = useState<string>("all");
+
+  // Fetch closed invoices when the user is searching, filtering by a closed status,
+  // or viewing "all" — otherwise the search/filters can't surface Paid/Canceled/etc.
   const ACTIVE_STATUSES_SET = new Set(["Open", "PartiallyPaid", "InPaymentPlan", "Disputed", "FinalInternalCollections"]);
-  const includeClosed = savedStatusFilter === "all" || !ACTIVE_STATUSES_SET.has(savedStatusFilter);
-  const hideInactive = !includeClosed;
+  const includeClosed = !!searchTerm.trim() || statusFilter === "all" || !ACTIVE_STATUSES_SET.has(statusFilter);
 
   const { data: queryData, isLoading: loading } = useQuery({
     queryKey: ["invoices-page-data", includeClosed],
@@ -103,15 +108,6 @@ const Invoices = () => {
     queryClient.invalidateQueries({ queryKey: ["invoices-page-data"] });
   };
 
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>(() => {
-    const saved = localStorage.getItem("invoiceStatusFilter");
-    return saved || "all";
-  });
-  const [ageBucketFilter, setAgeBucketFilter] = useState<string>(agingFromUrl === '60plus' ? '60plus' : 'all');
-  const [debtorFilter, setDebtorFilter] = useState<string>(debtorIdFromUrl || "all");
-  const [sourceFilter, setSourceFilter] = useState<string>("all");
-  const [currencyFilter, setCurrencyFilter] = useState<string>("all");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
