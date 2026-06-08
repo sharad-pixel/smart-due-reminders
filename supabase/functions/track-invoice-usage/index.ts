@@ -129,19 +129,21 @@ serve(async (req) => {
       usage = newUsage;
     }
 
+    const CREDITS_PER_INVOICE = 2;
+
     const totalUsed = (usage?.included_invoices_used || 0) + (usage?.overage_invoices || 0);
     const includedLimit = plan.invoice_limit || 0;
-    const isOverage = totalUsed >= includedLimit;
+    const isOverage = totalUsed + CREDITS_PER_INVOICE > includedLimit;
 
-    logStep("Usage check", { totalUsed, includedLimit, isOverage });
+    logStep("Usage check", { totalUsed, includedLimit, isOverage, creditsPerInvoice: CREDITS_PER_INVOICE });
 
-    // Update usage
+    // Update usage (each invoice = 2 credits)
     let updateData: any = {};
     if (isOverage) {
-      // This is an overage invoice
+      // This is an overage invoice — consumes 2 credits beyond included limit
       updateData = {
-        overage_invoices: (usage?.overage_invoices || 0) + 1,
-        overage_charges_total: ((usage?.overage_charges_total || 0) + (plan.overage_amount || 0)),
+        overage_invoices: (usage?.overage_invoices || 0) + CREDITS_PER_INVOICE,
+        overage_charges_total: ((usage?.overage_charges_total || 0) + ((plan.overage_amount || 0) * CREDITS_PER_INVOICE)),
         last_updated_at: new Date().toISOString()
       };
 
@@ -163,23 +165,23 @@ serve(async (req) => {
           // Get subscription to find the metered item for invoice overages
           const subscription = await stripe.subscriptions.retrieve(profile.stripe_subscription_id);
           
-          // Find the specific invoice price item ($1.99 per invoice)
+          // Find the specific invoice price item ($1.99 per invoice — legacy; new pricing reports 2 credits)
           const INVOICE_PRICE_ID = 'price_1SbvzMBqszPdRiQv0AM0GDrv';
           const meteredItem = subscription.items.data.find((item: any) => 
             item.price.id === INVOICE_PRICE_ID
           );
 
           if (meteredItem) {
-            // Report 1 unit of usage for this invoice at $1.99
+            // Report CREDITS_PER_INVOICE units of usage for this invoice
             await stripe.subscriptionItems.createUsageRecord(
               meteredItem.id,
               {
-                quantity: 1,
+                quantity: CREDITS_PER_INVOICE,
                 action: 'increment',
                 timestamp: Math.floor(Date.now() / 1000)
               }
             );
-            logStep("Reported invoice usage to Stripe - 1 invoice at $1.99", { itemId: meteredItem.id });
+            logStep(`Reported invoice usage to Stripe - ${CREDITS_PER_INVOICE} credits`, { itemId: meteredItem.id });
           } else {
             logStep("Invoice metered item not found in subscription - user may need to resubscribe");
           }
@@ -189,9 +191,9 @@ serve(async (req) => {
         }
       }
     } else {
-      // Within included limit
+      // Within included limit — consume 2 credits
       updateData = {
-        included_invoices_used: (usage?.included_invoices_used || 0) + 1,
+        included_invoices_used: (usage?.included_invoices_used || 0) + CREDITS_PER_INVOICE,
         last_updated_at: new Date().toISOString()
       };
     }
