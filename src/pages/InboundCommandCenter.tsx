@@ -217,7 +217,20 @@ const EmailDetailContent = ({
         </div>
         <div className="flex flex-col md:flex-row md:justify-between gap-0.5">
           <span className="text-muted-foreground text-xs md:text-sm">To:</span>
-          <span className="font-medium break-all">{email.to_emails[0]}</span>
+          <span className="font-medium break-all">
+            {(() => {
+              const raw = email.to_emails?.[0] || "";
+              const companyName = (email.debtors as any)?.company_name || (email.debtors as any)?.name;
+              const invoiceNumber = (email.invoices as any)?.invoice_number;
+              if (invoiceNumber) return `Invoice ${invoiceNumber} inbox`;
+              if (companyName) return `${companyName} inbox`;
+              // Mask internal IDs in the routing address
+              const domain = raw.split("@")[1] || "";
+              if (raw.startsWith("debtor+")) return `Account inbox @ ${domain}`;
+              if (raw.startsWith("invoice+")) return `Invoice inbox @ ${domain}`;
+              return raw;
+            })()}
+          </span>
         </div>
         <div className="flex flex-col md:flex-row md:justify-between gap-0.5">
           <span className="text-muted-foreground text-xs md:text-sm">Received:</span>
