@@ -365,10 +365,10 @@ export function canAccessFeature(plan: PlanType, feature: string): boolean {
 }
 
 export function getInvoiceLimit(plan: PlanType, isTrial: boolean = false): number {
-  if (isTrial) return TRIAL_CONFIG.invoiceLimit;
-  if (plan === 'free') return 5;
+  if (isTrial) return Math.floor(TRIAL_CONFIG.invoiceLimit / CREDITS_PER_INVOICE);
+  if (plan === 'free') return Math.floor(5 / CREDITS_PER_INVOICE);
   if (plan === 'enterprise') return -1;
-  return PLAN_CONFIGS[plan]?.creditAllotment ?? 5;
+  return Math.floor((PLAN_CONFIGS[plan]?.creditAllotment ?? 5) / CREDITS_PER_INVOICE);
 }
 
 export function getMaxAgents(plan: PlanType): number {
