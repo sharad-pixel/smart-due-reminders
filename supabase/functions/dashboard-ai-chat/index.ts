@@ -290,13 +290,39 @@ Deno.serve(async (req) => {
     }, {});
 
     const last30 = new Date(now.getTime() - 30 * 86400000).toISOString().slice(0, 10);
+    const last7 = new Date(now.getTime() - 7 * 86400000).toISOString().slice(0, 10);
     const recent30 = (payments as any[]).filter((p) => p.payment_date >= last30);
+    const recent7 = (payments as any[]).filter((p) => p.payment_date >= last7);
+    const invoiceNumberMap = new Map((invoices as any[]).map((i: any) => [i.id, i.invoice_number]));
+    const reconciliationBreakdown = (payments as any[]).reduce((acc: Record<string, number>, p: any) => {
+      const k = p.reconciliation_status || "unreconciled";
+      acc[k] = (acc[k] || 0) + 1;
+      return acc;
+    }, {});
     const paymentSummary = {
       total_recent_count: payments.length,
+      recent_7d_count: recent7.length,
+      recent_7d_total: Math.round(recent7.reduce((s, p) => s + Number(p.amount || 0), 0) * 100) / 100,
       recent_30d_count: recent30.length,
       recent_30d_total: Math.round(recent30.reduce((s, p) => s + Number(p.amount || 0), 0) * 100) / 100,
       last_payment_date: (payments[0] as any)?.payment_date || null,
+      reconciliation_breakdown: reconciliationBreakdown,
     };
+    const recentPaymentsSample = (payments as any[]).slice(0, 50).map((p: any) => ({
+      id: p.id,
+      debtor_id: p.debtor_id,
+      debtor: debtorNameMap.get(p.debtor_id) || null,
+      invoice_id: p.invoice_id,
+      invoice: p.invoice_id ? (invoiceNumberMap.get(p.invoice_id) || null) : null,
+      amount: Math.round(Number(p.amount || 0) * 100) / 100,
+      currency: p.currency,
+      payment_date: p.payment_date,
+      reference: p.reference,
+      reconciliation_status: p.reconciliation_status || "unreconciled",
+      source: p.source_system || "manual",
+      notes: p.notes,
+    }));
+
 
     const portfolio = {
       debtor_count: debtors.length,
@@ -481,6 +507,8 @@ Deno.serve(async (req) => {
       top_ar_backlog_invoices: topArBacklogInvoices,
       tasks: taskSummary,
       recent_payments: paymentSummary,
+      recent_payments_sample: recentPaymentsSample,
+
       invoice_source_breakdown: invoiceSourceBreakdown,
       payment_source_breakdown: paymentSourceBreakdown,
       contracts_library: contractPortfolio,
@@ -547,7 +575,14 @@ PLANNED OUTREACH:
 - \`planned_outreach_sample\` lists up to 50 individual planned drafts with invoice/debtor, step, channel, recommended_send_date, days_past_due. Use this to name specific accounts/invoices and their next send date.
 - When listing planned outreach by account, link debtors using /debtors/{debtor_id} and invoices using /invoices/{invoice_id}.
 
+PAYMENTS:
+- \`recent_payments\` summarizes payment activity (last 7d count/total, last 30d count/total, last payment date, reconciliation_breakdown by status).
+- \`recent_payments_sample\` lists up to 50 individual recent payments with debtor, invoice, amount, currency, payment_date, reference, reconciliation_status, source, and notes. Use this to answer "who paid recently", "did <Acme> pay", "payments over $X", "unreconciled payments", "payment for invoice INV-123", or any specific payment lookup.
+- When listing payments, link debtors with /debtors/{debtor_id} and invoices with /invoices/{invoice_id}. Always cite amount, date (YYYY-MM-DD), and source. Flag \`reconciliation_status\` other than "matched" so the user can act on it.
+- If the user asks about a payment not in \`recent_payments_sample\`, say it's not in the recent 50 and suggest checking /payments.
+
 If the portfolio has no data (zero debtors, zero invoices, zero contracts), say so plainly and suggest the user import or sync data.
+
 
 CONTEXT (as of ${todayISO}):
 ${JSON.stringify(context)}`;
