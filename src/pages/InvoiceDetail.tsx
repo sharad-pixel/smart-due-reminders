@@ -526,6 +526,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
         invoice_id: id,
         tone,
         step_number: previewDraft?.step_number || 1,
+        use_ai_generation: true,
       },
     });
 
