@@ -290,13 +290,39 @@ Deno.serve(async (req) => {
     }, {});
 
     const last30 = new Date(now.getTime() - 30 * 86400000).toISOString().slice(0, 10);
+    const last7 = new Date(now.getTime() - 7 * 86400000).toISOString().slice(0, 10);
     const recent30 = (payments as any[]).filter((p) => p.payment_date >= last30);
+    const recent7 = (payments as any[]).filter((p) => p.payment_date >= last7);
+    const invoiceNumberMap = new Map((invoices as any[]).map((i: any) => [i.id, i.invoice_number]));
+    const reconciliationBreakdown = (payments as any[]).reduce((acc: Record<string, number>, p: any) => {
+      const k = p.reconciliation_status || "unreconciled";
+      acc[k] = (acc[k] || 0) + 1;
+      return acc;
+    }, {});
     const paymentSummary = {
       total_recent_count: payments.length,
+      recent_7d_count: recent7.length,
+      recent_7d_total: Math.round(recent7.reduce((s, p) => s + Number(p.amount || 0), 0) * 100) / 100,
       recent_30d_count: recent30.length,
       recent_30d_total: Math.round(recent30.reduce((s, p) => s + Number(p.amount || 0), 0) * 100) / 100,
       last_payment_date: (payments[0] as any)?.payment_date || null,
+      reconciliation_breakdown: reconciliationBreakdown,
     };
+    const recentPaymentsSample = (payments as any[]).slice(0, 50).map((p: any) => ({
+      id: p.id,
+      debtor_id: p.debtor_id,
+      debtor: debtorNameMap.get(p.debtor_id) || null,
+      invoice_id: p.invoice_id,
+      invoice: p.invoice_id ? (invoiceNumberMap.get(p.invoice_id) || null) : null,
+      amount: Math.round(Number(p.amount || 0) * 100) / 100,
+      currency: p.currency,
+      payment_date: p.payment_date,
+      reference: p.reference,
+      reconciliation_status: p.reconciliation_status || "unreconciled",
+      source: p.source_system || "manual",
+      notes: p.notes,
+    }));
+
 
     const portfolio = {
       debtor_count: debtors.length,
