@@ -2,7 +2,7 @@
  * Stripe Subscription Configuration — Credit Economy v2 (Jun 2026)
  *
  * PRICING MODEL: Platform Access Fee + Included Credits + Metered Add-Ons (Twilio-style)
- * - 1 invoice processed/month = 1 credit (1:1 conversion).
+ * - 1 invoice processed/month = 2 credits.
  * - Overage credits: $0.80 pre-paid / $1.00 on-demand (matches ASC 606 Credits).
  * - Live Contracts: $5.00 / active contract / month (metered add-on, includes alerts + standard risk).
  *
