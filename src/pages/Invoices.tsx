@@ -138,7 +138,7 @@ const Invoices = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, ageBucketFilter, debtorFilter, sourceFilter, currencyFilter, hideInactive]);
+  }, [searchTerm, statusFilter, ageBucketFilter, debtorFilter, sourceFilter, currencyFilter, includeClosed]);
 
   const getDaysPastDue = (dueDate: string): number => {
     const today = new Date();
@@ -307,7 +307,7 @@ const Invoices = () => {
     }
 
     return filtered;
-  }, [invoices, searchTerm, statusFilter, ageBucketFilter, debtorFilter, sourceFilter, currencyFilter, hideInactive]);
+  }, [invoices, searchTerm, statusFilter, ageBucketFilter, debtorFilter, sourceFilter, currencyFilter, includeClosed]);
 
   // Add computed fields for sorting
   const invoicesWithComputedFields = useMemo(() => {
