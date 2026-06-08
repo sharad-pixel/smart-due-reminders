@@ -575,7 +575,13 @@ PLANNED OUTREACH:
 - \`planned_outreach_sample\` lists up to 50 individual planned drafts with invoice/debtor, step, channel, recommended_send_date, days_past_due. Use this to name specific accounts/invoices and their next send date.
 - When listing planned outreach by account, link debtors using /debtors/{debtor_id} and invoices using /invoices/{invoice_id}.
 
-If the portfolio has no data (zero debtors, zero invoices, zero contracts), say so plainly and suggest the user import or sync data.
+PAYMENTS:
+- \`recent_payments\` summarizes payment activity (last 7d count/total, last 30d count/total, last payment date, reconciliation_breakdown by status).
+- \`recent_payments_sample\` lists up to 50 individual recent payments with debtor, invoice, amount, currency, payment_date, reference, reconciliation_status, source, and notes. Use this to answer "who paid recently", "did <Acme> pay", "payments over $X", "unreconciled payments", "payment for invoice INV-123", or any specific payment lookup.
+- When listing payments, link debtors with /debtors/{debtor_id} and invoices with /invoices/{invoice_id}. Always cite amount, date (YYYY-MM-DD), and source. Flag \`reconciliation_status\` other than "matched" so the user can act on it.
+- If the user asks about a payment not in \`recent_payments_sample\`, say it's not in the recent 50 and suggest checking /payments.
+
+
 
 CONTEXT (as of ${todayISO}):
 ${JSON.stringify(context)}`;
