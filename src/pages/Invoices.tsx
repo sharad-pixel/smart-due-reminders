@@ -71,16 +71,23 @@ const Invoices = () => {
   const debtorIdFromUrl = searchParams.get('debtor');
   const agingFromUrl = searchParams.get('aging');
   
-  // Always hide closed invoices — only fetch active statuses from the server
-  const hideInactive = true;
-
   const queryClient = useQueryClient();
 
+  // Determine if we need to fetch closed invoices based on the selected status filter.
+  // Active statuses are fetched by default; selecting a closed status (Paid, Canceled, etc.)
+  // or "all" should include closed invoices so search/filter can find them.
+  const savedStatusFilter = typeof window !== "undefined"
+    ? localStorage.getItem("invoiceStatusFilter") || "all"
+    : "all";
+  const ACTIVE_STATUSES_SET = new Set(["Open", "PartiallyPaid", "InPaymentPlan", "Disputed", "FinalInternalCollections"]);
+  const includeClosed = savedStatusFilter === "all" || !ACTIVE_STATUSES_SET.has(savedStatusFilter);
+  const hideInactive = !includeClosed;
+
   const { data: queryData, isLoading: loading } = useQuery({
-    queryKey: ["invoices-page-data", hideInactive],
+    queryKey: ["invoices-page-data", includeClosed],
     queryFn: async () => {
       const [allInvoices, debtorsList] = await Promise.all([
-        fetchAllInvoicesPaginated({ includeClosed: !hideInactive }),
+        fetchAllInvoicesPaginated({ includeClosed }),
         fetchDebtorsList(),
       ]);
       return { invoices: allInvoices as any as Invoice[], debtors: debtorsList };
