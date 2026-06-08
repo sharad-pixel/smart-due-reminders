@@ -507,6 +507,8 @@ Deno.serve(async (req) => {
       top_ar_backlog_invoices: topArBacklogInvoices,
       tasks: taskSummary,
       recent_payments: paymentSummary,
+      recent_payments_sample: recentPaymentsSample,
+
       invoice_source_breakdown: invoiceSourceBreakdown,
       payment_source_breakdown: paymentSourceBreakdown,
       contracts_library: contractPortfolio,
