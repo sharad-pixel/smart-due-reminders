@@ -122,10 +122,14 @@ export const CREDIT_PRICING = {
   currency: 'USD',
 } as const;
 
+/** Credits consumed per invoice processed. */
+export const CREDITS_PER_INVOICE = 2;
+
 /** Legacy alias — kept so existing code referencing INVOICE_PRICING.perInvoice
- *  continues to compile. Maps to on-demand credit rate ($1.00/credit). */
+ *  continues to compile. Maps to per-invoice cost at on-demand credit rate
+ *  ($1.00/credit × CREDITS_PER_INVOICE). */
 export const INVOICE_PRICING = {
-  perInvoice: CREDIT_PRICING.overagePerCredit,
+  perInvoice: CREDIT_PRICING.overagePerCredit * CREDITS_PER_INVOICE,
   currency: 'USD',
 } as const;
 
