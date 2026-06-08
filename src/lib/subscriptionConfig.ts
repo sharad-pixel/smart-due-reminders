@@ -2,7 +2,7 @@
  * Stripe Subscription Configuration — Credit Economy v2 (Jun 2026)
  *
  * PRICING MODEL: Platform Access Fee + Included Credits + Metered Add-Ons (Twilio-style)
- * - 1 invoice processed/month = 1 credit (1:1 conversion).
+ * - 1 invoice processed/month = 2 credits.
  * - Overage credits: $0.80 pre-paid / $1.00 on-demand (matches ASC 606 Credits).
  * - Live Contracts: $5.00 / active contract / month (metered add-on, includes alerts + standard risk).
  *
@@ -122,10 +122,14 @@ export const CREDIT_PRICING = {
   currency: 'USD',
 } as const;
 
+/** Credits consumed per invoice processed. */
+export const CREDITS_PER_INVOICE = 2;
+
 /** Legacy alias — kept so existing code referencing INVOICE_PRICING.perInvoice
- *  continues to compile. Maps to on-demand credit rate ($1.00/credit). */
+ *  continues to compile. Maps to per-invoice cost at on-demand credit rate
+ *  ($1.00/credit × CREDITS_PER_INVOICE). */
 export const INVOICE_PRICING = {
-  perInvoice: CREDIT_PRICING.overagePerCredit,
+  perInvoice: CREDIT_PRICING.overagePerCredit * CREDITS_PER_INVOICE,
   currency: 'USD',
 } as const;
 
@@ -177,9 +181,9 @@ export interface PlanConfig {
   monthlyPrice: number;
   annualPrice: number;
   equivalentMonthly: number;
-  /** Monthly credit allotment included with the plan (1 credit = 1 invoice). */
+  /** Monthly credit allotment included with the plan (2 credits = 1 invoice). */
   creditAllotment: number;
-  /** Legacy alias — same value as creditAllotment. */
+  /** Legacy alias — derived as creditAllotment / CREDITS_PER_INVOICE (max invoices/month). */
   invoiceLimit: number;
   /** Live Contracts included before $5/ea overage kicks in. */
   includedContracts: number;
@@ -196,8 +200,8 @@ const mk = (cfg: Omit<PlanConfig, 'annualPrice' | 'equivalentMonthly' | 'invoice
   ...cfg,
   annualPrice: calculateAnnualPrice(cfg.monthlyPrice),
   equivalentMonthly: calculateEquivalentMonthly(calculateAnnualPrice(cfg.monthlyPrice)),
-  invoiceLimit: cfg.creditAllotment,
-  perInvoiceRate: cfg.perInvoiceRate ?? CREDIT_PRICING.overagePerCredit,
+  invoiceLimit: Math.floor(cfg.creditAllotment / CREDITS_PER_INVOICE),
+  perInvoiceRate: cfg.perInvoiceRate ?? CREDIT_PRICING.overagePerCredit * CREDITS_PER_INVOICE,
 });
 
 export const PLAN_CONFIGS: Record<Exclude<PlanType, 'free'>, PlanConfig> = {
@@ -361,10 +365,10 @@ export function canAccessFeature(plan: PlanType, feature: string): boolean {
 }
 
 export function getInvoiceLimit(plan: PlanType, isTrial: boolean = false): number {
-  if (isTrial) return TRIAL_CONFIG.invoiceLimit;
-  if (plan === 'free') return 5;
+  if (isTrial) return Math.floor(TRIAL_CONFIG.invoiceLimit / CREDITS_PER_INVOICE);
+  if (plan === 'free') return Math.floor(5 / CREDITS_PER_INVOICE);
   if (plan === 'enterprise') return -1;
-  return PLAN_CONFIGS[plan]?.creditAllotment ?? 5;
+  return Math.floor((PLAN_CONFIGS[plan]?.creditAllotment ?? 5) / CREDITS_PER_INVOICE);
 }
 
 export function getMaxAgents(plan: PlanType): number {

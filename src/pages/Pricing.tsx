@@ -21,7 +21,7 @@ import { PAGE_SEO, generateFAQSchema } from "@/lib/seoConfig";
 /**
  * Pricing page — Credit Economy v2
  * Platform Access Fee + Included Credits + Metered Add-Ons (Twilio-style)
- * 1 invoice processed/month = 1 credit. Overage: $0.80 pre-paid / $1.00 on-demand.
+ * 1 invoice processed/month = 2 credits. Overage: $0.80 pre-paid / $1.00 on-demand.
  * Live Contracts metered at $5/contract/mo (includes alerts + standard risk).
  * Annual billing = 20% discount.
  */
