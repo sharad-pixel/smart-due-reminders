@@ -71,16 +71,28 @@ const Invoices = () => {
   const debtorIdFromUrl = searchParams.get('debtor');
   const agingFromUrl = searchParams.get('aging');
   
-  // Always hide closed invoices — only fetch active statuses from the server
-  const hideInactive = true;
-
   const queryClient = useQueryClient();
 
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>(() => {
+    const saved = localStorage.getItem("invoiceStatusFilter");
+    return saved || "all";
+  });
+  const [ageBucketFilter, setAgeBucketFilter] = useState<string>(agingFromUrl === '60plus' ? '60plus' : 'all');
+  const [debtorFilter, setDebtorFilter] = useState<string>(debtorIdFromUrl || "all");
+  const [sourceFilter, setSourceFilter] = useState<string>("all");
+  const [currencyFilter, setCurrencyFilter] = useState<string>("all");
+
+  // Fetch closed invoices when the user is searching, filtering by a closed status,
+  // or viewing "all" — otherwise the search/filters can't surface Paid/Canceled/etc.
+  const ACTIVE_STATUSES_SET = new Set(["Open", "PartiallyPaid", "InPaymentPlan", "Disputed", "FinalInternalCollections"]);
+  const includeClosed = !!searchTerm.trim() || statusFilter === "all" || !ACTIVE_STATUSES_SET.has(statusFilter);
+
   const { data: queryData, isLoading: loading } = useQuery({
-    queryKey: ["invoices-page-data", hideInactive],
+    queryKey: ["invoices-page-data", includeClosed],
     queryFn: async () => {
       const [allInvoices, debtorsList] = await Promise.all([
-        fetchAllInvoicesPaginated({ includeClosed: !hideInactive }),
+        fetchAllInvoicesPaginated({ includeClosed }),
         fetchDebtorsList(),
       ]);
       return { invoices: allInvoices as any as Invoice[], debtors: debtorsList };
@@ -96,15 +108,6 @@ const Invoices = () => {
     queryClient.invalidateQueries({ queryKey: ["invoices-page-data"] });
   };
 
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>(() => {
-    const saved = localStorage.getItem("invoiceStatusFilter");
-    return saved || "all";
-  });
-  const [ageBucketFilter, setAgeBucketFilter] = useState<string>(agingFromUrl === '60plus' ? '60plus' : 'all');
-  const [debtorFilter, setDebtorFilter] = useState<string>(debtorIdFromUrl || "all");
-  const [sourceFilter, setSourceFilter] = useState<string>("all");
-  const [currencyFilter, setCurrencyFilter] = useState<string>("all");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -135,7 +138,7 @@ const Invoices = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, ageBucketFilter, debtorFilter, sourceFilter, currencyFilter, hideInactive]);
+  }, [searchTerm, statusFilter, ageBucketFilter, debtorFilter, sourceFilter, currencyFilter, includeClosed]);
 
   const getDaysPastDue = (dueDate: string): number => {
     const today = new Date();
@@ -304,7 +307,7 @@ const Invoices = () => {
     }
 
     return filtered;
-  }, [invoices, searchTerm, statusFilter, ageBucketFilter, debtorFilter, sourceFilter, currencyFilter, hideInactive]);
+  }, [invoices, searchTerm, statusFilter, ageBucketFilter, debtorFilter, sourceFilter, currencyFilter, includeClosed]);
 
   // Add computed fields for sorting
   const invoicesWithComputedFields = useMemo(() => {
