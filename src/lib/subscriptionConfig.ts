@@ -181,9 +181,9 @@ export interface PlanConfig {
   monthlyPrice: number;
   annualPrice: number;
   equivalentMonthly: number;
-  /** Monthly credit allotment included with the plan (1 credit = 1 invoice). */
+  /** Monthly credit allotment included with the plan (2 credits = 1 invoice). */
   creditAllotment: number;
-  /** Legacy alias — same value as creditAllotment. */
+  /** Legacy alias — derived as creditAllotment / CREDITS_PER_INVOICE (max invoices/month). */
   invoiceLimit: number;
   /** Live Contracts included before $5/ea overage kicks in. */
   includedContracts: number;
@@ -200,8 +200,8 @@ const mk = (cfg: Omit<PlanConfig, 'annualPrice' | 'equivalentMonthly' | 'invoice
   ...cfg,
   annualPrice: calculateAnnualPrice(cfg.monthlyPrice),
   equivalentMonthly: calculateEquivalentMonthly(calculateAnnualPrice(cfg.monthlyPrice)),
-  invoiceLimit: cfg.creditAllotment,
-  perInvoiceRate: cfg.perInvoiceRate ?? CREDIT_PRICING.overagePerCredit,
+  invoiceLimit: Math.floor(cfg.creditAllotment / CREDITS_PER_INVOICE),
+  perInvoiceRate: cfg.perInvoiceRate ?? CREDIT_PRICING.overagePerCredit * CREDITS_PER_INVOICE,
 });
 
 export const PLAN_CONFIGS: Record<Exclude<PlanType, 'free'>, PlanConfig> = {
