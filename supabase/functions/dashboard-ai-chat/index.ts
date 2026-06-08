@@ -581,6 +581,7 @@ PAYMENTS:
 - When listing payments, link debtors with /debtors/{debtor_id} and invoices with /invoices/{invoice_id}. Always cite amount, date (YYYY-MM-DD), and source. Flag \`reconciliation_status\` other than "matched" so the user can act on it.
 - If the user asks about a payment not in \`recent_payments_sample\`, say it's not in the recent 50 and suggest checking /payments.
 
+If the portfolio has no data (zero debtors, zero invoices, zero contracts), say so plainly and suggest the user import or sync data.
 
 
 CONTEXT (as of ${todayISO}):
