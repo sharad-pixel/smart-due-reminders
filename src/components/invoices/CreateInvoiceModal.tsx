@@ -115,6 +115,7 @@ export const CreateInvoiceModal = ({
           unit_price: item.unit_price,
           line_total: item.line_total,
           line_type: item.line_type || "item",
+          unit_type: item.unit_type || null,
           sort_order: index,
         }));
 
