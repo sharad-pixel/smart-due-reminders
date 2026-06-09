@@ -1,75 +1,69 @@
-# Personable Founder Welcome + Contract Intelligence Branding
-
 ## Goal
 
-1. Rewrite the two welcome surfaces in Sharad's voice (founder), more personable.
-2. Add **Contract Intelligence** alongside Collections as a core service in the intro.
-3. Remove the "CLM" acronym from all **user-facing** branding and copy — replace with "Contract Intelligence".
+Let users building invoices in Recouply quickly add line items as simple "products" (Description, Unit Type, Unit Cost, Quantity) and save any line item to a reusable Product Catalog they can pull from on future invoices.
 
-## Scope
+Existing `revenue_library_items` is ASC-606 oriented and too heavy for this use case. We'll add a lightweight `product_catalog` table dedicated to invoice line items.
 
-### 1. `src/components/layout/OnboardingWelcome.tsx` (first-login modal)
+## What the user sees
 
-Replace Nicolas avatar/copy with a founder-led welcome:
+In `CreateInvoiceModal` → Line Items section:
 
-- Avatar → `src/assets/founder-sharad.jpg`
-- Header: "Welcome to Recouply.ai — I'm glad you're here."
-- Subhead badge: "A personal note from Sharad, Founder"
-- Intro paragraph (personable, ~3 sentences) explaining the two pillars:
-  - 🟦 **Collections Intelligence** — AI-prioritized, tone-matched outreach with you in the loop
-  - 🟩 **Contract Intelligence** — engagement workspaces, templates, signature packages, watchers
-- Expand from 4 → **5 steps**:
-  1. Import your data → `/data-center`
-  2. Set up Contract Intelligence → `/contracts` (icon: `FileSignature`)
-  3. Configure AI Workflows → `/settings/ai-workflows`
-  4. Review & approve drafts → `/outreach`
-  5. Track tasks & responses → `/tasks`
-- Footer line: "Email me at sharad@recouply.ai — I read every note. — Sharad"
+1. **"Add from catalog"** button next to **"Add Line"**. Opens a searchable popover listing saved products. Selecting one inserts a pre-filled line (description, unit type, unit cost, quantity defaults to 1).
+2. Each line row gains a **Unit Type** field (e.g. "each", "hour", "license", "month" — free text with common suggestions) between Description and Qty.
+3. Each line row gets a small **bookmark icon button** ("Save to catalog"). If the line isn't yet saved, clicking it saves Description + Unit Type + Unit Cost to the catalog and turns the icon filled/green. Disabled until Description and Unit Cost are filled. Shows a toast on success and dedupes by `(user_id, lower(description), unit_type)`.
+4. Empty-state hint in the catalog popover: "No saved products yet — save any line item to reuse it later."
 
-### 2. `src/components/demo/DemoWelcome.tsx` (demo mode landing)
+Result: zero context-switch. Build once, reuse forever, all from the same modal.
 
-- Reframe header + subtitle in Sharad's voice with a small founder-note card (avatar + 2-sentence intro signed by Sharad).
-- Update the `DemoTutorialCallout` description to mention Contract Intelligence as a second service pillar alongside collections (without expanding the 14-step demo grid, since the demo flow itself is unchanged).
+## Technical details
 
-### 3. Remove "CLM" from user-facing branding
+### New table `public.product_catalog`
 
-Pure copy/UX rename — **no functional, route, schema, hook, or file-name changes**. Only visible strings users read.
+```text
+id              uuid pk
+user_id         uuid not null              -- owner (auth.uid)
+account_id      uuid                        -- effective account scoping
+description     text not null
+unit_type       text not null default 'each'
+unit_cost       numeric(14,2) not null      -- decimal per financial-precision rule
+currency        text not null default 'USD'
+times_used      integer not null default 0
+last_used_at    timestamptz
+created_at      timestamptz default now()
+updated_at      timestamptz default now()
 
-In-scope files to scrub for visible "CLM" strings (replace with "Contract Intelligence" or "Contracts" as context dictates):
+unique (user_id, lower(description), unit_type)   -- via expression unique index
+```
 
-- `src/components/clm/RequireClmAccess.tsx` (any user-facing text)
-- `src/components/clm/ClmBrandedHeader.tsx`
-- `src/components/clm/WorkspaceTemplateTabs.tsx`
-- `src/components/clm/wizard/EngagementSetupWizard.tsx`
-- `src/components/clm/ExternalPortalAccessPanel.tsx`
-- `src/components/dashboard/ClmQuickAccessCard.tsx`
-- `src/pages/Contracts.tsx`, `ContractIntelligence.tsx`, `ClmInstanceDetail.tsx`, `ClmTemplateDetail.tsx`, `ClmPortal.tsx`
-- `src/components/billing/panels/CreditsPanel.tsx` (any "CLM" label)
+- GRANT SELECT/INSERT/UPDATE/DELETE to `authenticated`; ALL to `service_role`.
+- RLS: owner-only (`user_id = auth.uid()`) for select/insert/update/delete.
+- `updated_at` trigger.
 
-Out of scope (keep as-is — internal identifiers):
-- File names, route paths (`/clm-*` if any internal), hook names (`useClmTemplates`, etc.), DB tables, type names, prop names.
+### Frontend
 
-## Memory Update
+- `src/hooks/useProductCatalog.tsx` — `list`, `saveProduct({description, unit_type, unit_cost, currency})` (upsert on unique key, increments `times_used` on reuse), `remove`.
+- `src/components/invoices/ProductCatalogPicker.tsx` — Popover + Command search; calls `onSelect(item)`.
+- `src/components/invoices/LineItemsTable.tsx`:
+  - Extend `LineItem` with `unit_type: string` (default `"each"`).
+  - Add Unit Type `<Input list="unit-type-suggestions">` column with a `<datalist>` of common units (each, hour, day, month, license, user, project, unit).
+  - Add bookmark icon button per row → calls `saveProduct`; tracks saved state in local component state by row index.
+  - Add "Add from catalog" button in the toolbar that opens `ProductCatalogPicker`; selection appends a new line.
+- `CreateInvoiceModal` continues to pass `lineItems` through unchanged; `unit_type` is stored on the new `invoice_line_items.unit_type` column (added below) and falls back to existing behavior if missing.
 
-Update `mem://marketing/branding-and-positioning` (and core brand rule) to add: *"Use 'Contract Intelligence' in user-facing copy. Never expose 'CLM' acronym to users."*
+### Schema touch-up
 
-## Out of Scope
+Add `unit_type text` (nullable) to `invoice_line_items` so saved line context round-trips. Backfill not required.
 
-- No changes to contract functionality, routes, schemas, or hooks.
-- No new image assets — reusing `founder-sharad.jpg`.
-- Marketing pages (`/contracts` marketing site, pricing) — separate pass if you want.
+### Out of scope
 
-## Draft Copy (locked-in for OnboardingWelcome)
+- Editing the catalog from a dedicated page (future enhancement). Users can still manage entries via the picker's delete action.
+- Tax line items remain unchanged (only "item" rows show the save-to-catalog button).
+- No changes to AI invoice creation flow (`ai-create-records`); can adopt later.
 
-> **Welcome to Recouply.ai — I'm glad you're here.**
-> *A personal note from Sharad, Founder*
->
-> Hey — Sharad here. I built Recouply.ai after 15+ years inside revenue and billing teams at Workday, ServiceTitan, Contentful, and Chegg, watching brilliant finance folks drown in spreadsheets and lose contracts in email threads. You deserve better tooling, and that's what we're handing you today.
->
-> Recouply is your **Revenue Intelligence Platform** — two services, one source of truth:
-> • **Collections Intelligence** — AI agents prioritize by risk and draft tone-matched outreach. You stay in the loop.
-> • **Contract Intelligence** — engagement workspaces, templates, signatures, and renewal watchers so no contract slips through.
->
-> Four steps to live in ~15 minutes. If anything feels off, email me at **sharad@recouply.ai** — I read every note.
->
-> — Sharad
+## Files to create / change
+
+- migration: create `product_catalog` + grants + RLS + add `invoice_line_items.unit_type`
+- create `src/hooks/useProductCatalog.tsx`
+- create `src/components/invoices/ProductCatalogPicker.tsx`
+- edit `src/components/invoices/LineItemsTable.tsx`
+- edit `src/components/invoices/CreateInvoiceModal.tsx` (persist `unit_type` on insert)
