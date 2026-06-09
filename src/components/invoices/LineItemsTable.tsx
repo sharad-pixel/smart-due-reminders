@@ -1,8 +1,12 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, Bookmark, BookmarkCheck } from "lucide-react";
+import { ProductCatalogPicker } from "./ProductCatalogPicker";
+import { useProductCatalog } from "@/hooks/useProductCatalog";
+import { cn } from "@/lib/utils";
 
 export interface LineItem {
   description: string;
@@ -10,6 +14,7 @@ export interface LineItem {
   unit_price: number;
   line_total: number;
   line_type: "item" | "tax";
+  unit_type?: string;
 }
 
 interface LineItemsTableProps {
@@ -18,42 +23,98 @@ interface LineItemsTableProps {
   disabled?: boolean;
 }
 
+const UNIT_SUGGESTIONS = ["each", "hour", "day", "month", "license", "user", "project", "unit"];
+
 export const LineItemsTable = ({ items, onChange, disabled }: LineItemsTableProps) => {
+  const { saveProduct } = useProductCatalog();
+  const [savedRows, setSavedRows] = useState<Record<number, boolean>>({});
+
   const addLineItem = () => {
-    onChange([...items, { description: "", quantity: 1, unit_price: 0, line_total: 0, line_type: "item" }]);
+    onChange([
+      ...items,
+      { description: "", quantity: 1, unit_price: 0, line_total: 0, line_type: "item", unit_type: "each" },
+    ]);
+  };
+
+  const addFromCatalog = (item: { description: string; unit_type: string; unit_cost: number }) => {
+    onChange([
+      ...items,
+      {
+        description: item.description,
+        quantity: 1,
+        unit_price: Number(item.unit_cost),
+        line_total: Number(item.unit_cost),
+        line_type: "item",
+        unit_type: item.unit_type,
+      },
+    ]);
+    // mark this new row as already-saved
+    setSavedRows((s) => ({ ...s, [items.length]: true }));
   };
 
   const removeLineItem = (index: number) => {
     onChange(items.filter((_, i) => i !== index));
+    setSavedRows((s) => {
+      const next: Record<number, boolean> = {};
+      Object.entries(s).forEach(([k, v]) => {
+        const i = Number(k);
+        if (i < index) next[i] = v;
+        else if (i > index) next[i - 1] = v;
+      });
+      return next;
+    });
   };
 
   const updateLineItem = (index: number, field: keyof LineItem, value: string | number) => {
     const updated = [...items];
-    updated[index] = { ...updated[index], [field]: value };
-    
+    updated[index] = { ...updated[index], [field]: value } as LineItem;
+
     if (field === "quantity" || field === "unit_price") {
       updated[index].line_total = updated[index].quantity * updated[index].unit_price;
     }
-    
+
     onChange(updated);
+
+    // Editing description / unit_type / unit_price after saving means it's a new variant
+    if (field === "description" || field === "unit_type" || field === "unit_price") {
+      setSavedRows((s) => ({ ...s, [index]: false }));
+    }
+  };
+
+  const handleSaveToCatalog = async (index: number) => {
+    const item = items[index];
+    if (!item.description.trim() || !item.unit_price) return;
+    try {
+      await saveProduct.mutateAsync({
+        description: item.description,
+        unit_type: item.unit_type || "each",
+        unit_cost: item.unit_price,
+      });
+      setSavedRows((s) => ({ ...s, [index]: true }));
+    } catch {
+      // toast already handled
+    }
   };
 
   const subtotal = items.reduce((sum, item) => sum + item.line_total, 0);
 
   return (
     <div className="space-y-4">
+      <datalist id="unit-type-suggestions">
+        {UNIT_SUGGESTIONS.map((u) => (
+          <option key={u} value={u} />
+        ))}
+      </datalist>
+
       <div className="flex items-center justify-between">
         <Label className="text-base font-semibold">Line Items</Label>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={addLineItem}
-          disabled={disabled}
-        >
-          <Plus className="h-4 w-4 mr-1" />
-          Add Line
-        </Button>
+        <div className="flex items-center gap-2">
+          <ProductCatalogPicker onSelect={addFromCatalog} disabled={disabled} />
+          <Button type="button" size="sm" variant="outline" onClick={addLineItem} disabled={disabled}>
+            <Plus className="h-4 w-4 mr-1" />
+            Add Line
+          </Button>
+        </div>
       </div>
 
       <div className="border rounded-lg overflow-hidden">
@@ -62,89 +123,126 @@ export const LineItemsTable = ({ items, onChange, disabled }: LineItemsTableProp
             <tr>
               <th className="text-left p-3 font-medium w-24">Type</th>
               <th className="text-left p-3 font-medium">Description</th>
-              <th className="text-right p-3 font-medium w-24">Qty</th>
-              <th className="text-right p-3 font-medium w-32">Unit Price</th>
-              <th className="text-right p-3 font-medium w-32">Total</th>
-              <th className="w-12"></th>
+              <th className="text-left p-3 font-medium w-28">Unit</th>
+              <th className="text-right p-3 font-medium w-20">Qty</th>
+              <th className="text-right p-3 font-medium w-28">Unit Cost</th>
+              <th className="text-right p-3 font-medium w-28">Total</th>
+              <th className="w-20"></th>
             </tr>
           </thead>
           <tbody>
             {items.length === 0 ? (
               <tr>
-                <td colSpan={6} className="text-center p-6 text-muted-foreground">
-                  No line items. Click "Add Line" to get started.
+                <td colSpan={7} className="text-center p-6 text-muted-foreground">
+                  No line items. Click "Add Line" or pick from your saved catalog.
                 </td>
               </tr>
             ) : (
-              items.map((item, index) => (
-                <tr key={index} className="border-t">
-                  <td className="p-2">
-                    <Select
-                      value={item.line_type}
-                      onValueChange={(val) => updateLineItem(index, "line_type", val)}
-                      disabled={disabled}
-                    >
-                      <SelectTrigger className="w-20">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="item">Item</SelectItem>
-                        <SelectItem value="tax">Tax</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </td>
-                  <td className="p-2">
-                    <Input
-                      value={item.description}
-                      onChange={(e) => updateLineItem(index, "description", e.target.value)}
-                      placeholder={item.line_type === "tax" ? "Tax description" : "Item description"}
-                      disabled={disabled}
-                    />
-                  </td>
-                  <td className="p-2">
-                    <Input
-                      type="number"
-                      value={item.quantity}
-                      onChange={(e) => updateLineItem(index, "quantity", parseFloat(e.target.value) || 0)}
-                      min="0"
-                      step="0.01"
-                      disabled={disabled}
-                      className="text-right"
-                    />
-                  </td>
-                  <td className="p-2">
-                    <Input
-                      type="number"
-                      value={item.unit_price}
-                      onChange={(e) => updateLineItem(index, "unit_price", parseFloat(e.target.value) || 0)}
-                      min="0"
-                      step="0.01"
-                      disabled={disabled}
-                      className="text-right"
-                    />
-                  </td>
-                  <td className="p-2 text-right font-medium">
-                    ${item.line_total.toFixed(2)}
-                  </td>
-                  <td className="p-2">
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => removeLineItem(index)}
-                      disabled={disabled}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </td>
-                </tr>
-              ))
+              items.map((item, index) => {
+                const isItem = item.line_type === "item";
+                const canSave = isItem && item.description.trim().length > 0 && item.unit_price > 0;
+                const saved = !!savedRows[index];
+                return (
+                  <tr key={index} className="border-t">
+                    <td className="p-2">
+                      <Select
+                        value={item.line_type}
+                        onValueChange={(val) => updateLineItem(index, "line_type", val)}
+                        disabled={disabled}
+                      >
+                        <SelectTrigger className="w-20">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="item">Item</SelectItem>
+                          <SelectItem value="tax">Tax</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </td>
+                    <td className="p-2">
+                      <Input
+                        value={item.description}
+                        onChange={(e) => updateLineItem(index, "description", e.target.value)}
+                        placeholder={isItem ? "Item or service" : "Tax description"}
+                        disabled={disabled}
+                      />
+                    </td>
+                    <td className="p-2">
+                      {isItem ? (
+                        <Input
+                          list="unit-type-suggestions"
+                          value={item.unit_type || ""}
+                          onChange={(e) => updateLineItem(index, "unit_type", e.target.value)}
+                          placeholder="each"
+                          disabled={disabled}
+                        />
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </td>
+                    <td className="p-2">
+                      <Input
+                        type="number"
+                        value={item.quantity}
+                        onChange={(e) => updateLineItem(index, "quantity", parseFloat(e.target.value) || 0)}
+                        min="0"
+                        step="0.01"
+                        disabled={disabled}
+                        className="text-right"
+                      />
+                    </td>
+                    <td className="p-2">
+                      <Input
+                        type="number"
+                        value={item.unit_price}
+                        onChange={(e) => updateLineItem(index, "unit_price", parseFloat(e.target.value) || 0)}
+                        min="0"
+                        step="0.01"
+                        disabled={disabled}
+                        className="text-right"
+                      />
+                    </td>
+                    <td className="p-2 text-right font-medium">${item.line_total.toFixed(2)}</td>
+                    <td className="p-2">
+                      <div className="flex items-center justify-end gap-1">
+                        {isItem && (
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => handleSaveToCatalog(index)}
+                            disabled={disabled || !canSave || saved || saveProduct.isPending}
+                            title={saved ? "Saved to catalog" : "Save to catalog"}
+                          >
+                            {saved ? (
+                              <BookmarkCheck className={cn("h-4 w-4 text-emerald-600")} />
+                            ) : (
+                              <Bookmark className="h-4 w-4" />
+                            )}
+                          </Button>
+                        )}
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => removeLineItem(index)}
+                          disabled={disabled}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
           {items.length > 0 && (
             <tfoot className="bg-muted font-medium">
               <tr>
-                <td colSpan={4} className="text-right p-3">Subtotal:</td>
+                <td colSpan={5} className="text-right p-3">
+                  Subtotal:
+                </td>
                 <td className="text-right p-3">${subtotal.toFixed(2)}</td>
                 <td></td>
               </tr>

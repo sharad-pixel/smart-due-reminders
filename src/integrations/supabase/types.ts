@@ -7546,6 +7546,7 @@ export type Database = {
           quantity: number
           sort_order: number
           unit_price: number
+          unit_type: string | null
           updated_at: string | null
           user_id: string
         }
@@ -7559,6 +7560,7 @@ export type Database = {
           quantity?: number
           sort_order?: number
           unit_price: number
+          unit_type?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -7572,6 +7574,7 @@ export type Database = {
           quantity?: number
           sort_order?: number
           unit_price?: number
+          unit_type?: string | null
           updated_at?: string | null
           user_id?: string
         }
@@ -10513,6 +10516,48 @@ export type Database = {
           name?: string
           overage_amount?: number | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      product_catalog: {
+        Row: {
+          account_id: string | null
+          created_at: string
+          currency: string
+          description: string
+          id: string
+          last_used_at: string | null
+          times_used: number
+          unit_cost: number
+          unit_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_id?: string | null
+          created_at?: string
+          currency?: string
+          description: string
+          id?: string
+          last_used_at?: string | null
+          times_used?: number
+          unit_cost?: number
+          unit_type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_id?: string | null
+          created_at?: string
+          currency?: string
+          description?: string
+          id?: string
+          last_used_at?: string | null
+          times_used?: number
+          unit_cost?: number
+          unit_type?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
