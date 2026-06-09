@@ -263,20 +263,27 @@ Deno.serve(async (req) => {
     }
     const countableInvoices = allCountableInvoices;
 
-    const actualInvoicesUsed = countableInvoices?.length || 0;
+    // Each invoice consumes 2 credits — usage is tracked in credits, not raw invoice count
+    const CREDITS_PER_INVOICE = 2;
+    const actualInvoiceCount = countableInvoices?.length || 0;
+    const actualInvoicesUsed = actualInvoiceCount * CREDITS_PER_INVOICE;
     const includedAllowance = plan.invoice_limit || 0;
 
-    // Overage = total active invoices beyond plan limit (high water mark model)
+    // Overage = total credits beyond plan allowance (high water mark model)
     const includedInvoicesUsed = Math.min(actualInvoicesUsed, includedAllowance);
     const overageInvoices = Math.max(0, actualInvoicesUsed - includedAllowance);
     const remaining = Math.max(0, includedAllowance - includedInvoicesUsed);
     const isOverLimit = actualInvoicesUsed > includedAllowance;
-    const overageChargesTotal = overageInvoices * OVERAGE_RATE;
+    // Overage rate is per credit; OVERAGE_RATE represents the per-invoice cost,
+    // but since overageInvoices is already in credits we charge proportionally.
+    const overageChargesTotal = (overageInvoices / CREDITS_PER_INVOICE) * OVERAGE_RATE;
 
-    logStep("Active invoice count", {
-      total: actualInvoicesUsed,
+    logStep("Active invoice credit usage", {
+      invoiceCount: actualInvoiceCount,
+      creditsUsed: actualInvoicesUsed,
       included: includedInvoicesUsed,
-      overage: overageInvoices
+      overage: overageInvoices,
+      creditsPerInvoice: CREDITS_PER_INVOICE
     });
 
     return new Response(JSON.stringify({
