@@ -15,21 +15,35 @@ import { LineItemsTable, LineItem } from "./LineItemsTable";
 interface CreateInvoiceModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  debtorId: string;
-  debtorName: string;
+  debtorId?: string;
+  debtorName?: string;
+  availableDebtors?: Array<{ id: string; company_name: string }>;
   onInvoiceCreated?: () => void;
 }
 
-export const CreateInvoiceModal = ({ 
-  open, 
-  onOpenChange, 
-  debtorId, 
+export const CreateInvoiceModal = ({
+  open,
+  onOpenChange,
+  debtorId,
   debtorName,
-  onInvoiceCreated 
+  availableDebtors,
+  onInvoiceCreated,
 }: CreateInvoiceModalProps) => {
   const [loading, setLoading] = useState(false);
   const [acknowledgeOutreach, setAcknowledgeOutreach] = useState(false);
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
+  const [selectedDebtorId, setSelectedDebtorId] = useState(debtorId || "");
+
+  useEffect(() => {
+    if (open) {
+      setSelectedDebtorId(debtorId || "");
+    }
+  }, [open, debtorId]);
+
+  const selectedDebtorName =
+    debtorName ||
+    availableDebtors?.find((d) => d.id === selectedDebtorId)?.company_name ||
+    "";
   const [formData, setFormData] = useState({
     invoice_number: "",
     amount: "",
@@ -76,6 +90,12 @@ export const CreateInvoiceModal = ({
         return;
       }
 
+      if (!selectedDebtorId) {
+        toast.error("Please select an account");
+        setLoading(false);
+        return;
+      }
+
       const parsedAmount = parseFloat(formData.amount);
       const hasLineItems = lineItems.length > 0;
       const subtotal = hasLineItems ? lineItems.reduce((sum, item) => sum + item.line_total, 0) : null;
@@ -84,7 +104,7 @@ export const CreateInvoiceModal = ({
         .from("invoices")
         .insert({
           user_id: user.id,
-          debtor_id: debtorId,
+          debtor_id: selectedDebtorId,
           invoice_number: formData.invoice_number,
           amount: parsedAmount,
           total_amount: parsedAmount,
@@ -146,6 +166,7 @@ export const CreateInvoiceModal = ({
         po_number: "",
       });
       setLineItems([]);
+      setSelectedDebtorId(debtorId || "");
       
       onOpenChange(false);
       onInvoiceCreated?.();
@@ -165,13 +186,39 @@ export const CreateInvoiceModal = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create Invoice for {debtorName}</DialogTitle>
+          <DialogTitle>
+            {selectedDebtorName ? `Create Invoice for ${selectedDebtorName}` : "Create New Invoice"}
+          </DialogTitle>
           <p className="text-sm text-muted-foreground">
             New invoices count toward your monthly allotment. Only Open and InPaymentPlan invoices are tracked for collection activities.
           </p>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
+          {availableDebtors && availableDebtors.length > 0 && !debtorId && (
+            <div className="space-y-2">
+              <Label htmlFor="debtor_select">
+                Account <span className="text-destructive">*</span>
+              </Label>
+              <Select
+                value={selectedDebtorId}
+                onValueChange={setSelectedDebtorId}
+                required
+              >
+                <SelectTrigger id="debtor_select">
+                  <SelectValue placeholder="Select an account" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableDebtors.map((d) => (
+                    <SelectItem key={d.id} value={d.id}>
+                      {d.company_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="invoice_number">

@@ -11,23 +11,22 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, AlertCircle, X, ListChecks, Download } from "lucide-react";
+import { Plus, Search, X, ListChecks, Download } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Checkbox } from "@/components/ui/checkbox";
 
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 import { SetupRequiredBadge } from "@/components/onboarding/SetupRequiredBadge";
 import { PersonaAvatar } from "@/components/ai/PersonaAvatar";
 import { getPersonaByDaysPastDue } from "@/lib/personaConfig";
-import { calculateDueDateFromTerms } from "@/lib/paymentTerms";
 import { SortableTableHead, useSorting } from "@/components/ui/sortable-table-head";
 import { AIInsightsCard } from "@/components/ai/AIInsightsCard";
+import { CreateInvoiceModal } from "@/components/invoices/CreateInvoiceModal";
 import { IntegrationSourceBadge } from "@/components/integrations/IntegrationSourceBanner";
 import { ApplyPaymentButton } from "@/components/invoices/ApplyPaymentButton";
 
@@ -116,20 +115,6 @@ const Invoices = () => {
   const [showBulkStatusDialog, setShowBulkStatusDialog] = useState(false);
   const [selectedAgingBucket, setSelectedAgingBucket] = useState<string>("");
   const [selectedBulkStatus, setSelectedBulkStatus] = useState<"Open" | "Paid" | "Disputed" | "Settled" | "InPaymentPlan" | "Canceled" | "FinalInternalCollections" | "">("");
-  const [formData, setFormData] = useState({
-    debtor_id: "",
-    invoice_number: "",
-    amount: "",
-    currency: "USD",
-    issue_date: new Date().toISOString().split("T")[0],
-    status: "Open",
-    payment_terms: "Net 30",
-    external_link: "",
-    notes: "",
-    product_description: "",
-    external_invoice_id: "",
-    po_number: "",
-  });
 
 
   useEffect(() => {
@@ -320,56 +305,6 @@ const Invoices = () => {
 
   const { sortedData: sortedInvoices, sortKey, sortDirection, handleSort } = useSorting(invoicesWithComputedFields);
 
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
-
-      // Calculate due date from payment terms
-      const dueDate = calculateDueDateFromTerms(formData.issue_date, formData.payment_terms);
-
-      const { error } = await supabase.from("invoices").insert({
-        user_id: user.id,
-        debtor_id: formData.debtor_id,
-        invoice_number: formData.invoice_number,
-        amount: parseFloat(formData.amount),
-        currency: formData.currency || "USD",
-        issue_date: formData.issue_date,
-        due_date: dueDate,
-        status: formData.status || "Open",
-        payment_terms: formData.payment_terms,
-        external_link: formData.external_link || null,
-        notes: formData.notes || null,
-        product_description: formData.product_description || null,
-        external_invoice_id: formData.external_invoice_id || null,
-        po_number: formData.po_number || null,
-      } as any);
-
-      if (error) throw error;
-      toast.success("Invoice created successfully");
-      setIsCreateOpen(false);
-      setFormData({
-        debtor_id: "",
-        invoice_number: "",
-        amount: "",
-        currency: "USD",
-        issue_date: new Date().toISOString().split("T")[0],
-        status: "Open",
-        payment_terms: "Net 30",
-        external_link: "",
-        notes: "",
-        product_description: "",
-        external_invoice_id: "",
-        po_number: "",
-      });
-      refetchData();
-    } catch (error: any) {
-      toast.error(error.message || "Failed to create invoice");
-    }
-  };
-
 
   if (loading) {
     return (
@@ -410,224 +345,16 @@ const Invoices = () => {
               <Download className="h-4 w-4 mr-2" />
               Export CSV
             </Button>
-            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-              <DialogTrigger asChild>
-                <Button className="flex-1 sm:flex-initial" size="sm">
-                  <Plus className="h-4 w-4 mr-2" />
-                  New Invoice
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Create New Invoice</DialogTitle>
-                </DialogHeader>
-                <form onSubmit={handleCreate} className="space-y-4">
-                  <Alert>
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      <strong>Note:</strong> Every invoice must be linked to an account. If the account doesn't exist yet, create it first in the <a href="/debtors" className="text-primary hover:underline font-medium">Accounts page</a>.
-                    </AlertDescription>
-                  </Alert>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2 col-span-2">
-                      <Label htmlFor="debtor_id">Account * <span className="text-xs text-muted-foreground">(Required - invoices cannot exist without an account)</span></Label>
-                      <div className="flex gap-2">
-                        <Select
-                          value={formData.debtor_id}
-                          onValueChange={(value) =>
-                            setFormData({ ...formData, debtor_id: value })
-                          }
-                          required
-                        >
-                          <SelectTrigger className="flex-1">
-                            <SelectValue placeholder="Select account" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {debtors.map((debtor) => (
-                              <SelectItem key={debtor.id} value={debtor.id}>
-                                {debtor.company_name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => window.open('/debtors', '_blank')}
-                        >
-                          <Plus className="h-4 w-4 mr-1" />
-                          New Account
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="invoice_number">Invoice Number *</Label>
-                      <Input
-                        id="invoice_number"
-                        value={formData.invoice_number}
-                        onChange={(e) =>
-                          setFormData({ ...formData, invoice_number: e.target.value })
-                        }
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="amount">Amount *</Label>
-                      <Input
-                        id="amount"
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={formData.amount}
-                        onChange={(e) =>
-                          setFormData({ ...formData, amount: e.target.value })
-                        }
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="currency">Currency</Label>
-                      <Select
-                        value={formData.currency}
-                        onValueChange={(value) =>
-                          setFormData({ ...formData, currency: value })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select currency" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="USD">USD</SelectItem>
-                          <SelectItem value="EUR">EUR</SelectItem>
-                          <SelectItem value="GBP">GBP</SelectItem>
-                          <SelectItem value="CAD">CAD</SelectItem>
-                          <SelectItem value="AUD">AUD</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="status">Status</Label>
-                      <Select
-                        value={formData.status}
-                        onValueChange={(value) =>
-                          setFormData({ ...formData, status: value })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Open">Open</SelectItem>
-                          <SelectItem value="Paid">Paid</SelectItem>
-                          <SelectItem value="PartiallyPaid">Partially Paid</SelectItem>
-                          <SelectItem value="Disputed">Disputed</SelectItem>
-                          <SelectItem value="Settled">Settled</SelectItem>
-                          <SelectItem value="Canceled">Canceled</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="issue_date">Issue Date *</Label>
-                      <Input
-                        id="issue_date"
-                        type="date"
-                        value={formData.issue_date}
-                        onChange={(e) =>
-                          setFormData({ ...formData, issue_date: e.target.value })
-                        }
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="payment_terms">Payment Terms * <span className="text-xs text-muted-foreground">(Due date calculated automatically)</span></Label>
-                      <Select
-                        value={formData.payment_terms}
-                        onValueChange={(value) =>
-                          setFormData({ ...formData, payment_terms: value })
-                        }
-                        required
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select payment terms" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Net 15">Net 15</SelectItem>
-                          <SelectItem value="Net 30">Net 30</SelectItem>
-                          <SelectItem value="Net 45">Net 45</SelectItem>
-                          <SelectItem value="Net 60">Net 60</SelectItem>
-                          <SelectItem value="Net 90">Net 90</SelectItem>
-                          <SelectItem value="Due on Receipt">Due on Receipt</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="external_link">External Link</Label>
-                      <Input
-                        id="external_link"
-                        type="url"
-                        placeholder="https://example.com/invoice.pdf"
-                        value={formData.external_link}
-                        onChange={(e) =>
-                          setFormData({ ...formData, external_link: e.target.value })
-                        }
-                      />
-                    </div>
-                  </div>
-                  
-                  {/* Recommended Fields */}
-                  <div className="space-y-4 pt-3 border-t">
-                    <p className="text-xs font-medium text-muted-foreground">Recommended Fields</p>
-                    <div className="space-y-2">
-                      <Label htmlFor="product_description">Product/Service Description</Label>
-                      <Textarea
-                        id="product_description"
-                        value={formData.product_description}
-                        onChange={(e) => setFormData({ ...formData, product_description: e.target.value })}
-                        placeholder="Describe the products or services for this invoice..."
-                        rows={2}
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="external_invoice_id">External Invoice ID</Label>
-                        <Input
-                          id="external_invoice_id"
-                          value={formData.external_invoice_id}
-                          onChange={(e) => setFormData({ ...formData, external_invoice_id: e.target.value })}
-                          placeholder="e.g., QB-12345"
-                        />
-                        <p className="text-xs text-muted-foreground">ID from your billing system</p>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="po_number">PO Number</Label>
-                        <Input
-                          id="po_number"
-                          value={formData.po_number}
-                          onChange={(e) => setFormData({ ...formData, po_number: e.target.value })}
-                          placeholder="e.g., PO-2024-001"
-                        />
-                        <p className="text-xs text-muted-foreground">Customer's purchase order number</p>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="notes">Notes</Label>
-                      <Input
-                        id="notes"
-                        value={formData.notes}
-                        onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                        placeholder="Additional notes..."
-                      />
-                    </div>
-                  </div>
-                  <div className="flex justify-end space-x-2">
-                    <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>
-                      Cancel
-                    </Button>
-                    <Button type="submit">Create Invoice</Button>
-                  </div>
-                </form>
-              </DialogContent>
-            </Dialog>
+            <Button className="flex-1 sm:flex-initial" size="sm" onClick={() => setIsCreateOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              New Invoice
+            </Button>
+            <CreateInvoiceModal
+              open={isCreateOpen}
+              onOpenChange={setIsCreateOpen}
+              availableDebtors={debtors}
+              onInvoiceCreated={refetchData}
+            />
           </div>
         </div>
 
