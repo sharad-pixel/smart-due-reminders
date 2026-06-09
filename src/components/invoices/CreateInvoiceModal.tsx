@@ -36,7 +36,8 @@ export const CreateInvoiceModal = ({
   const selectedDebtorName =
     debtorName ||
     availableDebtors?.find((d) => d.id === selectedDebtorId)?.company_name ||
-    "";  const [formData, setFormData] = useState({
+    "";
+  const [formData, setFormData] = useState({
     invoice_number: "",
     amount: "",
     issue_date: new Date().toISOString().split('T')[0],
