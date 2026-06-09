@@ -166,6 +166,7 @@ export const CreateInvoiceModal = ({
         po_number: "",
       });
       setLineItems([]);
+      setSelectedDebtorId(debtorId || "");
       
       onOpenChange(false);
       onInvoiceCreated?.();
