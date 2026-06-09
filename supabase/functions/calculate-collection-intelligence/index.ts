@@ -302,13 +302,67 @@ Deno.serve(async (req) => {
 
     console.log(`[COLLECTION-INTELLIGENCE] Bulk complete: ${updatedCount} debtors scored`);
 
+    // ===== METER USAGE: 1 free run / account / month, then 1 credit per run =====
+    const now = new Date();
+    const billingMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const processedDebtorIds = results.map(r => r.debtor_id);
+
+    let freeRuns = 0;
+    let billableRuns = 0;
+
+    if (processedDebtorIds.length > 0) {
+      // Fetch existing usage rows for this month
+      const { data: existingUsage } = await supabase
+        .from("intelligence_run_usage")
+        .select("debtor_id, run_count, billable_runs")
+        .eq("user_id", user.id)
+        .eq("billing_month", billingMonth)
+        .in("debtor_id", processedDebtorIds);
+
+      const usageMap = new Map<string, { run_count: number; billable_runs: number }>();
+      (existingUsage || []).forEach((u: any) => usageMap.set(u.debtor_id, u));
+
+      const upserts = processedDebtorIds.map(dId => {
+        const prev = usageMap.get(dId);
+        const newRunCount = (prev?.run_count || 0) + 1;
+        const wasFree = !prev || prev.run_count === 0;
+        const newBillable = (prev?.billable_runs || 0) + (wasFree ? 0 : 1);
+        if (wasFree) freeRuns += 1; else billableRuns += 1;
+        return {
+          user_id: user.id,
+          debtor_id: dId,
+          billing_month: billingMonth,
+          run_count: newRunCount,
+          billable_runs: newBillable,
+          last_run_at: now.toISOString(),
+          updated_at: now.toISOString(),
+        };
+      });
+
+      // Chunked upsert (50 at a time)
+      for (let i = 0; i < upserts.length; i += 50) {
+        const chunk = upserts.slice(i, i + 50);
+        const { error: upErr } = await supabase
+          .from("intelligence_run_usage")
+          .upsert(chunk, { onConflict: "user_id,debtor_id,billing_month" });
+        if (upErr) console.error("[COLLECTION-INTELLIGENCE] usage upsert error:", upErr);
+      }
+
+      console.log(`[COLLECTION-INTELLIGENCE] Metering: ${freeRuns} free, ${billableRuns} billable (1 credit each)`);
+    }
+
     return new Response(JSON.stringify({
       success: true,
       processed: results.length,
+      free_runs: freeRuns,
+      billable_runs: billableRuns,
+      credits_charged: billableRuns,
+      billing_month: billingMonth,
       results: results.map(r => ({ debtor_id: r.debtor_id, score: r.score, healthTier: r.healthTier })),
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+
 
   } catch (error: unknown) {
     console.error("[COLLECTION-INTELLIGENCE] Error:", error);

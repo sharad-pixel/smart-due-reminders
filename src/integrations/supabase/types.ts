@@ -7365,6 +7365,57 @@ export type Database = {
         }
         Relationships: []
       }
+      intelligence_run_usage: {
+        Row: {
+          billable_runs: number
+          billing_month: string
+          created_at: string
+          debtor_id: string
+          id: string
+          last_run_at: string
+          run_count: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          billable_runs?: number
+          billing_month: string
+          created_at?: string
+          debtor_id: string
+          id?: string
+          last_run_at?: string
+          run_count?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          billable_runs?: number
+          billing_month?: string
+          created_at?: string
+          debtor_id?: string
+          id?: string
+          last_run_at?: string
+          run_count?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intelligence_run_usage_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
+            referencedRelation: "debtor_contact_emails"
+            referencedColumns: ["debtor_id"]
+          },
+          {
+            foreignKeyName: "intelligence_run_usage_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
+            referencedRelation: "debtors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_data_audit: {
         Row: {
           ai_confidence: number | null
