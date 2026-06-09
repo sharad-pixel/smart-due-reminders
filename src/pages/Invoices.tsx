@@ -305,56 +305,6 @@ const Invoices = () => {
 
   const { sortedData: sortedInvoices, sortKey, sortDirection, handleSort } = useSorting(invoicesWithComputedFields);
 
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
-
-      // Calculate due date from payment terms
-      const dueDate = calculateDueDateFromTerms(formData.issue_date, formData.payment_terms);
-
-      const { error } = await supabase.from("invoices").insert({
-        user_id: user.id,
-        debtor_id: formData.debtor_id,
-        invoice_number: formData.invoice_number,
-        amount: parseFloat(formData.amount),
-        currency: formData.currency || "USD",
-        issue_date: formData.issue_date,
-        due_date: dueDate,
-        status: formData.status || "Open",
-        payment_terms: formData.payment_terms,
-        external_link: formData.external_link || null,
-        notes: formData.notes || null,
-        product_description: formData.product_description || null,
-        external_invoice_id: formData.external_invoice_id || null,
-        po_number: formData.po_number || null,
-      } as any);
-
-      if (error) throw error;
-      toast.success("Invoice created successfully");
-      setIsCreateOpen(false);
-      setFormData({
-        debtor_id: "",
-        invoice_number: "",
-        amount: "",
-        currency: "USD",
-        issue_date: new Date().toISOString().split("T")[0],
-        status: "Open",
-        payment_terms: "Net 30",
-        external_link: "",
-        notes: "",
-        product_description: "",
-        external_invoice_id: "",
-        po_number: "",
-      });
-      refetchData();
-    } catch (error: any) {
-      toast.error(error.message || "Failed to create invoice");
-    }
-  };
-
 
   if (loading) {
     return (
