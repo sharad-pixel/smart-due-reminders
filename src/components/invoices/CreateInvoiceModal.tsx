@@ -15,22 +15,28 @@ import { LineItemsTable, LineItem } from "./LineItemsTable";
 interface CreateInvoiceModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  debtorId: string;
-  debtorName: string;
+  debtorId?: string;
+  debtorName?: string;
+  availableDebtors?: Array<{ id: string; company_name: string }>;
   onInvoiceCreated?: () => void;
 }
 
-export const CreateInvoiceModal = ({ 
-  open, 
-  onOpenChange, 
-  debtorId, 
+export const CreateInvoiceModal = ({
+  open,
+  onOpenChange,
+  debtorId,
   debtorName,
-  onInvoiceCreated 
+  availableDebtors,
+  onInvoiceCreated,
 }: CreateInvoiceModalProps) => {
   const [loading, setLoading] = useState(false);
   const [acknowledgeOutreach, setAcknowledgeOutreach] = useState(false);
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
-  const [formData, setFormData] = useState({
+  const [selectedDebtorId, setSelectedDebtorId] = useState(debtorId || "");
+  const selectedDebtorName =
+    debtorName ||
+    availableDebtors?.find((d) => d.id === selectedDebtorId)?.company_name ||
+    "";  const [formData, setFormData] = useState({
     invoice_number: "",
     amount: "",
     issue_date: new Date().toISOString().split('T')[0],
