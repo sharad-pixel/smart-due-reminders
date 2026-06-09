@@ -349,7 +349,34 @@ Deno.serve(async (req) => {
       }
 
       console.log(`[COLLECTION-INTELLIGENCE] Metering: ${freeRuns} free, ${billableRuns} billable (1 credit each)`);
+
+      // ===== DEBIT PLATFORM CREDIT WALLET for billable runs =====
+      if (billableRuns > 0) {
+        try {
+          const { data: accountId } = await supabase.rpc("get_effective_account_id", { p_user_id: user.id });
+          if (accountId) {
+            const { data: walletRes, error: walletErr } = await supabase.rpc("consume_platform_credits", {
+              _account_id: accountId,
+              _amount: billableRuns,
+              _service: "collection_intelligence",
+              _user_id: user.id,
+              _reference_id: null,
+              _note: `Collection Intelligence — ${billableRuns} billable run(s) (${freeRuns} free) for ${billingMonth}`,
+            });
+            if (walletErr) {
+              console.error("[COLLECTION-INTELLIGENCE] wallet debit error:", walletErr);
+            } else {
+              console.log("[COLLECTION-INTELLIGENCE] wallet debit:", walletRes);
+            }
+          } else {
+            console.warn("[COLLECTION-INTELLIGENCE] no effective account_id; skipping wallet debit");
+          }
+        } catch (err) {
+          console.error("[COLLECTION-INTELLIGENCE] wallet debit threw:", err);
+        }
+      }
     }
+
 
     return new Response(JSON.stringify({
       success: true,
