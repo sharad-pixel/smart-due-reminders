@@ -241,12 +241,71 @@ Provide your analysis as a JSON object.`;
       console.error("Failed to cache intelligence report:", updateError);
     }
 
+    // ===== METER USAGE: 1 free run / debtor / month, then 1 credit/run; debit wallet =====
+    let freeRun = false;
+    let billableRun = false;
+    try {
+      const now = new Date();
+      const billingMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      const { data: existing } = await supabase
+        .from("intelligence_run_usage")
+        .select("run_count, billable_runs")
+        .eq("user_id", callerUserId)
+        .eq("debtor_id", debtor_id)
+        .eq("billing_month", billingMonth)
+        .maybeSingle();
+
+      const prevRuns = existing?.run_count || 0;
+      const prevBillable = existing?.billable_runs || 0;
+      const wasFree = prevRuns === 0;
+      freeRun = wasFree;
+      billableRun = !wasFree;
+
+      const { error: upErr } = await supabase
+        .from("intelligence_run_usage")
+        .upsert({
+          user_id: callerUserId,
+          debtor_id,
+          billing_month: billingMonth,
+          run_count: prevRuns + 1,
+          billable_runs: prevBillable + (wasFree ? 0 : 1),
+          last_run_at: now.toISOString(),
+          updated_at: now.toISOString(),
+        }, { onConflict: "user_id,debtor_id,billing_month" });
+      if (upErr) console.error("[ACCOUNT-INTELLIGENCE] usage upsert error:", upErr);
+
+      if (billableRun) {
+        const { data: accountId } = await supabase.rpc("get_effective_account_id", { p_user_id: callerUserId });
+        if (accountId) {
+          const { data: walletRes, error: walletErr } = await supabase.rpc("consume_platform_credits", {
+            _account_id: accountId,
+            _amount: 1,
+            _service: "collection_intelligence",
+            _user_id: callerUserId,
+            _reference_id: debtor_id,
+            _note: `Account Intelligence run — ${debtor.business_name || debtor_id} (${billingMonth})`,
+          });
+          if (walletErr) console.error("[ACCOUNT-INTELLIGENCE] wallet debit error:", walletErr);
+          else console.log("[ACCOUNT-INTELLIGENCE] wallet debit:", walletRes);
+        } else {
+          console.warn("[ACCOUNT-INTELLIGENCE] no effective account_id; skipping wallet debit");
+        }
+      } else {
+        console.log("[ACCOUNT-INTELLIGENCE] free monthly run for debtor", debtor_id);
+      }
+    } catch (meterErr) {
+      console.error("[ACCOUNT-INTELLIGENCE] metering threw:", meterErr);
+    }
+
     return new Response(JSON.stringify({
       success: true,
       intelligence,
       metrics: contextData,
       generatedAt,
       fromCache: false,
+      free_run: freeRun,
+      billable_run: billableRun,
+      credits_charged: billableRun ? 1 : 0,
       cacheExpiresAt: new Date(Date.now() + CACHE_DURATION_HOURS * 60 * 60 * 1000).toISOString()
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
