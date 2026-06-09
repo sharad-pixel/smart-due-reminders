@@ -33,6 +33,13 @@ export const CreateInvoiceModal = ({
   const [acknowledgeOutreach, setAcknowledgeOutreach] = useState(false);
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [selectedDebtorId, setSelectedDebtorId] = useState(debtorId || "");
+
+  useEffect(() => {
+    if (open) {
+      setSelectedDebtorId(debtorId || "");
+    }
+  }, [open, debtorId]);
+
   const selectedDebtorName =
     debtorName ||
     availableDebtors?.find((d) => d.id === selectedDebtorId)?.company_name ||
