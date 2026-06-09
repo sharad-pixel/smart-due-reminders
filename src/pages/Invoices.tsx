@@ -20,14 +20,13 @@ import { Plus, Search, X, ListChecks, Download } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Checkbox } from "@/components/ui/checkbox";
 
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 import { SetupRequiredBadge } from "@/components/onboarding/SetupRequiredBadge";
 import { PersonaAvatar } from "@/components/ai/PersonaAvatar";
 import { getPersonaByDaysPastDue } from "@/lib/personaConfig";
-import { calculateDueDateFromTerms } from "@/lib/paymentTerms";
 import { SortableTableHead, useSorting } from "@/components/ui/sortable-table-head";
 import { AIInsightsCard } from "@/components/ai/AIInsightsCard";
+import { CreateInvoiceModal } from "@/components/invoices/CreateInvoiceModal";
 import { IntegrationSourceBadge } from "@/components/integrations/IntegrationSourceBanner";
 import { ApplyPaymentButton } from "@/components/invoices/ApplyPaymentButton";
 
