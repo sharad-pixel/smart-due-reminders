@@ -115,20 +115,6 @@ const Invoices = () => {
   const [showBulkStatusDialog, setShowBulkStatusDialog] = useState(false);
   const [selectedAgingBucket, setSelectedAgingBucket] = useState<string>("");
   const [selectedBulkStatus, setSelectedBulkStatus] = useState<"Open" | "Paid" | "Disputed" | "Settled" | "InPaymentPlan" | "Canceled" | "FinalInternalCollections" | "">("");
-  const [formData, setFormData] = useState({
-    debtor_id: "",
-    invoice_number: "",
-    amount: "",
-    currency: "USD",
-    issue_date: new Date().toISOString().split("T")[0],
-    status: "Open",
-    payment_terms: "Net 30",
-    external_link: "",
-    notes: "",
-    product_description: "",
-    external_invoice_id: "",
-    po_number: "",
-  });
 
 
   useEffect(() => {
