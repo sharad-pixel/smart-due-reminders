@@ -1037,32 +1037,32 @@ Delaware, USA`;
                                   </div>
                                 )}
                               </div>
-                            ) : user.subscription_status === 'active' ? (
+                            ) : (user.effective_subscription_status ?? user.subscription_status) === 'active' ? (
                               <Badge variant="outline" className="border-green-500 text-green-600">
-                                Active
+                                Active{user.is_team_member ? ' (Team)' : ''}
                               </Badge>
-                            ) : user.subscription_status === 'trialing' ? (
+                            ) : (user.effective_subscription_status ?? user.subscription_status) === 'trialing' ? (
                               <div>
                                 <Badge variant="outline" className="border-blue-500 text-blue-600">
-                                  Trial
+                                  Trial{user.is_team_member ? ' (Team)' : ''}
                                 </Badge>
-                                {user.trial_ends_at && (
+                                {(user.effective_trial_ends_at ?? user.trial_ends_at) && (
                                   <div className="text-xs text-muted-foreground mt-1">
-                                    Ends {formatDate(new Date(user.trial_ends_at), "MMM d")}
+                                    Ends {formatDate(new Date(user.effective_trial_ends_at ?? user.trial_ends_at!), "MMM d")}
                                   </div>
                                 )}
                               </div>
-                            ) : user.subscription_status === 'past_due' ? (
+                            ) : (user.effective_subscription_status ?? user.subscription_status) === 'past_due' ? (
                               <Badge variant="outline" className="border-amber-500 text-amber-600">
                                 Past Due
                               </Badge>
-                            ) : user.subscription_status === 'canceled' ? (
+                            ) : (user.effective_subscription_status ?? user.subscription_status) === 'canceled' ? (
                               <Badge variant="outline" className="border-red-400 text-red-500">
                                 Canceled
                               </Badge>
                             ) : (
                               <Badge variant="outline" className="border-muted-foreground text-muted-foreground">
-                                {user.subscription_status || 'Inactive'}
+                                {(user.effective_subscription_status ?? user.subscription_status) || 'Inactive'}
                               </Badge>
                             )}
                           </TableCell>
