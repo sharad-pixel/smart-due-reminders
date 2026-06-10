@@ -226,6 +226,26 @@ Deno.serve(async (req) => {
       .order('attempted_at', { ascending: false })
       .limit(10);
 
+    // Team-member billing mirror: if this user is an active non-owner team member,
+    // resolve the owner's plan / subscription_status as their effective values.
+    const activeTeamMembership = (accountRelationships || []).find(
+      (r: any) => !r.is_owner && r.status === 'active' && r.account_id
+    );
+    let ownerProfile: any = null;
+    if (activeTeamMembership) {
+      const { data } = await supabaseClient
+        .from('profiles')
+        .select(`
+          id, email, name, company_name, plan_type, plan_id,
+          subscription_status, stripe_customer_id, stripe_subscription_id, trial_ends_at,
+          plans:plan_id ( id, name, monthly_price, invoice_limit, overage_amount, feature_flags )
+        `)
+        .eq('id', activeTeamMembership.account_id)
+        .maybeSingle();
+      ownerProfile = data;
+    }
+    const isTeamMember = !!activeTeamMembership && !!ownerProfile;
+
     // Merge blocked status and auth data into user profile
     const enrichedUser = {
       ...userProfile,
@@ -233,6 +253,18 @@ Deno.serve(async (req) => {
       blocked_at: blockedUser?.blocked_at || null,
       blocked_reason: blockedUser?.reason || null,
       last_sign_in_at: authLastSignIn,
+      is_team_member: isTeamMember,
+      team_role: activeTeamMembership?.role || null,
+      owner_account_id: activeTeamMembership?.account_id || null,
+      owner_email: ownerProfile?.email || null,
+      owner_name: ownerProfile?.name || null,
+      effective_plan_type: isTeamMember ? ownerProfile.plan_type : userProfile.plan_type,
+      effective_plan_id: isTeamMember ? ownerProfile.plan_id : userProfile.plan_id,
+      effective_plans: isTeamMember ? ownerProfile.plans : userProfile.plans,
+      effective_subscription_status: isTeamMember ? ownerProfile.subscription_status : userProfile.subscription_status,
+      effective_trial_ends_at: isTeamMember ? ownerProfile.trial_ends_at : userProfile.trial_ends_at,
+      effective_stripe_customer_id: isTeamMember ? ownerProfile.stripe_customer_id : userProfile.stripe_customer_id,
+      effective_stripe_subscription_id: isTeamMember ? ownerProfile.stripe_subscription_id : userProfile.stripe_subscription_id,
     };
 
     return new Response(
