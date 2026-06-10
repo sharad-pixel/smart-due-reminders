@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { FileText, Save, Loader2, Eye } from "lucide-react";
 import { InvoiceTemplatePreview } from "./InvoiceTemplatePreview";
 import { QrCodeUploadField } from "./QrCodeUploadField";
+import { PaymentInstructionsOCR } from "./PaymentInstructionsOCR";
 
 export interface InvoiceTemplateData {
   id?: string;
@@ -365,6 +366,14 @@ export const InvoiceTemplateBuilder = ({
             <div>
               <h3 className="text-sm font-semibold mb-3">Payment Instructions</h3>
               <div className="space-y-3">
+                <PaymentInstructionsOCR
+                  wireValue={formData.payment_instructions_wire}
+                  checkValue={formData.payment_instructions_check}
+                  onExtracted={({ wire, check }) => {
+                    if (wire !== undefined) handleChange("payment_instructions_wire", wire);
+                    if (check !== undefined) handleChange("payment_instructions_check", check);
+                  }}
+                />
                 <div>
                   <Label htmlFor="payment_wire">Wire / ACH Instructions</Label>
                   <Textarea
