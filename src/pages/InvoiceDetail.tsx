@@ -1384,6 +1384,22 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                     {formatCurrency(invoice.amount, invoice.currency || 'USD')}
                   </p>
                 </div>
+                {(invoice.processing_fee_percent ?? 0) > 0 && (
+                  <div className="rounded-md border bg-muted/30 p-2 text-xs space-y-0.5">
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Original amount</span>
+                      <span>{formatCurrency(invoice.subtotal_amount ?? invoice.amount, invoice.currency || 'USD')}</span>
+                    </div>
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Processing fee ({Number(invoice.processing_fee_percent).toFixed(2)}%)</span>
+                      <span>+ {formatCurrency(invoice.processing_fee_amount ?? 0, invoice.currency || 'USD')}</span>
+                    </div>
+                    <div className="flex justify-between font-semibold text-foreground pt-1 border-t">
+                      <span>Invoice total</span>
+                      <span>{formatCurrency(invoice.amount, invoice.currency || 'USD')}</span>
+                    </div>
+                  </div>
+                )}
                 {invoice.amount_outstanding !== null && invoice.amount_outstanding !== invoice.amount && (
                   <div>
                     <p className="text-xs text-muted-foreground uppercase tracking-wide">Outstanding</p>
