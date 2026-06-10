@@ -851,7 +851,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
       await checkAndProceed(
         amountChanged ? "Invoice Amount" : "Due Date",
         amountChanged ? `$${formatAmount(invoice.amount)}` : invoice.due_date,
-        amountChanged ? `$${formatAmount(parseFloat(editAmount))}` : calculateDueDate(editIssueDate, getPaymentTermsOptions().find(t => t.value === editPaymentTerms)?.days ?? 30),
+        amountChanged ? `$${formatAmount(newTotal)}` : calculateDueDate(editIssueDate, getPaymentTermsOptions().find(t => t.value === editPaymentTerms)?.days ?? 30),
         performSave
       );
       return;
