@@ -231,6 +231,45 @@ Deno.serve(async (req) => {
       console.error('[admin-list-users] Error fetching usage stats:', statsErr);
     }
 
+    // Resolve effective plan/status for team members (mirror owner's billing)
+    const teamMembershipMap = new Map<string, { account_id: string; team_role: string }>();
+    try {
+      const { data: teamRows } = await supabaseClient
+        .from('account_users')
+        .select('user_id, account_id, role, status, is_owner')
+        .in('user_id', userIds)
+        .eq('status', 'active')
+        .eq('is_owner', false);
+
+      for (const row of (teamRows || [])) {
+        if (!teamMembershipMap.has(row.user_id)) {
+          teamMembershipMap.set(row.user_id, { account_id: row.account_id, team_role: row.role });
+        }
+      }
+    } catch (tmErr) {
+      console.error('[admin-list-users] Error fetching team memberships:', tmErr);
+    }
+
+    const ownerIds = Array.from(new Set(Array.from(teamMembershipMap.values()).map(v => v.account_id)));
+    const ownerProfileMap = new Map<string, any>();
+    if (ownerIds.length > 0) {
+      try {
+        const { data: ownerProfiles } = await supabaseClient
+          .from('profiles')
+          .select(`
+            id, email, name, company_name, plan_type, plan_id,
+            subscription_status, stripe_customer_id, stripe_subscription_id, trial_ends_at,
+            plans:plan_id ( name, monthly_price, invoice_limit )
+          `)
+          .in('id', ownerIds);
+        for (const op of (ownerProfiles || [])) {
+          ownerProfileMap.set(op.id, op);
+        }
+      } catch (opErr) {
+        console.error('[admin-list-users] Error fetching owner profiles:', opErr);
+      }
+    }
+
     // Merge all data into users
     const usersWithBlockStatus = users?.map((user: any) => {
       const branding = brandingMap.get(user.id);
@@ -257,19 +296,35 @@ Deno.serve(async (req) => {
       const totalSteps = steps.length;
       const onboardingPct = Math.round((completedSteps / totalSteps) * 100);
 
+      // Team-member billing mirror: if this user is an active team member,
+      // surface the owner's plan / subscription_status as their effective values.
+      const teamMembership = teamMembershipMap.get(user.id);
+      const owner = teamMembership ? ownerProfileMap.get(teamMembership.account_id) : null;
+      const isTeamMember = !!teamMembership && !!owner;
+
       return {
         ...user,
         is_blocked: blockedMap.has(user.email?.toLowerCase()),
         blocked_at: blockedMap.get(user.email?.toLowerCase())?.blocked_at || null,
         blocked_reason: blockedMap.get(user.email?.toLowerCase())?.reason || null,
         last_login: authUserMap.get(user.id)?.last_sign_in_at || null,
-        // Usage stats
         invoice_count: invoiceCountMap.get(user.id) || 0,
         debtor_count: debtorCountMap.get(user.id) || 0,
-        // Onboarding
         onboarding_pct: onboardingPct,
         onboarding_completed: completedSteps,
         onboarding_total: totalSteps,
+        // Team-member effective billing (mirrors owner when user is an active team member)
+        is_team_member: isTeamMember,
+        team_role: teamMembership?.team_role || null,
+        owner_account_id: teamMembership?.account_id || null,
+        owner_email: owner?.email || null,
+        owner_name: owner?.name || null,
+        effective_plan_type: isTeamMember ? owner.plan_type : user.plan_type,
+        effective_plan_id: isTeamMember ? owner.plan_id : user.plan_id,
+        effective_plans: isTeamMember ? owner.plans : user.plans,
+        effective_subscription_status: isTeamMember ? owner.subscription_status : user.subscription_status,
+        effective_trial_ends_at: isTeamMember ? owner.trial_ends_at : user.trial_ends_at,
+        effective_stripe_subscription_id: isTeamMember ? owner.stripe_subscription_id : user.stripe_subscription_id,
       };
     });
 
