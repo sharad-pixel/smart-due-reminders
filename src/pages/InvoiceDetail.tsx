@@ -829,7 +829,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
         await checkAndProceed(
           "Invoice Amount",
           `$${formatAmount(invoice.amount)}`,
-          `$${formatAmount(parseFloat(editAmount))}`,
+          `$${formatAmount(newTotal)}`,
           performSave
         );
         return;
