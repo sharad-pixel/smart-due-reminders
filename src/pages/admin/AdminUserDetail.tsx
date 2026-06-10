@@ -514,12 +514,13 @@ const AdminUserDetail = () => {
     if (user.is_suspended) {
       return <Badge variant="destructive"><AlertCircle className="h-3 w-3 mr-1" />Suspended</Badge>;
     }
-    const status = user.subscription_status;
+    const status = user.effective_subscription_status ?? user.subscription_status;
+    const teamSuffix = user.is_team_member ? ' (Team)' : '';
     switch (status) {
       case 'active':
-        return <Badge className="bg-green-500/10 text-green-600 border-green-500"><CheckCircle className="h-3 w-3 mr-1" />Active</Badge>;
+        return <Badge className="bg-green-500/10 text-green-600 border-green-500"><CheckCircle className="h-3 w-3 mr-1" />Active{teamSuffix}</Badge>;
       case 'trialing':
-        return <Badge className="bg-blue-500/10 text-blue-600 border-blue-500"><Clock className="h-3 w-3 mr-1" />Trial</Badge>;
+        return <Badge className="bg-blue-500/10 text-blue-600 border-blue-500"><Clock className="h-3 w-3 mr-1" />Trial{teamSuffix}</Badge>;
       case 'past_due':
         return <Badge className="bg-orange-500/10 text-orange-600 border-orange-500"><AlertCircle className="h-3 w-3 mr-1" />Past Due</Badge>;
       case 'canceled':
