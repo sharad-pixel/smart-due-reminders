@@ -826,6 +826,8 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
     // Check if we need to show override warning
     if (invoice.integration_source && ["stripe", "quickbooks", "xero"].includes(invoice.integration_source)) {
       if (amountChanged) {
+        // Close the edit dialog first so the warning dialog isn't blocked by Radix overlay/inert
+        setEditInvoiceDialogOpen(false);
         await checkAndProceed(
           "Invoice Amount",
           `$${formatAmount(invoice.amount)}`,
@@ -839,6 +841,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
         const selectedTerms = paymentTermsOptions.find(t => t.value === editPaymentTerms);
         const paymentTermsDays = selectedTerms?.days ?? 30;
         const newDueDate = calculateDueDate(editIssueDate, paymentTermsDays);
+        setEditInvoiceDialogOpen(false);
         await checkAndProceed(
           "Due Date",
           invoice.due_date,
@@ -848,6 +851,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
         return;
       }
     } else if (invoice.integration_source === "csv_upload" && (amountChanged || dueDateWillChange)) {
+      setEditInvoiceDialogOpen(false);
       await checkAndProceed(
         amountChanged ? "Invoice Amount" : "Due Date",
         amountChanged ? `$${formatAmount(invoice.amount)}` : invoice.due_date,
@@ -860,6 +864,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
     // No warning needed, proceed directly
     await performSave();
   };
+
 
   const handleApplyPayment = async () => {
     if (!invoice) return;
