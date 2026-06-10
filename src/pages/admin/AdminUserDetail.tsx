@@ -80,6 +80,25 @@ interface UserDetails {
     invoice_limit: number;
     overage_amount: number;
   } | null;
+  // Team-member effective billing (mirrors owner when active team member)
+  is_team_member?: boolean;
+  team_role?: string | null;
+  owner_account_id?: string | null;
+  owner_email?: string | null;
+  owner_name?: string | null;
+  effective_plan_type?: string | null;
+  effective_plan_id?: string | null;
+  effective_plans?: {
+    id: string;
+    name: string;
+    monthly_price: number;
+    invoice_limit: number;
+    overage_amount: number;
+  } | null;
+  effective_subscription_status?: string | null;
+  effective_trial_ends_at?: string | null;
+  effective_stripe_customer_id?: string | null;
+  effective_stripe_subscription_id?: string | null;
 }
 
 interface AccountRelationship {
