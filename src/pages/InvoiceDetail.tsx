@@ -2312,43 +2312,54 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                   onChange={(e) => setEditInvoiceNumber(e.target.value)}
                 />
               </div>
-              <div>
-                <Label htmlFor="amount">Subtotal (before processing fee)</Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  step="0.01"
-                  value={editAmount}
-                  onChange={(e) => setEditAmount(e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="processing-fee">Credit Card Processing Fee (%)</Label>
-                <Input
-                  id="processing-fee"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  max="100"
-                  placeholder="e.g. 2.9"
-                  value={editProcessingFeePercent}
-                  onChange={(e) => setEditProcessingFeePercent(e.target.value)}
-                />
-                {(() => {
-                  const sub = parseFloat(editAmount) || 0;
-                  const pct = Math.max(0, Math.min(100, parseFloat(editProcessingFeePercent) || 0));
-                  const fee = Math.round(sub * pct) / 100;
-                  const total = Math.round((sub + fee) * 100) / 100;
-                  const currency = invoice?.currency || 'USD';
-                  return (
-                    <div className="mt-2 text-xs text-muted-foreground space-y-0.5 rounded-md border p-2 bg-muted/30">
-                      <div className="flex justify-between"><span>Subtotal</span><span>{formatCurrency(sub, currency)}</span></div>
-                      <div className="flex justify-between"><span>Processing fee ({pct.toFixed(2)}%)</span><span>{formatCurrency(fee, currency)}</span></div>
-                      <div className="flex justify-between font-semibold text-foreground pt-1 border-t"><span>Invoice total</span><span>{formatCurrency(total, currency)}</span></div>
+              {(() => {
+                const isManual = !invoice?.integration_source || invoice.integration_source === 'recouply_manual';
+                return (
+                  <>
+                    <div>
+                      <Label htmlFor="amount">{isManual ? 'Subtotal (before processing fee)' : 'Amount'}</Label>
+                      <Input
+                        id="amount"
+                        type="number"
+                        step="0.01"
+                        value={editAmount}
+                        onChange={(e) => setEditAmount(e.target.value)}
+                      />
                     </div>
-                  );
-                })()}
-              </div>
+                    {isManual && (
+                      <div>
+                        <Label htmlFor="processing-fee">Credit Card Processing Fee (%)</Label>
+                        <Input
+                          id="processing-fee"
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          max="100"
+                          placeholder="e.g. 2.9"
+                          value={editProcessingFeePercent}
+                          onChange={(e) => setEditProcessingFeePercent(e.target.value)}
+                        />
+                        {(() => {
+                          const sub = parseFloat(editAmount) || 0;
+                          const pct = Math.max(0, Math.min(100, parseFloat(editProcessingFeePercent) || 0));
+                          const fee = Math.round(sub * pct) / 100;
+                          const total = Math.round((sub + fee) * 100) / 100;
+                          const currency = invoice?.currency || 'USD';
+                          return (
+                            <div className="mt-2 text-xs text-muted-foreground space-y-0.5 rounded-md border p-2 bg-muted/30">
+                              <div className="flex justify-between"><span>Subtotal</span><span>{formatCurrency(sub, currency)}</span></div>
+                              <div className="flex justify-between"><span>Processing fee ({pct.toFixed(2)}%)</span><span>{formatCurrency(fee, currency)}</span></div>
+                              <div className="flex justify-between font-semibold text-foreground pt-1 border-t"><span>Invoice total</span><span>{formatCurrency(total, currency)}</span></div>
+                            </div>
+                          );
+                        })()}
+                        <p className="mt-1 text-[11px] text-muted-foreground">Available only for invoices created directly in Recouply.</p>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+
               <div>
                 <Label htmlFor="issue-date">Issue Date</Label>
                 <Input
