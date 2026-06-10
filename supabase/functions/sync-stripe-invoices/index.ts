@@ -750,31 +750,47 @@ Deno.serve(async (req) => {
           if (insertError) {
             // If this is a duplicate, treat it as "already exists" and update the existing record instead.
             // This makes sync idempotent and ensures we still ingest credits/payments/status changes.
-            if (/duplicate key.*unique constraint/i.test(insertError.message)) {
-              const invoiceNumber = stripeInvoice.number || stripeInvoice.id;
+            const isDuplicate =
+              (insertError as any).code === '23505' ||
+              /duplicate key.*unique constraint/i.test(insertError.message);
 
-              const { data: existingByNumber, error: existingByNumberError } = await supabaseClient
+            if (isDuplicate) {
+              // The conflict may be on stripe_invoice_id, external_invoice_id, or invoice_number.
+              // Search by all three identifiers to find the existing row.
+              const stripeNumber = stripeInvoice.number || null;
+              const orParts = [
+                `stripe_invoice_id.eq.${stripeInvoice.id}`,
+                `external_invoice_id.eq.${stripeInvoice.id}`,
+              ];
+              if (stripeNumber) {
+                orParts.push(`invoice_number.eq."${stripeNumber}"`);
+              }
+
+              const { data: existingRows, error: existingLookupError } = await supabaseClient
                 .from('invoices')
-                .select('id')
+                .select('id, stripe_invoice_id, external_invoice_id, invoice_number')
                 .eq('user_id', effectiveAccountId)
-                .eq('invoice_number', invoiceNumber)
+                .or(orParts.join(','))
                 .limit(1);
 
-              if (!existingByNumberError && existingByNumber?.[0]?.id) {
+              const existingRow = existingRows?.[0];
+
+              if (!existingLookupError && existingRow?.id) {
                 const { error: dupUpdateError } = await supabaseClient
                   .from('invoices')
                   .update({ ...invoiceData, stripe_invoice_id: stripeInvoice.id, external_invoice_id: stripeInvoice.id })
-                  .eq('id', existingByNumber[0].id);
+                  .eq('id', existingRow.id);
 
                 if (!dupUpdateError) {
-                  invoiceRecordId = existingByNumber[0].id;
+                  invoiceRecordId = existingRow.id;
                   isNewInvoice = false;
                 } else {
                   errors.push(`Failed to update existing duplicate invoice ${stripeInvoice.id}: ${dupUpdateError.message}`);
                   return;
                 }
               } else {
-                errors.push(`Failed to locate duplicate invoice ${stripeInvoice.id} after insert conflict`);
+                const constraintHint = (insertError as any).details || (insertError as any).hint || insertError.message;
+                errors.push(`Failed to locate duplicate invoice ${stripeInvoice.id} after insert conflict (${constraintHint})`);
                 return;
               }
             } else {
