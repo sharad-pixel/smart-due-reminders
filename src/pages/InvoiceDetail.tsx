@@ -801,20 +801,25 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
           }
         }
 
+        const updatePayload: Record<string, any> = {
+          invoice_number: editInvoiceNumber,
+          amount: newTotal,
+          issue_date: editIssueDate,
+          due_date: dueDate,
+          payment_terms: editPaymentTerms,
+          notes: editNotes,
+        };
+        if (isManualInvoice) {
+          updatePayload.subtotal_amount = subtotal;
+          updatePayload.processing_fee_percent = feePercent;
+          updatePayload.processing_fee_amount = feeAmount;
+        }
+
         const { error } = await supabase
           .from("invoices")
-          .update({
-            invoice_number: editInvoiceNumber,
-            amount: newTotal,
-            subtotal_amount: subtotal,
-            processing_fee_percent: feePercent,
-            processing_fee_amount: feeAmount,
-            issue_date: editIssueDate,
-            due_date: dueDate,
-            payment_terms: editPaymentTerms,
-            notes: editNotes,
-          })
+          .update(updatePayload)
           .eq("id", invoice.id);
+
 
         if (error) throw error;
         
