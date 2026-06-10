@@ -72,6 +72,9 @@ interface Invoice {
   subtotal: number | null;
   tax_amount: number | null;
   total_amount: number | null;
+  processing_fee_percent: number | null;
+  processing_fee_amount: number | null;
+  subtotal_amount: number | null;
   aging_bucket: string | null;
   created_at: string | null;
   updated_at: string | null;
@@ -184,6 +187,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
   const [editIssueDate, setEditIssueDate] = useState("");
   const [editPaymentTerms, setEditPaymentTerms] = useState("NET30");
   const [editNotes, setEditNotes] = useState("");
+  const [editProcessingFeePercent, setEditProcessingFeePercent] = useState("0");
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
   const [selectedOutreach, setSelectedOutreach] = useState<OutreachRecord | null>(null);
   const [outreachDetailOpen, setOutreachDetailOpen] = useState(false);
@@ -721,7 +725,10 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
   const handleEditInvoice = () => {
     if (!invoice) return;
     setEditInvoiceNumber(invoice.invoice_number);
-    setEditAmount(invoice.amount.toString());
+    // Edit the subtotal (pre-fee). Falls back to amount when no fee applied.
+    const currentSubtotal = invoice.subtotal_amount ?? invoice.amount;
+    setEditAmount(currentSubtotal.toString());
+    setEditProcessingFeePercent((invoice.processing_fee_percent ?? 0).toString());
     setEditIssueDate(invoice.issue_date);
     setEditPaymentTerms(invoice.payment_terms || "NET30");
     setEditNotes(invoice.notes || "");
@@ -731,8 +738,14 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
   const handleSaveInvoiceEdit = async () => {
     if (!invoice) return;
 
+    // editAmount represents the subtotal (pre-fee). Compute fee + new total.
+    const subtotal = parseFloat(editAmount) || 0;
+    const feePercent = Math.max(0, Math.min(100, parseFloat(editProcessingFeePercent) || 0));
+    const feeAmount = Math.round(subtotal * feePercent) / 100; // % of subtotal, 2dp
+    const newTotal = Math.round((subtotal + feeAmount) * 100) / 100;
+
     // Determine which fields changed for override logging
-    const amountChanged = parseFloat(editAmount) !== invoice.amount;
+    const amountChanged = newTotal !== invoice.amount;
     const dueDateWillChange = editIssueDate !== invoice.issue_date || editPaymentTerms !== invoice.payment_terms;
 
     const performSave = async () => {
@@ -765,7 +778,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
               user.id,
               "amount",
               invoice.amount.toString(),
-              editAmount,
+              newTotal.toString(),
               invoice.integration_source
             );
           }
@@ -786,7 +799,10 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
           .from("invoices")
           .update({
             invoice_number: editInvoiceNumber,
-            amount: parseFloat(editAmount),
+            amount: newTotal,
+            subtotal_amount: subtotal,
+            processing_fee_percent: feePercent,
+            processing_fee_amount: feeAmount,
             issue_date: editIssueDate,
             due_date: dueDate,
             payment_terms: editPaymentTerms,
@@ -813,7 +829,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
         await checkAndProceed(
           "Invoice Amount",
           `$${formatAmount(invoice.amount)}`,
-          `$${formatAmount(parseFloat(editAmount))}`,
+          `$${formatAmount(newTotal)}`,
           performSave
         );
         return;
@@ -835,7 +851,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
       await checkAndProceed(
         amountChanged ? "Invoice Amount" : "Due Date",
         amountChanged ? `$${formatAmount(invoice.amount)}` : invoice.due_date,
-        amountChanged ? `$${formatAmount(parseFloat(editAmount))}` : calculateDueDate(editIssueDate, getPaymentTermsOptions().find(t => t.value === editPaymentTerms)?.days ?? 30),
+        amountChanged ? `$${formatAmount(newTotal)}` : calculateDueDate(editIssueDate, getPaymentTermsOptions().find(t => t.value === editPaymentTerms)?.days ?? 30),
         performSave
       );
       return;
@@ -1368,6 +1384,22 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                     {formatCurrency(invoice.amount, invoice.currency || 'USD')}
                   </p>
                 </div>
+                {(invoice.processing_fee_percent ?? 0) > 0 && (
+                  <div className="rounded-md border bg-muted/30 p-2 text-xs space-y-0.5">
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Original amount</span>
+                      <span>{formatCurrency(invoice.subtotal_amount ?? invoice.amount, invoice.currency || 'USD')}</span>
+                    </div>
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Processing fee ({Number(invoice.processing_fee_percent).toFixed(2)}%)</span>
+                      <span>+ {formatCurrency(invoice.processing_fee_amount ?? 0, invoice.currency || 'USD')}</span>
+                    </div>
+                    <div className="flex justify-between font-semibold text-foreground pt-1 border-t">
+                      <span>Invoice total</span>
+                      <span>{formatCurrency(invoice.amount, invoice.currency || 'USD')}</span>
+                    </div>
+                  </div>
+                )}
                 {invoice.amount_outstanding !== null && invoice.amount_outstanding !== invoice.amount && (
                   <div>
                     <p className="text-xs text-muted-foreground uppercase tracking-wide">Outstanding</p>
@@ -2276,7 +2308,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                 />
               </div>
               <div>
-                <Label htmlFor="amount">Amount</Label>
+                <Label htmlFor="amount">Subtotal (before processing fee)</Label>
                 <Input
                   id="amount"
                   type="number"
@@ -2284,6 +2316,33 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                   value={editAmount}
                   onChange={(e) => setEditAmount(e.target.value)}
                 />
+              </div>
+              <div>
+                <Label htmlFor="processing-fee">Credit Card Processing Fee (%)</Label>
+                <Input
+                  id="processing-fee"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  placeholder="e.g. 2.9"
+                  value={editProcessingFeePercent}
+                  onChange={(e) => setEditProcessingFeePercent(e.target.value)}
+                />
+                {(() => {
+                  const sub = parseFloat(editAmount) || 0;
+                  const pct = Math.max(0, Math.min(100, parseFloat(editProcessingFeePercent) || 0));
+                  const fee = Math.round(sub * pct) / 100;
+                  const total = Math.round((sub + fee) * 100) / 100;
+                  const currency = invoice?.currency || 'USD';
+                  return (
+                    <div className="mt-2 text-xs text-muted-foreground space-y-0.5 rounded-md border p-2 bg-muted/30">
+                      <div className="flex justify-between"><span>Subtotal</span><span>{formatCurrency(sub, currency)}</span></div>
+                      <div className="flex justify-between"><span>Processing fee ({pct.toFixed(2)}%)</span><span>{formatCurrency(fee, currency)}</span></div>
+                      <div className="flex justify-between font-semibold text-foreground pt-1 border-t"><span>Invoice total</span><span>{formatCurrency(total, currency)}</span></div>
+                    </div>
+                  );
+                })()}
               </div>
               <div>
                 <Label htmlFor="issue-date">Issue Date</Label>

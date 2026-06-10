@@ -8196,6 +8196,8 @@ export type Database = {
           payment_terms: string | null
           payment_terms_days: number | null
           po_number: string | null
+          processing_fee_amount: number
+          processing_fee_percent: number
           product_description: string | null
           promise_to_pay_amount: number | null
           promise_to_pay_date: string | null
@@ -8213,6 +8215,7 @@ export type Database = {
           stripe_hosted_url: string | null
           stripe_invoice_id: string | null
           subtotal: number | null
+          subtotal_amount: number | null
           sync_log_id: string | null
           tax_amount: number | null
           terminal_reason: string | null
@@ -8269,6 +8272,8 @@ export type Database = {
           payment_terms?: string | null
           payment_terms_days?: number | null
           po_number?: string | null
+          processing_fee_amount?: number
+          processing_fee_percent?: number
           product_description?: string | null
           promise_to_pay_amount?: number | null
           promise_to_pay_date?: string | null
@@ -8286,6 +8291,7 @@ export type Database = {
           stripe_hosted_url?: string | null
           stripe_invoice_id?: string | null
           subtotal?: number | null
+          subtotal_amount?: number | null
           sync_log_id?: string | null
           tax_amount?: number | null
           terminal_reason?: string | null
@@ -8342,6 +8348,8 @@ export type Database = {
           payment_terms?: string | null
           payment_terms_days?: number | null
           po_number?: string | null
+          processing_fee_amount?: number
+          processing_fee_percent?: number
           product_description?: string | null
           promise_to_pay_amount?: number | null
           promise_to_pay_date?: string | null
@@ -8359,6 +8367,7 @@ export type Database = {
           stripe_hosted_url?: string | null
           stripe_invoice_id?: string | null
           subtotal?: number | null
+          subtotal_amount?: number | null
           sync_log_id?: string | null
           tax_amount?: number | null
           terminal_reason?: string | null
