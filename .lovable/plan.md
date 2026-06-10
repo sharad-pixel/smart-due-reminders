@@ -1,69 +1,21 @@
-## Goal
+# Fix: "Failed to locate duplicate invoice … after insert conflict"
 
-Let users building invoices in Recouply quickly add line items as simple "products" (Description, Unit Type, Unit Cost, Quantity) and save any line item to a reusable Product Catalog they can pull from on future invoices.
+## Root cause
+In `supabase/functions/sync-stripe-invoices/index.ts` (~lines 750–779), when the invoice insert hits a unique-constraint violation, the fallback lookup only searches by `invoice_number`. The `invoices` table also has unique constraints on `stripe_invoice_id` and `external_invoice_id` (scoped by `user_id`). When the conflict is triggered by one of those columns — and the existing row's `invoice_number` differs from `stripeInvoice.number || stripeInvoice.id` (e.g. the existing row was created from a CSV/QuickBooks import with a different number, or `stripeInvoice.number` is null and the existing row has a real number) — the lookup returns nothing and we surface the misleading "Failed to locate duplicate invoice" error. That's what's happening for `in_1SnQVqB0u96SjFoIZ6mKuDnf` on the sharad@recouply.ai account.
 
-Existing `revenue_library_items` is ASC-606 oriented and too heavy for this use case. We'll add a lightweight `product_catalog` table dedicated to invoice line items.
+## Fix
+Broaden the duplicate-recovery branch so it finds the existing row by **any** of the three identifiers Stripe sync uses, in priority order, all scoped to `effectiveAccountId`:
 
-## What the user sees
+1. `stripe_invoice_id = stripeInvoice.id`
+2. `external_invoice_id = stripeInvoice.id`
+3. `invoice_number = stripeInvoice.number` (only when `stripeInvoice.number` is non-null)
 
-In `CreateInvoiceModal` → Line Items section:
+Use a single `.or(...)` query (mirroring the bulk fetch on line 444) that returns at most one row, then update that row with the new `invoiceData` plus `stripe_invoice_id` / `external_invoice_id` so the record becomes the canonical Stripe-linked invoice. If still nothing is found, keep the existing error but include the Postgres constraint name from `insertError.details` so future failures are diagnosable.
 
-1. **"Add from catalog"** button next to **"Add Line"**. Opens a searchable popover listing saved products. Selecting one inserts a pre-filled line (description, unit type, unit cost, quantity defaults to 1).
-2. Each line row gains a **Unit Type** field (e.g. "each", "hour", "license", "month" — free text with common suggestions) between Description and Qty.
-3. Each line row gets a small **bookmark icon button** ("Save to catalog"). If the line isn't yet saved, clicking it saves Description + Unit Type + Unit Cost to the catalog and turns the icon filled/green. Disabled until Description and Unit Cost are filled. Shows a toast on success and dedupes by `(user_id, lower(description), unit_type)`.
-4. Empty-state hint in the catalog popover: "No saved products yet — save any line item to reuse it later."
+Also treat Postgres error `code === '23505'` (not just the message regex) as the duplicate signal, matching project convention (mem://integration/quickbooks-sync-reliability-and-deduplication).
 
-Result: zero context-switch. Build once, reuse forever, all from the same modal.
+## Scope
+Single file edit: `supabase/functions/sync-stripe-invoices/index.ts`, lines ~750–783. No schema changes, no client changes. Idempotent and backward compatible — existing duplicate-by-invoice_number flow still works.
 
-## Technical details
-
-### New table `public.product_catalog`
-
-```text
-id              uuid pk
-user_id         uuid not null              -- owner (auth.uid)
-account_id      uuid                        -- effective account scoping
-description     text not null
-unit_type       text not null default 'each'
-unit_cost       numeric(14,2) not null      -- decimal per financial-precision rule
-currency        text not null default 'USD'
-times_used      integer not null default 0
-last_used_at    timestamptz
-created_at      timestamptz default now()
-updated_at      timestamptz default now()
-
-unique (user_id, lower(description), unit_type)   -- via expression unique index
-```
-
-- GRANT SELECT/INSERT/UPDATE/DELETE to `authenticated`; ALL to `service_role`.
-- RLS: owner-only (`user_id = auth.uid()`) for select/insert/update/delete.
-- `updated_at` trigger.
-
-### Frontend
-
-- `src/hooks/useProductCatalog.tsx` — `list`, `saveProduct({description, unit_type, unit_cost, currency})` (upsert on unique key, increments `times_used` on reuse), `remove`.
-- `src/components/invoices/ProductCatalogPicker.tsx` — Popover + Command search; calls `onSelect(item)`.
-- `src/components/invoices/LineItemsTable.tsx`:
-  - Extend `LineItem` with `unit_type: string` (default `"each"`).
-  - Add Unit Type `<Input list="unit-type-suggestions">` column with a `<datalist>` of common units (each, hour, day, month, license, user, project, unit).
-  - Add bookmark icon button per row → calls `saveProduct`; tracks saved state in local component state by row index.
-  - Add "Add from catalog" button in the toolbar that opens `ProductCatalogPicker`; selection appends a new line.
-- `CreateInvoiceModal` continues to pass `lineItems` through unchanged; `unit_type` is stored on the new `invoice_line_items.unit_type` column (added below) and falls back to existing behavior if missing.
-
-### Schema touch-up
-
-Add `unit_type text` (nullable) to `invoice_line_items` so saved line context round-trips. Backfill not required.
-
-### Out of scope
-
-- Editing the catalog from a dedicated page (future enhancement). Users can still manage entries via the picker's delete action.
-- Tax line items remain unchanged (only "item" rows show the save-to-catalog button).
-- No changes to AI invoice creation flow (`ai-create-records`); can adopt later.
-
-## Files to create / change
-
-- migration: create `product_catalog` + grants + RLS + add `invoice_line_items.unit_type`
-- create `src/hooks/useProductCatalog.tsx`
-- create `src/components/invoices/ProductCatalogPicker.tsx`
-- edit `src/components/invoices/LineItemsTable.tsx`
-- edit `src/components/invoices/CreateInvoiceModal.tsx` (persist `unit_type` on insert)
+## Verification
+After deploy, re-run the Stripe sync from the sharad@recouply.ai account and confirm `in_1SnQVqB0u96SjFoIZ6mKuDnf` reconciles to its existing invoice row instead of erroring.
