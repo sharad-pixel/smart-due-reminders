@@ -278,12 +278,13 @@ Deno.serve(async (req) => {
     // but since overageInvoices is already in credits we charge proportionally.
     const overageChargesTotal = (overageInvoices / CREDITS_PER_INVOICE) * OVERAGE_RATE;
 
-    logStep("Active invoice credit usage", {
-      invoiceCount: actualInvoiceCount,
+    logStep("Active invoice credit usage v2", {
+      activeInvoiceCount: actualInvoiceCount,
+      creditsPerInvoice: CREDITS_PER_INVOICE,
       creditsUsed: actualInvoicesUsed,
-      included: includedInvoicesUsed,
-      overage: overageInvoices,
-      creditsPerInvoice: CREDITS_PER_INVOICE
+      includedAllowance,
+      includedInvoicesUsed,
+      overageInvoices,
     });
 
     return new Response(JSON.stringify({
