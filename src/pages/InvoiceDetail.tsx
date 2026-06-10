@@ -738,11 +738,17 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
   const handleSaveInvoiceEdit = async () => {
     if (!invoice) return;
 
-    // editAmount represents the subtotal (pre-fee). Compute fee + new total.
+    // Processing fee is only available for Recouply-native invoices (not integrations or AI ingestion)
+    const isManualInvoice = !invoice.integration_source || invoice.integration_source === 'recouply_manual';
     const subtotal = parseFloat(editAmount) || 0;
-    const feePercent = Math.max(0, Math.min(100, parseFloat(editProcessingFeePercent) || 0));
-    const feeAmount = Math.round(subtotal * feePercent) / 100; // % of subtotal, 2dp
-    const newTotal = Math.round((subtotal + feeAmount) * 100) / 100;
+    const feePercent = isManualInvoice
+      ? Math.max(0, Math.min(100, parseFloat(editProcessingFeePercent) || 0))
+      : 0;
+    const feeAmount = isManualInvoice ? Math.round(subtotal * feePercent) / 100 : 0;
+    const newTotal = isManualInvoice
+      ? Math.round((subtotal + feeAmount) * 100) / 100
+      : subtotal;
+
 
     // Determine which fields changed for override logging
     const amountChanged = newTotal !== invoice.amount;
