@@ -187,6 +187,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
   const [editIssueDate, setEditIssueDate] = useState("");
   const [editPaymentTerms, setEditPaymentTerms] = useState("NET30");
   const [editNotes, setEditNotes] = useState("");
+  const [editProcessingFeePercent, setEditProcessingFeePercent] = useState("0");
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
   const [selectedOutreach, setSelectedOutreach] = useState<OutreachRecord | null>(null);
   const [outreachDetailOpen, setOutreachDetailOpen] = useState(false);
