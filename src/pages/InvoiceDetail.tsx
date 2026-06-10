@@ -738,8 +738,14 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
   const handleSaveInvoiceEdit = async () => {
     if (!invoice) return;
 
+    // editAmount represents the subtotal (pre-fee). Compute fee + new total.
+    const subtotal = parseFloat(editAmount) || 0;
+    const feePercent = Math.max(0, Math.min(100, parseFloat(editProcessingFeePercent) || 0));
+    const feeAmount = Math.round(subtotal * feePercent) / 100; // % of subtotal, 2dp
+    const newTotal = Math.round((subtotal + feeAmount) * 100) / 100;
+
     // Determine which fields changed for override logging
-    const amountChanged = parseFloat(editAmount) !== invoice.amount;
+    const amountChanged = newTotal !== invoice.amount;
     const dueDateWillChange = editIssueDate !== invoice.issue_date || editPaymentTerms !== invoice.payment_terms;
 
     const performSave = async () => {
@@ -772,7 +778,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
               user.id,
               "amount",
               invoice.amount.toString(),
-              editAmount,
+              newTotal.toString(),
               invoice.integration_source
             );
           }
@@ -793,7 +799,10 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
           .from("invoices")
           .update({
             invoice_number: editInvoiceNumber,
-            amount: parseFloat(editAmount),
+            amount: newTotal,
+            subtotal_amount: subtotal,
+            processing_fee_percent: feePercent,
+            processing_fee_amount: feeAmount,
             issue_date: editIssueDate,
             due_date: dueDate,
             payment_terms: editPaymentTerms,
