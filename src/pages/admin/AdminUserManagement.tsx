@@ -78,6 +78,18 @@ interface UserProfile {
   onboarding_pct?: number;
   onboarding_completed?: number;
   onboarding_total?: number;
+  // Team-member effective billing (mirrors owner when active team member)
+  is_team_member?: boolean;
+  team_role?: string | null;
+  owner_account_id?: string | null;
+  owner_email?: string | null;
+  owner_name?: string | null;
+  effective_plan_type?: string | null;
+  effective_plan_id?: string | null;
+  effective_plans?: { name: string; monthly_price: number; invoice_limit: number } | null;
+  effective_subscription_status?: string | null;
+  effective_trial_ends_at?: string | null;
+  effective_stripe_subscription_id?: string | null;
 }
 
 interface UserStats {
@@ -944,12 +956,17 @@ Delaware, USA`;
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge variant={user.stripe_subscription_id ? "default" : "outline"}>
-                              {user.plans?.name || (user.plan_type && user.plan_type !== 'free' ? user.plan_type.replace('_', ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()) : "Free")}
+                            <Badge variant={(user.effective_stripe_subscription_id ?? user.stripe_subscription_id) ? "default" : "outline"}>
+                              {(user.effective_plans?.name ?? user.plans?.name) || (((user.effective_plan_type ?? user.plan_type) && (user.effective_plan_type ?? user.plan_type) !== 'free') ? (user.effective_plan_type ?? user.plan_type)!.replace('_', ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()) : "Free")}
                             </Badge>
-                            {(user.plans?.monthly_price || (user.plan_type && user.plan_type !== 'free')) && (
+                            {((user.effective_plans?.monthly_price ?? user.plans?.monthly_price) || ((user.effective_plan_type ?? user.plan_type) && (user.effective_plan_type ?? user.plan_type) !== 'free')) && (
                               <div className="text-xs text-muted-foreground mt-1">
-                                {user.plans?.monthly_price ? `$${user.plans.monthly_price}/mo` : ''}
+                                {(user.effective_plans?.monthly_price ?? user.plans?.monthly_price) ? `$${user.effective_plans?.monthly_price ?? user.plans?.monthly_price}/mo` : ''}
+                              </div>
+                            )}
+                            {user.is_team_member && (
+                              <div className="text-[10px] text-muted-foreground mt-0.5">
+                                via {user.owner_email}
                               </div>
                             )}
                           </TableCell>
@@ -1020,32 +1037,32 @@ Delaware, USA`;
                                   </div>
                                 )}
                               </div>
-                            ) : user.subscription_status === 'active' ? (
+                            ) : (user.effective_subscription_status ?? user.subscription_status) === 'active' ? (
                               <Badge variant="outline" className="border-green-500 text-green-600">
-                                Active
+                                Active{user.is_team_member ? ' (Team)' : ''}
                               </Badge>
-                            ) : user.subscription_status === 'trialing' ? (
+                            ) : (user.effective_subscription_status ?? user.subscription_status) === 'trialing' ? (
                               <div>
                                 <Badge variant="outline" className="border-blue-500 text-blue-600">
-                                  Trial
+                                  Trial{user.is_team_member ? ' (Team)' : ''}
                                 </Badge>
-                                {user.trial_ends_at && (
+                                {(user.effective_trial_ends_at ?? user.trial_ends_at) && (
                                   <div className="text-xs text-muted-foreground mt-1">
-                                    Ends {formatDate(new Date(user.trial_ends_at), "MMM d")}
+                                    Ends {formatDate(new Date(user.effective_trial_ends_at ?? user.trial_ends_at!), "MMM d")}
                                   </div>
                                 )}
                               </div>
-                            ) : user.subscription_status === 'past_due' ? (
+                            ) : (user.effective_subscription_status ?? user.subscription_status) === 'past_due' ? (
                               <Badge variant="outline" className="border-amber-500 text-amber-600">
                                 Past Due
                               </Badge>
-                            ) : user.subscription_status === 'canceled' ? (
+                            ) : (user.effective_subscription_status ?? user.subscription_status) === 'canceled' ? (
                               <Badge variant="outline" className="border-red-400 text-red-500">
                                 Canceled
                               </Badge>
                             ) : (
                               <Badge variant="outline" className="border-muted-foreground text-muted-foreground">
-                                {user.subscription_status || 'Inactive'}
+                                {(user.effective_subscription_status ?? user.subscription_status) || 'Inactive'}
                               </Badge>
                             )}
                           </TableCell>

@@ -80,6 +80,25 @@ interface UserDetails {
     invoice_limit: number;
     overage_amount: number;
   } | null;
+  // Team-member effective billing (mirrors owner when active team member)
+  is_team_member?: boolean;
+  team_role?: string | null;
+  owner_account_id?: string | null;
+  owner_email?: string | null;
+  owner_name?: string | null;
+  effective_plan_type?: string | null;
+  effective_plan_id?: string | null;
+  effective_plans?: {
+    id: string;
+    name: string;
+    monthly_price: number;
+    invoice_limit: number;
+    overage_amount: number;
+  } | null;
+  effective_subscription_status?: string | null;
+  effective_trial_ends_at?: string | null;
+  effective_stripe_customer_id?: string | null;
+  effective_stripe_subscription_id?: string | null;
 }
 
 interface AccountRelationship {
@@ -495,12 +514,13 @@ const AdminUserDetail = () => {
     if (user.is_suspended) {
       return <Badge variant="destructive"><AlertCircle className="h-3 w-3 mr-1" />Suspended</Badge>;
     }
-    const status = user.subscription_status;
+    const status = user.effective_subscription_status ?? user.subscription_status;
+    const teamSuffix = user.is_team_member ? ' (Team)' : '';
     switch (status) {
       case 'active':
-        return <Badge className="bg-green-500/10 text-green-600 border-green-500"><CheckCircle className="h-3 w-3 mr-1" />Active</Badge>;
+        return <Badge className="bg-green-500/10 text-green-600 border-green-500"><CheckCircle className="h-3 w-3 mr-1" />Active{teamSuffix}</Badge>;
       case 'trialing':
-        return <Badge className="bg-blue-500/10 text-blue-600 border-blue-500"><Clock className="h-3 w-3 mr-1" />Trial</Badge>;
+        return <Badge className="bg-blue-500/10 text-blue-600 border-blue-500"><Clock className="h-3 w-3 mr-1" />Trial{teamSuffix}</Badge>;
       case 'past_due':
         return <Badge className="bg-orange-500/10 text-orange-600 border-orange-500"><AlertCircle className="h-3 w-3 mr-1" />Past Due</Badge>;
       case 'canceled':
@@ -573,8 +593,26 @@ const AdminUserDetail = () => {
                       Platform Admin
                     </Badge>
                   )}
+                  {user.is_team_member && (
+                    <Badge variant="outline" className="capitalize">
+                      <Users className="h-3 w-3 mr-1" />
+                      {user.team_role || 'Team Member'}
+                    </Badge>
+                  )}
                 </div>
                 <p className="text-muted-foreground">{user.email}</p>
+                {user.is_team_member && user.owner_email && (
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Mirrors billing of owner{' '}
+                    <button
+                      type="button"
+                      onClick={() => user.owner_account_id && navigate(`/admin/users/${user.owner_account_id}`)}
+                      className="underline hover:text-foreground"
+                    >
+                      {user.owner_name || user.owner_email}
+                    </button>
+                  </p>
+                )}
               </div>
             </div>
           </div>
