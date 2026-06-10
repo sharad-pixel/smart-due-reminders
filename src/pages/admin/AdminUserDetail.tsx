@@ -593,8 +593,26 @@ const AdminUserDetail = () => {
                       Platform Admin
                     </Badge>
                   )}
+                  {user.is_team_member && (
+                    <Badge variant="outline" className="capitalize">
+                      <Users className="h-3 w-3 mr-1" />
+                      {user.team_role || 'Team Member'}
+                    </Badge>
+                  )}
                 </div>
                 <p className="text-muted-foreground">{user.email}</p>
+                {user.is_team_member && user.owner_email && (
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Mirrors billing of owner{' '}
+                    <button
+                      type="button"
+                      onClick={() => user.owner_account_id && navigate(`/admin/users/${user.owner_account_id}`)}
+                      className="underline hover:text-foreground"
+                    >
+                      {user.owner_name || user.owner_email}
+                    </button>
+                  </p>
+                )}
               </div>
             </div>
           </div>
