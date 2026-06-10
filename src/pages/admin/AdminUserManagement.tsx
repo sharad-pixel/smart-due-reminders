@@ -956,12 +956,17 @@ Delaware, USA`;
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge variant={user.stripe_subscription_id ? "default" : "outline"}>
-                              {user.plans?.name || (user.plan_type && user.plan_type !== 'free' ? user.plan_type.replace('_', ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()) : "Free")}
+                            <Badge variant={(user.effective_stripe_subscription_id ?? user.stripe_subscription_id) ? "default" : "outline"}>
+                              {(user.effective_plans?.name ?? user.plans?.name) || (((user.effective_plan_type ?? user.plan_type) && (user.effective_plan_type ?? user.plan_type) !== 'free') ? (user.effective_plan_type ?? user.plan_type)!.replace('_', ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()) : "Free")}
                             </Badge>
-                            {(user.plans?.monthly_price || (user.plan_type && user.plan_type !== 'free')) && (
+                            {((user.effective_plans?.monthly_price ?? user.plans?.monthly_price) || ((user.effective_plan_type ?? user.plan_type) && (user.effective_plan_type ?? user.plan_type) !== 'free')) && (
                               <div className="text-xs text-muted-foreground mt-1">
-                                {user.plans?.monthly_price ? `$${user.plans.monthly_price}/mo` : ''}
+                                {(user.effective_plans?.monthly_price ?? user.plans?.monthly_price) ? `$${user.effective_plans?.monthly_price ?? user.plans?.monthly_price}/mo` : ''}
+                              </div>
+                            )}
+                            {user.is_team_member && (
+                              <div className="text-[10px] text-muted-foreground mt-0.5">
+                                via {user.owner_email}
                               </div>
                             )}
                           </TableCell>
