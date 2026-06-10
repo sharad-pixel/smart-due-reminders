@@ -72,6 +72,9 @@ interface Invoice {
   subtotal: number | null;
   tax_amount: number | null;
   total_amount: number | null;
+  processing_fee_percent: number | null;
+  processing_fee_amount: number | null;
+  subtotal_amount: number | null;
   aging_bucket: string | null;
   created_at: string | null;
   updated_at: string | null;
