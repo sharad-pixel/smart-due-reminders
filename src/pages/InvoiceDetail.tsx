@@ -738,11 +738,17 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
   const handleSaveInvoiceEdit = async () => {
     if (!invoice) return;
 
-    // editAmount represents the subtotal (pre-fee). Compute fee + new total.
+    // Processing fee is only available for Recouply-native invoices (not integrations or AI ingestion)
+    const isManualInvoice = !invoice.integration_source || invoice.integration_source === 'recouply_manual';
     const subtotal = parseFloat(editAmount) || 0;
-    const feePercent = Math.max(0, Math.min(100, parseFloat(editProcessingFeePercent) || 0));
-    const feeAmount = Math.round(subtotal * feePercent) / 100; // % of subtotal, 2dp
-    const newTotal = Math.round((subtotal + feeAmount) * 100) / 100;
+    const feePercent = isManualInvoice
+      ? Math.max(0, Math.min(100, parseFloat(editProcessingFeePercent) || 0))
+      : 0;
+    const feeAmount = isManualInvoice ? Math.round(subtotal * feePercent) / 100 : 0;
+    const newTotal = isManualInvoice
+      ? Math.round((subtotal + feeAmount) * 100) / 100
+      : subtotal;
+
 
     // Determine which fields changed for override logging
     const amountChanged = newTotal !== invoice.amount;
@@ -795,20 +801,25 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
           }
         }
 
+        const updatePayload: Record<string, any> = {
+          invoice_number: editInvoiceNumber,
+          amount: newTotal,
+          issue_date: editIssueDate,
+          due_date: dueDate,
+          payment_terms: editPaymentTerms,
+          notes: editNotes,
+        };
+        if (isManualInvoice) {
+          updatePayload.subtotal_amount = subtotal;
+          updatePayload.processing_fee_percent = feePercent;
+          updatePayload.processing_fee_amount = feeAmount;
+        }
+
         const { error } = await supabase
           .from("invoices")
-          .update({
-            invoice_number: editInvoiceNumber,
-            amount: newTotal,
-            subtotal_amount: subtotal,
-            processing_fee_percent: feePercent,
-            processing_fee_amount: feeAmount,
-            issue_date: editIssueDate,
-            due_date: dueDate,
-            payment_terms: editPaymentTerms,
-            notes: editNotes,
-          })
+          .update(updatePayload)
           .eq("id", invoice.id);
+
 
         if (error) throw error;
         
@@ -2312,43 +2323,54 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                   onChange={(e) => setEditInvoiceNumber(e.target.value)}
                 />
               </div>
-              <div>
-                <Label htmlFor="amount">Subtotal (before processing fee)</Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  step="0.01"
-                  value={editAmount}
-                  onChange={(e) => setEditAmount(e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="processing-fee">Credit Card Processing Fee (%)</Label>
-                <Input
-                  id="processing-fee"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  max="100"
-                  placeholder="e.g. 2.9"
-                  value={editProcessingFeePercent}
-                  onChange={(e) => setEditProcessingFeePercent(e.target.value)}
-                />
-                {(() => {
-                  const sub = parseFloat(editAmount) || 0;
-                  const pct = Math.max(0, Math.min(100, parseFloat(editProcessingFeePercent) || 0));
-                  const fee = Math.round(sub * pct) / 100;
-                  const total = Math.round((sub + fee) * 100) / 100;
-                  const currency = invoice?.currency || 'USD';
-                  return (
-                    <div className="mt-2 text-xs text-muted-foreground space-y-0.5 rounded-md border p-2 bg-muted/30">
-                      <div className="flex justify-between"><span>Subtotal</span><span>{formatCurrency(sub, currency)}</span></div>
-                      <div className="flex justify-between"><span>Processing fee ({pct.toFixed(2)}%)</span><span>{formatCurrency(fee, currency)}</span></div>
-                      <div className="flex justify-between font-semibold text-foreground pt-1 border-t"><span>Invoice total</span><span>{formatCurrency(total, currency)}</span></div>
+              {(() => {
+                const isManual = !invoice?.integration_source || invoice.integration_source === 'recouply_manual';
+                return (
+                  <>
+                    <div>
+                      <Label htmlFor="amount">{isManual ? 'Subtotal (before processing fee)' : 'Amount'}</Label>
+                      <Input
+                        id="amount"
+                        type="number"
+                        step="0.01"
+                        value={editAmount}
+                        onChange={(e) => setEditAmount(e.target.value)}
+                      />
                     </div>
-                  );
-                })()}
-              </div>
+                    {isManual && (
+                      <div>
+                        <Label htmlFor="processing-fee">Credit Card Processing Fee (%)</Label>
+                        <Input
+                          id="processing-fee"
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          max="100"
+                          placeholder="e.g. 2.9"
+                          value={editProcessingFeePercent}
+                          onChange={(e) => setEditProcessingFeePercent(e.target.value)}
+                        />
+                        {(() => {
+                          const sub = parseFloat(editAmount) || 0;
+                          const pct = Math.max(0, Math.min(100, parseFloat(editProcessingFeePercent) || 0));
+                          const fee = Math.round(sub * pct) / 100;
+                          const total = Math.round((sub + fee) * 100) / 100;
+                          const currency = invoice?.currency || 'USD';
+                          return (
+                            <div className="mt-2 text-xs text-muted-foreground space-y-0.5 rounded-md border p-2 bg-muted/30">
+                              <div className="flex justify-between"><span>Subtotal</span><span>{formatCurrency(sub, currency)}</span></div>
+                              <div className="flex justify-between"><span>Processing fee ({pct.toFixed(2)}%)</span><span>{formatCurrency(fee, currency)}</span></div>
+                              <div className="flex justify-between font-semibold text-foreground pt-1 border-t"><span>Invoice total</span><span>{formatCurrency(total, currency)}</span></div>
+                            </div>
+                          );
+                        })()}
+                        <p className="mt-1 text-[11px] text-muted-foreground">Available only for invoices created directly in Recouply.</p>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+
               <div>
                 <Label htmlFor="issue-date">Issue Date</Label>
                 <Input
