@@ -725,7 +725,10 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
   const handleEditInvoice = () => {
     if (!invoice) return;
     setEditInvoiceNumber(invoice.invoice_number);
-    setEditAmount(invoice.amount.toString());
+    // Edit the subtotal (pre-fee). Falls back to amount when no fee applied.
+    const currentSubtotal = invoice.subtotal_amount ?? invoice.amount;
+    setEditAmount(currentSubtotal.toString());
+    setEditProcessingFeePercent((invoice.processing_fee_percent ?? 0).toString());
     setEditIssueDate(invoice.issue_date);
     setEditPaymentTerms(invoice.payment_terms || "NET30");
     setEditNotes(invoice.notes || "");
