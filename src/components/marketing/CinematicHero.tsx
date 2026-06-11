@@ -255,7 +255,7 @@ const CinematicHero = () => {
           >
             {workflow === "contracts"
               ? "AI that reads every MSA, SOW, and renewal — extracting terms, arming triggers, and recapturing revenue hidden in your contracts."
-              : "AI-powered collections, risk intelligence, and automated outreach — all in one system of record."}
+              : "Your business — at any size — can now deploy AI collections agents. Built for small businesses and early-stage SaaS, scaled for enterprise. Live in minutes, recovering cash today."}
           </motion.p>
 
           <PlanCycler navigate={navigate} />
