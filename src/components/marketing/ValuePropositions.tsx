@@ -19,39 +19,39 @@ const ValuePropositions = () => {
   const tiers = [
     {
       icon: Rocket,
-      title: "For Startups",
-      subtitle: "AI-Powered Revenue Intelligence Platform From Day One",
+      title: "Small Businesses",
+      subtitle: "Your first AR hire — at a fraction of the cost",
       items: [
-        "Centralize every receivable in one system of record",
-        "AI-powered collections workflows eliminate missed payments",
-        "Risk-based prioritization — work the right accounts first",
-        "Full audit trail of every outreach and outcome",
+        "Live in minutes — connect Stripe, QuickBooks, or a spreadsheet",
+        "AI agents send polite, on-brand reminders 24/7",
+        "No collections team required — one founder, six AI agents",
+        "Affordable monthly plans built for small business cash flow",
       ],
-      route: "/startups",
+      route: "/smb",
       popular: false,
     },
     {
-      icon: Building2,
-      title: "For SMBs",
-      subtitle: "Revenue Intelligence Platform With Risk-Based Prioritization",
+      icon: Rocket,
+      title: "Early-Stage SaaS",
+      subtitle: "Built by founders for founders chasing cash",
       items: [
-        "24/7 AI-powered collections workflows and follow-ups",
-        "AI agents read and respond to customer emails",
-        "Risk scoring reduces DSO by 35–50%",
-        "Complete audit trail — no more gaps in collections history",
+        "Stop CSMs and AEs from chasing payments — let AI do it",
+        "Customer-safe tone protects NRR and reduces churn risk",
+        "Stripe & Chargebee payment links embedded in every email",
+        "Recover ARR leakage before it shows up in your board deck",
       ],
-      route: "/smb",
+      route: "/startups",
       popular: true,
     },
     {
       icon: Building,
-      title: "For Enterprise",
-      subtitle: "Enterprise Revenue Intelligence Platform Across Finance, Sales & RevOps",
+      title: "Scale & Enterprise",
+      subtitle: "The same AI agents — with enterprise governance",
       items: [
-        "Agents trained on Salesforce RCA, CS Cases, NetSuite data",
-        "AI-powered collections workflows with risk-aware routing",
-        "Predictive early-warning revenue risk intelligence",
-        "Enterprise governance, full audit trails, and compliance",
+        "Agents trained on Salesforce, NetSuite, and CS case data",
+        "Predictive revenue risk intelligence and early warnings",
+        "Risk-aware routing, audit trails, and SOC-ready controls",
+        "Grows with you — no replatforming when you scale",
       ],
       route: "/enterprise",
       popular: false,
@@ -69,16 +69,16 @@ const ValuePropositions = () => {
           transition={{ duration: 0.5 }}
         >
           <div className="inline-block px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
-            Revenue Intelligence Platform
+            Built for any size
           </div>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-            AI-Powered Revenue Intelligence Platform Built for Your Scale
+            AI Collections Agents — Now Within Reach for Every Business
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-            Centralized receivables management with AI-powered collections workflows — so your team focuses on cash outcomes, not manual follow-ups
+            From a one-person shop to an early-stage SaaS team to a global RevOps org — deploy the same AI agents that recover cash, protect customer relationships, and go live in minutes.
           </p>
           <p className="text-sm text-muted-foreground/80 max-w-xl mx-auto mt-3">
-            Risk-based prioritization, full audit trail, and consistent execution at every scale
+            Founder-friendly pricing · Customer-safe tone · No collections team required
           </p>
         </motion.div>
         
