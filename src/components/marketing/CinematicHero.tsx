@@ -25,17 +25,17 @@ const PHASE_DURATIONS: Record<Phase, number> = {
 };
 
 const HEADLINES: string[] = [
+  "AI Collections Agents — Now For Businesses of Every Size",
+  "Small Business. Early-Stage SaaS. Enterprise-Grade AI.",
+  "Six AI Agents. Founder-Friendly Pricing. Live in Minutes.",
+  "Built by Founders, for Founders Chasing Cash",
+  "Your First AR Hire — At a Fraction of the Cost",
   "Turn Revenue Risk Into Predictable Cash Flow",
-  "Your Revenue Intelligence Platform — Powered by AI",
-  "Centralized Receivables. Prioritized by Risk.",
+  "From Overdue to Recovered — Without Hiring a Collections Team",
   "AI-Powered Collections Workflows That Recover Cash",
-  "Six AI Agents. Full Audit Trail. Zero Gaps.",
-  "Risk-Based Prioritization. Predictable Cash Flow.",
-  "From Overdue to Recovered — With Full Visibility",
-  "Manage Risk. Recover Revenue. One Platform.",
-  "Stop Chasing. Start Managing. Recover More.",
-  "Turn Receivables Into Revenue — Systematically",
+  "Stop Chasing. Start Closing the Cash Gap.",
   "Know the Risk Before You Grow the Account",
+  "Recover More Cash. Keep Every Customer Relationship.",
 ];
 
 const CONTRACT_HEADLINES: string[] = [
