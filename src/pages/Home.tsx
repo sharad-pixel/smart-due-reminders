@@ -6,6 +6,7 @@ import { PAGE_SEO, generateFAQSchema } from "@/lib/seoConfig";
 
 // Lazy-load below-the-fold sections so the hero (LCP) paints faster on first load.
 const AssessmentCTA = lazy(() => import("@/components/marketing/AssessmentCTA"));
+const BuiltForAnySize = lazy(() => import("@/components/marketing/BuiltForAnySize"));
 const ScrollPipeline = lazy(() => import("@/components/marketing/ScrollPipeline"));
 const CollectionIntelligenceShowcase = lazy(() => import("@/components/marketing/CollectionIntelligenceShowcase"));
 const AnimatedMetrics = lazy(() => import("@/components/marketing/AnimatedMetrics"));
@@ -43,6 +44,7 @@ const Home = () => {
       <CinematicHero />
       <Suspense fallback={null}>
         <AssessmentCTA />
+        <BuiltForAnySize />
         <ScrollPipeline />
         <CollectionIntelligenceShowcase />
         <AnimatedMetrics />
