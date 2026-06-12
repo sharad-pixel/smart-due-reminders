@@ -41,6 +41,7 @@ import { useIntegrationToggles } from "@/hooks/useIntegrationToggles";
 import { ContactSalesCard } from "@/components/data-center/ContactSalesCard";
 import * as XLSX from "xlsx";
 import { Zap, Server } from "lucide-react";
+import { ProductCatalogManager } from "@/components/data-center/ProductCatalogManager";
 
 const DataCenter = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -504,6 +505,11 @@ const DataCenter = () => {
         </section>
 
         <Separator />
+
+        <ProductCatalogManager />
+
+        <Separator />
+
 
         {/* ═══════════════════════════════════════════════════════════════ */}
         {/* SECTION 3: EXPORTS & DATASETS                                 */}
