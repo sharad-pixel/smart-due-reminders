@@ -107,12 +107,6 @@ export const LineItemsTable = ({ items, onChange, disabled }: LineItemsTableProp
 
   return (
     <div className="space-y-4">
-      <datalist id="unit-type-suggestions">
-        {UNIT_SUGGESTIONS.map((u) => (
-          <option key={u} value={u} />
-        ))}
-      </datalist>
-
       <div className="flex items-center justify-between">
         <Label className="text-base font-semibold">Line Items</Label>
         <div className="flex items-center gap-2">
