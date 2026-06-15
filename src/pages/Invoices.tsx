@@ -81,6 +81,7 @@ const Invoices = () => {
   const [debtorFilter, setDebtorFilter] = useState<string>(debtorIdFromUrl || "all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [currencyFilter, setCurrencyFilter] = useState<string>("all");
+  const [scheduledFilter, setScheduledFilter] = useState<string>("all");
 
   // Fetch closed invoices when the user is searching, filtering by a closed status,
   // or viewing "all" — otherwise the search/filters can't surface Paid/Canceled/etc.
@@ -123,7 +124,7 @@ const Invoices = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, ageBucketFilter, debtorFilter, sourceFilter, currencyFilter, includeClosed]);
+  }, [searchTerm, statusFilter, ageBucketFilter, debtorFilter, sourceFilter, currencyFilter, scheduledFilter, includeClosed]);
 
   const getDaysPastDue = (dueDate: string): number => {
     const today = new Date();
@@ -291,8 +292,21 @@ const Invoices = () => {
       filtered = filtered.filter((inv) => (inv.currency || "USD") === currencyFilter);
     }
 
+    if (scheduledFilter !== "all") {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      filtered = filtered.filter((inv) => {
+        const issueDate = new Date(inv.issue_date);
+        issueDate.setHours(0, 0, 0, 0);
+        if (scheduledFilter === "backlog") {
+          return issueDate > today;
+        }
+        return issueDate <= today;
+      });
+    }
+
     return filtered;
-  }, [invoices, searchTerm, statusFilter, ageBucketFilter, debtorFilter, sourceFilter, currencyFilter, includeClosed]);
+  }, [invoices, searchTerm, statusFilter, ageBucketFilter, debtorFilter, sourceFilter, currencyFilter, scheduledFilter, includeClosed]);
 
   // Add computed fields for sorting
   const invoicesWithComputedFields = useMemo(() => {
@@ -443,6 +457,16 @@ const Invoices = () => {
                         {Array.from(new Set(invoices.map(inv => inv.currency || "USD"))).sort().map(c => (
                           <SelectItem key={c} value={c}>{c === "USD" ? "USD – US Dollar" : c === "EUR" ? "EUR – Euro" : c === "GBP" ? "GBP – Pound" : c === "CAD" ? "CAD – Canadian" : c === "AUD" ? "AUD – Australian" : c}</SelectItem>
                         ))}
+                      </SelectContent>
+                    </Select>
+                    <Select value={scheduledFilter} onValueChange={setScheduledFilter}>
+                      <SelectTrigger className="w-[140px]">
+                        <SelectValue placeholder="Scheduled" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Dates</SelectItem>
+                        <SelectItem value="current">Current</SelectItem>
+                        <SelectItem value="backlog">Backlog</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
