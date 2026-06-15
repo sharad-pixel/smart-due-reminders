@@ -47,6 +47,8 @@ const emptyForm: FormState = {
   currency: "USD",
 };
 
+const isStandardUnit = (u: string) => STANDARD_UNITS.includes(u);
+
 export const ProductCatalogManager = () => {
   const qc = useQueryClient();
   const { list, remove } = useProductCatalog();
