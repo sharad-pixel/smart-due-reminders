@@ -23,7 +23,14 @@ interface LineItemsTableProps {
   disabled?: boolean;
 }
 
-const UNIT_SUGGESTIONS = ["each", "hour", "day", "month", "license", "user", "project", "unit"];
+const STANDARD_UNITS = [
+  "each", "hour", "day", "week", "month", "year",
+  "license", "user", "seat", "project", "unit",
+  "service", "subscription", "package", "report",
+  "call", "session", "page", "box", "case",
+];
+
+const isStandardUnit = (u: string) => STANDARD_UNITS.includes(u);
 
 export const LineItemsTable = ({ items, onChange, disabled }: LineItemsTableProps) => {
   const { saveProduct } = useProductCatalog();
