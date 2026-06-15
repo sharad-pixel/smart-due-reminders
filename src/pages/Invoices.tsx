@@ -459,6 +459,16 @@ const Invoices = () => {
                         ))}
                       </SelectContent>
                     </Select>
+                    <Select value={scheduledFilter} onValueChange={setScheduledFilter}>
+                      <SelectTrigger className="w-[140px]">
+                        <SelectValue placeholder="Scheduled" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Dates</SelectItem>
+                        <SelectItem value="current">Current</SelectItem>
+                        <SelectItem value="backlog">Backlog</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               </div>
