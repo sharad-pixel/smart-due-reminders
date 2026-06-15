@@ -1,11 +1,4 @@
 import { useState } from "react";
-
-const STANDARD_UNITS = [
-  "each", "hour", "day", "week", "month", "year",
-  "license", "user", "seat", "project", "unit",
-  "service", "subscription", "package", "report",
-  "call", "session", "page", "box", "case",
-];
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,6 +13,13 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -31,6 +31,13 @@ import { Plus, Pencil, Trash2, Package, Loader2 } from "lucide-react";
 import { useProductCatalog, ProductCatalogItem } from "@/hooks/useProductCatalog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+const STANDARD_UNITS = [
+  "each", "hour", "day", "week", "month", "year",
+  "license", "user", "seat", "project", "unit",
+  "service", "subscription", "package", "report",
+  "call", "session", "page", "box", "case",
+];
 
 interface FormState {
   id?: string;
@@ -56,6 +63,7 @@ export const ProductCatalogManager = () => {
 
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [customUnit, setCustomUnit] = useState("");
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
 
@@ -63,12 +71,16 @@ export const ProductCatalogManager = () => {
     i.description.toLowerCase().includes(search.toLowerCase())
   );
 
+  const selectUnitValue = isStandardUnit(form.unit_type) ? form.unit_type : "custom";
+
   const openCreate = () => {
     setForm(emptyForm);
+    setCustomUnit("");
     setOpen(true);
   };
 
   const openEdit = (item: ProductCatalogItem) => {
+    const standard = isStandardUnit(item.unit_type);
     setForm({
       id: item.id,
       description: item.description,
@@ -76,7 +88,22 @@ export const ProductCatalogManager = () => {
       unit_cost: String(item.unit_cost),
       currency: item.currency || "USD",
     });
+    setCustomUnit(standard ? "" : item.unit_type);
     setOpen(true);
+  };
+
+  const handleUnitChange = (value: string) => {
+    if (value === "custom") {
+      setForm((f) => ({ ...f, unit_type: customUnit || "" }));
+    } else {
+      setForm((f) => ({ ...f, unit_type: value }));
+      setCustomUnit("");
+    }
+  };
+
+  const handleCustomUnitChange = (value: string) => {
+    setCustomUnit(value);
+    setForm((f) => ({ ...f, unit_type: value }));
   };
 
   const handleSave = async () => {
@@ -90,6 +117,7 @@ export const ProductCatalogManager = () => {
       toast.error("Unit cost must be a valid number");
       return;
     }
+    const unit = form.unit_type.trim() || "each";
 
     setSaving(true);
     try {
@@ -98,7 +126,7 @@ export const ProductCatalogManager = () => {
           .from("product_catalog")
           .update({
             description: desc,
-            unit_type: form.unit_type.trim() || "each",
+            unit_type: unit,
             unit_cost: cost,
             currency: form.currency || "USD",
           })
@@ -111,7 +139,7 @@ export const ProductCatalogManager = () => {
         const { error } = await supabase.from("product_catalog").insert({
           user_id: user.id,
           description: desc,
-          unit_type: form.unit_type.trim() || "each",
+          unit_type: unit,
           unit_cost: cost,
           currency: form.currency || "USD",
         });
@@ -164,11 +192,27 @@ export const ProductCatalogManager = () => {
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-2">
                   <Label>Unit type</Label>
-                  <Input
-                    value={form.unit_type}
-                    onChange={(e) => setForm({ ...form, unit_type: e.target.value })}
-                    placeholder="each, hour, month"
-                  />
+                  <Select value={selectUnitValue} onValueChange={handleUnitChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select unit" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STANDARD_UNITS.map((u) => (
+                        <SelectItem key={u} value={u}>
+                          {u}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="custom">Custom…</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {selectUnitValue === "custom" && (
+                    <Input
+                      value={customUnit}
+                      onChange={(e) => handleCustomUnitChange(e.target.value)}
+                      placeholder="Enter custom unit"
+                      className="mt-2"
+                    />
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>Unit cost</Label>
