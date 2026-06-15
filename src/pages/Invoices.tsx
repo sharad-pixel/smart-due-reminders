@@ -124,7 +124,7 @@ const Invoices = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, ageBucketFilter, debtorFilter, sourceFilter, currencyFilter, includeClosed]);
+  }, [searchTerm, statusFilter, ageBucketFilter, debtorFilter, sourceFilter, currencyFilter, scheduledFilter, includeClosed]);
 
   const getDaysPastDue = (dueDate: string): number => {
     const today = new Date();
