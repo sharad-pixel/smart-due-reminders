@@ -81,6 +81,7 @@ const Invoices = () => {
   const [debtorFilter, setDebtorFilter] = useState<string>(debtorIdFromUrl || "all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [currencyFilter, setCurrencyFilter] = useState<string>("all");
+  const [scheduledFilter, setScheduledFilter] = useState<string>("all");
 
   // Fetch closed invoices when the user is searching, filtering by a closed status,
   // or viewing "all" — otherwise the search/filters can't surface Paid/Canceled/etc.
