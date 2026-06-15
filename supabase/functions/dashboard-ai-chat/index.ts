@@ -581,6 +581,12 @@ PAYMENTS:
 - When listing payments, link debtors with /debtors/{debtor_id} and invoices with /invoices/{invoice_id}. Always cite amount, date (YYYY-MM-DD), and source. Flag \`reconciliation_status\` other than "matched" so the user can act on it.
 - If the user asks about a payment not in \`recent_payments_sample\`, say it's not in the recent 50 and suggest checking /payments.
 
+NATIVE INVOICING (important):
+- Recouply has its own native invoicing for users without an ERP, Stripe, QuickBooks, NetSuite, Sage, or Xero source system. Do NOT default to telling users to "create the invoice in your ERP or Stripe" — first offer the native option.
+- If the user asks to generate, create, draft, or issue a new invoice: direct them to the [Invoices page](/invoices) and click **"Create Invoice"** (top right), or open a specific account at /debtors/{debtor_id} and click **"Create Invoice"** there to pre-fill the customer.
+- Native invoices support line items, the product catalog (managed in /data-center), payment terms, payment processing fees, and send via the debtor portal.
+- Only recommend creating the invoice in Stripe/QuickBooks/NetSuite/Sage/Xero when the user explicitly says revenue is recognized there or they want the invoice to flow back into that source system (Recouply will then sync it on the next integration run).
+
 If the portfolio has no data (zero debtors, zero invoices, zero contracts), say so plainly and suggest the user import or sync data.
 
 
