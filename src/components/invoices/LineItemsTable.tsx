@@ -23,7 +23,14 @@ interface LineItemsTableProps {
   disabled?: boolean;
 }
 
-const UNIT_SUGGESTIONS = ["each", "hour", "day", "month", "license", "user", "project", "unit"];
+const STANDARD_UNITS = [
+  "each", "hour", "day", "week", "month", "year",
+  "license", "user", "seat", "project", "unit",
+  "service", "subscription", "package", "report",
+  "call", "session", "page", "box", "case",
+];
+
+const isStandardUnit = (u: string) => STANDARD_UNITS.includes(u);
 
 export const LineItemsTable = ({ items, onChange, disabled }: LineItemsTableProps) => {
   const { saveProduct } = useProductCatalog();
@@ -100,12 +107,6 @@ export const LineItemsTable = ({ items, onChange, disabled }: LineItemsTableProp
 
   return (
     <div className="space-y-4">
-      <datalist id="unit-type-suggestions">
-        {UNIT_SUGGESTIONS.map((u) => (
-          <option key={u} value={u} />
-        ))}
-      </datalist>
-
       <div className="flex items-center justify-between">
         <Label className="text-base font-semibold">Line Items</Label>
         <div className="flex items-center gap-2">
@@ -169,13 +170,38 @@ export const LineItemsTable = ({ items, onChange, disabled }: LineItemsTableProp
                     </td>
                     <td className="p-2">
                       {isItem ? (
-                        <Input
-                          list="unit-type-suggestions"
-                          value={item.unit_type || ""}
-                          onChange={(e) => updateLineItem(index, "unit_type", e.target.value)}
-                          placeholder="each"
-                          disabled={disabled}
-                        />
+                        <div className="space-y-1">
+                          <Select
+                            value={isStandardUnit(item.unit_type || "") ? (item.unit_type || "each") : "custom"}
+                            onValueChange={(val) => {
+                              if (val === "custom") {
+                                updateLineItem(index, "unit_type", "");
+                              } else {
+                                updateLineItem(index, "unit_type", val);
+                              }
+                            }}
+                            disabled={disabled}
+                          >
+                            <SelectTrigger className="w-28">
+                              <SelectValue placeholder="Unit" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {STANDARD_UNITS.map((u) => (
+                                <SelectItem key={u} value={u}>{u}</SelectItem>
+                              ))}
+                              <SelectItem value="custom">Custom…</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          {!isStandardUnit(item.unit_type || "") && (
+                            <Input
+                              value={item.unit_type || ""}
+                              onChange={(e) => updateLineItem(index, "unit_type", e.target.value)}
+                              placeholder="Enter custom unit"
+                              disabled={disabled}
+                              className="text-xs"
+                            />
+                          )}
+                        </div>
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>
                       )}
