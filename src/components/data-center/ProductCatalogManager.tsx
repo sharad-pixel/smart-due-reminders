@@ -1,4 +1,11 @@
 import { useState } from "react";
+
+const STANDARD_UNITS = [
+  "each", "hour", "day", "week", "month", "year",
+  "license", "user", "seat", "project", "unit",
+  "service", "subscription", "package", "report",
+  "call", "session", "page", "box", "case",
+];
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
