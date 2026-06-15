@@ -170,13 +170,38 @@ export const LineItemsTable = ({ items, onChange, disabled }: LineItemsTableProp
                     </td>
                     <td className="p-2">
                       {isItem ? (
-                        <Input
-                          list="unit-type-suggestions"
-                          value={item.unit_type || ""}
-                          onChange={(e) => updateLineItem(index, "unit_type", e.target.value)}
-                          placeholder="each"
-                          disabled={disabled}
-                        />
+                        <div className="space-y-1">
+                          <Select
+                            value={isStandardUnit(item.unit_type || "") ? (item.unit_type || "each") : "custom"}
+                            onValueChange={(val) => {
+                              if (val === "custom") {
+                                updateLineItem(index, "unit_type", "");
+                              } else {
+                                updateLineItem(index, "unit_type", val);
+                              }
+                            }}
+                            disabled={disabled}
+                          >
+                            <SelectTrigger className="w-28">
+                              <SelectValue placeholder="Unit" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {STANDARD_UNITS.map((u) => (
+                                <SelectItem key={u} value={u}>{u}</SelectItem>
+                              ))}
+                              <SelectItem value="custom">Custom…</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          {!isStandardUnit(item.unit_type || "") && (
+                            <Input
+                              value={item.unit_type || ""}
+                              onChange={(e) => updateLineItem(index, "unit_type", e.target.value)}
+                              placeholder="Enter custom unit"
+                              disabled={disabled}
+                              className="text-xs"
+                            />
+                          )}
+                        </div>
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>
                       )}
