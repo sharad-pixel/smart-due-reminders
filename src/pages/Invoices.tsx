@@ -292,8 +292,21 @@ const Invoices = () => {
       filtered = filtered.filter((inv) => (inv.currency || "USD") === currencyFilter);
     }
 
+    if (scheduledFilter !== "all") {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      filtered = filtered.filter((inv) => {
+        const issueDate = new Date(inv.issue_date);
+        issueDate.setHours(0, 0, 0, 0);
+        if (scheduledFilter === "backlog") {
+          return issueDate > today;
+        }
+        return issueDate <= today;
+      });
+    }
+
     return filtered;
-  }, [invoices, searchTerm, statusFilter, ageBucketFilter, debtorFilter, sourceFilter, currencyFilter, includeClosed]);
+  }, [invoices, searchTerm, statusFilter, ageBucketFilter, debtorFilter, sourceFilter, currencyFilter, scheduledFilter, includeClosed]);
 
   // Add computed fields for sorting
   const invoicesWithComputedFields = useMemo(() => {
