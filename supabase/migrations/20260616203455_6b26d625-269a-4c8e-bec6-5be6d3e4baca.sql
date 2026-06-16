@@ -1,0 +1,1 @@
+ALTER TABLE public.live_contract_imports ADD COLUMN IF NOT EXISTS nicolas_line_review_ack_at timestamptz;
