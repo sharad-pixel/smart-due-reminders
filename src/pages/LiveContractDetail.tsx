@@ -648,6 +648,12 @@ const LiveContractDetailInner = () => {
 
         <ContractInvoiceBacklog schedules={data.schedules as any} defaultCurrency={totals.currency} />
 
+        <NicolasLineReviewBanner
+          importId={c.id}
+          status={c.status}
+          ackAt={(c as any).nicolas_line_review_ack_at}
+        />
+
         <ContractScheduleLines
           importId={c.id}
           debtorId={c.debtor_id || null}
