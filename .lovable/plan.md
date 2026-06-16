@@ -1,21 +1,53 @@
-# Fix: "Failed to locate duplicate invoice … after insert conflict"
+# Nicolas AI Contract Line Review
 
-## Root cause
-In `supabase/functions/sync-stripe-invoices/index.ts` (~lines 750–779), when the invoice insert hits a unique-constraint violation, the fallback lookup only searches by `invoice_number`. The `invoices` table also has unique constraints on `stripe_invoice_id` and `external_invoice_id` (scoped by `user_id`). When the conflict is triggered by one of those columns — and the existing row's `invoice_number` differs from `stripeInvoice.number || stripeInvoice.id` (e.g. the existing row was created from a CSV/QuickBooks import with a different number, or `stripeInvoice.number` is null and the existing row has a real number) — the lookup returns nothing and we surface the misleading "Failed to locate duplicate invoice" error. That's what's happening for `in_1SnQVqB0u96SjFoIZ6mKuDnf` on the sharad@recouply.ai account.
+## Goal
+After an OCR/AI contract scan completes, prompt the user (via Nicolas) to verify the extracted Order Form lines and explicitly flag categories the model commonly misses — especially **Fixed Fee Professional Services**. Give users full line-by-line visibility and edit capability on every Order Form / schedule line, with standard SaaS revenue type assignment (Subscription, Platform, Usage, Professional Services, Implementation, Onboarding, Training, Hardware, etc.).
 
-## Fix
-Broaden the duplicate-recovery branch so it finds the existing row by **any** of the three identifiers Stripe sync uses, in priority order, all scoped to `effectiveAccountId`:
+## What already exists
+- `live-contract-extract` edge function returns `invoice_schedule[]` with `revenue_type`, `category`, `standalone_selling_price` and writes to `contract_invoice_schedules`.
+- `ContractScheduleLines` panel already supports add / edit / delete lines with `CATEGORY_OPTIONS` that include Professional Services, Implementation, etc.
+- `Asc606AssessmentDialog` exists for downstream ASC 606 review.
 
-1. `stripe_invoice_id = stripeInvoice.id`
-2. `external_invoice_id = stripeInvoice.id`
-3. `invoice_number = stripeInvoice.number` (only when `stripeInvoice.number` is non-null)
+## What's missing
+- No explicit nudge after a scan to verify lines — users don't realize Professional Services was missed.
+- No AI "second pass" that compares extracted lines against what a SaaS contract typically contains and surfaces likely gaps.
 
-Use a single `.or(...)` query (mirroring the bulk fetch on line 444) that returns at most one row, then update that row with the new `invoiceData` plus `stripe_invoice_id` / `external_invoice_id` so the record becomes the canonical Stripe-linked invoice. If still nothing is found, keep the existing error but include the Postgres constraint name from `insertError.details` so future failures are diagnosable.
+## Changes
 
-Also treat Postgres error `code === '23505'` (not just the message regex) as the duplicate signal, matching project convention (mem://integration/quickbooks-sync-reliability-and-deduplication).
+### 1. New: Nicolas Line Review banner on `LiveContractDetail`
+- A dismissible banner shown when `live_contract_imports.status` is `scanned` / `extracted` AND the user hasn't acknowledged the review yet (track in `live_contract_imports.nicolas_line_review_ack_at`, new nullable timestamp column).
+- Banner text: "Nicolas suggests reviewing extracted Order Form lines — Fixed Fee Professional Services, Implementation, and one-time charges are often embedded in pricing tables. Review and add missing lines."
+- Actions: "Run Nicolas Line Review" (primary), "I've reviewed — dismiss".
 
-## Scope
-Single file edit: `supabase/functions/sync-stripe-invoices/index.ts`, lines ~750–783. No schema changes, no client changes. Idempotent and backward compatible — existing duplicate-by-invoice_number flow still works.
+### 2. New edge function: `nicolas-line-review`
+- Input: `importId`.
+- Loads the contract OCR text (already on `live_contract_imports`) and the current `contract_invoice_schedules` rows.
+- Calls Lovable AI (`google/gemini-2.5-flash`) with a focused prompt: identify SaaS Order Form line items that appear in the contract text but are missing or miscategorized in the current schedule lines. Return `{ suggested_additions: [...], suggested_recategorizations: [...], summary: string }` using `Output.object`. Particular emphasis on Fixed Fee Professional Services, Implementation, Setup, Onboarding, Training, Hardware/Travel.
+- Returns the structured result to the client (no auto-write — user confirms each).
 
-## Verification
-After deploy, re-run the Stripe sync from the sharad@recouply.ai account and confirm `in_1SnQVqB0u96SjFoIZ6mKuDnf` reconciles to its existing invoice row instead of erroring.
+### 3. New component: `NicolasLineReviewDialog`
+- Triggered from the banner.
+- Calls `nicolas-line-review`, shows the AI summary plus two tabs:
+  - **Suggested additions** — each row pre-filled with description, amount, category, `revenue_type`, billing_type. Checkbox to accept; "Accept selected" inserts into `contract_invoice_schedules` with the chosen revenue type.
+  - **Recategorize existing** — shows current line vs. suggested category/revenue_type, accept individually.
+- On any accept, invalidate the schedule lines query so `ContractScheduleLines` refreshes.
+- Closing the dialog stamps `nicolas_line_review_ack_at`.
+
+### 4. Enhance `ContractScheduleLines` (visibility)
+- Add a compact "Revenue mix" summary strip above the table: counts + totals per `revenue_type` (Subscription, Usage, One-time, Professional Services). Makes a missing PS line obvious at a glance.
+- Existing add/edit/delete UI stays — already supports all required categories and revenue types.
+
+## Technical details
+- DB migration: add `nicolas_line_review_ack_at timestamptz` to `live_contract_imports`.
+- Edge function reuses existing CORS + Lovable AI gateway pattern in `_shared`.
+- Standard SaaS revenue types used end-to-end:
+  `subscription`, `platform`, `license`, `support`, `maintenance`, `usage_minimum`, `prepaid_usage`, `professional_services`, `implementation`, `onboarding`, `training`, `hardware`, `other` — already defined in `CATEGORY_OPTIONS`.
+- No changes to the underlying scan pipeline — this is an explicit human-in-the-loop verification layer.
+
+## Files
+- `supabase/migrations/<new>.sql` — add column.
+- `supabase/functions/nicolas-line-review/index.ts` — new.
+- `src/components/clm/NicolasLineReviewBanner.tsx` — new.
+- `src/components/clm/NicolasLineReviewDialog.tsx` — new.
+- `src/components/clm/ContractScheduleLines.tsx` — add revenue mix summary strip.
+- `src/pages/LiveContractDetail.tsx` — render the banner.

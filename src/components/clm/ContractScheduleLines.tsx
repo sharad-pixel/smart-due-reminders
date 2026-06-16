@@ -498,6 +498,35 @@ export const ContractScheduleLines = ({
           </p>
         )}
 
+        {schedules.length > 0 && (() => {
+          const mix: Record<string, { count: number; total: number }> = {};
+          for (const s of schedules) {
+            const key = s.product_category || s.revenue_type || "uncategorized";
+            const amt = Number(s.amount || 0);
+            if (!mix[key]) mix[key] = { count: 0, total: 0 };
+            mix[key].count += 1;
+            mix[key].total += amt;
+          }
+          const entries = Object.entries(mix).sort((a, b) => b[1].total - a[1].total);
+          const hasPs = entries.some(([k]) => k === "professional_services" || k === "implementation");
+          return (
+            <div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
+              <span className="text-muted-foreground font-medium">Revenue mix:</span>
+              {entries.map(([k, v]) => (
+                <Badge key={k} variant="outline" className="font-normal">
+                  {(CATEGORY_OPTIONS.find((c) => c.value === k)?.label) || k} · {v.count} ·{" "}
+                  {v.total.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                </Badge>
+              ))}
+              {!hasPs && (
+                <span className="text-amber-700 inline-flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" /> No Professional Services line — verify the contract.
+                </span>
+              )}
+            </div>
+          );
+        })()}
+
         {schedules.length === 0 ? (
           <p className="text-sm text-muted-foreground">No scheduled invoices.</p>
         ) : (

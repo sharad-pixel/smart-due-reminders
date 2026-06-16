@@ -74,6 +74,7 @@ import { ContractSupportingDocsPanel } from "@/components/contracts/ContractSupp
 import { ContractLinksPanel } from "@/components/clm/ContractLinksPanel";
 import { ContractComplianceChecklist } from "@/components/clm/ContractComplianceChecklist";
 import { ContractDetailSubHeader } from "@/components/clm/ContractDetailSubHeader";
+import { NicolasLineReviewBanner } from "@/components/clm/NicolasLineReviewBanner";
 
 const FIN_KEYS = new Set<string>([
   ...Array.from(AMOUNT_KEYS),
@@ -646,6 +647,12 @@ const LiveContractDetailInner = () => {
         <ContractInvoiceRecapture importId={c.id} debtorId={c.debtor_id || null} />
 
         <ContractInvoiceBacklog schedules={data.schedules as any} defaultCurrency={totals.currency} />
+
+        <NicolasLineReviewBanner
+          importId={c.id}
+          status={c.status}
+          ackAt={(c as any).nicolas_line_review_ack_at}
+        />
 
         <ContractScheduleLines
           importId={c.id}

@@ -8761,6 +8761,7 @@ export type Database = {
           metrics_computed_at: string | null
           metrics_jsonb: Json | null
           mime_type: string | null
+          nicolas_line_review_ack_at: string | null
           primary_role: string | null
           product_description: string | null
           progress_pct: number | null
@@ -8800,6 +8801,7 @@ export type Database = {
           metrics_computed_at?: string | null
           metrics_jsonb?: Json | null
           mime_type?: string | null
+          nicolas_line_review_ack_at?: string | null
           primary_role?: string | null
           product_description?: string | null
           progress_pct?: number | null
@@ -8839,6 +8841,7 @@ export type Database = {
           metrics_computed_at?: string | null
           metrics_jsonb?: Json | null
           mime_type?: string | null
+          nicolas_line_review_ack_at?: string | null
           primary_role?: string | null
           product_description?: string | null
           progress_pct?: number | null
