@@ -202,6 +202,7 @@ const SupportLogin = lazy(() => import("./pages/SupportLogin"));
 const SupportVerify = lazy(() => import("./pages/SupportVerify"));
 const SupportCallback = lazy(() => import("./pages/SupportCallback"));
 const DemoMode = lazy(() => import("./pages/DemoMode"));
+const DevCleanup = lazy(() => import("./pages/DevCleanup"));
 
 // Optimized QueryClient configuration
 const queryClient = new QueryClient({
@@ -408,6 +409,9 @@ const App = () => (
               <Route path="/admin/stale-users" element={<AdminStaleUsers />} />
               <Route path="/admin/support-access" element={<AdminSupportAccess />} />
               <Route path="/admin/support-users" element={<AdminSupportUsers />} />
+
+              {/* Dev tool (admin-gated via AdminLayout, not in nav) */}
+              <Route path="/dev/cleanup" element={<DevCleanup />} />
               <Route path="/support/login" element={<SupportLogin />} />
               <Route path="/support/verify" element={<SupportVerify />} />
               <Route path="/support/callback" element={<SupportCallback />} />
