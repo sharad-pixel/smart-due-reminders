@@ -180,6 +180,24 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Developer Tools */}
+      <div className="mt-8">
+        <h2 className="text-lg font-semibold mb-4">Developer Tools</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card className="hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => window.location.href = "/dev/cleanup"}>
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <FileText className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="font-medium">Code Cleanup</p>
+                <p className="text-xs text-muted-foreground">AI-powered review & refactor via Claude</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </AdminLayout>
   );
 };
