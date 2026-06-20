@@ -52,12 +52,18 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { data: isAdmin } = await supabase.rpc("has_role", {
+    const { data: isAdmin, error: adminErr } = await supabase.rpc("is_recouply_admin", {
       _user_id: userData.user.id,
-      _role: "admin",
     });
+    if (adminErr) {
+      console.error("[anthropic-cleanup] admin check failed", adminErr.message);
+      return new Response(JSON.stringify({ error: "Unable to verify backend admin access" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     if (!isAdmin) {
-      return new Response(JSON.stringify({ error: "Admin role required" }), {
+      return new Response(JSON.stringify({ error: "Recouply backend admin required" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
