@@ -17,6 +17,7 @@ const SYSTEM_PROMPT = `You are an expert TypeScript/React code reviewer and refa
  7. Return ONLY the cleaned code with no explanation, no markdown fences, no preamble`;
 
 Deno.serve(async (req) => {
+  console.log("[anthropic-cleanup] request", req.method);
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
