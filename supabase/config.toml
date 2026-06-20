@@ -351,3 +351,6 @@ verify_jwt = true
 
 [functions.clm-send-for-signature]
 verify_jwt = true
+
+[functions.anthropic-cleanup]
+verify_jwt = false
