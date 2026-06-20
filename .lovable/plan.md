@@ -1,53 +1,49 @@
-# Nicolas AI Contract Line Review
-
 ## Goal
-After an OCR/AI contract scan completes, prompt the user (via Nicolas) to verify the extracted Order Form lines and explicitly flag categories the model commonly misses — especially **Fixed Fee Professional Services**. Give users full line-by-line visibility and edit capability on every Order Form / schedule line, with standard SaaS revenue type assignment (Subscription, Platform, Usage, Professional Services, Implementation, Onboarding, Training, Hardware, etc.).
+Add an admin-only `/dev/cleanup` page that lets you pick any `.ts`/`.tsx` file from `src/`, stream a Claude Sonnet 4.5 refactor of it, view a before/after diff, see token usage + cost, and copy the result. No files are written back automatically.
 
-## What already exists
-- `live-contract-extract` edge function returns `invoice_schedule[]` with `revenue_type`, `category`, `standalone_selling_price` and writes to `contract_invoice_schedules`.
-- `ContractScheduleLines` panel already supports add / edit / delete lines with `CATEGORY_OPTIONS` that include Professional Services, Implementation, etc.
-- `Asc606AssessmentDialog` exists for downstream ASC 606 review.
+## What gets built
 
-## What's missing
-- No explicit nudge after a scan to verify lines — users don't realize Professional Services was missed.
-- No AI "second pass" that compares extracted lines against what a SaaS contract typically contains and surfaces likely gaps.
+### 1. Secret
+- Request `ANTHROPIC_API_KEY` via the secret tool (used only in the edge function).
 
-## Changes
+### 2. Edge function: `supabase/functions/anthropic-cleanup/index.ts`
+- Auth: requires logged-in user with `admin` role (uses existing `has_role` RPC). Rejects otherwise.
+- Input: `{ filename: string, code: string }`.
+- Calls Anthropic Messages API:
+  - `model: "claude-sonnet-4-5"`
+  - `stream: true`
+  - System prompt = the exact prompt you supplied (verbatim).
+  - User message contains filename + code.
+- Proxies the SSE stream straight back to the browser (`text/event-stream`), preserving `content_block_delta` and `message_delta` events so the client can render tokens live and read final `usage` (input/output tokens) from `message_delta` / `message_stop`.
+- CORS headers + standard error handling (surfaces 401/429/insufficient_credits clearly).
 
-### 1. New: Nicolas Line Review banner on `LiveContractDetail`
-- A dismissible banner shown when `live_contract_imports.status` is `scanned` / `extracted` AND the user hasn't acknowledged the review yet (track in `live_contract_imports.nicolas_line_review_ack_at`, new nullable timestamp column).
-- Banner text: "Nicolas suggests reviewing extracted Order Form lines — Fixed Fee Professional Services, Implementation, and one-time charges are often embedded in pricing tables. Review and add missing lines."
-- Actions: "Run Nicolas Line Review" (primary), "I've reviewed — dismiss".
+### 3. Frontend utility: `src/utils/codeCleanup.ts`
+- `streamCleanup({ filename, code, onToken, onUsage, signal })` — uses `supabase.functions.invoke` URL + user JWT, parses the SSE stream, calls `onToken(delta)` for each text delta and `onUsage({ inputTokens, outputTokens })` when the final usage frame arrives. Returns the full cleaned string on completion.
+- `estimateCost(inputTokens, outputTokens)` — Sonnet 4.5 pricing: $3 / 1M input, $15 / 1M output.
 
-### 2. New edge function: `nicolas-line-review`
-- Input: `importId`.
-- Loads the contract OCR text (already on `live_contract_imports`) and the current `contract_invoice_schedules` rows.
-- Calls Lovable AI (`google/gemini-2.5-flash`) with a focused prompt: identify SaaS Order Form line items that appear in the contract text but are missing or miscategorized in the current schedule lines. Return `{ suggested_additions: [...], suggested_recategorizations: [...], summary: string }` using `Output.object`. Particular emphasis on Fixed Fee Professional Services, Implementation, Setup, Onboarding, Training, Hardware/Travel.
-- Returns the structured result to the client (no auto-write — user confirms each).
+### 4. Dev page: `src/pages/DevCleanup.tsx` at route `/dev/cleanup`
+- Wrapped in an `AdminGuard` (reuses existing admin role check pattern in the project). Non-admins get redirected.
+- File list built at compile time with `import.meta.glob('/src/**/*.{ts,tsx}', { as: 'raw', eager: false })` — lazily loads file contents only when a row is expanded/cleaned, so bundle stays reasonable.
+- Layout:
+  - Header banner: "Dev tool — Code Cleanup (Claude Sonnet 4.5). Review and copy only; nothing is written to disk."
+  - Left: scrollable, searchable file list (path + size). Each row has a **Clean with Claude** button.
+  - Right: split diff view (uses `react-diff-viewer-continued`, added via `bun add`) showing original vs streaming output. Tokens stream into the "after" pane live.
+  - Footer of right pane: input tokens, output tokens, estimated cost (USD, 4 decimals), elapsed time, **Copy cleaned code** button, **Cancel** button (aborts stream).
+- Route registered in `src/App.tsx` after existing admin routes; intentionally not linked from any nav.
 
-### 3. New component: `NicolasLineReviewDialog`
-- Triggered from the banner.
-- Calls `nicolas-line-review`, shows the AI summary plus two tabs:
-  - **Suggested additions** — each row pre-filled with description, amount, category, `revenue_type`, billing_type. Checkbox to accept; "Accept selected" inserts into `contract_invoice_schedules` with the chosen revenue type.
-  - **Recategorize existing** — shows current line vs. suggested category/revenue_type, accept individually.
-- On any accept, invalidate the schedule lines query so `ContractScheduleLines` refreshes.
-- Closing the dialog stamps `nicolas_line_review_ack_at`.
+### 5. Not changed
+- No auto file writes. No changes to existing admin nav. `claude-sonnet-4-5` is the real current Opus-tier-quality Anthropic coding model; "claude-opus-4-6" doesn't exist as of today.
 
-### 4. Enhance `ContractScheduleLines` (visibility)
-- Add a compact "Revenue mix" summary strip above the table: counts + totals per `revenue_type` (Subscription, Usage, One-time, Professional Services). Makes a missing PS line obvious at a glance.
-- Existing add/edit/delete UI stays — already supports all required categories and revenue types.
-
-## Technical details
-- DB migration: add `nicolas_line_review_ack_at timestamptz` to `live_contract_imports`.
-- Edge function reuses existing CORS + Lovable AI gateway pattern in `_shared`.
-- Standard SaaS revenue types used end-to-end:
-  `subscription`, `platform`, `license`, `support`, `maintenance`, `usage_minimum`, `prepaid_usage`, `professional_services`, `implementation`, `onboarding`, `training`, `hardware`, `other` — already defined in `CATEGORY_OPTIONS`.
-- No changes to the underlying scan pipeline — this is an explicit human-in-the-loop verification layer.
+## Technical notes
+- Streaming uses native `fetch` against the edge function URL (not `functions.invoke`, which buffers) with `Authorization: Bearer <session.access_token>` and `apikey` header — same pattern used elsewhere in the project for SSE.
+- Admin gate is enforced both client-side (route guard) and server-side (edge function checks `has_role(auth.uid(),'admin')`).
+- Files matched: `src/**/*.ts` and `src/**/*.tsx`, excluding `src/integrations/supabase/types.ts` and `src/integrations/supabase/client.ts` (auto-generated, must not be cleaned).
 
 ## Files
-- `supabase/migrations/<new>.sql` — add column.
-- `supabase/functions/nicolas-line-review/index.ts` — new.
-- `src/components/clm/NicolasLineReviewBanner.tsx` — new.
-- `src/components/clm/NicolasLineReviewDialog.tsx` — new.
-- `src/components/clm/ContractScheduleLines.tsx` — add revenue mix summary strip.
-- `src/pages/LiveContractDetail.tsx` — render the banner.
+- new: `supabase/functions/anthropic-cleanup/index.ts`
+- new: `supabase/config.toml` entry for the function (verify_jwt = true)
+- new: `src/utils/codeCleanup.ts`
+- new: `src/pages/DevCleanup.tsx`
+- edit: `src/App.tsx` (add `/dev/cleanup` route)
+- dep: `bun add react-diff-viewer-continued`
+- secret: `ANTHROPIC_API_KEY` (requested via tool)
