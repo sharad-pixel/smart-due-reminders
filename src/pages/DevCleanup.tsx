@@ -121,26 +121,20 @@ const DevCleanup = () => {
           <ScrollArea className="h-[70vh]">
             <div className="space-y-1 pr-2">
               {filteredPaths.map((p) => (
-                <div
+                <button
                   key={p}
-                  className={`flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-xs hover:bg-muted/50 ${
+                  type="button"
+                  disabled={streaming}
+                  onClick={() => runCleanup(p)}
+                  className={`w-full flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-xs text-left hover:bg-muted/50 disabled:opacity-50 disabled:cursor-not-allowed ${
                     selected === p ? "bg-muted" : ""
                   }`}
                 >
                   <span className="truncate font-mono" title={p}>
                     {p.replace("/src/", "")}
                   </span>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-6 px-2 text-xs shrink-0"
-                    disabled={streaming}
-                    onClick={() => runCleanup(p)}
-                  >
-                    <Sparkles className="h-3 w-3 mr-1" />
-                    Clean
-                  </Button>
-                </div>
+                  <Sparkles className="h-3 w-3 shrink-0 opacity-60" />
+                </button>
               ))}
               {filteredPaths.length === 0 && (
                 <div className="text-xs text-muted-foreground px-2 py-4">No files match.</div>
