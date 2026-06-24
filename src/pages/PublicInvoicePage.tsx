@@ -29,6 +29,15 @@ interface TransactionRecord {
   reference_number: string | null;
 }
 
+interface LineItemRecord {
+  description: string | null;
+  quantity: number | null;
+  unit_price: number | null;
+  line_total: number | null;
+  line_type: string | null;
+  unit_type: string | null;
+}
+
 interface PublicInvoiceData {
   invoice: {
     id: string;
@@ -37,8 +46,11 @@ interface PublicInvoiceData {
     amount: number;
     amount_outstanding: number | null;
     subtotal: number | null;
+    subtotal_amount: number | null;
     tax_amount: number | null;
     total_amount: number | null;
+    processing_fee_percent: number | null;
+    processing_fee_amount: number | null;
     due_date: string;
     issue_date: string;
     status: string;
@@ -85,6 +97,7 @@ interface PublicInvoiceData {
     qr_code_paypal_url: string | null;
     qr_code_cashapp_url: string | null;
   } | null;
+  line_items?: LineItemRecord[];
   payments?: PaymentRecord[];
   transactions?: TransactionRecord[];
 }
