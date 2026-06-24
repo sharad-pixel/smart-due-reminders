@@ -216,22 +216,54 @@ export const CreateInvoiceModal = ({
               <Label htmlFor="debtor_select">
                 Account <span className="text-destructive">*</span>
               </Label>
-              <Select
-                value={selectedDebtorId}
-                onValueChange={setSelectedDebtorId}
-                required
-              >
-                <SelectTrigger id="debtor_select">
-                  <SelectValue placeholder="Select an account" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableDebtors.map((d) => (
-                    <SelectItem key={d.id} value={d.id}>
-                      {d.company_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={accountSearchOpen} onOpenChange={setAccountSearchOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    id="debtor_select"
+                    type="button"
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={accountSearchOpen}
+                    className={cn(
+                      "w-full justify-between font-normal",
+                      !selectedDebtorId && "text-muted-foreground"
+                    )}
+                  >
+                    {selectedDebtorId
+                      ? availableDebtors.find((d) => d.id === selectedDebtorId)?.company_name
+                      : "Select an account"}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Search accounts..." />
+                    <CommandList>
+                      <CommandEmpty>No account found.</CommandEmpty>
+                      <CommandGroup>
+                        {availableDebtors.map((d) => (
+                          <CommandItem
+                            key={d.id}
+                            value={d.company_name}
+                            onSelect={() => {
+                              setSelectedDebtorId(d.id);
+                              setAccountSearchOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                selectedDebtorId === d.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {d.company_name}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
           )}
 
