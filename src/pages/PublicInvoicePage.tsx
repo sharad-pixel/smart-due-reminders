@@ -234,15 +234,17 @@ const PublicInvoicePage = () => {
       />
       {/* Print-specific styles */}
       <style>{`
+        @page { size: letter; margin: 0.5in; }
         @media print {
           body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           .no-print { display: none !important; }
-          .print-invoice { box-shadow: none !important; margin: 0 !important; max-width: 100% !important; }
+          .print-invoice { box-shadow: none !important; margin: 0 !important; max-width: 100% !important; width: 100% !important; min-height: auto !important; border-radius: 0 !important; }
           .print-container { padding: 0 !important; min-height: auto !important; background: white !important; }
         }
       `}</style>
       <div className="min-h-screen bg-gray-100 py-8 px-4 print-container">
-        <div className="max-w-3xl mx-auto">
+        {/* US Letter aspect ratio (8.5" x 11"): max width 8.5in keeps the on-screen preview true to print */}
+        <div className="mx-auto" style={{ maxWidth: "8.5in" }}>
           {/* Download PDF button */}
           <div className="flex justify-end mb-4 no-print">
             <button
