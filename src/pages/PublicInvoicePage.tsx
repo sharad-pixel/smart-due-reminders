@@ -370,30 +370,88 @@ const PublicInvoicePage = () => {
             {/* Line Items */}
             <div className="mx-8 mt-4">
               <div
-                className="grid grid-cols-3 text-xs font-bold uppercase tracking-wider text-white px-4 py-2 rounded-t"
-                style={{ backgroundColor: hc }}
+                className="grid text-xs font-bold uppercase tracking-wider text-white px-4 py-2 rounded-t"
+                style={{ backgroundColor: hc, gridTemplateColumns: "minmax(0,1fr) 80px 110px 130px" }}
               >
                 <span>Description</span>
-                <span className="text-center">Date</span>
+                <span className="text-center">Qty</span>
+                <span className="text-right">Unit Price</span>
                 <span className="text-right">Amount</span>
               </div>
               <div className="border-x border-b rounded-b divide-y">
-                <div className="grid grid-cols-3 text-sm px-4 py-3 text-gray-700">
-                  <span>{invoice.product_description || `Invoice ${invoice.invoice_number}`}</span>
-                  <span className="text-center">{formatDate(invoice.issue_date)}</span>
-                  <span className="text-right">{formatCurrency(total)}</span>
-                </div>
+                {productRows.length > 0 ? (
+                  productRows.map((li, idx) => {
+                    const { name, details } = splitProduct(li.description);
+                    const qty = Number(li.quantity ?? 1);
+                    const unit = Number(li.unit_price ?? 0);
+                    const lineTotal = Number(li.line_total ?? qty * unit);
+                    return (
+                      <div
+                        key={`li-${idx}`}
+                        className="grid text-sm px-4 py-3 text-gray-700"
+                        style={{ gridTemplateColumns: "minmax(0,1fr) 80px 110px 130px" }}
+                      >
+                        <div className="pr-3">
+                          <div className="font-semibold text-gray-800 leading-snug">{name}</div>
+                          {details && (
+                            <div className="text-xs text-gray-500 mt-1 whitespace-pre-line leading-snug">
+                              {details}
+                            </div>
+                          )}
+                        </div>
+                        <span className="text-center self-start">
+                          {qty.toLocaleString("en-US", { maximumFractionDigits: 2 })}
+                          {li.unit_type ? ` ${li.unit_type}` : ""}
+                        </span>
+                        <span className="text-right self-start">{formatCurrency(unit)}</span>
+                        <span className="text-right self-start font-medium">{formatCurrency(lineTotal)}</span>
+                      </div>
+                    );
+                  })
+                ) : (
+                  (() => {
+                    const { name, details } = splitProduct(
+                      invoice.product_description || `Invoice ${invoice.invoice_number}`
+                    );
+                    return (
+                      <div
+                        className="grid text-sm px-4 py-3 text-gray-700"
+                        style={{ gridTemplateColumns: "minmax(0,1fr) 80px 110px 130px" }}
+                      >
+                        <div className="pr-3">
+                          <div className="font-semibold text-gray-800 leading-snug">{name}</div>
+                          {details && (
+                            <div className="text-xs text-gray-500 mt-1 whitespace-pre-line leading-snug">
+                              {details}
+                            </div>
+                          )}
+                        </div>
+                        <span className="text-center self-start">1</span>
+                        <span className="text-right self-start">{formatCurrency(subtotal)}</span>
+                        <span className="text-right self-start font-medium">{formatCurrency(subtotal)}</span>
+                      </div>
+                    );
+                  })()
+                )}
               </div>
             </div>
 
             {/* Totals */}
             <div className="px-8 mt-4">
               <div className="flex justify-end">
-                <div className="w-64 text-sm space-y-1">
+                <div className="w-72 text-sm space-y-1">
                   <div className="flex justify-between">
                     <span className="font-semibold text-gray-600">Subtotal</span>
                     <span>{formatCurrency(subtotal)}</span>
                   </div>
+                  {processingFee > 0 && (
+                    <div className="flex justify-between">
+                      <span className="font-semibold text-gray-600">
+                        Processing Fee{processingFeePercent > 0 ? ` (${processingFeePercent}%)` : ""}
+                      </span>
+                      <span>{formatCurrency(processingFee)}</span>
+                    </div>
+                  )}
                   {template?.show_tax && (
                     <div className="flex justify-between">
                       <span className="font-semibold text-gray-600">Tax</span>
