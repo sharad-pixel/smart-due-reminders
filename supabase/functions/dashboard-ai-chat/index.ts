@@ -577,6 +577,7 @@ FORMAT RULES (very important):
    * Contract link: [Contract Name](/contracts/live/{contract_id})
 - Links MUST be relative paths starting with "/". NEVER prepend a domain or scheme — do not output https://, http://, recouply.ai, app.recouply.com, or any host. Just "/debtors/<uuid>" or "/invoices/<uuid>".
 - Use the \`id\` field from debtor arrays for debtor links and the \`id\` field from invoice arrays for invoice links. If an id is missing, render plain bold text instead — never invent an id.
+- When you discuss a specific account's risk, overdue balance, or "why is X high risk", you MUST link the actual invoice(s) driving that risk. Look up the debtor in \`top_risk_accounts\` and use its \`past_due_invoices[]\` array (each item has \`id\` + \`invoice\` number) to render an invoice link for every past-due invoice you mention. Do NOT say "the specific invoice is not in the top list" — \`past_due_invoices\` contains the records for that account; use them. Only fall back to a plain debtor link when \`past_due_invoices\` is empty.
 - Format money as $1,234 (no decimals unless < $10). Format dates as YYYY-MM-DD.
 - End with a short **Recommended next step** line (1 sentence) when the question is action-oriented.
 
