@@ -405,13 +405,24 @@ const PublicInvoicePage = () => {
                     </>
                   )}
 
-                  {/* Amount Due */}
-                  {outstanding !== total && (
-                    <div className="flex justify-between font-bold pt-1 border-t" style={{ color: hc }}>
-                      <span>{isPaid ? "Amount Paid" : "Amount Due"}</span>
-                      <span>{formatCurrency(outstanding)}</span>
-                    </div>
-                  )}
+                  {/* Amount Paid (partial or full) */}
+                  {(() => {
+                    const paidAmount = Math.max(0, total - outstanding);
+                    return (
+                      <>
+                        <div className="flex justify-between font-bold pt-1 border-t" style={{ color: hc }}>
+                          <span>Amount Paid</span>
+                          <span>{formatCurrency(paidAmount)}</span>
+                        </div>
+                        {!isPaid && outstanding > 0 && (
+                          <div className="flex justify-between font-bold pt-1 border-t" style={{ color: hc }}>
+                            <span>Amount Due</span>
+                            <span>{formatCurrency(outstanding)}</span>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
