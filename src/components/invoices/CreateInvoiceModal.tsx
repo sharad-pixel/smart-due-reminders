@@ -44,9 +44,15 @@ export const CreateInvoiceModal = ({
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [selectedDebtorId, setSelectedDebtorId] = useState(debtorId || "");
 
+  const [accountSearchOpen, setAccountSearchOpen] = useState(false);
+
   useEffect(() => {
     if (open) {
       setSelectedDebtorId(debtorId || "");
+      setFormData((prev) => ({
+        ...prev,
+        invoice_number: prev.invoice_number || generateInvoiceNumber(),
+      }));
     }
   }, [open, debtorId]);
 
@@ -55,7 +61,7 @@ export const CreateInvoiceModal = ({
     availableDebtors?.find((d) => d.id === selectedDebtorId)?.company_name ||
     "";
   const [formData, setFormData] = useState({
-    invoice_number: "",
+    invoice_number: generateInvoiceNumber(),
     amount: "",
     issue_date: new Date().toISOString().split('T')[0],
     due_date: "",
