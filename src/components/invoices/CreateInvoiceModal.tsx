@@ -6,11 +6,21 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, AlertTriangle } from "lucide-react";
+import { Loader2, AlertTriangle, Check, ChevronsUpDown } from "lucide-react";
 import { extractDaysFromPaymentTerms, calculateDueDate } from "@/lib/paymentTerms";
 import { LineItemsTable, LineItem } from "./LineItemsTable";
+
+const generateInvoiceNumber = () => {
+  const d = new Date();
+  const ymd = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+  const rand = Math.floor(1000 + Math.random() * 9000);
+  return `INV-${ymd}-${rand}`;
+};
 
 interface CreateInvoiceModalProps {
   open: boolean;
@@ -34,9 +44,15 @@ export const CreateInvoiceModal = ({
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [selectedDebtorId, setSelectedDebtorId] = useState(debtorId || "");
 
+  const [accountSearchOpen, setAccountSearchOpen] = useState(false);
+
   useEffect(() => {
     if (open) {
       setSelectedDebtorId(debtorId || "");
+      setFormData((prev) => ({
+        ...prev,
+        invoice_number: prev.invoice_number || generateInvoiceNumber(),
+      }));
     }
   }, [open, debtorId]);
 
@@ -45,7 +61,7 @@ export const CreateInvoiceModal = ({
     availableDebtors?.find((d) => d.id === selectedDebtorId)?.company_name ||
     "";
   const [formData, setFormData] = useState({
-    invoice_number: "",
+    invoice_number: generateInvoiceNumber(),
     amount: "",
     issue_date: new Date().toISOString().split('T')[0],
     due_date: "",
@@ -153,7 +169,7 @@ export const CreateInvoiceModal = ({
       
       // Reset form
       setFormData({
-        invoice_number: "",
+        invoice_number: generateInvoiceNumber(),
         amount: "",
         issue_date: new Date().toISOString().split('T')[0],
         due_date: "",
@@ -200,22 +216,54 @@ export const CreateInvoiceModal = ({
               <Label htmlFor="debtor_select">
                 Account <span className="text-destructive">*</span>
               </Label>
-              <Select
-                value={selectedDebtorId}
-                onValueChange={setSelectedDebtorId}
-                required
-              >
-                <SelectTrigger id="debtor_select">
-                  <SelectValue placeholder="Select an account" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableDebtors.map((d) => (
-                    <SelectItem key={d.id} value={d.id}>
-                      {d.company_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={accountSearchOpen} onOpenChange={setAccountSearchOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    id="debtor_select"
+                    type="button"
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={accountSearchOpen}
+                    className={cn(
+                      "w-full justify-between font-normal",
+                      !selectedDebtorId && "text-muted-foreground"
+                    )}
+                  >
+                    {selectedDebtorId
+                      ? availableDebtors.find((d) => d.id === selectedDebtorId)?.company_name
+                      : "Select an account"}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Search accounts..." />
+                    <CommandList>
+                      <CommandEmpty>No account found.</CommandEmpty>
+                      <CommandGroup>
+                        {availableDebtors.map((d) => (
+                          <CommandItem
+                            key={d.id}
+                            value={d.company_name}
+                            onSelect={() => {
+                              setSelectedDebtorId(d.id);
+                              setAccountSearchOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                selectedDebtorId === d.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {d.company_name}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
           )}
 
