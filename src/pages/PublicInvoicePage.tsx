@@ -150,7 +150,7 @@ const PublicInvoicePage = () => {
     );
   }
 
-  const { invoice, debtor, branding, template, payments = [], transactions = [] } = data;
+  const { invoice, debtor, branding, template, payments = [], transactions = [], line_items = [] } = data;
   const hc = template?.header_color || branding.primary_color || "#1a56db";
   const fontFamily =
     template?.font_style === "classic"
@@ -180,9 +180,38 @@ const PublicInvoicePage = () => {
 
   const total = invoice.total_amount ?? invoice.amount;
   const outstanding = invoice.amount_outstanding ?? total;
-  const subtotal = invoice.subtotal ?? total;
-  const tax = invoice.tax_amount ?? 0;
+  const processingFee = Number(invoice.processing_fee_amount ?? 0);
+  const processingFeePercent = Number(invoice.processing_fee_percent ?? 0);
+  const tax = Number(invoice.tax_amount ?? 0);
+  // Pre-fee subtotal: prefer explicit subtotal_amount, else derive from total - fee - tax
+  const subtotal = invoice.subtotal_amount != null
+    ? Number(invoice.subtotal_amount)
+    : invoice.subtotal != null
+      ? Number(invoice.subtotal)
+      : Math.max(0, Number(total) - processingFee - tax);
   const isPaid = invoice.status?.toLowerCase() === "paid";
+
+  // Split a line item's description into a primary product name and an optional secondary description
+  const splitProduct = (desc: string | null | undefined): { name: string; details: string | null } => {
+    const text = (desc || "").trim();
+    if (!text) return { name: "Item", details: null };
+    const nl = text.indexOf("\n");
+    if (nl > -1) {
+      return { name: text.slice(0, nl).trim(), details: text.slice(nl + 1).trim() || null };
+    }
+    // Fallback: split on " - " or " — " for "Product - description" patterns
+    const dash = text.search(/\s[-—]\s/);
+    if (dash > 0 && dash < 80) {
+      return { name: text.slice(0, dash).trim(), details: text.slice(dash).replace(/^\s[-—]\s/, "").trim() || null };
+    }
+    return { name: text, details: null };
+  };
+
+  // Build a normalized list of "product" rows (exclude fee/tax-type lines which are summarized separately)
+  const productRows = (line_items || []).filter(li => {
+    const t = (li.line_type || "").toLowerCase();
+    return t !== "fee" && t !== "tax" && t !== "processing_fee";
+  });
 
   const qrCodes = template?.show_payment_qr_codes
     ? [
