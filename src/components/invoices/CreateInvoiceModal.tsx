@@ -169,7 +169,7 @@ export const CreateInvoiceModal = ({
       
       // Reset form
       setFormData({
-        invoice_number: "",
+        invoice_number: generateInvoiceNumber(),
         amount: "",
         issue_date: new Date().toISOString().split('T')[0],
         due_date: "",
