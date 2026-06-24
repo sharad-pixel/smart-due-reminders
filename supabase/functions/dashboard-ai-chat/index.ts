@@ -177,6 +177,35 @@ Deno.serve(async (req) => {
         debtorBacklogMap[i.debtor_id] = { balance: current.balance + balance, count: current.count + 1 };
       }
     }
+
+    // Per-debtor list of past-due invoices so the AI can always cite & link the
+    // specific invoice driving an account's risk — even when it falls outside
+    // the global top_past_due_invoices list.
+    const debtorPastDueInvoiceMap: Record<string, Array<{
+      id: string;
+      invoice: string | null;
+      balance: number;
+      due_date: string | null;
+      days_overdue: number;
+    }>> = {};
+    for (const i of invoices as any[]) {
+      if (!isOverdue(i)) continue;
+      const list = debtorPastDueInvoiceMap[i.debtor_id] || (debtorPastDueInvoiceMap[i.debtor_id] = []);
+      list.push({
+        id: i.id,
+        invoice: i.invoice_number || null,
+        balance: Math.round(balOf(i) * 100) / 100,
+        due_date: i.due_date || null,
+        days_overdue: dpd(i),
+      });
+    }
+    // Sort each debtor's invoices by balance desc, cap at 5 per account
+    for (const k of Object.keys(debtorPastDueInvoiceMap)) {
+      debtorPastDueInvoiceMap[k] = debtorPastDueInvoiceMap[k]
+        .sort((a, b) => b.balance - a.balance)
+        .slice(0, 5);
+    }
+
     const topRisk = (debtors as any[])
       .map((d) => ({
         id: d.id,
@@ -184,6 +213,7 @@ Deno.serve(async (req) => {
         balance: Math.round((debtorPastDueMap[d.id]?.balance || 0) * 100) / 100,
         past_due_balance: Math.round((debtorPastDueMap[d.id]?.balance || 0) * 100) / 100,
         past_due_invoice_count: debtorPastDueMap[d.id]?.count || 0,
+        past_due_invoices: debtorPastDueInvoiceMap[d.id] || [],
         ar_backlog_balance: Math.round((debtorBacklogMap[d.id]?.balance || 0) * 100) / 100,
         ar_backlog_invoice_count: debtorBacklogMap[d.id]?.count || 0,
         risk_tier: d.risk_tier_detailed || d.risk_tier || "unscored",
