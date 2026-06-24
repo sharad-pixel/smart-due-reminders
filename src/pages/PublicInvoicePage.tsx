@@ -29,6 +29,15 @@ interface TransactionRecord {
   reference_number: string | null;
 }
 
+interface LineItemRecord {
+  description: string | null;
+  quantity: number | null;
+  unit_price: number | null;
+  line_total: number | null;
+  line_type: string | null;
+  unit_type: string | null;
+}
+
 interface PublicInvoiceData {
   invoice: {
     id: string;
@@ -37,8 +46,11 @@ interface PublicInvoiceData {
     amount: number;
     amount_outstanding: number | null;
     subtotal: number | null;
+    subtotal_amount: number | null;
     tax_amount: number | null;
     total_amount: number | null;
+    processing_fee_percent: number | null;
+    processing_fee_amount: number | null;
     due_date: string;
     issue_date: string;
     status: string;
@@ -85,6 +97,7 @@ interface PublicInvoiceData {
     qr_code_paypal_url: string | null;
     qr_code_cashapp_url: string | null;
   } | null;
+  line_items?: LineItemRecord[];
   payments?: PaymentRecord[];
   transactions?: TransactionRecord[];
 }
@@ -137,7 +150,7 @@ const PublicInvoicePage = () => {
     );
   }
 
-  const { invoice, debtor, branding, template, payments = [], transactions = [] } = data;
+  const { invoice, debtor, branding, template, payments = [], transactions = [], line_items = [] } = data;
   const hc = template?.header_color || branding.primary_color || "#1a56db";
   const fontFamily =
     template?.font_style === "classic"
@@ -167,9 +180,38 @@ const PublicInvoicePage = () => {
 
   const total = invoice.total_amount ?? invoice.amount;
   const outstanding = invoice.amount_outstanding ?? total;
-  const subtotal = invoice.subtotal ?? total;
-  const tax = invoice.tax_amount ?? 0;
+  const processingFee = Number(invoice.processing_fee_amount ?? 0);
+  const processingFeePercent = Number(invoice.processing_fee_percent ?? 0);
+  const tax = Number(invoice.tax_amount ?? 0);
+  // Pre-fee subtotal: prefer explicit subtotal_amount, else derive from total - fee - tax
+  const subtotal = invoice.subtotal_amount != null
+    ? Number(invoice.subtotal_amount)
+    : invoice.subtotal != null
+      ? Number(invoice.subtotal)
+      : Math.max(0, Number(total) - processingFee - tax);
   const isPaid = invoice.status?.toLowerCase() === "paid";
+
+  // Split a line item's description into a primary product name and an optional secondary description
+  const splitProduct = (desc: string | null | undefined): { name: string; details: string | null } => {
+    const text = (desc || "").trim();
+    if (!text) return { name: "Item", details: null };
+    const nl = text.indexOf("\n");
+    if (nl > -1) {
+      return { name: text.slice(0, nl).trim(), details: text.slice(nl + 1).trim() || null };
+    }
+    // Fallback: split on " - " or " — " for "Product - description" patterns
+    const dash = text.search(/\s[-—]\s/);
+    if (dash > 0 && dash < 80) {
+      return { name: text.slice(0, dash).trim(), details: text.slice(dash).replace(/^\s[-—]\s/, "").trim() || null };
+    }
+    return { name: text, details: null };
+  };
+
+  // Build a normalized list of "product" rows (exclude fee/tax-type lines which are summarized separately)
+  const productRows = (line_items || []).filter(li => {
+    const t = (li.line_type || "").toLowerCase();
+    return t !== "fee" && t !== "tax" && t !== "processing_fee";
+  });
 
   const qrCodes = template?.show_payment_qr_codes
     ? [
@@ -192,15 +234,17 @@ const PublicInvoicePage = () => {
       />
       {/* Print-specific styles */}
       <style>{`
+        @page { size: letter; margin: 0.5in; }
         @media print {
           body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           .no-print { display: none !important; }
-          .print-invoice { box-shadow: none !important; margin: 0 !important; max-width: 100% !important; }
+          .print-invoice { box-shadow: none !important; margin: 0 !important; max-width: 100% !important; width: 100% !important; min-height: auto !important; border-radius: 0 !important; }
           .print-container { padding: 0 !important; min-height: auto !important; background: white !important; }
         }
       `}</style>
       <div className="min-h-screen bg-gray-100 py-8 px-4 print-container">
-        <div className="max-w-3xl mx-auto">
+        {/* US Letter aspect ratio (8.5" x 11"): max width 8.5in keeps the on-screen preview true to print */}
+        <div className="mx-auto" style={{ maxWidth: "8.5in" }}>
           {/* Download PDF button */}
           <div className="flex justify-end mb-4 no-print">
             <button
@@ -326,30 +370,88 @@ const PublicInvoicePage = () => {
             {/* Line Items */}
             <div className="mx-8 mt-4">
               <div
-                className="grid grid-cols-3 text-xs font-bold uppercase tracking-wider text-white px-4 py-2 rounded-t"
-                style={{ backgroundColor: hc }}
+                className="grid text-xs font-bold uppercase tracking-wider text-white px-4 py-2 rounded-t"
+                style={{ backgroundColor: hc, gridTemplateColumns: "minmax(0,1fr) 80px 110px 130px" }}
               >
                 <span>Description</span>
-                <span className="text-center">Date</span>
+                <span className="text-center">Qty</span>
+                <span className="text-right">Unit Price</span>
                 <span className="text-right">Amount</span>
               </div>
               <div className="border-x border-b rounded-b divide-y">
-                <div className="grid grid-cols-3 text-sm px-4 py-3 text-gray-700">
-                  <span>{invoice.product_description || `Invoice ${invoice.invoice_number}`}</span>
-                  <span className="text-center">{formatDate(invoice.issue_date)}</span>
-                  <span className="text-right">{formatCurrency(total)}</span>
-                </div>
+                {productRows.length > 0 ? (
+                  productRows.map((li, idx) => {
+                    const { name, details } = splitProduct(li.description);
+                    const qty = Number(li.quantity ?? 1);
+                    const unit = Number(li.unit_price ?? 0);
+                    const lineTotal = Number(li.line_total ?? qty * unit);
+                    return (
+                      <div
+                        key={`li-${idx}`}
+                        className="grid text-sm px-4 py-3 text-gray-700"
+                        style={{ gridTemplateColumns: "minmax(0,1fr) 80px 110px 130px" }}
+                      >
+                        <div className="pr-3">
+                          <div className="font-semibold text-gray-800 leading-snug">{name}</div>
+                          {details && (
+                            <div className="text-xs text-gray-500 mt-1 whitespace-pre-line leading-snug">
+                              {details}
+                            </div>
+                          )}
+                        </div>
+                        <span className="text-center self-start">
+                          {qty.toLocaleString("en-US", { maximumFractionDigits: 2 })}
+                          {li.unit_type ? ` ${li.unit_type}` : ""}
+                        </span>
+                        <span className="text-right self-start">{formatCurrency(unit)}</span>
+                        <span className="text-right self-start font-medium">{formatCurrency(lineTotal)}</span>
+                      </div>
+                    );
+                  })
+                ) : (
+                  (() => {
+                    const { name, details } = splitProduct(
+                      invoice.product_description || `Invoice ${invoice.invoice_number}`
+                    );
+                    return (
+                      <div
+                        className="grid text-sm px-4 py-3 text-gray-700"
+                        style={{ gridTemplateColumns: "minmax(0,1fr) 80px 110px 130px" }}
+                      >
+                        <div className="pr-3">
+                          <div className="font-semibold text-gray-800 leading-snug">{name}</div>
+                          {details && (
+                            <div className="text-xs text-gray-500 mt-1 whitespace-pre-line leading-snug">
+                              {details}
+                            </div>
+                          )}
+                        </div>
+                        <span className="text-center self-start">1</span>
+                        <span className="text-right self-start">{formatCurrency(subtotal)}</span>
+                        <span className="text-right self-start font-medium">{formatCurrency(subtotal)}</span>
+                      </div>
+                    );
+                  })()
+                )}
               </div>
             </div>
 
             {/* Totals */}
             <div className="px-8 mt-4">
               <div className="flex justify-end">
-                <div className="w-64 text-sm space-y-1">
+                <div className="w-72 text-sm space-y-1">
                   <div className="flex justify-between">
                     <span className="font-semibold text-gray-600">Subtotal</span>
                     <span>{formatCurrency(subtotal)}</span>
                   </div>
+                  {processingFee > 0 && (
+                    <div className="flex justify-between">
+                      <span className="font-semibold text-gray-600">
+                        Processing Fee{processingFeePercent > 0 ? ` (${processingFeePercent}%)` : ""}
+                      </span>
+                      <span>{formatCurrency(processingFee)}</span>
+                    </div>
+                  )}
                   {template?.show_tax && (
                     <div className="flex justify-between">
                       <span className="font-semibold text-gray-600">Tax</span>
