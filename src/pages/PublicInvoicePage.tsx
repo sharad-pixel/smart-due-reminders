@@ -367,6 +367,18 @@ const PublicInvoicePage = () => {
               </div>
             </div>
 
+            {/* Invoice description (shown above line items when present) */}
+            {invoice.product_description && productRows.length > 0 && (
+              <div className="mx-8 mt-4">
+                <div className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: hc }}>
+                  Description
+                </div>
+                <div className="text-sm text-gray-700 whitespace-pre-line border-l-2 pl-3" style={{ borderColor: hc }}>
+                  {invoice.product_description}
+                </div>
+              </div>
+            )}
+
             {/* Line Items */}
             <div className="mx-8 mt-4">
               <div
