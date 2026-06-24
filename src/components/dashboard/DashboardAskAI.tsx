@@ -17,6 +17,7 @@ import { personaConfig } from "@/lib/personaConfig";
 import { useRevenueRisk } from "@/hooks/useRevenueRisk";
 import { useCollectionTasks, type CollectionTask } from "@/hooks/useCollectionTasks";
 import { formatCurrency } from "@/lib/formatters";
+import { NicolasPromptLibrary } from "./NicolasPromptLibrary";
 
 interface Msg { role: "user" | "assistant"; content: string }
 
