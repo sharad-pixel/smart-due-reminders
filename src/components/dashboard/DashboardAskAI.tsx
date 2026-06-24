@@ -17,6 +17,7 @@ import { personaConfig } from "@/lib/personaConfig";
 import { useRevenueRisk } from "@/hooks/useRevenueRisk";
 import { useCollectionTasks, type CollectionTask } from "@/hooks/useCollectionTasks";
 import { formatCurrency } from "@/lib/formatters";
+import { NicolasPromptLibrary } from "./NicolasPromptLibrary";
 
 interface Msg { role: "user" | "assistant"; content: string }
 
@@ -572,22 +573,34 @@ export function DashboardAskAI() {
         )}
 
         {/* Composer */}
-        <div className="border-t p-3 sm:p-4 flex gap-2 bg-background">
-          <Textarea
-            ref={inputRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
-            }}
-            placeholder="Ask Nicolas about risk, overdue accounts, financial health, or specific debtors…"
-            className="resize-none min-h-[48px] max-h-32 text-sm"
-            rows={1}
-            disabled={sending}
-          />
-          <Button onClick={() => send()} disabled={!input.trim() || sending} size="icon" className="shrink-0 h-12 w-12">
-            {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-          </Button>
+        <div className="border-t bg-background">
+          <div className="flex items-center justify-between px-3 sm:px-4 pt-2">
+            <NicolasPromptLibrary
+              currentDraft={input}
+              onPick={(p) => {
+                setInput(p);
+                setTimeout(() => inputRef.current?.focus(), 50);
+              }}
+            />
+            <span className="text-[10px] text-muted-foreground">Enter to send · Shift+Enter for newline</span>
+          </div>
+          <div className="p-3 sm:p-4 pt-2 flex gap-2">
+            <Textarea
+              ref={inputRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+              }}
+              placeholder="Ask Nicolas about risk, overdue accounts, financial health, or specific debtors…"
+              className="resize-none min-h-[48px] max-h-32 text-sm"
+              rows={1}
+              disabled={sending}
+            />
+            <Button onClick={() => send()} disabled={!input.trim() || sending} size="icon" className="shrink-0 h-12 w-12">
+              {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>
