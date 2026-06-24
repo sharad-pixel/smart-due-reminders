@@ -177,6 +177,35 @@ Deno.serve(async (req) => {
         debtorBacklogMap[i.debtor_id] = { balance: current.balance + balance, count: current.count + 1 };
       }
     }
+
+    // Per-debtor list of past-due invoices so the AI can always cite & link the
+    // specific invoice driving an account's risk — even when it falls outside
+    // the global top_past_due_invoices list.
+    const debtorPastDueInvoiceMap: Record<string, Array<{
+      id: string;
+      invoice: string | null;
+      balance: number;
+      due_date: string | null;
+      days_overdue: number;
+    }>> = {};
+    for (const i of invoices as any[]) {
+      if (!isOverdue(i)) continue;
+      const list = debtorPastDueInvoiceMap[i.debtor_id] || (debtorPastDueInvoiceMap[i.debtor_id] = []);
+      list.push({
+        id: i.id,
+        invoice: i.invoice_number || null,
+        balance: Math.round(balOf(i) * 100) / 100,
+        due_date: i.due_date || null,
+        days_overdue: dpd(i),
+      });
+    }
+    // Sort each debtor's invoices by balance desc, cap at 5 per account
+    for (const k of Object.keys(debtorPastDueInvoiceMap)) {
+      debtorPastDueInvoiceMap[k] = debtorPastDueInvoiceMap[k]
+        .sort((a, b) => b.balance - a.balance)
+        .slice(0, 5);
+    }
+
     const topRisk = (debtors as any[])
       .map((d) => ({
         id: d.id,
@@ -184,6 +213,7 @@ Deno.serve(async (req) => {
         balance: Math.round((debtorPastDueMap[d.id]?.balance || 0) * 100) / 100,
         past_due_balance: Math.round((debtorPastDueMap[d.id]?.balance || 0) * 100) / 100,
         past_due_invoice_count: debtorPastDueMap[d.id]?.count || 0,
+        past_due_invoices: debtorPastDueInvoiceMap[d.id] || [],
         ar_backlog_balance: Math.round((debtorBacklogMap[d.id]?.balance || 0) * 100) / 100,
         ar_backlog_invoice_count: debtorBacklogMap[d.id]?.count || 0,
         risk_tier: d.risk_tier_detailed || d.risk_tier || "unscored",
@@ -547,6 +577,7 @@ FORMAT RULES (very important):
    * Contract link: [Contract Name](/contracts/live/{contract_id})
 - Links MUST be relative paths starting with "/". NEVER prepend a domain or scheme — do not output https://, http://, recouply.ai, app.recouply.com, or any host. Just "/debtors/<uuid>" or "/invoices/<uuid>".
 - Use the \`id\` field from debtor arrays for debtor links and the \`id\` field from invoice arrays for invoice links. If an id is missing, render plain bold text instead — never invent an id.
+- When you discuss a specific account's risk, overdue balance, or "why is X high risk", you MUST link the actual invoice(s) driving that risk. Look up the debtor in \`top_risk_accounts\` and use its \`past_due_invoices[]\` array (each item has \`id\` + \`invoice\` number) to render an invoice link for every past-due invoice you mention. Do NOT say "the specific invoice is not in the top list" — \`past_due_invoices\` contains the records for that account; use them. Only fall back to a plain debtor link when \`past_due_invoices\` is empty.
 - Format money as $1,234 (no decimals unless < $10). Format dates as YYYY-MM-DD.
 - End with a short **Recommended next step** line (1 sentence) when the question is action-oriented.
 
