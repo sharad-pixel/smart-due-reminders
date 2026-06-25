@@ -32,7 +32,7 @@ import { Progress } from "@/components/ui/progress";
 import { AlertTriangle, ArrowRight, CheckCircle2 } from "lucide-react";
 import { IntegrationSetupModal } from "@/components/integrations/IntegrationSetupModal";
 import { ContractSummaryCard } from "@/components/dashboard/ContractSummaryCard";
-import { ClmQuickAccessCard } from "@/components/dashboard/ClmQuickAccessCard";
+
 import { DashboardAskAI } from "@/components/dashboard/DashboardAskAI";
 import { SmartIngestionButton } from "@/components/ingestion/SmartIngestionButton";
 import { Sparkles, LayoutDashboard } from "lucide-react";
@@ -736,8 +736,6 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* Contract Intelligence quick access (CLM enabled only) */}
-        <ClmQuickAccessCard />
 
         {/* Contract Summary (CLM enabled only) */}
         <ContractSummaryCard />

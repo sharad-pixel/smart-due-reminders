@@ -169,14 +169,10 @@ const ARIntroduction = lazy(() => import("./pages/ARIntroduction"));
 // Contact
 const ContactUs = lazy(() => import("./pages/ContactUs"));
 
-// Contract Intelligence (CLM) — sales-led marketing page
+// Contract Intelligence — marketing page
 const ContractIntelligence = lazy(() => import("./pages/ContractIntelligence"));
 const RevenueIntelligenceHub = lazy(() => import("./pages/RevenueIntelligenceHub"));
-const Contracts = lazy(() => import("./pages/Contracts"));
 const Asc606Credits = lazy(() => import("./pages/Asc606Credits"));
-const ClmTemplateDetail = lazy(() => import("./pages/ClmTemplateDetail"));
-const ClmInstanceDetail = lazy(() => import("./pages/ClmInstanceDetail"));
-const ClmPortal = lazy(() => import("./pages/ClmPortal"));
 const LiveContracts = lazy(() => import("./pages/LiveContracts"));
 const LiveContractDetail = lazy(() => import("./pages/LiveContractDetail"));
 const RevenueLibrary = lazy(() => import("./pages/RevenueLibrary"));
@@ -274,18 +270,19 @@ const App = () => (
               
               <Route path="/analytics" element={<AnalyticsPage />} />
 
-              {/* Contract Intelligence (CLM) marketing */}
+              {/* Contract Intelligence marketing */}
               <Route path="/clm" element={<ContractIntelligence />} />
               <Route path="/contract-intelligence" element={<ContractIntelligence />} />
-              <Route path="/contracts" element={<Contracts />} />
               <Route path="/billing/asc606-credits" element={<Asc606Credits />} />
-              <Route path="/contracts/templates/:id" element={<ClmTemplateDetail />} />
-              <Route path="/contracts/instances/:id" element={<ClmInstanceDetail />} />
-              <Route path="/clm-portal" element={<ClmPortal />} />
+              {/* Legacy CLM authoring URLs — redirected to Smart Ingestion (Live Contracts) */}
+              <Route path="/contracts" element={<Navigate to="/ai-ingestion" replace />} />
+              <Route path="/contracts/templates/:id" element={<Navigate to="/ai-ingestion" replace />} />
+              <Route path="/contracts/instances/:id" element={<Navigate to="/ai-ingestion" replace />} />
+              <Route path="/clm-portal" element={<Navigate to="/ai-ingestion" replace />} />
               {/* AI Smart Ingestion (Revenue Intelligence pillar) */}
               <Route path="/ai-ingestion" element={<LiveContracts />} />
               <Route path="/ai-ingestion/:importId" element={<LiveContractDetail />} />
-              {/* Legacy CLM URLs — kept for backwards compatibility */}
+              {/* Legacy Live Contracts URLs — kept for backwards compatibility */}
               <Route path="/contracts/live" element={<LiveContracts />} />
               <Route path="/contracts/live/:importId" element={<LiveContractDetail />} />
               <Route path="/clm/live-contracts" element={<LiveContracts />} />

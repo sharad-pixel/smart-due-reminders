@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { User, Mail, Phone as PhoneIcon, Edit, Trash2 } from "lucide-react";
-import { AddContactToClmButton } from "@/components/clm/AddContactToClmButton";
+
 import { formatPhone } from "@/lib/formatPhone";
 import { toast } from "sonner";
 
@@ -122,7 +122,7 @@ export const ContactCard = ({ contact, debtorId, onToggleOutreach, onDelete, onU
             >
               <Edit className="h-4 w-4 text-muted-foreground hover:text-primary" />
             </Button>
-            <AddContactToClmButton contactId={contact.id} debtorId={debtorId} />
+            
             <div className="flex items-center gap-1">
               <span className="text-xs text-muted-foreground">Outreach</span>
               <Switch
