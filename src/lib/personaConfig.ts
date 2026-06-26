@@ -5,7 +5,7 @@ import troyAvatar from "@/assets/personas/troy.png";
 import jimmyAvatar from "@/assets/personas/jimmy.png";
 import roccoAvatar from "@/assets/personas/rocco.png";
 import nicolasAvatar from "@/assets/personas/nicolas.png";
-import kurtAvatar from "@/assets/personas/kurt.png";
+
 
 export interface PersonaConfig {
   name: string;
