@@ -107,7 +107,85 @@ Deno.serve(async (req) => {
     const plannedDrafts = draftsRes.data || [];
     const sentOutreach = sentOutreachRes.data || [];
 
-    log("counts", { debtors: debtors.length, invoices: invoices.length, tasks: tasks.length, payments: payments.length, contracts: contracts.length, schedules: schedules.length, plannedDrafts: plannedDrafts.length, sentOutreach: sentOutreach.length });
+    // ---- Extended context: payment plans, activity history, inbound emails, risk history, CRM context, contract intelligence ----
+    const ninetyDaysAgoISO = new Date(now.getTime() - 90 * 86400000).toISOString();
+    const contractIds = (contracts as any[]).map((c) => c.id).filter(Boolean);
+
+    const [
+      paymentPlansRes, planInstallmentsRes, activitiesRes, inboundEmailsRes,
+      riskHistoryRes, aiContextRes, csCasesRes, rcaRes,
+      contractDatesRes, contractFlagsRes, contractRevenueRes, contractPocsRes, contractFieldsRes,
+    ] = await Promise.all([
+      supabase.from("payment_plans")
+        .select("id, debtor_id, status, total_amount, installments_count, start_date, end_date, frequency, currency, total_paid, balance_remaining, missed_installments, created_at")
+        .eq("user_id", accountId).order("created_at", { ascending: false }).limit(100),
+      supabase.from("payment_plan_installments")
+        .select("id, plan_id, sequence, due_date, amount, status, paid_amount, paid_at")
+        .eq("user_id", accountId).order("due_date", { ascending: true }).limit(300),
+      supabase.from("collection_activities")
+        .select("id, debtor_id, invoice_id, activity_type, direction, channel, subject, sentiment, created_at")
+        .eq("user_id", accountId).gte("created_at", ninetyDaysAgoISO).order("created_at", { ascending: false }).limit(100),
+      supabase.from("inbound_emails")
+        .select("id, debtor_id, invoice_id, from_email, subject, ai_summary, ai_category, ai_priority, ai_sentiment, action_status, status, created_at")
+        .eq("user_id", accountId).eq("is_archived", false).gte("created_at", ninetyDaysAgoISO).order("created_at", { ascending: false }).limit(100),
+      supabase.from("debtor_risk_history")
+        .select("debtor_id, risk_score, risk_tier, health_score, change_reason, created_at")
+        .eq("user_id", accountId).gte("created_at", ninetyDaysAgoISO).order("created_at", { ascending: false }).limit(100),
+      supabase.from("debtor_ai_context")
+        .select("debtor_id, crm_source, account_owner, account_health, renewal_risk, expansion_potential, recent_cases_summary, last_synced_at")
+        .eq("user_id", accountId).limit(100),
+      supabase.from("cs_cases")
+        .select("id, debtor_id, case_number, subject, status, priority, sentiment, created_date, last_modified_date")
+        .eq("user_id", accountId).order("last_modified_date", { ascending: false }).limit(100),
+      supabase.from("rca_records")
+        .select("id, debtor_id, root_cause, category, severity, status, summary, created_at")
+        .eq("user_id", accountId).order("created_at", { ascending: false }).limit(100),
+      contractIds.length
+        ? supabase.from("contract_critical_dates").select("id, contract_id, date_type, due_date, description, is_resolved").in("contract_id", contractIds).limit(100)
+        : Promise.resolve({ data: [], error: null } as any),
+      contractIds.length
+        ? supabase.from("contract_risk_flags").select("id, contract_id, flag_type, severity, description, status, created_at").in("contract_id", contractIds).limit(100)
+        : Promise.resolve({ data: [], error: null } as any),
+      contractIds.length
+        ? supabase.from("contract_revenue_items").select("id, contract_id, item_name, amount, currency, revenue_type, recognition_method, start_date, end_date").in("contract_id", contractIds).limit(100)
+        : Promise.resolve({ data: [], error: null } as any),
+      contractIds.length
+        ? supabase.from("contract_poc_details").select("id, contract_id, name, email, role, organization").in("contract_id", contractIds).limit(100)
+        : Promise.resolve({ data: [], error: null } as any),
+      contractIds.length
+        ? supabase.from("live_contract_extracted_fields").select("id, import_id, field_name, field_value, confidence").in("import_id", contractIds).limit(100)
+        : Promise.resolve({ data: [], error: null } as any),
+    ]);
+
+    if (paymentPlansRes.error) log("plans error", paymentPlansRes.error);
+    if (planInstallmentsRes.error) log("installments error", planInstallmentsRes.error);
+    if (activitiesRes.error) log("activities error", activitiesRes.error);
+    if (inboundEmailsRes.error) log("inbound error", inboundEmailsRes.error);
+    if (riskHistoryRes.error) log("risk history error", riskHistoryRes.error);
+    if (aiContextRes.error) log("ai context error", aiContextRes.error);
+    if (csCasesRes.error) log("cs cases error", csCasesRes.error);
+    if (rcaRes.error) log("rca error", rcaRes.error);
+    if (contractDatesRes.error) log("contract dates error", contractDatesRes.error);
+    if (contractFlagsRes.error) log("contract flags error", contractFlagsRes.error);
+    if (contractRevenueRes.error) log("contract revenue error", contractRevenueRes.error);
+    if (contractPocsRes.error) log("contract pocs error", contractPocsRes.error);
+    if (contractFieldsRes.error) log("contract fields error", contractFieldsRes.error);
+
+    const paymentPlans = paymentPlansRes.data || [];
+    const planInstallments = planInstallmentsRes.data || [];
+    const activities = activitiesRes.data || [];
+    const inboundEmails = inboundEmailsRes.data || [];
+    const riskHistory = riskHistoryRes.data || [];
+    const aiContextRows = aiContextRes.data || [];
+    const csCases = csCasesRes.data || [];
+    const rcaRecords = rcaRes.data || [];
+    const contractDates = contractDatesRes.data || [];
+    const contractFlags = contractFlagsRes.data || [];
+    const contractRevenue = contractRevenueRes.data || [];
+    const contractPocs = contractPocsRes.data || [];
+    const contractFields = contractFieldsRes.data || [];
+
+    log("counts", { debtors: debtors.length, invoices: invoices.length, tasks: tasks.length, payments: payments.length, contracts: contracts.length, schedules: schedules.length, plannedDrafts: plannedDrafts.length, sentOutreach: sentOutreach.length, paymentPlans: paymentPlans.length, activities: activities.length, inboundEmails: inboundEmails.length, riskHistory: riskHistory.length, csCases: csCases.length, rcaRecords: rcaRecords.length, contractFlags: contractFlags.length });
 
     const balOf = (i: any) => Number(i.amount_outstanding ?? i.balance ?? i.amount_due ?? i.total_amount ?? i.amount ?? 0);
     const dueISO = (i: any) => i.due_date ? String(i.due_date).slice(0, 10) : null;
