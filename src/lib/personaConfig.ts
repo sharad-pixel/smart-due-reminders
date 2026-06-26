@@ -31,17 +31,6 @@ export const personaConfig: Record<string, PersonaConfig> = {
     tone: "Professional account-level communications",
     punchline: "I handle the accounts that matter most.",
   },
-  kurt: {
-    name: "Kurt",
-    color: "#1e3a8a",
-    bgColor: "bg-indigo-700",
-    avatar: kurtAvatar,
-    bucketMin: -999,
-    bucketMax: -999,
-    description: "(Special Agent) General Counsel — Contract Intelligence Guidance",
-    tone: "Precise, plain-English legal commentary",
-    punchline: "Read the redlines. Then read them again.",
-  },
   sam: {
     name: "Sam",
     color: "#69B7FF",
