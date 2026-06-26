@@ -5,7 +5,7 @@ import troyAvatar from "@/assets/personas/troy.png";
 import jimmyAvatar from "@/assets/personas/jimmy.png";
 import roccoAvatar from "@/assets/personas/rocco.png";
 import nicolasAvatar from "@/assets/personas/nicolas.png";
-import kurtAvatar from "@/assets/personas/kurt.png";
+
 
 export interface PersonaConfig {
   name: string;
@@ -30,17 +30,6 @@ export const personaConfig: Record<string, PersonaConfig> = {
     description: "(Special Agent) Support and Account Level Outreach",
     tone: "Professional account-level communications",
     punchline: "I handle the accounts that matter most.",
-  },
-  kurt: {
-    name: "Kurt",
-    color: "#1e3a8a",
-    bgColor: "bg-indigo-700",
-    avatar: kurtAvatar,
-    bucketMin: -999,
-    bucketMax: -999,
-    description: "(Special Agent) General Counsel — Contract Intelligence Guidance",
-    tone: "Precise, plain-English legal commentary",
-    punchline: "Read the redlines. Then read them again.",
   },
   sam: {
     name: "Sam",
