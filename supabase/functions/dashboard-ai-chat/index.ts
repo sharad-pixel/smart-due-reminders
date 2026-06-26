@@ -606,6 +606,101 @@ Deno.serve(async (req) => {
     };
 
 
+    // ---- Payment plans summary ----
+    const installmentsByPlan: Record<string, any[]> = {};
+    for (const inst of planInstallments as any[]) {
+      (installmentsByPlan[inst.plan_id] ||= []).push(inst);
+    }
+    const plansByStatus: Record<string, number> = {};
+    const paymentPlansSample = (paymentPlans as any[]).map((p) => {
+      plansByStatus[p.status || "unknown"] = (plansByStatus[p.status || "unknown"] || 0) + 1;
+      const insts = installmentsByPlan[p.id] || [];
+      const paid = insts.filter((i) => i.status === "paid").length;
+      const missed = insts.filter((i) => i.status === "missed" || i.status === "overdue").length;
+      const nextDue = insts.find((i) => i.status === "pending" || i.status === "scheduled");
+      return {
+        id: p.id, debtor_id: p.debtor_id, debtor: debtorNameMap.get(p.debtor_id) || null,
+        status: p.status, total_amount: Number(p.total_amount || 0), total_paid: Number(p.total_paid || 0),
+        balance_remaining: Number(p.balance_remaining || 0), installments_count: p.installments_count,
+        installments_paid: paid, installments_missed: missed,
+        next_due_date: nextDue?.due_date || null, next_due_amount: nextDue?.amount || null,
+        frequency: p.frequency, currency: p.currency, start_date: p.start_date, end_date: p.end_date,
+      };
+    });
+    const paymentPlansSummary = {
+      total_plans: paymentPlans.length, by_status: plansByStatus,
+      total_outstanding: Math.round(paymentPlansSample.reduce((s, p) => s + (p.balance_remaining || 0), 0) * 100) / 100,
+    };
+
+    // ---- Collection activity history (90d) ----
+    const activitiesByType: Record<string, number> = {};
+    for (const a of activities as any[]) activitiesByType[a.activity_type || "other"] = (activitiesByType[a.activity_type || "other"] || 0) + 1;
+    const activitiesSample = (activities as any[]).slice(0, 50).map((a) => ({
+      id: a.id, debtor: debtorNameMap.get(a.debtor_id) || null, debtor_id: a.debtor_id,
+      invoice_id: a.invoice_id, type: a.activity_type, direction: a.direction, channel: a.channel,
+      subject: a.subject, sentiment: a.sentiment, created_at: a.created_at,
+    }));
+
+    // ---- Inbound emails (90d) ----
+    const inboundByCategory: Record<string, number> = {};
+    const inboundByPriority: Record<string, number> = {};
+    for (const e of inboundEmails as any[]) {
+      inboundByCategory[e.ai_category || "uncategorized"] = (inboundByCategory[e.ai_category || "uncategorized"] || 0) + 1;
+      inboundByPriority[e.ai_priority || "normal"] = (inboundByPriority[e.ai_priority || "normal"] || 0) + 1;
+    }
+    const inboundSample = (inboundEmails as any[]).slice(0, 40).map((e) => ({
+      id: e.id, debtor: debtorNameMap.get(e.debtor_id) || null, debtor_id: e.debtor_id,
+      invoice_id: e.invoice_id, from: e.from_email, subject: e.subject, summary: e.ai_summary,
+      category: e.ai_category, priority: e.ai_priority, sentiment: e.ai_sentiment,
+      action_status: e.action_status, created_at: e.created_at,
+    }));
+
+    // ---- Risk score trajectory ----
+    const riskHistorySample = (riskHistory as any[]).slice(0, 60).map((r) => ({
+      debtor: debtorNameMap.get(r.debtor_id) || null, debtor_id: r.debtor_id,
+      risk_score: r.risk_score, risk_tier: r.risk_tier, health_score: r.health_score,
+      reason: r.change_reason, created_at: r.created_at,
+    }));
+
+    // ---- CRM-synced AI context ----
+    const crmContextSample = (aiContextRows as any[]).slice(0, 60).map((c) => ({
+      debtor: debtorNameMap.get(c.debtor_id) || null, debtor_id: c.debtor_id,
+      crm_source: c.crm_source, account_owner: c.account_owner, account_health: c.account_health,
+      renewal_risk: c.renewal_risk, expansion_potential: c.expansion_potential,
+      recent_cases_summary: c.recent_cases_summary, last_synced_at: c.last_synced_at,
+    }));
+
+    // ---- Salesforce cases & RCA records ----
+    const csCasesSummary = {
+      total: csCases.length,
+      by_status: (csCases as any[]).reduce((acc: Record<string, number>, c: any) => { acc[c.status || "unknown"] = (acc[c.status || "unknown"] || 0) + 1; return acc; }, {}),
+      sample: (csCases as any[]).slice(0, 40).map((c) => ({
+        id: c.id, debtor: debtorNameMap.get(c.debtor_id) || null, debtor_id: c.debtor_id,
+        case_number: c.case_number, subject: c.subject, status: c.status, priority: c.priority,
+        sentiment: c.sentiment, last_modified: c.last_modified_date,
+      })),
+    };
+    const rcaSummary = {
+      total: rcaRecords.length,
+      sample: (rcaRecords as any[]).slice(0, 30).map((r) => ({
+        id: r.id, debtor: debtorNameMap.get(r.debtor_id) || null, debtor_id: r.debtor_id,
+        root_cause: r.root_cause, category: r.category, severity: r.severity,
+        status: r.status, summary: r.summary, created_at: r.created_at,
+      })),
+    };
+
+    // ---- Contract intelligence detail ----
+    const contractNameMap = new Map((contracts as any[]).map((c) => [c.id, c.contract_name || c.file_name]));
+    const contractDebtorMap = new Map((contracts as any[]).map((c) => [c.id, c.debtor_id]));
+    const linkContract = (id: string) => ({ contract: contractNameMap.get(id) || null, contract_id: id, debtor: debtorNameMap.get(contractDebtorMap.get(id) as string) || null, debtor_id: contractDebtorMap.get(id) || null });
+    const contractIntelligence = {
+      critical_dates: (contractDates as any[]).map((d) => ({ ...linkContract(d.contract_id), date_type: d.date_type, due_date: d.due_date, description: d.description, is_resolved: d.is_resolved })),
+      risk_flags: (contractFlags as any[]).map((f) => ({ ...linkContract(f.contract_id), flag_type: f.flag_type, severity: f.severity, description: f.description, status: f.status })),
+      revenue_items: (contractRevenue as any[]).map((r) => ({ ...linkContract(r.contract_id), item_name: r.item_name, amount: r.amount, currency: r.currency, revenue_type: r.revenue_type, recognition_method: r.recognition_method, start_date: r.start_date, end_date: r.end_date })),
+      pocs: (contractPocs as any[]).map((p) => ({ ...linkContract(p.contract_id), name: p.name, email: p.email, role: p.role, organization: p.organization })),
+      extracted_fields: (contractFields as any[]).map((f) => ({ ...linkContract(f.import_id), field_name: f.field_name, field_value: f.field_value, confidence: f.confidence })),
+    };
+
     const context = {
       as_of: todayISO,
       portfolio,
@@ -638,6 +733,18 @@ Deno.serve(async (req) => {
       })),
       outreach_plan: outreachPlan,
       planned_outreach_sample: plannedSample,
+
+      payment_plans_summary: paymentPlansSummary,
+      payment_plans_sample: paymentPlansSample,
+      collection_activity_summary: { total_90d: activities.length, by_type: activitiesByType },
+      collection_activity_sample: activitiesSample,
+      inbound_emails_summary: { total_90d: inboundEmails.length, by_category: inboundByCategory, by_priority: inboundByPriority },
+      inbound_emails_sample: inboundSample,
+      risk_history_sample: riskHistorySample,
+      crm_account_context: crmContextSample,
+      salesforce_cases: csCasesSummary,
+      rca_records: rcaSummary,
+      contract_intelligence: contractIntelligence,
     };
 
     log("portfolio", portfolio, "contracts", contractPortfolio);
