@@ -107,7 +107,85 @@ Deno.serve(async (req) => {
     const plannedDrafts = draftsRes.data || [];
     const sentOutreach = sentOutreachRes.data || [];
 
-    log("counts", { debtors: debtors.length, invoices: invoices.length, tasks: tasks.length, payments: payments.length, contracts: contracts.length, schedules: schedules.length, plannedDrafts: plannedDrafts.length, sentOutreach: sentOutreach.length });
+    // ---- Extended context: payment plans, activity history, inbound emails, risk history, CRM context, contract intelligence ----
+    const ninetyDaysAgoISO = new Date(now.getTime() - 90 * 86400000).toISOString();
+    const contractIds = (contracts as any[]).map((c) => c.id).filter(Boolean);
+
+    const [
+      paymentPlansRes, planInstallmentsRes, activitiesRes, inboundEmailsRes,
+      riskHistoryRes, aiContextRes, csCasesRes, rcaRes,
+      contractDatesRes, contractFlagsRes, contractRevenueRes, contractPocsRes, contractFieldsRes,
+    ] = await Promise.all([
+      supabase.from("payment_plans")
+        .select("id, debtor_id, status, total_amount, installments_count, start_date, end_date, frequency, currency, total_paid, balance_remaining, missed_installments, created_at")
+        .eq("user_id", accountId).order("created_at", { ascending: false }).limit(100),
+      supabase.from("payment_plan_installments")
+        .select("id, plan_id, sequence, due_date, amount, status, paid_amount, paid_at")
+        .eq("user_id", accountId).order("due_date", { ascending: true }).limit(300),
+      supabase.from("collection_activities")
+        .select("id, debtor_id, invoice_id, activity_type, direction, channel, subject, sentiment, created_at")
+        .eq("user_id", accountId).gte("created_at", ninetyDaysAgoISO).order("created_at", { ascending: false }).limit(100),
+      supabase.from("inbound_emails")
+        .select("id, debtor_id, invoice_id, from_email, subject, ai_summary, ai_category, ai_priority, ai_sentiment, action_status, status, created_at")
+        .eq("user_id", accountId).eq("is_archived", false).gte("created_at", ninetyDaysAgoISO).order("created_at", { ascending: false }).limit(100),
+      supabase.from("debtor_risk_history")
+        .select("debtor_id, risk_score, risk_tier, health_score, change_reason, created_at")
+        .eq("user_id", accountId).gte("created_at", ninetyDaysAgoISO).order("created_at", { ascending: false }).limit(100),
+      supabase.from("debtor_ai_context")
+        .select("debtor_id, crm_source, account_owner, account_health, renewal_risk, expansion_potential, recent_cases_summary, last_synced_at")
+        .eq("user_id", accountId).limit(100),
+      supabase.from("cs_cases")
+        .select("id, debtor_id, case_number, subject, status, priority, sentiment, created_date, last_modified_date")
+        .eq("user_id", accountId).order("last_modified_date", { ascending: false }).limit(100),
+      supabase.from("rca_records")
+        .select("id, debtor_id, root_cause, category, severity, status, summary, created_at")
+        .eq("user_id", accountId).order("created_at", { ascending: false }).limit(100),
+      contractIds.length
+        ? supabase.from("contract_critical_dates").select("id, contract_id, date_type, due_date, description, is_resolved").in("contract_id", contractIds).limit(100)
+        : Promise.resolve({ data: [], error: null } as any),
+      contractIds.length
+        ? supabase.from("contract_risk_flags").select("id, contract_id, flag_type, severity, description, status, created_at").in("contract_id", contractIds).limit(100)
+        : Promise.resolve({ data: [], error: null } as any),
+      contractIds.length
+        ? supabase.from("contract_revenue_items").select("id, contract_id, item_name, amount, currency, revenue_type, recognition_method, start_date, end_date").in("contract_id", contractIds).limit(100)
+        : Promise.resolve({ data: [], error: null } as any),
+      contractIds.length
+        ? supabase.from("contract_poc_details").select("id, contract_id, name, email, role, organization").in("contract_id", contractIds).limit(100)
+        : Promise.resolve({ data: [], error: null } as any),
+      contractIds.length
+        ? supabase.from("live_contract_extracted_fields").select("id, import_id, field_name, field_value, confidence").in("import_id", contractIds).limit(100)
+        : Promise.resolve({ data: [], error: null } as any),
+    ]);
+
+    if (paymentPlansRes.error) log("plans error", paymentPlansRes.error);
+    if (planInstallmentsRes.error) log("installments error", planInstallmentsRes.error);
+    if (activitiesRes.error) log("activities error", activitiesRes.error);
+    if (inboundEmailsRes.error) log("inbound error", inboundEmailsRes.error);
+    if (riskHistoryRes.error) log("risk history error", riskHistoryRes.error);
+    if (aiContextRes.error) log("ai context error", aiContextRes.error);
+    if (csCasesRes.error) log("cs cases error", csCasesRes.error);
+    if (rcaRes.error) log("rca error", rcaRes.error);
+    if (contractDatesRes.error) log("contract dates error", contractDatesRes.error);
+    if (contractFlagsRes.error) log("contract flags error", contractFlagsRes.error);
+    if (contractRevenueRes.error) log("contract revenue error", contractRevenueRes.error);
+    if (contractPocsRes.error) log("contract pocs error", contractPocsRes.error);
+    if (contractFieldsRes.error) log("contract fields error", contractFieldsRes.error);
+
+    const paymentPlans = paymentPlansRes.data || [];
+    const planInstallments = planInstallmentsRes.data || [];
+    const activities = activitiesRes.data || [];
+    const inboundEmails = inboundEmailsRes.data || [];
+    const riskHistory = riskHistoryRes.data || [];
+    const aiContextRows = aiContextRes.data || [];
+    const csCases = csCasesRes.data || [];
+    const rcaRecords = rcaRes.data || [];
+    const contractDates = contractDatesRes.data || [];
+    const contractFlags = contractFlagsRes.data || [];
+    const contractRevenue = contractRevenueRes.data || [];
+    const contractPocs = contractPocsRes.data || [];
+    const contractFields = contractFieldsRes.data || [];
+
+    log("counts", { debtors: debtors.length, invoices: invoices.length, tasks: tasks.length, payments: payments.length, contracts: contracts.length, schedules: schedules.length, plannedDrafts: plannedDrafts.length, sentOutreach: sentOutreach.length, paymentPlans: paymentPlans.length, activities: activities.length, inboundEmails: inboundEmails.length, riskHistory: riskHistory.length, csCases: csCases.length, rcaRecords: rcaRecords.length, contractFlags: contractFlags.length });
 
     const balOf = (i: any) => Number(i.amount_outstanding ?? i.balance ?? i.amount_due ?? i.total_amount ?? i.amount ?? 0);
     const dueISO = (i: any) => i.due_date ? String(i.due_date).slice(0, 10) : null;
@@ -528,6 +606,101 @@ Deno.serve(async (req) => {
     };
 
 
+    // ---- Payment plans summary ----
+    const installmentsByPlan: Record<string, any[]> = {};
+    for (const inst of planInstallments as any[]) {
+      (installmentsByPlan[inst.plan_id] ||= []).push(inst);
+    }
+    const plansByStatus: Record<string, number> = {};
+    const paymentPlansSample = (paymentPlans as any[]).map((p) => {
+      plansByStatus[p.status || "unknown"] = (plansByStatus[p.status || "unknown"] || 0) + 1;
+      const insts = installmentsByPlan[p.id] || [];
+      const paid = insts.filter((i) => i.status === "paid").length;
+      const missed = insts.filter((i) => i.status === "missed" || i.status === "overdue").length;
+      const nextDue = insts.find((i) => i.status === "pending" || i.status === "scheduled");
+      return {
+        id: p.id, debtor_id: p.debtor_id, debtor: debtorNameMap.get(p.debtor_id) || null,
+        status: p.status, total_amount: Number(p.total_amount || 0), total_paid: Number(p.total_paid || 0),
+        balance_remaining: Number(p.balance_remaining || 0), installments_count: p.installments_count,
+        installments_paid: paid, installments_missed: missed,
+        next_due_date: nextDue?.due_date || null, next_due_amount: nextDue?.amount || null,
+        frequency: p.frequency, currency: p.currency, start_date: p.start_date, end_date: p.end_date,
+      };
+    });
+    const paymentPlansSummary = {
+      total_plans: paymentPlans.length, by_status: plansByStatus,
+      total_outstanding: Math.round(paymentPlansSample.reduce((s, p) => s + (p.balance_remaining || 0), 0) * 100) / 100,
+    };
+
+    // ---- Collection activity history (90d) ----
+    const activitiesByType: Record<string, number> = {};
+    for (const a of activities as any[]) activitiesByType[a.activity_type || "other"] = (activitiesByType[a.activity_type || "other"] || 0) + 1;
+    const activitiesSample = (activities as any[]).slice(0, 50).map((a) => ({
+      id: a.id, debtor: debtorNameMap.get(a.debtor_id) || null, debtor_id: a.debtor_id,
+      invoice_id: a.invoice_id, type: a.activity_type, direction: a.direction, channel: a.channel,
+      subject: a.subject, sentiment: a.sentiment, created_at: a.created_at,
+    }));
+
+    // ---- Inbound emails (90d) ----
+    const inboundByCategory: Record<string, number> = {};
+    const inboundByPriority: Record<string, number> = {};
+    for (const e of inboundEmails as any[]) {
+      inboundByCategory[e.ai_category || "uncategorized"] = (inboundByCategory[e.ai_category || "uncategorized"] || 0) + 1;
+      inboundByPriority[e.ai_priority || "normal"] = (inboundByPriority[e.ai_priority || "normal"] || 0) + 1;
+    }
+    const inboundSample = (inboundEmails as any[]).slice(0, 40).map((e) => ({
+      id: e.id, debtor: debtorNameMap.get(e.debtor_id) || null, debtor_id: e.debtor_id,
+      invoice_id: e.invoice_id, from: e.from_email, subject: e.subject, summary: e.ai_summary,
+      category: e.ai_category, priority: e.ai_priority, sentiment: e.ai_sentiment,
+      action_status: e.action_status, created_at: e.created_at,
+    }));
+
+    // ---- Risk score trajectory ----
+    const riskHistorySample = (riskHistory as any[]).slice(0, 60).map((r) => ({
+      debtor: debtorNameMap.get(r.debtor_id) || null, debtor_id: r.debtor_id,
+      risk_score: r.risk_score, risk_tier: r.risk_tier, health_score: r.health_score,
+      reason: r.change_reason, created_at: r.created_at,
+    }));
+
+    // ---- CRM-synced AI context ----
+    const crmContextSample = (aiContextRows as any[]).slice(0, 60).map((c) => ({
+      debtor: debtorNameMap.get(c.debtor_id) || null, debtor_id: c.debtor_id,
+      crm_source: c.crm_source, account_owner: c.account_owner, account_health: c.account_health,
+      renewal_risk: c.renewal_risk, expansion_potential: c.expansion_potential,
+      recent_cases_summary: c.recent_cases_summary, last_synced_at: c.last_synced_at,
+    }));
+
+    // ---- Salesforce cases & RCA records ----
+    const csCasesSummary = {
+      total: csCases.length,
+      by_status: (csCases as any[]).reduce((acc: Record<string, number>, c: any) => { acc[c.status || "unknown"] = (acc[c.status || "unknown"] || 0) + 1; return acc; }, {}),
+      sample: (csCases as any[]).slice(0, 40).map((c) => ({
+        id: c.id, debtor: debtorNameMap.get(c.debtor_id) || null, debtor_id: c.debtor_id,
+        case_number: c.case_number, subject: c.subject, status: c.status, priority: c.priority,
+        sentiment: c.sentiment, last_modified: c.last_modified_date,
+      })),
+    };
+    const rcaSummary = {
+      total: rcaRecords.length,
+      sample: (rcaRecords as any[]).slice(0, 30).map((r) => ({
+        id: r.id, debtor: debtorNameMap.get(r.debtor_id) || null, debtor_id: r.debtor_id,
+        root_cause: r.root_cause, category: r.category, severity: r.severity,
+        status: r.status, summary: r.summary, created_at: r.created_at,
+      })),
+    };
+
+    // ---- Contract intelligence detail ----
+    const contractNameMap = new Map((contracts as any[]).map((c) => [c.id, c.contract_name || c.file_name]));
+    const contractDebtorMap = new Map((contracts as any[]).map((c) => [c.id, c.debtor_id]));
+    const linkContract = (id: string) => ({ contract: contractNameMap.get(id) || null, contract_id: id, debtor: debtorNameMap.get(contractDebtorMap.get(id) as string) || null, debtor_id: contractDebtorMap.get(id) || null });
+    const contractIntelligence = {
+      critical_dates: (contractDates as any[]).map((d) => ({ ...linkContract(d.contract_id), date_type: d.date_type, due_date: d.due_date, description: d.description, is_resolved: d.is_resolved })),
+      risk_flags: (contractFlags as any[]).map((f) => ({ ...linkContract(f.contract_id), flag_type: f.flag_type, severity: f.severity, description: f.description, status: f.status })),
+      revenue_items: (contractRevenue as any[]).map((r) => ({ ...linkContract(r.contract_id), item_name: r.item_name, amount: r.amount, currency: r.currency, revenue_type: r.revenue_type, recognition_method: r.recognition_method, start_date: r.start_date, end_date: r.end_date })),
+      pocs: (contractPocs as any[]).map((p) => ({ ...linkContract(p.contract_id), name: p.name, email: p.email, role: p.role, organization: p.organization })),
+      extracted_fields: (contractFields as any[]).map((f) => ({ ...linkContract(f.import_id), field_name: f.field_name, field_value: f.field_value, confidence: f.confidence })),
+    };
+
     const context = {
       as_of: todayISO,
       portfolio,
@@ -560,6 +733,18 @@ Deno.serve(async (req) => {
       })),
       outreach_plan: outreachPlan,
       planned_outreach_sample: plannedSample,
+
+      payment_plans_summary: paymentPlansSummary,
+      payment_plans_sample: paymentPlansSample,
+      collection_activity_summary: { total_90d: activities.length, by_type: activitiesByType },
+      collection_activity_sample: activitiesSample,
+      inbound_emails_summary: { total_90d: inboundEmails.length, by_category: inboundByCategory, by_priority: inboundByPriority },
+      inbound_emails_sample: inboundSample,
+      risk_history_sample: riskHistorySample,
+      crm_account_context: crmContextSample,
+      salesforce_cases: csCasesSummary,
+      rca_records: rcaSummary,
+      contract_intelligence: contractIntelligence,
     };
 
     log("portfolio", portfolio, "contracts", contractPortfolio);
@@ -617,6 +802,31 @@ NATIVE INVOICING (important):
 - If the user asks to generate, create, draft, or issue a new invoice: direct them to the [Invoices page](/invoices) and click **"Create Invoice"** (top right), or open a specific account at /debtors/{debtor_id} and click **"Create Invoice"** there to pre-fill the customer.
 - Native invoices support line items, the product catalog (managed in /data-center), payment terms, payment processing fees, and send via the debtor portal.
 - Only recommend creating the invoice in Stripe/QuickBooks/NetSuite/Sage/Xero when the user explicitly says revenue is recognized there or they want the invoice to flow back into that source system (Recouply will then sync it on the next integration run).
+
+PAYMENT PLANS:
+- \`payment_plans_summary\` and \`payment_plans_sample\` cover consolidated account-level payment plans (status, total_amount, total_paid, balance_remaining, installments_paid/missed, next_due_date). Use these for "who is on a payment plan", "missed installments", "upcoming plan payments", or "what's the plan for <Acme>". Link debtors with /debtors/{debtor_id}.
+- Accounts with an active plan have their standard AI outreach suppressed — mention that when relevant.
+
+COLLECTION ACTIVITY HISTORY (last 90 days):
+- \`collection_activity_summary\` shows totals and breakdown by activity_type. \`collection_activity_sample\` lists up to 50 individual activities (calls, notes, status changes, emails) with sentiment and direction. Use it for "what happened with <Acme> recently", "what calls/notes are logged", or sentiment trend questions.
+
+INBOUND EMAILS (last 90 days):
+- \`inbound_emails_summary\` breaks down by ai_category and ai_priority. \`inbound_emails_sample\` lists up to 40 debtor replies with subject, AI summary, sentiment, and action_status. Use it for "what are debtors saying", "any disputes/promises to pay", "unresolved replies".
+
+RISK TRAJECTORY:
+- \`risk_history_sample\` shows recent risk_score / risk_tier / health_score changes with change_reason. Use it for "is <Acme>'s risk improving or getting worse" or "what changed".
+
+CRM CONTEXT (Salesforce / HubSpot):
+- \`crm_account_context\` has CRM-synced fields: account_owner, account_health, renewal_risk, expansion_potential, recent_cases_summary. Use it to enrich answers about specific accounts.
+- \`salesforce_cases\` summarizes CS cases by status; \`rca_records\` lists root-cause records. Cite these when a debtor has open cases or known issues that explain non-payment.
+
+CONTRACT INTELLIGENCE DETAIL:
+- \`contract_intelligence.critical_dates\` — renewal/notice/milestone dates with description. Use for "what dates am I missing", "upcoming renewals", "auto-renewal cutoffs".
+- \`contract_intelligence.risk_flags\` — flagged contract risks with severity. Use for "what contract risks exist".
+- \`contract_intelligence.revenue_items\` — ASC606 revenue items with recognition_method.
+- \`contract_intelligence.pocs\` — contract points of contact.
+- \`contract_intelligence.extracted_fields\` — raw AI-extracted fields with confidence.
+- All items include contract_id and debtor_id — link contracts via /contracts/live/{contract_id} and debtors via /debtors/{debtor_id}.
 
 If the portfolio has no data (zero debtors, zero invoices, zero contracts), say so plainly and suggest the user import or sync data.
 
