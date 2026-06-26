@@ -803,6 +803,31 @@ NATIVE INVOICING (important):
 - Native invoices support line items, the product catalog (managed in /data-center), payment terms, payment processing fees, and send via the debtor portal.
 - Only recommend creating the invoice in Stripe/QuickBooks/NetSuite/Sage/Xero when the user explicitly says revenue is recognized there or they want the invoice to flow back into that source system (Recouply will then sync it on the next integration run).
 
+PAYMENT PLANS:
+- \`payment_plans_summary\` and \`payment_plans_sample\` cover consolidated account-level payment plans (status, total_amount, total_paid, balance_remaining, installments_paid/missed, next_due_date). Use these for "who is on a payment plan", "missed installments", "upcoming plan payments", or "what's the plan for <Acme>". Link debtors with /debtors/{debtor_id}.
+- Accounts with an active plan have their standard AI outreach suppressed — mention that when relevant.
+
+COLLECTION ACTIVITY HISTORY (last 90 days):
+- \`collection_activity_summary\` shows totals and breakdown by activity_type. \`collection_activity_sample\` lists up to 50 individual activities (calls, notes, status changes, emails) with sentiment and direction. Use it for "what happened with <Acme> recently", "what calls/notes are logged", or sentiment trend questions.
+
+INBOUND EMAILS (last 90 days):
+- \`inbound_emails_summary\` breaks down by ai_category and ai_priority. \`inbound_emails_sample\` lists up to 40 debtor replies with subject, AI summary, sentiment, and action_status. Use it for "what are debtors saying", "any disputes/promises to pay", "unresolved replies".
+
+RISK TRAJECTORY:
+- \`risk_history_sample\` shows recent risk_score / risk_tier / health_score changes with change_reason. Use it for "is <Acme>'s risk improving or getting worse" or "what changed".
+
+CRM CONTEXT (Salesforce / HubSpot):
+- \`crm_account_context\` has CRM-synced fields: account_owner, account_health, renewal_risk, expansion_potential, recent_cases_summary. Use it to enrich answers about specific accounts.
+- \`salesforce_cases\` summarizes CS cases by status; \`rca_records\` lists root-cause records. Cite these when a debtor has open cases or known issues that explain non-payment.
+
+CONTRACT INTELLIGENCE DETAIL:
+- \`contract_intelligence.critical_dates\` — renewal/notice/milestone dates with description. Use for "what dates am I missing", "upcoming renewals", "auto-renewal cutoffs".
+- \`contract_intelligence.risk_flags\` — flagged contract risks with severity. Use for "what contract risks exist".
+- \`contract_intelligence.revenue_items\` — ASC606 revenue items with recognition_method.
+- \`contract_intelligence.pocs\` — contract points of contact.
+- \`contract_intelligence.extracted_fields\` — raw AI-extracted fields with confidence.
+- All items include contract_id and debtor_id — link contracts via /contracts/live/{contract_id} and debtors via /debtors/{debtor_id}.
+
 If the portfolio has no data (zero debtors, zero invoices, zero contracts), say so plainly and suggest the user import or sync data.
 
 
