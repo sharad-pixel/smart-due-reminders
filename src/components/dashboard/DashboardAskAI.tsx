@@ -306,7 +306,9 @@ export function DashboardAskAI() {
 
   // Derived intelligence stats for the welcome message + monitoring strip
   const agg = riskData?.aggregate;
-  const topRisks = (riskData?.top_risk_accounts || []).slice(0, 3);
+  const topRisks = (fastTopRisks && fastTopRisks.length > 0)
+    ? fastTopRisks
+    : (riskData?.top_risk_accounts || []).slice(0, 3);
   const urgentCount = useMemo(
     () => urgentTasks.filter((t) => t.priority === "urgent" || t.priority === "high").length || urgentTasks.length,
     [urgentTasks]
