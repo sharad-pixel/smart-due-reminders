@@ -168,6 +168,29 @@ export function DashboardAskAI() {
   const { data: riskData } = useRevenueRisk();
   const { fetchTasks } = useCollectionTasks();
 
+  // Lightweight, fast top-risk pull (independent of heavy revenue-risk engine)
+  const { data: fastTopRisks } = useQuery({
+    queryKey: ["dashboard-top-risk-fast"],
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("debtors")
+        .select("id, name, total_open_balance, payment_score")
+        .eq("is_archived", false)
+        .not("payment_score", "is", null)
+        .gt("total_open_balance", 0)
+        .order("payment_score", { ascending: true })
+        .limit(3);
+      if (error) throw error;
+      return (data || []).map((d: any) => ({
+        debtor_id: d.id,
+        debtor_name: d.name,
+        balance: Number(d.total_open_balance) || 0,
+        collectability_score: Number(d.payment_score) || 0,
+      }));
+    },
+  });
+
   useEffect(() => { setTimeout(() => inputRef.current?.focus(), 50); }, []);
 
   // Load current user's first name once
