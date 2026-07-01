@@ -3,6 +3,10 @@ import { ChevronDown } from "lucide-react";
 
 const faqs = [
   {
+    question: "What is Contract Intelligence and how does it work?",
+    answer: "Contract Intelligence is Recouply's AI-native workflow that ingests any signed agreement (MSA, Order Form, SOW, Amendment, Renewal, and 12+ other document types) and extracts parties, effective/termination dates, billing schedule, payment terms, renewal clauses, and total contract value. It auto-links child documents to their parent MSA, scores completeness and commercial risk, and lets you generate invoices as Draft (open to editing) or Posted (locked and eligible for AI collections)."
+  },
+  {
     question: "How do AI collection agents work?",
     answer: "Our AI agents monitor your invoices and automatically send personalized follow-up emails based on aging buckets. Each agent has a different tone—from friendly reminders to firm escalations—ensuring appropriate communication at every stage of the collection process."
   },
