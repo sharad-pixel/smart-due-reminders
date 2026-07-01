@@ -504,7 +504,37 @@ export const ContractRevRecASC606 = ({
             </li>
           </ul>
         </div>
+
+        {contractId && (
+          <AssessmentPanel
+            scope="asc606"
+            subjectType="contract"
+            subjectId={contractId}
+            buildAssessment={async () => ({
+              scope: "asc606",
+              subjectType: "contract",
+              subjectId: contractId,
+              title: `ASC 606 recognition — ${contractTitle ?? "contract"}`,
+              summary: `TCV ${formatCurrency(totals.all.amount, defaultCurrency)} · Recognized to date ${formatCurrency(totals.all.recognized, defaultCurrency)} · Deferred ${formatCurrency(totals.all.deferred, defaultCurrency)}. Buckets — Recurring: ${formatCurrency(totals.recurring.amount, defaultCurrency)}, Professional Services: ${formatCurrency(totals.professional_services.amount, defaultCurrency)}, Usage: ${formatCurrency(totals.usage.amount, defaultCurrency)}, One-time: ${formatCurrency(totals.one_time.amount, defaultCurrency)}.`,
+              model: "user-computed",
+              findings: {
+                totals: totals.all,
+                by_bucket: {
+                  recurring: totals.recurring,
+                  professional_services: totals.professional_services,
+                  usage: totals.usage,
+                  one_time: totals.one_time,
+                },
+                overrides,
+                line_count: rows.length,
+                effective_date: effectiveDate,
+                term_end_date: termEndDate,
+              },
+            })}
+          />
+        )}
       </CardContent>
     </Card>
   );
 };
+
