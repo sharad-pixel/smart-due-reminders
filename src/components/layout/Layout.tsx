@@ -302,7 +302,9 @@ const Layout = ({ children }: LayoutProps) => {
     { path: "/dashboard", label: "Collections Intelligence", icon: LayoutDashboard },
     { path: "/invoices", label: "Invoices", icon: FileText },
     { path: "/payments", label: "Payments", icon: DollarSign },
-    { path: "/ai-ingestion", label: "Contract Intelligence", icon: FileSignature },
+    { path: "/contract-intelligence/dashboard", label: "Contract Intelligence", icon: FileSignature },
+    { path: "/contracts/active", label: "Active Contracts", icon: FileSignature },
+    { path: "/ai-ingestion", label: "Contract Ingestion", icon: Sparkles },
     { path: "/revenue-risk", label: "Revenue Risk", icon: ShieldAlert },
     { path: "/revenue-library", label: "Revenue Library", icon: Library },
   ];
