@@ -9,7 +9,7 @@ export const founderConfig = {
   calendly: "https://calendly.com/sharad-recouply/30min",
   supportEmail: "support@recouply.ai",
   email: "sharad@recouply.ai",
-  bio: `Sharad Chanana is the Founder of Recouply.ai — building the first Revenue Intelligence Platform for Finance Teams. A transformational leader with 15+ years of experience shaping Revenue Operations, Quote-to-Cash architecture, Billing modernization, Collections strategy, and enterprise-grade GTM systems. He has built and scaled operational frameworks for some of the most respected high-growth SaaS and enterprise companies, including ServiceTitan, 11x.ai, Workday, Maxio (RevOps Inc.), Contentful, Leanplum, CallidusCloud, Ooyala, and Chegg.`,
+  bio: `Sharad Chanana is the Founder of Recouply.ai — building the first AI-Native Revenue Intelligence platform from Contract to Cash. A data-driven, transformational leader with 15+ years shaping Deal Operations, Deal Strategy, Revenue Operations, Quote-to-Cash architecture, Billing modernization, Collections strategy, and enterprise-grade GTM systems. As a Deal Ops and Deal Strategy leader, he has partnered with sales, finance, and legal to structure complex enterprise deals, operationalize pricing and discounting frameworks, and turn contract data into revenue signal. He has built and scaled operational frameworks for some of the most respected high-growth SaaS and enterprise companies, including ServiceTitan, 11x.ai, Workday, Maxio (RevOps Inc.), Contentful, Leanplum, CallidusCloud, Ooyala, and Chegg.`,
   expertise: [
     "Architecting scalable Q2C and Billing operations",
     "Modernizing enterprise billing across Salesforce, Workday, Zuora, NetSuite, and Stripe",
