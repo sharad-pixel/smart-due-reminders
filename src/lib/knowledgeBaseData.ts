@@ -416,6 +416,58 @@ export const knowledgeBaseData: FAQCategory[] = [
     ]
   },
   {
+    id: "contract-intelligence",
+    title: "Contract Intelligence",
+    description: "AI-powered contract ingestion, review, and revenue extraction",
+    faqs: [
+      {
+        question: "What is Contract Intelligence in Recouply?",
+        answer: "Contract Intelligence is Recouply's AI-native workflow that ingests any signed agreement (MSA, Order Form, SOW, Amendment, Renewal, NDA, and 12+ other document types) and turns it into structured, validated commercial data. It classifies the document, extracts parties, effective/termination dates, billing terms, payment terms, renewal clauses, price escalators, and total contract value — then links the contract into its agreement family so every Order Form or SOW rolls up to its parent MSA.",
+        keywords: ["contract intelligence", "clm", "contract ai", "ocr", "extraction", "what is contract intelligence"]
+      },
+      {
+        question: "How do I upload a contract?",
+        answer: "Go to Live Contracts and click Upload Contract. You can drop in a PDF, Word document, or scanned image. Recouply's AI runs OCR + a Gemini-2.5-Flash classification pass, then a full extraction pass. Within seconds you see the document type badge, agreement number, effective/termination dates, billing schedule, and any linked parent agreements — all editable before you commit.",
+        keywords: ["upload contract", "pdf contract", "ingest contract", "how to upload"]
+      },
+      {
+        question: "What document types does Contract Intelligence recognize?",
+        answer: "17 canonical types including: Master Service Agreement (MSA), Order Form, Statement of Work (SOW), Amendment, Renewal, Addendum, Change Order, Purchase Order, Quote, Proposal, NDA, DPA, BAA, Reseller Agreement, Subscription Agreement, License Agreement, and Service Agreement. Each is displayed with a semantic color badge and confidence score so you can spot low-confidence classifications and correct them.",
+        keywords: ["document types", "msa", "sow", "order form", "amendment", "classification"]
+      },
+      {
+        question: "How does the agreement family / hierarchy work?",
+        answer: "Every extracted contract carries an agreement_number and document_version. When a child document (Order Form, SOW, Amendment) shares an agreement number with a parent MSA, Recouply auto-links them into an agreement family. The Contract detail page shows the full tree — parent MSA at the top, sibling documents, and downstream amendments — and gives you a searchable picker to link or unlink parents manually.",
+        keywords: ["agreement family", "hierarchy", "parent contract", "msa linking", "contract tree"]
+      },
+      {
+        question: "How are invoices generated from a contract?",
+        answer: "Once a contract's billing schedule is confirmed, click Generate Invoices. Recouply opens a review dialog summarizing every scheduled invoice (amount, date, description) and asks you to choose a posting state: Draft — open to editing (recommended, review in AR before finalizing; AI collection outreach does NOT start until posted) or Posted — locked (immediately enters aging and becomes eligible for automated outreach). Drafts can be promoted to Posted from Invoice Detail at any time.",
+        keywords: ["generate invoices", "billing schedule", "draft invoice", "posted invoice", "contract to invoice", "posting state"]
+      },
+      {
+        question: "What contract data can I edit after extraction?",
+        answer: "Everything. AI extraction is a starting point, not a lock. You can edit parties, agreement number, document type, effective/termination dates, auto-renewal terms, notice periods, payment terms (Net 30, Net 60, etc.), price escalators, total contract value, and every line item on the billing schedule before invoices are generated or the contract is committed.",
+        keywords: ["edit contract", "correct extraction", "override ai", "modify contract"]
+      },
+      {
+        question: "What is the completeness / risk assessment?",
+        answer: "Contract Intelligence scores every ingested contract on completeness (are all required commercial terms present?) and flags commercial risk — missing renewal notice periods, ambiguous payment terms, uncapped price escalators, unusual termination clauses, and undefined billing frequency. Low-completeness contracts surface in your review queue so nothing enters revenue recognition or collections outreach with gaps.",
+        keywords: ["completeness score", "risk assessment", "contract validation", "commercial risk", "review queue"]
+      },
+      {
+        question: "How do Key Dates & Notifications work?",
+        answer: "Every contract has a Key Dates panel: effective date, termination date, auto-renewal date, and notice window. You can subscribe email recipients (comma-separated) and choose a notification channel; Recouply sends alerts ahead of renewal and notice deadlines so nothing renews silently or lapses. Use Send Test to preview the exact email your recipients will receive.",
+        keywords: ["key dates", "renewal alerts", "notifications", "notice period", "auto-renewal"]
+      },
+      {
+        question: "How does Contract Intelligence power Revenue Intelligence and Collections?",
+        answer: "Extracted contract terms become the source of truth for what was sold. The billing schedule feeds AR as Draft or Posted invoices. Payment terms drive aging buckets and DPD. Renewal dates power revenue-at-risk forecasts. When an invoice from a Posted contract goes past due, AI collection outreach references the underlying agreement — so every follow-up is grounded in the actual signed terms, not guesswork.",
+        keywords: ["revenue intelligence", "collections", "source of truth", "contract to cash", "revenue at risk"]
+      }
+    ]
+  },
+  {
     id: "knowledge-help",
     title: "Knowledge Base & Help",
     description: "Finding answers and documentation",
@@ -522,6 +574,10 @@ function getCategoryLinks(categoryId: string): { label: string; path: string }[]
     ],
     'security-privacy': [
       { label: 'Security Settings', path: '/settings/security' }
+    ],
+    'contract-intelligence': [
+      { label: 'Live Contracts', path: '/live-contracts' },
+      { label: 'Upload Contract', path: '/live-contracts' }
     ],
     'knowledge-help': [
       { label: 'Knowledge Base', path: '/knowledge-base' },
