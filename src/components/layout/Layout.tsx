@@ -274,7 +274,9 @@ const Layout = ({ children }: LayoutProps) => {
   const isAnyRevenueHubActive = revenueHubItems.some(item => isActive(item.path));
 
   const revenueIntelligenceItems = [
-    { path: "/ai-ingestion", label: "Contracts", icon: FileSignature },
+    { path: "/contract-intelligence/dashboard", label: "Contract Intelligence", icon: FileSignature },
+    { path: "/contracts/active", label: "Active Contracts", icon: FileSignature },
+    { path: "/ai-ingestion", label: "Ingestion", icon: Sparkles },
     { path: "/revenue-library", label: "Revenue Library", icon: Library },
     { path: "/revenue-risk", label: "Revenue Risk", icon: ShieldAlert },
   ];
