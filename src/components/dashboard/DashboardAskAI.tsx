@@ -437,7 +437,6 @@ export function DashboardAskAI() {
                     setInput(p);
                     setTimeout(() => inputRef.current?.focus(), 50);
                   }}
-                  triggerAsDropdownItem
                 />
               </DropdownMenuContent>
             </DropdownMenu>
