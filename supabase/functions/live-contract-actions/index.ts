@@ -346,10 +346,13 @@ Deno.serve(async (req) => {
           issue_date: issue,
           due_date: due,
           status: "Open",
+          posting_state: postingState,
+          posted_at: postingState === "posted" ? new Date().toISOString() : null,
+          posted_by: postingState === "posted" ? user.id : null,
           source_system: "live_contract",
           payment_terms: s.payment_terms || null,
           product_description: lineDescription,
-          notes: `Auto-generated from contract: ${imp.contract_name || imp.file_name}`,
+          notes: `Auto-generated from contract: ${imp.contract_name || imp.file_name}${postingState === "draft" ? " — Draft, pending review" : ""}`,
         }).select("id").single();
         if (iErr) {
           // Treat unique-violation as duplicate, not failure
