@@ -723,7 +723,14 @@ function ImportsTable({ imports, onReview, statusFilter }: { imports: any[]; onR
             <TableCell className="text-sm">
               {i.debtor?.company_name || i.debtor?.name || <span className="text-muted-foreground">—</span>}
             </TableCell>
-            <TableCell className="text-sm">{i.contract_type || "—"}</TableCell>
+            <TableCell className="text-sm">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <DocumentTypeBadge type={(i as any).document_type} confidence={(i as any).document_type_confidence} />
+                {i.contract_type && (
+                  <span className="text-xs text-muted-foreground truncate max-w-[140px]">{i.contract_type}</span>
+                )}
+              </div>
+            </TableCell>
             <TableCell>
               <div className="flex items-center gap-1.5">
                 <Badge variant={STATUS_VARIANT(i.status)}>{STATUS_LABEL[i.status] || i.status}</Badge>
