@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Send, Loader2, Lock, FileCheck2 } from "lucide-react";
+import { Sparkles, Send, Loader2, Lock, FileCheck2, BookOpen, ExternalLink, Library, ShieldAlert } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
