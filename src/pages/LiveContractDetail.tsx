@@ -623,6 +623,13 @@ const LiveContractDetailInner = () => {
           keyDates={data.dates}
         />
 
+        <ContractRevRecASC606
+          schedules={data.schedules as any}
+          effectiveDate={c.effective_date}
+          termEndDate={c.term_end_date}
+          defaultCurrency={totals.currency}
+        />
+
         <KeyDatesNotificationsPanel importId={c.id} dates={data.dates as any} />
       </section>
 
