@@ -91,8 +91,8 @@ const ContractIntelligence = () => {
     <MarketingLayout>
       <SEOHead
         title="Recouply Contract Intelligence"
-        description="An AI-native Contract Intelligence module for Recouply.ai. Generate, negotiate, sign, and govern contracts — linked directly to revenue, collections, and risk."
-        keywords="contract intelligence, contract lifecycle, AI contracts, DocuSign, contract automation, legal AI"
+        description="Recouply Contract Intelligence reviews every contract and captures all revenue-related and key actionable data points — dates, obligations, payment terms, and risks — so nothing goes untracked."
+        keywords="contract intelligence, contract review, revenue data extraction, obligation tracking, renewal tracking, AI contract analysis"
         canonical="https://recouply.ai/clm"
       />
 
@@ -109,16 +109,16 @@ const ContractIntelligence = () => {
               New Module · Sales-Led Availability
             </Badge>
             <h1 className="text-5xl lg:text-7xl font-bold tracking-tight mb-6">
-              Contract Intelligence,
+              Every Contract, Reviewed.
               <br />
               <span className="bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
-                Wired Into Revenue.
+                Every Revenue Signal, Tracked.
               </span>
             </h1>
             <p className="text-xl lg:text-2xl text-muted-foreground mb-10 leading-relaxed">
-              Recouply Contract Intelligence is an AI-native module that generates, negotiates,
-              signs, and governs every agreement — linked directly to the invoices, payments,
-              and risk signals already running in Recouply.
+              Recouply Contract Intelligence reviews your contracts and captures every
+              revenue-related and key actionable data point — payment terms, renewal
+              dates, obligations, and risk clauses — so nothing important goes untracked.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="lg" onClick={goContact} className="gap-2 text-base px-8">
