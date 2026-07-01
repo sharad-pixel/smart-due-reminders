@@ -246,7 +246,8 @@ Deno.serve(async (req) => {
     if (!imp.debtor_id) return json({ error: "Contract must be imported with a customer first" }, 400);
 
     if (action === "generate_invoices") {
-      const { scheduleIds } = body;
+      const { scheduleIds, postingState: rawPostingState } = body;
+      const postingState = rawPostingState === "posted" ? "posted" : "draft";
       const { data: schedules } = await supabase
         .from("contract_invoice_schedules")
         .select("*")
