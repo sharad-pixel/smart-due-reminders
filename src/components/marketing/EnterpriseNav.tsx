@@ -78,7 +78,7 @@ const solutionsGroups: MenuGroup[] = [
 ];
 
 const customersItems: MenuItem[] = [
-  { icon: Quote, title: "Customer Stories", description: "How finance teams accelerated cash with Recouply.", path: "/blog" },
+  { icon: Quote, title: "Blog", description: "Insights, playbooks, and customer stories.", path: "/blog" },
   { icon: BarChart3, title: "Collections ROI Calculator", description: "Estimate cost of delay and write-off risk.", path: "/roi-calculator" },
   { icon: Calculator, title: "Contract Intelligence ROI", description: "Quantify revenue leakage in signed agreements.", path: "/contract-roi-calculator" },
   { icon: CreditCard, title: "Payment Portal", description: "Where your customers pay, upload W-9s, and self-serve.", path: "/debtor-portal" },
