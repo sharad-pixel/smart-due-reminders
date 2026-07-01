@@ -99,10 +99,10 @@ const Enterprise = () => {
                 Enterprise AR Intelligence
               </div>
               <h1 className="text-4xl md:text-5xl font-bold mb-6">
-                Enterprise Revenue Intelligence Platform for High Volume
+                Revenue Intelligence Platform for High Volume
               </h1>
               <p className="text-xl text-muted-foreground mb-8">
-                Built for enterprise companies processing thousands of invoices monthly. AI agents trained on your CRM data, CS cases, and AR history—automating high-volume accounts receivable with enterprise-grade security and governance.
+                Built for businesses of every size processing invoices at scale. AI agents trained on your CRM data, CS cases, and AR history—automating accounts receivable with production-grade security and governance.
               </p>
               <div className="flex gap-4 flex-wrap">
                 <Button size="lg" onClick={() => navigate("/contact-us")} className="text-lg px-8">
