@@ -360,6 +360,11 @@ const LiveContractDetailInner = () => {
         }${c.status ? ` · ${String(c.status).replace(/_/g, " ")}` : ""}`}
         rightSlot={
           <div className="flex items-center gap-2 flex-wrap justify-end">
+            <DocumentTypeBadge
+              type={(c as any).document_type}
+              confidence={(c as any).document_type_confidence}
+              full
+            />
             {(() => {
               const high = data.flags.filter((f: any) => f.severity === "high" || f.severity === "critical").length;
               const med = data.flags.filter((f: any) => f.severity === "medium").length;
