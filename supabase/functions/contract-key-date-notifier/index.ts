@@ -33,6 +33,9 @@ const LABEL: Record<string, string> = {
 
 const label = (t: string) => LABEL[t] || t.replace(/_/g, " ");
 
+const APP_URL = Deno.env.get("APP_URL") || "https://recouply.ai";
+const contractUrl = (importId: string) => `${APP_URL}/contracts/live/${importId}`;
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
