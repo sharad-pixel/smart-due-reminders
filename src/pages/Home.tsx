@@ -7,6 +7,7 @@ import { generateFAQSchema } from "@/lib/seoConfig";
 const RevenueJourney = lazy(() => import("@/components/marketing/enterprise/RevenueJourney"));
 const ContractIntelligenceSection = lazy(() => import("@/components/marketing/enterprise/ContractIntelligenceSection"));
 const CollectionIntelligenceSection = lazy(() => import("@/components/marketing/enterprise/CollectionIntelligenceSection"));
+const CollectabilityAssuranceSection = lazy(() => import("@/components/marketing/enterprise/CollectabilityAssuranceSection"));
 const ExecutiveDashboardSection = lazy(() => import("@/components/marketing/enterprise/ExecutiveDashboardSection"));
 const AIRecommendationsSection = lazy(() => import("@/components/marketing/enterprise/AIRecommendationsSection"));
 const EnterpriseFeaturesSection = lazy(() => import("@/components/marketing/enterprise/EnterpriseFeaturesSection"));
