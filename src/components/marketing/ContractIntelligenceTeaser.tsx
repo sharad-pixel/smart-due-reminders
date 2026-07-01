@@ -11,6 +11,7 @@ import {
   ArrowRight,
   CheckCircle2,
   Bell,
+  FileText,
 } from "lucide-react";
 
 const fadeUp = {
@@ -37,6 +38,11 @@ const PILLARS = [
     icon: Receipt,
     title: "Custom Triggers & Automation",
     body: "Orchestrate automation off any captured data point — milestones, escalators, true-ups — inside the only platform designed as a Finance CRM.",
+  },
+  {
+    icon: FileText,
+    title: "Invoice Generation & AR Portal",
+    body: "Generate branded invoices from contract terms and share a secure AR portal link on every invoice — clients pay directly, submit W-9s, and share AR documents in one place.",
   },
 ];
 
