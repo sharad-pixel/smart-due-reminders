@@ -4,9 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
+  DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import {
   Send, Loader2, RotateCcw, BarChart3, Brain, TrendingUp,
   AlertTriangle, DollarSign, Sparkles, ArrowRight, Wand2, Activity,
-  ShieldAlert, ListChecks, Clock, CheckCircle2,
+  ShieldAlert, ListChecks, Clock, CheckCircle2, ChevronDown,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -375,7 +379,82 @@ export function DashboardAskAI() {
       </div>
 
       <CardContent className="p-0">
-        {/* Greeting + critical insights + starters when empty */}
+        {/* Composer at top */}
+        <div className="border-b bg-background px-3 sm:px-4 pt-3 pb-3">
+          <div className="flex gap-2 items-start">
+            <Textarea
+              ref={inputRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+              }}
+              placeholder="Ask Nicolas anything about your portfolio…"
+              className="resize-none min-h-[48px] max-h-32 text-sm flex-1"
+              rows={1}
+              disabled={sending}
+            />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-12 shrink-0" title="Suggested prompts">
+                  <Wand2 className="h-4 w-4 mr-1.5" /> Prompts <ChevronDown className="h-3.5 w-3.5 ml-1 opacity-60" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-[320px]">
+                <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                  Suggested starters
+                </DropdownMenuLabel>
+                {STARTERS.map((s) => {
+                  const Icon = s.icon;
+                  return (
+                    <DropdownMenuItem
+                      key={s.label}
+                      onSelect={() => send(s.prompt)}
+                      disabled={sending}
+                      className="flex items-start gap-2 py-2"
+                    >
+                      <Icon className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium leading-tight">{s.label}</div>
+                        <div className="text-xs text-muted-foreground line-clamp-2">{s.prompt}</div>
+                      </div>
+                    </DropdownMenuItem>
+                  );
+                })}
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                  Follow-ups
+                </DropdownMenuLabel>
+                {FOLLOWUPS.map((f) => (
+                  <DropdownMenuItem key={f} onSelect={() => send(f)} disabled={sending} className="text-sm">
+                    <Sparkles className="h-3.5 w-3.5 text-primary mr-2 shrink-0" /> {f}
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuSeparator />
+                <NicolasPromptLibrary
+                  currentDraft={input}
+                  onPick={(p) => {
+                    setInput(p);
+                    setTimeout(() => inputRef.current?.focus(), 50);
+                  }}
+                />
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button onClick={() => send()} disabled={!input.trim() || sending} size="icon" className="shrink-0 h-12 w-12">
+              {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            </Button>
+          </div>
+          <div className="flex items-center justify-between mt-1.5 px-1">
+            <span className="text-[10px] text-muted-foreground">Enter to send · Shift+Enter for newline</span>
+            {hasChat && (
+              <Button size="sm" variant="ghost" onClick={reset} className="text-xs h-6">
+                <RotateCcw className="h-3 w-3 mr-1" /> New chat
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Greeting + critical insights when empty */}
         {!hasChat && (
           <div className="px-5 sm:px-7 py-6 space-y-5">
             {/* Live monitoring strip */}
@@ -513,36 +592,6 @@ export function DashboardAskAI() {
                 </div>
               </div>
             )}
-
-            <div>
-              <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
-                <Wand2 className="h-3 w-3" /> Suggested starters
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {STARTERS.map((s) => {
-                  const Icon = s.icon;
-                  return (
-                    <button
-                      key={s.label}
-                      onClick={() => send(s.prompt)}
-                      disabled={sending}
-                      className={`group text-left rounded-xl border bg-gradient-to-br ${s.tone} p-3.5 transition-all hover:shadow-md hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0`}
-                    >
-                      <div className="flex items-start gap-2.5">
-                        <div className="h-8 w-8 rounded-lg bg-background/80 border flex items-center justify-center shrink-0">
-                          <Icon className="h-4 w-4 text-primary" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium leading-tight">{s.label}</div>
-                          <div className="text-xs text-muted-foreground mt-1 line-clamp-2">{s.prompt}</div>
-                        </div>
-                        <ArrowRight className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition shrink-0 mt-1" />
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
           </div>
         )}
 
@@ -579,56 +628,10 @@ export function DashboardAskAI() {
                 </div>
               </div>
             )}
-
-            {/* Follow-up chips after last assistant reply */}
-            {!sending && messages[messages.length - 1]?.role === "assistant" && (
-              <div className="flex flex-wrap gap-1.5 pt-1 pl-10">
-                {followups.map((f) => (
-                  <button
-                    key={f}
-                    onClick={() => send(f)}
-                    className="text-xs px-3 py-1.5 rounded-full border bg-background hover:bg-primary/5 hover:border-primary/40 transition text-muted-foreground hover:text-foreground"
-                  >
-                    <Sparkles className="h-3 w-3 inline mr-1 text-primary" />
-                    {f}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
         )}
-
-        {/* Composer */}
-        <div className="border-t bg-background">
-          <div className="flex items-center justify-between px-3 sm:px-4 pt-2">
-            <NicolasPromptLibrary
-              currentDraft={input}
-              onPick={(p) => {
-                setInput(p);
-                setTimeout(() => inputRef.current?.focus(), 50);
-              }}
-            />
-            <span className="text-[10px] text-muted-foreground">Enter to send · Shift+Enter for newline</span>
-          </div>
-          <div className="p-3 sm:p-4 pt-2 flex gap-2">
-            <Textarea
-              ref={inputRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
-              }}
-              placeholder="Ask Nicolas about risk, overdue accounts, financial health, or specific debtors…"
-              className="resize-none min-h-[48px] max-h-32 text-sm"
-              rows={1}
-              disabled={sending}
-            />
-            <Button onClick={() => send()} disabled={!input.trim() || sending} size="icon" className="shrink-0 h-12 w-12">
-              {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            </Button>
-          </div>
-        </div>
       </CardContent>
     </Card>
   );
 }
+
