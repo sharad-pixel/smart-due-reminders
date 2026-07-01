@@ -39,16 +39,16 @@ const HEADLINES: string[] = [
 ];
 
 const CONTRACT_HEADLINES: string[] = [
-  "Turn Every Contract Into Recurring Revenue",
-  "Contract Intelligence — From Signature to Cash",
+  "Contract Intelligence Observability — Never Miss a Key Event",
+  "Extract Contract Data. Orchestrate Automation.",
+  "Renewal & Opt-Out Reminders, Powered by AI",
+  "Custom Triggers So You Never Miss a Key Event",
+  "The Only Platform Designed as a Finance CRM",
+  "Observability Across Every Clause, Renewal, and Trigger",
   "AI That Reads Every MSA, SOW, and Renewal",
-  "Never Miss a Renewal, Milestone, or True-Up",
-  "Extract Terms. Arm Triggers. Recapture Revenue.",
-  "Your Contracts, Decoded by AI in Seconds",
-  "From PDF to Billable — Automatically",
-  "Every Clause Watched. Every Dollar Aligned.",
-  "Stop Leaking Revenue Hidden in Your Contracts",
-  "Auto-Renewals, Escalators, and Caps — All Tracked",
+  "From Signature to Trigger — Full Contract Observability",
+  "Turn Contract Data Into Automated Action",
+  "Every Renewal, Opt-Out, and Milestone — Observed",
 ];
 
 
