@@ -1,5 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { classifyLineItem, revenueTypeFor } from "../_shared/contractMetrics.ts";
+import { encryptToken, readToken } from "../_shared/tokenCrypto.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -213,18 +214,20 @@ async function ocrPdfPerPage(args: {
 }
 
 async function refreshToken(supabase: any, conn: any, clientId: string, clientSecret: string) {
+  const refreshTokenValue = await readToken(conn.refresh_token_encrypted, conn.refresh_token);
   const res = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       client_id: clientId, client_secret: clientSecret,
-      refresh_token: conn.refresh_token, grant_type: "refresh_token",
+      refresh_token: refreshTokenValue ?? '', grant_type: "refresh_token",
     }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(`Token refresh: ${JSON.stringify(data)}`);
   await supabase.from("drive_connections").update({
-    access_token: data.access_token,
+    access_token: null,
+    access_token_encrypted: await encryptToken(data.access_token),
     token_expires_at: new Date(Date.now() + data.expires_in * 1000).toISOString(),
   }).eq("id", conn.id);
   return data.access_token;
@@ -533,7 +536,7 @@ Deno.serve(async (req) => {
     if (imp.source === "drive" && imp.drive_file_id) {
       const { data: folder } = await supabase.from("live_contract_drive_folders").select("connection_id").eq("id", imp.folder_id).single();
       const { data: conn } = await supabase.from("drive_connections").select("*").eq("id", folder!.connection_id).single();
-      let token = conn!.access_token;
+      let token = await readToken(conn!.access_token_encrypted, conn!.access_token);
       if (conn!.token_expires_at && new Date(conn!.token_expires_at) <= new Date()) {
         token = await refreshToken(supabase, conn, clientId, clientSecret);
       }
