@@ -197,7 +197,33 @@ export const ContractRevRecASC606 = ({
   termEndDate,
   defaultCurrency = "USD",
 }: Props) => {
-  const rows = useMemo(
+  // Per-line overrides for non-recurring rows.
+  // method: "auto" (default calc) | "point_in_time" (book full amount now) | "custom" (user-entered)
+  type Override = { method: "auto" | "point_in_time" | "custom"; custom?: number };
+  const storageKey = useMemo(() => {
+    const first = (schedules || [])[0]?.id || "none";
+    return `revrec-overrides:${first}`;
+  }, [schedules]);
+  const [overrides, setOverrides] = useState<Record<string, Override>>({});
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (raw) setOverrides(JSON.parse(raw));
+    } catch {}
+  }, [storageKey]);
+
+  const setOverride = (id: string, next: Override) => {
+    setOverrides((prev) => {
+      const merged = { ...prev, [id]: next };
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(merged));
+      } catch {}
+      return merged;
+    });
+  };
+
+  const baseRows = useMemo(
     () =>
       (schedules || [])
         .filter((s) => Number(s.amount) > 0)
@@ -205,6 +231,23 @@ export const ContractRevRecASC606 = ({
         .sort((a, b) => (a.line.scheduled_date || "").localeCompare(b.line.scheduled_date || "")),
     [schedules, effectiveDate, termEndDate],
   );
+
+  // Apply overrides on top of computed rows (recurring rows ignore overrides)
+  const rows = useMemo(() => {
+    return baseRows.map((r) => {
+      if (r.bucket === "recurring") return r;
+      const o = overrides[r.line.id];
+      if (!o || o.method === "auto") return r;
+      if (o.method === "point_in_time") {
+        return { ...r, recognizedToDate: r.amount, deferred: 0 };
+      }
+      if (o.method === "custom") {
+        const c = Math.max(0, Math.min(r.amount, Number(o.custom) || 0));
+        return { ...r, recognizedToDate: c, deferred: r.amount - c };
+      }
+      return r;
+    });
+  }, [baseRows, overrides]);
 
   const grouped = useMemo(() => {
     const g: Record<RevBucket, RecognitionRow[]> = {
@@ -288,6 +331,7 @@ export const ContractRevRecASC606 = ({
           .map((b) => {
             const meta = bucketMeta[b];
             const Icon = meta.icon;
+            const editable = b !== "recurring";
             return (
               <div key={b} className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -304,59 +348,99 @@ export const ContractRevRecASC606 = ({
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-[38%]">Line Item</TableHead>
+                        <TableHead className="w-[30%]">Line Item</TableHead>
                         <TableHead>Service Period</TableHead>
                         <TableHead className="text-right">Amount</TableHead>
-                        <TableHead className="text-right">Monthly</TableHead>
+                        {editable && <TableHead className="w-[220px]">Recognition Policy</TableHead>}
+                        {!editable && <TableHead className="text-right">Monthly</TableHead>}
                         <TableHead className="text-right">Recognized</TableHead>
                         <TableHead className="text-right">Deferred</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {grouped[b].map((r) => (
-                        <TableRow key={r.line.id}>
-                          <TableCell className="text-xs">
-                            <div className="font-medium">
-                              {r.line.description || r.line.product_description || "Untitled line"}
-                            </div>
-                            {r.line.product_category && (
-                              <div className="text-[10px] text-muted-foreground mt-0.5">
-                                {r.line.product_category.replace(/_/g, " ")}
+                      {grouped[b].map((r) => {
+                        const o = overrides[r.line.id] || { method: "auto" as const };
+                        return (
+                          <TableRow key={r.line.id}>
+                            <TableCell className="text-xs">
+                              <div className="font-medium">
+                                {r.line.description || r.line.product_description || "Untitled line"}
                               </div>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-xs text-muted-foreground">
-                            {r.periodStart && r.periodEnd ? (
-                              r.periodStart === r.periodEnd ? (
-                                formatDateShort(r.periodStart)
+                              {r.line.product_category && (
+                                <div className="text-[10px] text-muted-foreground mt-0.5">
+                                  {r.line.product_category.replace(/_/g, " ")}
+                                </div>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground">
+                              {r.periodStart && r.periodEnd ? (
+                                r.periodStart === r.periodEnd ? (
+                                  formatDateShort(r.periodStart)
+                                ) : (
+                                  <>
+                                    {formatDateShort(r.periodStart)} → {formatDateShort(r.periodEnd)}
+                                    <div className="text-[10px] opacity-70">{r.months} mo</div>
+                                  </>
+                                )
                               ) : (
-                                <>
-                                  {formatDateShort(r.periodStart)} → {formatDateShort(r.periodEnd)}
-                                  <div className="text-[10px] opacity-70">
-                                    {r.months} mo
-                                  </div>
-                                </>
-                              )
+                                "—"
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right text-xs font-medium">
+                              {formatCurrency(r.amount, r.line.currency || defaultCurrency)}
+                            </TableCell>
+                            {editable ? (
+                              <TableCell>
+                                <div className="flex items-center gap-1.5">
+                                  <Select
+                                    value={o.method}
+                                    onValueChange={(v) =>
+                                      setOverride(r.line.id, {
+                                        method: v as Override["method"],
+                                        custom: o.custom,
+                                      })
+                                    }
+                                  >
+                                    <SelectTrigger className="h-7 text-[11px] w-[130px]">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="auto" className="text-xs">Auto (default)</SelectItem>
+                                      <SelectItem value="point_in_time" className="text-xs">Book as one-time</SelectItem>
+                                      <SelectItem value="custom" className="text-xs">Custom amount</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  {o.method === "custom" && (
+                                    <Input
+                                      type="number"
+                                      inputMode="decimal"
+                                      className="h-7 text-[11px] w-[90px] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                      placeholder="0.00"
+                                      value={o.custom ?? ""}
+                                      onChange={(e) =>
+                                        setOverride(r.line.id, {
+                                          method: "custom",
+                                          custom: e.target.value === "" ? undefined : Number(e.target.value),
+                                        })
+                                      }
+                                    />
+                                  )}
+                                </div>
+                              </TableCell>
                             ) : (
-                              "—"
+                              <TableCell className="text-right text-xs">
+                                {formatCurrency(r.monthly, r.line.currency || defaultCurrency)}
+                              </TableCell>
                             )}
-                          </TableCell>
-                          <TableCell className="text-right text-xs font-medium">
-                            {formatCurrency(r.amount, r.line.currency || defaultCurrency)}
-                          </TableCell>
-                          <TableCell className="text-right text-xs">
-                            {b === "usage"
-                              ? "Variable"
-                              : formatCurrency(r.monthly, r.line.currency || defaultCurrency)}
-                          </TableCell>
-                          <TableCell className="text-right text-xs text-emerald-700">
-                            {formatCurrency(r.recognizedToDate, r.line.currency || defaultCurrency)}
-                          </TableCell>
-                          <TableCell className="text-right text-xs text-amber-700">
-                            {formatCurrency(r.deferred, r.line.currency || defaultCurrency)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                            <TableCell className="text-right text-xs text-emerald-700">
+                              {formatCurrency(r.recognizedToDate, r.line.currency || defaultCurrency)}
+                            </TableCell>
+                            <TableCell className="text-right text-xs text-amber-700">
+                              {formatCurrency(r.deferred, r.line.currency || defaultCurrency)}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
@@ -380,11 +464,41 @@ export const ContractRevRecASC606 = ({
           </div>
         </div>
 
-        <p className="text-[11px] text-muted-foreground italic">
-          Recognition is calculated deterministically per ASC 606 five-step model. Recurring and PS
-          lines use straight-line over the service window; usage lines defer to actual consumption;
-          one-time lines recognize at point of delivery.
-        </p>
+        <div className="rounded-md border border-blue-200 bg-blue-50/60 p-3 space-y-1.5">
+          <div className="flex items-center gap-2 text-xs font-semibold text-blue-900">
+            <ShieldCheck className="h-3.5 w-3.5" /> ASC 606 Best Practice
+          </div>
+          <p className="text-[11px] leading-relaxed text-blue-900/90">
+            Under ASC 606, revenue is recognized when control of the good or service transfers to the
+            customer. Apply the five-step model per performance obligation: (1) identify the contract,
+            (2) identify performance obligations, (3) determine transaction price, (4) allocate price
+            to obligations, (5) recognize revenue when (or as) each obligation is satisfied.
+          </p>
+          <ul className="text-[11px] leading-relaxed text-blue-900/90 list-disc pl-4 space-y-0.5">
+            <li>
+              <strong>Recurring / SaaS:</strong> recognize ratably (straight-line) over the service term — a series of
+              distinct services satisfied over time (§606-10-25-27(a)).
+            </li>
+            <li>
+              <strong>Professional Services:</strong> if distinct and delivered over a period, recognize over that
+              period using an input method; if the service is a discrete deliverable, recognize at
+              point-in-time on acceptance.
+            </li>
+            <li>
+              <strong>One-time fees (setup, activation, license grants):</strong> book point-in-time when control
+              transfers. Non-refundable upfront fees not tied to a distinct good/service should be
+              deferred over the expected customer life.
+            </li>
+            <li>
+              <strong>Consumption / Usage:</strong> variable consideration — recognize as usage occurs; do not
+              accelerate unless a minimum commitment is fixed.
+            </li>
+            <li>
+              Document your judgment for any override in the contract file. Any deviation from
+              straight-line for a service-over-time obligation requires a rationale for audit.
+            </li>
+          </ul>
+        </div>
       </CardContent>
     </Card>
   );
