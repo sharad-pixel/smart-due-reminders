@@ -393,14 +393,28 @@ const Layout = ({ children }: LayoutProps) => {
                       </DropdownMenuItem>
                     </div>
                     <DropdownMenuItem asChild>
-                      <Link to="/ai-ingestion" className="flex items-start gap-2 cursor-pointer">
+                      <Link to="/contract-intelligence/dashboard" className="flex items-start gap-2 cursor-pointer">
                         <FileSignature className="h-4 w-4 text-primary mt-0.5" />
                         <div>
                           <div className="font-medium">Contract Intelligence</div>
-                          <div className="text-xs text-muted-foreground">Contracts, clauses, renewals</div>
+                          <div className="text-xs text-muted-foreground">TCV, ARR, renewals & risk</div>
                         </div>
                       </Link>
                     </DropdownMenuItem>
+                    <div className="pl-6 space-y-1">
+                      <DropdownMenuItem asChild>
+                        <Link to="/contracts/active" className="flex items-center gap-2 cursor-pointer text-sm">
+                          <FileSignature className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span>Active Contracts</span>
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/ai-ingestion" className="flex items-center gap-2 cursor-pointer text-sm">
+                          <Sparkles className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span>Ingestion & Extraction</span>
+                        </Link>
+                      </DropdownMenuItem>
+                    </div>
                     <DropdownMenuItem asChild>
                       <Link to="/revenue-risk" className="flex items-start gap-2 cursor-pointer">
                         <ShieldAlert className="h-4 w-4 text-primary mt-0.5" />
