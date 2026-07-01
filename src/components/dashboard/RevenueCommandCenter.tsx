@@ -92,7 +92,7 @@ export function RevenueCommandCenter() {
         const ninetyAgo = new Date(now);
         ninetyAgo.setDate(ninetyAgo.getDate() - 90);
 
-        const [invRes, contRes, paidRes] = await Promise.all([
+        const [invRes, contRes, liveRes, paidRes] = await Promise.all([
           supabase
             .from("invoices")
             .select("amount,due_date,status,aging_bucket,currency,payment_date")
@@ -100,6 +100,11 @@ export function RevenueCommandCenter() {
           supabase
             .from("contracts")
             .select("contract_value,currency,status,renewal_date,expiry_date")
+            .limit(2000),
+          supabase
+            .from("live_contract_imports")
+            .select("contract_value,effective_date,term_end_date,status,staging_status,contract_name")
+            .neq("status", "archived")
             .limit(2000),
           supabase
             .from("invoices")
@@ -110,7 +115,27 @@ export function RevenueCommandCenter() {
         ]);
 
         setInvoices(invRes.data || []);
-        setContracts(contRes.data || []);
+
+        // Merge formal contracts + live contract imports so ARR reflects
+        // whichever source the workspace uses (most orgs use live_contract_imports).
+        const merged = [
+          ...((contRes.data || []).map((c: any) => ({
+            contract_value: c.contract_value,
+            currency: c.currency,
+            status: c.status,
+            renewal_date: c.renewal_date || c.expiry_date,
+            expiry_date: c.expiry_date,
+          }))),
+          ...((liveRes.data || []).map((c: any) => ({
+            contract_value: c.contract_value,
+            currency: "USD",
+            status: c.status === "imported" ? "active" : c.status,
+            renewal_date: c.term_end_date,
+            expiry_date: c.term_end_date,
+          }))),
+        ];
+        setContracts(merged);
+
         const paid = (paidRes.data || []).reduce(
           (acc, r: any) => {
             acc.amount += Number(r.amount || 0);
@@ -181,8 +206,16 @@ export function RevenueCommandCenter() {
     });
     const agingTotal = Object.values(aging).reduce((a, b) => a + b, 0) || 1;
 
-    // Contracts
-    const activeContracts = contracts.filter((c) => (c.status || "active").toLowerCase() === "active");
+    // Contracts — count any non-expired contract with a value as contributing to ARR
+    const activeContracts = contracts.filter((c) => {
+      const value = Number(c.contract_value || 0);
+      if (!value) return false;
+      const status = String(c.status || "active").toLowerCase();
+      if (["archived", "cancelled", "terminated", "expired", "rejected"].includes(status)) return false;
+      const end = c.expiry_date || c.renewal_date;
+      if (end && new Date(end) < today) return false;
+      return true;
+    });
     const arr = activeContracts.reduce((s, c) => s + Number(c.contract_value || 0), 0);
     const in90 = new Date(today);
     in90.setDate(in90.getDate() + 90);
