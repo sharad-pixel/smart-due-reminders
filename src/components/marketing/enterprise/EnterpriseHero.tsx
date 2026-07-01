@@ -1,15 +1,24 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { ArrowRight, PlayCircle, ShieldCheck, Sparkles, FileText, Brain, LineChart, Receipt, Wallet, LayoutDashboard } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowRight, PlayCircle, ShieldCheck, Sparkles, FileText, Brain, LineChart, Receipt, Wallet, LayoutDashboard, Check } from "lucide-react";
 
 const pipelineSteps = [
-  { icon: FileText, label: "Contract Uploaded" },
-  { icon: Brain, label: "AI OCR + Term Extraction" },
-  { icon: LineChart, label: "Revenue Metrics Calculated" },
-  { icon: Receipt, label: "Invoices Linked" },
-  { icon: Sparkles, label: "Collection Intelligence Activated" },
-  { icon: Wallet, label: "Cash Captured" },
-  { icon: LayoutDashboard, label: "Executive Dashboard Updated" },
+  { icon: FileText, label: "Contract ingested", detail: "PDF, email, or Drive" },
+  { icon: Brain, label: "AI extracts terms", detail: "ARR, MRR, renewal, notice" },
+  { icon: LineChart, label: "Revenue booked", detail: "ASC 606 aligned" },
+  { icon: Receipt, label: "Invoice issued", detail: "Branded, portal-linked" },
+  { icon: Sparkles, label: "Collections activated", detail: "AI prioritized outreach" },
+  { icon: Wallet, label: "Cash captured", detail: "Reconciled to invoice" },
+  { icon: LayoutDashboard, label: "Executive insight", detail: "Forecast updated" },
+];
+
+const lifecycleStages = [
+  { label: "Contract", accent: "primary" },
+  { label: "Revenue", accent: "primary" },
+  { label: "Invoice", accent: "primary" },
+  { label: "Collections", accent: "accent" },
+  { label: "Cash", accent: "accent" },
 ];
 
 export default function EnterpriseHero() {
