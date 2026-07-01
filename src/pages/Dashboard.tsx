@@ -596,8 +596,12 @@ const Dashboard = () => {
         </div>
 
 
+        {/* Executive Contracts & Collections Command Center */}
+        <RevenueCommandCenter />
+
         {/* Contract Intelligence — always visible */}
         <ContractIntelligenceSummary />
+
 
         {view === "ask" ? (
           <DashboardAskAI />
