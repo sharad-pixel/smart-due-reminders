@@ -73,9 +73,9 @@ export default function EnterpriseHero() {
               transition={{ duration: 0.7, delay: 0.15 }}
               className="mt-6 max-w-xl text-lg text-muted-foreground leading-relaxed"
             >
-              AI-powered Contract Intelligence and Collection Intelligence that transform
-              commercial agreements into revenue insights — and customer activity into
-              predictable cash flow.
+              Revenue Intelligence, from contract to cash. AI-native Contract Intelligence
+              and Collection Intelligence — one system that reads every clause, tracks every
+              obligation, and turns every receivable into predictable cash.
             </motion.p>
 
             {/* Contract → Cash lifecycle strip */}
