@@ -32,6 +32,7 @@ import { Progress } from "@/components/ui/progress";
 import { AlertTriangle, ArrowRight, CheckCircle2 } from "lucide-react";
 import { IntegrationSetupModal } from "@/components/integrations/IntegrationSetupModal";
 import { ContractSummaryCard } from "@/components/dashboard/ContractSummaryCard";
+import { ContractIntelligenceSummary } from "@/components/dashboard/ContractIntelligenceSummary";
 
 import { DashboardAskAI } from "@/components/dashboard/DashboardAskAI";
 import { SmartIngestionButton } from "@/components/ingestion/SmartIngestionButton";
@@ -737,8 +738,12 @@ const Dashboard = () => {
         </div>
 
 
+        {/* Contract Intelligence — KPI summary + links */}
+        <ContractIntelligenceSummary />
+
         {/* Contract Summary (CLM enabled only) */}
         <ContractSummaryCard />
+
 
         {/* Revenue Risk Card */}
         <Card className="bg-gradient-to-br from-amber-500/10 to-orange-500/5 border-amber-500/20">
