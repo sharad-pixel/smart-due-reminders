@@ -257,8 +257,8 @@ const ContractIntelligence = () => {
                 ))}
               </div>
               <div className="mt-4 pt-4 border-t">
-                <div className="text-xs text-muted-foreground mb-2">AI Recommendations</div>
-                <div className="text-sm">Negotiate Net 30 to align with collections cadence; widen renewal notice to 120 days.</div>
+                <div className="text-xs text-muted-foreground mb-2">Flagged for Action</div>
+                <div className="text-sm">Net 60 is off-market vs. your standard Net 30; renewal notice window is tight — tracked and surfaced to the owner.</div>
               </div>
             </Card>
           </div>
