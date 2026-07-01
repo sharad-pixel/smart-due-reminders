@@ -7125,13 +7125,18 @@ export type Database = {
       live_contract_imports: {
         Row: {
           account_id: string
+          agreement_number: string | null
           awaiting_primary: boolean
+          classified_at: string | null
           confidence: number | null
           contract_name: string | null
           contract_type: string | null
           contract_value: number | null
           created_at: string
           debtor_id: string | null
+          document_type: string | null
+          document_type_confidence: number | null
+          document_version: string | null
           drive_file_id: string | null
           duplicate_of: string | null
           effective_date: string | null
@@ -7145,6 +7150,7 @@ export type Database = {
           metrics_jsonb: Json | null
           mime_type: string | null
           nicolas_line_review_ack_at: string | null
+          parent_import_id: string | null
           primary_role: string | null
           product_description: string | null
           progress_pct: number | null
@@ -7165,13 +7171,18 @@ export type Database = {
         }
         Insert: {
           account_id: string
+          agreement_number?: string | null
           awaiting_primary?: boolean
+          classified_at?: string | null
           confidence?: number | null
           contract_name?: string | null
           contract_type?: string | null
           contract_value?: number | null
           created_at?: string
           debtor_id?: string | null
+          document_type?: string | null
+          document_type_confidence?: number | null
+          document_version?: string | null
           drive_file_id?: string | null
           duplicate_of?: string | null
           effective_date?: string | null
@@ -7185,6 +7196,7 @@ export type Database = {
           metrics_jsonb?: Json | null
           mime_type?: string | null
           nicolas_line_review_ack_at?: string | null
+          parent_import_id?: string | null
           primary_role?: string | null
           product_description?: string | null
           progress_pct?: number | null
@@ -7205,13 +7217,18 @@ export type Database = {
         }
         Update: {
           account_id?: string
+          agreement_number?: string | null
           awaiting_primary?: boolean
+          classified_at?: string | null
           confidence?: number | null
           contract_name?: string | null
           contract_type?: string | null
           contract_value?: number | null
           created_at?: string
           debtor_id?: string | null
+          document_type?: string | null
+          document_type_confidence?: number | null
+          document_version?: string | null
           drive_file_id?: string | null
           duplicate_of?: string | null
           effective_date?: string | null
@@ -7225,6 +7242,7 @@ export type Database = {
           metrics_jsonb?: Json | null
           mime_type?: string | null
           nicolas_line_review_ack_at?: string | null
+          parent_import_id?: string | null
           primary_role?: string | null
           product_description?: string | null
           progress_pct?: number | null
@@ -7256,6 +7274,13 @@ export type Database = {
             columns: ["folder_id"]
             isOneToOne: false
             referencedRelation: "live_contract_drive_folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_contract_imports_parent_import_id_fkey"
+            columns: ["parent_import_id"]
+            isOneToOne: false
+            referencedRelation: "live_contract_imports"
             referencedColumns: ["id"]
           },
           {

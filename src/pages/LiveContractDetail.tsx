@@ -74,6 +74,8 @@ import { ContractSupportingDocsPanel } from "@/components/contracts/ContractSupp
 import { ContractLinksPanel } from "@/components/clm/ContractLinksPanel";
 import { ContractComplianceChecklist } from "@/components/clm/ContractComplianceChecklist";
 import { ContractDetailSubHeader } from "@/components/clm/ContractDetailSubHeader";
+import { ContractAgreementFamily } from "@/components/clm/ContractAgreementFamily";
+import { DocumentTypeBadge } from "@/components/clm/DocumentTypeBadge";
 import { NicolasLineReviewBanner } from "@/components/clm/NicolasLineReviewBanner";
 
 const FIN_KEYS = new Set<string>([
@@ -358,6 +360,11 @@ const LiveContractDetailInner = () => {
         }${c.status ? ` · ${String(c.status).replace(/_/g, " ")}` : ""}`}
         rightSlot={
           <div className="flex items-center gap-2 flex-wrap justify-end">
+            <DocumentTypeBadge
+              type={(c as any).document_type}
+              confidence={(c as any).document_type_confidence}
+              full
+            />
             {(() => {
               const high = data.flags.filter((f: any) => f.severity === "high" || f.severity === "critical").length;
               const med = data.flags.filter((f: any) => f.severity === "medium").length;
@@ -460,6 +467,12 @@ const LiveContractDetailInner = () => {
       />
 
       <ContractStatusStepper importId={c.id} status={c.status} />
+
+      <ContractAgreementFamily
+        importId={c.id}
+        accountId={c.account_id}
+        debtorId={c.debtor_id}
+      />
 
       <ContractPageNav />
 
