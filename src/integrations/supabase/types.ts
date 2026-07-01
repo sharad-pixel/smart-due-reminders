@@ -2644,6 +2644,7 @@ export type Database = {
       crm_connections: {
         Row: {
           access_token: string | null
+          access_token_encrypted: string | null
           connected_at: string
           created_at: string
           crm_type: string
@@ -2651,11 +2652,13 @@ export type Database = {
           instance_url: string | null
           last_sync_at: string | null
           refresh_token: string | null
+          refresh_token_encrypted: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           access_token?: string | null
+          access_token_encrypted?: string | null
           connected_at?: string
           created_at?: string
           crm_type: string
@@ -2663,11 +2666,13 @@ export type Database = {
           instance_url?: string | null
           last_sync_at?: string | null
           refresh_token?: string | null
+          refresh_token_encrypted?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           access_token?: string | null
+          access_token_encrypted?: string | null
           connected_at?: string
           created_at?: string
           crm_type?: string
@@ -2675,6 +2680,7 @@ export type Database = {
           instance_url?: string | null
           last_sync_at?: string | null
           refresh_token?: string | null
+          refresh_token_encrypted?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -4298,6 +4304,7 @@ export type Database = {
       drive_connections: {
         Row: {
           access_token: string | null
+          access_token_encrypted: string | null
           created_at: string | null
           folder_id: string | null
           folder_name: string | null
@@ -4307,6 +4314,7 @@ export type Database = {
           organization_id: string | null
           provider: string
           refresh_token: string | null
+          refresh_token_encrypted: string | null
           sync_frequency: string | null
           token_expires_at: string | null
           updated_at: string | null
@@ -4314,6 +4322,7 @@ export type Database = {
         }
         Insert: {
           access_token?: string | null
+          access_token_encrypted?: string | null
           created_at?: string | null
           folder_id?: string | null
           folder_name?: string | null
@@ -4323,6 +4332,7 @@ export type Database = {
           organization_id?: string | null
           provider?: string
           refresh_token?: string | null
+          refresh_token_encrypted?: string | null
           sync_frequency?: string | null
           token_expires_at?: string | null
           updated_at?: string | null
@@ -4330,6 +4340,7 @@ export type Database = {
         }
         Update: {
           access_token?: string | null
+          access_token_encrypted?: string | null
           created_at?: string | null
           folder_id?: string | null
           folder_name?: string | null
@@ -4339,6 +4350,7 @@ export type Database = {
           organization_id?: string | null
           provider?: string
           refresh_token?: string | null
+          refresh_token_encrypted?: string | null
           sync_frequency?: string | null
           token_expires_at?: string | null
           updated_at?: string | null
