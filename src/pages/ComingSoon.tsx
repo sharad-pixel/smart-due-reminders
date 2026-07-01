@@ -426,15 +426,15 @@ const ComingSoon = () => {
               </div>
 
               <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-                Ready to Transform Your Collections?
+                Ready to Transform Your Revenue?
               </h2>
               
               <p className="text-xl md:text-2xl text-primary font-semibold mb-4">
-                Join the Revenue Intelligence Revolution
+                Join the AI-Native Revenue Intelligence Revolution
               </p>
               
               <p className="text-lg text-muted-foreground mb-10 max-w-2xl mx-auto">
-                Get early access to AI-powered collection intelligence. Shape the product, lock in founding member pricing, and be among the first to experience the future of receivables.
+                Get early access to AI-native Revenue Intelligence — every contract reviewed for completeness, every risk flagged before it hits AR. Shape the product and lock in founding member pricing.
               </p>
 
               {/* Early Access Form */}
