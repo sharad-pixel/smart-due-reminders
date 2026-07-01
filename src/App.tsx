@@ -177,6 +177,7 @@ const LiveContracts = lazy(() => import("./pages/LiveContracts"));
 const LiveContractDetail = lazy(() => import("./pages/LiveContractDetail"));
 const RevenueLibrary = lazy(() => import("./pages/RevenueLibrary"));
 const ContractIntelligenceDashboard = lazy(() => import("./pages/ContractIntelligenceDashboard"));
+const ActiveContracts = lazy(() => import("./pages/ActiveContracts"));
 
 // Admin Pages (heavy - definitely lazy load)
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
