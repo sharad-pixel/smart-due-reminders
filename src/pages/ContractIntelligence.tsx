@@ -33,66 +33,66 @@ const ContractIntelligence = () => {
   const pillars = [
     {
       icon: FileSearch,
-      title: "AI Contract Extraction",
-      desc: "GPT-5 reads every contract — parties, term, renewal, payment, liability, indemnity, SLAs, governing law — and turns it into structured intelligence.",
+      title: "AI Contract Review",
+      desc: "Upload any contract — MSA, order form, amendment, SOW. Our AI reads every page and captures every revenue-related and actionable data point in seconds.",
     },
     {
-      icon: Library,
-      title: "Templates & Clause Library",
-      desc: "Reusable Order Forms, MSAs, NDAs, BAAs, DPAs with a governed clause library. Generate compliant contracts in minutes, not weeks.",
+      icon: Gauge,
+      title: "Revenue Data Points Captured",
+      desc: "Payment terms, billing schedules, TCV / ARR / MRR, price escalators, true-ups, discounts, and performance obligations — extracted and structured for tracking.",
     },
     {
-      icon: GitBranch,
-      title: "Versioning & Redlines",
-      desc: "Full version history, side-by-side diffs, restore points. Every edit tracked, every comment preserved, every revision auditable.",
+      icon: CalendarClock,
+      title: "Key Dates & Obligations",
+      desc: "Renewal dates, non-renewal notice windows, opt-outs, SLA commitments, and milestone deliverables — turned into trackable events with owner-level alerts.",
     },
     {
-      icon: Users,
-      title: "Collaboration & Approvals",
-      desc: "Internal reviewers, external counterparties, comment threads, approval workflows, and a Deal Desk workspace for legal & revenue teams.",
-    },
-    {
-      icon: PenLine,
-      title: "DocuSign E-Signature",
-      desc: "Native DocuSign integration. Send for signature, track status, capture signed PDFs — all linked back to the contract record.",
+      icon: ShieldCheck,
+      title: "Risk Clauses Flagged",
+      desc: "Liability caps, indemnities, governing law, auto-renew traps, and off-market terms — surfaced so nothing important goes unnoticed.",
     },
     {
       icon: Workflow,
-      title: "Obligations & Renewals",
-      desc: "Automated renewal alerts, obligation tracking, and milestone reminders so nothing slips through the cracks.",
+      title: "Continuous Tracking",
+      desc: "Every captured data point becomes a live signal — monitored against invoices, payments, and time so drift, misses, and leakage are caught early.",
+    },
+    {
+      icon: GitBranch,
+      title: "Version-Aware Extraction",
+      desc: "Upload new versions or amendments and Contract Intelligence re-reviews, diffs, and updates the tracked data points automatically.",
     },
   ];
 
   const intelligence = [
     {
       icon: Sparkles,
-      title: "Risk & Anomaly Detection",
-      desc: "AI flags unusual terms, missing clauses, off-market liability caps, and inconsistencies across your portfolio.",
+      title: "Anomaly & Gap Detection",
+      desc: "AI flags missing clauses, off-market terms, and inconsistencies across your contract portfolio before they cost you revenue.",
     },
     {
       icon: Gauge,
       title: "Revenue Linkage",
-      desc: "Connect contracts to invoices, payments, and ECL signals from Recouply Collections — see the financial impact of every agreement.",
+      desc: "Every captured data point links back to the invoices, payments, and ECL signals in Recouply — so what the contract says stays aligned with what you actually bill and collect.",
     },
     {
       icon: ShieldCheck,
-      title: "Audit-Ready Compliance",
-      desc: "Immutable audit logs, SOC 2-aligned controls, GDPR-compliant storage, and exportable evidence for every action.",
+      title: "Audit-Ready Evidence",
+      desc: "Every extracted field, source clause, and change is logged with an immutable trail and exportable for audit, finance, and legal review.",
     },
   ];
 
   const audience = [
-    { icon: Building2, title: "Legal Teams", desc: "Centralize the contract lifecycle without leaving your stack." },
-    { icon: Layers, title: "Revenue Operations", desc: "Tie every signed deal directly to billing, collections, and ECL." },
-    { icon: ShieldCheck, title: "Finance & Audit", desc: "Defensible records, immutable trails, board-ready reporting." },
+    { icon: Building2, title: "Legal & Contract Ops", desc: "See every obligation, date, and risk clause across the portfolio without re-reading each contract." },
+    { icon: Layers, title: "Revenue Operations", desc: "Make sure what was signed is what gets billed — every clause tracked against invoicing and collections." },
+    { icon: ShieldCheck, title: "Finance & Audit", desc: "Structured, sourced, and exportable evidence for revenue recognition, renewals, and board-ready reporting." },
   ];
 
   return (
     <MarketingLayout>
       <SEOHead
         title="Recouply Contract Intelligence"
-        description="An AI-native Contract Intelligence module for Recouply.ai. Generate, negotiate, sign, and govern contracts — linked directly to revenue, collections, and risk."
-        keywords="contract intelligence, contract lifecycle, AI contracts, DocuSign, contract automation, legal AI"
+        description="Recouply Contract Intelligence reviews every contract and captures all revenue-related and key actionable data points — dates, obligations, payment terms, and risks — so nothing goes untracked."
+        keywords="contract intelligence, contract review, revenue data extraction, obligation tracking, renewal tracking, AI contract analysis"
         canonical="https://recouply.ai/clm"
       />
 
@@ -109,16 +109,16 @@ const ContractIntelligence = () => {
               New Module · Sales-Led Availability
             </Badge>
             <h1 className="text-5xl lg:text-7xl font-bold tracking-tight mb-6">
-              Contract Intelligence,
+              Every Contract, Reviewed.
               <br />
               <span className="bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
-                Wired Into Revenue.
+                Every Revenue Signal, Tracked.
               </span>
             </h1>
             <p className="text-xl lg:text-2xl text-muted-foreground mb-10 leading-relaxed">
-              Recouply Contract Intelligence is an AI-native module that generates, negotiates,
-              signs, and governs every agreement — linked directly to the invoices, payments,
-              and risk signals already running in Recouply.
+              Recouply Contract Intelligence reviews your contracts and captures every
+              revenue-related and key actionable data point — payment terms, renewal
+              dates, obligations, and risk clauses — so nothing important goes untracked.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="lg" onClick={goContact} className="gap-2 text-base px-8">
@@ -141,22 +141,22 @@ const ContractIntelligence = () => {
       <section className="py-20 lg:py-28 border-b border-border">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center mb-16">
-            <Badge variant="outline" className="mb-4">Why Contract Intelligence, Why Now</Badge>
+            <Badge variant="outline" className="mb-4">Why Contract Review Matters</Badge>
             <h2 className="text-4xl lg:text-5xl font-bold mb-6">
-              Your contracts are the source of every dollar you're owed.
+              What's in your contracts drives every dollar you're owed.
             </h2>
             <p className="text-lg text-muted-foreground leading-relaxed">
-              Yet most companies still manage them in shared drives, email threads, and spreadsheets.
-              Recouply Contract Intelligence treats contracts as a first-class financial asset — extracting terms,
-              tracking obligations, and connecting every clause to the revenue it represents.
+              Yet the terms that matter — payment schedules, renewals, escalators, obligations, and risk clauses —
+              usually sit unread in a shared drive. Recouply Contract Intelligence reviews every contract and
+              captures those data points into structured, trackable signals so nothing critical slips past your team.
             </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {[
-              { stat: "60%", label: "of revenue leakage traces back to missed contract terms" },
-              { stat: "9.2hrs", label: "average time legal teams spend per contract redline cycle" },
-              { stat: "1 hr", label: "with Recouply Contract Intelligence — AI-extracted, reviewed, and signed" },
+              { stat: "60%", label: "of revenue leakage traces back to contract terms no one is tracking" },
+              { stat: "9.2hrs", label: "average time spent manually reviewing a single contract for key data" },
+              { stat: "Minutes", label: "with Recouply Contract Intelligence — every data point extracted and tracked" },
             ].map((s, i) => (
               <Card key={i} className="p-8 text-center border-2 hover:border-primary/40 transition-colors">
                 <div className="text-5xl font-bold text-primary mb-3">{s.stat}</div>
@@ -171,13 +171,13 @@ const ContractIntelligence = () => {
       <section className="py-20 lg:py-28 border-b border-border bg-muted/20">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center mb-16">
-            <Badge variant="outline" className="mb-4">The Module</Badge>
+            <Badge variant="outline" className="mb-4">What Gets Captured</Badge>
             <h2 className="text-4xl lg:text-5xl font-bold mb-6">
-              Six pillars. One contract OS.
+              Every revenue-related and actionable data point — reviewed and tracked.
             </h2>
             <p className="text-lg text-muted-foreground">
-              Built natively into Recouply.ai — not bolted on. Every pillar shares the same
-              auth, the same audit trail, and the same data model as your collections and risk stack.
+              Built natively into Recouply.ai — not bolted on. Every captured data point shares the same
+              auth, audit trail, and data model as your invoicing, collections, and risk stack.
             </p>
           </div>
 
@@ -200,14 +200,15 @@ const ContractIntelligence = () => {
         <div className="container mx-auto px-4">
           <div className="grid lg:grid-cols-2 gap-16 items-center max-w-6xl mx-auto">
             <div>
-              <Badge variant="outline" className="mb-4">The Intelligence Layer</Badge>
+              <Badge variant="outline" className="mb-4">The Review Engine</Badge>
               <h2 className="text-4xl lg:text-5xl font-bold mb-6">
-                GPT-5 reads every contract so your team doesn't have to.
+                AI reads every contract so your team doesn't have to.
               </h2>
               <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
-                Upload a PDF, DOCX, or scanned image. Within seconds, Recouply Contract Intelligence extracts
-                parties, term length, renewal mechanics, payment schedules, liability caps,
-                indemnities, governing law, and SLAs — and surfaces what's off-market.
+                Upload a PDF, DOCX, or scanned image. Within seconds, Contract Intelligence
+                reviews the document and captures parties, term length, renewal mechanics,
+                payment schedules, liability caps, indemnities, governing law, and SLAs —
+                and flags anything that's off-market or missing.
               </p>
               <div className="space-y-4">
                 {intelligence.map((item, i) => (
@@ -256,8 +257,8 @@ const ContractIntelligence = () => {
                 ))}
               </div>
               <div className="mt-4 pt-4 border-t">
-                <div className="text-xs text-muted-foreground mb-2">AI Recommendations</div>
-                <div className="text-sm">Negotiate Net 30 to align with collections cadence; widen renewal notice to 120 days.</div>
+                <div className="text-xs text-muted-foreground mb-2">Flagged for Action</div>
+                <div className="text-sm">Net 60 is off-market vs. your standard Net 30; renewal notice window is tight — tracked and surfaced to the owner.</div>
               </div>
             </Card>
           </div>
@@ -270,22 +271,23 @@ const ContractIntelligence = () => {
           <div className="max-w-4xl mx-auto text-center mb-12">
             <Badge variant="outline" className="mb-4">Native to Recouply</Badge>
             <h2 className="text-4xl lg:text-5xl font-bold mb-6">
-              Contracts ↔ Invoices ↔ Collections ↔ Risk.
+              Contract Data ↔ Invoices ↔ Collections ↔ Risk.
             </h2>
             <p className="text-lg text-muted-foreground">
-              Most contract tools end at signature. Recouply Contract Intelligence connects every executed contract
-              to the invoices it generates, the payments it produces, and the Expected Credit
-              Loss it carries — closing the loop between legal and finance.
+              Most contract tools stop at storage. Recouply Contract Intelligence connects every
+              captured data point to the invoices it should generate, the payments it should produce,
+              and the Expected Credit Loss it carries — so what the contract says stays in sync with
+              what actually happens in your revenue stack.
             </p>
           </div>
 
           <Card className="max-w-4xl mx-auto p-8 lg:p-10">
             <div className="grid md:grid-cols-4 gap-4 items-center">
               {[
-                { icon: ScrollText, label: "Contract Signed" },
-                { icon: FileSignature, label: "Invoice Created" },
-                { icon: Workflow, label: "Collections Workflow" },
-                { icon: Gauge, label: "ECL & Risk Score" },
+                { icon: FileSearch, label: "Contract Reviewed" },
+                { icon: ScrollText, label: "Data Points Captured" },
+                { icon: FileSignature, label: "Invoices & Obligations Tracked" },
+                { icon: Gauge, label: "Risk & ECL Signals" },
               ].map((step, i, arr) => (
                 <div key={i} className="flex flex-col items-center text-center">
                   <div className="w-14 h-14 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center mb-3">

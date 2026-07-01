@@ -85,8 +85,8 @@ const RevenueIntelligenceHub = () => {
               </div>
               <h2 className="text-2xl font-bold mb-3">Contract Intelligence</h2>
               <p className="text-muted-foreground mb-6 leading-relaxed">
-                AI Smart Ingestion extracts every clause, milestone, and obligation — then keeps invoicing
-                and revenue aligned to what was actually signed.
+                Reviews every contract and captures all revenue-related and key actionable
+                data points — payment terms, dates, obligations, and risks — so nothing goes untracked.
               </p>
               <ul className="space-y-2 text-sm text-muted-foreground mb-6">
                 <li className="flex gap-2"><Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" /> AI Smart Ingestion of PDFs &amp; manual entry</li>
