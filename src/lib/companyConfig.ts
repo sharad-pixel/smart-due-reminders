@@ -8,9 +8,9 @@
 export const COMPANY_INFO = {
   legalName: "RecouplyAI Inc.",
   displayName: "Recouply.ai",
-  tagline: "Revenue Intelligence Platform",
-  revopsStatement: "Cash is the lifeblood of Revenue Operations. Recouply turns every receivable into a real-time RevOps signal—so finance, sales, and CS run on the same source of truth.",
-  description: "Revenue Intelligence Platform for Finance & RevOps teams. Cash is the lifeblood of revenue operations—Recouply analyzes every touchpoint (accounts, communications, payments, tasks, notes) to protect cash flow and maximize receivables recovery.",
+  tagline: "Revenue Intelligence — from contract to cash",
+  revopsStatement: "Revenue Intelligence — from contract to cash. Recouply reads every contract, tracks every obligation, and turns every receivable into a real-time signal so finance, sales, and CS run on one source of truth.",
+  description: "Revenue Intelligence from contract to cash. Recouply unifies Contract Intelligence and Collection Intelligence — extracting every clause, obligation, and price, then guiding every invoice from issued to paid with AI-native workflows.",
   website: "https://recouply.ai",
   emails: {
     collections: "collections@recouply.ai",
