@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { encryptToken, readToken } from "../_shared/tokenCrypto.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -39,14 +40,15 @@ function triggerExtraction(args: {
 }
 
 async function refreshToken(supabase: any, conn: any, clientId: string, clientSecret: string) {
-  if (!conn.refresh_token) throw new Error("No refresh token");
+  const refreshTokenValue = await readToken(conn.refresh_token_encrypted, conn.refresh_token);
+  if (!refreshTokenValue) throw new Error("No refresh token");
   const res = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       client_id: clientId,
       client_secret: clientSecret,
-      refresh_token: conn.refresh_token,
+      refresh_token: refreshTokenValue,
       grant_type: "refresh_token",
     }),
   });
@@ -55,7 +57,8 @@ async function refreshToken(supabase: any, conn: any, clientId: string, clientSe
   await supabase
     .from("drive_connections")
     .update({
-      access_token: data.access_token,
+      access_token: null,
+      access_token_encrypted: await encryptToken(data.access_token),
       token_expires_at: new Date(Date.now() + data.expires_in * 1000).toISOString(),
       updated_at: new Date().toISOString(),
     })
@@ -234,7 +237,7 @@ Deno.serve(async (req) => {
       .single();
     if (!conn) throw new Error("Drive connection not found");
 
-    let accessToken = conn.access_token;
+    let accessToken = await readToken(conn.access_token_encrypted, conn.access_token);
     if (conn.token_expires_at && new Date(conn.token_expires_at) <= new Date()) {
       accessToken = await refreshToken(supabase, conn, clientId, clientSecret);
     }
