@@ -468,6 +468,12 @@ const LiveContractDetailInner = () => {
 
       <ContractStatusStepper importId={c.id} status={c.status} />
 
+      <ContractAgreementFamily
+        importId={c.id}
+        accountId={c.account_id}
+        debtorId={c.debtor_id}
+      />
+
       <ContractPageNav />
 
       {/* ============ 1. FINANCE ============ */}
