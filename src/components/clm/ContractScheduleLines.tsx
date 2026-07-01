@@ -845,6 +845,13 @@ export const ContractScheduleLines = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <GenerateInvoicesDialog
+        open={!!genDialogSchedule}
+        onOpenChange={(v) => !v && setGenDialogSchedule(null)}
+        schedules={genDialogSchedule ? [genDialogSchedule] : []}
+        submitting={!!billingId}
+        onConfirm={confirmGenerate}
+      />
     </Card>
   );
 };
