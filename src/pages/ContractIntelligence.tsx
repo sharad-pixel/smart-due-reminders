@@ -171,13 +171,13 @@ const ContractIntelligence = () => {
       <section className="py-20 lg:py-28 border-b border-border bg-muted/20">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center mb-16">
-            <Badge variant="outline" className="mb-4">The Module</Badge>
+            <Badge variant="outline" className="mb-4">What Gets Captured</Badge>
             <h2 className="text-4xl lg:text-5xl font-bold mb-6">
-              Six pillars. One contract OS.
+              Every revenue-related and actionable data point — reviewed and tracked.
             </h2>
             <p className="text-lg text-muted-foreground">
-              Built natively into Recouply.ai — not bolted on. Every pillar shares the same
-              auth, the same audit trail, and the same data model as your collections and risk stack.
+              Built natively into Recouply.ai — not bolted on. Every captured data point shares the same
+              auth, audit trail, and data model as your invoicing, collections, and risk stack.
             </p>
           </div>
 
@@ -200,14 +200,15 @@ const ContractIntelligence = () => {
         <div className="container mx-auto px-4">
           <div className="grid lg:grid-cols-2 gap-16 items-center max-w-6xl mx-auto">
             <div>
-              <Badge variant="outline" className="mb-4">The Intelligence Layer</Badge>
+              <Badge variant="outline" className="mb-4">The Review Engine</Badge>
               <h2 className="text-4xl lg:text-5xl font-bold mb-6">
-                GPT-5 reads every contract so your team doesn't have to.
+                AI reads every contract so your team doesn't have to.
               </h2>
               <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
-                Upload a PDF, DOCX, or scanned image. Within seconds, Recouply Contract Intelligence extracts
-                parties, term length, renewal mechanics, payment schedules, liability caps,
-                indemnities, governing law, and SLAs — and surfaces what's off-market.
+                Upload a PDF, DOCX, or scanned image. Within seconds, Contract Intelligence
+                reviews the document and captures parties, term length, renewal mechanics,
+                payment schedules, liability caps, indemnities, governing law, and SLAs —
+                and flags anything that's off-market or missing.
               </p>
               <div className="space-y-4">
                 {intelligence.map((item, i) => (
