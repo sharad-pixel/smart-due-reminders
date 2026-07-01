@@ -40,6 +40,8 @@ interface Props {
   effectiveDate?: string | null;
   termEndDate?: string | null;
   defaultCurrency?: string;
+  contractId?: string;
+  contractTitle?: string;
 }
 
 type RevBucket = "recurring" | "professional_services" | "usage" | "one_time";
