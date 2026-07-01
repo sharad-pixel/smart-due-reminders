@@ -379,10 +379,6 @@ export function DashboardAskAI() {
       </div>
 
       <CardContent className="p-0">
-        {/* Greeting + critical insights + starters when empty */}
-        {!hasChat && (
-          <div className="px-5 sm:px-7 py-6 space-y-5">
-      <CardContent className="p-0">
         {/* Composer at top */}
         <div className="border-b bg-background px-3 sm:px-4 pt-3 pb-3">
           <div className="flex gap-2 items-start">
