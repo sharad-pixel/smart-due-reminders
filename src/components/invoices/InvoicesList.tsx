@@ -11,8 +11,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, FileEdit, Lock } from "lucide-react";
 import { getInvoiceStatusColor as getStatusColor } from "@/lib/invoiceStatuses";
+import { usesPostingLifecycle, getPostingState } from "@/lib/invoicePosting";
 
 interface Invoice {
   id: string;
@@ -24,6 +25,10 @@ interface Invoice {
   status: string;
   is_overage?: boolean;
   is_on_payment_plan?: boolean;
+  integration_source?: string | null;
+  source_system?: string | null;
+  source_contract_id?: string | null;
+  posting_state?: string | null;
   debtors: {
     company_name: string;
   };
@@ -50,6 +55,7 @@ const InvoicesList = ({ onUpdate }: InvoicesListProps) => {
     issue_date: "",
     due_date: "",
     status: "Open" as "Open" | "Paid" | "Disputed" | "Settled" | "InPaymentPlan" | "Canceled" | "PartiallyPaid",
+    posting_state: "draft" as "draft" | "posted",
   });
 
   useEffect(() => {
@@ -93,6 +99,8 @@ const InvoicesList = ({ onUpdate }: InvoicesListProps) => {
         ...formData,
         amount: parseFloat(formData.amount),
         user_id: user.id,
+        integration_source: "recouply_manual",
+        source_system: "manual",
       } as any]).select().single();
       
       if (error) throw error;
@@ -116,6 +124,7 @@ const InvoicesList = ({ onUpdate }: InvoicesListProps) => {
         issue_date: "",
         due_date: "",
         status: "Open",
+        posting_state: "draft",
       });
       fetchInvoices();
       onUpdate();
