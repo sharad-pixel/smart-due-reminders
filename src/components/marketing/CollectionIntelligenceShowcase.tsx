@@ -123,6 +123,7 @@ const scoringFactors = [
   { icon: MessageSquare, label: "Sentiment Analysis", description: "AI-analyzed tone of communications" },
   { icon: Zap, label: "Agent Effectiveness", description: "Which strategies recover revenue fastest" },
   { icon: TrendingUp, label: "Expansion Risk", description: "Credit risk assessment before account growth" },
+  { icon: FileText, label: "Invoicing & AR Portal", description: "Branded invoices with a pay-direct AR portal for W-9s and docs" },
 ];
 
 const cardVariants = {
