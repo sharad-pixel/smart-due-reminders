@@ -149,17 +149,20 @@ export const KeyDatesNotificationsPanel = ({ importId, dates }: Props) => {
   });
 
   const sendTest = async (dateId: string) => {
+    const current = cfg[dateId];
+    const emails = (current?.emails || []).map((e) => e.trim().toLowerCase()).filter((e) => EMAIL_RE.test(e));
+    const channel = current?.channel || "in_app";
     try {
       const { data, error } = await supabase.functions.invoke("live-contract-actions", {
-        body: { importId, action: "send_test_notification", dateId },
+        body: { importId, action: "send_test_notification", dateId, emails, channel },
       });
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(data.error);
       const er = data?.emailResult;
-      if (er?.sent) {
-        toast.success(`Test sent to ${er.sent} recipient${er.sent === 1 ? "" : "s"}.`);
-      } else if (er?.error) {
+      if (er?.error) {
         toast.error(`Email failed: ${er.error}`);
+      } else if (er?.sent) {
+        toast.success(`Test sent to ${er.sent} recipient${er.sent === 1 ? "" : "s"}.`);
       } else {
         toast.success("In-app test notification fired.");
       }
