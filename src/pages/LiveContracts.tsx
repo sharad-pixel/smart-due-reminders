@@ -929,13 +929,21 @@ function PostImportActions({ importId, schedules, dates }: { importId: string; s
           <Button
             size="sm"
             className="mt-3"
-            onClick={() => genInvoices.mutate()}
+            onClick={() => setGenDialogOpen(true)}
             disabled={selected.size === 0 || genInvoices.isPending}
           >
             {genInvoices.isPending ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5 mr-1.5" />}
-            Generate {selected.size > 0 ? `${selected.size} ` : ""}invoice{selected.size === 1 ? "" : "s"}
+            Review &amp; generate {selected.size > 0 ? `${selected.size} ` : ""}invoice{selected.size === 1 ? "" : "s"}
           </Button>
+          <GenerateInvoicesDialog
+            open={genDialogOpen}
+            onOpenChange={setGenDialogOpen}
+            schedules={pendingSchedules.filter((s) => selected.has(s.id))}
+            submitting={genInvoices.isPending}
+            onConfirm={(ps) => genInvoices.mutate(ps)}
+          />
         </div>
+
 
         {/* Alerts */}
         <div className="border-t pt-4">
