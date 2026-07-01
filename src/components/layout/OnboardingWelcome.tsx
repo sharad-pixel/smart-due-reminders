@@ -94,7 +94,7 @@ export const OnboardingWelcome = () => {
               <strong>Collections Intelligence</strong> — AI agents prioritize by risk and draft tone-matched outreach. You stay in the loop.
             </span>
             <span className="block pl-3 border-l-2 border-emerald-500/40">
-              <strong>Contract Intelligence</strong> — engagement workspaces, templates, signatures, and renewal watchers so no contract slips through.
+              <strong>Contract Intelligence</strong> — AI reviews every contract and captures the revenue-related and actionable data points (payment terms, renewals, obligations, risks) so nothing goes untracked.
             </span>
           </DialogDescription>
         </DialogHeader>
