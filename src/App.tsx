@@ -290,6 +290,7 @@ const App = () => (
               <Route path="/clm/live-contracts" element={<LiveContracts />} />
               <Route path="/revenue-library" element={<RevenueLibrary />} />
               <Route path="/contract-intelligence/dashboard" element={<ContractIntelligenceDashboard />} />
+              <Route path="/contracts/active" element={<ActiveContracts />} />
 
               {/* Pillar Pages */}
               <Route path="/collections-crm" element={<CollectionsCRM />} />
