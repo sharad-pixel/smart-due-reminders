@@ -274,7 +274,9 @@ const Layout = ({ children }: LayoutProps) => {
   const isAnyRevenueHubActive = revenueHubItems.some(item => isActive(item.path));
 
   const revenueIntelligenceItems = [
-    { path: "/ai-ingestion", label: "Contracts", icon: FileSignature },
+    { path: "/contract-intelligence/dashboard", label: "Contract Intelligence", icon: FileSignature },
+    { path: "/contracts/active", label: "Active Contracts", icon: FileSignature },
+    { path: "/ai-ingestion", label: "Ingestion", icon: Sparkles },
     { path: "/revenue-library", label: "Revenue Library", icon: Library },
     { path: "/revenue-risk", label: "Revenue Risk", icon: ShieldAlert },
   ];
@@ -300,7 +302,9 @@ const Layout = ({ children }: LayoutProps) => {
     { path: "/dashboard", label: "Collections Intelligence", icon: LayoutDashboard },
     { path: "/invoices", label: "Invoices", icon: FileText },
     { path: "/payments", label: "Payments", icon: DollarSign },
-    { path: "/ai-ingestion", label: "Contract Intelligence", icon: FileSignature },
+    { path: "/contract-intelligence/dashboard", label: "Contract Intelligence", icon: FileSignature },
+    { path: "/contracts/active", label: "Active Contracts", icon: FileSignature },
+    { path: "/ai-ingestion", label: "Contract Ingestion", icon: Sparkles },
     { path: "/revenue-risk", label: "Revenue Risk", icon: ShieldAlert },
     { path: "/revenue-library", label: "Revenue Library", icon: Library },
   ];
@@ -393,14 +397,28 @@ const Layout = ({ children }: LayoutProps) => {
                       </DropdownMenuItem>
                     </div>
                     <DropdownMenuItem asChild>
-                      <Link to="/ai-ingestion" className="flex items-start gap-2 cursor-pointer">
+                      <Link to="/contract-intelligence/dashboard" className="flex items-start gap-2 cursor-pointer">
                         <FileSignature className="h-4 w-4 text-primary mt-0.5" />
                         <div>
                           <div className="font-medium">Contract Intelligence</div>
-                          <div className="text-xs text-muted-foreground">Contracts, clauses, renewals</div>
+                          <div className="text-xs text-muted-foreground">TCV, ARR, renewals & risk</div>
                         </div>
                       </Link>
                     </DropdownMenuItem>
+                    <div className="pl-6 space-y-1">
+                      <DropdownMenuItem asChild>
+                        <Link to="/contracts/active" className="flex items-center gap-2 cursor-pointer text-sm">
+                          <FileSignature className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span>Active Contracts</span>
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/ai-ingestion" className="flex items-center gap-2 cursor-pointer text-sm">
+                          <Sparkles className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span>Ingestion & Extraction</span>
+                        </Link>
+                      </DropdownMenuItem>
+                    </div>
                     <DropdownMenuItem asChild>
                       <Link to="/revenue-risk" className="flex items-start gap-2 cursor-pointer">
                         <ShieldAlert className="h-4 w-4 text-primary mt-0.5" />
