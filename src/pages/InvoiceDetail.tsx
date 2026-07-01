@@ -16,7 +16,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { ArrowLeft, CheckCircle, AlertCircle, XCircle, Info, Copy, Check, Sparkles, Edit, DollarSign, Mail, FileText, X, PauseCircle, PlayCircle, Search, MessageSquare, CreditCard, FileX, Undo2, ExternalLink } from "lucide-react";
+import { ArrowLeft, CheckCircle, AlertCircle, XCircle, Info, Copy, Check, Sparkles, Edit, DollarSign, Mail, FileText, X, PauseCircle, PlayCircle, Search, MessageSquare, CreditCard, FileX, Undo2, ExternalLink, Lock, FileEdit } from "lucide-react";
 import { InvoiceTransactionLog } from "@/components/invoices/InvoiceTransactionLog";
 import { PersonaAvatar } from "@/components/ai/PersonaAvatar";
 import { getPersonaByDaysPastDue } from "@/lib/personaConfig";
@@ -724,6 +724,10 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
 
   const handleEditInvoice = () => {
     if (!invoice) return;
+    if ((invoice as any).posting_state === "posted" && invoice.source_contract_id) {
+      toast.error("This invoice is Posted (locked). Unpost it from the contract to edit.");
+      return;
+    }
     setEditInvoiceNumber(invoice.invoice_number);
     // Edit the subtotal (pre-fee). Falls back to amount when no fee applied.
     const currentSubtotal = invoice.subtotal_amount ?? invoice.amount;
@@ -733,6 +737,21 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
     setEditPaymentTerms(invoice.payment_terms || "NET30");
     setEditNotes(invoice.notes || "");
     setEditInvoiceDialogOpen(true);
+  };
+
+  const handlePostInvoice = async () => {
+    if (!invoice?.source_contract_id) return;
+    try {
+      const { data, error } = await supabase.functions.invoke("live-contract-actions", {
+        body: { importId: invoice.source_contract_id, action: "post_invoice", invoiceId: invoice.id },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success("Invoice posted");
+      fetchData();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to post invoice");
+    }
   };
 
   const handleSaveInvoiceEdit = async () => {
@@ -1339,12 +1358,23 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                 </>
               )}
             </Button>
-            <Button onClick={handleEditInvoice}>
+            {(invoice as any).posting_state === "draft" && invoice.source_contract_id && (
+              <Button variant="outline" onClick={handlePostInvoice} title="Lock this invoice as Posted">
+                <Lock className="h-4 w-4 mr-2" />
+                Post Invoice
+              </Button>
+            )}
+            <Button
+              onClick={handleEditInvoice}
+              disabled={(invoice as any).posting_state === "posted" && !!invoice.source_contract_id}
+              title={(invoice as any).posting_state === "posted" && invoice.source_contract_id ? "Posted invoices are locked" : undefined}
+            >
               <Edit className="h-4 w-4 mr-2" />
               Edit Invoice
             </Button>
           </div>
         </div>
+
 
         {/* Paused Alert Banners */}
         {(invoice.outreach_paused || invoice.debtors?.outreach_paused) && (
@@ -1437,9 +1467,22 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                 <div className="flex items-center justify-between pt-2 border-t">
                   <div>
                     <p className="text-xs text-muted-foreground">Status</p>
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(invoice.status)}`}>
-                      {invoice.status}
-                    </span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(invoice.status)}`}>
+                        {invoice.status}
+                      </span>
+                      {invoice.source_contract_id && (
+                        (invoice as any).posting_state === "draft" ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                            <FileEdit className="h-3 w-3" /> Draft
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+                            <Lock className="h-3 w-3" /> Posted
+                          </span>
+                        )
+                      )}
+                    </div>
                   </div>
                   <div className="text-right">
                     <p className="text-xs text-muted-foreground">Days Past Due</p>

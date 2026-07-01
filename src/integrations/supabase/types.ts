@@ -6586,6 +6586,9 @@ export type Database = {
           payment_terms: string | null
           payment_terms_days: number | null
           po_number: string | null
+          posted_at: string | null
+          posted_by: string | null
+          posting_state: string
           processing_fee_amount: number
           processing_fee_percent: number
           product_description: string | null
@@ -6662,6 +6665,9 @@ export type Database = {
           payment_terms?: string | null
           payment_terms_days?: number | null
           po_number?: string | null
+          posted_at?: string | null
+          posted_by?: string | null
+          posting_state?: string
           processing_fee_amount?: number
           processing_fee_percent?: number
           product_description?: string | null
@@ -6738,6 +6744,9 @@ export type Database = {
           payment_terms?: string | null
           payment_terms_days?: number | null
           po_number?: string | null
+          posted_at?: string | null
+          posted_by?: string | null
+          posting_state?: string
           processing_fee_amount?: number
           processing_fee_percent?: number
           product_description?: string | null

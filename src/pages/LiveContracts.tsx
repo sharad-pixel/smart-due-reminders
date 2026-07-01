@@ -36,6 +36,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ManualContractDialog } from "@/components/contracts/ManualContractDialog";
 import { DocumentTypeBadge } from "@/components/clm/DocumentTypeBadge";
+import { GenerateInvoicesDialog } from "@/components/clm/GenerateInvoicesDialog";
 import { FileSignature } from "lucide-react";
 
 // ------- Status helpers -------
@@ -829,18 +830,22 @@ function PostImportActions({ importId, schedules, dates }: { importId: string; s
   const allSelected = pendingSchedules.length > 0 && pendingSchedules.every((s) => selected.has(s.id));
   const toggleAll = () => setSelected(allSelected ? new Set() : new Set(pendingSchedules.map((s) => s.id)));
 
+  const [genDialogOpen, setGenDialogOpen] = useState(false);
+
   const genInvoices = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (postingState: "draft" | "posted") => {
       const { data, error } = await supabase.functions.invoke("live-contract-actions", {
-        body: { importId, action: "generate_invoices", scheduleIds: Array.from(selected) },
+        body: { importId, action: "generate_invoices", scheduleIds: Array.from(selected), postingState },
       });
       if (error) await throwFunctionError(error, "Generate invoices failed");
       if (data?.error) throw new Error(data.error);
       return data;
     },
     onSuccess: (d: any) => {
-      toast.success(`Generated ${d.created} invoice${d.created === 1 ? "" : "s"}${d.skipped?.length ? ` · ${d.skipped.length} skipped` : ""}`);
+      const label = d?.postingState === "posted" ? "Posted" : "Draft";
+      toast.success(`Generated ${d.created} ${label} invoice${d.created === 1 ? "" : "s"}${d.skipped?.length ? ` · ${d.skipped.length} skipped` : ""}`);
       setSelected(new Set());
+      setGenDialogOpen(false);
       qc.invalidateQueries({ queryKey: ["lc-review", importId] });
       qc.invalidateQueries({ queryKey: ["lc-imports"] });
     },
@@ -924,13 +929,21 @@ function PostImportActions({ importId, schedules, dates }: { importId: string; s
           <Button
             size="sm"
             className="mt-3"
-            onClick={() => genInvoices.mutate()}
+            onClick={() => setGenDialogOpen(true)}
             disabled={selected.size === 0 || genInvoices.isPending}
           >
             {genInvoices.isPending ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5 mr-1.5" />}
-            Generate {selected.size > 0 ? `${selected.size} ` : ""}invoice{selected.size === 1 ? "" : "s"}
+            Review &amp; generate {selected.size > 0 ? `${selected.size} ` : ""}invoice{selected.size === 1 ? "" : "s"}
           </Button>
+          <GenerateInvoicesDialog
+            open={genDialogOpen}
+            onOpenChange={setGenDialogOpen}
+            schedules={pendingSchedules.filter((s) => selected.has(s.id))}
+            submitting={genInvoices.isPending}
+            onConfirm={(ps) => genInvoices.mutate(ps)}
+          />
         </div>
+
 
         {/* Alerts */}
         <div className="border-t pt-4">

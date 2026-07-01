@@ -41,6 +41,7 @@ import {
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { formatCurrency, formatDateShort } from "@/lib/formatters";
+import { GenerateInvoicesDialog } from "@/components/clm/GenerateInvoicesDialog";
 
 interface Props {
   importId: string;
@@ -314,20 +315,30 @@ export const ContractScheduleLines = ({
     setForm((f) => ({ ...f, product_category: v, revenue_type: revenueFor(v) }));
   };
 
-  const addToBilling = async (scheduleId: string) => {
+  const [genDialogSchedule, setGenDialogSchedule] = useState<any | null>(null);
+
+  const addToBilling = (schedule: any) => {
     if (!debtorId) {
       toast.error("Link this contract to a customer first.");
       return;
     }
+    setGenDialogSchedule(schedule);
+  };
+
+  const confirmGenerate = async (postingState: "draft" | "posted") => {
+    if (!genDialogSchedule) return;
+    const scheduleId = genDialogSchedule.id;
     setBillingId(scheduleId);
     try {
       const { data, error } = await supabase.functions.invoke("live-contract-actions", {
-        body: { importId, action: "generate_invoices", scheduleIds: [scheduleId] },
+        body: { importId, action: "generate_invoices", scheduleIds: [scheduleId], postingState },
       });
       if (error) throw error;
-      if (data?.created > 0) toast.success("Invoice generated from this line");
+      const label = data?.postingState === "posted" ? "Posted" : "Draft";
+      if (data?.created > 0) toast.success(`${label} invoice generated from this line`);
       else if (data?.duplicates > 0) toast.success("Linked to an existing invoice");
       else toast.message("No invoice created", { description: data?.skipped?.[0]?.reason || "Check the row details" });
+      setGenDialogSchedule(null);
       onChanged();
     } catch (e: any) {
       toast.error(e.message || "Failed to add to billing");
@@ -673,7 +684,7 @@ export const ContractScheduleLines = ({
                                 size="sm"
                                 variant="outline"
                                 className="h-7 text-[11px]"
-                                onClick={() => addToBilling(s.id)}
+                                onClick={() => addToBilling(s)}
                                 disabled={billingId === s.id || !s.amount}
                                 title={s.amount ? "Generate an invoice from this line" : "Add an amount before billing"}
                               >
@@ -834,6 +845,13 @@ export const ContractScheduleLines = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <GenerateInvoicesDialog
+        open={!!genDialogSchedule}
+        onOpenChange={(v) => !v && setGenDialogSchedule(null)}
+        schedules={genDialogSchedule ? [genDialogSchedule] : []}
+        submitting={!!billingId}
+        onConfirm={confirmGenerate}
+      />
     </Card>
   );
 };

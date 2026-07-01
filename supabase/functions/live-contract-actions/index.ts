@@ -246,7 +246,8 @@ Deno.serve(async (req) => {
     if (!imp.debtor_id) return json({ error: "Contract must be imported with a customer first" }, 400);
 
     if (action === "generate_invoices") {
-      const { scheduleIds } = body;
+      const { scheduleIds, postingState: rawPostingState } = body;
+      const postingState = rawPostingState === "posted" ? "posted" : "draft";
       const { data: schedules } = await supabase
         .from("contract_invoice_schedules")
         .select("*")
@@ -345,10 +346,13 @@ Deno.serve(async (req) => {
           issue_date: issue,
           due_date: due,
           status: "Open",
+          posting_state: postingState,
+          posted_at: postingState === "posted" ? new Date().toISOString() : null,
+          posted_by: postingState === "posted" ? user.id : null,
           source_system: "live_contract",
           payment_terms: s.payment_terms || null,
           product_description: lineDescription,
-          notes: `Auto-generated from contract: ${imp.contract_name || imp.file_name}`,
+          notes: `Auto-generated from contract: ${imp.contract_name || imp.file_name}${postingState === "draft" ? " — Draft, pending review" : ""}`,
         }).select("id").single();
         if (iErr) {
           // Treat unique-violation as duplicate, not failure
@@ -405,10 +409,36 @@ Deno.serve(async (req) => {
       await supabase.from("live_contract_audit_log").insert({
         account_id: imp.account_id, user_id: user.id, import_id: imp.id,
         event_type: "invoices_generated",
-        event_details: { created: created.length, skipped: skipped.length, duplicates: duplicates.length, skipped_detail: skipped },
+        event_details: { created: created.length, skipped: skipped.length, duplicates: duplicates.length, posting_state: postingState, skipped_detail: skipped },
       });
-      return json({ success: true, created: created.length, duplicates: duplicates.length, skipped });
+      return json({ success: true, created: created.length, duplicates: duplicates.length, skipped, postingState });
     }
+
+    if (action === "post_invoice") {
+      // Locks a Draft invoice as Posted. Body: { invoiceId }
+      const { invoiceId } = body;
+      if (!invoiceId) return json({ error: "invoiceId required" }, 400);
+      const { data: inv, error: invErr } = await supabase
+        .from("invoices")
+        .select("id, user_id, source_contract_id, posting_state")
+        .eq("id", invoiceId)
+        .single();
+      if (invErr || !inv) return json({ error: "Invoice not found" }, 404);
+      if (inv.source_contract_id !== imp.id) return json({ error: "Invoice not linked to this contract" }, 403);
+      if (inv.posting_state === "posted") return json({ success: true, alreadyPosted: true });
+      const { error: upErr } = await supabase
+        .from("invoices")
+        .update({ posting_state: "posted", posted_at: new Date().toISOString(), posted_by: user.id })
+        .eq("id", invoiceId);
+      if (upErr) return json({ error: upErr.message }, 500);
+      await supabase.from("live_contract_audit_log").insert({
+        account_id: imp.account_id, user_id: user.id, import_id: imp.id,
+        event_type: "invoice_posted",
+        event_details: { invoice_id: invoiceId },
+      });
+      return json({ success: true });
+    }
+
 
     if (action === "set_alerts") {
       // dates: [{id, enabled, lead_days, channel, emails}]
