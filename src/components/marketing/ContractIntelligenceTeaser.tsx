@@ -80,13 +80,15 @@ export default function ContractIntelligenceTeaser() {
             </span>
           </h2>
           <p className="text-muted-foreground text-lg">
-            Renewal and opt-out date reminders and custom triggers so you never miss a key event —
-            all inside the only platform designed as a Finance CRM.
+            Renewal and opt-out date reminders, custom triggers, and branded invoice
+            generation with an AR portal link on every invoice — so clients pay you
+            directly and submit W-9s and AR docs in one place. All inside the only
+            platform designed as a Finance CRM.
           </p>
         </motion.div>
 
         {/* Pillars */}
-        <div className="grid md:grid-cols-3 gap-5 mb-12">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5 mb-12">
           {PILLARS.map((p, i) => (
             <motion.div
               key={p.title}
