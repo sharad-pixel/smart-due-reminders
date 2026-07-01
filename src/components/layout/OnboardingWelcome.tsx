@@ -18,7 +18,7 @@ const ONBOARDING_STEPS = [
   {
     icon: FileSignature,
     title: 'Set Up Contract Intelligence',
-    description: 'Upload your contracts and let AI review each one — capturing payment terms, dates, obligations, and risks so every revenue-related data point is tracked.',
+    description: 'Extract contract data and orchestrate automation — renewal and opt-out reminders and custom triggers so you never miss a key event. The only platform designed as a Finance CRM.',
     path: '/contracts',
   },
   {
