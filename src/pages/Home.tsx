@@ -28,8 +28,8 @@ const Home = () => {
   return (
     <MarketingLayout>
       <SEOHead
-        title="Recouply · Revenue Intelligence Platform — Contract to Cash"
-        description="AI-powered Contract Intelligence and Collection Intelligence. Know what you sold, know what you'll collect. The enterprise Revenue Intelligence Platform for finance teams."
+        title="Recouply · Revenue Intelligence — From Contract to Cash"
+        description="Revenue Intelligence — from contract to cash. AI-native Contract Intelligence and Collection Intelligence that reads every clause, tracks every obligation, and turns every receivable into predictable cash."
         keywords="revenue intelligence platform, contract intelligence, collection intelligence, ai contract extraction, ar automation, cash forecasting, dso reduction, enterprise finance software"
         canonical="https://recouply.ai"
         structuredData={generateFAQSchema(homeFaqs)}
