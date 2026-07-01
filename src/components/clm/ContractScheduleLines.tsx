@@ -684,7 +684,7 @@ export const ContractScheduleLines = ({
                                 size="sm"
                                 variant="outline"
                                 className="h-7 text-[11px]"
-                                onClick={() => addToBilling(s.id)}
+                                onClick={() => addToBilling(s)}
                                 disabled={billingId === s.id || !s.amount}
                                 title={s.amount ? "Generate an invoice from this line" : "Add an amount before billing"}
                               >
