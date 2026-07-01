@@ -629,7 +629,10 @@ const LiveContractDetailInner = () => {
           effectiveDate={c.effective_date}
           termEndDate={c.term_end_date}
           defaultCurrency={totals.currency}
+          contractId={c.id}
+          contractTitle={c.contract_name || c.file_name}
         />
+
 
         <KeyDatesNotificationsPanel importId={c.id} dates={data.dates as any} />
       </section>
