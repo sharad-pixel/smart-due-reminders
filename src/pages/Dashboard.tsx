@@ -33,6 +33,7 @@ import { AlertTriangle, ArrowRight, CheckCircle2 } from "lucide-react";
 import { IntegrationSetupModal } from "@/components/integrations/IntegrationSetupModal";
 import { ContractSummaryCard } from "@/components/dashboard/ContractSummaryCard";
 import { ContractIntelligenceSummary } from "@/components/dashboard/ContractIntelligenceSummary";
+import { RevenueCommandCenter } from "@/components/dashboard/RevenueCommandCenter";
 
 import { DashboardAskAI } from "@/components/dashboard/DashboardAskAI";
 import { SmartIngestionButton } from "@/components/ingestion/SmartIngestionButton";
@@ -595,8 +596,12 @@ const Dashboard = () => {
         </div>
 
 
+        {/* Executive Contracts & Collections Command Center */}
+        <RevenueCommandCenter />
+
         {/* Contract Intelligence — always visible */}
         <ContractIntelligenceSummary />
+
 
         {view === "ask" ? (
           <DashboardAskAI />
