@@ -622,7 +622,10 @@ Deno.serve(async (req) => {
       .eq("id", imp.id);
 
 
-    const EXTRACTION_MODEL = "google/gemini-2.5-flash";
+    // Use the Pro reasoning model for structured extraction — it is materially
+    // more accurate on pricing tables, dates, and multi-page numeric fields
+    // where Flash tends to hallucinate. Per-page OCR (upstream) stays on Flash.
+    const EXTRACTION_MODEL = "google/gemini-2.5-pro";
     const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
