@@ -869,9 +869,9 @@ const Pricing = () => {
       {/* CTA */}
       <section className="py-20 px-4">
         <div className="container mx-auto max-w-4xl text-center">
-          <h2 className="text-3xl font-bold mb-6">Ready to Transform Your Collections?</h2>
+          <h2 className="text-3xl font-bold mb-6">Ready to Transform Your Revenue?</h2>
           <p className="text-xl text-muted-foreground mb-8">
-            Start your free trial today and let our AI agents handle your collections.
+            Start your free trial and let our AI-native Revenue Intelligence platform review every contract for completeness and surface risk before it costs you.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" onClick={() => handlePlanClick("growth")}>

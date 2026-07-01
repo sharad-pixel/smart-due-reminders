@@ -368,10 +368,10 @@ const AICommandCenter = () => {
       <section className="py-20 px-4 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground">
         <div className="container mx-auto max-w-4xl text-center">
           <h2 className="text-3xl md:text-5xl font-bold mb-6">
-            Ready to Transform Your Collections?
+            Ready to Transform Your Revenue?
           </h2>
           <p className="text-xl mb-8 opacity-90">
-            Join businesses automating their AR with intelligent AI agents
+            AI-native Revenue Intelligence — contracts reviewed for completeness, risk assessed, revenue protected.
           </p>
           <div className="flex gap-4 justify-center flex-wrap">
             <Button 
