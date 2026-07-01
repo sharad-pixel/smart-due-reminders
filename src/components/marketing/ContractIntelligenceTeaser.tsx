@@ -25,18 +25,18 @@ const fadeUp = {
 const PILLARS = [
   {
     icon: Sparkles,
-    title: "AI Smart Ingestion",
-    body: "Drop a PDF, DOCX, or scanned MSA — our extractor parses parties, term dates, financial obligations, SLAs, renewal clauses, and risk language in seconds.",
+    title: "Extract Contract Data",
+    body: "AI reads every MSA, order form, and amendment — extracting payment terms, obligations, financials, and clauses into structured data your finance stack can act on.",
   },
   {
     icon: CalendarClock,
-    title: "Every Date, Watched",
-    body: "Renewals, non-renewal notice windows, opt-outs, price escalators, true-ups — turned into custom triggers that ping the right owner before they bite.",
+    title: "Renewal & Opt-Out Reminders",
+    body: "Renewal dates, non-renewal notice windows, and opt-out deadlines become owner-level alerts so you never miss a key event.",
   },
   {
     icon: Receipt,
-    title: "Invoicing ↔ Revenue Aligned",
-    body: "Performance obligations, ARR / MRR / TCV / ACV, and billing milestones recaptured into Recouply so collections automation matches what was actually sold.",
+    title: "Custom Triggers & Automation",
+    body: "Orchestrate automation off any captured data point — milestones, escalators, true-ups — inside the only platform designed as a Finance CRM.",
   },
 ];
 
