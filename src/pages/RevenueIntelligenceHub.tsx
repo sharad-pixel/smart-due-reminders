@@ -85,13 +85,14 @@ const RevenueIntelligenceHub = () => {
               </div>
               <h2 className="text-2xl font-bold mb-3">Contract Intelligence</h2>
               <p className="text-muted-foreground mb-6 leading-relaxed">
-                Reviews every contract and captures all revenue-related and key actionable
-                data points — payment terms, dates, obligations, and risks — so nothing goes untracked.
+                Extract contract data and orchestrate automation. Renewal and opt-out
+                date reminders and custom triggers so you never miss a key event — inside
+                the only platform designed as a Finance CRM.
               </p>
               <ul className="space-y-2 text-sm text-muted-foreground mb-6">
-                <li className="flex gap-2"><Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" /> AI Smart Ingestion of PDFs &amp; manual entry</li>
-                <li className="flex gap-2"><ShieldCheck className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Key date alerts: renewals, expirations, milestones</li>
-                <li className="flex gap-2"><LineChart className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Invoice ↔ contract revenue alignment</li>
+                <li className="flex gap-2"><Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Extract contract data from PDFs &amp; manual entry</li>
+                <li className="flex gap-2"><ShieldCheck className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Renewal &amp; opt-out reminders + custom triggers</li>
+                <li className="flex gap-2"><LineChart className="h-4 w-4 text-primary shrink-0 mt-0.5" /> The only platform designed as a Finance CRM</li>
               </ul>
               <span className="inline-flex items-center text-primary font-semibold text-sm">
                 Open Contract Intelligence <ArrowRight className="ml-1 h-4 w-4 group-hover:translate-x-1 transition-transform" />
