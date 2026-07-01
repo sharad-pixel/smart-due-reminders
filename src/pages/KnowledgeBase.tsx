@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, Search, Book, Zap, Users, Mail, CreditCard, Shield, BarChart3, HelpCircle, Bot, FileText, Building2, Sparkles } from "lucide-react";
+import { ChevronDown, Search, Book, Zap, Users, Mail, CreditCard, Shield, BarChart3, HelpCircle, Bot, FileText, Building2, Sparkles, FileSignature } from "lucide-react";
 import MarketingLayout from "@/components/layout/MarketingLayout";
 import SEO from "@/components/seo/SEO";
 import { Input } from "@/components/ui/input";
@@ -28,6 +28,7 @@ const categoryIcons: Record<string, React.ReactNode> = {
   "integrations": <Building2 className="h-5 w-5" />,
   "billing-plans": <CreditCard className="h-5 w-5" />,
   "security-privacy": <Shield className="h-5 w-5" />,
+  "contract-intelligence": <FileSignature className="h-5 w-5" />,
   "knowledge-help": <Book className="h-5 w-5" />
 };
 
