@@ -99,16 +99,26 @@ export const ContractStagingPanel = ({
     }
   };
 
-  const handleGenerateRecouply = async (scheduleId: string) => {
+  const [genDialogSchedule, setGenDialogSchedule] = useState<any | null>(null);
+
+  const handleGenerateRecouply = (schedule: any) => {
+    setGenDialogSchedule(schedule);
+  };
+
+  const confirmGenerateRecouply = async (postingState: "draft" | "posted") => {
+    if (!genDialogSchedule) return;
+    const scheduleId = genDialogSchedule.id;
     setBusyScheduleId(scheduleId);
     try {
       const { data, error } = await supabase.functions.invoke("live-contract-actions", {
-        body: { importId: contractId, action: "generate_invoices", scheduleIds: [scheduleId] },
+        body: { importId: contractId, action: "generate_invoices", scheduleIds: [scheduleId], postingState },
       });
       if (error) throw error;
-      if (data?.created > 0) toast.success("Recouply invoice generated");
+      const label = data?.postingState === "posted" ? "Posted" : "Draft";
+      if (data?.created > 0) toast.success(`${label} Recouply invoice generated`);
       else if (data?.duplicates > 0) toast.success("Linked to existing invoice");
       else toast.message("No invoice created", { description: data?.skipped?.[0]?.reason || "Check schedule details" });
+      setGenDialogSchedule(null);
       onChanged();
     } catch (e: any) {
       toast.error(e.message || "Failed to generate invoice");
