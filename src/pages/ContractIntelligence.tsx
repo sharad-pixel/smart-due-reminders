@@ -61,6 +61,11 @@ const ContractIntelligence = () => {
       title: "Version-Aware Extraction",
       desc: "Upload new versions or amendments and Contract Intelligence re-reviews, diffs, and updates the tracked data points automatically.",
     },
+    {
+      icon: ScrollText,
+      title: "Invoice Generation & AR Portal",
+      desc: "Generate branded invoices from contract terms and attach an AR portal link to every invoice — clients pay you directly, submit W-9s, and share tax and AR documents in one secure place.",
+    },
   ];
 
   const intelligence = [
