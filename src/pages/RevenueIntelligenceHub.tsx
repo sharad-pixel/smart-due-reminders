@@ -8,9 +8,9 @@ const RevenueIntelligenceHub = () => {
   return (
     <MarketingLayout>
       <SEOHead
-        title="Revenue Intelligence | Collections + Contract Intelligence — Recouply.ai"
-        description="Recouply's Revenue Intelligence unifies Collections Intelligence and Contract Intelligence into one enterprise system — connecting every clause, invoice, payment, and risk signal across the revenue lifecycle."
-        keywords="revenue intelligence, collections intelligence, contract intelligence, AR intelligence, enterprise revenue platform"
+        title="Revenue Intelligence — From Contract to Cash | Recouply.ai"
+        description="Revenue Intelligence — from contract to cash. Recouply unifies Contract Intelligence, ASC 606 revenue recognition, and Collection Intelligence in one AI-native system of record."
+        keywords="revenue intelligence, contract to cash, contract intelligence, collections intelligence, ASC 606, AR intelligence, AI revenue platform"
         canonical="https://recouply.ai/revenue-intelligence"
       />
 
@@ -19,15 +19,15 @@ const RevenueIntelligenceHub = () => {
         <div className="absolute inset-0 -z-10 opacity-30 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)/0.25),transparent_60%),radial-gradient(circle_at_75%_80%,hsl(var(--accent)/0.25),transparent_55%)]" />
         <div className="container mx-auto px-4 py-20 sm:py-28 text-center max-w-4xl">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/30 bg-primary/10 text-xs font-semibold tracking-wider uppercase text-primary mb-6">
-            <Sparkles className="h-3.5 w-3.5" /> AI-Native Revenue Intelligence
+            <Sparkles className="h-3.5 w-3.5" /> Revenue Intelligence — from contract to cash
           </div>
           <h1 className="text-4xl sm:text-6xl font-bold tracking-tight mb-6">
-            Where every <span className="text-primary">contract</span> meets every <span className="text-primary">collection</span>.
+            From <span className="text-primary">contract</span> signed to <span className="text-primary">cash</span> collected.
           </h1>
           <p className="text-lg sm:text-xl text-muted-foreground leading-relaxed mb-10">
-            Revenue Intelligence is Recouply's unified system of record for the entire revenue lifecycle —
-            two intelligences, one source of truth. Contract terms inform collections strategy.
-            Collections signals re-price contract risk. The loop never breaks.
+            Revenue Intelligence is Recouply's AI-native system of record for the entire contract-to-cash lifecycle.
+            Contract Intelligence reads every clause. ASC 606 revenue recognition tracks every obligation.
+            Collection Intelligence turns every receivable into predictable cash. One loop, one source of truth.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link to="/collection-intelligence">

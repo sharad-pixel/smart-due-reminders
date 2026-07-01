@@ -7,27 +7,20 @@ import { motion, AnimatePresence } from "framer-motion";
 import RollingAgentIntro from "./RollingAgentIntro";
 
 const headlines = [
-  "Your Revenue Intelligence Platform — Powered by AI",
-  "Centralized Receivables. Prioritized by Risk.",
-  "Every Outreach. Every Outcome. One System of Record.",
-  "AI-Powered Collections Workflows That Recover Cash",
-  "Six AI Agents. Full Audit Trail. Zero Gaps.",
-  "Risk-Based Prioritization. Predictable Cash Flow.",
-  "From Overdue to Recovered — With Full Visibility",
-  "The CRM Built for Finance Teams",
-  "Manage Risk. Recover Revenue. One Platform.",
-  "AI Revenue Intelligence Platform That Compounds Results",
-  "Centralized AR Intelligence. Faster Recovery.",
-  "Stop Chasing. Start Managing. Recover More.",
-  "Complete Collections History at Your Fingertips",
-  "Risk-Aware Workflows That Drive Cash Outcomes",
-  "AI Agents That Execute. A CRM That Tracks Everything.",
-  "Turn Receivables Into Revenue — Systematically",
-  "One Payment Portal. Every Outstanding Invoice.",
-  "Give Customers a Self-Service Path to Pay",
-  "Expansion Risk Assessment — Before You Extend Credit",
-  "Know the Risk Before You Grow the Account",
-  "AI-Driven Credit Risk Intelligence for Every Customer",
+  "Revenue Intelligence — from contract to cash",
+  "One System from Contract Signed to Cash Collected",
+  "AI-Native Revenue Intelligence for Modern Finance",
+  "Contract to Cash, Intelligently Orchestrated",
+  "Know What You Sold. Know What You'll Collect.",
+  "Revenue Intelligence That Reads Every Clause",
+  "From Signed Contract to Cleared Payment — One Source of Truth",
+  "Turn Every Receivable Into a Real-Time Revenue Signal",
+  "Contract Intelligence + Collection Intelligence, Unified",
+  "AI Revenue Intelligence That Compounds Results",
+  "Every Obligation Tracked. Every Dollar Recognized. Every Invoice Collected.",
+  "Stop Chasing. Start Orchestrating Contract to Cash.",
+  "Revenue Intelligence Built for Finance & RevOps",
+  "AI-Driven Contract-to-Cash for Every Customer",
 ];
 
 const subheadlines = [
@@ -101,7 +94,7 @@ const AnimatedHero = () => {
              transition={{ duration: 0.6, ease: "easeOut" }}
            >
             <Sparkles className="w-4 h-4 animate-pulse" />
-            AI-Powered Revenue Intelligence Platform
+            Revenue Intelligence — from contract to cash
            </motion.div>
           
           {/* Supporting tagline */}
@@ -111,7 +104,7 @@ const AnimatedHero = () => {
              animate={{ opacity: 1 }}
              transition={{ delay: 0.3, duration: 0.6 }}
            >
-            Centralized receivables management • Risk-based prioritization • Full audit trail • AI-powered collections workflows
+            Contract Intelligence • Revenue Recognition • Collection Intelligence • One AI-native system of record
            </motion.p>
 
           {/* Typewriter Headline */}

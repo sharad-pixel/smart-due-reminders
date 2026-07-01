@@ -69,7 +69,7 @@ const MarketingFooter = () => {
           <div>
             <RecouplyLogo size="lg" />
             <p className="mt-4 text-sm text-muted-foreground max-w-xs leading-relaxed">
-              The AI-native Revenue Intelligence Platform. Know what you sold. Know what you'll collect.
+              Revenue Intelligence — from contract to cash. AI-native Contract Intelligence and Collection Intelligence in one system of record.
             </p>
             <div className="mt-6 flex flex-col gap-3">
               <Button

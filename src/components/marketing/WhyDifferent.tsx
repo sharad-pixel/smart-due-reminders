@@ -31,16 +31,16 @@ const WhyDifferent = () => {
           transition={{ duration: 0.5 }}
         >
           <div className="inline-block px-4 py-1 rounded-full bg-accent/10 text-accent text-sm font-semibold mb-4">
-            Revenue Intelligence Platform
+            Revenue Intelligence — from contract to cash
           </div>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-            AI Agents That Think, Act & Learn
+            AI Agents That Read Contracts, Recognize Revenue & Recover Cash
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-            Not just workflows — a complete collections CRM with AI-powered risk prioritization, centralized receivables management, and a full audit trail
+            One AI-native system that reads every clause, tracks every obligation under ASC 606, and turns every receivable into predictable cash.
           </p>
           <p className="text-sm text-muted-foreground/80 max-w-xl mx-auto mt-3">
-            Your single system of record for all collections activity and risk intelligence
+            Your single source of truth for the entire contract-to-cash lifecycle
           </p>
           
           <motion.div
