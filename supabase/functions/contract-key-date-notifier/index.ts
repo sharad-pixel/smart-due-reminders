@@ -223,8 +223,21 @@ Deno.serve(async (req) => {
 
           if (!shouldFire) continue;
 
-          const title = `Trigger: ${(t as any).name}`;
-          const message = `${(imp as any).contract_name || (imp as any).file_name} — ${reason}. ${(t as any).message || ""}`.trim();
+          // Resolve account/customer name for context
+          let accountName: string | null = null;
+          if ((imp as any).debtor_id) {
+            const { data: deb } = await supabase
+              .from("debtors")
+              .select("name, company_name")
+              .eq("id", (imp as any).debtor_id)
+              .maybeSingle();
+            accountName = (deb as any)?.company_name || (deb as any)?.name || null;
+          }
+          const contractLabel = (imp as any).contract_name || (imp as any).file_name || "Contract";
+          const link = contractUrl((imp as any).id);
+
+          const title = `${accountName ? `${accountName} — ` : ""}Trigger: ${(t as any).name}`;
+          const message = `${accountName ? `Account: ${accountName}. ` : ""}${contractLabel} — ${reason}. ${(t as any).message || ""}`.trim();
 
           await supabase.from("user_alerts").insert({
             user_id: (imp as any).user_id,
@@ -235,7 +248,12 @@ Deno.serve(async (req) => {
             debtor_id: (imp as any).debtor_id,
             action_url: `/contracts/live/${(imp as any).id}#triggers`,
             action_label: "Open contract",
-            metadata: { trigger_id: (t as any).id, import_id: (imp as any).id },
+            metadata: {
+              trigger_id: (t as any).id,
+              import_id: (imp as any).id,
+              account_name: accountName,
+              contract_name: contractLabel,
+            },
           });
 
           const ch = (t as any).channel;
@@ -246,9 +264,11 @@ Deno.serve(async (req) => {
                 <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1e293b;padding:24px;max-width:560px;background:#ffffff">
                   <div style="border:1px solid #e2e8f0;border-radius:8px;padding:20px">
                     <h2 style="margin:0 0 12px;color:#1e293b;font-size:18px">${title}</h2>
-                    <p style="margin:0 0 8px"><strong>${(imp as any).contract_name || (imp as any).file_name}</strong></p>
+                    ${accountName ? `<p style="margin:0 0 6px;color:#0f172a"><strong>Account:</strong> ${accountName}</p>` : ""}
+                    <p style="margin:0 0 8px;color:#0f172a"><strong>Contract:</strong> ${contractLabel}</p>
                     <p style="margin:0 0 6px;color:#475569">${reason}</p>
-                    ${(t as any).message ? `<p style="margin:14px 0 0;color:#475569">${(t as any).message}</p>` : ""}
+                    ${(t as any).message ? `<p style="margin:12px 0 0;color:#475569">${(t as any).message}</p>` : ""}
+                    <p style="margin:16px 0 0"><a href="${link}" style="display:inline-block;background:#3B82F6;color:#ffffff;text-decoration:none;padding:10px 16px;border-radius:6px;font-size:13px;font-weight:600">Open contract →</a></p>
                   </div>
                 </div>`;
               try {
