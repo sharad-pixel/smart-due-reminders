@@ -78,6 +78,39 @@ export default function EnterpriseHero() {
               predictable cash flow.
             </motion.p>
 
+            {/* Contract → Cash lifecycle strip */}
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="mt-7 rounded-xl border border-border/50 bg-card/30 px-4 py-3 backdrop-blur"
+            >
+              <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground mb-2.5">
+                The Contract-to-Cash lifecycle
+              </div>
+              <div className="flex flex-wrap items-center gap-x-1.5 gap-y-2 text-sm">
+                {lifecycleStages.map((stage, i) => (
+                  <div key={stage.label} className="flex items-center gap-1.5">
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 font-medium ${
+                        stage.accent === "accent"
+                          ? "border-accent/30 bg-accent/5 text-accent"
+                          : "border-primary/30 bg-primary/5 text-primary"
+                      }`}
+                    >
+                      {stage.label}
+                    </span>
+                    {i < lifecycleStages.length - 1 && (
+                      <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/60" />
+                    )}
+                  </div>
+                ))}
+              </div>
+              <p className="mt-2.5 text-xs text-muted-foreground leading-relaxed">
+                One system of record from the day a contract is signed to the day cash clears — with AI reasoning across every stage.
+              </p>
+            </motion.div>
+
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
