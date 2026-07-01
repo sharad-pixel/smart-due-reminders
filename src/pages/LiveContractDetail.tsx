@@ -696,7 +696,13 @@ const LiveContractDetailInner = () => {
         />
 
         <InvoiceDataAuditPanel contractId={c.id} />
+        <AssessmentPanel
+          scope="collectability"
+          subjectType="contract"
+          subjectId={c.id}
+        />
       </section>
+
 
       {/* ============ 5. CUSTOM TRIGGERS ============ */}
       <section id="triggers" className="space-y-3 scroll-mt-16">
