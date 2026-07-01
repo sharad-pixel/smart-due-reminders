@@ -206,8 +206,16 @@ export function RevenueCommandCenter() {
     });
     const agingTotal = Object.values(aging).reduce((a, b) => a + b, 0) || 1;
 
-    // Contracts
-    const activeContracts = contracts.filter((c) => (c.status || "active").toLowerCase() === "active");
+    // Contracts — count any non-expired contract with a value as contributing to ARR
+    const activeContracts = contracts.filter((c) => {
+      const value = Number(c.contract_value || 0);
+      if (!value) return false;
+      const status = String(c.status || "active").toLowerCase();
+      if (["archived", "cancelled", "terminated", "expired", "rejected"].includes(status)) return false;
+      const end = c.expiry_date || c.renewal_date;
+      if (end && new Date(end) < today) return false;
+      return true;
+    });
     const arr = activeContracts.reduce((s, c) => s + Number(c.contract_value || 0), 0);
     const in90 = new Date(today);
     in90.setDate(in90.getDate() + 90);
