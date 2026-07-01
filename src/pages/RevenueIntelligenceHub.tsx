@@ -19,7 +19,7 @@ const RevenueIntelligenceHub = () => {
         <div className="absolute inset-0 -z-10 opacity-30 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)/0.25),transparent_60%),radial-gradient(circle_at_75%_80%,hsl(var(--accent)/0.25),transparent_55%)]" />
         <div className="container mx-auto px-4 py-20 sm:py-28 text-center max-w-4xl">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/30 bg-primary/10 text-xs font-semibold tracking-wider uppercase text-primary mb-6">
-            <Sparkles className="h-3.5 w-3.5" /> Enterprise Revenue Intelligence
+            <Sparkles className="h-3.5 w-3.5" /> AI-Native Revenue Intelligence
           </div>
           <h1 className="text-4xl sm:text-6xl font-bold tracking-tight mb-6">
             Where every <span className="text-primary">contract</span> meets every <span className="text-primary">collection</span>.
