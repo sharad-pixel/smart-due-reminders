@@ -166,6 +166,101 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_assessment_prompts: {
+        Row: {
+          assessment_id: string
+          created_at: string
+          error: string | null
+          id: string
+          model: string | null
+          prompt: string
+          response: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assessment_id: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          model?: string | null
+          prompt: string
+          response?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assessment_id?: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          model?: string | null
+          prompt?: string
+          response?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_assessment_prompts_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "ai_assessments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_assessments: {
+        Row: {
+          account_id: string | null
+          created_at: string
+          findings: Json
+          id: string
+          model: string | null
+          pinned: boolean
+          scope: string
+          subject_id: string
+          subject_type: string
+          summary: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_id?: string | null
+          created_at?: string
+          findings?: Json
+          id?: string
+          model?: string | null
+          pinned?: boolean
+          scope: string
+          subject_id: string
+          subject_type: string
+          summary?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_id?: string | null
+          created_at?: string
+          findings?: Json
+          id?: string
+          model?: string | null
+          pinned?: boolean
+          scope?: string
+          subject_id?: string
+          subject_type?: string
+          summary?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_command_logs: {
         Row: {
           command_text: string

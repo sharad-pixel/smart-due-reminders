@@ -55,6 +55,7 @@ import { ContractRiskFlagsEditor } from "@/components/clm/ContractRiskFlagsEdito
 import { InvoiceDataAuditPanel } from "@/components/clm/InvoiceDataAuditPanel";
 import { ContractTermGauge } from "@/components/clm/ContractTermGauge";
 import { ContractRevRecASC606 } from "@/components/clm/ContractRevRecASC606";
+import { AssessmentPanel } from "@/components/ai/AssessmentPanel";
 import { KeyDatesNotificationsPanel } from "@/components/clm/KeyDatesNotificationsPanel";
 import { ContractFinancialExport } from "@/components/clm/ContractFinancialExport";
 import { ContractPageNav } from "@/components/clm/ContractPageNav";
@@ -629,7 +630,10 @@ const LiveContractDetailInner = () => {
           effectiveDate={c.effective_date}
           termEndDate={c.term_end_date}
           defaultCurrency={totals.currency}
+          contractId={c.id}
+          contractTitle={c.contract_name || c.file_name}
         />
+
 
         <KeyDatesNotificationsPanel importId={c.id} dates={data.dates as any} />
       </section>
@@ -655,7 +659,13 @@ const LiveContractDetailInner = () => {
           />
         </div>
         <ContractRiskFlagsEditor importId={c.id} accountId={c.account_id} />
+        <AssessmentPanel
+          scope="contract_intelligence"
+          subjectType="contract"
+          subjectId={c.id}
+        />
       </section>
+
 
       {/* ============ 4. INVOICING & COLLECTIBILITY ============ */}
       <section id="invoicing" className="space-y-3 scroll-mt-16">
@@ -686,7 +696,13 @@ const LiveContractDetailInner = () => {
         />
 
         <InvoiceDataAuditPanel contractId={c.id} />
+        <AssessmentPanel
+          scope="collectability"
+          subjectType="contract"
+          subjectId={c.id}
+        />
       </section>
+
 
       {/* ============ 5. CUSTOM TRIGGERS ============ */}
       <section id="triggers" className="space-y-3 scroll-mt-16">
