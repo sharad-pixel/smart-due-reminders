@@ -414,6 +414,32 @@ Deno.serve(async (req) => {
       return json({ success: true, created: created.length, duplicates: duplicates.length, skipped, postingState });
     }
 
+    if (action === "post_invoice") {
+      // Locks a Draft invoice as Posted. Body: { invoiceId }
+      const { invoiceId } = body;
+      if (!invoiceId) return json({ error: "invoiceId required" }, 400);
+      const { data: inv, error: invErr } = await supabase
+        .from("invoices")
+        .select("id, user_id, source_contract_id, posting_state")
+        .eq("id", invoiceId)
+        .single();
+      if (invErr || !inv) return json({ error: "Invoice not found" }, 404);
+      if (inv.source_contract_id !== imp.id) return json({ error: "Invoice not linked to this contract" }, 403);
+      if (inv.posting_state === "posted") return json({ success: true, alreadyPosted: true });
+      const { error: upErr } = await supabase
+        .from("invoices")
+        .update({ posting_state: "posted", posted_at: new Date().toISOString(), posted_by: user.id })
+        .eq("id", invoiceId);
+      if (upErr) return json({ error: upErr.message }, 500);
+      await supabase.from("live_contract_audit_log").insert({
+        account_id: imp.account_id, user_id: user.id, import_id: imp.id,
+        event_type: "invoice_posted",
+        event_details: { invoice_id: invoiceId },
+      });
+      return json({ success: true });
+    }
+
+
     if (action === "set_alerts") {
       // dates: [{id, enabled, lead_days, channel, emails}]
       const { dates } = body;
