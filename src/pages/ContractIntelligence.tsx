@@ -121,8 +121,9 @@ const ContractIntelligence = () => {
               </span>
             </h1>
             <p className="text-xl lg:text-2xl text-muted-foreground mb-10 leading-relaxed">
-              Renewal and opt-out date reminders and custom triggers so you never miss a
-              key event — all inside the only platform designed as a Finance CRM.
+              Renewal and opt-out reminders, custom triggers, and branded invoice
+              generation with an AR portal link on every invoice so clients pay you
+              directly and submit W-9s — all inside the only platform designed as a Finance CRM.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="lg" onClick={goContact} className="gap-2 text-base px-8">
