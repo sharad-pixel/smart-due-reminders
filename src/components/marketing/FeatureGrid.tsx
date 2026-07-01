@@ -35,13 +35,13 @@ const FeatureGrid = () => {
           transition={{ duration: 0.5 }}
         >
           <div className="inline-block px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
-            Revenue Intelligence Platform
+            Revenue Intelligence — from contract to cash
           </div>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-            AI-Powered Collections Workflows That Drive Cash Outcomes
+            AI-Native Workflows Across the Entire Contract-to-Cash Lifecycle
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-            Six specialized AI agents orchestrate every stage of collections — from first reminder to final resolution, with a complete audit trail
+            From contract extraction and ASC 606 revenue recognition to prioritized collections and cash application — one connected system of record.
           </p>
           <p className="text-sm text-muted-foreground/80 max-w-xl mx-auto mt-3">
             Human oversight at every decision point. AI-powered execution on every repeatable workflow.
