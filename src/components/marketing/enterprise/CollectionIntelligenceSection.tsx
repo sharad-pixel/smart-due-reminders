@@ -77,8 +77,8 @@ export default function CollectionIntelligenceSection() {
                     transition={{ delay: i * 0.1 }}
                     className="flex items-center gap-3 rounded-lg border border-border/50 bg-background px-3 py-2.5"
                   >
-                    <span className={`flex h-8 w-8 items-center justify-center rounded-md bg-${t.tone}/10`}>
-                      <t.icon className={`h-4 w-4 text-${t.tone}`} />
+                    <span className={`flex h-8 w-8 items-center justify-center rounded-md ${t.cls}`}>
+                      <t.icon className="h-4 w-4" />
                     </span>
                     <div className="flex-1 text-sm">{t.label}</div>
                     <div className="text-xs text-muted-foreground">{t.time}</div>
