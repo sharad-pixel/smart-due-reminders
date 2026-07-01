@@ -54,6 +54,7 @@ import { EditableFinancialTermsCard } from "@/components/clm/EditableFinancialTe
 import { ContractRiskFlagsEditor } from "@/components/clm/ContractRiskFlagsEditor";
 import { InvoiceDataAuditPanel } from "@/components/clm/InvoiceDataAuditPanel";
 import { ContractTermGauge } from "@/components/clm/ContractTermGauge";
+import { ContractRevRecASC606 } from "@/components/clm/ContractRevRecASC606";
 import { KeyDatesNotificationsPanel } from "@/components/clm/KeyDatesNotificationsPanel";
 import { ContractFinancialExport } from "@/components/clm/ContractFinancialExport";
 import { ContractPageNav } from "@/components/clm/ContractPageNav";
@@ -621,6 +622,13 @@ const LiveContractDetailInner = () => {
           effectiveDate={c.effective_date}
           termEndDate={c.term_end_date}
           keyDates={data.dates}
+        />
+
+        <ContractRevRecASC606
+          schedules={data.schedules as any}
+          effectiveDate={c.effective_date}
+          termEndDate={c.term_end_date}
+          defaultCurrency={totals.currency}
         />
 
         <KeyDatesNotificationsPanel importId={c.id} dates={data.dates as any} />
