@@ -724,6 +724,10 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
 
   const handleEditInvoice = () => {
     if (!invoice) return;
+    if ((invoice as any).posting_state === "posted" && invoice.source_contract_id) {
+      toast.error("This invoice is Posted (locked). Unpost it from the contract to edit.");
+      return;
+    }
     setEditInvoiceNumber(invoice.invoice_number);
     // Edit the subtotal (pre-fee). Falls back to amount when no fee applied.
     const currentSubtotal = invoice.subtotal_amount ?? invoice.amount;
@@ -733,6 +737,21 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
     setEditPaymentTerms(invoice.payment_terms || "NET30");
     setEditNotes(invoice.notes || "");
     setEditInvoiceDialogOpen(true);
+  };
+
+  const handlePostInvoice = async () => {
+    if (!invoice?.source_contract_id) return;
+    try {
+      const { data, error } = await supabase.functions.invoke("live-contract-actions", {
+        body: { importId: invoice.source_contract_id, action: "post_invoice", invoiceId: invoice.id },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success("Invoice posted");
+      fetchData();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to post invoice");
+    }
   };
 
   const handleSaveInvoiceEdit = async () => {
