@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { formatCurrency } from "@/lib/formatters";
 import { getAgingBucketFromDays as getAgingBucket, getAgingBucketLabel } from "@/lib/agingBuckets";
 import { getInvoiceStatusColor as getStatusColor } from "@/lib/invoiceStatuses";
+import { usesPostingLifecycle, getPostingState } from "@/lib/invoicePosting";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/layout/Layout";
@@ -724,8 +725,8 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
 
   const handleEditInvoice = () => {
     if (!invoice) return;
-    if ((invoice as any).posting_state === "posted" && invoice.source_contract_id) {
-      toast.error("This invoice is Posted (locked). Unpost it from the contract to edit.");
+    if (usesPostingLifecycle(invoice as any) && getPostingState(invoice as any) === "posted") {
+      toast.error("This invoice is Posted (locked). Unpost it to edit.");
       return;
     }
     setEditInvoiceNumber(invoice.invoice_number);
@@ -1358,7 +1359,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                 </>
               )}
             </Button>
-            {(invoice as any).posting_state === "draft" && invoice.source_contract_id && (
+            {usesPostingLifecycle(invoice as any) && getPostingState(invoice as any) === "draft" && (
               <Button variant="outline" onClick={handlePostInvoice} title="Lock this invoice as Posted">
                 <Lock className="h-4 w-4 mr-2" />
                 Post Invoice
@@ -1366,8 +1367,8 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
             )}
             <Button
               onClick={handleEditInvoice}
-              disabled={(invoice as any).posting_state === "posted" && !!invoice.source_contract_id}
-              title={(invoice as any).posting_state === "posted" && invoice.source_contract_id ? "Posted invoices are locked" : undefined}
+              disabled={usesPostingLifecycle(invoice as any) && getPostingState(invoice as any) === "posted"}
+              title={usesPostingLifecycle(invoice as any) && getPostingState(invoice as any) === "posted" ? "Posted invoices are locked" : undefined}
             >
               <Edit className="h-4 w-4 mr-2" />
               Edit Invoice
@@ -1471,8 +1472,8 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(invoice.status)}`}>
                         {invoice.status}
                       </span>
-                      {invoice.source_contract_id && (
-                        (invoice as any).posting_state === "draft" ? (
+                      {usesPostingLifecycle(invoice as any) && (
+                        getPostingState(invoice as any) === "draft" ? (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
                             <FileEdit className="h-3 w-3" /> Draft
                           </span>

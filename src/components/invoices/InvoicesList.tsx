@@ -11,8 +11,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, FileEdit, Lock } from "lucide-react";
 import { getInvoiceStatusColor as getStatusColor } from "@/lib/invoiceStatuses";
+import { usesPostingLifecycle, getPostingState } from "@/lib/invoicePosting";
 
 interface Invoice {
   id: string;
@@ -24,6 +25,10 @@ interface Invoice {
   status: string;
   is_overage?: boolean;
   is_on_payment_plan?: boolean;
+  integration_source?: string | null;
+  source_system?: string | null;
+  source_contract_id?: string | null;
+  posting_state?: string | null;
   debtors: {
     company_name: string;
   };
@@ -50,6 +55,7 @@ const InvoicesList = ({ onUpdate }: InvoicesListProps) => {
     issue_date: "",
     due_date: "",
     status: "Open" as "Open" | "Paid" | "Disputed" | "Settled" | "InPaymentPlan" | "Canceled" | "PartiallyPaid",
+    posting_state: "draft" as "draft" | "posted",
   });
 
   useEffect(() => {
@@ -93,6 +99,8 @@ const InvoicesList = ({ onUpdate }: InvoicesListProps) => {
         ...formData,
         amount: parseFloat(formData.amount),
         user_id: user.id,
+        integration_source: "recouply_manual",
+        source_system: "manual",
       } as any]).select().single();
       
       if (error) throw error;
@@ -116,6 +124,7 @@ const InvoicesList = ({ onUpdate }: InvoicesListProps) => {
         issue_date: "",
         due_date: "",
         status: "Open",
+        posting_state: "draft",
       });
       fetchInvoices();
       onUpdate();
@@ -245,6 +254,24 @@ const InvoicesList = ({ onUpdate }: InvoicesListProps) => {
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="posting_state">Posting State *</Label>
+                  <Select
+                    value={formData.posting_state}
+                    onValueChange={(value) => setFormData({ ...formData, posting_state: value as "draft" | "posted" })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="draft">Draft — open to editing</SelectItem>
+                      <SelectItem value="posted">Posted — locked & eligible for AI outreach</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Drafts stay editable and are excluded from automated collection outreach until posted.
+                  </p>
+                </div>
                 <Button type="submit" className="w-full">Add Invoice</Button>
               </form>
             </DialogContent>
@@ -263,37 +290,55 @@ const InvoicesList = ({ onUpdate }: InvoicesListProps) => {
                 <TableHead>Invoice #</TableHead>
                 <TableHead>Customer</TableHead>
                 <TableHead>Amount</TableHead>
-                <TableHead>Due Date</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {invoices.map((invoice) => (
-                <TableRow key={invoice.id}>
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
-                      {invoice.invoice_number}
-                      {invoice.is_overage && (
-                        <Badge variant="outline" className="text-xs">
-                          Overage
+                  <TableHead>Due Date</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Posting</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {invoices.map((invoice) => (
+                  <TableRow key={invoice.id}>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        {invoice.invoice_number}
+                        {invoice.is_overage && (
+                          <Badge variant="outline" className="text-xs">
+                            Overage
+                          </Badge>
+                        )}
+                        {invoice.is_on_payment_plan && (
+                          <Badge className="bg-purple-100 text-purple-800 border-purple-200 text-[10px] px-1.5 py-0">
+                            Payment Plan
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>{invoice.debtors.company_name}</TableCell>
+                    <TableCell>${invoice.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                    <TableCell>{new Date(invoice.due_date).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      <Badge className={getStatusColor(invoice.status)}>
+                        {invoice.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {usesPostingLifecycle(invoice) ? (
+                        getPostingState(invoice) === "draft" ? (
+                          <Badge className="bg-amber-100 text-amber-800 border-amber-200 gap-1">
+                            <FileEdit className="h-3 w-3" /> Draft
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 gap-1">
+                            <Lock className="h-3 w-3" /> Posted
+                          </Badge>
+                        )
+                      ) : (
+                        <Badge variant="outline" className="text-xs text-muted-foreground">
+                          Integrated
                         </Badge>
                       )}
-                      {invoice.is_on_payment_plan && (
-                        <Badge className="bg-purple-100 text-purple-800 border-purple-200 text-[10px] px-1.5 py-0">
-                          Payment Plan
-                        </Badge>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>{invoice.debtors.company_name}</TableCell>
-                  <TableCell>${invoice.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
-                  <TableCell>{new Date(invoice.due_date).toLocaleDateString()}</TableCell>
-                  <TableCell>
-                    <Badge className={getStatusColor(invoice.status)}>
-                      {invoice.status}
-                    </Badge>
-                  </TableCell>
+                    </TableCell>
                   <TableCell className="text-right">
                     <Button
                       variant="ghost"
