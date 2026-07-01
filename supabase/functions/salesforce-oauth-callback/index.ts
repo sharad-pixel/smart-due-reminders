@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { encryptToken } from "../_shared/tokenCrypto.ts";
 
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
@@ -88,14 +89,20 @@ Deno.serve(async (req) => {
 
     logStep('Token exchange successful', { instanceUrl: tokenData.instance_url });
 
+    // Encrypt tokens at rest
+    const accessTokenEnc = await encryptToken(tokenData.access_token);
+    const refreshTokenEnc = await encryptToken(tokenData.refresh_token);
+
     // Upsert CRM connection
     const { error: upsertErr } = await supabaseAdmin
       .from('crm_connections')
       .upsert({
         user_id: userId,
         crm_type: 'salesforce',
-        access_token: tokenData.access_token,
-        refresh_token: tokenData.refresh_token,
+        access_token: null,
+        refresh_token: null,
+        access_token_encrypted: accessTokenEnc,
+        refresh_token_encrypted: refreshTokenEnc,
         instance_url: tokenData.instance_url,
         connected_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -111,8 +118,10 @@ Deno.serve(async (req) => {
         .insert({
           user_id: userId,
           crm_type: 'salesforce',
-          access_token: tokenData.access_token,
-          refresh_token: tokenData.refresh_token,
+          access_token: null,
+          refresh_token: null,
+          access_token_encrypted: accessTokenEnc,
+          refresh_token_encrypted: refreshTokenEnc,
           instance_url: tokenData.instance_url,
           connected_at: new Date().toISOString(),
         });

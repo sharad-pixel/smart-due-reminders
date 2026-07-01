@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { encryptToken, readToken } from "../_shared/tokenCrypto.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,7 +11,8 @@ const logStep = (step: string, details?: any) => {
 };
 
 async function refreshAccessToken(supabase: any, connection: any, clientId: string, clientSecret: string) {
-  if (!connection.refresh_token) throw new Error('No refresh token available');
+  const refreshTokenValue = await readToken(connection.refresh_token_encrypted, connection.refresh_token);
+  if (!refreshTokenValue) throw new Error('No refresh token available');
 
   const res = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
@@ -18,7 +20,7 @@ async function refreshAccessToken(supabase: any, connection: any, clientId: stri
     body: new URLSearchParams({
       client_id: clientId,
       client_secret: clientSecret,
-      refresh_token: connection.refresh_token,
+      refresh_token: refreshTokenValue,
       grant_type: 'refresh_token',
     }),
   });
@@ -29,7 +31,8 @@ async function refreshAccessToken(supabase: any, connection: any, clientId: stri
   await supabase
     .from('drive_connections')
     .update({
-      access_token: data.access_token,
+      access_token: null,
+      access_token_encrypted: await encryptToken(data.access_token),
       token_expires_at: new Date(Date.now() + data.expires_in * 1000).toISOString(),
       updated_at: new Date().toISOString(),
     })
@@ -88,7 +91,7 @@ Deno.serve(async (req) => {
     }
 
     // Refresh token if expired
-    let accessToken = connection.access_token;
+    let accessToken = await readToken(connection.access_token_encrypted, connection.access_token);
     if (connection.token_expires_at && new Date(connection.token_expires_at) <= new Date()) {
       logStep('Refreshing expired token');
       accessToken = await refreshAccessToken(supabase, connection, clientId, clientSecret);

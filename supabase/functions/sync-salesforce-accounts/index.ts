@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { encryptToken, readToken } from "../_shared/tokenCrypto.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,12 +16,13 @@ async function refreshSalesforceToken(supabaseAdmin: any, connection: any): Prom
   const clientSecret = Deno.env.get('SALESFORCE_CLIENT_SECRET')!;
   const loginUrl = Deno.env.get('SALESFORCE_LOGIN_URL') || 'https://login.salesforce.com';
 
+  const refreshToken = await readToken(connection.refresh_token_encrypted, connection.refresh_token);
   const res = await fetch(`${loginUrl}/services/oauth2/token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
       grant_type: 'refresh_token',
-      refresh_token: connection.refresh_token,
+      refresh_token: refreshToken ?? '',
       client_id: clientId,
       client_secret: clientSecret,
     }),
@@ -33,7 +35,11 @@ async function refreshSalesforceToken(supabaseAdmin: any, connection: any): Prom
 
   await supabaseAdmin
     .from('crm_connections')
-    .update({ access_token: data.access_token, updated_at: new Date().toISOString() })
+    .update({
+      access_token: null,
+      access_token_encrypted: await encryptToken(data.access_token),
+      updated_at: new Date().toISOString(),
+    })
     .eq('id', connection.id);
 
   return data.access_token;
@@ -103,7 +109,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    let accessToken = connection.access_token;
+    let accessToken = await readToken(connection.access_token_encrypted, connection.access_token);
     const instanceUrl = connection.instance_url;
 
     // Query Salesforce Accounts

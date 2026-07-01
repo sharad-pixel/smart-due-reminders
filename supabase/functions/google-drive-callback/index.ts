@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { encryptToken } from "../_shared/tokenCrypto.ts";
 
 Deno.serve(async (req) => {
   try {
@@ -73,6 +74,12 @@ Deno.serve(async (req) => {
     // Get user's org
     const { data: orgId } = await supabase.rpc('get_user_organization_id', { p_user_id: userId });
 
+    // Encrypt tokens at rest
+    const accessTokenEnc = await encryptToken(tokenData.access_token);
+    const refreshTokenEnc = tokenData.refresh_token
+      ? await encryptToken(tokenData.refresh_token)
+      : null;
+
     // Upsert drive connection
     const { error: upsertError } = await supabase
       .from('drive_connections')
@@ -80,8 +87,10 @@ Deno.serve(async (req) => {
         user_id: userId,
         organization_id: orgId,
         provider: 'google_drive',
-        access_token: tokenData.access_token,
-        refresh_token: tokenData.refresh_token,
+        access_token: null,
+        refresh_token: null,
+        access_token_encrypted: accessTokenEnc,
+        refresh_token_encrypted: refreshTokenEnc,
         token_expires_at: new Date(Date.now() + tokenData.expires_in * 1000).toISOString(),
         is_active: true,
       }, { onConflict: 'user_id' })
@@ -95,22 +104,29 @@ Deno.serve(async (req) => {
           user_id: userId,
           organization_id: orgId,
           provider: 'google_drive',
-          access_token: tokenData.access_token,
-          refresh_token: tokenData.refresh_token,
+          access_token: null,
+          refresh_token: null,
+          access_token_encrypted: accessTokenEnc,
+          refresh_token_encrypted: refreshTokenEnc,
           token_expires_at: new Date(Date.now() + tokenData.expires_in * 1000).toISOString(),
           is_active: true,
         });
       
       if (insertError) {
+        const updatePayload: Record<string, unknown> = {
+          access_token: null,
+          access_token_encrypted: accessTokenEnc,
+          token_expires_at: new Date(Date.now() + tokenData.expires_in * 1000).toISOString(),
+          is_active: true,
+          updated_at: new Date().toISOString(),
+        };
+        if (refreshTokenEnc) {
+          updatePayload.refresh_token = null;
+          updatePayload.refresh_token_encrypted = refreshTokenEnc;
+        }
         await supabase
           .from('drive_connections')
-          .update({
-            access_token: tokenData.access_token,
-            refresh_token: tokenData.refresh_token || undefined,
-            token_expires_at: new Date(Date.now() + tokenData.expires_in * 1000).toISOString(),
-            is_active: true,
-            updated_at: new Date().toISOString(),
-          })
+          .update(updatePayload)
           .eq('user_id', userId);
       }
     }

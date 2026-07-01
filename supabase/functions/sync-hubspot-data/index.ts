@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { encryptToken, readToken } from "../_shared/tokenCrypto.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,12 +15,13 @@ async function refreshHubSpotToken(supabaseAdmin: any, connection: any): Promise
   const clientId = Deno.env.get('HUBSPOT_CLIENT_ID')!;
   const clientSecret = Deno.env.get('HUBSPOT_CLIENT_SECRET')!;
 
+  const refreshTokenValue = await readToken(connection.refresh_token_encrypted, connection.refresh_token);
   const res = await fetch('https://api.hubapi.com/oauth/v1/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
       grant_type: 'refresh_token',
-      refresh_token: connection.refresh_token,
+      refresh_token: refreshTokenValue ?? '',
       client_id: clientId,
       client_secret: clientSecret,
     }),
@@ -30,11 +32,14 @@ async function refreshHubSpotToken(supabaseAdmin: any, connection: any): Promise
     throw new Error(`HubSpot token refresh failed: ${data.message || res.status}`);
   }
 
+  const nextRefresh = data.refresh_token || refreshTokenValue;
   await supabaseAdmin
     .from('crm_connections')
     .update({
-      access_token: data.access_token,
-      refresh_token: data.refresh_token || connection.refresh_token,
+      access_token: null,
+      refresh_token: null,
+      access_token_encrypted: await encryptToken(data.access_token),
+      refresh_token_encrypted: await encryptToken(nextRefresh),
       updated_at: new Date().toISOString(),
     })
     .eq('id', connection.id);
@@ -110,7 +115,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    let accessToken = connection.access_token;
+    let accessToken = await readToken(connection.access_token_encrypted, connection.access_token);
 
     // Fetch companies from HubSpot
     const properties = [

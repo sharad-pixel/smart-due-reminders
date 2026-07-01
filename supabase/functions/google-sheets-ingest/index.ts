@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { encryptToken, readToken } from "../_shared/tokenCrypto.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,10 +8,12 @@ const corsHeaders = {
 
 async function getValidAccessToken(supabase: any, connection: any) {
   if (connection.token_expires_at && new Date(connection.token_expires_at) > new Date()) {
-    return connection.access_token;
+    const existing = await readToken(connection.access_token_encrypted, connection.access_token);
+    if (existing) return existing;
   }
   const clientId = Deno.env.get('GOOGLE_DRIVE_CLIENT_ID')!;
   const clientSecret = Deno.env.get('GOOGLE_DRIVE_CLIENT_SECRET')!;
+  const refreshTokenValue = await readToken(connection.refresh_token_encrypted, connection.refresh_token);
 
   const res = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
@@ -18,7 +21,7 @@ async function getValidAccessToken(supabase: any, connection: any) {
     body: new URLSearchParams({
       client_id: clientId,
       client_secret: clientSecret,
-      refresh_token: connection.refresh_token,
+      refresh_token: refreshTokenValue ?? '',
       grant_type: 'refresh_token',
     }),
   });
@@ -26,7 +29,8 @@ async function getValidAccessToken(supabase: any, connection: any) {
   if (!res.ok) throw new Error(`Token refresh failed: ${JSON.stringify(data)}`);
 
   await supabase.from('drive_connections').update({
-    access_token: data.access_token,
+    access_token: null,
+    access_token_encrypted: await encryptToken(data.access_token),
     token_expires_at: new Date(Date.now() + data.expires_in * 1000).toISOString(),
     updated_at: new Date().toISOString(),
   }).eq('id', connection.id);
