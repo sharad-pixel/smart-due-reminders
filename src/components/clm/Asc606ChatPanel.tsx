@@ -131,40 +131,36 @@ export function Asc606ChatPanel({ contractId, contractTitle, onOpenAssessment }:
           </div>
         ) : (
           <div className="space-y-3">
+            {/* Live links to related components — always visible */}
+            <div className="flex flex-wrap items-center gap-1.5 pb-2 border-b">
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground mr-1">Jump to</span>
+              {onOpenAssessment && (
+                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onOpenAssessment}>
+                  <FileCheck2 className="h-3 w-3 mr-1" /> Assessment report
+                </Button>
+              )}
+              <Button size="sm" variant="ghost" className="h-7 text-xs" asChild>
+                <a href="#recognition"><BookOpen className="h-3 w-3 mr-1" /> Recognition schedule</a>
+              </Button>
+              <Button size="sm" variant="ghost" className="h-7 text-xs" asChild>
+                <a href="#risk"><ShieldAlert className="h-3 w-3 mr-1" /> Risk & readiness</a>
+              </Button>
+              <Button size="sm" variant="ghost" className="h-7 text-xs" asChild>
+                <Link to="/revenue-library"><Library className="h-3 w-3 mr-1" /> Revenue Library</Link>
+              </Button>
+              <Button size="sm" variant="ghost" className="h-7 text-xs" asChild>
+                <Link to="/billing/asc606-credits"><ExternalLink className="h-3 w-3 mr-1" /> ASC 606 credits</Link>
+              </Button>
+            </div>
+
             <div
               ref={scrollRef}
               className="max-h-80 overflow-y-auto space-y-3 pr-1"
             >
               {messages.length === 0 ? (
-                <div className="space-y-3 text-xs text-muted-foreground">
-                  <div>
-                    Ask anything about ASC 606 compliance for <span className="font-medium text-foreground">{contractTitle}</span>. Try:
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {SUGGESTIONS.map((s) => (
-                      <Button
-                        key={s}
-                        variant="outline"
-                        size="sm"
-                        className="h-auto py-1 text-xs font-normal"
-                        onClick={() => send(s)}
-                        disabled={sending}
-                      >
-                        {s}
-                      </Button>
-                    ))}
-                  </div>
-                  {storedGuidance.length > 0 && (
-                    <div className="rounded-md border bg-muted/20 p-3 space-y-2">
-                      <div className="font-medium text-foreground">Stored guidance</div>
-                      {storedGuidance.slice(0, 3).map((g: any) => (
-                        <div key={g.id} className="border-t first:border-t-0 pt-2 first:pt-0">
-                          <div className="font-medium text-foreground line-clamp-1">{g.prompt}</div>
-                          <div className="mt-1 text-muted-foreground line-clamp-3">{g.guidance}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                <div className="text-xs text-muted-foreground">
+                  Ask anything about ASC 606 compliance for{" "}
+                  <span className="font-medium text-foreground">{contractTitle}</span>.
                 </div>
               ) : (
                 messages.map((m, i) => (
@@ -187,6 +183,38 @@ export function Asc606ChatPanel({ contractId, contractTitle, onOpenAssessment }:
                 </div>
               )}
             </div>
+
+            {/* Suggested prompt chips — persistent, don't disappear after first click */}
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground self-center mr-1">
+                Suggested
+              </span>
+              {SUGGESTIONS.map((s) => (
+                <Button
+                  key={s}
+                  variant="outline"
+                  size="sm"
+                  className="h-auto py-1 text-xs font-normal"
+                  onClick={() => send(s)}
+                  disabled={sending}
+                >
+                  {s}
+                </Button>
+              ))}
+            </div>
+
+            {storedGuidance.length > 0 && messages.length === 0 && (
+              <div className="rounded-md border bg-muted/20 p-3 space-y-2 text-xs text-muted-foreground">
+                <div className="font-medium text-foreground">Stored guidance</div>
+                {storedGuidance.slice(0, 3).map((g: any) => (
+                  <div key={g.id} className="border-t first:border-t-0 pt-2 first:pt-0">
+                    <div className="font-medium text-foreground line-clamp-1">{g.prompt}</div>
+                    <div className="mt-1 line-clamp-3">{g.guidance}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div className="flex items-end gap-2 border-t pt-3">
               <Textarea
                 ref={inputRef}
