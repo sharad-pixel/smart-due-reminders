@@ -74,6 +74,8 @@ import { ContractSupportingDocsPanel } from "@/components/contracts/ContractSupp
 import { ContractLinksPanel } from "@/components/clm/ContractLinksPanel";
 import { ContractComplianceChecklist } from "@/components/clm/ContractComplianceChecklist";
 import { ContractDetailSubHeader } from "@/components/clm/ContractDetailSubHeader";
+import { ContractAgreementFamily } from "@/components/clm/ContractAgreementFamily";
+import { DocumentTypeBadge } from "@/components/clm/DocumentTypeBadge";
 import { NicolasLineReviewBanner } from "@/components/clm/NicolasLineReviewBanner";
 
 const FIN_KEYS = new Set<string>([
