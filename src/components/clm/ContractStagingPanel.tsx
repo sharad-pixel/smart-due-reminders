@@ -386,7 +386,7 @@ export const ContractStagingPanel = ({
                           <Button
                             size="sm"
                             disabled={busy || uploading}
-                            onClick={() => handleGenerateRecouply(s.id)}
+                            onClick={() => handleGenerateRecouply(s)}
                           >
                             <Sparkles className="h-3.5 w-3.5 mr-1" />
                             {busy ? "Generating…" : "Issue via Recouply"}
