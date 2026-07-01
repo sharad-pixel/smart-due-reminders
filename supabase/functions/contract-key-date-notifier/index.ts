@@ -77,10 +77,24 @@ Deno.serve(async (req) => {
         .single();
       if (!imp) continue;
 
+      // Resolve account / customer name for context in the alert.
+      let accountName: string | null = null;
+      if ((imp as any).debtor_id) {
+        const { data: deb } = await supabase
+          .from("debtors")
+          .select("name, company_name")
+          .eq("id", (imp as any).debtor_id)
+          .maybeSingle();
+        accountName = (deb as any)?.company_name || (deb as any)?.name || null;
+      }
+      const contractLabel = (imp as any).contract_name || (imp as any).file_name || "Contract";
+      const accountPrefix = accountName ? `${accountName} — ` : "";
+      const link = contractUrl((imp as any).id);
+
       const sev = daysUntil <= 7 ? "error" : daysUntil <= 14 ? "warning" : "info";
       const alertType = TYPE_MAP[(r as any).date_type] || "contract_milestone";
-      const title = `${label((r as any).date_type)} in ${daysUntil} day${daysUntil === 1 ? "" : "s"}`;
-      const message = `Contract "${(imp as any).contract_name || (imp as any).file_name}" — ${label((r as any).date_type)} on ${(r as any).due_date}.`;
+      const title = `${accountPrefix}${label((r as any).date_type)} in ${daysUntil} day${daysUntil === 1 ? "" : "s"}`;
+      const message = `${accountName ? `Account: ${accountName}. ` : ""}Contract "${contractLabel}" — ${label((r as any).date_type)} on ${(r as any).due_date}.`;
 
       // In-app
       await supabase.from("user_alerts").insert({
@@ -91,9 +105,15 @@ Deno.serve(async (req) => {
         title,
         message,
         debtor_id: (imp as any).debtor_id,
-        action_url: `/contracts/live`,
+        action_url: `/contracts/live/${(imp as any).id}`,
         action_label: "Open contract",
-        metadata: { import_id: (imp as any).id, critical_date_id: (r as any).id, due_date: (r as any).due_date },
+        metadata: {
+          import_id: (imp as any).id,
+          critical_date_id: (r as any).id,
+          due_date: (r as any).due_date,
+          account_name: accountName,
+          contract_name: contractLabel,
+        },
       });
 
       // Email
@@ -109,8 +129,10 @@ Deno.serve(async (req) => {
             <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1e293b;padding:24px;max-width:560px;background:#ffffff">
               <div style="border:1px solid #e2e8f0;border-radius:8px;padding:20px">
                 <h2 style="margin:0 0 12px;color:#1e293b;font-size:18px">Contract key date reminder</h2>
-                <p style="margin:0 0 8px"><strong>${(imp as any).contract_name || (imp as any).file_name}</strong></p>
+                ${accountName ? `<p style="margin:0 0 6px;color:#0f172a"><strong>Account:</strong> ${accountName}</p>` : ""}
+                <p style="margin:0 0 8px;color:#0f172a"><strong>Contract:</strong> ${contractLabel}</p>
                 <p style="margin:0 0 6px;color:#475569">${label((r as any).date_type)} — <strong>${(r as any).due_date}</strong> (in ${daysUntil} day${daysUntil === 1 ? "" : "s"})</p>
+                <p style="margin:16px 0 0"><a href="${link}" style="display:inline-block;background:#3B82F6;color:#ffffff;text-decoration:none;padding:10px 16px;border-radius:6px;font-size:13px;font-weight:600">Open contract →</a></p>
                 <p style="margin:14px 0 0;color:#64748b;font-size:13px">This reminder fires ${lead} day${lead === 1 ? "" : "s"} before the date. You are receiving it because alerts are enabled for this contract.</p>
               </div>
             </div>`;
@@ -121,7 +143,7 @@ Deno.serve(async (req) => {
               body: JSON.stringify({
                 to,
                 from: "Recouply.ai <notifications@send.inbound.services.recouply.ai>",
-                subject: `Action needed: ${label((r as any).date_type)} on ${(r as any).due_date}`,
+                subject: `Action needed: ${accountPrefix}${label((r as any).date_type)} on ${(r as any).due_date}`,
                 html,
               }),
             });
