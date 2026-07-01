@@ -47,22 +47,24 @@ const FinalCTA = () => {
               transition={{ duration: 2, repeat: Infinity }}
             >
               <Sparkles className="h-4 w-4" />
-              Revenue Intelligence CRM for Finance Teams
+              Revenue Intelligence — from contract to cash
             </motion.div>
 
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-              Centralize Collections. Prioritize by Risk. Recover Cash.
+              Contract to Cash, Intelligently Orchestrated.
             </h2>
             
             <p className="text-xl md:text-2xl text-primary font-semibold mb-4">
-              The System of Record for Collections Activity
+              One System from Contract Signed to Cash Collected
             </p>
             
             <p className="text-lg text-muted-foreground mb-6 max-w-2xl mx-auto">
-              Six AI agents manage AI-powered collections workflows, assess risk, negotiate payments, and maintain a complete audit trail — while you maintain full control over every decision.
+              Contract Intelligence reads every clause. Revenue Recognition tracks every obligation.
+              Collection Intelligence turns every receivable into predictable cash — all human-approved,
+              all in one system of record.
             </p>
             <p className="text-sm text-muted-foreground/80 mb-10 max-w-xl mx-auto">
-              Centralized receivables • Risk-based prioritization • Full audit trail
+              Contract Intelligence • ASC 606 Revenue Recognition • Collection Intelligence • Full audit trail
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
