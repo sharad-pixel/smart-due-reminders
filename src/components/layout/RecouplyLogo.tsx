@@ -1,3 +1,4 @@
+import { Brain } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface RecouplyLogoProps {
@@ -10,69 +11,32 @@ interface RecouplyLogoProps {
 }
 
 const sizeConfig = {
-  sm: { mark: 20, text: "text-sm", suffix: "text-[10px]", gap: "gap-2" },
-  md: { mark: 26, text: "text-base sm:text-lg", suffix: "text-[10px]", gap: "gap-2.5" },
-  lg: { mark: 30, text: "text-xl", suffix: "text-[11px]", gap: "gap-2.5" },
-  xl: { mark: 44, text: "text-3xl sm:text-4xl", suffix: "text-xs", gap: "gap-3" },
+  sm: { frame: 22, icon: 12, text: "text-sm", suffix: "text-[10px]", gap: "gap-2", radius: "rounded-md" },
+  md: { frame: 28, icon: 15, text: "text-base sm:text-lg", suffix: "text-[10px]", gap: "gap-2.5", radius: "rounded-lg" },
+  lg: { frame: 32, icon: 17, text: "text-xl", suffix: "text-[11px]", gap: "gap-2.5", radius: "rounded-lg" },
+  xl: { frame: 48, icon: 26, text: "text-3xl sm:text-4xl", suffix: "text-xs", gap: "gap-3", radius: "rounded-xl" },
 };
 
 /**
- * Recouply monogram — a stacked "R + coupling loop" motif.
- * The mark reads as an R whose bowl seamlessly loops back through
- * a second arc, evoking the contract → cash → contract loop.
- * Rendered monochrome via currentColor with a single accent stroke.
+ * Recouply mark — the Brain glyph seated inside a refined "seal" frame.
+ * Monochrome via currentColor with the brain in the brand primary,
+ * so the lockup reads confidently on both light and dark surfaces.
  */
-const RecouplyMark = ({ size }: { size: number }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 40 40"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
+const RecouplyMark = ({ frame, icon, radius }: { frame: number; icon: number; radius: string }) => (
+  <span
+    className={cn(
+      "relative inline-flex items-center justify-center shrink-0 border border-current/15 bg-current/[0.04]",
+      radius
+    )}
+    style={{ width: frame, height: frame }}
     aria-hidden="true"
-    className="shrink-0"
   >
-    {/* outer rounded frame — the "seal" */}
-    <rect
-      x="1.5"
-      y="1.5"
-      width="37"
-      height="37"
-      rx="9"
-      stroke="currentColor"
-      strokeOpacity="0.18"
-      strokeWidth="1"
+    <Brain
+      className="text-primary"
+      style={{ width: icon, height: icon }}
+      strokeWidth={1.75}
     />
-    {/* R stem */}
-    <path
-      d="M11.5 10 V30"
-      stroke="currentColor"
-      strokeWidth="2.4"
-      strokeLinecap="square"
-    />
-    {/* R bowl */}
-    <path
-      d="M11.5 10 H21 a5.5 5.5 0 0 1 0 11 H11.5"
-      stroke="currentColor"
-      strokeWidth="2.4"
-      strokeLinecap="square"
-      strokeLinejoin="miter"
-    />
-    {/* R leg */}
-    <path
-      d="M18.5 21 L28.5 30"
-      stroke="currentColor"
-      strokeWidth="2.4"
-      strokeLinecap="square"
-    />
-    {/* coupling loop — the accent, closes contract→cash */}
-    <path
-      d="M25 10 a5 5 0 1 1 -0.01 0"
-      stroke="hsl(var(--primary))"
-      strokeWidth="2"
-      strokeLinecap="round"
-    />
-  </svg>
+  </span>
 );
 
 export const RecouplyLogo = ({
@@ -91,26 +55,18 @@ export const RecouplyLogo = ({
       : "text-foreground";
 
   return (
-    <div
-      className={cn("inline-flex items-center", config.gap, colorClass, className)}
-    >
-      <RecouplyMark size={config.mark} />
+    <div className={cn("inline-flex items-center", config.gap, colorClass, className)}>
+      <RecouplyMark frame={config.frame} icon={config.icon} radius={config.radius} />
       {showText && (
         <span className="inline-flex items-baseline">
           <span
-            className={cn(
-              "font-semibold tracking-tight leading-none",
-              config.text
-            )}
+            className={cn("font-semibold tracking-tight leading-none", config.text)}
             style={{ letterSpacing: "-0.015em" }}
           >
             Recouply
           </span>
           <span
-            className={cn(
-              "ml-0.5 font-medium leading-none text-primary",
-              config.suffix
-            )}
+            className={cn("ml-0.5 font-medium leading-none text-primary", config.suffix)}
             style={{ letterSpacing: "0.02em" }}
           >
             .ai
