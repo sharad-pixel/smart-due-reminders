@@ -557,6 +557,13 @@ export const ContractStagingPanel = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <GenerateInvoicesDialog
+        open={!!genDialogSchedule}
+        onOpenChange={(v) => !v && setGenDialogSchedule(null)}
+        schedules={genDialogSchedule ? [genDialogSchedule] : []}
+        submitting={!!busyScheduleId}
+        onConfirm={confirmGenerateRecouply}
+      />
     </div>
   );
 };
