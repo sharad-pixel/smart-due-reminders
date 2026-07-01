@@ -90,9 +90,9 @@ const ContractIntelligence = () => {
   return (
     <MarketingLayout>
       <SEOHead
-        title="Recouply Contract Intelligence"
-        description="Recouply Contract Intelligence reviews every contract and captures all revenue-related and key actionable data points — dates, obligations, payment terms, and risks — so nothing goes untracked."
-        keywords="contract intelligence, contract review, revenue data extraction, obligation tracking, renewal tracking, AI contract analysis"
+        title="Recouply Contract Intelligence — The Finance CRM"
+        description="Extract contract data and orchestrate automation. Renewal and opt-out date reminders and custom triggers so you never miss a key event. The only platform designed as a Finance CRM."
+        keywords="contract intelligence, finance CRM, renewal reminders, opt-out alerts, contract data extraction, revenue automation"
         canonical="https://recouply.ai/clm"
       />
 
@@ -106,19 +106,18 @@ const ContractIntelligence = () => {
           <div className="max-w-4xl mx-auto text-center">
             <Badge variant="secondary" className="mb-6 px-4 py-1.5 text-xs uppercase tracking-widest">
               <Sparkles className="w-3 h-3 mr-2 inline" />
-              New Module · Sales-Led Availability
+              The Only Platform Designed as a Finance CRM
             </Badge>
             <h1 className="text-5xl lg:text-7xl font-bold tracking-tight mb-6">
-              Every Contract, Reviewed.
+              Extract Contract Data.
               <br />
               <span className="bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
-                Every Revenue Signal, Tracked.
+                Orchestrate Automation.
               </span>
             </h1>
             <p className="text-xl lg:text-2xl text-muted-foreground mb-10 leading-relaxed">
-              Recouply Contract Intelligence reviews your contracts and captures every
-              revenue-related and key actionable data point — payment terms, renewal
-              dates, obligations, and risk clauses — so nothing important goes untracked.
+              Renewal and opt-out date reminders and custom triggers so you never miss a
+              key event — all inside the only platform designed as a Finance CRM.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="lg" onClick={goContact} className="gap-2 text-base px-8">

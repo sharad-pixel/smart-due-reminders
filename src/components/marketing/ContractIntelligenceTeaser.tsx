@@ -25,18 +25,18 @@ const fadeUp = {
 const PILLARS = [
   {
     icon: Sparkles,
-    title: "AI Smart Ingestion",
-    body: "Drop a PDF, DOCX, or scanned MSA — our extractor parses parties, term dates, financial obligations, SLAs, renewal clauses, and risk language in seconds.",
+    title: "Extract Contract Data",
+    body: "AI reads every MSA, order form, and amendment — extracting payment terms, obligations, financials, and clauses into structured data your finance stack can act on.",
   },
   {
     icon: CalendarClock,
-    title: "Every Date, Watched",
-    body: "Renewals, non-renewal notice windows, opt-outs, price escalators, true-ups — turned into custom triggers that ping the right owner before they bite.",
+    title: "Renewal & Opt-Out Reminders",
+    body: "Renewal dates, non-renewal notice windows, and opt-out deadlines become owner-level alerts so you never miss a key event.",
   },
   {
     icon: Receipt,
-    title: "Invoicing ↔ Revenue Aligned",
-    body: "Performance obligations, ARR / MRR / TCV / ACV, and billing milestones recaptured into Recouply so collections automation matches what was actually sold.",
+    title: "Custom Triggers & Automation",
+    body: "Orchestrate automation off any captured data point — milestones, escalators, true-ups — inside the only platform designed as a Finance CRM.",
   },
 ];
 
@@ -65,18 +65,17 @@ export default function ContractIntelligenceTeaser() {
             variant="outline"
             className="mb-4 bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40"
           >
-            <FileSignature className="h-3 w-3 mr-1" /> Contract Intelligence
+            <FileSignature className="h-3 w-3 mr-1" /> Contract Intelligence · The Finance CRM
           </Badge>
           <h2 className="text-3xl md:text-4xl font-bold mb-4 tracking-tight">
-            Your contracts, finally{" "}
+            Extract contract data and{" "}
             <span className="bg-gradient-to-r from-indigo-600 to-primary bg-clip-text text-transparent">
-              talking to your revenue
+              orchestrate automation
             </span>
           </h2>
           <p className="text-muted-foreground text-lg">
-            AI Smart Ingestion turns every signed agreement into structured intelligence —
-            financial terms, key dates, risks, and billing rules — so invoicing,
-            collections, and forecasting are always in lockstep with what the contract says.
+            Renewal and opt-out date reminders and custom triggers so you never miss a key event —
+            all inside the only platform designed as a Finance CRM.
           </p>
         </motion.div>
 

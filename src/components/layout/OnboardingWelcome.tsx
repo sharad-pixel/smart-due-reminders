@@ -18,7 +18,7 @@ const ONBOARDING_STEPS = [
   {
     icon: FileSignature,
     title: 'Set Up Contract Intelligence',
-    description: 'Upload your contracts and let AI review each one — capturing payment terms, dates, obligations, and risks so every revenue-related data point is tracked.',
+    description: 'Extract contract data and orchestrate automation — renewal and opt-out reminders and custom triggers so you never miss a key event. The only platform designed as a Finance CRM.',
     path: '/contracts',
   },
   {
@@ -94,7 +94,7 @@ export const OnboardingWelcome = () => {
               <strong>Collections Intelligence</strong> — AI agents prioritize by risk and draft tone-matched outreach. You stay in the loop.
             </span>
             <span className="block pl-3 border-l-2 border-emerald-500/40">
-              <strong>Contract Intelligence</strong> — AI reviews every contract and captures the revenue-related and actionable data points (payment terms, renewals, obligations, risks) so nothing goes untracked.
+              <strong>Contract Intelligence</strong> — extract contract data and orchestrate automation. Renewal and opt-out reminders and custom triggers so you never miss a key event. The only platform designed as a Finance CRM.
             </span>
           </DialogDescription>
         </DialogHeader>
