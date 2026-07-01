@@ -94,7 +94,7 @@ const AnimatedHero = () => {
              transition={{ duration: 0.6, ease: "easeOut" }}
            >
             <Sparkles className="w-4 h-4 animate-pulse" />
-            AI-Powered Revenue Intelligence Platform
+            Revenue Intelligence — from contract to cash
            </motion.div>
           
           {/* Supporting tagline */}
@@ -104,7 +104,7 @@ const AnimatedHero = () => {
              animate={{ opacity: 1 }}
              transition={{ delay: 0.3, duration: 0.6 }}
            >
-            Centralized receivables management • Risk-based prioritization • Full audit trail • AI-powered collections workflows
+            Contract Intelligence • Revenue Recognition • Collection Intelligence • One AI-native system of record
            </motion.p>
 
           {/* Typewriter Headline */}
