@@ -591,7 +591,9 @@ const Dashboard = () => {
               onLoad={loadView}
               onClear={clearActiveView}
             />
+          </div>
         </div>
+
 
         {/* Contract Intelligence — always visible */}
         <ContractIntelligenceSummary />
