@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/table";
 import { BookOpen, Repeat, Wrench, Zap, CircleDot, ShieldCheck } from "lucide-react";
 import { formatCurrency, formatDateShort } from "@/lib/formatters";
+import { AssessmentPanel } from "@/components/ai/AssessmentPanel";
 
 interface Schedule {
   id: string;
