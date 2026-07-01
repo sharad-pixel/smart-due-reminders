@@ -594,8 +594,13 @@ const Dashboard = () => {
           </div>
         </div>
 
+
+        {/* Contract Intelligence — always visible */}
+        <ContractIntelligenceSummary />
+
         {view === "ask" ? (
           <DashboardAskAI />
+
         ) : (
         <>
         {/* Usage Indicator */}
