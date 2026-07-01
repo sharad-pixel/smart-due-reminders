@@ -137,8 +137,8 @@ export const TARGET_KEYWORDS = {
 // Page-specific SEO configurations
 export const PAGE_SEO: Record<string, { title: string; description: string; keywords: string }> = {
   home: {
-    title: 'Recouply.ai | Revenue Intelligence Platform',
-    description: 'Revenue Intelligence Platform for Finance Teams. Centralize receivables, prioritize by risk, and reduce DSO with AI-powered collections workflows.',
+    title: 'Recouply.ai | Revenue Intelligence — From Contract to Cash',
+    description: 'Revenue Intelligence — from contract to cash. AI-native Contract Intelligence + Collection Intelligence that reads every clause, tracks every obligation, and turns every receivable into a real-time signal.',
     keywords: 'collections CRM, AI collections software, accounts receivable CRM, AI-powered collections workflows, risk-based prioritization, collections audit trail, centralized receivables, DSO reduction, cash flow management, collection intelligence platform',
   },
   features: {
