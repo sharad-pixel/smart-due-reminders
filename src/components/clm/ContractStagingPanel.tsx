@@ -13,6 +13,7 @@ import { Upload, Link as LinkIcon, X, UserPlus, CheckCircle2, Sparkles, FilePlus
 import { OcrPricingNotice } from "@/components/ocr/OcrPricingNotice";
 import { Link } from "react-router-dom";
 import { formatCurrency, formatDateShort } from "@/lib/formatters";
+import { GenerateInvoicesDialog } from "@/components/clm/GenerateInvoicesDialog";
 import {
   fetchContractWatchers,
   addContractWatcher,
