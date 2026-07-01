@@ -18,7 +18,7 @@ const ONBOARDING_STEPS = [
   {
     icon: FileSignature,
     title: 'Set Up Contract Intelligence',
-    description: 'Spin up your first engagement workspace, load a template, and let watchers track every renewal and signature.',
+    description: 'Upload your contracts and let AI review each one — capturing payment terms, dates, obligations, and risks so every revenue-related data point is tracked.',
     path: '/contracts',
   },
   {
