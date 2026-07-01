@@ -7,7 +7,7 @@ export const SITE_CONFIG = {
   siteName: 'Recouply.ai',
   siteUrl: 'https://recouply.ai',
   companyName: 'RecouplyAI Inc.',
-  description: 'Revenue Intelligence Platform for Finance & RevOps teams. Cash is the lifeblood of revenue operations—centralize receivables, prioritize by risk, and accelerate cash flow with AI-powered collections workflows.',
+  description: 'Revenue Intelligence — from contract to cash. Recouply reads every contract, tracks every obligation, and turns every receivable into a real-time signal for finance, RevOps, and CS teams.',
   logo: 'https://recouply.ai/favicon.png',
   ogImage: 'https://recouply.ai/og-image.png',
   twitterHandle: '@recouplyai',
