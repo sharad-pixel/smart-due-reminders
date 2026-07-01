@@ -41,6 +41,7 @@ import {
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { formatCurrency, formatDateShort } from "@/lib/formatters";
+import { GenerateInvoicesDialog } from "@/components/clm/GenerateInvoicesDialog";
 
 interface Props {
   importId: string;
