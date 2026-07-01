@@ -268,7 +268,14 @@ function RecentScansCard({ imports }: { imports: any[] }) {
                       {i.debtor?.company_name || i.debtor?.name || i.source}
                     </div>
                   </TableCell>
-                  <TableCell className="text-sm">{i.contract_type || "—"}</TableCell>
+                  <TableCell className="text-sm">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <DocumentTypeBadge type={(i as any).document_type} confidence={(i as any).document_type_confidence} />
+                      {i.contract_type && (
+                        <span className="text-xs text-muted-foreground truncate">{i.contract_type}</span>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell>
                     <Badge variant={STATUS_VARIANT(i.status)}>{STATUS_LABEL[i.status] || i.status}</Badge>
                   </TableCell>
