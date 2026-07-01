@@ -2,9 +2,9 @@ import { motion } from "framer-motion";
 import { Building2, TrendingUp, MessageSquare, AlertCircle, CheckCircle2, Clock } from "lucide-react";
 
 const timeline = [
-  { icon: MessageSquare, label: "AI reminder sent", time: "2 days ago", tone: "primary" },
-  { icon: CheckCircle2, label: "Promise to pay logged", time: "1 day ago", tone: "accent" },
-  { icon: Clock, label: "Payment due Nov 12", time: "in 3 days", tone: "muted" },
+  { icon: MessageSquare, label: "AI reminder sent", time: "2 days ago", cls: "text-primary bg-primary/10" },
+  { icon: CheckCircle2, label: "Promise to pay logged", time: "1 day ago", cls: "text-accent bg-accent/10" },
+  { icon: Clock, label: "Payment due Nov 12", time: "in 3 days", cls: "text-muted-foreground bg-muted" },
 ];
 
 const stages = ["Healthy", "At Risk", "Overdue", "Escalation", "Recovered"];
