@@ -1467,9 +1467,22 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                 <div className="flex items-center justify-between pt-2 border-t">
                   <div>
                     <p className="text-xs text-muted-foreground">Status</p>
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(invoice.status)}`}>
-                      {invoice.status}
-                    </span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(invoice.status)}`}>
+                        {invoice.status}
+                      </span>
+                      {invoice.source_contract_id && (
+                        (invoice as any).posting_state === "draft" ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                            <FileEdit className="h-3 w-3" /> Draft
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+                            <Lock className="h-3 w-3" /> Posted
+                          </span>
+                        )
+                      )}
+                    </div>
                   </div>
                   <div className="text-right">
                     <p className="text-xs text-muted-foreground">Days Past Due</p>
