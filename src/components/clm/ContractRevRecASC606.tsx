@@ -199,6 +199,8 @@ export const ContractRevRecASC606 = ({
   effectiveDate,
   termEndDate,
   defaultCurrency = "USD",
+  contractId,
+  contractTitle,
 }: Props) => {
   // Per-line overrides for non-recurring rows.
   // method: "auto" (default calc) | "point_in_time" (book full amount now) | "custom" (user-entered)
