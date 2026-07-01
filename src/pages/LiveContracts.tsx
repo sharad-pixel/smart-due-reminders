@@ -35,6 +35,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ManualContractDialog } from "@/components/contracts/ManualContractDialog";
+import { DocumentTypeBadge } from "@/components/clm/DocumentTypeBadge";
 import { FileSignature } from "lucide-react";
 
 // ------- Status helpers -------
