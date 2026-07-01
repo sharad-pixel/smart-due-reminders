@@ -315,20 +315,30 @@ export const ContractScheduleLines = ({
     setForm((f) => ({ ...f, product_category: v, revenue_type: revenueFor(v) }));
   };
 
-  const addToBilling = async (scheduleId: string) => {
+  const [genDialogSchedule, setGenDialogSchedule] = useState<any | null>(null);
+
+  const addToBilling = (schedule: any) => {
     if (!debtorId) {
       toast.error("Link this contract to a customer first.");
       return;
     }
+    setGenDialogSchedule(schedule);
+  };
+
+  const confirmGenerate = async (postingState: "draft" | "posted") => {
+    if (!genDialogSchedule) return;
+    const scheduleId = genDialogSchedule.id;
     setBillingId(scheduleId);
     try {
       const { data, error } = await supabase.functions.invoke("live-contract-actions", {
-        body: { importId, action: "generate_invoices", scheduleIds: [scheduleId] },
+        body: { importId, action: "generate_invoices", scheduleIds: [scheduleId], postingState },
       });
       if (error) throw error;
-      if (data?.created > 0) toast.success("Invoice generated from this line");
+      const label = data?.postingState === "posted" ? "Posted" : "Draft";
+      if (data?.created > 0) toast.success(`${label} invoice generated from this line`);
       else if (data?.duplicates > 0) toast.success("Linked to an existing invoice");
       else toast.message("No invoice created", { description: data?.skipped?.[0]?.reason || "Check the row details" });
+      setGenDialogSchedule(null);
       onChanged();
     } catch (e: any) {
       toast.error(e.message || "Failed to add to billing");
