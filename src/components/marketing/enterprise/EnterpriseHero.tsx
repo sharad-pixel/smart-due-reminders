@@ -22,13 +22,22 @@ const lifecycleStages = [
 ];
 
 export default function EnterpriseHero() {
+  const [activeStep, setActiveStep] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setActiveStep((s) => (s + 1) % pipelineSteps.length);
+    }, 2200);
+    return () => clearInterval(id);
+  }, []);
+
   return (
     <section className="dark relative overflow-hidden bg-background text-foreground">
-      {/* ambient background */}
+      {/* ambient background — softened */}
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-40 left-1/2 h-[600px] w-[900px] -translate-x-1/2 rounded-full bg-primary/20 blur-[140px]" />
-        <div className="absolute bottom-0 right-0 h-[400px] w-[400px] rounded-full bg-accent/10 blur-[120px]" />
-        <div className="absolute inset-0 bg-grid-pattern opacity-[0.06]" />
+        <div className="absolute -top-40 left-1/2 h-[520px] w-[820px] -translate-x-1/2 rounded-full bg-primary/10 blur-[160px]" />
+        <div className="absolute bottom-0 right-0 h-[360px] w-[360px] rounded-full bg-accent/[0.06] blur-[140px]" />
+        <div className="absolute inset-0 bg-grid-pattern opacity-[0.04]" />
       </div>
 
       <div className="container relative mx-auto px-6 pt-28 pb-24 lg:pt-36 lg:pb-32">
@@ -36,12 +45,12 @@ export default function EnterpriseHero() {
           {/* Left */}
           <div>
             <motion.div
-              initial={{ opacity: 0, y: 12 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
+              transition={{ duration: 0.5 }}
               className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/40 px-3.5 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur"
             >
-              <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
+              <span className="h-1.5 w-1.5 rounded-full bg-accent" />
               Revenue Intelligence Platform · Contract → Cash
             </motion.div>
 
