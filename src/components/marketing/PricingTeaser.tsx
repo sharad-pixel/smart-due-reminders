@@ -65,7 +65,7 @@ const PricingTeaser = () => {
             Simple Pricing
           </div>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-            AI-Powered Revenue Intelligence Platform for Less Than One Employee
+            Revenue Intelligence — from contract to cash — for less than one employee
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
             Recouply.ai scales with you — start at ${PLAN_CONFIGS.launch.monthlyPrice}/mo with {PLAN_CONFIGS.launch.creditAllotment} credits included. Add Live Contracts at ${LIVE_CONTRACTS_PRICING.pricePerContractPerMonth.toFixed(2)}/contract/mo.{" "}
