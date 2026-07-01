@@ -61,6 +61,11 @@ const ContractIntelligence = () => {
       title: "Version-Aware Extraction",
       desc: "Upload new versions or amendments and Contract Intelligence re-reviews, diffs, and updates the tracked data points automatically.",
     },
+    {
+      icon: ScrollText,
+      title: "Invoice Generation & AR Portal",
+      desc: "Generate branded invoices from contract terms and attach an AR portal link to every invoice — clients pay you directly, submit W-9s, and share tax and AR documents in one secure place.",
+    },
   ];
 
   const intelligence = [
@@ -116,8 +121,9 @@ const ContractIntelligence = () => {
               </span>
             </h1>
             <p className="text-xl lg:text-2xl text-muted-foreground mb-10 leading-relaxed">
-              Renewal and opt-out date reminders and custom triggers so you never miss a
-              key event — all inside the only platform designed as a Finance CRM.
+              Renewal and opt-out reminders, custom triggers, and branded invoice
+              generation with an AR portal link on every invoice so clients pay you
+              directly and submit W-9s — all inside the only platform designed as a Finance CRM.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="lg" onClick={goContact} className="gap-2 text-base px-8">
