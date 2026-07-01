@@ -152,17 +152,17 @@ export default function EnterpriseHero() {
             </motion.ul>
           </div>
 
-          {/* Right — animated pipeline dashboard */}
+          {/* Right — Contract-to-Cash pipeline (lightened) */}
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.9, delay: 0.2 }}
+            transition={{ duration: 0.7, delay: 0.15 }}
             className="relative"
           >
-            <div className="relative rounded-2xl border border-border/60 bg-card/40 p-6 shadow-2xl shadow-primary/10 backdrop-blur-xl">
-              <div className="mb-5 flex items-center justify-between">
+            <div className="relative rounded-2xl border border-border/60 bg-card/40 p-6 shadow-2xl shadow-primary/5 backdrop-blur-xl">
+              <div className="mb-4 flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                  <span className="h-2 w-2 rounded-full bg-accent animate-pulse" />
+                  <span className="h-2 w-2 rounded-full bg-accent" />
                   Live · Contract-to-Cash Pipeline
                 </div>
                 <span className="text-[10px] uppercase tracking-widest text-muted-foreground/70">
@@ -170,53 +170,54 @@ export default function EnterpriseHero() {
                 </span>
               </div>
 
-              <ol className="relative space-y-2.5">
-                <div className="absolute left-[19px] top-3 bottom-3 w-px bg-gradient-to-b from-primary/50 via-primary/20 to-accent/40" />
-                {pipelineSteps.map((s, i) => (
-                  <motion.li
-                    key={s.label}
-                    initial={{ opacity: 0.4 }}
-                    animate={{ opacity: [0.4, 1, 1, 0.5] }}
-                    transition={{
-                      duration: pipelineSteps.length * 1.2,
-                      times: [
-                        i / pipelineSteps.length,
-                        (i + 0.15) / pipelineSteps.length,
-                        (i + 0.85) / pipelineSteps.length,
-                        (i + 1) / pipelineSteps.length,
-                      ],
-                      repeat: Infinity,
-                      ease: "easeInOut",
-                    }}
-                    className="relative flex items-center gap-3 rounded-lg border border-border/40 bg-background/40 px-3 py-2.5"
-                  >
-                    <span className="relative z-10 flex h-10 w-10 items-center justify-center rounded-md bg-primary/15 text-primary">
-                      <s.icon className="h-4 w-4" />
-                    </span>
-                    <div className="flex-1">
-                      <div className="text-sm font-medium">{s.label}</div>
-                      <div className="text-[11px] text-muted-foreground">
-                        Step {i + 1} of {pipelineSteps.length}
+              <p className="mb-4 text-xs text-muted-foreground leading-relaxed">
+                Every signed agreement enters the same pipeline — ingested, priced, invoiced, collected, and reported — with an auditable trail at every step.
+              </p>
+
+              <ol className="relative space-y-2">
+                <div className="absolute left-[19px] top-3 bottom-3 w-px bg-gradient-to-b from-primary/30 via-primary/10 to-accent/20" />
+                {pipelineSteps.map((s, i) => {
+                  const isActive = i === activeStep;
+                  const isDone = i < activeStep;
+                  return (
+                    <li
+                      key={s.label}
+                      className={`relative flex items-center gap-3 rounded-lg border px-3 py-2 transition-colors duration-500 ${
+                        isActive
+                          ? "border-primary/40 bg-primary/[0.06]"
+                          : "border-border/40 bg-background/30"
+                      }`}
+                    >
+                      <span
+                        className={`relative z-10 flex h-9 w-9 items-center justify-center rounded-md transition-colors duration-500 ${
+                          isActive
+                            ? "bg-primary/20 text-primary"
+                            : isDone
+                            ? "bg-accent/15 text-accent"
+                            : "bg-muted/40 text-muted-foreground"
+                        }`}
+                      >
+                        {isDone ? <Check className="h-4 w-4" /> : <s.icon className="h-4 w-4" />}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <div className={`text-sm font-medium transition-colors ${isActive || isDone ? "text-foreground" : "text-foreground/70"}`}>
+                          {s.label}
+                        </div>
+                        <div className="text-[11px] text-muted-foreground truncate">{s.detail}</div>
                       </div>
-                    </div>
-                    <motion.span
-                      initial={{ width: "0%" }}
-                      animate={{ width: ["0%", "100%", "100%", "0%"] }}
-                      transition={{
-                        duration: pipelineSteps.length * 1.2,
-                        times: [
-                          i / pipelineSteps.length,
-                          (i + 0.15) / pipelineSteps.length,
-                          (i + 0.85) / pipelineSteps.length,
-                          (i + 1) / pipelineSteps.length,
-                        ],
-                        repeat: Infinity,
-                        ease: "easeInOut",
-                      }}
-                      className="absolute inset-y-0 left-0 rounded-lg bg-gradient-to-r from-primary/10 to-accent/5 pointer-events-none"
-                    />
-                  </motion.li>
-                ))}
+                      {isActive && (
+                        <motion.span
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ duration: 0.4 }}
+                          className="text-[10px] font-semibold uppercase tracking-wider text-primary"
+                        >
+                          Active
+                        </motion.span>
+                      )}
+                    </li>
+                  );
+                })}
               </ol>
 
               <div className="mt-5 grid grid-cols-3 gap-3 border-t border-border/40 pt-4 text-center">
@@ -233,23 +234,15 @@ export default function EnterpriseHero() {
               </div>
             </div>
 
-            {/* floating glow cards */}
-            <motion.div
-              animate={{ y: [0, -8, 0] }}
-              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute -left-6 -bottom-6 hidden rounded-xl border border-border/60 bg-card/70 px-4 py-3 text-xs shadow-xl backdrop-blur md:block"
-            >
+            {/* floating glow cards — gentler */}
+            <div className="absolute -left-6 -bottom-6 hidden rounded-xl border border-border/60 bg-card/70 px-4 py-3 text-xs shadow-xl backdrop-blur md:block">
               <div className="font-semibold">Renewal detected</div>
               <div className="text-muted-foreground">Acme Corp · 47 days</div>
-            </motion.div>
-            <motion.div
-              animate={{ y: [0, 8, 0] }}
-              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute -right-4 top-8 hidden rounded-xl border border-border/60 bg-card/70 px-4 py-3 text-xs shadow-xl backdrop-blur md:block"
-            >
+            </div>
+            <div className="absolute -right-4 top-8 hidden rounded-xl border border-border/60 bg-card/70 px-4 py-3 text-xs shadow-xl backdrop-blur md:block">
               <div className="font-semibold text-accent">+$284K expected</div>
               <div className="text-muted-foreground">Next 30 days</div>
-            </motion.div>
+            </div>
           </motion.div>
         </div>
       </div>
