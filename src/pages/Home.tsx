@@ -1,64 +1,51 @@
 import { lazy, Suspense } from "react";
 import MarketingLayout from "@/components/layout/MarketingLayout";
-import CinematicHero from "@/components/marketing/CinematicHero";
+import EnterpriseHero from "@/components/marketing/enterprise/EnterpriseHero";
 import SEOHead from "@/components/seo/SEOHead";
-import { PAGE_SEO, generateFAQSchema } from "@/lib/seoConfig";
+import { generateFAQSchema } from "@/lib/seoConfig";
 
-// Lazy-load below-the-fold sections so the hero (LCP) paints faster on first load.
-const AssessmentCTA = lazy(() => import("@/components/marketing/AssessmentCTA"));
-const BuiltForAnySize = lazy(() => import("@/components/marketing/BuiltForAnySize"));
-const ScrollPipeline = lazy(() => import("@/components/marketing/ScrollPipeline"));
-const CollectionIntelligenceShowcase = lazy(() => import("@/components/marketing/CollectionIntelligenceShowcase"));
-const AnimatedMetrics = lazy(() => import("@/components/marketing/AnimatedMetrics"));
-const ValuePropositions = lazy(() => import("@/components/marketing/ValuePropositions"));
-const FeatureGrid = lazy(() => import("@/components/marketing/FeatureGrid"));
-const AIAgentsSection = lazy(() => import("@/components/marketing/AIAgentsSection"));
-const EmailDemo = lazy(() => import("@/components/marketing/EmailDemo"));
-const WhyDifferent = lazy(() => import("@/components/marketing/WhyDifferent"));
-const RevenueRiskTeaser = lazy(() => import("@/components/marketing/RevenueRiskTeaser"));
-const ContractIntelligenceTeaser = lazy(() => import("@/components/marketing/ContractIntelligenceTeaser"));
-const DataVettingBadge = lazy(() => import("@/components/marketing/DataVettingBadge"));
-const PricingTeaser = lazy(() => import("@/components/marketing/PricingTeaser"));
+const RevenueJourney = lazy(() => import("@/components/marketing/enterprise/RevenueJourney"));
+const ContractIntelligenceSection = lazy(() => import("@/components/marketing/enterprise/ContractIntelligenceSection"));
+const CollectionIntelligenceSection = lazy(() => import("@/components/marketing/enterprise/CollectionIntelligenceSection"));
+const ExecutiveDashboardSection = lazy(() => import("@/components/marketing/enterprise/ExecutiveDashboardSection"));
+const AIRecommendationsSection = lazy(() => import("@/components/marketing/enterprise/AIRecommendationsSection"));
+const EnterpriseFeaturesSection = lazy(() => import("@/components/marketing/enterprise/EnterpriseFeaturesSection"));
+const IntegrationsShowcase = lazy(() => import("@/components/marketing/enterprise/IntegrationsShowcase"));
+const CustomerResultsMetrics = lazy(() => import("@/components/marketing/enterprise/CustomerResultsMetrics"));
+const EnterpriseFinalCTA = lazy(() => import("@/components/marketing/enterprise/EnterpriseFinalCTA"));
 const FAQAccordion = lazy(() => import("@/components/marketing/FAQAccordion"));
-const FinalCTA = lazy(() => import("@/components/marketing/FinalCTA"));
 
 const Home = () => {
   const homeFaqs = [
-    { question: 'What is agentic AI for accounts receivable?', answer: 'Agentic AI goes beyond simple automation — it deploys autonomous AI agents that independently manage invoice follow-ups, assess debtor risk, read and respond to emails, negotiate payment plans, and escalate accounts — all with human oversight at key decision points.' },
-    { question: 'How do Recouply\'s AI agents recover revenue?', answer: 'Recouply deploys 6 specialized AI agents that autonomously orchestrate the entire revenue recovery lifecycle — from generating personalized collection messages based on risk scores and payment history, to reading debtor replies, triaging disputes, and triggering escalations — with human approval before any communication is sent.' },
-    { question: 'Does Recouply integrate with Stripe, QuickBooks, and Google Sheets?', answer: 'Yes, Recouply offers native integrations with Stripe, QuickBooks, Google Sheets, and Google Drive for real-time invoice sync, automatic payment reconciliation, spreadsheet-based data import/export, and AI-powered invoice extraction from PDFs.' },
-    { question: 'How does Recouply assess revenue risk?', answer: 'Our AI engine calculates real-time Collectability Scores (0–100) and Expected Credit Loss (ECL) for every account using payment history, engagement signals, sentiment analysis, and behavioral patterns — aligned to ASC 326 and IFRS 9 frameworks for audit-ready risk assessment.' },
-    { question: 'Is there a free trial for Recouply\'s AI agents?', answer: 'Yes, Recouply offers a 7-day free trial with full access to all AI agents, revenue risk scoring, integration capabilities, and autonomous outreach features. Payment info required upfront; auto-converts unless cancelled. Trial includes 5 invoices.' },
-    { question: 'What is Revenue Recovery Intelligence?', answer: 'Revenue Recovery Intelligence is Recouply\'s agentic AI platform that synthesizes every data point — payment behavior, communication engagement, invoice aging, risk signals, and debtor sentiment — to autonomously prioritize accounts, predict outcomes, and execute recovery workflows with zero manual effort.' },
+    { question: "What is Recouply's Revenue Intelligence Platform?", answer: "Recouply is an AI-powered Revenue Intelligence Platform that unifies Contract Intelligence and Collection Intelligence — transforming every commercial agreement into structured revenue data and every customer interaction into predictable cash flow." },
+    { question: "How is Recouply different from a CLM or an AR automation tool?", answer: "CLMs stop at signature. AR tools start at the invoice. Recouply connects the entire revenue lifecycle — from contract terms and renewal triggers to invoicing, collections, and executive cash forecasting." },
+    { question: "What does Contract Intelligence do?", answer: "Contract Intelligence extracts commercial terms (ARR, MRR, ACV, TCV, professional services, renewals, notice periods, billing schedules), scores revenue exposure, and generates workflow tasks — all with confidence scoring and editable AI results." },
+    { question: "What does Collection Intelligence do?", answer: "Collection Intelligence unifies contracts, invoices, payment history, promises to pay, risk scoring, communication timelines, and AI recommendations into a single customer profile — then executes prioritized, on-brand outreach with human approval." },
+    { question: "Which systems does Recouply integrate with?", answer: "Stripe, QuickBooks, NetSuite, Salesforce, HubSpot, Google Drive, Google Sheets, Microsoft 365, email, REST API, webhooks, and CSV — synchronized bidirectionally." },
+    { question: "Is Recouply enterprise-ready?", answer: "Yes. SOC 2 ready architecture, SSO, role-based access, custom roles, approval workflows, audit logs, multi-entity support, and an API-first foundation." },
   ];
 
   return (
     <MarketingLayout>
       <SEOHead
-        title={PAGE_SEO.home.title}
-        description={PAGE_SEO.home.description}
-        keywords={PAGE_SEO.home.keywords}
+        title="Recouply · Revenue Intelligence Platform — Contract to Cash"
+        description="AI-powered Contract Intelligence and Collection Intelligence. Know what you sold, know what you'll collect. The enterprise Revenue Intelligence Platform for finance teams."
+        keywords="revenue intelligence platform, contract intelligence, collection intelligence, ai contract extraction, ar automation, cash forecasting, dso reduction, enterprise finance software"
         canonical="https://recouply.ai"
         structuredData={generateFAQSchema(homeFaqs)}
       />
-      <CinematicHero />
+      <EnterpriseHero />
       <Suspense fallback={null}>
-        <AssessmentCTA />
-        <BuiltForAnySize />
-        <ScrollPipeline />
-        <CollectionIntelligenceShowcase />
-        <AnimatedMetrics />
-        <ValuePropositions />
-        <FeatureGrid />
-        <AIAgentsSection />
-        <EmailDemo />
-        <WhyDifferent />
-        <RevenueRiskTeaser />
-        <ContractIntelligenceTeaser />
-        <DataVettingBadge />
-        <PricingTeaser />
+        <RevenueJourney />
+        <ContractIntelligenceSection />
+        <CollectionIntelligenceSection />
+        <ExecutiveDashboardSection />
+        <AIRecommendationsSection />
+        <EnterpriseFeaturesSection />
+        <IntegrationsShowcase />
+        <CustomerResultsMetrics />
         <FAQAccordion />
-        <FinalCTA />
+        <EnterpriseFinalCTA />
       </Suspense>
     </MarketingLayout>
   );
