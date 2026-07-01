@@ -110,7 +110,7 @@ export function AssessmentPanel({ scope, subjectType, subjectId, buildAssessment
       }
       const { data, error } = await supabase
         .from("ai_assessments")
-        .insert({
+        .insert([{
           user_id: user.id,
           account_id: draft.accountId ?? null,
           scope: draft.scope,
@@ -118,10 +118,10 @@ export function AssessmentPanel({ scope, subjectType, subjectId, buildAssessment
           subject_id: draft.subjectId,
           title: draft.title,
           summary: draft.summary ?? null,
-          findings: draft.findings ?? {},
+          findings: (draft.findings ?? {}) as any,
           model: draft.model ?? null,
           pinned: true,
-        })
+        }])
         .select()
         .single();
       if (error) throw error;
