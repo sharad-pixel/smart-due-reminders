@@ -1358,12 +1358,23 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                 </>
               )}
             </Button>
-            <Button onClick={handleEditInvoice}>
+            {(invoice as any).posting_state === "draft" && invoice.source_contract_id && (
+              <Button variant="outline" onClick={handlePostInvoice} title="Lock this invoice as Posted">
+                <Lock className="h-4 w-4 mr-2" />
+                Post Invoice
+              </Button>
+            )}
+            <Button
+              onClick={handleEditInvoice}
+              disabled={(invoice as any).posting_state === "posted" && !!invoice.source_contract_id}
+              title={(invoice as any).posting_state === "posted" && invoice.source_contract_id ? "Posted invoices are locked" : undefined}
+            >
               <Edit className="h-4 w-4 mr-2" />
               Edit Invoice
             </Button>
           </div>
         </div>
+
 
         {/* Paused Alert Banners */}
         {(invoice.outreach_paused || invoice.debtors?.outreach_paused) && (
