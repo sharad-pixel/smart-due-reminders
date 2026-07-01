@@ -658,7 +658,13 @@ const LiveContractDetailInner = () => {
           />
         </div>
         <ContractRiskFlagsEditor importId={c.id} accountId={c.account_id} />
+        <AssessmentPanel
+          scope="contract_intelligence"
+          subjectType="contract"
+          subjectId={c.id}
+        />
       </section>
+
 
       {/* ============ 4. INVOICING & COLLECTIBILITY ============ */}
       <section id="invoicing" className="space-y-3 scroll-mt-16">
