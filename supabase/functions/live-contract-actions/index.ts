@@ -475,8 +475,8 @@ Deno.serve(async (req) => {
     }
 
     if (action === "send_test_notification") {
-      // body: { dateId }
-      const { dateId } = body;
+      // body: { dateId, emails?, channel? } — emails/channel from live UI state override saved row
+      const { dateId, emails: bodyEmails, channel: bodyChannel } = body;
       if (!dateId) return json({ error: "dateId required" }, 400);
       const { data: row } = await supabase
         .from("contract_critical_dates")
@@ -485,8 +485,14 @@ Deno.serve(async (req) => {
         .eq("import_id", importId)
         .single();
       if (!row) return json({ error: "Key date not found" }, 404);
-      const recipients: string[] = Array.isArray(row.notify_emails) ? row.notify_emails : [];
-      const channel = row.notify_channel || "in_app";
+      const savedEmails: string[] = Array.isArray(row.notify_emails) ? row.notify_emails : [];
+      const overrideEmails: string[] = Array.isArray(bodyEmails)
+        ? bodyEmails.map((e: any) => String(e).trim().toLowerCase()).filter((e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e))
+        : [];
+      const recipients: string[] = overrideEmails.length ? overrideEmails : savedEmails;
+      const channel = (bodyChannel && ["in_app", "email", "both"].includes(bodyChannel))
+        ? bodyChannel
+        : (row.notify_channel || "in_app");
       const wantsEmail = channel === "email" || channel === "both";
 
       // In-app
@@ -504,38 +510,50 @@ Deno.serve(async (req) => {
       });
 
       let emailResult: any = { sent: 0 };
-      if (wantsEmail && recipients.length) {
-        try {
-          const { data: profile } = await supabase
-            .from("profiles").select("email").eq("user_id", user.id).maybeSingle();
-          const ownerEmail = (profile as any)?.email || null;
-          const to = Array.from(new Set([...recipients, ownerEmail].filter(Boolean)));
-          const subject = `[TEST] Contract key date — ${row.date_type.replace(/_/g, " ")}`;
-          const html = `
-            <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1e293b;padding:24px;max-width:560px">
-              <h2 style="margin:0 0 12px;color:#1e293b">Contract key date reminder (test)</h2>
-              <p style="margin:0 0 8px">Contract: <strong>${imp.contract_name || imp.file_name}</strong></p>
-              <p style="margin:0 0 8px">Event: <strong>${row.date_type.replace(/_/g, " ")}</strong></p>
-              <p style="margin:0 0 8px">Due date: <strong>${row.due_date}</strong></p>
-              <p style="margin:16px 0 0;color:#64748b;font-size:13px">You are receiving this because alerts are enabled for this key date. This is a test message.</p>
-            </div>`;
-          const resp = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: authHeader },
-            body: JSON.stringify({
-              to,
-              from: "Recouply.ai <notifications@send.inbound.services.recouply.ai>",
-              subject,
-              html,
-            }),
-          });
-          emailResult = { sent: to.length, status: resp.status };
-        } catch (e: any) {
-          emailResult = { error: e?.message || String(e) };
+      if (wantsEmail) {
+        if (!recipients.length) {
+          emailResult = { error: "No recipients selected. Pick at least one teammate." };
+        } else {
+          try {
+            const { data: profile } = await supabase
+              .from("profiles").select("email").eq("user_id", user.id).maybeSingle();
+            const ownerEmail = (profile as any)?.email || null;
+            const to = Array.from(new Set([...recipients, ownerEmail].filter(Boolean)));
+            const subject = `[TEST] Contract key date — ${row.date_type.replace(/_/g, " ")}`;
+            const html = `
+              <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1e293b;padding:24px;max-width:560px">
+                <h2 style="margin:0 0 12px;color:#1e293b">Contract key date reminder (test)</h2>
+                <p style="margin:0 0 8px">Contract: <strong>${imp.contract_name || imp.file_name}</strong></p>
+                <p style="margin:0 0 8px">Event: <strong>${row.date_type.replace(/_/g, " ")}</strong></p>
+                <p style="margin:0 0 8px">Due date: <strong>${row.due_date}</strong></p>
+                <p style="margin:16px 0 0;color:#64748b;font-size:13px">You are receiving this because alerts are enabled for this key date. This is a test message.</p>
+              </div>`;
+            const resp = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey}` },
+              body: JSON.stringify({
+                to,
+                from: "Recouply.ai <notifications@send.inbound.services.recouply.ai>",
+                subject,
+                html,
+              }),
+            });
+            const respBody = await resp.text();
+            if (!resp.ok) {
+              console.error("send-email failed", resp.status, respBody);
+              emailResult = { error: `send-email ${resp.status}: ${respBody.slice(0, 200)}` };
+            } else {
+              emailResult = { sent: to.length, status: resp.status };
+            }
+          } catch (e: any) {
+            console.error("send-email exception", e);
+            emailResult = { error: e?.message || String(e) };
+          }
         }
       }
       return json({ success: true, channel, emailResult });
     }
+
 
     if (action === "reclassify_lines") {
       const { data: imp2 } = await supabase
