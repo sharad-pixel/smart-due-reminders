@@ -1,240 +1,154 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate, Link } from "react-router-dom";
 import { RecouplyLogo } from "@/components/layout/RecouplyLogo";
-import { Brain, Linkedin, ShieldCheck, ClipboardCheck } from "lucide-react";
+import { Linkedin, ShieldCheck } from "lucide-react";
 import { COMPANY_INFO } from "@/lib/companyConfig";
- 
- const MarketingFooter = () => {
-   const navigate = useNavigate();
- 
-   return (
-     <footer className="border-t py-12 px-4 bg-card mt-auto">
-       <div className="container mx-auto">
-         <div className="grid md:grid-cols-4 gap-8 mb-8">
-           <div>
-             <div className="mb-4">
-               <RecouplyLogo size="lg" />
-             </div>
-              <p className="text-sm font-medium text-foreground mb-4">
-                Revenue Intelligence Platform
-              </p>
-             <a 
-               href={COMPANY_INFO.social.linkedin}
-               target="_blank"
-               rel="noopener noreferrer"
-               className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors"
-             >
-               <Linkedin className="h-5 w-5" />
-               <span className="text-sm">Follow us</span>
-             </a>
-           </div>
-           <div>
-             <h4 className="font-semibold mb-4">Platform</h4>
-             <ul className="space-y-2 text-sm">
-               <li>
-                 <button 
-                   onClick={() => navigate("/collection-intelligence")}
-                   className="text-muted-foreground hover:text-primary flex items-center gap-1"
-                 >
-                   <Brain className="h-3 w-3" />
-                   Revenue Intelligence
-                 </button>
-               </li>
-               <li>
-                 <button 
-                   onClick={() => navigate("/personas")}
-                   className="text-muted-foreground hover:text-primary"
-                 >
-                   AI Agents
-                 </button>
-               </li>
-               <li>
-                 <button 
-                   onClick={() => navigate("/features")}
-                   className="text-muted-foreground hover:text-primary"
-                 >
-                   Features
-                 </button>
-               </li>
-               <li>
-                 <button 
-                   onClick={() => navigate("/pricing")}
-                   className="text-muted-foreground hover:text-primary"
-                 >
-                   Pricing
-                 </button>
-               </li>
-             </ul>
-           </div>
-           <div>
-             <h4 className="font-semibold mb-4">Company</h4>
-             <ul className="space-y-2 text-sm">
-               <li>
-                 <button 
-                   onClick={() => navigate("/about")}
-                   className="text-muted-foreground hover:text-primary"
-                 >
-                   About Us
-                 </button>
-               </li>
-               <li>
-                 <button 
-                   onClick={() => navigate("/blog")}
-                   className="text-muted-foreground hover:text-primary"
-                 >
-                   Blog
-                 </button>
-               </li>
-               <li>
-                 <button 
-                   onClick={() => navigate("/investors")}
-                   className="text-muted-foreground hover:text-primary"
-                 >
-                   Investors
-                 </button>
-               </li>
-               <li>
-                 <button 
-                   onClick={() => navigate("/design-partners")}
-                   className="text-muted-foreground hover:text-primary"
-                 >
-                   Design Partners
-                 </button>
-               </li>
-               <li>
-                 <button 
-                   onClick={() => navigate("/careers")}
-                   className="text-muted-foreground hover:text-primary"
-                 >
-                   Careers
-                 </button>
-               </li>
-               <li>
-                 <Link 
-                   to="/legal/terms"
-                   className="text-muted-foreground hover:text-primary"
-                 >
-                   Terms of Service
-                 </Link>
-               </li>
-               <li>
-                 <Link 
-                   to="/legal/privacy"
-                   className="text-muted-foreground hover:text-primary"
-                 >
-                   Privacy Policy
-                 </Link>
-               </li>
-                 <li>
-                   <button 
-                     onClick={() => navigate("/trust")}
-                     className="text-muted-foreground hover:text-primary flex items-center gap-1"
-                   >
-                     <ShieldCheck className="h-3 w-3" />
-                     Trust Center
-                   </button>
-                 </li>
-                 <li>
-                   <button 
-                     onClick={() => navigate("/security-public")}
-                     className="text-muted-foreground hover:text-primary"
-                   >
-                     Security
-                   </button>
-                 </li>
-                <li>
-                  <button 
-                    onClick={() => navigate("/knowledge-base")}
-                    className="text-muted-foreground hover:text-primary"
-                  >
-                    Knowledge Base
-                  </button>
-                </li>
-                <li>
-                  <button 
-                    onClick={() => navigate("/support/login")}
-                    className="text-muted-foreground hover:text-primary"
-                  >
-                    Support Login
-                  </button>
-                </li>
-              </ul>
-            </div>
-           <div>
-            <h4 className="font-semibold mb-4">Contact</h4>
-             <ul className="space-y-2 text-sm mb-4">
-                <li>
-                  <button 
-                    onClick={() => navigate("/contact")}
-                    className="text-muted-foreground hover:text-primary"
-                  >
-                    Contact Us
-                  </button>
-                </li>
-                <li>
-                  <button 
-                    onClick={() => navigate("/contact?intent=demo")}
-                    className="text-muted-foreground hover:text-primary"
-                  >
-                    Request a Demo
-                  </button>
-                </li>
-                <li>
-                  <button 
-                    onClick={() => navigate("/roi-calculator")}
-                    className="text-muted-foreground hover:text-primary flex items-center gap-1"
-                  >
-                    <ClipboardCheck className="h-3 w-3" />
-                    ROI Calculator
-                  </button>
-                </li>
-                <li>
-                  <button 
-                    onClick={() => navigate("/contract-roi-calculator")}
-                    className="text-muted-foreground hover:text-primary flex items-center gap-1"
-                  >
-                    <ClipboardCheck className="h-3 w-3" />
-                    Contract ROI
-                  </button>
-                </li>
-              </ul>
-             <Button 
-               onClick={() => navigate("/signup")}
-               className="w-full"
-             >
-               Start Collecting
-             </Button>
-           </div>
-         </div>
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t">
-            <p className="text-sm text-muted-foreground">
-              &copy; {new Date().getFullYear()} {COMPANY_INFO.legalName} All rights reserved.
+
+type Col = { title: string; links: { label: string; path: string; external?: boolean }[] };
+
+const columns: Col[] = [
+  {
+    title: "Product",
+    links: [
+      { label: "Contract Intelligence", path: "/contract-intelligence" },
+      { label: "Collection Intelligence", path: "/collection-intelligence" },
+      { label: "Executive Insights", path: "/revenue-intelligence" },
+      { label: "AI Agents", path: "/personas" },
+      { label: "Automation", path: "/automation" },
+      { label: "Analytics", path: "/analytics" },
+      { label: "Integrations", path: "/integrations" },
+      { label: "Pricing", path: "/pricing" },
+    ],
+  },
+  {
+    title: "Solutions",
+    links: [
+      { label: "Solo Pro", path: "/solutions/solo-pro" },
+      { label: "Startups", path: "/startups" },
+      { label: "SMB", path: "/smb" },
+      { label: "Enterprise", path: "/enterprise" },
+      { label: "Professional Services", path: "/solutions/professional-services" },
+      { label: "SaaS", path: "/solutions/saas" },
+      { label: "Small Businesses", path: "/solutions/small-businesses" },
+    ],
+  },
+  {
+    title: "Customers",
+    links: [
+      { label: "Customer Stories", path: "/blog" },
+      { label: "Collections ROI Calculator", path: "/roi-calculator" },
+      { label: "Contract Intelligence ROI", path: "/contract-roi-calculator" },
+      { label: "Payment Portal", path: "/debtor-portal" },
+      { label: "Request a Demo", path: "/contact?intent=demo" },
+      { label: "Contact Sales", path: "/contact" },
+    ],
+  },
+  {
+    title: "Company",
+    links: [
+      { label: "About", path: "/about" },
+      { label: "Blog", path: "/blog" },
+      { label: "Careers", path: "/careers" },
+      { label: "Investors", path: "/investors" },
+      { label: "Design Partners", path: "/design-partners" },
+      { label: "Trust Center", path: "/trust" },
+      { label: "Security", path: "/security-public" },
+      { label: "Knowledge Base", path: "/knowledge-base" },
+    ],
+  },
+];
+
+const MarketingFooter = () => {
+  const navigate = useNavigate();
+
+  return (
+    <footer className="border-t border-border/60 bg-card mt-auto">
+      <div className="container mx-auto px-6 py-16">
+        <div className="grid gap-10 lg:grid-cols-[1.2fr_3fr]">
+          {/* Brand block */}
+          <div>
+            <RecouplyLogo size="lg" />
+            <p className="mt-4 text-sm text-muted-foreground max-w-xs leading-relaxed">
+              The enterprise Revenue Intelligence Platform. Know what you sold. Know what you'll collect.
             </p>
- 
-           <div className="flex items-center gap-4">
-             <nav aria-label="Legal" className="flex items-center gap-3 text-sm">
-               <Link to="/legal/privacy" className="text-muted-foreground hover:text-primary">
-                 Privacy
-               </Link>
-               <span aria-hidden="true" className="text-muted-foreground">•</span>
-               <Link to="/legal/terms" className="text-muted-foreground hover:text-primary">
-                 Terms
-               </Link>
-               <span aria-hidden="true" className="text-muted-foreground">•</span>
-               <Link to="/legal/cookies" className="text-muted-foreground hover:text-primary">
-                 Cookies
-               </Link>
-             </nav>
- 
-             <Link to="/security-public#responsible-ai" className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 hover:bg-primary/20 transition-colors">
-               <ShieldCheck className="h-3.5 w-3.5 text-primary" />
-               <span className="text-xs font-medium text-primary">Responsible AI</span>
-             </Link>
-           </div>
-         </div>
-       </div>
-     </footer>
-   );
- };
- 
- export default MarketingFooter;
+            <div className="mt-6 flex flex-col gap-3">
+              <Button
+                onClick={() => navigate("/contact?intent=demo")}
+                variant="outline"
+                size="sm"
+                className="w-fit border-border/70"
+              >
+                Book a Demo
+              </Button>
+              <a
+                href={COMPANY_INFO.social.linkedin}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Linkedin className="h-4 w-4" />
+                Follow on LinkedIn
+              </a>
+            </div>
+          </div>
+
+          {/* Link columns */}
+          <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
+            {columns.map((col) => (
+              <div key={col.title}>
+                <h4 className="text-[11px] font-semibold text-foreground uppercase tracking-[0.14em] mb-4">
+                  {col.title}
+                </h4>
+                <ul className="space-y-2.5">
+                  {col.links.map((link) => (
+                    <li key={link.path}>
+                      <button
+                        onClick={() => navigate(link.path)}
+                        className="text-sm text-muted-foreground hover:text-foreground transition-colors text-left"
+                      >
+                        {link.label}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-14 pt-6 border-t border-border/60 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-xs text-muted-foreground">
+            &copy; {new Date().getFullYear()} {COMPANY_INFO.legalName} All rights reserved.
+          </p>
+
+          <div className="flex items-center gap-5">
+            <nav aria-label="Legal" className="flex items-center gap-4 text-xs">
+              <Link to="/legal/privacy" className="text-muted-foreground hover:text-foreground transition-colors">
+                Privacy
+              </Link>
+              <Link to="/legal/terms" className="text-muted-foreground hover:text-foreground transition-colors">
+                Terms
+              </Link>
+              <Link to="/legal/cookies" className="text-muted-foreground hover:text-foreground transition-colors">
+                Cookies
+              </Link>
+              <Link to="/support/login" className="text-muted-foreground hover:text-foreground transition-colors">
+                Support
+              </Link>
+            </nav>
+
+            <Link
+              to="/security-public#responsible-ai"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border/70 hover:border-foreground/40 transition-colors"
+            >
+              <ShieldCheck className="h-3.5 w-3.5 text-foreground/70" />
+              <span className="text-xs font-medium text-foreground/80">Responsible AI</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
+};
+
+export default MarketingFooter;
