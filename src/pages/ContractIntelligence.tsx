@@ -271,22 +271,23 @@ const ContractIntelligence = () => {
           <div className="max-w-4xl mx-auto text-center mb-12">
             <Badge variant="outline" className="mb-4">Native to Recouply</Badge>
             <h2 className="text-4xl lg:text-5xl font-bold mb-6">
-              Contracts ↔ Invoices ↔ Collections ↔ Risk.
+              Contract Data ↔ Invoices ↔ Collections ↔ Risk.
             </h2>
             <p className="text-lg text-muted-foreground">
-              Most contract tools end at signature. Recouply Contract Intelligence connects every executed contract
-              to the invoices it generates, the payments it produces, and the Expected Credit
-              Loss it carries — closing the loop between legal and finance.
+              Most contract tools stop at storage. Recouply Contract Intelligence connects every
+              captured data point to the invoices it should generate, the payments it should produce,
+              and the Expected Credit Loss it carries — so what the contract says stays in sync with
+              what actually happens in your revenue stack.
             </p>
           </div>
 
           <Card className="max-w-4xl mx-auto p-8 lg:p-10">
             <div className="grid md:grid-cols-4 gap-4 items-center">
               {[
-                { icon: ScrollText, label: "Contract Signed" },
-                { icon: FileSignature, label: "Invoice Created" },
-                { icon: Workflow, label: "Collections Workflow" },
-                { icon: Gauge, label: "ECL & Risk Score" },
+                { icon: FileSearch, label: "Contract Reviewed" },
+                { icon: ScrollText, label: "Data Points Captured" },
+                { icon: FileSignature, label: "Invoices & Obligations Tracked" },
+                { icon: Gauge, label: "Risk & ECL Signals" },
               ].map((step, i, arr) => (
                 <div key={i} className="flex flex-col items-center text-center">
                   <div className="w-14 h-14 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center mb-3">
