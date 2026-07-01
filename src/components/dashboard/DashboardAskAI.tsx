@@ -4,9 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
+  DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import {
   Send, Loader2, RotateCcw, BarChart3, Brain, TrendingUp,
   AlertTriangle, DollarSign, Sparkles, ArrowRight, Wand2, Activity,
-  ShieldAlert, ListChecks, Clock, CheckCircle2,
+  ShieldAlert, ListChecks, Clock, CheckCircle2, ChevronDown,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
