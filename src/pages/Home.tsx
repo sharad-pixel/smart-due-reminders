@@ -39,7 +39,6 @@ const Home = () => {
       <Suspense fallback={null}>
         <RevenueJourney />
         <ContractIntelligenceSection />
-        <ContractIntelligenceSection />
         <CollectabilityAssuranceSection />
         <CollectionIntelligenceSection />
         <ExecutiveDashboardSection />
