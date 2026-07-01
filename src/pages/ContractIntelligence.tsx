@@ -33,58 +33,58 @@ const ContractIntelligence = () => {
   const pillars = [
     {
       icon: FileSearch,
-      title: "AI Contract Extraction",
-      desc: "GPT-5 reads every contract — parties, term, renewal, payment, liability, indemnity, SLAs, governing law — and turns it into structured intelligence.",
+      title: "AI Contract Review",
+      desc: "Upload any contract — MSA, order form, amendment, SOW. Our AI reads every page and captures every revenue-related and actionable data point in seconds.",
     },
     {
-      icon: Library,
-      title: "Templates & Clause Library",
-      desc: "Reusable Order Forms, MSAs, NDAs, BAAs, DPAs with a governed clause library. Generate compliant contracts in minutes, not weeks.",
+      icon: Gauge,
+      title: "Revenue Data Points Captured",
+      desc: "Payment terms, billing schedules, TCV / ARR / MRR, price escalators, true-ups, discounts, and performance obligations — extracted and structured for tracking.",
     },
     {
-      icon: GitBranch,
-      title: "Versioning & Redlines",
-      desc: "Full version history, side-by-side diffs, restore points. Every edit tracked, every comment preserved, every revision auditable.",
+      icon: CalendarClock,
+      title: "Key Dates & Obligations",
+      desc: "Renewal dates, non-renewal notice windows, opt-outs, SLA commitments, and milestone deliverables — turned into trackable events with owner-level alerts.",
     },
     {
-      icon: Users,
-      title: "Collaboration & Approvals",
-      desc: "Internal reviewers, external counterparties, comment threads, approval workflows, and a Deal Desk workspace for legal & revenue teams.",
-    },
-    {
-      icon: PenLine,
-      title: "DocuSign E-Signature",
-      desc: "Native DocuSign integration. Send for signature, track status, capture signed PDFs — all linked back to the contract record.",
+      icon: ShieldCheck,
+      title: "Risk Clauses Flagged",
+      desc: "Liability caps, indemnities, governing law, auto-renew traps, and off-market terms — surfaced so nothing important goes unnoticed.",
     },
     {
       icon: Workflow,
-      title: "Obligations & Renewals",
-      desc: "Automated renewal alerts, obligation tracking, and milestone reminders so nothing slips through the cracks.",
+      title: "Continuous Tracking",
+      desc: "Every captured data point becomes a live signal — monitored against invoices, payments, and time so drift, misses, and leakage are caught early.",
+    },
+    {
+      icon: GitBranch,
+      title: "Version-Aware Extraction",
+      desc: "Upload new versions or amendments and Contract Intelligence re-reviews, diffs, and updates the tracked data points automatically.",
     },
   ];
 
   const intelligence = [
     {
       icon: Sparkles,
-      title: "Risk & Anomaly Detection",
-      desc: "AI flags unusual terms, missing clauses, off-market liability caps, and inconsistencies across your portfolio.",
+      title: "Anomaly & Gap Detection",
+      desc: "AI flags missing clauses, off-market terms, and inconsistencies across your contract portfolio before they cost you revenue.",
     },
     {
       icon: Gauge,
       title: "Revenue Linkage",
-      desc: "Connect contracts to invoices, payments, and ECL signals from Recouply Collections — see the financial impact of every agreement.",
+      desc: "Every captured data point links back to the invoices, payments, and ECL signals in Recouply — so what the contract says stays aligned with what you actually bill and collect.",
     },
     {
       icon: ShieldCheck,
-      title: "Audit-Ready Compliance",
-      desc: "Immutable audit logs, SOC 2-aligned controls, GDPR-compliant storage, and exportable evidence for every action.",
+      title: "Audit-Ready Evidence",
+      desc: "Every extracted field, source clause, and change is logged with an immutable trail and exportable for audit, finance, and legal review.",
     },
   ];
 
   const audience = [
-    { icon: Building2, title: "Legal Teams", desc: "Centralize the contract lifecycle without leaving your stack." },
-    { icon: Layers, title: "Revenue Operations", desc: "Tie every signed deal directly to billing, collections, and ECL." },
-    { icon: ShieldCheck, title: "Finance & Audit", desc: "Defensible records, immutable trails, board-ready reporting." },
+    { icon: Building2, title: "Legal & Contract Ops", desc: "See every obligation, date, and risk clause across the portfolio without re-reading each contract." },
+    { icon: Layers, title: "Revenue Operations", desc: "Make sure what was signed is what gets billed — every clause tracked against invoicing and collections." },
+    { icon: ShieldCheck, title: "Finance & Audit", desc: "Structured, sourced, and exportable evidence for revenue recognition, renewals, and board-ready reporting." },
   ];
 
   return (
