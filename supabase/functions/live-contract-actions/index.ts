@@ -525,18 +525,32 @@ Deno.serve(async (req) => {
         : (row.notify_channel || "in_app");
       const wantsEmail = channel === "email" || channel === "both";
 
+      // Resolve account/customer name for context
+      let accountName: string | null = null;
+      if (imp.debtor_id) {
+        const { data: deb } = await supabase
+          .from("debtors")
+          .select("name, company_name")
+          .eq("id", imp.debtor_id)
+          .maybeSingle();
+        accountName = (deb as any)?.company_name || (deb as any)?.name || null;
+      }
+      const contractLabel = imp.contract_name || imp.file_name || "Contract";
+      const appUrl = Deno.env.get("APP_URL") || "https://recouply.ai";
+      const link = `${appUrl}/contracts/live/${importId}`;
+
       // In-app
       await supabase.from("user_alerts").insert({
         user_id: user.id,
         organization_id: null,
         alert_type: "contract_milestone",
         severity: "info",
-        title: `[TEST] ${row.date_type.replace(/_/g, " ")} alert`,
-        message: `Test notification for "${imp.contract_name || imp.file_name}" — ${row.date_type.replace(/_/g, " ")} on ${row.due_date}.`,
+        title: `[TEST] ${accountName ? `${accountName} — ` : ""}${row.date_type.replace(/_/g, " ")} alert`,
+        message: `${accountName ? `Account: ${accountName}. ` : ""}Test notification for "${contractLabel}" — ${row.date_type.replace(/_/g, " ")} on ${row.due_date}.`,
         debtor_id: imp.debtor_id,
-        action_url: `/contracts/live`,
+        action_url: `/contracts/live/${importId}`,
         action_label: "Open contract",
-        metadata: { import_id: importId, critical_date_id: row.id, test: true },
+        metadata: { import_id: importId, critical_date_id: row.id, test: true, account_name: accountName, contract_name: contractLabel },
       });
 
       let emailResult: any = { sent: 0 };
@@ -549,13 +563,15 @@ Deno.serve(async (req) => {
               .from("profiles").select("email").eq("user_id", user.id).maybeSingle();
             const ownerEmail = (profile as any)?.email || null;
             const to = Array.from(new Set([...recipients, ownerEmail].filter(Boolean)));
-            const subject = `[TEST] Contract key date — ${row.date_type.replace(/_/g, " ")}`;
+            const subject = `[TEST] ${accountName ? `${accountName} — ` : ""}Contract key date — ${row.date_type.replace(/_/g, " ")}`;
             const html = `
               <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1e293b;padding:24px;max-width:560px">
                 <h2 style="margin:0 0 12px;color:#1e293b">Contract key date reminder (test)</h2>
-                <p style="margin:0 0 8px">Contract: <strong>${imp.contract_name || imp.file_name}</strong></p>
+                ${accountName ? `<p style="margin:0 0 6px;color:#0f172a"><strong>Account:</strong> ${accountName}</p>` : ""}
+                <p style="margin:0 0 8px;color:#0f172a"><strong>Contract:</strong> ${contractLabel}</p>
                 <p style="margin:0 0 8px">Event: <strong>${row.date_type.replace(/_/g, " ")}</strong></p>
                 <p style="margin:0 0 8px">Due date: <strong>${row.due_date}</strong></p>
+                <p style="margin:16px 0 0"><a href="${link}" style="display:inline-block;background:#3B82F6;color:#ffffff;text-decoration:none;padding:10px 16px;border-radius:6px;font-size:13px;font-weight:600">Open contract →</a></p>
                 <p style="margin:16px 0 0;color:#64748b;font-size:13px">You are receiving this because alerts are enabled for this key date. This is a test message.</p>
               </div>`;
             const resp = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
