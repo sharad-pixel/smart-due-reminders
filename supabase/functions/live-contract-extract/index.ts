@@ -616,6 +616,107 @@ Deno.serve(async (req) => {
     }
 
     log("Calling AI", { textLen: text.length });
+
+    // ==========================================================================
+    // Phase 1 — Document Classification (Stage 1)
+    // Cheap Flash pass that tags every upload with a document_type, agreement
+    // number, version, and (best-guess) parent MSA before running the heavy
+    // structured extraction. Everything else downstream can rely on the type.
+    // ==========================================================================
+    await supabase
+      .from("live_contract_imports")
+      .update({ status: "classifying", progress_pct: 65 })
+      .eq("id", imp.id);
+    try {
+      const classifyRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            {
+              role: "system",
+              content:
+                "You are a contracts intake classifier. Read the document and return the document type using EXACTLY one of: msa, order_form, amendment, renewal_order, expansion_order, reduction_order, sow, pricing_exhibit, purchase_order, invoice, credit_memo, usage_report, change_order, professional_services_agreement, baa, dpa, other. Also return the agreement number (order/quote/agreement #), document version if stated (e.g. 'v2', 'Rev 3'), and the parent agreement number the document references (for order forms/amendments/SOWs — usually stated as 'pursuant to MSA #...' or 'under Master Agreement dated...'). Use null for anything not clearly stated. Return confidence 0-100.",
+            },
+            { role: "user", content: `Classify this document. First 20k chars:\n\n${text.slice(0, 20_000)}` },
+          ],
+          tools: [
+            {
+              type: "function",
+              function: {
+                name: "classify_document",
+                description: "Return document classification metadata.",
+                parameters: {
+                  type: "object",
+                  properties: {
+                    document_type: { type: "string" },
+                    confidence: { type: "number" },
+                    agreement_number: { type: ["string", "null"] },
+                    document_version: { type: ["string", "null"] },
+                    parent_agreement_number: { type: ["string", "null"] },
+                    reasoning: { type: "string" },
+                  },
+                  required: ["document_type", "confidence"],
+                  additionalProperties: false,
+                },
+              },
+            },
+          ],
+          tool_choice: { type: "function", function: { name: "classify_document" } },
+        }),
+      });
+      const classifyData = await parseJsonResponse(classifyRes, "AI classification");
+      const clsCall = classifyData.choices?.[0]?.message?.tool_calls?.[0];
+      const cls = clsCall
+        ? typeof clsCall.function.arguments === "string"
+          ? parseJsonFromText(clsCall.function.arguments, "Classification args")
+          : clsCall.function.arguments
+        : null;
+
+      if (cls?.document_type) {
+        const ALLOWED = new Set([
+          "msa","order_form","amendment","renewal_order","expansion_order","reduction_order",
+          "sow","pricing_exhibit","purchase_order","invoice","credit_memo","usage_report",
+          "change_order","professional_services_agreement","baa","dpa","other",
+        ]);
+        const docType = ALLOWED.has(cls.document_type) ? cls.document_type : "other";
+
+        // Best-effort parent match: look for a sibling in the same account whose
+        // agreement_number matches parent_agreement_number and is (likely) an MSA.
+        let parentImportId: string | null = null;
+        if (cls.parent_agreement_number && typeof cls.parent_agreement_number === "string") {
+          const { data: parentRows } = await supabase
+            .from("live_contract_imports")
+            .select("id, document_type")
+            .eq("account_id", imp.account_id)
+            .eq("agreement_number", cls.parent_agreement_number.trim())
+            .neq("id", imp.id)
+            .limit(5);
+          const preferred = (parentRows || []).find((r: any) =>
+            ["msa","professional_services_agreement"].includes(r.document_type),
+          );
+          parentImportId = preferred?.id || (parentRows?.[0]?.id ?? null);
+        }
+
+        await supabase
+          .from("live_contract_imports")
+          .update({
+            document_type: docType,
+            document_type_confidence: Math.max(0, Math.min(100, Number(cls.confidence) || 0)),
+            agreement_number: cls.agreement_number || null,
+            document_version: cls.document_version || null,
+            parent_import_id: parentImportId,
+            classified_at: new Date().toISOString(),
+          })
+          .eq("id", imp.id);
+        log("Classification complete", { docType, confidence: cls.confidence, parent: parentImportId });
+      }
+    } catch (e) {
+      // Classification is best-effort — never block the main extraction.
+      log("Classification failed (continuing)", { err: String(e) });
+    }
+
     await supabase
       .from("live_contract_imports")
       .update({ status: "ai_extracting", progress_pct: 75 })
