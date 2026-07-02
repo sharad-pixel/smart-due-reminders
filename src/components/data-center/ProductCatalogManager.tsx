@@ -272,6 +272,26 @@ export const ProductCatalogManager = () => {
               Sync from Stripe
             </Button>
           )}
+          <Button size="sm" variant="outline" onClick={downloadTemplate}>
+            <Download className="h-4 w-4 mr-2" />
+            Template
+          </Button>
+          <label>
+            <input
+              type="file"
+              accept=".csv,text/csv"
+              className="hidden"
+              onChange={handleBulkUpload}
+              disabled={uploading}
+            />
+            <Button size="sm" variant="outline" asChild disabled={uploading}>
+              <span className="cursor-pointer">
+                {uploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+                Bulk Upload
+              </span>
+            </Button>
+          </label>
+
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button size="sm" onClick={openCreate}>
