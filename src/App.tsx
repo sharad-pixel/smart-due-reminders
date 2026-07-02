@@ -276,21 +276,21 @@ const App = () => (
               <Route path="/clm" element={<ContractIntelligence />} />
               <Route path="/contract-intelligence" element={<ContractIntelligence />} />
               <Route path="/billing/asc606-credits" element={<Asc606Credits />} />
-              {/* Legacy CLM authoring URLs — redirected to Smart Ingestion (Live Contracts) */}
-              <Route path="/contracts" element={<Navigate to="/ai-ingestion" replace />} />
-              <Route path="/contracts/templates/:id" element={<Navigate to="/ai-ingestion" replace />} />
-              <Route path="/contracts/instances/:id" element={<Navigate to="/ai-ingestion" replace />} />
-              <Route path="/clm-portal" element={<Navigate to="/ai-ingestion" replace />} />
-              {/* AI Smart Ingestion (Revenue Intelligence pillar) */}
-              <Route path="/ai-ingestion" element={<LiveContracts />} />
+              {/* Contracts Hub — unified Active Contracts + Ingestion */}
+              <Route path="/contracts" element={<ContractsHub />} />
+              <Route path="/contracts/hub" element={<Navigate to="/contracts" replace />} />
+              <Route path="/contracts/active" element={<Navigate to="/contracts?hub=active" replace />} />
+              <Route path="/ai-ingestion" element={<Navigate to="/contracts?hub=ingestion" replace />} />
+              <Route path="/contracts/live" element={<Navigate to="/contracts?hub=ingestion" replace />} />
+              <Route path="/clm/live-contracts" element={<Navigate to="/contracts?hub=ingestion" replace />} />
+              <Route path="/clm-portal" element={<Navigate to="/contracts?hub=ingestion" replace />} />
+              <Route path="/contracts/templates/:id" element={<Navigate to="/contracts?hub=ingestion" replace />} />
+              <Route path="/contracts/instances/:id" element={<Navigate to="/contracts?hub=ingestion" replace />} />
+              {/* Ingestion detail pages */}
               <Route path="/ai-ingestion/:importId" element={<LiveContractDetail />} />
-              {/* Legacy Live Contracts URLs — kept for backwards compatibility */}
-              <Route path="/contracts/live" element={<LiveContracts />} />
               <Route path="/contracts/live/:importId" element={<LiveContractDetail />} />
-              <Route path="/clm/live-contracts" element={<LiveContracts />} />
               <Route path="/revenue-library" element={<RevenueLibrary />} />
               <Route path="/contract-intelligence/dashboard" element={<ContractIntelligenceDashboard />} />
-              <Route path="/contracts/active" element={<ActiveContracts />} />
 
               {/* Pillar Pages */}
               <Route path="/collections-crm" element={<CollectionsCRM />} />
