@@ -35,7 +35,7 @@ const columns: Col[] = [
   {
     title: "Customers",
     links: [
-      { label: "Customer Stories", path: "/blog" },
+      { label: "Support / Admin Login", path: "/support/login" },
       { label: "Collections ROI Calculator", path: "/roi-calculator" },
       { label: "Contract Intelligence ROI", path: "/contract-roi-calculator" },
       { label: "Payment Portal", path: "/debtor-portal" },
