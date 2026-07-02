@@ -70,6 +70,7 @@ interface Debtor {
   account_outreach_enabled: boolean | null;
   outreach_frequency: string | null;
   is_archived: boolean | null;
+  stripe_customer_id?: string | null;
   contacts?: DebtorContact[];
   // Email status fields
   email_status: string | null;
