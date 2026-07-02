@@ -27,7 +27,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Package, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Package, Loader2, RefreshCw } from "lucide-react";
+import { useStripeConnected } from "@/hooks/useStripeConnected";
 import { useProductCatalog, ProductCatalogItem } from "@/hooks/useProductCatalog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
