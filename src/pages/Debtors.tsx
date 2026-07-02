@@ -70,6 +70,7 @@ interface Debtor {
   account_outreach_enabled: boolean | null;
   outreach_frequency: string | null;
   is_archived: boolean | null;
+  stripe_customer_id?: string | null;
   contacts?: DebtorContact[];
   // Email status fields
   email_status: string | null;
@@ -141,7 +142,7 @@ const Debtors = () => {
         supabase
           .from("debtors")
           .select(`
-            id, reference_id, name, company_name, email, phone, type,
+            id, reference_id, name, company_name, email, phone, type, stripe_customer_id,
             current_balance, total_open_balance, external_customer_id,
             crm_account_id_external, open_invoices_count, max_days_past_due,
             payment_score, avg_days_to_pay, city, state,
@@ -864,12 +865,17 @@ const Debtors = () => {
                             <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-1">
                               {debtor.company_name || debtor.name}
                             </h3>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <p className="text-xs text-muted-foreground font-mono">{debtor.reference_id}</p>
                               {debtor.account_outreach_enabled && (
                                 <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-green-50 text-green-700 border-green-200">
                                   <Zap className="h-2.5 w-2.5 mr-0.5" />
                                   AI Outreach
+                                </Badge>
+                              )}
+                              {debtor.stripe_customer_id && (
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-indigo-50 text-indigo-700 border-indigo-200" title={debtor.stripe_customer_id}>
+                                  Stripe
                                 </Badge>
                               )}
                             </div>
@@ -1096,7 +1102,14 @@ const Debtors = () => {
                             </div>
                             <div className="min-w-0">
                               <p className="font-medium truncate">{debtor.company_name}</p>
-                              <p className="text-xs text-muted-foreground font-mono">{debtor.reference_id}</p>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <p className="text-xs text-muted-foreground font-mono">{debtor.reference_id}</p>
+                                {debtor.stripe_customer_id && (
+                                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-indigo-50 text-indigo-700 border-indigo-200" title={debtor.stripe_customer_id}>
+                                    Stripe
+                                  </Badge>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </TableCell>
