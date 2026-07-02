@@ -773,9 +773,17 @@ Deno.serve(async (req) => {
               await tryLookup('external_invoice_id', stripeInvoice.id, true);
               if (stripeNumber) await tryLookup('invoice_number', stripeNumber, true);
 
-              // Fallback: unscoped lookup by stripe id (row may belong to another account in the hierarchy)
+              // Unscoped fallbacks (row may belong to a sibling/parent account in the hierarchy)
+              if (!existingRow) await tryLookup('stripe_invoice_id', stripeInvoice.id, false);
+              if (!existingRow) await tryLookup('external_invoice_id', stripeInvoice.id, false);
+              if (!existingRow && stripeNumber) await tryLookup('invoice_number', stripeNumber, false);
+
+              // Short retry to cover parallel-sync race conditions where the conflicting
+              // row is committed a few ms after our insert failed.
               if (!existingRow) {
+                await new Promise((r) => setTimeout(r, 250));
                 await tryLookup('stripe_invoice_id', stripeInvoice.id, false);
+                if (!existingRow) await tryLookup('external_invoice_id', stripeInvoice.id, false);
               }
 
               if (existingRow?.id) {
@@ -795,8 +803,21 @@ Deno.serve(async (req) => {
               } else {
                 // Couldn't locate the conflicting row. This is almost always a benign race
                 // (row created by a parallel sync) or a constraint outside our search columns.
-                // Demote to warning so it doesn't persist as a "Sync issues detected" error forever.
-                warnings.push(`Duplicate invoice ${stripeInvoice.id} skipped (already exists in source system)`);
+                // Include constraint details so ops can diagnose, but demote to warning so
+                // the "Sync issues detected" banner doesn't persist forever.
+                const constraintHint =
+                  (insertError as any).details ||
+                  (insertError as any).hint ||
+                  (insertError as any).constraint ||
+                  'unique constraint';
+                logStep('Duplicate invoice not locatable after conflict', {
+                  stripeId: stripeInvoice.id,
+                  number: stripeNumber,
+                  constraint: constraintHint,
+                });
+                warnings.push(
+                  `Duplicate invoice ${stripeInvoice.id} skipped (already exists in source system: ${constraintHint})`,
+                );
                 return;
               }
             } else {
