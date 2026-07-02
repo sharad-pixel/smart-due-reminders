@@ -83,18 +83,14 @@ Deno.serve(async (req) => {
         if (dErr) { console.error("debtor insert", dErr); continue; }
         summary.debtors++;
 
-        // Contract import row (MSA + Order Form modeled as one live_contract_imports for the primary; extra for NimbusHR)
+        // Contract import row
         const { data: lci } = await admin.from("live_contract_imports").insert({
           user_id: userId,
           is_demo: true,
           account_id: debtor.id,
           file_name: `${c.company_name} - MSA + Order Form.pdf`,
           source: "demo",
-          term_start_date: c.start,
           term_end_date: c.end,
-          annual_recurring_revenue: c.arr,
-          total_contract_value: c.tcv,
-          payment_terms: c.terms,
           status: "active",
         }).select().single();
         summary.contracts++;
@@ -143,9 +139,10 @@ Deno.serve(async (req) => {
         // AI assessment stub (readiness/intelligence)
         await admin.from("ai_assessments").insert({
           user_id: userId, is_demo: true,
-          assessment_type: "contract_intelligence",
+          scope: "contract_intelligence",
           subject_type: "contract",
           subject_id: lci?.id ?? debtor.id,
+          title: `${c.company_name} — Intelligence Snapshot`,
           summary: `Contract Intelligence Score ${c.ci} • Billing Readiness ${c.br} • Collection Readiness ${c.cr}`,
           findings: {
             contract_intelligence_score: c.ci,
@@ -206,7 +203,10 @@ Deno.serve(async (req) => {
           await admin.from("collection_activities").insert({
             user_id: userId, is_demo: true, debtor_id: d.id,
             activity_type: "email_sent",
-            notes: `Automated follow-up sent to ${d.company_name}.`,
+            channel: "email",
+            direction: "outbound",
+            subject: `Follow-up: ${d.company_name}`,
+            message_body: `Automated follow-up sent to ${d.company_name}.`,
           }).then((r) => { if (!r.error) created++; });
         }
         result.created = created;
