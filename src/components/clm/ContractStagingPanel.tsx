@@ -137,6 +137,15 @@ export const ContractStagingPanel = ({
       else if (data?.duplicates > 0) toast.success("Linked to existing invoice");
       else toast.message("No invoice created", { description: data?.skipped?.[0]?.reason || "Check schedule details" });
       setGenDialogSchedule(null);
+      // Push to Stripe if enabled: look up invoice_id from schedule row
+      if (stripeConnected && pushToStripe && data?.created > 0) {
+        const { data: sched } = await supabase
+          .from("contract_invoice_schedules")
+          .select("invoice_id")
+          .eq("id", scheduleId)
+          .maybeSingle();
+        if (sched?.invoice_id) await pushInvoiceToStripe(sched.invoice_id);
+      }
       onChanged();
     } catch (e: any) {
       toast.error(e.message || "Failed to generate invoice");
