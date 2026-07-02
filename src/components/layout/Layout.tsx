@@ -275,8 +275,7 @@ const Layout = ({ children }: LayoutProps) => {
 
   const revenueIntelligenceItems = [
     { path: "/contract-intelligence/dashboard", label: "Contract Intelligence", icon: FileSignature },
-    { path: "/contracts/active", label: "Active Contracts", icon: FileSignature },
-    { path: "/ai-ingestion", label: "Ingestion", icon: Sparkles },
+    { path: "/contracts", label: "Contracts", icon: FileSignature },
     { path: "/revenue-library", label: "Revenue Library", icon: Library },
     { path: "/revenue-risk", label: "Revenue Risk", icon: ShieldAlert },
   ];
@@ -303,8 +302,8 @@ const Layout = ({ children }: LayoutProps) => {
     { path: "/invoices", label: "Invoices", icon: FileText },
     { path: "/payments", label: "Payments", icon: DollarSign },
     { path: "/contract-intelligence/dashboard", label: "Contract Intelligence", icon: FileSignature },
-    { path: "/contracts/active", label: "Active Contracts", icon: FileSignature },
-    { path: "/ai-ingestion", label: "Contract Ingestion", icon: Sparkles },
+    { path: "/contracts", label: "Contracts", icon: FileSignature },
+    
     { path: "/revenue-risk", label: "Revenue Risk", icon: ShieldAlert },
     { path: "/revenue-library", label: "Revenue Library", icon: Library },
   ];
@@ -407,13 +406,13 @@ const Layout = ({ children }: LayoutProps) => {
                     </DropdownMenuItem>
                     <div className="pl-6 space-y-1">
                       <DropdownMenuItem asChild>
-                        <Link to="/contracts/active" className="flex items-center gap-2 cursor-pointer text-sm">
+                        <Link to="/contracts?hub=active" className="flex items-center gap-2 cursor-pointer text-sm">
                           <FileSignature className="h-3.5 w-3.5 text-muted-foreground" />
                           <span>Active Contracts</span>
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
-                        <Link to="/ai-ingestion" className="flex items-center gap-2 cursor-pointer text-sm">
+                        <Link to="/contracts?hub=ingestion" className="flex items-center gap-2 cursor-pointer text-sm">
                           <Sparkles className="h-3.5 w-3.5 text-muted-foreground" />
                           <span>Ingestion & Extraction</span>
                         </Link>

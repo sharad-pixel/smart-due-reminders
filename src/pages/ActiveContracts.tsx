@@ -35,7 +35,8 @@ import { formatCurrency, formatDateShort } from "@/lib/formatters";
 
 const PAGE_SIZE = 20;
 
-export default function ActiveContracts() {
+export default function ActiveContracts({ embedded = false }: { embedded?: boolean } = {}) {
+  const Shell = embedded ? (({ children }: any) => <>{children}</>) : Layout;
   const { accountId } = useAccountId();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("active");
@@ -85,8 +86,8 @@ export default function ActiveContracts() {
   const currency = (filtered[0] as any)?.currency || "USD";
 
   return (
-    <Layout>
-      <SEO title="Active Contracts · Recouply" description="Search and browse all active contracts." />
+    <Shell>
+      {!embedded && <SEO title="Active Contracts · Recouply" description="Search and browse all active contracts." />}
       <div className="container max-w-7xl py-6 space-y-4">
         <div className="flex items-start justify-between flex-wrap gap-3">
           <div>
@@ -279,7 +280,7 @@ export default function ActiveContracts() {
           </CardContent>
         </Card>
       </div>
-    </Layout>
+    </Shell>
   );
 }
 
