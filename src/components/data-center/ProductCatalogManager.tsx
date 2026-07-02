@@ -728,7 +728,7 @@ export const ProductCatalogManager = () => {
             </>
           ) : (
             <>
-              <span className="font-medium">Not using Stripe?</span> Add products one at a time with <span className="font-medium">Add Product</span>, or download the <span className="font-medium">Template</span> CSV and use <span className="font-medium">Bulk Upload</span> to load your entire catalog at once. Columns: <code>description, product_description, unit_type, unit_cost, currency, active</code>. Rows that match an existing product (case-insensitive name + unit) will be updated in place.
+              <span className="font-medium">Not using Stripe?</span> Add products one at a time with <span className="font-medium">Add Product</span>, or download the <span className="font-medium">Template</span> CSV and use <span className="font-medium">Bulk Upload</span> to load your entire catalog at once. Columns match Stripe's product model: <code>description, product_description, unit_type, unit_cost, currency, active, pricing_model, billing_period, tax_behavior, tax_category, price_description, lookup_key, image_url</code>. Rows that match an existing product (case-insensitive name + unit) will be updated in place.
             </>
           )}
         </AlertDescription>
