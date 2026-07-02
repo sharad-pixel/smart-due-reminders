@@ -2,6 +2,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+export type PricingModel = "recurring" | "one_off";
+export type TaxBehavior = "auto" | "inclusive" | "exclusive";
+export type BillingPeriod = "daily" | "weekly" | "monthly" | "quarterly" | "yearly";
+
 export interface ProductCatalogItem {
   id: string;
   user_id: string;
@@ -17,6 +21,17 @@ export interface ProductCatalogItem {
   last_used_at: string | null;
   created_at: string;
   updated_at: string;
+  // Stripe-consistent fields
+  pricing_model?: PricingModel;
+  billing_period?: BillingPeriod | null;
+  tax_behavior?: TaxBehavior;
+  tax_category?: string | null;
+  price_description?: string | null;
+  lookup_key?: string | null;
+  image_url?: string | null;
+  stripe_product_id?: string | null;
+  stripe_price_id?: string | null;
+  stripe_synced_at?: string | null;
 }
 
 export interface SaveProductInput {
@@ -51,7 +66,6 @@ export function useProductCatalog() {
       const unit = (input.unit_type || "each").trim() || "each";
       if (!desc) throw new Error("Description required");
 
-      // Try to find existing (case-insensitive match)
       const { data: existing } = await supabase
         .from("product_catalog")
         .select("id, times_used")

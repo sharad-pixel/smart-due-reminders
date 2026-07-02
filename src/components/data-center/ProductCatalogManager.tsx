@@ -45,6 +45,25 @@ const STANDARD_UNITS = [
   "call", "session", "page", "box", "case",
 ];
 
+// Stripe-aligned tax categories (product tax codes)
+const TAX_CATEGORIES = [
+  { value: "txcd_10000000", label: "General — Services" },
+  { value: "txcd_10101000", label: "General — Tangible Goods" },
+  { value: "txcd_10103000", label: "SaaS — Business use" },
+  { value: "txcd_10103001", label: "SaaS — Personal use" },
+  { value: "txcd_10202000", label: "Digital goods" },
+  { value: "txcd_20030000", label: "Professional services" },
+  { value: "txcd_99999999", label: "Nontaxable / Not configured" },
+];
+
+const BILLING_PERIODS: Array<{ value: string; label: string }> = [
+  { value: "daily", label: "Daily" },
+  { value: "weekly", label: "Weekly" },
+  { value: "monthly", label: "Monthly" },
+  { value: "quarterly", label: "Quarterly" },
+  { value: "yearly", label: "Yearly" },
+];
+
 interface FormState {
   id?: string;
   description: string;
@@ -54,6 +73,14 @@ interface FormState {
   currency: string;
   active: boolean;
   status_effective_date: string; // YYYY-MM-DD
+  // Stripe-consistent fields
+  pricing_model: "recurring" | "one_off";
+  billing_period: string; // '' when one_off
+  tax_behavior: "auto" | "inclusive" | "exclusive";
+  tax_category: string;
+  price_description: string;
+  lookup_key: string;
+  image_url: string;
 }
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
@@ -66,6 +93,13 @@ const emptyForm: FormState = {
   currency: "USD",
   active: true,
   status_effective_date: todayIso(),
+  pricing_model: "one_off",
+  billing_period: "monthly",
+  tax_behavior: "auto",
+  tax_category: "txcd_10000000",
+  price_description: "",
+  lookup_key: "",
+  image_url: "",
 };
 
 const isStandardUnit = (u: string) => STANDARD_UNITS.includes(u);
@@ -101,10 +135,10 @@ export const ProductCatalogManager = () => {
 
   const downloadTemplate = () => {
     const csv = [
-      "description,product_description,unit_type,unit_cost,currency,active",
-      "Monthly subscription — Pro plan,Includes unlimited seats & support,month,49.00,USD,true",
-      "Implementation services,One-time onboarding engagement,hour,150.00,USD,true",
-      "Annual license,Full-year access to platform,year,1200.00,USD,true",
+      "description,product_description,unit_type,unit_cost,currency,active,pricing_model,billing_period,tax_behavior,tax_category,price_description,lookup_key,image_url",
+      "Monthly subscription — Pro plan,Includes unlimited seats & support,month,49.00,USD,true,recurring,monthly,auto,txcd_10103000,Pro monthly,pro_monthly,",
+      "Implementation services,One-time onboarding engagement,hour,150.00,USD,true,one_off,,auto,txcd_20030000,,,",
+      "Annual license,Full-year access to platform,year,1200.00,USD,true,recurring,yearly,auto,txcd_10103000,Annual license,annual_license,",
     ].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -177,6 +211,35 @@ export const ProductCatalogManager = () => {
         const product_description = ((r.product_description || r.details || "").trim()).slice(0, 50);
         const active = r.active === undefined || r.active === "" ? true : parseBool(r.active);
 
+        // Stripe-consistent optional fields
+        const rawPricing = (r.pricing_model || "").trim().toLowerCase();
+        const pricing_model = rawPricing === "recurring" ? "recurring" : "one_off";
+        const rawPeriod = (r.billing_period || "").trim().toLowerCase();
+        const billing_period = pricing_model === "recurring"
+          ? (["daily","weekly","monthly","quarterly","yearly"].includes(rawPeriod) ? rawPeriod : "monthly")
+          : null;
+        const rawTax = (r.tax_behavior || "auto").trim().toLowerCase();
+        const tax_behavior = ["auto","inclusive","exclusive"].includes(rawTax) ? rawTax : "auto";
+        const tax_category = (r.tax_category || "").trim() || null;
+        const price_description = (r.price_description || "").trim() || null;
+        const lookup_key = (r.lookup_key || "").trim() || null;
+        const image_url = (r.image_url || "").trim() || null;
+
+        const commonFields = {
+          currency,
+          unit_cost,
+          product_description: product_description || null,
+          active,
+          status_effective_date: new Date().toISOString(),
+          pricing_model,
+          billing_period,
+          tax_behavior,
+          tax_category,
+          price_description,
+          lookup_key,
+          image_url,
+        };
+
         // Check for existing (case-insensitive on description + unit_type)
         const { data: existing } = await supabase
           .from("product_catalog")
@@ -189,13 +252,7 @@ export const ProductCatalogManager = () => {
         if (existing) {
           const { error: uerr } = await supabase
             .from("product_catalog")
-            .update({
-              unit_cost,
-              currency,
-              product_description: product_description || null,
-              active,
-              status_effective_date: new Date().toISOString(),
-            })
+            .update(commonFields as any)
             .eq("id", existing.id);
           if (uerr) errors.push(`Row ${i + 2}: ${uerr.message}`);
           else updated++;
@@ -204,12 +261,8 @@ export const ProductCatalogManager = () => {
             user_id: user.id,
             description,
             unit_type,
-            unit_cost,
-            currency,
-            product_description: product_description || null,
-            active,
-            status_effective_date: new Date().toISOString(),
-          });
+            ...commonFields,
+          } as any);
           if (ierr) {
             // 23505 = unique violation; treat as skipped duplicate
             if ((ierr as any).code === "23505") skipped++;
@@ -266,6 +319,13 @@ export const ProductCatalogManager = () => {
       status_effective_date: item.status_effective_date
         ? String(item.status_effective_date).slice(0, 10)
         : todayIso(),
+      pricing_model: (item.pricing_model as "recurring" | "one_off") || "one_off",
+      billing_period: item.billing_period || "monthly",
+      tax_behavior: (item.tax_behavior as "auto" | "inclusive" | "exclusive") || "auto",
+      tax_category: item.tax_category || "txcd_10000000",
+      price_description: item.price_description || "",
+      lookup_key: item.lookup_key || "",
+      image_url: item.image_url || "",
     });
     setCustomUnit(standard ? "" : item.unit_type);
     setOpen(true);
@@ -305,20 +365,39 @@ export const ProductCatalogManager = () => {
       ? new Date(form.status_effective_date).toISOString()
       : new Date().toISOString();
 
+    // Validate lookup_key (Stripe: letters, numbers, underscore, hyphen)
+    const lookupKey = form.lookup_key.trim();
+    if (lookupKey && !/^[A-Za-z0-9_\-]+$/.test(lookupKey)) {
+      toast.error("Lookup key must contain only letters, numbers, underscores or hyphens");
+      return;
+    }
+    const priceDescription = form.price_description.trim();
+    const imageUrl = form.image_url.trim();
+    const isRecurring = form.pricing_model === "recurring";
+
+    const payload: Record<string, any> = {
+      description: desc,
+      product_description: form.product_description.trim() || null,
+      unit_type: unit,
+      unit_cost: cost,
+      currency: form.currency || "USD",
+      active: form.active,
+      status_effective_date: effectiveIso,
+      pricing_model: form.pricing_model,
+      billing_period: isRecurring ? form.billing_period || "monthly" : null,
+      tax_behavior: form.tax_behavior,
+      tax_category: form.tax_category || null,
+      price_description: priceDescription || null,
+      lookup_key: lookupKey || null,
+      image_url: imageUrl || null,
+    };
+
     setSaving(true);
     try {
       if (form.id) {
         const { error } = await supabase
           .from("product_catalog")
-          .update({
-            description: desc,
-            product_description: form.product_description.trim() || null,
-            unit_type: unit,
-            unit_cost: cost,
-            currency: form.currency || "USD",
-            active: form.active,
-            status_effective_date: effectiveIso,
-          })
+          .update(payload)
           .eq("id", form.id);
         if (error) throw error;
         toast.success("Product updated");
@@ -327,14 +406,8 @@ export const ProductCatalogManager = () => {
         if (!user) throw new Error("Not authenticated");
         const { error } = await supabase.from("product_catalog").insert({
           user_id: user.id,
-          description: desc,
-          product_description: form.product_description.trim() || null,
-          unit_type: unit,
-          unit_cost: cost,
-          currency: form.currency || "USD",
-          active: form.active,
-          status_effective_date: effectiveIso,
-        });
+          ...payload,
+        } as any);
         if (error) throw error;
         toast.success("Product added");
       }
@@ -395,11 +468,11 @@ export const ProductCatalogManager = () => {
                 Add Product
               </Button>
             </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>{form.id ? "Edit Product" : "Add Product"}</DialogTitle>
+              <DialogTitle>{form.id ? "Edit Product" : "Add a product"}</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 py-2">
+            <div className="space-y-5 py-2">
               <div className="space-y-2">
                 <Label>Name / Description</Label>
                 <Input
@@ -472,6 +545,135 @@ export const ProductCatalogManager = () => {
                 </div>
               </div>
 
+              {/* Image URL */}
+              <div className="space-y-2">
+                <Label>Image URL <span className="text-xs text-muted-foreground font-normal">(optional)</span></Label>
+                <Input
+                  value={form.image_url}
+                  onChange={(e) => setForm({ ...form, image_url: e.target.value })}
+                  placeholder="https://... — shown at checkout & on invoices"
+                />
+              </div>
+
+              {/* Tax category */}
+              <div className="space-y-2">
+                <Label>Product tax category</Label>
+                <Select
+                  value={form.tax_category}
+                  onValueChange={(v) => setForm({ ...form, tax_category: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TAX_CATEGORIES.map((t) => (
+                      <SelectItem key={t.value} value={t.value}>
+                        {t.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground">
+                  Used for automatic tax calculation (Stripe Tax code).
+                </p>
+              </div>
+
+              {/* Pricing model */}
+              <div className="rounded-md border p-3 space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm">Pricing</Label>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, pricing_model: "recurring" })}
+                    className={`rounded-md border p-2 text-left text-sm ${
+                      form.pricing_model === "recurring"
+                        ? "border-primary ring-1 ring-primary"
+                        : "border-input"
+                    }`}
+                  >
+                    <div className="font-medium">Recurring</div>
+                    <div className="text-xs text-muted-foreground">Charge an ongoing fee</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, pricing_model: "one_off" })}
+                    className={`rounded-md border p-2 text-left text-sm ${
+                      form.pricing_model === "one_off"
+                        ? "border-primary ring-1 ring-primary"
+                        : "border-input"
+                    }`}
+                  >
+                    <div className="font-medium">One-off</div>
+                    <div className="text-xs text-muted-foreground">Charge a one-time fee</div>
+                  </button>
+                </div>
+
+                {form.pricing_model === "recurring" && (
+                  <div className="space-y-2">
+                    <Label className="text-xs">Billing period</Label>
+                    <Select
+                      value={form.billing_period}
+                      onValueChange={(v) => setForm({ ...form, billing_period: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {BILLING_PERIODS.map((p) => (
+                          <SelectItem key={p.value} value={p.value}>
+                            {p.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label className="text-xs">Include tax in price</Label>
+                  <Select
+                    value={form.tax_behavior}
+                    onValueChange={(v: any) => setForm({ ...form, tax_behavior: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="auto">Auto</SelectItem>
+                      <SelectItem value="inclusive">Yes (inclusive)</SelectItem>
+                      <SelectItem value="exclusive">No (exclusive)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Advanced */}
+              <div className="rounded-md border p-3 space-y-3">
+                <Label className="text-sm">Advanced</Label>
+                <div className="space-y-2">
+                  <Label className="text-xs">Price description</Label>
+                  <Input
+                    value={form.price_description}
+                    onChange={(e) => setForm({ ...form, price_description: e.target.value })}
+                    placeholder="Internal label — not shown to customers"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs">Lookup key</Label>
+                  <Input
+                    value={form.lookup_key}
+                    onChange={(e) => setForm({ ...form, lookup_key: e.target.value })}
+                    placeholder="e.g. standard_monthly"
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Unique key to reference this price programmatically (letters, numbers, _ or -).
+                  </p>
+                </div>
+              </div>
+
+
               <div className="rounded-md border p-3 space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
@@ -526,7 +728,7 @@ export const ProductCatalogManager = () => {
             </>
           ) : (
             <>
-              <span className="font-medium">Not using Stripe?</span> Add products one at a time with <span className="font-medium">Add Product</span>, or download the <span className="font-medium">Template</span> CSV and use <span className="font-medium">Bulk Upload</span> to load your entire catalog at once. Columns: <code>description, product_description, unit_type, unit_cost, currency, active</code>. Rows that match an existing product (case-insensitive name + unit) will be updated in place.
+              <span className="font-medium">Not using Stripe?</span> Add products one at a time with <span className="font-medium">Add Product</span>, or download the <span className="font-medium">Template</span> CSV and use <span className="font-medium">Bulk Upload</span> to load your entire catalog at once. Columns match Stripe's product model: <code>description, product_description, unit_type, unit_cost, currency, active, pricing_model, billing_period, tax_behavior, tax_category, price_description, lookup_key, image_url</code>. Rows that match an existing product (case-insensitive name + unit) will be updated in place.
             </>
           )}
         </AlertDescription>
@@ -565,6 +767,7 @@ export const ProductCatalogManager = () => {
                   <TableRow>
                     <TableHead>Product</TableHead>
                     <TableHead>Unit</TableHead>
+                    <TableHead>Pricing</TableHead>
                     <TableHead className="text-right">Unit Cost</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Effective</TableHead>
@@ -590,6 +793,18 @@ export const ProductCatalogManager = () => {
                           )}
                         </TableCell>
                         <TableCell className="text-muted-foreground">{item.unit_type}</TableCell>
+                        <TableCell>
+                          {item.pricing_model === "recurring" ? (
+                            <div className="flex flex-col gap-0.5">
+                              <Badge variant="outline" className="w-fit text-[10px]">Recurring</Badge>
+                              <span className="text-[11px] text-muted-foreground capitalize">
+                                {item.billing_period || "monthly"}
+                              </span>
+                            </div>
+                          ) : (
+                            <Badge variant="secondary" className="text-[10px]">One-off</Badge>
+                          )}
+                        </TableCell>
                         <TableCell className="text-right">
                           {item.currency} {Number(item.unit_cost).toFixed(2)}
                         </TableCell>
