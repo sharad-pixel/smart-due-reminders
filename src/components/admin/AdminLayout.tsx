@@ -24,6 +24,7 @@ import {
   ExternalLink,
   LifeBuoy,
   Code2,
+  Beaker,
 } from "lucide-react";
 import { useFounderAuth } from "@/hooks/useFounderAuth";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -61,6 +62,7 @@ const adminNavItems = [
   { path: "/admin/system", label: "System Config", icon: Settings },
   { path: "/admin/support-access", label: "Support Access", icon: LifeBuoy },
   { path: "/admin/support-users", label: "Support Users", icon: LifeBuoy },
+  { path: "/admin/demo", label: "Demo Workspace", icon: Beaker },
   { path: "/dev/cleanup", label: "Code Cleanup", icon: Code2 },
 ];
 
