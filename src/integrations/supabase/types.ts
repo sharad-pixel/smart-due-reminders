@@ -4050,6 +4050,8 @@ export type Database = {
           sheet_sync_enabled: boolean
           source_system: string | null
           state: string | null
+          stripe_customer_id: string | null
+          stripe_customer_linked_at: string | null
           tags: Json | null
           total_open_balance: number | null
           touchpoint_count: number | null
@@ -4167,6 +4169,8 @@ export type Database = {
           sheet_sync_enabled?: boolean
           source_system?: string | null
           state?: string | null
+          stripe_customer_id?: string | null
+          stripe_customer_linked_at?: string | null
           tags?: Json | null
           total_open_balance?: number | null
           touchpoint_count?: number | null
@@ -4284,6 +4288,8 @@ export type Database = {
           sheet_sync_enabled?: boolean
           source_system?: string | null
           state?: string | null
+          stripe_customer_id?: string | null
+          stripe_customer_linked_at?: string | null
           tags?: Json | null
           total_open_balance?: number | null
           touchpoint_count?: number | null
