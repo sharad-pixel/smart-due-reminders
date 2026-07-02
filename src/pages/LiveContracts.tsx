@@ -1307,7 +1307,8 @@ function RichTab({
 }
 
 // ------- Main page -------
-export default function LiveContracts() {
+export default function LiveContracts({ embedded = false }: { embedded?: boolean } = {}) {
+  const Shell = embedded ? (({ children }: any) => <>{children}</>) : Layout;
   const { data: imports = [] } = useImports();
   const { data: folders = [] } = useFolders();
   const [searchParams, setSearchParams] = useSearchParams();
