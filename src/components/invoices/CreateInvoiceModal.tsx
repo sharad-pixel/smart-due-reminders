@@ -169,7 +169,22 @@ export const CreateInvoiceModal = ({
         }
       }
 
-      toast.success("Invoice created successfully");
+      // Bidirectional Stripe: push newly created invoice to Stripe if connected
+      if (stripeConnected && pushToStripe && invoice) {
+        try {
+          const { error: pushErr } = await supabase.functions.invoke("push-invoice-to-stripe", {
+            body: { invoice_id: invoice.id, finalize: finalizeInStripe },
+          });
+          if (pushErr) throw pushErr;
+          toast.success("Invoice created and pushed to Stripe");
+        } catch (pushEx: any) {
+          console.error("Stripe push failed", pushEx);
+          toast.warning(`Invoice saved. Stripe push failed: ${pushEx.message || "unknown error"}`);
+        }
+      } else {
+        toast.success("Invoice created successfully");
+      }
+
       
       // Reset form
       setFormData({
