@@ -46,16 +46,42 @@ export default function ActiveContracts({ embedded = false }: { embedded?: boole
     enabled: !!accountId,
     queryKey: ["active-contracts", accountId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("contracts")
-        .select(
-          "id,title,status,contract_type,contract_value,currency,effective_date,expiry_date,renewal_date,counterparty_name,created_at",
-        )
-        .eq("account_id", accountId!)
-        .order("created_at", { ascending: false })
-        .limit(1000);
-      if (error) throw error;
-      return data ?? [];
+      const [legacy, imports] = await Promise.all([
+        supabase
+          .from("contracts")
+          .select(
+            "id,title,status,contract_type,contract_value,currency,effective_date,expiry_date,renewal_date,counterparty_name,created_at",
+          )
+          .eq("account_id", accountId!)
+          .order("created_at", { ascending: false })
+          .limit(1000),
+        supabase
+          .from("live_contract_imports")
+          .select(
+            "id,contract_name,file_name,status,contract_type,contract_value,effective_date,term_end_date,created_at",
+          )
+          .eq("account_id", accountId!)
+          .order("created_at", { ascending: false })
+          .limit(1000),
+      ]);
+      if (legacy.error) throw legacy.error;
+      if (imports.error) throw imports.error;
+      const legacyRows = (legacy.data ?? []).map((r: any) => ({ ...r, __source: "contract" }));
+      const importRows = (imports.data ?? []).map((r: any) => ({
+        id: r.id,
+        title: r.contract_name || r.file_name || "Untitled contract",
+        counterparty_name: null,
+        contract_type: r.contract_type,
+        contract_value: r.contract_value,
+        currency: "USD",
+        effective_date: r.effective_date,
+        expiry_date: r.term_end_date,
+        renewal_date: r.term_end_date,
+        status: r.status,
+        created_at: r.created_at,
+        __source: "import",
+      }));
+      return [...importRows, ...legacyRows];
     },
   });
 
@@ -63,8 +89,10 @@ export default function ActiveContracts({ embedded = false }: { embedded?: boole
     const q = search.trim().toLowerCase();
     const list = (rows ?? []).filter((r: any) => {
       const s = (r.status ?? "").toLowerCase();
-      if (statusFilter === "active") return s !== "expired" && s !== "terminated";
-      if (statusFilter === "expired") return s === "expired" || s === "terminated";
+      if (statusFilter === "active")
+        return !["expired", "terminated", "archived", "superseded", "error"].includes(s);
+      if (statusFilter === "expired")
+        return ["expired", "terminated", "archived", "superseded"].includes(s);
       return true;
     });
     if (!q) return list;
