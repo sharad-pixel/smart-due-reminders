@@ -20,7 +20,7 @@ interface ProductCatalogPickerProps {
 export const ProductCatalogPicker = ({ onSelect, disabled }: ProductCatalogPickerProps) => {
   const [open, setOpen] = useState(false);
   const { list, remove } = useProductCatalog();
-  const items = list.data || [];
+  const items = (list.data || []).filter((i) => i.active !== false);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -49,18 +49,33 @@ export const ProductCatalogPicker = ({ onSelect, disabled }: ProductCatalogPicke
               {items.map((item) => (
                 <CommandItem
                   key={item.id}
-                  value={`${item.description} ${item.unit_type}`}
+                  value={`${item.description} ${item.unit_type} ${item.lookup_key || ""} ${item.product_description || ""}`}
                   onSelect={() => {
                     onSelect(item);
                     setOpen(false);
                   }}
-                  className="flex items-center justify-between gap-2"
+                  className="flex items-start justify-between gap-2"
                 >
                   <div className="flex-1 min-w-0">
                     <div className="font-medium truncate">{item.description}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {item.currency} {Number(item.unit_cost).toFixed(2)} / {item.unit_type}
-                      {item.times_used > 0 && ` · used ${item.times_used}×`}
+                    {item.product_description && (
+                      <div className="text-xs text-muted-foreground truncate">
+                        {item.product_description}
+                      </div>
+                    )}
+                    <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
+                      <span>{item.currency} {Number(item.unit_cost).toFixed(2)} / {item.unit_type}</span>
+                      {item.pricing_model === "recurring" && (
+                        <span className="text-blue-600">
+                          · Recurring{item.billing_period ? ` (${item.billing_period})` : ""}
+                        </span>
+                      )}
+                      {item.pricing_model === "one_off" && <span>· One-off</span>}
+                      {item.tax_behavior && item.tax_behavior !== "auto" && (
+                        <span>· Tax {item.tax_behavior}</span>
+                      )}
+                      {item.lookup_key && <span className="font-mono">· {item.lookup_key}</span>}
+                      {item.times_used > 0 && <span>· used {item.times_used}×</span>}
                     </div>
                   </div>
                   <Button

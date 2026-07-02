@@ -6416,6 +6416,7 @@ export type Database = {
       }
       invoice_line_items: {
         Row: {
+          billing_period: string | null
           created_at: string | null
           description: string
           id: string
@@ -6423,14 +6424,22 @@ export type Database = {
           is_demo: boolean
           line_total: number
           line_type: string
+          lookup_key: string | null
+          pricing_model: string | null
+          product_description: string | null
+          product_id: string | null
           quantity: number
           sort_order: number
+          stripe_price_id: string | null
+          tax_behavior: string | null
+          tax_category: string | null
           unit_price: number
           unit_type: string | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          billing_period?: string | null
           created_at?: string | null
           description: string
           id?: string
@@ -6438,14 +6447,22 @@ export type Database = {
           is_demo?: boolean
           line_total: number
           line_type?: string
+          lookup_key?: string | null
+          pricing_model?: string | null
+          product_description?: string | null
+          product_id?: string | null
           quantity?: number
           sort_order?: number
+          stripe_price_id?: string | null
+          tax_behavior?: string | null
+          tax_category?: string | null
           unit_price: number
           unit_type?: string | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          billing_period?: string | null
           created_at?: string | null
           description?: string
           id?: string
@@ -6453,8 +6470,15 @@ export type Database = {
           is_demo?: boolean
           line_total?: number
           line_type?: string
+          lookup_key?: string | null
+          pricing_model?: string | null
+          product_description?: string | null
+          product_id?: string | null
           quantity?: number
           sort_order?: number
+          stripe_price_id?: string | null
+          tax_behavior?: string | null
+          tax_category?: string | null
           unit_price?: number
           unit_type?: string | null
           updated_at?: string | null
@@ -6466,6 +6490,13 @@ export type Database = {
             columns: ["invoice_id"]
             isOneToOne: false
             referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_line_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_catalog"
             referencedColumns: ["id"]
           },
         ]
