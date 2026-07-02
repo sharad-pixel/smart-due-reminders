@@ -30,8 +30,8 @@ export function normalizeCurrencyCode(input: string | null | undefined): string 
   const raw = String(input).trim();
   if (/^[A-Za-z]{3}$/.test(raw)) return raw.toUpperCase();
   const symbolMap: Record<string, string> = {
-    '$': 'USD', 'US$': 'USD', 'C$': 'CAD', 'CA$': 'CAD', 'A$': 'AUD',
-    '€': 'EUR', '£': 'GBP', '¥': 'JPY', '₹': 'INR', 'CHF': 'CHF',
+    '$': 'USD', 'US$': 'USD', 'USD$': 'USD', 'C$': 'CAD', 'CA$': 'CAD', 'A$': 'AUD',
+    '€': 'EUR', '£': 'GBP', '¥': 'JPY', 'CN¥': 'CNY', '₹': 'INR', 'CHF': 'CHF',
   };
   if (symbolMap[raw]) return symbolMap[raw];
   const upper = raw.toUpperCase();
@@ -44,8 +44,9 @@ export function normalizeCurrencyCode(input: string | null | undefined): string 
  * Get currency symbol for a given currency code.
  */
 export function getCurrencySymbol(currency: string = 'USD'): string {
+  const code = normalizeCurrencyCode(currency);
   const symbols: Record<string, string> = { USD: '$', EUR: '€', GBP: '£', CAD: 'CA$', AUD: 'A$', JPY: '¥', CHF: 'CHF ' };
-  return symbols[currency] || `${currency} `;
+  return symbols[code] || `${code} `;
 }
 
 /**
