@@ -54,13 +54,16 @@ export const useOnboardingStatus = () => {
           .maybeSingle(),
         supabase
           .from("branding_settings")
-          .select("logo_url, business_name, industry, business_description, from_email, from_name, sending_mode, stripe_payment_link, supported_payment_methods")
+          .select("logo_url, business_name, industry, business_description, from_email, from_name, sending_mode, stripe_payment_link, supported_payment_methods, ar_page_enabled, ar_page_public_token")
           .eq("user_id", accountId)
           .maybeSingle(),
       ]);
 
       const hasLogo = !!branding?.logo_url;
-      const hasPaymentLink = !!branding?.stripe_payment_link;
+      const hasStripeLink = !!branding?.stripe_payment_link;
+      const hasArPortalFallback = !!(branding?.ar_page_enabled && branding?.ar_page_public_token);
+      // Payment link satisfied by either Stripe link OR an enabled public AR portal (fallback).
+      const hasPaymentLink = hasStripeLink || hasArPortalFallback;
       const paymentMethods = branding?.supported_payment_methods;
       const hasPaymentMethods = Array.isArray(paymentMethods)
         ? paymentMethods.length > 0
@@ -87,7 +90,7 @@ export const useOnboardingStatus = () => {
       ];
 
       const paymentMissingFields: string[] = [];
-      if (!hasPaymentLink) paymentMissingFields.push("Stripe Payment Link");
+      if (!hasPaymentLink) paymentMissingFields.push("Stripe Payment Link or public AR portal");
       if (!hasPaymentMethods) paymentMissingFields.push("Supported Payment Methods");
 
       return {

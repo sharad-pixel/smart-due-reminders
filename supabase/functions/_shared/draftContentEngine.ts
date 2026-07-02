@@ -285,8 +285,9 @@ export function replaceTemplateVariables(
   
   // Get links
   const invoiceLink = getInvoiceLink(invoice, branding);
-  const paymentLink = branding.stripe_payment_link || '';
   const arPortalUrl = getArPortalUrl(branding);
+  // Fallback: if no Stripe Payment Link configured, use the public AR portal link
+  const paymentLink = branding.stripe_payment_link || arPortalUrl || '';
   const productDescription = invoice.product_description || '';
   
   // Agent/Persona name
@@ -452,14 +453,18 @@ export function processDraftContent(input: DraftContentInput): DraftContentOutpu
 
   // Step 2: Auto-append useful links if not already present
   const invoiceLink = getInvoiceLink(invoice, branding);
-  const paymentLink = branding.stripe_payment_link || '';
+  const stripeLink = branding.stripe_payment_link || '';
+  const arPortalUrl = getArPortalUrl(branding);
+  // Fallback: use AR portal link when Stripe Payment Link is not configured
+  const paymentLink = stripeLink || arPortalUrl || '';
+  const paymentLinkLabel = stripeLink ? '💳 Make a payment' : '💳 Payment options & instructions';
 
   if (includeInvoiceLink && invoiceLink && !body.includes(invoiceLink)) {
     body += `\n\nView your invoice: ${invoiceLink}`;
   }
 
   if (includePaymentLink && paymentLink && !body.includes(paymentLink)) {
-    body += `\n\n💳 Make a payment: ${paymentLink}`;
+    body += `\n\n${paymentLinkLabel}: ${paymentLink}`;
   }
 
   if (branding.include_portal_link_in_outreach !== false) {
