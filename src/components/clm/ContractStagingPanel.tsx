@@ -14,6 +14,8 @@ import { OcrPricingNotice } from "@/components/ocr/OcrPricingNotice";
 import { Link } from "react-router-dom";
 import { formatCurrency, formatDateShort } from "@/lib/formatters";
 import { GenerateInvoicesDialog } from "@/components/clm/GenerateInvoicesDialog";
+import { useStripeConnected } from "@/hooks/useStripeConnected";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   fetchContractWatchers,
   addContractWatcher,
