@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
-import { createClient } from "npm:@supabase/supabase-js@2.57.2";
+import { resolveStripeContext } from "../_shared/stripeAuth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,21 +10,8 @@ const corsHeaders = {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
-    const supa = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-    const auth = req.headers.get("Authorization")!;
-    const { data: userData } = await supa.auth.getUser(auth.replace("Bearer ", ""));
-    const user = userData.user;
-    if (!user) throw new Error("Not authenticated");
-
-    const { data: integ } = await supa
-      .from("stripe_integrations")
-      .select("stripe_secret_key_encrypted")
-      .eq("user_id", user.id)
-      .eq("is_connected", true)
-      .maybeSingle();
-    if (!integ?.stripe_secret_key_encrypted) throw new Error("Stripe not connected");
-
-    const stripe = new Stripe(integ.stripe_secret_key_encrypted, { apiVersion: "2025-08-27.basil" });
+    const { supa, accountId, stripeKey } = await resolveStripeContext(req.headers.get("Authorization"));
+    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
     let imported = 0;
     let updated = 0;
@@ -43,7 +30,7 @@ serve(async (req) => {
         const { data: existing } = await supa
           .from("product_catalog")
           .select("id")
-          .eq("user_id", user.id)
+          .eq("user_id", accountId)
           .eq("stripe_price_id", defaultPrice.id)
           .maybeSingle();
 
@@ -61,7 +48,7 @@ serve(async (req) => {
           updated++;
         } else {
           await supa.from("product_catalog").insert({
-            user_id: user.id,
+            user_id: accountId,
             description: desc,
             unit_cost: unitCost,
             currency,
