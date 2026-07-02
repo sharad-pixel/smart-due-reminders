@@ -11,7 +11,7 @@ export function cn(...inputs: ClassValue[]) {
  */
 const SYMBOL_TO_CODE: Record<string, string> = {
   '$': 'USD', 'US$': 'USD', 'USD$': 'USD',
-  '€': 'EUR', '£': 'GBP', '¥': 'JPY',
+  '€': 'EUR', '£': 'GBP', '¥': 'JPY', 'CN¥': 'CNY', '₹': 'INR',
   'CA$': 'CAD', 'A$': 'AUD', 'CHF': 'CHF',
 };
 
@@ -20,8 +20,12 @@ function normalizeCurrencyCode(currency?: string | null): string {
   const trimmed = String(currency).trim();
   if (!trimmed) return 'USD';
   if (SYMBOL_TO_CODE[trimmed]) return SYMBOL_TO_CODE[trimmed];
+  const upper = trimmed.toUpperCase();
+  if (SYMBOL_TO_CODE[upper]) return SYMBOL_TO_CODE[upper];
   // Valid ISO codes are 3 alpha chars
   if (/^[A-Za-z]{3}$/.test(trimmed)) return trimmed.toUpperCase();
+  const match = upper.match(/[A-Z]{3}/);
+  if (match) return match[0];
   return 'USD';
 }
 
@@ -44,8 +48,9 @@ export function formatCurrency(amount: number | null | undefined, currency: stri
  * Get currency symbol for a given currency code.
  */
 export function getCurrencySymbol(currency: string = 'USD'): string {
+  const code = normalizeCurrencyCode(currency);
   const symbols: Record<string, string> = { USD: '$', EUR: '€', GBP: '£', CAD: 'CA$', AUD: 'A$', JPY: '¥', CHF: 'CHF ' };
-  return symbols[currency] || `${currency} `;
+  return symbols[code] || `${code} `;
 }
 
 /**
