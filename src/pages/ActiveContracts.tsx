@@ -280,7 +280,7 @@ export default function ActiveContracts({ embedded = false }: { embedded?: boole
           </CardContent>
         </Card>
       </div>
-    </Layout>
+    </Shell>
   );
 }
 
