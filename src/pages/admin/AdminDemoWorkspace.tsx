@@ -137,26 +137,20 @@ export default function AdminDemoWorkspace() {
           <div className="flex items-start gap-3">
             <LogIn className="h-5 w-5 text-primary mt-0.5" />
             <div className="text-sm">
-              <div className="font-medium">Enter the demo workspace</div>
+              <div className="font-medium">Sign in as the shared demo user</div>
               <div className="text-muted-foreground">
-                You stay signed in as yourself. Enabling Demo Mode filters every page (Dashboard, Contracts, Invoices, Collections) to only show <code>is_demo = true</code> rows so you can walk through NimbusHR & friends without touching real data.
+                Signs you out and back in as <code>demo@recouply.ai</code> — a dedicated account with the seeded NimbusHR / Atlas / Velocity / Global Mfg / Nova dataset. Perfect for recording clean demos. Return to <code>/admin/demo</code> and sign in as an admin to manage.
               </div>
             </div>
           </div>
           <div className="flex gap-2 shrink-0">
-            <Button
-              onClick={() => { setDemoView(true); navigate("/dashboard"); }}
-              disabled={!state?.workspace_exists}
-            >
-              <LogIn className="h-4 w-4 mr-2" /> Enter Demo Dashboard
+            <Button onClick={enterDemoAsUser} disabled={loading || !state?.workspace_exists}>
+              <LogIn className="h-4 w-4 mr-2" /> Enter Demo as demo@recouply.ai
             </Button>
-            {isDemoView && (
-              <Button variant="outline" onClick={() => setDemoView(false)}>Exit Demo Mode</Button>
-            )}
           </div>
         </CardContent>
         {!state?.workspace_exists && (
-          <div className="px-4 pb-3 text-xs text-amber-600">Load the demo dataset below first, then click Enter Demo Dashboard.</div>
+          <div className="px-4 pb-3 text-xs text-amber-600">Click <b>Load Demo Dataset</b> below first — the demo user's workspace is currently empty.</div>
         )}
       </Card>
 
