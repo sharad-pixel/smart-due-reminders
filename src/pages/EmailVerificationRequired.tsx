@@ -11,13 +11,23 @@ import { isImpersonating } from '@/lib/supportImpersonation';
 export default function EmailVerificationRequired() {
   const navigate = useNavigate();
   const [isResending, setIsResending] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
 
   // Support impersonation must never be gated by the customer's email
   // verification state — bounce straight into the workspace.
   useEffect(() => {
     if (isImpersonating()) {
       navigate('/dashboard', { replace: true });
+      return;
     }
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user?.email?.toLowerCase() === 'demo@recouply.ai') {
+        // Shared demo account bypasses verification entirely.
+        navigate('/dashboard', { replace: true });
+        return;
+      }
+      setUserEmail(user?.email ?? null);
+    });
   }, [navigate]);
 
   const handleResendVerification = async () => {
@@ -73,8 +83,13 @@ export default function EmailVerificationRequired() {
             </div>
             <div className="space-y-2">
               <p className="text-foreground font-medium">Check Your Email</p>
+              {userEmail && (
+                <p className="text-sm">
+                  Verification link sent to{' '}
+                  <span className="font-semibold text-primary break-all">{userEmail}</span>
+                </p>
+              )}
               <p className="text-muted-foreground text-sm">
-                We've sent a verification link to your email address. 
                 Click the link in the email to verify your account and access the platform.
               </p>
             </div>
