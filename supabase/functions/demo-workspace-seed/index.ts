@@ -184,6 +184,18 @@ Deno.serve(async (req) => {
         }).then((r) => { if (r.error) console.error("assessment", r.error); });
       }
 
+      // Auto-enable a mock Stripe connection for the demo account so Stripe-gated
+      // UI (Billing Sync, product catalog sync, invoice → Stripe push, chips) is
+      // demonstrable end-to-end without pasting a real key.
+      await admin.from("stripe_integrations").upsert({
+        user_id: userId,
+        is_connected: true,
+        stripe_account_id: "acct_demo_recouply",
+        sync_status: "connected",
+        auto_sync_enabled: true,
+        last_sync_at: new Date().toISOString(),
+      }, { onConflict: "user_id" });
+
       await admin.from("demo_workspace_state").upsert({
         user_id: userId,
         workspace_exists: true,
@@ -193,6 +205,7 @@ Deno.serve(async (req) => {
 
       return summary;
     };
+
 
     let result: any = { ok: true };
 
@@ -246,6 +259,26 @@ Deno.serve(async (req) => {
       case "recompute_insights": {
         await admin.from("demo_workspace_state").update({ last_insights_at: new Date().toISOString() }).eq("user_id", userId);
         result.recomputed = true;
+        break;
+      }
+      case "enable_stripe_demo": {
+        await admin.from("stripe_integrations").upsert({
+          user_id: userId,
+          is_connected: true,
+          stripe_account_id: "acct_demo_recouply",
+          sync_status: "connected",
+          auto_sync_enabled: true,
+          last_sync_at: new Date().toISOString(),
+        }, { onConflict: "user_id" });
+        result.stripe_enabled = true;
+        break;
+      }
+      case "disable_stripe_demo": {
+        await admin.from("stripe_integrations").update({
+          is_connected: false,
+          sync_status: "disconnected",
+        }).eq("user_id", userId);
+        result.stripe_enabled = false;
         break;
       }
       default:
