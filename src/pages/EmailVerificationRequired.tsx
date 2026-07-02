@@ -83,8 +83,13 @@ export default function EmailVerificationRequired() {
             </div>
             <div className="space-y-2">
               <p className="text-foreground font-medium">Check Your Email</p>
+              {userEmail && (
+                <p className="text-sm">
+                  Verification link sent to{' '}
+                  <span className="font-semibold text-primary break-all">{userEmail}</span>
+                </p>
+              )}
               <p className="text-muted-foreground text-sm">
-                We've sent a verification link to your email address. 
                 Click the link in the email to verify your account and access the platform.
               </p>
             </div>
