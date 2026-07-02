@@ -1395,8 +1395,8 @@ export default function LiveContracts({ embedded = false }: { embedded?: boolean
 
   return (
     <>
-      <SEO title="AI Smart Ingestion — Recouply" description="Scan, extract, and validate contracts with AI Smart Ingestion." />
-      <Layout>
+      {!embedded && <SEO title="AI Smart Ingestion — Recouply" description="Scan, extract, and validate contracts with AI Smart Ingestion." />}
+      <Shell>
         <div className="container mx-auto px-4 py-6 space-y-6 max-w-7xl">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
