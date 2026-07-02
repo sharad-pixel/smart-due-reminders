@@ -526,6 +526,135 @@ export const ProductCatalogManager = () => {
                 </div>
               </div>
 
+              {/* Image URL */}
+              <div className="space-y-2">
+                <Label>Image URL <span className="text-xs text-muted-foreground font-normal">(optional)</span></Label>
+                <Input
+                  value={form.image_url}
+                  onChange={(e) => setForm({ ...form, image_url: e.target.value })}
+                  placeholder="https://... — shown at checkout & on invoices"
+                />
+              </div>
+
+              {/* Tax category */}
+              <div className="space-y-2">
+                <Label>Product tax category</Label>
+                <Select
+                  value={form.tax_category}
+                  onValueChange={(v) => setForm({ ...form, tax_category: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TAX_CATEGORIES.map((t) => (
+                      <SelectItem key={t.value} value={t.value}>
+                        {t.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground">
+                  Used for automatic tax calculation (Stripe Tax code).
+                </p>
+              </div>
+
+              {/* Pricing model */}
+              <div className="rounded-md border p-3 space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm">Pricing</Label>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, pricing_model: "recurring" })}
+                    className={`rounded-md border p-2 text-left text-sm ${
+                      form.pricing_model === "recurring"
+                        ? "border-primary ring-1 ring-primary"
+                        : "border-input"
+                    }`}
+                  >
+                    <div className="font-medium">Recurring</div>
+                    <div className="text-xs text-muted-foreground">Charge an ongoing fee</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, pricing_model: "one_off" })}
+                    className={`rounded-md border p-2 text-left text-sm ${
+                      form.pricing_model === "one_off"
+                        ? "border-primary ring-1 ring-primary"
+                        : "border-input"
+                    }`}
+                  >
+                    <div className="font-medium">One-off</div>
+                    <div className="text-xs text-muted-foreground">Charge a one-time fee</div>
+                  </button>
+                </div>
+
+                {form.pricing_model === "recurring" && (
+                  <div className="space-y-2">
+                    <Label className="text-xs">Billing period</Label>
+                    <Select
+                      value={form.billing_period}
+                      onValueChange={(v) => setForm({ ...form, billing_period: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {BILLING_PERIODS.map((p) => (
+                          <SelectItem key={p.value} value={p.value}>
+                            {p.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label className="text-xs">Include tax in price</Label>
+                  <Select
+                    value={form.tax_behavior}
+                    onValueChange={(v: any) => setForm({ ...form, tax_behavior: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="auto">Auto</SelectItem>
+                      <SelectItem value="inclusive">Yes (inclusive)</SelectItem>
+                      <SelectItem value="exclusive">No (exclusive)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Advanced */}
+              <div className="rounded-md border p-3 space-y-3">
+                <Label className="text-sm">Advanced</Label>
+                <div className="space-y-2">
+                  <Label className="text-xs">Price description</Label>
+                  <Input
+                    value={form.price_description}
+                    onChange={(e) => setForm({ ...form, price_description: e.target.value })}
+                    placeholder="Internal label — not shown to customers"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs">Lookup key</Label>
+                  <Input
+                    value={form.lookup_key}
+                    onChange={(e) => setForm({ ...form, lookup_key: e.target.value })}
+                    placeholder="e.g. standard_monthly"
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Unique key to reference this price programmatically (letters, numbers, _ or -).
+                  </p>
+                </div>
+              </div>
+
+
               <div className="rounded-md border p-3 space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
