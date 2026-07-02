@@ -86,8 +86,8 @@ export default function ActiveContracts({ embedded = false }: { embedded?: boole
   const currency = (filtered[0] as any)?.currency || "USD";
 
   return (
-    <Layout>
-      <SEO title="Active Contracts · Recouply" description="Search and browse all active contracts." />
+    <Shell>
+      {!embedded && <SEO title="Active Contracts · Recouply" description="Search and browse all active contracts." />}
       <div className="container max-w-7xl py-6 space-y-4">
         <div className="flex items-start justify-between flex-wrap gap-3">
           <div>
