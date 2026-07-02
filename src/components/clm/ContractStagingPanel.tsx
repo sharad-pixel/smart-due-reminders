@@ -361,6 +361,30 @@ export const ContractStagingPanel = ({
         </CardHeader>
         <CardContent className="space-y-3">
           <OcrPricingNotice />
+          {stripeConnected && (
+            <div className="rounded-md border bg-muted/30 p-3 space-y-2">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Sparkles className="h-3.5 w-3.5 text-primary" />
+                Stripe Sync
+              </div>
+              <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                <Checkbox
+                  checked={pushToStripe}
+                  onCheckedChange={(v) => setPushToStripe(!!v)}
+                />
+                Also create each invoice in Stripe when issued
+              </label>
+              {pushToStripe && (
+                <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer pl-6">
+                  <Checkbox
+                    checked={finalizeStripe}
+                    onCheckedChange={(v) => setFinalizeStripe(!!v)}
+                  />
+                  Finalize immediately in Stripe (otherwise leaves as draft)
+                </label>
+              )}
+            </div>
+          )}
           {schedules.length === 0 ? (
             <p className="text-sm text-muted-foreground">No scheduled invoices on this contract.</p>
           ) : (
