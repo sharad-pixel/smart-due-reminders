@@ -1583,7 +1583,7 @@ export default function LiveContracts({ embedded = false }: { embedded?: boolean
         <UploadDialog open={uploadOpen} onOpenChange={setUploadOpen} />
         <ManualContractDialog open={manualOpen} onOpenChange={setManualOpen} />
         <ReviewDrawer importId={reviewId} onClose={() => setReviewId(null)} />
-      </Layout>
+      </Shell>
     </>
   );
 }
