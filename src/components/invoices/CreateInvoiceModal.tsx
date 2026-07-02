@@ -157,6 +157,14 @@ export const CreateInvoiceModal = ({
           line_type: item.line_type || "item",
           unit_type: item.unit_type || null,
           sort_order: index,
+          product_id: item.product_id ?? null,
+          product_description: item.product_description ?? null,
+          pricing_model: item.pricing_model ?? null,
+          billing_period: item.billing_period ?? null,
+          tax_behavior: item.tax_behavior ?? null,
+          tax_category: item.tax_category ?? null,
+          lookup_key: item.lookup_key ?? null,
+          stripe_price_id: item.stripe_price_id ?? null,
         }));
 
         const { error: lineItemsError } = await supabase
