@@ -271,7 +271,9 @@ export const ProductCatalogManager = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
+
 
       <Card>
         <CardContent className="pt-6 space-y-4">
