@@ -20,7 +20,7 @@ interface ProductCatalogPickerProps {
 export const ProductCatalogPicker = ({ onSelect, disabled }: ProductCatalogPickerProps) => {
   const [open, setOpen] = useState(false);
   const { list, remove } = useProductCatalog();
-  const items = list.data || [];
+  const items = (list.data || []).filter((i) => i.active !== false);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
