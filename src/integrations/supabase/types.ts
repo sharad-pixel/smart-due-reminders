@@ -9455,7 +9455,9 @@ export type Database = {
           description: string
           id: string
           last_used_at: string | null
+          product_description: string | null
           source: string
+          status_effective_date: string | null
           stripe_price_id: string | null
           stripe_product_id: string | null
           stripe_synced_at: string | null
@@ -9473,7 +9475,9 @@ export type Database = {
           description: string
           id?: string
           last_used_at?: string | null
+          product_description?: string | null
           source?: string
+          status_effective_date?: string | null
           stripe_price_id?: string | null
           stripe_product_id?: string | null
           stripe_synced_at?: string | null
@@ -9491,7 +9495,9 @@ export type Database = {
           description?: string
           id?: string
           last_used_at?: string | null
+          product_description?: string | null
           source?: string
+          status_effective_date?: string | null
           stripe_price_id?: string | null
           stripe_product_id?: string | null
           stripe_synced_at?: string | null
