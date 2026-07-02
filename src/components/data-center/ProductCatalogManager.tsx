@@ -211,6 +211,35 @@ export const ProductCatalogManager = () => {
         const product_description = ((r.product_description || r.details || "").trim()).slice(0, 50);
         const active = r.active === undefined || r.active === "" ? true : parseBool(r.active);
 
+        // Stripe-consistent optional fields
+        const rawPricing = (r.pricing_model || "").trim().toLowerCase();
+        const pricing_model = rawPricing === "recurring" ? "recurring" : "one_off";
+        const rawPeriod = (r.billing_period || "").trim().toLowerCase();
+        const billing_period = pricing_model === "recurring"
+          ? (["daily","weekly","monthly","quarterly","yearly"].includes(rawPeriod) ? rawPeriod : "monthly")
+          : null;
+        const rawTax = (r.tax_behavior || "auto").trim().toLowerCase();
+        const tax_behavior = ["auto","inclusive","exclusive"].includes(rawTax) ? rawTax : "auto";
+        const tax_category = (r.tax_category || "").trim() || null;
+        const price_description = (r.price_description || "").trim() || null;
+        const lookup_key = (r.lookup_key || "").trim() || null;
+        const image_url = (r.image_url || "").trim() || null;
+
+        const commonFields = {
+          currency,
+          unit_cost,
+          product_description: product_description || null,
+          active,
+          status_effective_date: new Date().toISOString(),
+          pricing_model,
+          billing_period,
+          tax_behavior,
+          tax_category,
+          price_description,
+          lookup_key,
+          image_url,
+        };
+
         // Check for existing (case-insensitive on description + unit_type)
         const { data: existing } = await supabase
           .from("product_catalog")
@@ -223,13 +252,7 @@ export const ProductCatalogManager = () => {
         if (existing) {
           const { error: uerr } = await supabase
             .from("product_catalog")
-            .update({
-              unit_cost,
-              currency,
-              product_description: product_description || null,
-              active,
-              status_effective_date: new Date().toISOString(),
-            })
+            .update(commonFields as any)
             .eq("id", existing.id);
           if (uerr) errors.push(`Row ${i + 2}: ${uerr.message}`);
           else updated++;
@@ -238,12 +261,8 @@ export const ProductCatalogManager = () => {
             user_id: user.id,
             description,
             unit_type,
-            unit_cost,
-            currency,
-            product_description: product_description || null,
-            active,
-            status_effective_date: new Date().toISOString(),
-          });
+            ...commonFields,
+          } as any);
           if (ierr) {
             // 23505 = unique violation; treat as skipped duplicate
             if ((ierr as any).code === "23505") skipped++;
