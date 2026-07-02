@@ -35,7 +35,7 @@ serve(async (req) => {
       const { data: existingMap } = await supa
         .from("contract_stripe_product_map")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", accountId)
         .eq("product_signature", sig)
         .maybeSingle();
 
@@ -44,7 +44,7 @@ serve(async (req) => {
           id: existingMap.id,
           contract_id,
           contract_revenue_item_id: item.id,
-          user_id: user.id,
+          user_id: accountId,
           product_signature: sig,
           stripe_product_id: existingMap.stripe_product_id,
           stripe_price_id: existingMap.stripe_price_id,
@@ -83,7 +83,7 @@ serve(async (req) => {
       await supa.from("contract_stripe_product_map").upsert({
         contract_id,
         contract_revenue_item_id: item.id,
-        user_id: user.id,
+        user_id: accountId,
         product_signature: sig,
         stripe_product_id: productId,
         stripe_price_id: priceId,
