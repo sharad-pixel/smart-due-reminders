@@ -37,7 +37,7 @@ export function DebtorStripeLinkCard({
   stripeCustomerId,
   onChanged,
 }: Props) {
-  const { connected, loading: stripeLoading } = useStripeConnected();
+  const { connected, isLoading: stripeLoading } = useStripeConnected();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState(debtorEmail || debtorName || "");
   const [searching, setSearching] = useState(false);
