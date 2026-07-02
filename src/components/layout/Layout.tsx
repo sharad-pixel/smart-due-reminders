@@ -406,13 +406,13 @@ const Layout = ({ children }: LayoutProps) => {
                     </DropdownMenuItem>
                     <div className="pl-6 space-y-1">
                       <DropdownMenuItem asChild>
-                        <Link to="/contracts/active" className="flex items-center gap-2 cursor-pointer text-sm">
+                        <Link to="/contracts?hub=active" className="flex items-center gap-2 cursor-pointer text-sm">
                           <FileSignature className="h-3.5 w-3.5 text-muted-foreground" />
                           <span>Active Contracts</span>
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
-                        <Link to="/ai-ingestion" className="flex items-center gap-2 cursor-pointer text-sm">
+                        <Link to="/contracts?hub=ingestion" className="flex items-center gap-2 cursor-pointer text-sm">
                           <Sparkles className="h-3.5 w-3.5 text-muted-foreground" />
                           <span>Ingestion & Extraction</span>
                         </Link>
