@@ -755,71 +755,104 @@ Deno.serve(async (req) => {
               /duplicate key.*unique constraint/i.test(insertError.message);
 
             if (isDuplicate) {
-              // The conflict may be on stripe_invoice_id, external_invoice_id, or invoice_number.
-              // Run several targeted lookups in order rather than one fragile OR-clause.
+              // Strict enterprise policy: unique constraints on stripe_invoice_id /
+              // external_invoice_id / (user_id, invoice_number) are enforced globally.
+              // A row belonging to *this* account is an idempotent re-sync and should be
+              // updated. A row belonging to a *different* account is a tenant boundary
+              // violation and MUST NOT be silently mutated — surface it as an error so
+              // ops can reconcile (typically by resolving both accounts to the same
+              // effective account / organization owner).
               const stripeNumber = stripeInvoice.number || null;
-              let existingRow: { id: string } | null = null;
+              type Row = { id: string; user_id: string | null };
+              let existingRow: Row | null = null;
 
-              const tryLookup = async (col: string, val: string, scoped: boolean) => {
+              const tryLookup = async (col: string, val: string) => {
                 if (existingRow) return;
-                let q = supabaseClient.from('invoices').select('id').eq(col, val).limit(1);
-                if (scoped) q = q.eq('user_id', effectiveAccountId);
-                const { data } = await q;
-                if (data && data[0]) existingRow = data[0];
+                const { data } = await supabaseClient
+                  .from('invoices')
+                  .select('id, user_id')
+                  .eq(col, val)
+                  .limit(1);
+                if (data && data[0]) existingRow = data[0] as Row;
               };
 
-              // Scoped lookups first (preferred)
-              await tryLookup('stripe_invoice_id', stripeInvoice.id, true);
-              await tryLookup('external_invoice_id', stripeInvoice.id, true);
-              if (stripeNumber) await tryLookup('invoice_number', stripeNumber, true);
-
-              // Unscoped fallbacks (row may belong to a sibling/parent account in the hierarchy)
-              if (!existingRow) await tryLookup('stripe_invoice_id', stripeInvoice.id, false);
-              if (!existingRow) await tryLookup('external_invoice_id', stripeInvoice.id, false);
-              if (!existingRow && stripeNumber) await tryLookup('invoice_number', stripeNumber, false);
-
-              // Short retry to cover parallel-sync race conditions where the conflicting
-              // row is committed a few ms after our insert failed.
-              if (!existingRow) {
-                await new Promise((r) => setTimeout(r, 250));
-                await tryLookup('stripe_invoice_id', stripeInvoice.id, false);
-                if (!existingRow) await tryLookup('external_invoice_id', stripeInvoice.id, false);
+              await tryLookup('stripe_invoice_id', stripeInvoice.id);
+              await tryLookup('external_invoice_id', stripeInvoice.id);
+              if (!existingRow && stripeNumber) {
+                // invoice_number is only unique per (user_id, invoice_number),
+                // so scope this lookup to avoid false positives across tenants.
+                const { data } = await supabaseClient
+                  .from('invoices')
+                  .select('id, user_id')
+                  .eq('invoice_number', stripeNumber)
+                  .eq('user_id', effectiveAccountId)
+                  .limit(1);
+                if (data && data[0]) existingRow = data[0] as Row;
               }
 
-              if (existingRow?.id) {
-                const { error: dupUpdateError } = await supabaseClient
-                  .from('invoices')
-                  .update({ ...invoiceData, stripe_invoice_id: stripeInvoice.id, external_invoice_id: stripeInvoice.id })
-                  .eq('id', existingRow.id);
+              // Short retry for parallel-sync races within the same account
+              if (!existingRow) {
+                await new Promise((r) => setTimeout(r, 250));
+                await tryLookup('stripe_invoice_id', stripeInvoice.id);
+                await tryLookup('external_invoice_id', stripeInvoice.id);
+              }
 
-                if (!dupUpdateError) {
-                  invoiceRecordId = existingRow.id;
-                  isNewInvoice = false;
-                } else {
-                  // Non-fatal: record as warning so the banner doesn't keep re-surfacing
-                  warnings.push(`Duplicate invoice ${stripeInvoice.id} update skipped: ${dupUpdateError.message}`);
-                  return;
-                }
-              } else {
-                // Couldn't locate the conflicting row. This is almost always a benign race
-                // (row created by a parallel sync) or a constraint outside our search columns.
-                // Include constraint details so ops can diagnose, but demote to warning so
-                // the "Sync issues detected" banner doesn't persist forever.
-                const constraintHint =
-                  (insertError as any).details ||
-                  (insertError as any).hint ||
-                  (insertError as any).constraint ||
-                  'unique constraint';
+              const constraintHint =
+                (insertError as any).details ||
+                (insertError as any).hint ||
+                (insertError as any).constraint ||
+                'unique constraint';
+
+              if (!existingRow) {
                 logStep('Duplicate invoice not locatable after conflict', {
                   stripeId: stripeInvoice.id,
                   number: stripeNumber,
                   constraint: constraintHint,
                 });
-                warnings.push(
-                  `Duplicate invoice ${stripeInvoice.id} skipped (already exists in source system: ${constraintHint})`,
+                errors.push(
+                  `Failed to sync invoice ${stripeInvoice.id}: unique constraint hit but conflicting row not found (${constraintHint})`,
                 );
                 return;
               }
+
+              const ownedByThisAccount = existingRow.user_id === effectiveAccountId;
+
+              if (!ownedByThisAccount) {
+                // Cross-tenant collision. Do NOT update another account's row.
+                logStep('Cross-tenant duplicate invoice detected', {
+                  stripeId: stripeInvoice.id,
+                  owningUserId: existingRow.user_id,
+                  currentAccount: effectiveAccountId,
+                  constraint: constraintHint,
+                });
+                errors.push(
+                  `Stripe invoice ${stripeInvoice.id} already exists under another Recouply account. ` +
+                    `This usually means two accounts share the same Stripe connection — resolve both to the same organization/effective account and re-run sync.`,
+                );
+                return;
+              }
+
+              // Same-account idempotent update
+              const { error: dupUpdateError } = await supabaseClient
+                .from('invoices')
+                .update({
+                  ...invoiceData,
+                  stripe_invoice_id: stripeInvoice.id,
+                  external_invoice_id: stripeInvoice.id,
+                })
+                .eq('id', existingRow.id)
+                .eq('user_id', effectiveAccountId); // defense-in-depth: never cross tenants
+
+              if (dupUpdateError) {
+                errors.push(`Failed to update duplicate invoice ${stripeInvoice.id}: ${dupUpdateError.message}`);
+                return;
+              }
+              invoiceRecordId = existingRow.id;
+              isNewInvoice = false;
+            } else {
+              errors.push(`Failed to create invoice ${stripeInvoice.id}: ${insertError.message}`);
+              return;
+            }
             } else {
               errors.push(`Failed to create invoice ${stripeInvoice.id}: ${insertError.message}`);
               return;
