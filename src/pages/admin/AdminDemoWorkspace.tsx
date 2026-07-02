@@ -40,13 +40,20 @@ export default function AdminDemoWorkspace() {
   const [stripeKey, setStripeKey] = useState("");
   const [stripeSaving, setStripeSaving] = useState(false);
 
+  const DEMO_EMAIL = "demo@recouply.ai";
+
   const load = async () => {
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) return;
-    const { data: st } = await supabase.from("demo_workspace_state").select("*").eq("user_id", userData.user.id).maybeSingle();
-    setState(st as any);
-    const { data: sti } = await supabase.from("stripe_test_integrations").select("is_connected, stripe_account_id, last_sync_at").eq("user_id", userData.user.id).maybeSingle();
-    setStripeTest(sti as any);
+    // Always read the shared demo user's workspace, regardless of which admin is signed in.
+    try {
+      const { data, error } = await supabase.functions.invoke("demo-workspace-seed", {
+        body: { action: "status", target_user_email: DEMO_EMAIL },
+      });
+      if (error) throw error;
+      setState((data?.state as any) ?? { workspace_exists: false, entity_counts: {}, last_seeded_at: null, last_reset_at: null, last_insights_at: null });
+      setStripeTest((data?.stripe_test as any) ?? null);
+    } catch (e) {
+      console.error("demo status load failed", e);
+    }
   };
 
   useEffect(() => { load(); }, []);
@@ -54,7 +61,9 @@ export default function AdminDemoWorkspace() {
   const invoke = async (action: DemoAction) => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("demo-workspace-seed", { body: { action } });
+      const { data, error } = await supabase.functions.invoke("demo-workspace-seed", {
+        body: { action, target_user_email: DEMO_EMAIL },
+      });
       if (error) throw error;
       toast({ title: DEMO_ACTION_LABELS[action], description: data?.summary ? `Seeded ${JSON.stringify(data.summary)}` : "Done." });
       await load();
@@ -63,6 +72,24 @@ export default function AdminDemoWorkspace() {
     } finally {
       setLoading(false);
       setPendingAction(null);
+    }
+  };
+
+  const enterDemoAsUser = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("demo-login-provision", { body: {} });
+      if (error) throw error;
+      const { email, password } = data as { email: string; password: string };
+      await supabase.auth.signOut();
+      const { error: sErr } = await supabase.auth.signInWithPassword({ email, password });
+      if (sErr) throw sErr;
+      toast({ title: "Signed in as demo user", description: "You are now recording as demo@recouply.ai." });
+      navigate("/dashboard");
+    } catch (e: any) {
+      toast({ title: "Could not enter demo", description: e?.message ?? String(e), variant: "destructive" });
+    } finally {
+      setLoading(false);
     }
   };
 
