@@ -44,6 +44,9 @@ export const CreateInvoiceModal = ({
   const [acknowledgeOutreach, setAcknowledgeOutreach] = useState(false);
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [selectedDebtorId, setSelectedDebtorId] = useState(debtorId || "");
+  const { connected: stripeConnected } = useStripeConnected();
+  const [pushToStripe, setPushToStripe] = useState(true);
+  const [finalizeInStripe, setFinalizeInStripe] = useState(false);
 
   const [accountSearchOpen, setAccountSearchOpen] = useState(false);
 
