@@ -7,6 +7,7 @@ import ScrollToTop from "./components/layout/ScrollToTop";
 import { CookieConsentProvider } from "./components/cookies/CookieConsentProvider";
 import { AccessProvider } from "./contexts/AccessContext";
 import { DemoProvider } from "./contexts/DemoContext";
+import { DemoWorkspaceProvider } from "./contexts/DemoWorkspaceContext";
 import { MaintenanceGuard } from "./components/layout/MaintenanceGuard";
 import { SessionSecurityProvider } from "./components/security/SessionSecurityProvider";
 import { ErrorBoundary } from "./components/ErrorBoundary";
@@ -222,6 +223,7 @@ const App = () => (
       <BrowserRouter>
         <AccessProvider>
           <DemoProvider>
+          <DemoWorkspaceProvider>
           <SessionSecurityProvider>
           <CookieConsentProvider>
             <MaintenanceGuard>
@@ -427,6 +429,7 @@ const App = () => (
             </MaintenanceGuard>
           </CookieConsentProvider>
           </SessionSecurityProvider>
+          </DemoWorkspaceProvider>
           </DemoProvider>
         </AccessProvider>
       </BrowserRouter>
