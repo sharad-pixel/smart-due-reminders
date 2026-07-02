@@ -767,6 +767,7 @@ export const ProductCatalogManager = () => {
                   <TableRow>
                     <TableHead>Product</TableHead>
                     <TableHead>Unit</TableHead>
+                    <TableHead>Pricing</TableHead>
                     <TableHead className="text-right">Unit Cost</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Effective</TableHead>
