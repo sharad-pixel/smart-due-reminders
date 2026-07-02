@@ -45,6 +45,25 @@ const STANDARD_UNITS = [
   "call", "session", "page", "box", "case",
 ];
 
+// Stripe-aligned tax categories (product tax codes)
+const TAX_CATEGORIES = [
+  { value: "txcd_10000000", label: "General — Services" },
+  { value: "txcd_10101000", label: "General — Tangible Goods" },
+  { value: "txcd_10103000", label: "SaaS — Business use" },
+  { value: "txcd_10103001", label: "SaaS — Personal use" },
+  { value: "txcd_10202000", label: "Digital goods" },
+  { value: "txcd_20030000", label: "Professional services" },
+  { value: "txcd_99999999", label: "Nontaxable / Not configured" },
+];
+
+const BILLING_PERIODS: Array<{ value: string; label: string }> = [
+  { value: "daily", label: "Daily" },
+  { value: "weekly", label: "Weekly" },
+  { value: "monthly", label: "Monthly" },
+  { value: "quarterly", label: "Quarterly" },
+  { value: "yearly", label: "Yearly" },
+];
+
 interface FormState {
   id?: string;
   description: string;
@@ -54,6 +73,14 @@ interface FormState {
   currency: string;
   active: boolean;
   status_effective_date: string; // YYYY-MM-DD
+  // Stripe-consistent fields
+  pricing_model: "recurring" | "one_off";
+  billing_period: string; // '' when one_off
+  tax_behavior: "auto" | "inclusive" | "exclusive";
+  tax_category: string;
+  price_description: string;
+  lookup_key: string;
+  image_url: string;
 }
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
@@ -66,6 +93,13 @@ const emptyForm: FormState = {
   currency: "USD",
   active: true,
   status_effective_date: todayIso(),
+  pricing_model: "one_off",
+  billing_period: "monthly",
+  tax_behavior: "auto",
+  tax_category: "txcd_10000000",
+  price_description: "",
+  lookup_key: "",
+  image_url: "",
 };
 
 const isStandardUnit = (u: string) => STANDARD_UNITS.includes(u);
