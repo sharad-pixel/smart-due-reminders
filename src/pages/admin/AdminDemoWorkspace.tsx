@@ -143,7 +143,22 @@ export default function AdminDemoWorkspace() {
               </div>
             </div>
           </div>
-          <div className="flex gap-2 shrink-0">
+          <div className="flex flex-wrap gap-2 shrink-0">
+            <Button variant="outline" disabled={loading} onClick={async () => {
+              setLoading(true);
+              try {
+                const { error } = await supabase.functions.invoke("demo-workspace-seed", {
+                  body: { action: "enable_stripe_demo", target_user_email: DEMO_EMAIL },
+                });
+                if (error) throw error;
+                toast({ title: "Stripe enabled for demo account", description: "demo@recouply.ai now shows a connected Stripe integration." });
+                await load();
+              } catch (e: any) {
+                toast({ title: "Could not enable Stripe", description: e?.message ?? String(e), variant: "destructive" });
+              } finally { setLoading(false); }
+            }}>
+              <CreditCard className="h-4 w-4 mr-2" /> Enable Stripe for Demo
+            </Button>
             <Button onClick={enterDemoAsUser} disabled={loading || !state?.workspace_exists}>
               <LogIn className="h-4 w-4 mr-2" /> Enter Demo as demo@recouply.ai
             </Button>
