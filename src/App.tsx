@@ -203,6 +203,7 @@ const SupportLogin = lazy(() => import("./pages/SupportLogin"));
 const SupportVerify = lazy(() => import("./pages/SupportVerify"));
 const SupportCallback = lazy(() => import("./pages/SupportCallback"));
 const DemoMode = lazy(() => import("./pages/DemoMode"));
+const DemoLogin = lazy(() => import("./pages/DemoLogin"));
 const DevCleanup = lazy(() => import("./pages/DevCleanup"));
 
 // Optimized QueryClient configuration
@@ -236,6 +237,7 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/coming-soon" element={<ComingSoon />} />
               <Route path="/demo" element={<DemoMode />} />
+              <Route path="/demo/login" element={<DemoLogin />} />
 
               {/* Marketing & Info Pages */}
               <Route path="/design-partners" element={<DesignPartners />} />
