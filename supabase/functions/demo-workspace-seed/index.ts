@@ -52,10 +52,22 @@ Deno.serve(async (req) => {
 
     // Admins can target a different user (used to manage the shared demo@recouply.ai account from the admin console).
     if (target_user_email && profile?.is_admin) {
+      const targetEmail = String(target_user_email).toLowerCase();
       const { data: list } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 });
-      const target = list?.users?.find((u) => u.email?.toLowerCase() === String(target_user_email).toLowerCase());
+      let target = list?.users?.find((u) => u.email?.toLowerCase() === targetEmail);
       if (!target) {
-        return new Response(JSON.stringify({ error: `target user not found: ${target_user_email}` }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        // Auto-provision the shared demo user so admins never see "target user not found".
+        const demoPassword = Deno.env.get("DEMO_USER_PASSWORD") ?? crypto.randomUUID();
+        const { data: created, error: cuErr } = await admin.auth.admin.createUser({
+          email: targetEmail,
+          password: demoPassword,
+          email_confirm: true,
+          user_metadata: { is_demo_account: true, full_name: "Demo User" },
+        });
+        if (cuErr || !created?.user) {
+          return new Response(JSON.stringify({ error: `could not provision demo user: ${cuErr?.message ?? "unknown"}` }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+        target = created.user;
       }
       userId = target.id;
     }
