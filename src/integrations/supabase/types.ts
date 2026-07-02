@@ -6916,6 +6916,7 @@ export type Database = {
           promise_to_pay_amount: number | null
           promise_to_pay_date: string | null
           public_token: string
+          pushed_to_stripe_at: string | null
           quickbooks_doc_number: string | null
           quickbooks_invoice_id: string | null
           reference_id: string
@@ -6928,6 +6929,8 @@ export type Database = {
           stripe_customer_id: string | null
           stripe_hosted_url: string | null
           stripe_invoice_id: string | null
+          stripe_push_error: string | null
+          stripe_push_status: string | null
           subtotal: number | null
           subtotal_amount: number | null
           sync_log_id: string | null
@@ -6995,6 +6998,7 @@ export type Database = {
           promise_to_pay_amount?: number | null
           promise_to_pay_date?: string | null
           public_token?: string
+          pushed_to_stripe_at?: string | null
           quickbooks_doc_number?: string | null
           quickbooks_invoice_id?: string | null
           reference_id: string
@@ -7007,6 +7011,8 @@ export type Database = {
           stripe_customer_id?: string | null
           stripe_hosted_url?: string | null
           stripe_invoice_id?: string | null
+          stripe_push_error?: string | null
+          stripe_push_status?: string | null
           subtotal?: number | null
           subtotal_amount?: number | null
           sync_log_id?: string | null
@@ -7074,6 +7080,7 @@ export type Database = {
           promise_to_pay_amount?: number | null
           promise_to_pay_date?: string | null
           public_token?: string
+          pushed_to_stripe_at?: string | null
           quickbooks_doc_number?: string | null
           quickbooks_invoice_id?: string | null
           reference_id?: string
@@ -7086,6 +7093,8 @@ export type Database = {
           stripe_customer_id?: string | null
           stripe_hosted_url?: string | null
           stripe_invoice_id?: string | null
+          stripe_push_error?: string | null
+          stripe_push_status?: string | null
           subtotal?: number | null
           subtotal_amount?: number | null
           sync_log_id?: string | null
@@ -9350,11 +9359,16 @@ export type Database = {
       product_catalog: {
         Row: {
           account_id: string | null
+          active: boolean
           created_at: string
           currency: string
           description: string
           id: string
           last_used_at: string | null
+          source: string
+          stripe_price_id: string | null
+          stripe_product_id: string | null
+          stripe_synced_at: string | null
           times_used: number
           unit_cost: number
           unit_type: string
@@ -9363,11 +9377,16 @@ export type Database = {
         }
         Insert: {
           account_id?: string | null
+          active?: boolean
           created_at?: string
           currency?: string
           description: string
           id?: string
           last_used_at?: string | null
+          source?: string
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+          stripe_synced_at?: string | null
           times_used?: number
           unit_cost?: number
           unit_type?: string
@@ -9376,11 +9395,16 @@ export type Database = {
         }
         Update: {
           account_id?: string | null
+          active?: boolean
           created_at?: string
           currency?: string
           description?: string
           id?: string
           last_used_at?: string | null
+          source?: string
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+          stripe_synced_at?: string | null
           times_used?: number
           unit_cost?: number
           unit_type?: string

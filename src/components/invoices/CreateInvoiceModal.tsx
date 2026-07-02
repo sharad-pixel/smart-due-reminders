@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { Loader2, AlertTriangle, Check, ChevronsUpDown } from "lucide-react";
 import { extractDaysFromPaymentTerms, calculateDueDate } from "@/lib/paymentTerms";
 import { LineItemsTable, LineItem } from "./LineItemsTable";
+import { useStripeConnected } from "@/hooks/useStripeConnected";
 
 const generateInvoiceNumber = () => {
   const d = new Date();
@@ -43,6 +44,9 @@ export const CreateInvoiceModal = ({
   const [acknowledgeOutreach, setAcknowledgeOutreach] = useState(false);
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [selectedDebtorId, setSelectedDebtorId] = useState(debtorId || "");
+  const { connected: stripeConnected } = useStripeConnected();
+  const [pushToStripe, setPushToStripe] = useState(true);
+  const [finalizeInStripe, setFinalizeInStripe] = useState(false);
 
   const [accountSearchOpen, setAccountSearchOpen] = useState(false);
 
@@ -165,7 +169,22 @@ export const CreateInvoiceModal = ({
         }
       }
 
-      toast.success("Invoice created successfully");
+      // Bidirectional Stripe: push newly created invoice to Stripe if connected
+      if (stripeConnected && pushToStripe && invoice) {
+        try {
+          const { error: pushErr } = await supabase.functions.invoke("push-invoice-to-stripe", {
+            body: { invoice_id: invoice.id, finalize: finalizeInStripe },
+          });
+          if (pushErr) throw pushErr;
+          toast.success("Invoice created and pushed to Stripe");
+        } catch (pushEx: any) {
+          console.error("Stripe push failed", pushEx);
+          toast.warning(`Invoice saved. Stripe push failed: ${pushEx.message || "unknown error"}`);
+        }
+      } else {
+        toast.success("Invoice created successfully");
+      }
+
       
       // Reset form
       setFormData({
@@ -463,6 +482,35 @@ export const CreateInvoiceModal = ({
               </div>
             </div>
           )}
+
+          {stripeConnected && (
+            <div className="rounded-md border p-3 space-y-2 bg-muted/30">
+              <div className="text-sm font-medium">Stripe Sync</div>
+              <div className="flex items-start gap-2">
+                <Checkbox
+                  id="push-stripe"
+                  checked={pushToStripe}
+                  onCheckedChange={(c) => setPushToStripe(c === true)}
+                />
+                <Label htmlFor="push-stripe" className="text-sm cursor-pointer leading-relaxed">
+                  Also create this invoice in Stripe
+                </Label>
+              </div>
+              {pushToStripe && (
+                <div className="flex items-start gap-2 pl-6">
+                  <Checkbox
+                    id="finalize-stripe"
+                    checked={finalizeInStripe}
+                    onCheckedChange={(c) => setFinalizeInStripe(c === true)}
+                  />
+                  <Label htmlFor="finalize-stripe" className="text-xs text-muted-foreground cursor-pointer">
+                    Finalize immediately (otherwise created as draft)
+                  </Label>
+                </div>
+              )}
+            </div>
+          )}
+
 
           <div className="flex justify-end gap-2 pt-4">
             <Button

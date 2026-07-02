@@ -27,7 +27,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Package, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Package, Loader2, RefreshCw } from "lucide-react";
+import { useStripeConnected } from "@/hooks/useStripeConnected";
 import { useProductCatalog, ProductCatalogItem } from "@/hooks/useProductCatalog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -60,6 +61,22 @@ export const ProductCatalogManager = () => {
   const qc = useQueryClient();
   const { list, remove } = useProductCatalog();
   const items = list.data || [];
+  const { connected: stripeConnected } = useStripeConnected();
+  const [syncingStripe, setSyncingStripe] = useState(false);
+
+  const syncFromStripe = async () => {
+    setSyncingStripe(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("sync-stripe-catalog", { body: {} });
+      if (error) throw error;
+      toast.success(`Stripe sync: ${data?.imported ?? 0} imported, ${data?.updated ?? 0} updated`);
+      qc.invalidateQueries({ queryKey: ["product-catalog"] });
+    } catch (e: any) {
+      toast.error(e.message || "Stripe sync failed");
+    } finally {
+      setSyncingStripe(false);
+    }
+  };
 
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm);
@@ -169,13 +186,20 @@ export const ProductCatalogManager = () => {
             </p>
           </div>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" onClick={openCreate}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Product
+        <div className="flex items-center gap-2">
+          {stripeConnected && (
+            <Button size="sm" variant="outline" onClick={syncFromStripe} disabled={syncingStripe}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${syncingStripe ? "animate-spin" : ""}`} />
+              Sync from Stripe
             </Button>
-          </DialogTrigger>
+          )}
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" onClick={openCreate}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Product
+              </Button>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>{form.id ? "Edit Product" : "Add Product"}</DialogTitle>
@@ -247,7 +271,9 @@ export const ProductCatalogManager = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
+
 
       <Card>
         <CardContent className="pt-6 space-y-4">
