@@ -52,6 +52,22 @@ export const ContractStagingPanel = ({
   const [savingEdit, setSavingEdit] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const { connected: stripeConnected } = useStripeConnected();
+  const [pushToStripe, setPushToStripe] = useState(true);
+  const [finalizeStripe, setFinalizeStripe] = useState(false);
+
+  const pushInvoiceToStripe = async (invoiceId: string) => {
+    if (!stripeConnected || !pushToStripe) return;
+    try {
+      const { error } = await supabase.functions.invoke("push-invoice-to-stripe", {
+        body: { invoice_id: invoiceId, finalize: finalizeStripe },
+      });
+      if (error) throw error;
+      toast.success(finalizeStripe ? "Invoice pushed & finalized in Stripe" : "Invoice pushed as Stripe draft");
+    } catch (e: any) {
+      toast.error(`Stripe push failed: ${e.message ?? "unknown error"}`);
+    }
+  };
 
   const { data: watchers = [] } = useQuery({
     queryKey: ["contract-watchers", contractId],
