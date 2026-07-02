@@ -285,8 +285,9 @@ export function replaceTemplateVariables(
   
   // Get links
   const invoiceLink = getInvoiceLink(invoice, branding);
-  const paymentLink = branding.stripe_payment_link || '';
   const arPortalUrl = getArPortalUrl(branding);
+  // Fallback: if no Stripe Payment Link configured, use the public AR portal link
+  const paymentLink = branding.stripe_payment_link || arPortalUrl || '';
   const productDescription = invoice.product_description || '';
   
   // Agent/Persona name
