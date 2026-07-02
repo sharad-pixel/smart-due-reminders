@@ -35,7 +35,8 @@ import { formatCurrency, formatDateShort } from "@/lib/formatters";
 
 const PAGE_SIZE = 20;
 
-export default function ActiveContracts() {
+export default function ActiveContracts({ embedded = false }: { embedded?: boolean } = {}) {
+  const Shell = embedded ? (({ children }: any) => <>{children}</>) : Layout;
   const { accountId } = useAccountId();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("active");
