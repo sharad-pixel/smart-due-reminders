@@ -6031,6 +6031,48 @@ export type Database = {
           },
         ]
       }
+      integration_error_dismissals: {
+        Row: {
+          ai_resolution: Json | null
+          created_at: string
+          dismissed_at: string
+          dismissed_by: string | null
+          error_fingerprint: string
+          error_type: string
+          id: string
+          integration_source: string
+          reason: string | null
+          sample_message: string | null
+          user_id: string
+        }
+        Insert: {
+          ai_resolution?: Json | null
+          created_at?: string
+          dismissed_at?: string
+          dismissed_by?: string | null
+          error_fingerprint: string
+          error_type: string
+          id?: string
+          integration_source: string
+          reason?: string | null
+          sample_message?: string | null
+          user_id: string
+        }
+        Update: {
+          ai_resolution?: Json | null
+          created_at?: string
+          dismissed_at?: string
+          dismissed_by?: string | null
+          error_fingerprint?: string
+          error_type?: string
+          id?: string
+          integration_source?: string
+          reason?: string | null
+          sample_message?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       integration_sync_settings: {
         Row: {
           auto_sync_enabled: boolean | null
