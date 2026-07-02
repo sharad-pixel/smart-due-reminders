@@ -346,20 +346,39 @@ export const ProductCatalogManager = () => {
       ? new Date(form.status_effective_date).toISOString()
       : new Date().toISOString();
 
+    // Validate lookup_key (Stripe: letters, numbers, underscore, hyphen)
+    const lookupKey = form.lookup_key.trim();
+    if (lookupKey && !/^[A-Za-z0-9_\-]+$/.test(lookupKey)) {
+      toast.error("Lookup key must contain only letters, numbers, underscores or hyphens");
+      return;
+    }
+    const priceDescription = form.price_description.trim();
+    const imageUrl = form.image_url.trim();
+    const isRecurring = form.pricing_model === "recurring";
+
+    const payload: Record<string, any> = {
+      description: desc,
+      product_description: form.product_description.trim() || null,
+      unit_type: unit,
+      unit_cost: cost,
+      currency: form.currency || "USD",
+      active: form.active,
+      status_effective_date: effectiveIso,
+      pricing_model: form.pricing_model,
+      billing_period: isRecurring ? form.billing_period || "monthly" : null,
+      tax_behavior: form.tax_behavior,
+      tax_category: form.tax_category || null,
+      price_description: priceDescription || null,
+      lookup_key: lookupKey || null,
+      image_url: imageUrl || null,
+    };
+
     setSaving(true);
     try {
       if (form.id) {
         const { error } = await supabase
           .from("product_catalog")
-          .update({
-            description: desc,
-            product_description: form.product_description.trim() || null,
-            unit_type: unit,
-            unit_cost: cost,
-            currency: form.currency || "USD",
-            active: form.active,
-            status_effective_date: effectiveIso,
-          })
+          .update(payload)
           .eq("id", form.id);
         if (error) throw error;
         toast.success("Product updated");
@@ -368,13 +387,7 @@ export const ProductCatalogManager = () => {
         if (!user) throw new Error("Not authenticated");
         const { error } = await supabase.from("product_catalog").insert({
           user_id: user.id,
-          description: desc,
-          product_description: form.product_description.trim() || null,
-          unit_type: unit,
-          unit_cost: cost,
-          currency: form.currency || "USD",
-          active: form.active,
-          status_effective_date: effectiveIso,
+          ...payload,
         });
         if (error) throw error;
         toast.success("Product added");
