@@ -9,14 +9,35 @@ export function cn(...inputs: ClassValue[]) {
  * Format a number as currency with exactly 2 decimal places.
  * Always displays xx.xx format - never rounds or truncates decimals.
  */
+const SYMBOL_TO_CODE: Record<string, string> = {
+  '$': 'USD', 'US$': 'USD', 'USD$': 'USD',
+  '€': 'EUR', '£': 'GBP', '¥': 'JPY',
+  'CA$': 'CAD', 'A$': 'AUD', 'CHF': 'CHF',
+};
+
+function normalizeCurrencyCode(currency?: string | null): string {
+  if (!currency) return 'USD';
+  const trimmed = String(currency).trim();
+  if (!trimmed) return 'USD';
+  if (SYMBOL_TO_CODE[trimmed]) return SYMBOL_TO_CODE[trimmed];
+  // Valid ISO codes are 3 alpha chars
+  if (/^[A-Za-z]{3}$/.test(trimmed)) return trimmed.toUpperCase();
+  return 'USD';
+}
+
 export function formatCurrency(amount: number | null | undefined, currency: string = 'USD'): string {
-  if (amount === null || amount === undefined) return getCurrencySymbol(currency) + '0.00';
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: currency || 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amount);
+  const code = normalizeCurrencyCode(currency);
+  if (amount === null || amount === undefined) return getCurrencySymbol(code) + '0.00';
+  try {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: code,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  } catch {
+    return getCurrencySymbol(code) + amount.toFixed(2);
+  }
 }
 
 /**
