@@ -64,6 +64,7 @@ import { ContractBillingRequirements } from "@/components/clm/ContractBillingReq
 import { ContractInvoiceRecapture } from "@/components/clm/ContractInvoiceRecapture";
 import { ContractInvoiceBacklog } from "@/components/clm/ContractInvoiceBacklog";
 import { ContractCustomTriggersPanel } from "@/components/clm/ContractCustomTriggersPanel";
+import { ContractStripeBillingSync } from "@/components/clm/billing-sync/ContractStripeBillingSync";
 
 import { Asc606AssessmentDialog } from "@/components/contracts/Asc606AssessmentDialog";
 import { Asc606ChatPanel } from "@/components/clm/Asc606ChatPanel";
