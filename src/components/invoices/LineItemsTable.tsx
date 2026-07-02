@@ -15,6 +15,15 @@ export interface LineItem {
   line_total: number;
   line_type: "item" | "tax";
   unit_type?: string;
+  // Extended product catalog fields
+  product_id?: string | null;
+  product_description?: string | null;
+  pricing_model?: "recurring" | "one_off" | null;
+  billing_period?: string | null;
+  tax_behavior?: "auto" | "inclusive" | "exclusive" | null;
+  tax_category?: string | null;
+  lookup_key?: string | null;
+  stripe_price_id?: string | null;
 }
 
 interface LineItemsTableProps {
