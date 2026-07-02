@@ -566,7 +566,10 @@ export default function Branding() {
                   <div>
                     <Label htmlFor="stripe_payment_link" className="flex items-center gap-2">
                       Stripe Payment Link
-                      <SetupRequiredBadge show={!formData.stripe_payment_link} label="Required" />
+                      <SetupRequiredBadge
+                        show={!formData.stripe_payment_link && !(formData.ar_page_enabled && formData.ar_page_public_token)}
+                        label="Recommended"
+                      />
                     </Label>
                     <Input
                       id="stripe_payment_link"
@@ -575,6 +578,11 @@ export default function Branding() {
                       placeholder="https://pay.stripe.com/..."
                       className="mt-1"
                     />
+                    {!formData.stripe_payment_link && formData.ar_page_enabled && formData.ar_page_public_token && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        No Stripe link set — outreach will default to your public AR portal link.
+                      </p>
+                    )}
                   </div>
                 </div>
 
