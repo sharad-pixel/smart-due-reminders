@@ -300,6 +300,13 @@ export const ProductCatalogManager = () => {
       status_effective_date: item.status_effective_date
         ? String(item.status_effective_date).slice(0, 10)
         : todayIso(),
+      pricing_model: (item.pricing_model as "recurring" | "one_off") || "one_off",
+      billing_period: item.billing_period || "monthly",
+      tax_behavior: (item.tax_behavior as "auto" | "inclusive" | "exclusive") || "auto",
+      tax_category: item.tax_category || "txcd_10000000",
+      price_description: item.price_description || "",
+      lookup_key: item.lookup_key || "",
+      image_url: item.image_url || "",
     });
     setCustomUnit(standard ? "" : item.unit_type);
     setOpen(true);
