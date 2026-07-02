@@ -168,7 +168,11 @@ export default function IntegrationErrorCenter() {
     });
 
     (qbLogs ?? []).forEach((l: any) => {
-      if (l.error_message) ingest("quickbooks", [l.error_message], l.started_at);
+      const errs: any[] = [
+        ...(Array.isArray(l.errors) ? l.errors : []),
+        ...(Array.isArray(l.needs_attention_details) ? l.needs_attention_details : []),
+      ];
+      if (errs.length) ingest("quickbooks", errs, l.started_at);
     });
 
     return Array.from(map.values()).sort(
