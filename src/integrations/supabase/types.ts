@@ -219,6 +219,7 @@ export type Database = {
           created_at: string
           findings: Json
           id: string
+          is_demo: boolean
           model: string | null
           pinned: boolean
           scope: string
@@ -234,6 +235,7 @@ export type Database = {
           created_at?: string
           findings?: Json
           id?: string
+          is_demo?: boolean
           model?: string | null
           pinned?: boolean
           scope: string
@@ -249,6 +251,7 @@ export type Database = {
           created_at?: string
           findings?: Json
           id?: string
+          is_demo?: boolean
           model?: string | null
           pinned?: boolean
           scope?: string
@@ -1347,6 +1350,7 @@ export type Database = {
           direction: string
           id: string
           invoice_id: string | null
+          is_demo: boolean
           linked_draft_id: string | null
           linked_outreach_log_id: string | null
           message_body: string
@@ -1369,6 +1373,7 @@ export type Database = {
           direction: string
           id?: string
           invoice_id?: string | null
+          is_demo?: boolean
           linked_draft_id?: string | null
           linked_outreach_log_id?: string | null
           message_body: string
@@ -1391,6 +1396,7 @@ export type Database = {
           direction?: string
           id?: string
           invoice_id?: string | null
+          is_demo?: boolean
           linked_draft_id?: string | null
           linked_outreach_log_id?: string | null
           message_body?: string
@@ -1651,6 +1657,7 @@ export type Database = {
           inbound_email_id: string | null
           invoice_id: string | null
           is_archived: boolean | null
+          is_demo: boolean
           level: string | null
           notes: Json | null
           organization_id: string | null
@@ -1694,6 +1701,7 @@ export type Database = {
           inbound_email_id?: string | null
           invoice_id?: string | null
           is_archived?: boolean | null
+          is_demo?: boolean
           level?: string | null
           notes?: Json | null
           organization_id?: string | null
@@ -1737,6 +1745,7 @@ export type Database = {
           inbound_email_id?: string | null
           invoice_id?: string | null
           is_archived?: boolean | null
+          is_demo?: boolean
           level?: string | null
           notes?: Json | null
           organization_id?: string | null
@@ -2057,6 +2066,7 @@ export type Database = {
           external_contact_id: string
           first_name: string | null
           id: string
+          is_demo: boolean
           is_primary: boolean | null
           last_name: string | null
           name: string | null
@@ -2074,6 +2084,7 @@ export type Database = {
           external_contact_id: string
           first_name?: string | null
           id?: string
+          is_demo?: boolean
           is_primary?: boolean | null
           last_name?: string | null
           name?: string | null
@@ -2091,6 +2102,7 @@ export type Database = {
           external_contact_id?: string
           first_name?: string | null
           id?: string
+          is_demo?: boolean
           is_primary?: boolean | null
           last_name?: string | null
           name?: string | null
@@ -2309,6 +2321,7 @@ export type Database = {
           import_id: string
           invoice_created_at: string | null
           invoice_id: string | null
+          is_demo: boolean
           ocr_scanned_file_id: string | null
           payment_terms: string | null
           product_category: string | null
@@ -2343,6 +2356,7 @@ export type Database = {
           import_id: string
           invoice_created_at?: string | null
           invoice_id?: string | null
+          is_demo?: boolean
           ocr_scanned_file_id?: string | null
           payment_terms?: string | null
           product_category?: string | null
@@ -2377,6 +2391,7 @@ export type Database = {
           import_id?: string
           invoice_created_at?: string | null
           invoice_id?: string | null
+          is_demo?: boolean
           ocr_scanned_file_id?: string | null
           payment_terms?: string | null
           product_category?: string | null
@@ -2620,6 +2635,7 @@ export type Database = {
           expected_amount: number | null
           financial_impact: number | null
           id: string
+          is_demo: boolean
           recommended_action: string | null
           stripe_invoice_id: string | null
           updated_at: string
@@ -2636,6 +2652,7 @@ export type Database = {
           expected_amount?: number | null
           financial_impact?: number | null
           id?: string
+          is_demo?: boolean
           recommended_action?: string | null
           stripe_invoice_id?: string | null
           updated_at?: string
@@ -2652,6 +2669,7 @@ export type Database = {
           expected_amount?: number | null
           financial_impact?: number | null
           id?: string
+          is_demo?: boolean
           recommended_action?: string | null
           stripe_invoice_id?: string | null
           updated_at?: string
@@ -2683,6 +2701,7 @@ export type Database = {
           contract_revenue_item_id: string | null
           created_at: string
           id: string
+          is_demo: boolean
           mapping_status: string
           organization_id: string | null
           product_signature: string
@@ -2698,6 +2717,7 @@ export type Database = {
           contract_revenue_item_id?: string | null
           created_at?: string
           id?: string
+          is_demo?: boolean
           mapping_status?: string
           organization_id?: string | null
           product_signature: string
@@ -2713,6 +2733,7 @@ export type Database = {
           contract_revenue_item_id?: string | null
           created_at?: string
           id?: string
+          is_demo?: boolean
           mapping_status?: string
           organization_id?: string | null
           product_signature?: string
@@ -2745,6 +2766,7 @@ export type Database = {
           contract_id: string
           created_at: string
           id: string
+          is_demo: boolean
           last_error: Json | null
           last_sync_at: string | null
           organization_id: string | null
@@ -2761,6 +2783,7 @@ export type Database = {
           contract_id: string
           created_at?: string
           id?: string
+          is_demo?: boolean
           last_error?: Json | null
           last_sync_at?: string | null
           organization_id?: string | null
@@ -2777,6 +2800,7 @@ export type Database = {
           contract_id?: string
           created_at?: string
           id?: string
+          is_demo?: boolean
           last_error?: Json | null
           last_sync_at?: string | null
           organization_id?: string | null
@@ -2851,6 +2875,7 @@ export type Database = {
           effective_date: string | null
           expiry_date: string | null
           id: string
+          is_demo: boolean
           metadata: Json | null
           renewal_date: string | null
           status: string
@@ -2872,6 +2897,7 @@ export type Database = {
           effective_date?: string | null
           expiry_date?: string | null
           id?: string
+          is_demo?: boolean
           metadata?: Json | null
           renewal_date?: string | null
           status?: string
@@ -2893,6 +2919,7 @@ export type Database = {
           effective_date?: string | null
           expiry_date?: string | null
           id?: string
+          is_demo?: boolean
           metadata?: Json | null
           renewal_date?: string | null
           status?: string
@@ -3691,6 +3718,7 @@ export type Database = {
           email: string | null
           external_contact_id: string | null
           id: string
+          is_demo: boolean
           is_primary: boolean
           name: string
           organization_id: string | null
@@ -3707,6 +3735,7 @@ export type Database = {
           email?: string | null
           external_contact_id?: string | null
           id?: string
+          is_demo?: boolean
           is_primary?: boolean
           name: string
           organization_id?: string | null
@@ -3723,6 +3752,7 @@ export type Database = {
           email?: string | null
           external_contact_id?: string | null
           id?: string
+          is_demo?: boolean
           is_primary?: boolean
           name?: string
           organization_id?: string | null
@@ -4004,6 +4034,7 @@ export type Database = {
           intelligence_report_generated_at: string | null
           is_active: boolean | null
           is_archived: boolean | null
+          is_demo: boolean
           last_bounce_reason: string | null
           last_outreach_date: string | null
           last_score_change_reason: string | null
@@ -4123,6 +4154,7 @@ export type Database = {
           intelligence_report_generated_at?: string | null
           is_active?: boolean | null
           is_archived?: boolean | null
+          is_demo?: boolean
           last_bounce_reason?: string | null
           last_outreach_date?: string | null
           last_score_change_reason?: string | null
@@ -4242,6 +4274,7 @@ export type Database = {
           intelligence_report_generated_at?: string | null
           is_active?: boolean | null
           is_archived?: boolean | null
+          is_demo?: boolean
           last_bounce_reason?: string | null
           last_outreach_date?: string | null
           last_score_change_reason?: string | null
@@ -4342,6 +4375,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      demo_workspace_state: {
+        Row: {
+          created_at: string
+          entity_counts: Json
+          id: string
+          last_insights_at: string | null
+          last_reset_at: string | null
+          last_seeded_at: string | null
+          updated_at: string
+          user_id: string
+          workspace_exists: boolean
+        }
+        Insert: {
+          created_at?: string
+          entity_counts?: Json
+          id?: string
+          last_insights_at?: string | null
+          last_reset_at?: string | null
+          last_seeded_at?: string | null
+          updated_at?: string
+          user_id: string
+          workspace_exists?: boolean
+        }
+        Update: {
+          created_at?: string
+          entity_counts?: Json
+          id?: string
+          last_insights_at?: string | null
+          last_reset_at?: string | null
+          last_seeded_at?: string | null
+          updated_at?: string
+          user_id?: string
+          workspace_exists?: boolean
+        }
+        Relationships: []
       }
       dns_verification_logs: {
         Row: {
@@ -6309,6 +6378,7 @@ export type Database = {
           description: string
           id: string
           invoice_id: string
+          is_demo: boolean
           line_total: number
           line_type: string
           quantity: number
@@ -6323,6 +6393,7 @@ export type Database = {
           description: string
           id?: string
           invoice_id: string
+          is_demo?: boolean
           line_total: number
           line_type?: string
           quantity?: number
@@ -6337,6 +6408,7 @@ export type Database = {
           description?: string
           id?: string
           invoice_id?: string
+          is_demo?: boolean
           line_total?: number
           line_type?: string
           quantity?: number
@@ -6888,6 +6960,7 @@ export type Database = {
           invoice_number: string
           is_archived: boolean | null
           is_collectible: boolean | null
+          is_demo: boolean
           is_new_from_sync: boolean | null
           is_on_payment_plan: boolean | null
           is_overage: boolean | null
@@ -6970,6 +7043,7 @@ export type Database = {
           invoice_number: string
           is_archived?: boolean | null
           is_collectible?: boolean | null
+          is_demo?: boolean
           is_new_from_sync?: boolean | null
           is_on_payment_plan?: boolean | null
           is_overage?: boolean | null
@@ -7052,6 +7126,7 @@ export type Database = {
           invoice_number?: string
           is_archived?: boolean | null
           is_collectible?: boolean | null
+          is_demo?: boolean
           is_new_from_sync?: boolean | null
           is_on_payment_plan?: boolean | null
           is_overage?: boolean | null
@@ -7491,6 +7566,7 @@ export type Database = {
           folder_id: string | null
           id: string
           industry: string | null
+          is_demo: boolean
           metrics_computed_at: string | null
           metrics_jsonb: Json | null
           mime_type: string | null
@@ -7537,6 +7613,7 @@ export type Database = {
           folder_id?: string | null
           id?: string
           industry?: string | null
+          is_demo?: boolean
           metrics_computed_at?: string | null
           metrics_jsonb?: Json | null
           mime_type?: string | null
@@ -7583,6 +7660,7 @@ export type Database = {
           folder_id?: string | null
           id?: string
           industry?: string | null
+          is_demo?: boolean
           metrics_computed_at?: string | null
           metrics_jsonb?: Json | null
           mime_type?: string | null
@@ -8906,6 +8984,7 @@ export type Database = {
           created_at: string
           id: string
           invoice_id: string
+          is_demo: boolean
           match_confidence: number | null
           match_method: string
           payment_id: string
@@ -8918,6 +8997,7 @@ export type Database = {
           created_at?: string
           id?: string
           invoice_id: string
+          is_demo?: boolean
           match_confidence?: number | null
           match_method: string
           payment_id: string
@@ -8930,6 +9010,7 @@ export type Database = {
           created_at?: string
           id?: string
           invoice_id?: string
+          is_demo?: boolean
           match_confidence?: number | null
           match_method?: string
           payment_id?: string
@@ -9128,6 +9209,7 @@ export type Database = {
           id: string
           invoice_id: string | null
           invoice_number_hint: string | null
+          is_demo: boolean
           line_item_id: string | null
           notes: string | null
           organization_id: string | null
@@ -9148,6 +9230,7 @@ export type Database = {
           id?: string
           invoice_id?: string | null
           invoice_number_hint?: string | null
+          is_demo?: boolean
           line_item_id?: string | null
           notes?: string | null
           organization_id?: string | null
@@ -9168,6 +9251,7 @@ export type Database = {
           id?: string
           invoice_id?: string | null
           invoice_number_hint?: string | null
+          is_demo?: boolean
           line_item_id?: string | null
           notes?: string | null
           organization_id?: string | null
@@ -10577,6 +10661,45 @@ export type Database = {
         }
         Relationships: []
       }
+      stripe_test_integrations: {
+        Row: {
+          connected_at: string | null
+          created_at: string
+          id: string
+          is_connected: boolean
+          last_sync_at: string | null
+          publishable_key: string | null
+          stripe_account_id: string | null
+          stripe_secret_key_encrypted: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          connected_at?: string | null
+          created_at?: string
+          id?: string
+          is_connected?: boolean
+          last_sync_at?: string | null
+          publishable_key?: string | null
+          stripe_account_id?: string | null
+          stripe_secret_key_encrypted?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          connected_at?: string | null
+          created_at?: string
+          id?: string
+          is_connected?: boolean
+          last_sync_at?: string | null
+          publishable_key?: string | null
+          stripe_account_id?: string | null
+          stripe_secret_key_encrypted?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       support_access_assignments: {
         Row: {
           assigned_at: string
@@ -11026,6 +11149,7 @@ export type Database = {
           dismissed_at: string | null
           id: string
           invoice_id: string | null
+          is_demo: boolean
           is_dismissed: boolean | null
           is_read: boolean | null
           message: string
@@ -11044,6 +11168,7 @@ export type Database = {
           dismissed_at?: string | null
           id?: string
           invoice_id?: string | null
+          is_demo?: boolean
           is_dismissed?: boolean | null
           is_read?: boolean | null
           message: string
@@ -11062,6 +11187,7 @@ export type Database = {
           dismissed_at?: string | null
           id?: string
           invoice_id?: string | null
+          is_demo?: boolean
           is_dismissed?: boolean | null
           is_read?: boolean | null
           message?: string

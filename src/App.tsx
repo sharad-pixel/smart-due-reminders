@@ -7,6 +7,7 @@ import ScrollToTop from "./components/layout/ScrollToTop";
 import { CookieConsentProvider } from "./components/cookies/CookieConsentProvider";
 import { AccessProvider } from "./contexts/AccessContext";
 import { DemoProvider } from "./contexts/DemoContext";
+import { DemoWorkspaceProvider } from "./contexts/DemoWorkspaceContext";
 import { MaintenanceGuard } from "./components/layout/MaintenanceGuard";
 import { SessionSecurityProvider } from "./components/security/SessionSecurityProvider";
 import { ErrorBoundary } from "./components/ErrorBoundary";
@@ -197,6 +198,7 @@ const AdminLeadOutreach = lazy(() => import("./pages/admin/AdminLeadOutreach"));
 const AdminStaleUsers = lazy(() => import("./pages/admin/AdminStaleUsers"));
 const AdminSupportAccess = lazy(() => import("./pages/admin/AdminSupportAccess"));
 const AdminSupportUsers = lazy(() => import("./pages/admin/AdminSupportUsers"));
+const AdminDemoWorkspace = lazy(() => import("./pages/admin/AdminDemoWorkspace"));
 const SupportLogin = lazy(() => import("./pages/SupportLogin"));
 const SupportVerify = lazy(() => import("./pages/SupportVerify"));
 const SupportCallback = lazy(() => import("./pages/SupportCallback"));
@@ -221,6 +223,7 @@ const App = () => (
       <BrowserRouter>
         <AccessProvider>
           <DemoProvider>
+          <DemoWorkspaceProvider>
           <SessionSecurityProvider>
           <CookieConsentProvider>
             <MaintenanceGuard>
@@ -411,6 +414,7 @@ const App = () => (
               <Route path="/admin/stale-users" element={<AdminStaleUsers />} />
               <Route path="/admin/support-access" element={<AdminSupportAccess />} />
               <Route path="/admin/support-users" element={<AdminSupportUsers />} />
+              <Route path="/admin/demo" element={<AdminDemoWorkspace />} />
 
               {/* Dev tool (admin-gated via AdminLayout, not in nav) */}
               <Route path="/dev/cleanup" element={<DevCleanup />} />
@@ -425,6 +429,7 @@ const App = () => (
             </MaintenanceGuard>
           </CookieConsentProvider>
           </SessionSecurityProvider>
+          </DemoWorkspaceProvider>
           </DemoProvider>
         </AccessProvider>
       </BrowserRouter>

@@ -1,72 +1,108 @@
-## Stripe Billing Sync — Contract Intelligence Extension
+# Demo Workspace Manager
 
-Extend (not replace) the existing Contract Intelligence workspace and Stripe integration. When a customer has Stripe connected, approved commercial terms extracted by Contract Intelligence can flow into Stripe Billing objects with full traceability. Customers without Stripe see no change.
+Build an admin-only **Demo Mode** for Recouply that lives alongside production. Nothing about existing customer data or flows changes — demo records are tagged with `is_demo = true` and filtered out of normal dashboards.
 
-### Scope guardrails
-- Reuse `contracts`, `contract_revenue_items`, `contract_invoice_schedules`, `contract_extracted_fields`, `product_catalog`, `stripe_integrations`, and existing sync functions (`sync-stripe-invoices`, `stripe-webhook`).
-- No new billing engine, no duplicated contract extraction, no changes to Collection Intelligence internals — only add associations.
-- Gate the entire feature on: Stripe connected (`stripe_integrations` row active) + user has Billing permission.
+Not to be confused with the existing marketing `/demo` interactive tour (that stays as-is). This is an in-app admin tool for creating a real, seeded demo workspace you can log into and record from.
 
-### 1. Data model (one migration)
-New tables (all with GRANTs + RLS scoped by `auth.uid()` / org):
-- `contract_stripe_sync` — 1:1 with contract. Fields: contract_id, status (`not_connected|ready|pending_review|ready_for_stripe|synchronized|error|needs_attention`), readiness_score, blocking_issues jsonb, last_sync_at, stripe_customer_id, stripe_subscription_id, stripe_subscription_schedule_id, error jsonb.
-- `contract_stripe_product_map` — contract_revenue_item_id → stripe_product_id, stripe_price_id, mapping_status, confidence, reusable flag. Unique on (org, revenue_item signature) so mappings auto-apply to future contracts.
-- `contract_stripe_invoice_link` — link contract/schedule row → stripe_invoice_id + variance data (expected_amount, actual_amount, variance_type, financial_impact, recommended_action, ai_confidence).
-- `contract_stripe_sync_events` — audit trail (action, actor, payload, stripe_response).
+---
 
-### 2. New "Billing Sync" tab in Contract Workspace
-Add `billing-sync` entry to `ContractPageNav` (only rendered when Stripe connected). New section component `ContractStripeBillingSync.tsx` mounted in `LiveContractDetail.tsx`, containing four cards:
+## 1. Access & Location
 
-**a. Sync Status Card** — badge + Last Sync, Stripe Account, Readiness Score, primary action button (Review / Sync / Resolve).
+- New admin page: `Admin → Demo Mode` at `/admin/demo` (gated by `useFounderAuth`, same as other admin pages).
+- Sidebar entry visible only to founder/support users.
 
-**b. AI Billing Readiness** — reuses already-extracted fields (customer, products, pricing, frequency, term, dates, currency, payment terms, invoice schedule, prof services, usage, discounts, taxes, PO). Client-side checklist that computes score % and lists blockers. No re-entry of data.
+## 2. Data Isolation Strategy
 
-**c. Stripe Product Mapping** — table of contract products vs Stripe catalog. Row actions: Map Existing / Create Product / Create Price / Ignore. Auto-suggest matches via fuzzy name + amount. Save Mapping persists to `contract_stripe_product_map` for reuse.
+Add an `is_demo boolean not null default false` column to the core tables involved in the demo:
 
-**d. Billing Preview** — computed from extracted terms: recurring subs, one-time, implementation, prof services, usage, discounts, frequency, invoice schedule, ARR/MRR/ACV/TCV. Read-only preview before "Sync to Stripe".
+- `debtors`, `contacts`, `debtor_contacts`
+- `contracts`, `live_contract_imports`, `contract_invoice_schedules`, `contract_stripe_sync`, `contract_stripe_product_map`, `contract_stripe_invoice_link`
+- `invoices`, `invoice_line_items`, `payments`, `payment_invoice_links`
+- `collection_tasks`, `collection_activities`, `user_alerts`, `ai_assessments`
 
-### 3. Edge functions (new, additive)
-- `stripe-billing-readiness` — computes score + blockers for a contract (server-side so it can also power dashboard aggregates).
-- `stripe-catalog-match` — pulls Stripe products/prices, returns suggested mappings.
-- `stripe-billing-sync` — the executor. Creates/updates Stripe Customer, Products, Prices, Subscription, Subscription Schedule, Invoice Items, Draft Invoices as required by the contract's billing model. Writes IDs back to `contract_stripe_sync` and the mapping tables. Idempotent per contract.
-- `stripe-invoice-variance-scan` — continuously compares Stripe invoices with the contract's expected schedule; writes into `contract_stripe_invoice_link` with variance types (missing, wrong amount, wrong frequency, prof services not billed, usage missing, duplicate, unexpected, post-expiration). Wire to existing `stripe-webhook` and to the scheduled sync.
+Rules:
+- Global list/dashboard queries add `.eq("is_demo", false)` by default via a shared helper `withDemoFilter(query, { includeDemo })`.
+- When the user toggles **View: Demo Workspace** in the top bar, queries flip to `.eq("is_demo", true)`.
+- A lightweight `useDemoWorkspace()` context stores the current view mode in `localStorage` and exposes `isDemoView`.
+- Reset only ever deletes rows where `is_demo = true` scoped to the current admin user's account. Production data is untouched.
 
-### 4. Collection Intelligence association (no behavior change)
-- Extend `stripe-webhook` and `sync-stripe-invoices` so that when an invoice is upserted, if its Stripe subscription/invoice ID matches a `contract_stripe_sync` record, populate `invoices.contract_id` (and order form / customer references). No new invoice rows created; existing dedup logic stands.
+## 3. Admin UI — Demo Workspace Manager
 
-### 5. Executive Dashboard
-Conditional metrics block (only when Stripe connected) on `ContractIntelligenceDashboard.tsx`:
-Contracts Ready for Billing · Contracts Synchronized · Invoices Generated · Invoices Missing · Products Not Mapped · Billing Exceptions · Revenue Waiting for Billing · Billing Coverage · Avg Readiness Score · Stripe Sync Health.
+Single page with three sections:
 
-### 6. AI Recommendations → Task Center
-`stripe-billing-readiness` and `stripe-invoice-variance-scan` emit recommendations (map product, create price, generate invoice, create schedule, fix amount, missing customer, etc.). Each becomes an optional row in the existing `collection_tasks` (or contract task) table, tagged `source='billing_sync'`, deep-linked back to the Billing Sync tab.
+**Status card**
+- Workspace exists? counts per entity (customers, contracts, invoices, tasks).
+- Stripe test-mode connection status (separate from prod Stripe integration).
+- Last seeded / last reset timestamps.
 
-### 7. Feature gating
-- `useStripeConnected()` hook checks `stripe_integrations` for the user's org.
-- Billing Sync tab, dashboard metrics, and task creation are all no-ops when not connected. Existing flows unchanged.
+**Actions (each with a confirm modal)**
+- Create Demo Workspace
+- Load Demo Dataset (full seed)
+- Generate Demo Invoices
+- Generate Demo Collection Activity
+- Reload Demo Insights (recomputes readiness/risk scores)
+- Reconnect Stripe Test Account
+- Reset Demo Workspace (clear + reseed)
+- Clear Demo Data (delete only)
 
-### Files touched
-New:
-- `supabase/migrations/<ts>_contract_stripe_billing_sync.sql`
-- `supabase/functions/stripe-billing-readiness/index.ts`
-- `supabase/functions/stripe-catalog-match/index.ts`
-- `supabase/functions/stripe-billing-sync/index.ts`
-- `supabase/functions/stripe-invoice-variance-scan/index.ts`
-- `src/components/clm/billing-sync/ContractStripeBillingSync.tsx`
-- `src/components/clm/billing-sync/BillingSyncStatusCard.tsx`
-- `src/components/clm/billing-sync/BillingReadinessCard.tsx`
-- `src/components/clm/billing-sync/StripeProductMappingCard.tsx`
-- `src/components/clm/billing-sync/BillingPreviewCard.tsx`
-- `src/hooks/useStripeConnected.ts`
-- `src/hooks/useContractBillingSync.ts`
+**Seeded entities preview**
+- Table of the 5 demo customers with their contract/invoice/ARR snapshot.
 
-Edited:
-- `src/components/clm/ContractPageNav.tsx` (conditional Billing Sync entry)
-- `src/pages/LiveContractDetail.tsx` (mount new section)
-- `src/pages/ContractIntelligenceDashboard.tsx` (conditional metrics block)
-- `supabase/functions/stripe-webhook/index.ts` + `sync-stripe-invoices/index.ts` (contract association + variance trigger)
+## 4. Seed Dataset
 
-### Open questions before I build
-1. Which existing table is the source of truth for "org / account" scoping on contracts — `organizations` or `account_users`? I'll match whatever pattern `contracts` uses today.
-2. Should "Sync to Stripe" default to **draft** invoices/subscriptions (safer) or activate them immediately?
-3. For Billing permission gating, reuse an existing role (e.g. admin) or add a new `billing_sync` capability on `user_roles`?
+Demo team (stored as `debtor_contacts` on an internal "Recouply Demo" org record, purely for display):
+Sarah Johnson (CFO), Michael Chen (Controller), Ashley Patel (AR Manager), David Kim (Rev Ops), Emma Rodriguez (CS).
+
+Demo customers:
+- **NimbusHR** — full detail (below)
+- Atlas Health Network, Velocity Commerce, Global Manufacturing Group, Nova Financial Services — realistic but lighter data (contract + 1–2 invoices + a task each).
+
+**NimbusHR (complete):**
+- MSA + Order Form + one Amendment as `live_contract_imports` rows
+- Contract Start `2026-01-15`, End `2027-01-14`, Renewal Notice 60d before
+- ARR $168,000 · MRR $14,000 · Implementation Services $45,000 · Payment Terms Net 30
+- Invoice `INV-1001` — $213,000, open
+- Contract Intelligence Score, Billing Readiness Score, Collection Readiness Score (pre-computed, stored)
+- Expected cash + collection timeline + 2–3 AI recommendations as `ai_assessments`
+- Renewal alert in `user_alerts`
+
+## 5. Stripe Test Mode
+
+- New table `stripe_test_integrations` (mirrors `stripe_integrations` shape, minus prod fields; secret stored encrypted).
+- Demo workspace **never** reads `stripe_integrations` — only `stripe_test_integrations`.
+- Reject any key not starting with `sk_test_` at save time.
+- UI shows a persistent "Stripe Test Mode" chip in the Demo workspace header.
+- Billing sync edge functions accept an `is_demo` flag and route to the test integration when true; test customer/product/price/subscription/invoice IDs are stored on the demo records.
+
+## 6. Demo Mode Visual Cues
+
+- When `isDemoView` is true:
+  - Amber top-of-page banner: *"This workspace contains fictional demo data for testing and product demonstrations."*
+  - "Demo Mode" badge in the main nav next to the logo.
+  - Distinct subtle accent color on the sidebar rail so it's unmistakable on video.
+
+## 7. Edge Functions
+
+- `demo-workspace-seed` — creates/re-creates all demo records for the calling admin's account.
+- `demo-workspace-reset` — deletes all `is_demo = true` rows scoped to the account, then re-invokes seed.
+- `demo-insights-recompute` — regenerates readiness/risk scores and refreshes AI assessment records.
+- `demo-generate-invoices` and `demo-generate-collection-activity` — incremental generators for the corresponding buttons.
+
+All are `verify_jwt = false` with in-code JWT validation and admin-role check.
+
+## 8. Technical Details
+
+- Migration adds the `is_demo` columns + partial indexes (`where is_demo = true`) on the hot tables, plus the `stripe_test_integrations` table with GRANTs and RLS.
+- Shared helper `src/lib/demoWorkspace.ts` for `isDemoView` context, `withDemoFilter`, and the seed manifest constants (customer list, NimbusHR values) so seed + UI share one source of truth.
+- Existing list queries get a one-line `.eq("is_demo", isDemoView)` update; the `useDemoWorkspace` hook toggles the flag globally.
+- Nothing about the current marketing `/demo` tour, real Stripe integration, or production dashboards changes.
+
+## 9. Out of Scope (for this pass)
+
+- Recording tooling / video capture.
+- Multi-tenant demo workspaces per admin (only one demo workspace per admin account).
+- Anonymizing existing production data into demo data.
+
+---
+
+Approve and I'll ship this in order: migration → shared helpers + context → admin page + actions → edge functions + seeder → wire the demo filter into dashboards/lists → Stripe test-mode plumbing.

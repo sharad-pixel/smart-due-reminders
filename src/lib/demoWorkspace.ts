@@ -1,0 +1,132 @@
+// Demo Workspace shared constants + helpers.
+// Consumed by both the admin UI and the demo-workspace-seed edge function
+// (the edge function inlines the same values to stay dependency-free).
+
+export const DEMO_TEAM = [
+  { name: "Sarah Johnson", title: "CFO", email: "sarah.johnson@recouply-demo.com" },
+  { name: "Michael Chen", title: "Controller", email: "michael.chen@recouply-demo.com" },
+  { name: "Ashley Patel", title: "AR Manager", email: "ashley.patel@recouply-demo.com" },
+  { name: "David Kim", title: "Revenue Operations", email: "david.kim@recouply-demo.com" },
+  { name: "Emma Rodriguez", title: "Customer Success", email: "emma.rodriguez@recouply-demo.com" },
+];
+
+export const DEMO_CUSTOMERS = [
+  {
+    slug: "nimbushr",
+    company_name: "NimbusHR",
+    contact_name: "Priya Shah",
+    email: "ap@nimbushr.example",
+    arr: 168_000,
+    mrr: 14_000,
+    tcv: 213_000,
+    ps_amount: 45_000,
+    contract_start: "2026-01-15",
+    contract_end: "2027-01-14",
+    renewal_notice_days: 60,
+    payment_terms: "Net 30",
+    invoice_amount: 213_000,
+    invoice_number: "INV-1001",
+    contract_intelligence_score: 92,
+    billing_readiness_score: 88,
+    collection_readiness_score: 95,
+    industry: "HR Tech",
+    complete: true,
+  },
+  {
+    slug: "atlas-health",
+    company_name: "Atlas Health Network",
+    contact_name: "Marcus Wells",
+    email: "billing@atlashealth.example",
+    arr: 420_000,
+    mrr: 35_000,
+    tcv: 840_000,
+    contract_start: "2025-06-01",
+    contract_end: "2027-05-31",
+    renewal_notice_days: 90,
+    payment_terms: "Net 45",
+    invoice_amount: 35_000,
+    invoice_number: "INV-1002",
+    contract_intelligence_score: 78,
+    billing_readiness_score: 71,
+    collection_readiness_score: 82,
+    industry: "Healthcare",
+    complete: false,
+  },
+  {
+    slug: "velocity-commerce",
+    company_name: "Velocity Commerce",
+    contact_name: "Jenna Ortiz",
+    email: "finance@velocitycommerce.example",
+    arr: 96_000,
+    mrr: 8_000,
+    tcv: 96_000,
+    contract_start: "2026-03-01",
+    contract_end: "2027-02-28",
+    renewal_notice_days: 30,
+    payment_terms: "Net 30",
+    invoice_amount: 24_000,
+    invoice_number: "INV-1003",
+    contract_intelligence_score: 84,
+    billing_readiness_score: 79,
+    collection_readiness_score: 88,
+    industry: "eCommerce",
+    complete: false,
+  },
+  {
+    slug: "global-mfg",
+    company_name: "Global Manufacturing Group",
+    contact_name: "Ravi Menon",
+    email: "ap@globalmfg.example",
+    arr: 620_000,
+    mrr: 51_666,
+    tcv: 1_860_000,
+    contract_start: "2025-01-01",
+    contract_end: "2027-12-31",
+    renewal_notice_days: 120,
+    payment_terms: "Net 60",
+    invoice_amount: 155_000,
+    invoice_number: "INV-1004",
+    contract_intelligence_score: 65,
+    billing_readiness_score: 60,
+    collection_readiness_score: 68,
+    industry: "Manufacturing",
+    complete: false,
+  },
+  {
+    slug: "nova-financial",
+    company_name: "Nova Financial Services",
+    contact_name: "Alicia Green",
+    email: "ap@novafin.example",
+    arr: 288_000,
+    mrr: 24_000,
+    tcv: 576_000,
+    contract_start: "2026-02-01",
+    contract_end: "2028-01-31",
+    renewal_notice_days: 90,
+    payment_terms: "Net 30",
+    invoice_amount: 72_000,
+    invoice_number: "INV-1005",
+    contract_intelligence_score: 88,
+    billing_readiness_score: 84,
+    collection_readiness_score: 91,
+    industry: "Financial Services",
+    complete: false,
+  },
+];
+
+export type DemoAction =
+  | "seed"
+  | "reset"
+  | "clear"
+  | "generate_invoices"
+  | "generate_activity"
+  | "recompute_insights";
+
+export const DEMO_ACTION_LABELS: Record<DemoAction, string> = {
+  seed: "Load Demo Dataset",
+  reset: "Reset Demo Workspace",
+  clear: "Clear Demo Data",
+  generate_invoices: "Generate Demo Invoices",
+  generate_activity: "Generate Demo Collection Activity",
+  recompute_insights: "Reload Demo Insights",
+};
