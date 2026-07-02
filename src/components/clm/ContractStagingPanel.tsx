@@ -235,6 +235,7 @@ export const ContractStagingPanel = ({
       }));
       await supabase.from("invoice_data_audit").insert(auditRows as any);
       toast.success("Manual invoice created");
+      await pushInvoiceToStripe(inv.id);
       onChanged();
     } catch (e: any) {
       toast.error(e.message || "Failed to create invoice");
