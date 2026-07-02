@@ -373,8 +373,23 @@ export const ProductCatalogManager = () => {
         </div>
       </div>
 
+      <Alert>
+        <Info className="h-4 w-4" />
+        <AlertDescription className="text-xs">
+          {stripeConnected ? (
+            <>
+              <span className="font-medium">Stripe connected:</span> Click <span className="font-medium">Sync from Stripe</span> to import your existing products and prices directly from your Stripe account — no manual entry required. New products stay in sync as you re-run.
+            </>
+          ) : (
+            <>
+              <span className="font-medium">Not using Stripe?</span> Add products one at a time with <span className="font-medium">Add Product</span>, or download the <span className="font-medium">Template</span> CSV and use <span className="font-medium">Bulk Upload</span> to load your entire catalog at once (columns: description, unit_type, unit_cost, currency). Connect Stripe later to auto-import your product catalog.
+            </>
+          )}
+        </AlertDescription>
+      </Alert>
 
       <Card>
+
         <CardContent className="pt-6 space-y-4">
           <Input
             placeholder="Search products..."
