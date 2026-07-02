@@ -1,78 +1,72 @@
+## Stripe Billing Sync — Contract Intelligence Extension
 
-# Contract Intelligence Engine v2 — Phased Plan
+Extend (not replace) the existing Contract Intelligence workspace and Stripe integration. When a customer has Stripe connected, approved commercial terms extracted by Contract Intelligence can flow into Stripe Billing objects with full traceability. Customers without Stripe see no change.
 
-This is a large scope (8 processing stages + workspace + score). I'll deliver it in 5 phases so each ships something usable rather than a 3-week silent build. Every phase extends what's already in the codebase (`live_contract_*` tables, `ContractIntelligenceDashboard`, `LiveContractDetail`, `live-contract-extract` edge function).
+### Scope guardrails
+- Reuse `contracts`, `contract_revenue_items`, `contract_invoice_schedules`, `contract_extracted_fields`, `product_catalog`, `stripe_integrations`, and existing sync functions (`sync-stripe-invoices`, `stripe-webhook`).
+- No new billing engine, no duplicated contract extraction, no changes to Collection Intelligence internals — only add associations.
+- Gate the entire feature on: Stripe connected (`stripe_integrations` row active) + user has Billing permission.
 
-## What already exists (baseline)
-- Upload + OCR + AI extraction (`live-contract-extract`) → `live_contract_extractions`, `live_contract_extracted_fields`
-- Schedule + risk flags + critical dates (`contract_invoice_schedules`, `contract_risk_flags`, `contract_critical_dates`)
-- Editable fields UI, re-scan, ASC 606 assessment, invoice backlog, reconciliation panel
-- Dashboard summary card + Active Contracts page + Contract Intelligence dashboard page
+### 1. Data model (one migration)
+New tables (all with GRANTs + RLS scoped by `auth.uid()` / org):
+- `contract_stripe_sync` — 1:1 with contract. Fields: contract_id, status (`not_connected|ready|pending_review|ready_for_stripe|synchronized|error|needs_attention`), readiness_score, blocking_issues jsonb, last_sync_at, stripe_customer_id, stripe_subscription_id, stripe_subscription_schedule_id, error jsonb.
+- `contract_stripe_product_map` — contract_revenue_item_id → stripe_product_id, stripe_price_id, mapping_status, confidence, reusable flag. Unique on (org, revenue_item signature) so mappings auto-apply to future contracts.
+- `contract_stripe_invoice_link` — link contract/schedule row → stripe_invoice_id + variance data (expected_amount, actual_amount, variance_type, financial_impact, recommended_action, ai_confidence).
+- `contract_stripe_sync_events` — audit trail (action, actor, payload, stripe_response).
 
-The plan below layers the missing 8 stages on top of this, without duplicating what works.
+### 2. New "Billing Sync" tab in Contract Workspace
+Add `billing-sync` entry to `ContractPageNav` (only rendered when Stripe connected). New section component `ContractStripeBillingSync.tsx` mounted in `LiveContractDetail.tsx`, containing four cards:
 
----
+**a. Sync Status Card** — badge + Last Sync, Stripe Account, Readiness Score, primary action button (Review / Sync / Resolve).
 
-## Phase 1 — Document Classification + Agreement Hierarchy (Stage 1)
-Turn every upload into a typed document that knows its parent.
+**b. AI Billing Readiness** — reuses already-extracted fields (customer, products, pricing, frequency, term, dates, currency, payment terms, invoice schedule, prof services, usage, discounts, taxes, PO). Client-side checklist that computes score % and lists blockers. No re-entry of data.
 
-- Add `document_type` (MSA, Order Form, Amendment, Renewal, Expansion, Reduction, SOW, Pricing Exhibit, PO, Invoice, Credit Memo, Usage Report, Change Order, PSA, BAA, DPA) and `parent_import_id` to `live_contract_imports`.
-- New classification pass in `live-contract-extract` (first AI call, cheap Flash model) → returns type + confidence + candidate parent (matched by customer + agreement number).
-- UI: document-type badge on contract rows; "Parent MSA" picker on detail page; agreement-family tree view on the customer workspace.
+**c. Stripe Product Mapping** — table of contract products vs Stripe catalog. Row actions: Map Existing / Create Product / Create Price / Ignore. Auto-suggest matches via fuzzy name + amount. Save Mapping persists to `contract_stripe_product_map` for reuse.
 
-## Phase 2 — Validation + Completeness Score (Stages 3 + 6)
-Every extracted field gets a Pass / Warning / Failed status and rolls up into a score.
+**d. Billing Preview** — computed from extracted terms: recurring subs, one-time, implementation, prof services, usage, discounts, frequency, invoice schedule, ARR/MRR/ACV/TCV. Read-only preview before "Sync to Stripe".
 
-- New table `contract_field_validations` (field_key, status, message, confidence, category).
-- Validation runner (edge function `contract-validate`) triggered post-extract: rule-based checks (dates present, MSA link, pricing present, PO present, currency, billing frequency, invoice schedule, renewal terms) + AI confidence for soft fields.
-- New table `contract_completeness_scores` with 13 category scores + overall.
-- UI: replace the current "extracted fields" tab with a **Commercial Completeness** panel — 13 categories, each Complete / Needs Review / Missing / Conflict, click-through to fix the underlying field. Prominent overall Contract Intelligence Score on the detail header and customer workspace.
+### 3. Edge functions (new, additive)
+- `stripe-billing-readiness` — computes score + blockers for a contract (server-side so it can also power dashboard aggregates).
+- `stripe-catalog-match` — pulls Stripe products/prices, returns suggested mappings.
+- `stripe-billing-sync` — the executor. Creates/updates Stripe Customer, Products, Prices, Subscription, Subscription Schedule, Invoice Items, Draft Invoices as required by the contract's billing model. Writes IDs back to `contract_stripe_sync` and the mapping tables. Idempotent per contract.
+- `stripe-invoice-variance-scan` — continuously compares Stripe invoices with the contract's expected schedule; writes into `contract_stripe_invoice_link` with variance types (missing, wrong amount, wrong frequency, prof services not billed, usage missing, duplicate, unexpected, post-expiration). Wire to existing `stripe-webhook` and to the scheduled sync.
 
-## Phase 3 — Treatment Engine + AI Action Center (Stages 4 + 8)
-Every extracted term produces business actions (tasks, forecasts, notifications).
+### 4. Collection Intelligence association (no behavior change)
+- Extend `stripe-webhook` and `sync-stripe-invoices` so that when an invoice is upserted, if its Stripe subscription/invoice ID matches a `contract_stripe_sync` record, populate `invoices.contract_id` (and order form / customer references). No new invoice rows created; existing dedup logic stands.
 
-- New table `contract_treatments` (field_key → treatment_kind → generated_artifact_ref).
-- Treatment router (edge function `contract-treatments`) maps: Renewal Date→notice tasks + timeline entry; Billing Frequency→invoice schedule + collection workflow; Payment Terms→DSO forecast; Products→ARR/ACV/TCV/MRR + revenue schedule; Prof Services→delivery schedule + billing milestones; Usage→consumption tracking + overage prediction; Discount→leakage flag + approval check; Notice Period→non-renewal date + CS/AE/Finance tasks; Termination Rights→risk flag; PO→invoice-gate.
-- All generated tasks land in existing `collection_tasks` (Task Center) with contract_id + treatment_kind.
-- UI: "AI Actions" tab on the contract and workspace listing every auto-generated task with owner, due date, and one-click Resolve/Snooze/Reassign.
+### 5. Executive Dashboard
+Conditional metrics block (only when Stripe connected) on `ContractIntelligenceDashboard.tsx`:
+Contracts Ready for Billing · Contracts Synchronized · Invoices Generated · Invoices Missing · Products Not Mapped · Billing Exceptions · Revenue Waiting for Billing · Billing Coverage · Avg Readiness Score · Stripe Sync Health.
 
-## Phase 4 — Invoice Intelligence (Stage 5)
-Contract obligations ↔ actual invoices, with lifecycle status.
+### 6. AI Recommendations → Task Center
+`stripe-billing-readiness` and `stripe-invoice-variance-scan` emit recommendations (map product, create price, generate invoice, create schedule, fix amount, missing customer, etc.). Each becomes an optional row in the existing `collection_tasks` (or contract task) table, tagged `source='billing_sync'`, deep-linked back to the Billing Sync tab.
 
-- Extend `contract_invoice_schedules` with `obligation_state` (scheduled / generated / uploaded / paid / outstanding / missing / draft) and `matched_invoice_id`.
-- New matcher edge function `contract-invoice-match`: compares scheduled obligations against `invoices` by customer+amount+date+PO; flags amount mismatches, missing recurring, duplicate invoices, tax miscalc, wrong Order Form link.
-- Actions: Generate Invoice (existing), Upload Invoice, Auto-Match, Manual Match, Override.
-- UI: **Invoice Intelligence** tab per contract and per customer — obligations vs actuals table, mismatch alerts, one-click resolve.
+### 7. Feature gating
+- `useStripeConnected()` hook checks `stripe_integrations` for the user's org.
+- Billing Sync tab, dashboard metrics, and task creation are all no-ops when not connected. Existing flows unchanged.
 
-## Phase 5 — AI Risk + Customer Intelligence Workspace + Score Trend (Stages 7 + Workspace + Score)
-Consolidate everything under a per-customer workspace.
+### Files touched
+New:
+- `supabase/migrations/<ts>_contract_stripe_billing_sync.sql`
+- `supabase/functions/stripe-billing-readiness/index.ts`
+- `supabase/functions/stripe-catalog-match/index.ts`
+- `supabase/functions/stripe-billing-sync/index.ts`
+- `supabase/functions/stripe-invoice-variance-scan/index.ts`
+- `src/components/clm/billing-sync/ContractStripeBillingSync.tsx`
+- `src/components/clm/billing-sync/BillingSyncStatusCard.tsx`
+- `src/components/clm/billing-sync/BillingReadinessCard.tsx`
+- `src/components/clm/billing-sync/StripeProductMappingCard.tsx`
+- `src/components/clm/billing-sync/BillingPreviewCard.tsx`
+- `src/hooks/useStripeConnected.ts`
+- `src/hooks/useContractBillingSync.ts`
 
-- Expand `contract_risk_flags` with `severity`, `commercial_impact`, `financial_impact_cents`, `revenue_exposure_cents`, `recommended_action`, `owner_user_id`, `due_date`, `confidence`.
-- New risk detector `contract-risk-scan` running the 17 checks (missing renewal notice, expired agreement, overlapping order forms, missing MSA, duplicate products, missing invoice, invoice mismatch, revenue leakage, wrong billing freq, PS remaining, missing PO, conflicting amendment, missing pricing, missing currency, unsupported payment terms, rev-rec risk, collection risk).
-- New page `/customers/:debtorId/intelligence` — 15 sections (Overview, Commercial Timeline, Contract Intelligence, Revenue Intelligence, Invoice Intelligence, Collection Intelligence, Renewals, Commercial Risks, AI Tasks, Historical Documents, Amendments, Invoices, Executive Dashboard, Audit History) hydrated from existing data.
-- Score history table `contract_score_history` (daily snapshot) → trend sparkline on the score card.
+Edited:
+- `src/components/clm/ContractPageNav.tsx` (conditional Billing Sync entry)
+- `src/pages/LiveContractDetail.tsx` (mount new section)
+- `src/pages/ContractIntelligenceDashboard.tsx` (conditional metrics block)
+- `supabase/functions/stripe-webhook/index.ts` + `sync-stripe-invoices/index.ts` (contract association + variance trigger)
 
----
-
-## Technical Notes
-
-**Extraction pipeline** stays the current shape (OCR → AI extraction) but grows two new pre/post stages:
-```text
-Upload → OCR → [Classify] → Extract → [Validate] → [Treatments] → [Invoice Match] → [Risk Scan] → Score
-```
-
-**Model choice:** classification + validation on `google/gemini-2.5-flash` (cheap, high volume); commercial extraction stays on `google/gemini-2.5-pro` (already the case from the last change); risk narrative + recommendations on `google/gemini-2.5-flash`.
-
-**New tables (all under existing RLS pattern — account-scoped, GRANTs in same migration):**
-`contract_field_validations`, `contract_completeness_scores`, `contract_treatments`, `contract_score_history`, plus columns added to `live_contract_imports`, `contract_invoice_schedules`, `contract_risk_flags`.
-
-**No breaking changes:** existing `LiveContractDetail`, `ContractIntelligenceDashboard`, and `ContractExtractedFieldsEditor` keep working; new tabs/panels appear alongside.
-
----
-
-## Two questions before I start
-
-1. **Order** — build Phases 1→5 in order (default), or do you want a specific phase first (e.g. jump to Phase 4 Invoice Intelligence because that's the most visible commercial value)?
-2. **Scope of the Customer Intelligence Workspace (Phase 5)** — new dedicated page at `/customers/:debtorId/intelligence`, or fold the 15 sections into the existing debtor detail page as tabs?
-
-Say "go" to accept defaults (Phase 1 first, new workspace page) and I'll start with Phase 1.
+### Open questions before I build
+1. Which existing table is the source of truth for "org / account" scoping on contracts — `organizations` or `account_users`? I'll match whatever pattern `contracts` uses today.
+2. Should "Sync to Stripe" default to **draft** invoices/subscriptions (safer) or activate them immediately?
+3. For Billing permission gating, reuse an existing role (e.g. admin) or add a new `billing_sync` capability on `user_roles`?

@@ -64,6 +64,7 @@ import { ContractBillingRequirements } from "@/components/clm/ContractBillingReq
 import { ContractInvoiceRecapture } from "@/components/clm/ContractInvoiceRecapture";
 import { ContractInvoiceBacklog } from "@/components/clm/ContractInvoiceBacklog";
 import { ContractCustomTriggersPanel } from "@/components/clm/ContractCustomTriggersPanel";
+import { ContractStripeBillingSync } from "@/components/clm/billing-sync/ContractStripeBillingSync";
 
 import { Asc606AssessmentDialog } from "@/components/contracts/Asc606AssessmentDialog";
 import { Asc606ChatPanel } from "@/components/clm/Asc606ChatPanel";
@@ -715,6 +716,19 @@ const LiveContractDetailInner = () => {
           fields={data.fields as any}
         />
       </section>
+
+      {/* ============ 5b. STRIPE BILLING SYNC ============ */}
+      <section id="billing-sync" className="space-y-3 scroll-mt-16">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
+          <FileCheck2 className="h-3.5 w-3.5" /> Billing Sync
+        </h2>
+        <ContractStripeBillingSync
+          contractId={c.id}
+          fields={(data.fields[0] as any) || {}}
+          currency={(c as any).currency || (data.fields[0] as any)?.currency}
+        />
+      </section>
+
 
       {/* ============ ALL EXTRACTED TERMS ============ */}
       <section id="all-terms" className="space-y-3 scroll-mt-16">
