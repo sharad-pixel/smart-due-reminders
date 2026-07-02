@@ -483,6 +483,35 @@ export const CreateInvoiceModal = ({
             </div>
           )}
 
+          {stripeConnected && (
+            <div className="rounded-md border p-3 space-y-2 bg-muted/30">
+              <div className="text-sm font-medium">Stripe Sync</div>
+              <div className="flex items-start gap-2">
+                <Checkbox
+                  id="push-stripe"
+                  checked={pushToStripe}
+                  onCheckedChange={(c) => setPushToStripe(c === true)}
+                />
+                <Label htmlFor="push-stripe" className="text-sm cursor-pointer leading-relaxed">
+                  Also create this invoice in Stripe
+                </Label>
+              </div>
+              {pushToStripe && (
+                <div className="flex items-start gap-2 pl-6">
+                  <Checkbox
+                    id="finalize-stripe"
+                    checked={finalizeInStripe}
+                    onCheckedChange={(c) => setFinalizeInStripe(c === true)}
+                  />
+                  <Label htmlFor="finalize-stripe" className="text-xs text-muted-foreground cursor-pointer">
+                    Finalize immediately (otherwise created as draft)
+                  </Label>
+                </div>
+              )}
+            </div>
+          )}
+
+
           <div className="flex justify-end gap-2 pt-4">
             <Button
               type="button"
