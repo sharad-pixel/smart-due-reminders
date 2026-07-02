@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
-import { createClient } from "npm:@supabase/supabase-js@2.57.2";
+import { resolveStripeContext } from "../_shared/stripeAuth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,23 +16,9 @@ function signature(item: any) {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
-    const supa = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-    const auth = req.headers.get("Authorization")!;
-    const { data: userData } = await supa.auth.getUser(auth.replace("Bearer ", ""));
-    const user = userData.user;
-    if (!user) throw new Error("Not authenticated");
-
+    const { supa, user, accountId, stripeKey } = await resolveStripeContext(req.headers.get("Authorization"));
     const { contract_id, create_for_item_id } = await req.json();
-
-    const { data: integ } = await supa
-      .from("stripe_integrations")
-      .select("stripe_secret_key_encrypted")
-      .eq("user_id", user.id)
-      .eq("is_connected", true)
-      .maybeSingle();
-    if (!integ?.stripe_secret_key_encrypted) throw new Error("Stripe not connected");
-
-    const stripe = new Stripe(integ.stripe_secret_key_encrypted, { apiVersion: "2025-08-27.basil" });
+    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
     const { data: items } = await supa
       .from("contract_revenue_items")
