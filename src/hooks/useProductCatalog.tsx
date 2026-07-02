@@ -6,9 +6,13 @@ export interface ProductCatalogItem {
   id: string;
   user_id: string;
   description: string;
+  product_description?: string | null;
   unit_type: string;
   unit_cost: number;
   currency: string;
+  active?: boolean;
+  status_effective_date?: string | null;
+  source?: string;
   times_used: number;
   last_used_at: string | null;
   created_at: string;
