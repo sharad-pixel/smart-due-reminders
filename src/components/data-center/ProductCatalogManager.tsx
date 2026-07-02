@@ -793,6 +793,18 @@ export const ProductCatalogManager = () => {
                           )}
                         </TableCell>
                         <TableCell className="text-muted-foreground">{item.unit_type}</TableCell>
+                        <TableCell>
+                          {item.pricing_model === "recurring" ? (
+                            <div className="flex flex-col gap-0.5">
+                              <Badge variant="outline" className="w-fit text-[10px]">Recurring</Badge>
+                              <span className="text-[11px] text-muted-foreground capitalize">
+                                {item.billing_period || "monthly"}
+                              </span>
+                            </div>
+                          ) : (
+                            <Badge variant="secondary" className="text-[10px]">One-off</Badge>
+                          )}
+                        </TableCell>
                         <TableCell className="text-right">
                           {item.currency} {Number(item.unit_cost).toFixed(2)}
                         </TableCell>
