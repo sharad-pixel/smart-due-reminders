@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
     if (cErr || !claims?.claims?.sub) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    const userId = claims.claims.sub as string;
+    let userId = claims.claims.sub as string;
 
     // Admin gate: check profiles.is_admin OR support user
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
