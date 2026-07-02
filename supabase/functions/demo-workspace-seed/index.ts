@@ -45,9 +45,28 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const { action } = await req.json().catch(() => ({}));
+    const { action, target_user_email } = await req.json().catch(() => ({} as any));
     if (!action) {
       return new Response(JSON.stringify({ error: "action required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // Admins can target a different user (used to manage the shared demo@recouply.ai account from the admin console).
+    if (target_user_email && profile?.is_admin) {
+      const { data: list } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 });
+      const target = list?.users?.find((u) => u.email?.toLowerCase() === String(target_user_email).toLowerCase());
+      if (!target) {
+        return new Response(JSON.stringify({ error: `target user not found: ${target_user_email}` }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      userId = target.id;
+    }
+
+    // Fast status action — read-only, returns current demo workspace state for the (possibly targeted) user.
+    if (action === "status") {
+      const { data: st } = await admin.from("demo_workspace_state").select("*").eq("user_id", userId).maybeSingle();
+      const { data: sti } = await admin.from("stripe_test_integrations").select("is_connected, stripe_account_id, last_sync_at").eq("user_id", userId).maybeSingle();
+      return new Response(JSON.stringify({ ok: true, state: st, stripe_test: sti, user_id: userId }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const clear = async () => {
