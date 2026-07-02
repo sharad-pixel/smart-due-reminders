@@ -186,13 +186,20 @@ export const ProductCatalogManager = () => {
             </p>
           </div>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" onClick={openCreate}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Product
+        <div className="flex items-center gap-2">
+          {stripeConnected && (
+            <Button size="sm" variant="outline" onClick={syncFromStripe} disabled={syncingStripe}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${syncingStripe ? "animate-spin" : ""}`} />
+              Sync from Stripe
             </Button>
-          </DialogTrigger>
+          )}
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" onClick={openCreate}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Product
+              </Button>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>{form.id ? "Edit Product" : "Add Product"}</DialogTitle>
