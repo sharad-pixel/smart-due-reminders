@@ -449,11 +449,11 @@ export const ProductCatalogManager = () => {
                 Add Product
               </Button>
             </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>{form.id ? "Edit Product" : "Add Product"}</DialogTitle>
+              <DialogTitle>{form.id ? "Edit Product" : "Add a product"}</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 py-2">
+            <div className="space-y-5 py-2">
               <div className="space-y-2">
                 <Label>Name / Description</Label>
                 <Input
