@@ -45,6 +45,7 @@ import { PaymentPlansList } from "@/components/payment-plans/PaymentPlansList";
 import { usePaymentPlans } from "@/hooks/usePaymentPlans";
 import { ContractUploadButton } from "@/components/contracts/ContractUploadButton";
 import { ManualContractDialog } from "@/components/contracts/ManualContractDialog";
+import { DebtorStripeLinkCard } from "@/components/debtors/DebtorStripeLinkCard";
 import { FileSignature } from "lucide-react";
 
 interface Debtor {
@@ -98,6 +99,7 @@ interface Debtor {
   email_status_updated_at: string | null;
   email_bounce_count: number | null;
   last_bounce_reason: string | null;
+  stripe_customer_id?: string | null;
   // Internal sales rep fields
   sales_rep_user_id: string | null;
   sales_rep_name: string | null;
@@ -1184,6 +1186,15 @@ const DebtorDetail = () => {
             sales_rep_alerts_enabled: !!debtor.sales_rep_alerts_enabled,
           }}
           onSaved={fetchDebtor}
+        />
+
+        {/* Stripe Customer Link */}
+        <DebtorStripeLinkCard
+          debtorId={debtor.id}
+          debtorName={debtor.company_name || debtor.name}
+          debtorEmail={debtor.email}
+          stripeCustomerId={debtor.stripe_customer_id}
+          onChanged={fetchDebtor}
         />
 
         {/* Risk Assessment Card */}
