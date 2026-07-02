@@ -33,6 +33,7 @@ import {
 } from "@/components/data-center/sync/syncErrorParser";
 import type { SyncLogEntry } from "@/components/data-center/sync";
 import { useAccountId } from "@/hooks/useAccountId";
+import IntegrationErrorCenter from "@/components/data-center/IntegrationErrorCenter";
 
 // Issue explanations with actionable guidance
 const ISSUE_EXPLANATIONS: Record<
@@ -475,6 +476,9 @@ const StripeSyncDiagnostics = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Integration Error Center — dedicated section for failed transactions */}
+        <IntegrationErrorCenter />
 
         {/* Issues Panel */}
         {groupedErrors && groupedErrors.totalCount > 0 && (
