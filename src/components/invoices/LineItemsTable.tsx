@@ -52,7 +52,7 @@ export const LineItemsTable = ({ items, onChange, disabled }: LineItemsTableProp
     ]);
   };
 
-  const addFromCatalog = (item: { description: string; unit_type: string; unit_cost: number }) => {
+  const addFromCatalog = (item: any) => {
     onChange([
       ...items,
       {
@@ -62,6 +62,14 @@ export const LineItemsTable = ({ items, onChange, disabled }: LineItemsTableProp
         line_total: Number(item.unit_cost),
         line_type: "item",
         unit_type: item.unit_type,
+        product_id: item.id ?? null,
+        product_description: item.product_description ?? null,
+        pricing_model: item.pricing_model ?? null,
+        billing_period: item.billing_period ?? null,
+        tax_behavior: item.tax_behavior ?? null,
+        tax_category: item.tax_category ?? null,
+        lookup_key: item.lookup_key ?? null,
+        stripe_price_id: item.stripe_price_id ?? null,
       },
     ]);
     // mark this new row as already-saved
