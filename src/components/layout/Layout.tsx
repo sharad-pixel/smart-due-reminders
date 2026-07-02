@@ -275,8 +275,7 @@ const Layout = ({ children }: LayoutProps) => {
 
   const revenueIntelligenceItems = [
     { path: "/contract-intelligence/dashboard", label: "Contract Intelligence", icon: FileSignature },
-    { path: "/contracts/active", label: "Active Contracts", icon: FileSignature },
-    { path: "/ai-ingestion", label: "Ingestion", icon: Sparkles },
+    { path: "/contracts", label: "Contracts", icon: FileSignature },
     { path: "/revenue-library", label: "Revenue Library", icon: Library },
     { path: "/revenue-risk", label: "Revenue Risk", icon: ShieldAlert },
   ];
