@@ -9492,17 +9492,24 @@ export type Database = {
         Row: {
           account_id: string | null
           active: boolean
+          billing_period: string | null
           created_at: string
           currency: string
           description: string
           id: string
+          image_url: string | null
           last_used_at: string | null
+          lookup_key: string | null
+          price_description: string | null
+          pricing_model: string
           product_description: string | null
           source: string
           status_effective_date: string | null
           stripe_price_id: string | null
           stripe_product_id: string | null
           stripe_synced_at: string | null
+          tax_behavior: string
+          tax_category: string | null
           times_used: number
           unit_cost: number
           unit_type: string
@@ -9512,17 +9519,24 @@ export type Database = {
         Insert: {
           account_id?: string | null
           active?: boolean
+          billing_period?: string | null
           created_at?: string
           currency?: string
           description: string
           id?: string
+          image_url?: string | null
           last_used_at?: string | null
+          lookup_key?: string | null
+          price_description?: string | null
+          pricing_model?: string
           product_description?: string | null
           source?: string
           status_effective_date?: string | null
           stripe_price_id?: string | null
           stripe_product_id?: string | null
           stripe_synced_at?: string | null
+          tax_behavior?: string
+          tax_category?: string | null
           times_used?: number
           unit_cost?: number
           unit_type?: string
@@ -9532,17 +9546,24 @@ export type Database = {
         Update: {
           account_id?: string | null
           active?: boolean
+          billing_period?: string | null
           created_at?: string
           currency?: string
           description?: string
           id?: string
+          image_url?: string | null
           last_used_at?: string | null
+          lookup_key?: string | null
+          price_description?: string | null
+          pricing_model?: string
           product_description?: string | null
           source?: string
           status_effective_date?: string | null
           stripe_price_id?: string | null
           stripe_product_id?: string | null
           stripe_synced_at?: string | null
+          tax_behavior?: string
+          tax_category?: string | null
           times_used?: number
           unit_cost?: number
           unit_type?: string
