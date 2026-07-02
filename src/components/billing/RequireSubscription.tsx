@@ -99,9 +99,10 @@ export function RequireSubscription({ children }: RequireSubscriptionProps) {
       return;
     }
 
-    // Check email verification for non-OAuth users
+    // Check email verification for non-OAuth users (skip for shared demo account)
     const isOAuthUser = user.app_metadata?.provider && user.app_metadata.provider !== 'email';
-    if (!isOAuthUser && profile?.email_verified === false) {
+    const isDemoUser = user.email?.toLowerCase() === 'demo@recouply.ai';
+    if (!isOAuthUser && !isDemoUser && profile?.email_verified === false) {
       navigate('/email-verification-required', { replace: true });
       setPathChecked(true);
       setShouldRender(false);
