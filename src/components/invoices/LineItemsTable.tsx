@@ -184,6 +184,40 @@ export const LineItemsTable = ({ items, onChange, disabled }: LineItemsTableProp
                         placeholder={isItem ? "Item or service" : "Tax description"}
                         disabled={disabled}
                       />
+                      {isItem && item.product_description && (
+                        <div className="text-xs text-muted-foreground mt-1 truncate" title={item.product_description}>
+                          {item.product_description}
+                        </div>
+                      )}
+                      {isItem && (item.pricing_model || item.lookup_key || item.stripe_price_id) && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {item.pricing_model === "recurring" && (
+                            <span className="inline-flex items-center rounded-md bg-blue-50 text-blue-700 border border-blue-200 px-1.5 py-0.5 text-[10px] font-medium">
+                              Recurring{item.billing_period ? ` · ${item.billing_period}` : ""}
+                            </span>
+                          )}
+                          {item.pricing_model === "one_off" && (
+                            <span className="inline-flex items-center rounded-md bg-slate-50 text-slate-700 border border-slate-200 px-1.5 py-0.5 text-[10px] font-medium">
+                              One-off
+                            </span>
+                          )}
+                          {item.tax_behavior && item.tax_behavior !== "auto" && (
+                            <span className="inline-flex items-center rounded-md bg-amber-50 text-amber-700 border border-amber-200 px-1.5 py-0.5 text-[10px] font-medium">
+                              Tax {item.tax_behavior}
+                            </span>
+                          )}
+                          {item.stripe_price_id && (
+                            <span className="inline-flex items-center rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200 px-1.5 py-0.5 text-[10px] font-medium">
+                              Stripe linked
+                            </span>
+                          )}
+                          {item.lookup_key && (
+                            <span className="inline-flex items-center rounded-md bg-muted text-muted-foreground border px-1.5 py-0.5 text-[10px] font-mono">
+                              {item.lookup_key}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </td>
                     <td className="p-2">
                       {isItem ? (
