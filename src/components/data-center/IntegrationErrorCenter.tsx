@@ -99,9 +99,8 @@ export default function IntegrationErrorCenter() {
       if (!accountId) return [];
       const { data, error } = await supabase
         .from("quickbooks_sync_log")
-        .select("id, started_at, error_message, status")
+        .select("id, started_at, errors, needs_attention_details, status")
         .eq("user_id", accountId)
-        .in("status", ["failed", "partial"])
         .order("started_at", { ascending: false })
         .limit(20);
       if (error) return [];
