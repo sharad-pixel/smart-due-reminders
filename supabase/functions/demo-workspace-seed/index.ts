@@ -261,6 +261,26 @@ Deno.serve(async (req) => {
         result.recomputed = true;
         break;
       }
+      case "enable_stripe_demo": {
+        await admin.from("stripe_integrations").upsert({
+          user_id: userId,
+          is_connected: true,
+          stripe_account_id: "acct_demo_recouply",
+          sync_status: "connected",
+          auto_sync_enabled: true,
+          last_sync_at: new Date().toISOString(),
+        }, { onConflict: "user_id" });
+        result.stripe_enabled = true;
+        break;
+      }
+      case "disable_stripe_demo": {
+        await admin.from("stripe_integrations").update({
+          is_connected: false,
+          sync_status: "disconnected",
+        }).eq("user_id", userId);
+        result.stripe_enabled = false;
+        break;
+      }
       default:
         return new Response(JSON.stringify({ error: `unknown action: ${action}` }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
