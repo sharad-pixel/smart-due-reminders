@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { Loader2, AlertTriangle, Check, ChevronsUpDown } from "lucide-react";
 import { extractDaysFromPaymentTerms, calculateDueDate } from "@/lib/paymentTerms";
 import { LineItemsTable, LineItem } from "./LineItemsTable";
+import { useStripeConnected } from "@/hooks/useStripeConnected";
 
 const generateInvoiceNumber = () => {
   const d = new Date();
