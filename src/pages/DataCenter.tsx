@@ -322,16 +322,28 @@ const DataCenter = () => {
         {/* ═══════════════════════════════════════════════════════════════ */}
         {(isIntegrationEnabled("stripe") || isIntegrationEnabled("quickbooks") || isIntegrationEnabled("salesforce")) && (
           <section className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Link2 className="h-4 w-4 text-primary" />
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Link2 className="h-4 w-4 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold">Connected Integrations</h2>
+                  <p className="text-xs text-muted-foreground">
+                    Sync customers, invoices, and payments automatically from your billing systems
+                  </p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-lg font-semibold">Connected Integrations</h2>
-                <p className="text-xs text-muted-foreground">
-                  Sync customers, invoices, and payments automatically from your billing systems
-                </p>
-              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={() => window.location.assign("/integrations/stripe-sync#integration-error-center")}
+              >
+                <AlertTriangle className="h-4 w-4 text-amber-500" />
+                Integration Error Center
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Button>
             </div>
 
             <SyncHealthDashboard />
