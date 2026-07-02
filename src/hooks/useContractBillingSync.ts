@@ -36,7 +36,7 @@ export function useContractBillingSync(contractId: string | null) {
         .select("*")
         .eq("contract_id", contractId!)
         .maybeSingle();
-      return data as BillingSyncRow | null;
+      return (data as unknown) as BillingSyncRow | null;
     },
   });
 
