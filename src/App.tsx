@@ -197,6 +197,7 @@ const AdminLeadOutreach = lazy(() => import("./pages/admin/AdminLeadOutreach"));
 const AdminStaleUsers = lazy(() => import("./pages/admin/AdminStaleUsers"));
 const AdminSupportAccess = lazy(() => import("./pages/admin/AdminSupportAccess"));
 const AdminSupportUsers = lazy(() => import("./pages/admin/AdminSupportUsers"));
+const AdminDemoWorkspace = lazy(() => import("./pages/admin/AdminDemoWorkspace"));
 const SupportLogin = lazy(() => import("./pages/SupportLogin"));
 const SupportVerify = lazy(() => import("./pages/SupportVerify"));
 const SupportCallback = lazy(() => import("./pages/SupportCallback"));
@@ -411,6 +412,7 @@ const App = () => (
               <Route path="/admin/stale-users" element={<AdminStaleUsers />} />
               <Route path="/admin/support-access" element={<AdminSupportAccess />} />
               <Route path="/admin/support-users" element={<AdminSupportUsers />} />
+              <Route path="/admin/demo" element={<AdminDemoWorkspace />} />
 
               {/* Dev tool (admin-gated via AdminLayout, not in nav) */}
               <Route path="/dev/cleanup" element={<DevCleanup />} />
