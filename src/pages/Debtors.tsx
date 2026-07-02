@@ -822,13 +822,26 @@ const Debtors = () => {
           </CardHeader>
           <CardContent>
             {filteredDebtors.length === 0 ? (
-              <div className="text-center py-12">
+              <div className="text-center py-12 space-y-4">
                 <p className="text-muted-foreground">
                   {debtors.length === 0
-                    ? "No accounts yet. Create your first account to get started."
+                    ? "No accounts yet. Get started by bringing accounts into Recouply."
                     : "No accounts match your search criteria."}
                 </p>
+                {debtors.length === 0 && (
+                  <div className="max-w-2xl mx-auto text-left border rounded-lg p-4 bg-muted/30">
+                    <p className="text-sm font-medium mb-2">Setup options — bring accounts in via:</p>
+                    <ul className="text-sm text-muted-foreground space-y-1.5 list-disc pl-5">
+                      <li><span className="font-medium text-foreground">Stripe</span> — auto-sync customers from your Stripe account (Settings → Integrations).</li>
+                      <li><span className="font-medium text-foreground">QuickBooks</span> — import customers and balances via OAuth (Settings → Integrations).</li>
+                      <li><span className="font-medium text-foreground">Data Center uploads</span> — upload CSV/Excel files with account, invoice, and payment data.</li>
+                      <li><span className="font-medium text-foreground">Google Sheets ingestion</span> — connect a live Sheet as a bidirectional source of truth.</li>
+                      <li><span className="font-medium text-foreground">Manual entry</span> — click "New Account" above to add one account at a time.</li>
+                    </ul>
+                  </div>
+                )}
               </div>
+
             ) : viewMode === "card" ? (
               <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
                 {paginatedData.map((debtor) => (
