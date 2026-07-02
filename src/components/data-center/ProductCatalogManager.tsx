@@ -27,7 +27,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Package, Loader2, RefreshCw } from "lucide-react";
+import { Plus, Pencil, Trash2, Package, Loader2, RefreshCw, Download, Upload, Info } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+
 import { useStripeConnected } from "@/hooks/useStripeConnected";
 import { useProductCatalog, ProductCatalogItem } from "@/hooks/useProductCatalog";
 import { supabase } from "@/integrations/supabase/client";
@@ -83,6 +85,83 @@ export const ProductCatalogManager = () => {
   const [customUnit, setCustomUnit] = useState("");
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
+  const [uploading, setUploading] = useState(false);
+
+  const downloadTemplate = () => {
+    const csv = [
+      "description,unit_type,unit_cost,currency",
+      "Monthly subscription — Pro plan,month,49.00,USD",
+      "Implementation services,hour,150.00,USD",
+      "Annual license,year,1200.00,USD",
+    ].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "product-catalog-template.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const parseCsv = (text: string): Array<Record<string, string>> => {
+    const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
+    if (lines.length < 2) return [];
+    const parseLine = (line: string): string[] => {
+      const out: string[] = [];
+      let cur = "";
+      let inQ = false;
+      for (let i = 0; i < line.length; i++) {
+        const c = line[i];
+        if (c === '"') {
+          if (inQ && line[i + 1] === '"') { cur += '"'; i++; } else { inQ = !inQ; }
+        } else if (c === "," && !inQ) {
+          out.push(cur); cur = "";
+        } else { cur += c; }
+      }
+      out.push(cur);
+      return out.map((v) => v.trim());
+    };
+    const headers = parseLine(lines[0]).map((h) => h.toLowerCase());
+    return lines.slice(1).map((line) => {
+      const cols = parseLine(line);
+      const row: Record<string, string> = {};
+      headers.forEach((h, i) => { row[h] = cols[i] ?? ""; });
+      return row;
+    });
+  };
+
+  const handleBulkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploading(true);
+    try {
+      const text = await file.text();
+      const rows = parseCsv(text);
+      if (rows.length === 0) throw new Error("No rows found in file");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+      const payload = rows
+        .map((r) => ({
+          user_id: user.id,
+          description: (r.description || "").trim(),
+          unit_type: (r.unit_type || "each").trim() || "each",
+          unit_cost: Number(r.unit_cost || 0) || 0,
+          currency: ((r.currency || "USD").trim().toUpperCase()) || "USD",
+        }))
+        .filter((r) => r.description.length > 0);
+      if (payload.length === 0) throw new Error("No valid rows (description required)");
+      const { error } = await supabase.from("product_catalog").insert(payload);
+      if (error) throw error;
+      toast.success(`Imported ${payload.length} product${payload.length === 1 ? "" : "s"}`);
+      qc.invalidateQueries({ queryKey: ["product-catalog"] });
+    } catch (err: any) {
+      toast.error(err.message || "Bulk upload failed");
+    } finally {
+      setUploading(false);
+    }
+  };
+
 
   const filtered = items.filter((i) =>
     i.description.toLowerCase().includes(search.toLowerCase())
@@ -193,6 +272,26 @@ export const ProductCatalogManager = () => {
               Sync from Stripe
             </Button>
           )}
+          <Button size="sm" variant="outline" onClick={downloadTemplate}>
+            <Download className="h-4 w-4 mr-2" />
+            Template
+          </Button>
+          <label>
+            <input
+              type="file"
+              accept=".csv,text/csv"
+              className="hidden"
+              onChange={handleBulkUpload}
+              disabled={uploading}
+            />
+            <Button size="sm" variant="outline" asChild disabled={uploading}>
+              <span className="cursor-pointer">
+                {uploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+                Bulk Upload
+              </span>
+            </Button>
+          </label>
+
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button size="sm" onClick={openCreate}>
@@ -274,8 +373,23 @@ export const ProductCatalogManager = () => {
         </div>
       </div>
 
+      <Alert>
+        <Info className="h-4 w-4" />
+        <AlertDescription className="text-xs">
+          {stripeConnected ? (
+            <>
+              <span className="font-medium">Stripe connected:</span> Click <span className="font-medium">Sync from Stripe</span> to import your existing products and prices directly from your Stripe account — no manual entry required. New products stay in sync as you re-run.
+            </>
+          ) : (
+            <>
+              <span className="font-medium">Not using Stripe?</span> Add products one at a time with <span className="font-medium">Add Product</span>, or download the <span className="font-medium">Template</span> CSV and use <span className="font-medium">Bulk Upload</span> to load your entire catalog at once (columns: description, unit_type, unit_cost, currency). Connect Stripe later to auto-import your product catalog.
+            </>
+          )}
+        </AlertDescription>
+      </Alert>
 
       <Card>
+
         <CardContent className="pt-6 space-y-4">
           <Input
             placeholder="Search products..."
