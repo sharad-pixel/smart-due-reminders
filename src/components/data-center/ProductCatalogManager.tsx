@@ -388,7 +388,7 @@ export const ProductCatalogManager = () => {
         const { error } = await supabase.from("product_catalog").insert({
           user_id: user.id,
           ...payload,
-        });
+        } as any);
         if (error) throw error;
         toast.success("Product added");
       }
