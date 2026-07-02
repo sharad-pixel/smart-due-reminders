@@ -30,7 +30,7 @@ serve(async (req) => {
         const { data: existing } = await supa
           .from("product_catalog")
           .select("id")
-          .eq("user_id", user.id)
+          .eq("user_id", accountId)
           .eq("stripe_price_id", defaultPrice.id)
           .maybeSingle();
 
@@ -48,7 +48,7 @@ serve(async (req) => {
           updated++;
         } else {
           await supa.from("product_catalog").insert({
-            user_id: user.id,
+            user_id: accountId,
             description: desc,
             unit_cost: unitCost,
             currency,
