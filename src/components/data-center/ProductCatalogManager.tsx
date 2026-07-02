@@ -4,6 +4,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -45,16 +48,24 @@ const STANDARD_UNITS = [
 interface FormState {
   id?: string;
   description: string;
+  product_description: string;
   unit_type: string;
   unit_cost: string;
   currency: string;
+  active: boolean;
+  status_effective_date: string; // YYYY-MM-DD
 }
+
+const todayIso = () => new Date().toISOString().slice(0, 10);
 
 const emptyForm: FormState = {
   description: "",
+  product_description: "",
   unit_type: "each",
   unit_cost: "0",
   currency: "USD",
+  active: true,
+  status_effective_date: todayIso(),
 };
 
 const isStandardUnit = (u: string) => STANDARD_UNITS.includes(u);
@@ -86,13 +97,14 @@ export const ProductCatalogManager = () => {
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [showInactive, setShowInactive] = useState(true);
 
   const downloadTemplate = () => {
     const csv = [
-      "description,unit_type,unit_cost,currency",
-      "Monthly subscription — Pro plan,month,49.00,USD",
-      "Implementation services,hour,150.00,USD",
-      "Annual license,year,1200.00,USD",
+      "description,product_description,unit_type,unit_cost,currency,active",
+      "Monthly subscription — Pro plan,Includes unlimited seats & support,month,49.00,USD,true",
+      "Implementation services,One-time onboarding engagement,hour,150.00,USD,true",
+      "Annual license,Full-year access to platform,year,1200.00,USD,true",
     ].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -104,7 +116,9 @@ export const ProductCatalogManager = () => {
   };
 
   const parseCsv = (text: string): Array<Record<string, string>> => {
-    const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
+    // Strip UTF-8 BOM if present
+    const clean = text.replace(/^\uFEFF/, "");
+    const lines = clean.split(/\r?\n/).filter((l) => l.trim().length > 0);
     if (lines.length < 2) return [];
     const parseLine = (line: string): string[] => {
       const out: string[] = [];
@@ -121,13 +135,19 @@ export const ProductCatalogManager = () => {
       out.push(cur);
       return out.map((v) => v.trim());
     };
-    const headers = parseLine(lines[0]).map((h) => h.toLowerCase());
+    const headers = parseLine(lines[0]).map((h) => h.toLowerCase().replace(/^\ufeff/, ""));
     return lines.slice(1).map((line) => {
       const cols = parseLine(line);
       const row: Record<string, string> = {};
       headers.forEach((h, i) => { row[h] = cols[i] ?? ""; });
       return row;
     });
+  };
+
+  const parseBool = (v: string): boolean => {
+    const s = (v || "").trim().toLowerCase();
+    if (["false", "0", "no", "inactive", "off"].includes(s)) return false;
+    return true; // default active
   };
 
   const handleBulkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -141,20 +161,73 @@ export const ProductCatalogManager = () => {
       if (rows.length === 0) throw new Error("No rows found in file");
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
-      const payload = rows
-        .map((r) => ({
-          user_id: user.id,
-          description: (r.description || "").trim(),
-          unit_type: (r.unit_type || "each").trim() || "each",
-          unit_cost: Number(r.unit_cost || 0) || 0,
-          currency: ((r.currency || "USD").trim().toUpperCase()) || "USD",
-        }))
-        .filter((r) => r.description.length > 0);
-      if (payload.length === 0) throw new Error("No valid rows (description required)");
-      const { error } = await supabase.from("product_catalog").insert(payload);
-      if (error) throw error;
-      toast.success(`Imported ${payload.length} product${payload.length === 1 ? "" : "s"}`);
+
+      let inserted = 0;
+      let updated = 0;
+      let skipped = 0;
+      const errors: string[] = [];
+
+      for (let i = 0; i < rows.length; i++) {
+        const r = rows[i];
+        const description = (r.description || r.name || "").trim();
+        if (!description) { skipped++; continue; }
+        const unit_type = ((r.unit_type || r.unit || "each").trim() || "each");
+        const currency = ((r.currency || "USD").trim().toUpperCase()) || "USD";
+        const unit_cost = Number(r.unit_cost || r.price || 0) || 0;
+        const product_description = ((r.product_description || r.details || "").trim()).slice(0, 50);
+        const active = r.active === undefined || r.active === "" ? true : parseBool(r.active);
+
+        // Check for existing (case-insensitive on description + unit_type)
+        const { data: existing } = await supabase
+          .from("product_catalog")
+          .select("id")
+          .eq("user_id", user.id)
+          .ilike("description", description)
+          .eq("unit_type", unit_type)
+          .maybeSingle();
+
+        if (existing) {
+          const { error: uerr } = await supabase
+            .from("product_catalog")
+            .update({
+              unit_cost,
+              currency,
+              product_description: product_description || null,
+              active,
+              status_effective_date: new Date().toISOString(),
+            })
+            .eq("id", existing.id);
+          if (uerr) errors.push(`Row ${i + 2}: ${uerr.message}`);
+          else updated++;
+        } else {
+          const { error: ierr } = await supabase.from("product_catalog").insert({
+            user_id: user.id,
+            description,
+            unit_type,
+            unit_cost,
+            currency,
+            product_description: product_description || null,
+            active,
+            status_effective_date: new Date().toISOString(),
+          });
+          if (ierr) {
+            // 23505 = unique violation; treat as skipped duplicate
+            if ((ierr as any).code === "23505") skipped++;
+            else errors.push(`Row ${i + 2}: ${ierr.message}`);
+          } else inserted++;
+        }
+      }
+
       qc.invalidateQueries({ queryKey: ["product-catalog"] });
+      const parts: string[] = [];
+      if (inserted) parts.push(`${inserted} added`);
+      if (updated) parts.push(`${updated} updated`);
+      if (skipped) parts.push(`${skipped} skipped`);
+      toast.success(`Bulk upload complete — ${parts.join(", ") || "nothing to import"}`);
+      if (errors.length) {
+        toast.error(`${errors.length} row error(s): ${errors.slice(0, 2).join(" | ")}`);
+        console.error("Bulk upload errors:", errors);
+      }
     } catch (err: any) {
       toast.error(err.message || "Bulk upload failed");
     } finally {
@@ -163,9 +236,14 @@ export const ProductCatalogManager = () => {
   };
 
 
-  const filtered = items.filter((i) =>
-    i.description.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = items.filter((i) => {
+    const s = search.toLowerCase();
+    const matchesSearch =
+      i.description.toLowerCase().includes(s) ||
+      (i.product_description || "").toLowerCase().includes(s);
+    const matchesStatus = showInactive || i.active !== false;
+    return matchesSearch && matchesStatus;
+  });
 
   const selectUnitValue = isStandardUnit(form.unit_type) ? form.unit_type : "custom";
 
@@ -180,9 +258,14 @@ export const ProductCatalogManager = () => {
     setForm({
       id: item.id,
       description: item.description,
+      product_description: item.product_description || "",
       unit_type: item.unit_type,
       unit_cost: String(item.unit_cost),
       currency: item.currency || "USD",
+      active: item.active !== false,
+      status_effective_date: item.status_effective_date
+        ? String(item.status_effective_date).slice(0, 10)
+        : todayIso(),
     });
     setCustomUnit(standard ? "" : item.unit_type);
     setOpen(true);
@@ -213,7 +296,14 @@ export const ProductCatalogManager = () => {
       toast.error("Unit cost must be a valid number");
       return;
     }
+    if (form.product_description.length > 50) {
+      toast.error("Product description is limited to 50 characters");
+      return;
+    }
     const unit = form.unit_type.trim() || "each";
+    const effectiveIso = form.status_effective_date
+      ? new Date(form.status_effective_date).toISOString()
+      : new Date().toISOString();
 
     setSaving(true);
     try {
@@ -222,9 +312,12 @@ export const ProductCatalogManager = () => {
           .from("product_catalog")
           .update({
             description: desc,
+            product_description: form.product_description.trim() || null,
             unit_type: unit,
             unit_cost: cost,
             currency: form.currency || "USD",
+            active: form.active,
+            status_effective_date: effectiveIso,
           })
           .eq("id", form.id);
         if (error) throw error;
@@ -235,9 +328,12 @@ export const ProductCatalogManager = () => {
         const { error } = await supabase.from("product_catalog").insert({
           user_id: user.id,
           description: desc,
+          product_description: form.product_description.trim() || null,
           unit_type: unit,
           unit_cost: cost,
           currency: form.currency || "USD",
+          active: form.active,
+          status_effective_date: effectiveIso,
         });
         if (error) throw error;
         toast.success("Product added");
@@ -305,11 +401,28 @@ export const ProductCatalogManager = () => {
             </DialogHeader>
             <div className="space-y-4 py-2">
               <div className="space-y-2">
-                <Label>Description</Label>
+                <Label>Name / Description</Label>
                 <Input
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                   placeholder="e.g. Monthly subscription — Pro plan"
+                />
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Product description</Label>
+                  <span className="text-xs text-muted-foreground">
+                    {form.product_description.length}/50
+                  </span>
+                </div>
+                <Textarea
+                  value={form.product_description}
+                  onChange={(e) =>
+                    setForm({ ...form, product_description: e.target.value.slice(0, 50) })
+                  }
+                  placeholder="Short description shown on invoices (50 chars)"
+                  maxLength={50}
+                  rows={2}
                 />
               </div>
               <div className="grid grid-cols-3 gap-3">
@@ -358,6 +471,37 @@ export const ProductCatalogManager = () => {
                   />
                 </div>
               </div>
+
+              <div className="rounded-md border p-3 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-sm">Status</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Inactive products stop appearing in new invoice pickers but remain on any
+                      existing invoices that already reference them.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={form.active ? "default" : "secondary"}>
+                      {form.active ? "Active" : "Inactive"}
+                    </Badge>
+                    <Switch
+                      checked={form.active}
+                      onCheckedChange={(v) => setForm({ ...form, active: v })}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Effective date</Label>
+                  <Input
+                    type="date"
+                    value={form.status_effective_date}
+                    onChange={(e) =>
+                      setForm({ ...form, status_effective_date: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>
@@ -382,7 +526,7 @@ export const ProductCatalogManager = () => {
             </>
           ) : (
             <>
-              <span className="font-medium">Not using Stripe?</span> Add products one at a time with <span className="font-medium">Add Product</span>, or download the <span className="font-medium">Template</span> CSV and use <span className="font-medium">Bulk Upload</span> to load your entire catalog at once (columns: description, unit_type, unit_cost, currency). Connect Stripe later to auto-import your product catalog.
+              <span className="font-medium">Not using Stripe?</span> Add products one at a time with <span className="font-medium">Add Product</span>, or download the <span className="font-medium">Template</span> CSV and use <span className="font-medium">Bulk Upload</span> to load your entire catalog at once. Columns: <code>description, product_description, unit_type, unit_cost, currency, active</code>. Rows that match an existing product (case-insensitive name + unit) will be updated in place.
             </>
           )}
         </AlertDescription>
@@ -391,12 +535,18 @@ export const ProductCatalogManager = () => {
       <Card>
 
         <CardContent className="pt-6 space-y-4">
-          <Input
-            placeholder="Search products..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="max-w-sm"
-          />
+          <div className="flex items-center justify-between gap-3">
+            <Input
+              placeholder="Search products..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="max-w-sm"
+            />
+            <label className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Switch checked={showInactive} onCheckedChange={setShowInactive} />
+              Show inactive
+            </label>
+          </div>
 
           {list.isLoading ? (
             <div className="flex items-center justify-center py-10">
@@ -413,50 +563,90 @@ export const ProductCatalogManager = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Description</TableHead>
+                    <TableHead>Product</TableHead>
                     <TableHead>Unit</TableHead>
                     <TableHead className="text-right">Unit Cost</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Effective</TableHead>
+                    <TableHead>Source</TableHead>
                     <TableHead className="text-right">Times Used</TableHead>
                     <TableHead className="w-[100px] text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-medium">{item.description}</TableCell>
-                      <TableCell className="text-muted-foreground">{item.unit_type}</TableCell>
-                      <TableCell className="text-right">
-                        {item.currency} {Number(item.unit_cost).toFixed(2)}
-                      </TableCell>
-                      <TableCell className="text-right text-muted-foreground">
-                        {item.times_used || 0}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8"
-                            onClick={() => openEdit(item)}
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8"
-                            onClick={() => {
-                              if (confirm(`Remove "${item.description}" from catalog?`)) {
-                                remove.mutate(item.id);
-                              }
-                            }}
-                          >
-                            <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {filtered.map((item) => {
+                    const isActive = item.active !== false;
+                    const effective = item.status_effective_date
+                      ? new Date(item.status_effective_date).toLocaleDateString()
+                      : "—";
+                    return (
+                      <TableRow key={item.id}>
+                        <TableCell className="max-w-[320px]">
+                          <div className="font-medium">{item.description}</div>
+                          {item.product_description && (
+                            <div className="text-xs text-muted-foreground line-clamp-2">
+                              {item.product_description}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">{item.unit_type}</TableCell>
+                        <TableCell className="text-right">
+                          {item.currency} {Number(item.unit_cost).toFixed(2)}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={isActive ? "default" : "secondary"}>
+                            {isActive ? "Active" : "Inactive"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {effective}
+                        </TableCell>
+                        <TableCell>
+                          {item.source === "stripe" ? (
+                            <Badge variant="outline" className="text-[10px]">Stripe</Badge>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">Manual</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right text-muted-foreground">
+                          {item.times_used || 0}
+                          {item.last_used_at && (
+                            <div className="text-[10px]">
+                              last {new Date(item.last_used_at).toLocaleDateString()}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8"
+                              onClick={() => openEdit(item)}
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8"
+                              onClick={() => {
+                                if (
+                                  confirm(
+                                    `Remove "${item.description}" from catalog?\n\nExisting invoices that reference it will keep their line items unchanged.`,
+                                  )
+                                ) {
+                                  remove.mutate(item.id);
+                                }
+                              }}
+                            >
+                              <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
