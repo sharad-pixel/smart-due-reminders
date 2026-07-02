@@ -477,6 +477,9 @@ const StripeSyncDiagnostics = () => {
           </CardContent>
         </Card>
 
+        {/* Integration Error Center — dedicated section for failed transactions */}
+        <IntegrationErrorCenter />
+
         {/* Issues Panel */}
         {groupedErrors && groupedErrors.totalCount > 0 && (
           <Card className="border-amber-200">
