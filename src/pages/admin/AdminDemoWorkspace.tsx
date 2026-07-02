@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,7 +13,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { DEMO_CUSTOMERS, DEMO_TEAM, DEMO_ACTION_LABELS, type DemoAction } from "@/lib/demoWorkspace";
 import { useDemoWorkspace } from "@/contexts/DemoWorkspaceContext";
-import { AlertTriangle, Beaker, PlayCircle, RefreshCw, Trash2, Sparkles, FileText, ListChecks, CreditCard, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, Beaker, PlayCircle, RefreshCw, Trash2, Sparkles, FileText, ListChecks, CreditCard, CheckCircle2, LogIn } from "lucide-react";
 
 interface DemoState {
   workspace_exists: boolean;
@@ -30,6 +31,7 @@ interface TestStripe {
 
 export default function AdminDemoWorkspace() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const { isDemoView, setDemoView } = useDemoWorkspace();
   const [state, setState] = useState<DemoState | null>(null);
   const [stripeTest, setStripeTest] = useState<TestStripe | null>(null);
@@ -102,6 +104,35 @@ export default function AdminDemoWorkspace() {
 
   return (
     <AdminLayout title="Demo Workspace" description="Create, reset, and manage the reusable demo dataset for sales and product demos.">
+      {/* Enter Demo Workspace CTA */}
+      <Card className="mb-4 border-primary/40 bg-primary/5">
+        <CardContent className="p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <LogIn className="h-5 w-5 text-primary mt-0.5" />
+            <div className="text-sm">
+              <div className="font-medium">Enter the demo workspace</div>
+              <div className="text-muted-foreground">
+                You stay signed in as yourself. Enabling Demo Mode filters every page (Dashboard, Contracts, Invoices, Collections) to only show <code>is_demo = true</code> rows so you can walk through NimbusHR & friends without touching real data.
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            <Button
+              onClick={() => { setDemoView(true); navigate("/dashboard"); }}
+              disabled={!state?.workspace_exists}
+            >
+              <LogIn className="h-4 w-4 mr-2" /> Enter Demo Dashboard
+            </Button>
+            {isDemoView && (
+              <Button variant="outline" onClick={() => setDemoView(false)}>Exit Demo Mode</Button>
+            )}
+          </div>
+        </CardContent>
+        {!state?.workspace_exists && (
+          <div className="px-4 pb-3 text-xs text-amber-600">Load the demo dataset below first, then click Enter Demo Dashboard.</div>
+        )}
+      </Card>
+
       <div className="grid gap-4 lg:grid-cols-3">
         {/* Status */}
         <Card className="lg:col-span-2">
