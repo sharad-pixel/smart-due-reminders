@@ -2610,6 +2610,232 @@ export type Database = {
           },
         ]
       }
+      contract_stripe_invoice_link: {
+        Row: {
+          actual_amount: number | null
+          ai_confidence: number | null
+          contract_id: string
+          contract_invoice_schedule_id: string | null
+          created_at: string
+          expected_amount: number | null
+          financial_impact: number | null
+          id: string
+          recommended_action: string | null
+          stripe_invoice_id: string | null
+          updated_at: string
+          user_id: string
+          variance_amount: number | null
+          variance_type: string | null
+        }
+        Insert: {
+          actual_amount?: number | null
+          ai_confidence?: number | null
+          contract_id: string
+          contract_invoice_schedule_id?: string | null
+          created_at?: string
+          expected_amount?: number | null
+          financial_impact?: number | null
+          id?: string
+          recommended_action?: string | null
+          stripe_invoice_id?: string | null
+          updated_at?: string
+          user_id: string
+          variance_amount?: number | null
+          variance_type?: string | null
+        }
+        Update: {
+          actual_amount?: number | null
+          ai_confidence?: number | null
+          contract_id?: string
+          contract_invoice_schedule_id?: string | null
+          created_at?: string
+          expected_amount?: number | null
+          financial_impact?: number | null
+          id?: string
+          recommended_action?: string | null
+          stripe_invoice_id?: string | null
+          updated_at?: string
+          user_id?: string
+          variance_amount?: number | null
+          variance_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_stripe_invoice_link_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_stripe_invoice_link_contract_invoice_schedule_id_fkey"
+            columns: ["contract_invoice_schedule_id"]
+            isOneToOne: false
+            referencedRelation: "contract_invoice_schedules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contract_stripe_product_map: {
+        Row: {
+          confidence: number | null
+          contract_id: string | null
+          contract_revenue_item_id: string | null
+          created_at: string
+          id: string
+          mapping_status: string
+          organization_id: string | null
+          product_signature: string
+          reusable: boolean
+          stripe_price_id: string | null
+          stripe_product_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          confidence?: number | null
+          contract_id?: string | null
+          contract_revenue_item_id?: string | null
+          created_at?: string
+          id?: string
+          mapping_status?: string
+          organization_id?: string | null
+          product_signature: string
+          reusable?: boolean
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          confidence?: number | null
+          contract_id?: string | null
+          contract_revenue_item_id?: string | null
+          created_at?: string
+          id?: string
+          mapping_status?: string
+          organization_id?: string | null
+          product_signature?: string
+          reusable?: boolean
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_stripe_product_map_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_stripe_product_map_contract_revenue_item_id_fkey"
+            columns: ["contract_revenue_item_id"]
+            isOneToOne: false
+            referencedRelation: "contract_revenue_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contract_stripe_sync: {
+        Row: {
+          blocking_issues: Json
+          contract_id: string
+          created_at: string
+          id: string
+          last_error: Json | null
+          last_sync_at: string | null
+          organization_id: string | null
+          readiness_score: number
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          stripe_subscription_schedule_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          blocking_issues?: Json
+          contract_id: string
+          created_at?: string
+          id?: string
+          last_error?: Json | null
+          last_sync_at?: string | null
+          organization_id?: string | null
+          readiness_score?: number
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          stripe_subscription_schedule_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          blocking_issues?: Json
+          contract_id?: string
+          created_at?: string
+          id?: string
+          last_error?: Json | null
+          last_sync_at?: string | null
+          organization_id?: string | null
+          readiness_score?: number
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          stripe_subscription_schedule_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_stripe_sync_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: true
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contract_stripe_sync_events: {
+        Row: {
+          action: string
+          contract_id: string
+          created_at: string
+          id: string
+          payload: Json | null
+          stripe_response: Json | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          contract_id: string
+          created_at?: string
+          id?: string
+          payload?: Json | null
+          stripe_response?: Json | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          contract_id?: string
+          created_at?: string
+          id?: string
+          payload?: Json | null
+          stripe_response?: Json | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_stripe_sync_events_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contracts: {
         Row: {
           account_id: string
