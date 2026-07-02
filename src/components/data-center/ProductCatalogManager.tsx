@@ -61,6 +61,22 @@ export const ProductCatalogManager = () => {
   const qc = useQueryClient();
   const { list, remove } = useProductCatalog();
   const items = list.data || [];
+  const { connected: stripeConnected } = useStripeConnected();
+  const [syncingStripe, setSyncingStripe] = useState(false);
+
+  const syncFromStripe = async () => {
+    setSyncingStripe(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("sync-stripe-catalog", { body: {} });
+      if (error) throw error;
+      toast.success(`Stripe sync: ${data?.imported ?? 0} imported, ${data?.updated ?? 0} updated`);
+      qc.invalidateQueries({ queryKey: ["product-catalog"] });
+    } catch (e: any) {
+      toast.error(e.message || "Stripe sync failed");
+    } finally {
+      setSyncingStripe(false);
+    }
+  };
 
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm);
