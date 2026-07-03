@@ -1,108 +1,77 @@
-# Demo Workspace Manager
+## Goal
 
-Build an admin-only **Demo Mode** for Recouply that lives alongside production. Nothing about existing customer data or flows changes — demo records are tagged with `is_demo = true` and filtered out of normal dashboards.
+When a contract is ingested via OCR: (1) AI suggests customer matches with confidence scores, (2) if no match, user can pick or create a new customer prefilled from OCR (company + address, contacts, payment terms/currency), (3) line items are prompted per‑row against product catalog, (4) invoices are generated and optionally pushed to Stripe. Also restructure the contract detail page into clean tabs.
 
-Not to be confused with the existing marketing `/demo` interactive tour (that stays as-is). This is an in-app admin tool for creating a real, seeded demo workspace you can log into and record from.
+## 1. AI customer matching (fuzzy w/ confidence)
 
----
+**Backend:** `contract_customer_matches` already exists and `live-contract-extract` scores matches. Enhance the scorer in `supabase/functions/live-contract-extract/index.ts` to also compare **email domain**, **billing address city/postal**, and **phone**, not just name — and store a `confidence_band` (high ≥ 85, medium 60‑84, low <60) in `match_reasons`.
 
-## 1. Access & Location
+**Extract payload:** widen the AI extraction prompt to capture customer `billing_address {line1, line2, city, region, postal_code, country}`, `contacts [{name,email,phone,role}]`, and `payment_terms`, `currency` at the customer level. Persist to a new JSON column `extracted_customer_jsonb` on `live_contract_imports` (migration).
 
-- New admin page: `Admin → Demo Mode` at `/admin/demo` (gated by `useFounderAuth`, same as other admin pages).
-- Sidebar entry visible only to founder/support users.
+**UI — new component** `src/components/contracts/CustomerMatchReviewCard.tsx`:
+- Shows top 3 candidates with % confidence, match reasons chips (name/email/domain/address), and a "Link" button per candidate.
+- Buttons: "Override — pick another", "Create new customer from contract".
+- Auto-hides once `debtor_id` is set on the import.
 
-## 2. Data Isolation Strategy
+**Create-new flow:** replace the minimal form inside `AssignContractDebtor.tsx` create dialog with a richer version prefilled from `extracted_customer_jsonb` — company name, billing address, primary + billing contacts, payment terms, currency. Insert `debtors` + `debtor_contacts` rows and link.
 
-Add an `is_demo boolean not null default false` column to the core tables involved in the demo:
+## 2. Product auto-match per line item
 
-- `debtors`, `contacts`, `debtor_contacts`
-- `contracts`, `live_contract_imports`, `contract_invoice_schedules`, `contract_stripe_sync`, `contract_stripe_product_map`, `contract_stripe_invoice_link`
-- `invoices`, `invoice_line_items`, `payments`, `payment_invoice_links`
-- `collection_tasks`, `collection_activities`, `user_alerts`, `ai_assessments`
+**Backend function (new):** `supabase/functions/contract-product-match/index.ts`
+- Input: `import_id`.
+- For each `contract_revenue_items` row: fuzzy match by `description`/`product_name` + unit price against `product_catalog` (active only). Return per-line: `{ item_id, best_match:{product_id, confidence}, alternates:[…] }`. No auto-write — user confirms.
 
-Rules:
-- Global list/dashboard queries add `.eq("is_demo", false)` by default via a shared helper `withDemoFilter(query, { includeDemo })`.
-- When the user toggles **View: Demo Workspace** in the top bar, queries flip to `.eq("is_demo", true)`.
-- A lightweight `useDemoWorkspace()` context stores the current view mode in `localStorage` and exposes `isDemoView`.
-- Reset only ever deletes rows where `is_demo = true` scoped to the current admin user's account. Production data is untouched.
+**UI — new component** `src/components/contracts/ContractProductMatchPanel.tsx`:
+- Lists each revenue item with a suggested catalog match (confidence badge), a `ProductCatalogPicker` for override, and a "Create new product" button that opens the existing catalog create form prefilled from the line.
+- Save writes `product_id` (+ related fields: `product_description`, `pricing_model`, `billing_period`, `tax_behavior`, `tax_category`, `lookup_key`, `stripe_price_id`) onto `contract_revenue_items` and mirrors down to `contract_invoice_schedules` rows tied to that item.
 
-## 3. Admin UI — Demo Workspace Manager
+Renders inside the Invoicing tab, above the existing invoice schedule.
 
-Single page with three sections:
+## 3. Invoice generation with Stripe sync
 
-**Status card**
-- Workspace exists? counts per entity (customers, contracts, invoices, tasks).
-- Stripe test-mode connection status (separate from prod Stripe integration).
-- Last seeded / last reset timestamps.
+Reuse existing `GenerateInvoicesDialog` + `push-invoice-to-stripe`. Enhancements:
+- Precondition banner: "Customer linked ✓ | 5/6 products matched" — block generation when unresolved lines exist (allow "generate anyway" with warning).
+- Toggle in the dialog: **"Sync to Stripe on generation"** (default ON when Stripe connected). Wires to existing edge function per generated invoice.
+- Success toast links to Stripe invoice URL when present.
 
-**Actions (each with a confirm modal)**
-- Create Demo Workspace
-- Load Demo Dataset (full seed)
-- Generate Demo Invoices
-- Generate Demo Collection Activity
-- Reload Demo Insights (recomputes readiness/risk scores)
-- Reconnect Stripe Test Account
-- Reset Demo Workspace (clear + reseed)
-- Clear Demo Data (delete only)
+## 4. Contract detail page — tabbed layout
 
-**Seeded entities preview**
-- Table of the 5 demo customers with their contract/invoice/ARR snapshot.
+Refactor `src/pages/LiveContractDetail.tsx`. Keep the top: back link, `ClmBrandedHeader`, `ContractDetailSubHeader`, `ContractStatusStepper`, `ContractAgreementFamily`. Below that, replace the long scroll with a `Tabs` component:
 
-## 4. Seed Dataset
+```text
+Overview  |  Parties  |  Commercial Terms  |  Revenue (ASC 606)  |  Risk  |  Invoicing  |  Documents
+```
 
-Demo team (stored as `debtor_contacts` on an internal "Recouply Demo" org record, purely for display):
-Sarah Johnson (CFO), Michael Chen (Controller), Ashley Patel (AR Manager), David Kim (Rev Ops), Emma Rodriguez (CS).
+Mapping (no logic changes — just move existing panels into tabs):
+- **Overview:** Financial Summary, ContractTermGauge, ContractValueByYearCard, KeyDatesNotificationsPanel.
+- **Parties:** CustomerMatchReviewCard, AssignContractDebtor, Contacts (from POC/extracted), ContractPOC details.
+- **Commercial Terms:** EditableFinancialTermsCard, ContractExtractedFieldsEditor (financial fields), ContractBillingRequirements, ContractPerformanceObligations.
+- **Revenue (ASC 606):** ContractRevRecASC606, ContractRevenueItemsPanel, Asc606ChatPanel/AssessmentPanel, ContractScheduleLines.
+- **Risk:** ContractRiskFlagsEditor, ContractComplianceChecklist, InvoiceDataAuditPanel, ContractCustomTriggersPanel.
+- **Invoicing:** ContractProductMatchPanel (new), ContractStagingPanel, ContractInvoiceBacklog, ContractInvoiceRecapture, ContractStripeBillingSync.
+- **Documents:** ContractDocumentViewer, ContractSupportingDocsPanel, ContractLinksPanel, ComplianceDocsManager.
 
-Demo customers:
-- **NimbusHR** — full detail (below)
-- Atlas Health Network, Velocity Commerce, Global Manufacturing Group, Nova Financial Services — realistic but lighter data (contract + 1–2 invoices + a task each).
+Persist active tab in URL (`?tab=parties`) so deep links from notifications land in context. Retain `ContractPageNav` as fallback anchors inside each tab where useful.
 
-**NimbusHR (complete):**
-- MSA + Order Form + one Amendment as `live_contract_imports` rows
-- Contract Start `2026-01-15`, End `2027-01-14`, Renewal Notice 60d before
-- ARR $168,000 · MRR $14,000 · Implementation Services $45,000 · Payment Terms Net 30
-- Invoice `INV-1001` — $213,000, open
-- Contract Intelligence Score, Billing Readiness Score, Collection Readiness Score (pre-computed, stored)
-- Expected cash + collection timeline + 2–3 AI recommendations as `ai_assessments`
-- Renewal alert in `user_alerts`
+## Files
 
-## 5. Stripe Test Mode
+**New**
+- `supabase/functions/contract-product-match/index.ts`
+- `src/components/contracts/CustomerMatchReviewCard.tsx`
+- `src/components/contracts/ContractProductMatchPanel.tsx`
+- `src/components/contracts/CreateCustomerFromOcrDialog.tsx` (rich prefilled form)
 
-- New table `stripe_test_integrations` (mirrors `stripe_integrations` shape, minus prod fields; secret stored encrypted).
-- Demo workspace **never** reads `stripe_integrations` — only `stripe_test_integrations`.
-- Reject any key not starting with `sk_test_` at save time.
-- UI shows a persistent "Stripe Test Mode" chip in the Demo workspace header.
-- Billing sync edge functions accept an `is_demo` flag and route to the test integration when true; test customer/product/price/subscription/invoice IDs are stored on the demo records.
+**Migrations**
+- Add `extracted_customer_jsonb jsonb` on `live_contract_imports`.
+- Add `stripe_price_id`, `pricing_model`, `billing_period`, `tax_behavior`, `tax_category`, `lookup_key`, `product_description` on `contract_revenue_items` if not present (mirror catalog).
+- No new tables; reuse `contract_customer_matches` and `product_catalog`.
 
-## 6. Demo Mode Visual Cues
+**Edits**
+- `supabase/functions/live-contract-extract/index.ts` — widen extraction schema, richer scoring, confidence band.
+- `src/components/contracts/AssignContractDebtor.tsx` — swap in new rich create dialog.
+- `src/components/clm/GenerateInvoicesDialog.tsx` — Stripe sync toggle + gate.
+- `src/pages/LiveContractDetail.tsx` — tab shell.
 
-- When `isDemoView` is true:
-  - Amber top-of-page banner: *"This workspace contains fictional demo data for testing and product demonstrations."*
-  - "Demo Mode" badge in the main nav next to the logo.
-  - Distinct subtle accent color on the sidebar rail so it's unmistakable on video.
-
-## 7. Edge Functions
-
-- `demo-workspace-seed` — creates/re-creates all demo records for the calling admin's account.
-- `demo-workspace-reset` — deletes all `is_demo = true` rows scoped to the account, then re-invokes seed.
-- `demo-insights-recompute` — regenerates readiness/risk scores and refreshes AI assessment records.
-- `demo-generate-invoices` and `demo-generate-collection-activity` — incremental generators for the corresponding buttons.
-
-All are `verify_jwt = false` with in-code JWT validation and admin-role check.
-
-## 8. Technical Details
-
-- Migration adds the `is_demo` columns + partial indexes (`where is_demo = true`) on the hot tables, plus the `stripe_test_integrations` table with GRANTs and RLS.
-- Shared helper `src/lib/demoWorkspace.ts` for `isDemoView` context, `withDemoFilter`, and the seed manifest constants (customer list, NimbusHR values) so seed + UI share one source of truth.
-- Existing list queries get a one-line `.eq("is_demo", isDemoView)` update; the `useDemoWorkspace` hook toggles the flag globally.
-- Nothing about the current marketing `/demo` tour, real Stripe integration, or production dashboards changes.
-
-## 9. Out of Scope (for this pass)
-
-- Recording tooling / video capture.
-- Multi-tenant demo workspaces per admin (only one demo workspace per admin account).
-- Anonymizing existing production data into demo data.
-
----
-
-Approve and I'll ship this in order: migration → shared helpers + context → admin page + actions → edge functions + seeder → wire the demo filter into dashboards/lists → Stripe test-mode plumbing.
+## Non-goals
+- No auto-push of catalog products to Stripe (deferred — user paused this earlier).
+- No changes to non-OCR / manual contract flow beyond the tab UI.
