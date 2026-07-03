@@ -210,6 +210,7 @@ export const ProductCatalogManager = () => {
         const unit_type = ((r.unit_type || r.unit || "each").trim() || "each");
         const currency = ((r.currency || "USD").trim().toUpperCase()) || "USD";
         const unit_cost = Number(r.unit_cost || r.price || 0) || 0;
+        const default_quantity = Number(r.default_quantity || r.quantity || 1) || 1;
         const product_description = ((r.product_description || r.details || "").trim()).slice(0, 50);
         const active = r.active === undefined || r.active === "" ? true : parseBool(r.active);
 
