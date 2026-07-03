@@ -554,6 +554,33 @@ export const ProductCatalogManager = () => {
                   />
                 </div>
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Default quantity</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    value={form.default_quantity}
+                    onChange={(e) => setForm({ ...form, default_quantity: e.target.value })}
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Pre-fills quantity when this product is added to an invoice line.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Line total (calc)</Label>
+                  <div className="h-10 rounded-md border bg-muted/40 px-3 flex items-center font-medium">
+                    {form.currency || "USD"}{" "}
+                    {(
+                      (Number(form.unit_cost) || 0) * (Number(form.default_quantity) || 0)
+                    ).toFixed(2)}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Default quantity × Unit cost.
+                  </p>
+                </div>
+              </div>
 
               {/* Image URL */}
               <div className="space-y-2">
