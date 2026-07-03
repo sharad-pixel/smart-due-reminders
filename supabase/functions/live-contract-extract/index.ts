@@ -260,15 +260,26 @@ async function fetchDriveFileText(fileId: string, mimeType: string, accessToken:
   }
 }
 
-const EXTRACTION_TOOL = {
+// ============================================================================
+// Extraction is split into THREE PARALLEL passes so a smaller/faster model can
+// handle each slice concurrently instead of one giant blocking Pro call:
+//   Pass A — Header (customer + contract + critical_dates + poc)
+//   Pass B — Commercial (commercial totals + invoice_schedule + one_time fees)
+//   Pass C — Legal + risk flags
+// Each pass has its own tool schema; results are merged into a single
+// `extracted` object with the exact same shape the downstream persistence
+// code expects.
+// ============================================================================
+
+const HEADER_TOOL = {
   type: "function",
   function: {
-    name: "extract_contract",
-    description: "Extract structured contract data",
+    name: "extract_contract_header",
+    description: "Extract customer identity, contract metadata, critical dates, POC info.",
     parameters: {
       type: "object",
       properties: {
-        confidence: { type: "number", description: "0-100 overall extraction confidence" },
+        confidence: { type: "number", description: "0-100 header extraction confidence" },
         customer: {
           type: "object",
           properties: {
@@ -279,7 +290,6 @@ const EXTRACTION_TOOL = {
             email_domain: { type: "string" }, tax_id: { type: "string" },
             billing_address: {
               type: "object",
-              description: "Structured billing/bill-to address for the customer.",
               properties: {
                 line1: { type: "string" }, line2: { type: "string" },
                 city: { type: "string" }, region: { type: "string" },
@@ -288,7 +298,6 @@ const EXTRACTION_TOOL = {
             },
             contacts: {
               type: "array",
-              description: "All named contacts in the contract with role (signatory, billing, technical, legal, procurement).",
               items: {
                 type: "object",
                 properties: {
@@ -297,53 +306,23 @@ const EXTRACTION_TOOL = {
                 },
               },
             },
-            payment_terms: { type: "string", description: "Customer-level payment terms if specified (e.g. Net 30)." },
-            currency: { type: "string", description: "Contract currency ISO code (USD, EUR, GBP...)." },
+            payment_terms: { type: "string" },
+            currency: { type: "string" },
             website: { type: "string" },
           },
         },
         contract: {
           type: "object",
           properties: {
-            contract_name: { type: "string", description: "Short, human-friendly contract title (e.g. product/service + customer). Avoid concatenating multiple legal entity names." },
-            contract_type: { type: "string" },
-            product_description: { type: "string", description: "Plain-language summary of the products/services delivered under this contract (1-3 sentences)." },
-            contract_value: { type: "number", description: "Total contract value in numeric form (no currency symbol)." },
+            contract_name: { type: "string" }, contract_type: { type: "string" },
+            product_description: { type: "string" }, contract_value: { type: "number" },
             effective_date: { type: "string" }, term_start_date: { type: "string" },
             term_end_date: { type: "string" }, initial_term: { type: "string" },
             renewal_term: { type: "string" }, auto_renewal: { type: "boolean" },
             renewal_frequency: { type: "string" }, governing_agreement: { type: "string" },
             parent_agreement: { type: "string" }, contract_status: { type: "string" },
-            signed_date: { type: "string" },
-            payment_terms: { type: "string", description: "Default payment terms for the contract (e.g. 'Net 30', 'Net 45', 'Due on receipt'). Applied to every invoice line that doesn't specify its own terms." },
-          },
-        },
-        commercial: {
-          type: "object",
-          properties: {
-            arr: { type: "number" }, acv: { type: "number" }, tcv: { type: "number" },
-            mrr: { type: "number" }, subscription_fees: { type: "number" },
-            platform_fees: { type: "number" }, usage_commitment: { type: "string" },
-            minimum_commitment: { type: "number" }, professional_services_fees: { type: "number" },
-            implementation_fees: { type: "number", description: "Sum of one-time implementation/setup/onboarding/kickoff/deployment fees. Include even if labeled differently (e.g. 'professional services setup', 'configuration fee', 'enablement fee')." },
-            one_time_fees: { type: "number" },
-            recurring_fees: { type: "number" }, currency: { type: "string" },
-          },
-        },
-        one_time_fees_breakdown: {
-          type: "array",
-          description: "Itemized list of every one-time / non-recurring charge in the contract (implementation, setup, onboarding, kickoff, training, migration, professional services, hardware, license activation, etc.). Each row should become its own one-time invoice line.",
-          items: {
-            type: "object",
-            properties: {
-              label: { type: "string", description: "Human label as it appears in the contract (e.g. 'Implementation Fee', 'Onboarding & Setup')." },
-              amount: { type: "number" },
-              currency: { type: "string" },
-              scheduled_date: { type: "string", description: "When this fee is invoiced. Default to contract effective_date when contract says 'due at signing' / 'invoiced upon execution'." },
-              category: { type: "string", description: "implementation | setup | onboarding | professional_services | training | hardware | migration | other_one_time" },
-              notes: { type: "string" },
-            },
-            required: ["label", "amount"],
+            signed_date: { type: "string" }, payment_terms: { type: "string" },
+            industry: { type: "string" },
           },
         },
         critical_dates: {
@@ -352,6 +331,55 @@ const EXTRACTION_TOOL = {
             renewal_date: { type: "string" }, opt_out_deadline: { type: "string" },
             non_renewal_deadline: { type: "string" }, termination_notice_deadline: { type: "string" },
             notice_period_days: { type: "number" },
+          },
+        },
+        poc: {
+          type: "object",
+          properties: {
+            is_poc: { type: "boolean" }, poc_start: { type: "string" }, poc_end: { type: "string" },
+            conversion_terms: { type: "string" }, pilot_fee: { type: "number" },
+            success_criteria: { type: "string" }, termination_rights: { type: "string" },
+            conversion_language: { type: "string" },
+          },
+        },
+      },
+      required: ["confidence"],
+    },
+  },
+};
+
+const COMMERCIAL_TOOL = {
+  type: "function",
+  function: {
+    name: "extract_contract_commercial",
+    description: "Extract commercial totals, invoice schedule, one-time fees.",
+    parameters: {
+      type: "object",
+      properties: {
+        confidence: { type: "number" },
+        commercial: {
+          type: "object",
+          properties: {
+            arr: { type: "number" }, acv: { type: "number" }, tcv: { type: "number" },
+            mrr: { type: "number" }, subscription_fees: { type: "number" },
+            platform_fees: { type: "number" }, usage_commitment: { type: "string" },
+            minimum_commitment: { type: "number" }, professional_services_fees: { type: "number" },
+            implementation_fees: { type: "number" }, one_time_fees: { type: "number" },
+            recurring_fees: { type: "number" }, currency: { type: "string" },
+            total_contract_value: { type: "number" },
+            payment_terms: { type: "string" },
+          },
+        },
+        one_time_fees_breakdown: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              label: { type: "string" }, amount: { type: "number" },
+              currency: { type: "string" }, scheduled_date: { type: "string" },
+              category: { type: "string" }, notes: { type: "string" },
+            },
+            required: ["label", "amount"],
           },
         },
         invoice_schedule: {
@@ -368,6 +396,21 @@ const EXTRACTION_TOOL = {
             },
           },
         },
+      },
+      required: ["confidence"],
+    },
+  },
+};
+
+const LEGAL_TOOL = {
+  type: "function",
+  function: {
+    name: "extract_contract_legal",
+    description: "Extract legal terms and risk flags.",
+    parameters: {
+      type: "object",
+      properties: {
+        confidence: { type: "number" },
         legal: {
           type: "object",
           properties: {
@@ -380,21 +423,13 @@ const EXTRACTION_TOOL = {
             vendor_obligations: { type: "string" }, unusual_terms: { type: "string" },
           },
         },
-        poc: {
-          type: "object",
-          properties: {
-            is_poc: { type: "boolean" }, poc_start: { type: "string" }, poc_end: { type: "string" },
-            conversion_terms: { type: "string" }, pilot_fee: { type: "number" },
-            success_criteria: { type: "string" }, termination_rights: { type: "string" },
-            conversion_language: { type: "string" },
-          },
-        },
         risk_flags: {
           type: "array",
           items: {
             type: "object",
             properties: {
-              flag_type: { type: "string" }, severity: { type: "string", enum: ["low","medium","high","critical"] },
+              flag_type: { type: "string" },
+              severity: { type: "string", enum: ["low","medium","high","critical"] },
               description: { type: "string" }, source_field: { type: "string" },
             },
             required: ["flag_type","severity","description"],
