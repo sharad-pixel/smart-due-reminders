@@ -25,6 +25,8 @@ import { PersonaCommandInput } from "@/components/ai/PersonaCommandInput";
 import { DraftPreviewModal } from "@/components/outreach/DraftPreviewModal";
 import { TasksSummaryCard } from "@/components/tasks/TasksSummaryCard";
 import type { CollectionTask } from "@/hooks/useCollectionTasks";
+import { useStripeConnected } from "@/hooks/useStripeConnected";
+import { Link2, Link2Off } from "lucide-react";
 import { getPaymentTermsOptions, calculateDueDate } from "@/lib/paymentTerms";
 import CreateTaskModal from "@/components/tasks/CreateTaskModal";
 import { OutreachDetailModal, OutreachRecord } from "@/components/outreach/OutreachDetailModal";
@@ -95,6 +97,7 @@ interface Invoice {
   debtors?: { 
     company_name: string; 
     email: string;
+    stripe_customer_id?: string | null;
     crm_account_id: string | null;
     outreach_paused?: boolean | null;
     account_outreach_enabled?: boolean | null;
@@ -159,6 +162,7 @@ interface AIDraft {
 const InvoiceDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { connected: stripeConnected } = useStripeConnected();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [contractSchedule, setContractSchedule] = useState<{ billing_type: string | null; revenue_type: string | null; service_period_start: string | null; service_period_end: string | null; product_category: string | null } | null>(null);
   const [primaryContactEmail, setPrimaryContactEmail] = useState<string | null>(null);
@@ -261,7 +265,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
       const [invoiceRes, outreachLogsRes, activitiesRes, draftsRes, tasksRes] = await Promise.all([
         supabase
           .from("invoices")
-          .select("*, debtors(company_name, email, crm_account_id, outreach_paused, account_outreach_enabled)")
+          .select("*, debtors(company_name, email, stripe_customer_id, crm_account_id, outreach_paused, account_outreach_enabled)")
           .eq("id", id)
           .single(),
         supabase
@@ -1703,6 +1707,38 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                     <p className="text-xs text-muted-foreground">Contact Email</p>
                     <p className="text-sm font-medium">{primaryContactEmail || invoice.debtors?.email || "—"}</p>
                   </div>
+                  {stripeConnected && (
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Stripe Customer</p>
+                      {invoice.debtors?.stripe_customer_id ? (
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 text-[10px]">
+                            <Link2 className="h-3 w-3 mr-1" />
+                            Linked
+                          </Badge>
+                          <code className="text-[11px] px-1.5 py-0.5 rounded bg-muted truncate max-w-[140px]" title={invoice.debtors.stripe_customer_id}>
+                            {invoice.debtors.stripe_customer_id}
+                          </code>
+                        </div>
+                      ) : (
+                        <div className="rounded-md border border-amber-200 bg-amber-50 p-2 space-y-2">
+                          <div className="flex items-center gap-2 text-xs text-amber-800">
+                            <Link2Off className="h-3.5 w-3.5 shrink-0" />
+                            <span>Not linked to a Stripe customer. Invoices for this account cannot be pushed to Stripe until you link one.</span>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="w-full border-amber-300 bg-white hover:bg-amber-100"
+                            onClick={() => navigate(`/debtors/${invoice.debtor_id}`)}
+                          >
+                            <Link2 className="h-3.5 w-3.5 mr-1.5" />
+                            Link Stripe customer
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <Button
                     variant="outline"
                     size="sm"
