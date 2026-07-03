@@ -528,7 +528,7 @@ function scoreCustomerMatch(cust: any, debtor: any): { score: number; reason: st
 
   // Address / postal signals
   const ba = cust.billing_address || {};
-  const debtorAddr = `${debtor.billing_address || ""} ${debtor.city || ""} ${debtor.postal_code || ""}`.toLowerCase();
+  const debtorAddr = `${debtor.billing_address_line1 || ""} ${debtor.billing_city || debtor.city || ""} ${debtor.billing_postal_code || debtor.postal_code || ""}`.toLowerCase();
   if (ba.postal_code && debtorAddr.includes(String(ba.postal_code).toLowerCase())) {
     best = { score: Math.min(100, best.score + 5), reason: best.reason ? `${best.reason}+postal` : "postal" };
     signals.push("postal");
