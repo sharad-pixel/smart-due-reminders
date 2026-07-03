@@ -378,11 +378,18 @@ export const ProductCatalogManager = () => {
     const imageUrl = form.image_url.trim();
     const isRecurring = form.pricing_model === "recurring";
 
+    const qty = Number(form.default_quantity);
+    if (isNaN(qty) || qty <= 0) {
+      toast.error("Default quantity must be greater than 0");
+      return;
+    }
+
     const payload: Record<string, any> = {
       description: desc,
       product_description: form.product_description.trim() || null,
       unit_type: unit,
       unit_cost: cost,
+      default_quantity: qty,
       currency: form.currency || "USD",
       active: form.active,
       status_effective_date: effectiveIso,
