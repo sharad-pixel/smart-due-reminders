@@ -248,12 +248,34 @@ Deno.serve(async (req) => {
     if (action === "generate_invoices") {
       const { scheduleIds, postingState: rawPostingState } = body;
       const postingState = rawPostingState === "posted" ? "posted" : "draft";
-      const { data: schedules } = await supabase
+      console.log("[generate_invoices]", { importId, scheduleIds, postingState, debtor_id: imp.debtor_id });
+      if (!Array.isArray(scheduleIds) || scheduleIds.length === 0) {
+        return json({ error: "No schedules selected — please tick at least one billing row before generating." }, 400);
+      }
+      const { data: schedules, error: schedErr } = await supabase
         .from("contract_invoice_schedules")
         .select("*")
         .eq("import_id", importId)
-        .in("id", scheduleIds || []);
-      if (!schedules || schedules.length === 0) return json({ error: "No schedules selected" }, 400);
+        .in("id", scheduleIds);
+      if (schedErr) {
+        console.error("[generate_invoices] schedules query failed", schedErr);
+        return json({ error: `Could not load schedules: ${schedErr.message}` }, 500);
+      }
+      if (!schedules || schedules.length === 0) return json({ error: "No matching schedules found for this contract" }, 400);
+
+      // Normalize currency symbols → ISO codes (schedules may store "$", "€", "£" from OCR)
+      const normalizeCurrency = (c?: string | null): string => {
+        if (!c) return "USD";
+        const t = c.trim().toUpperCase();
+        if (t === "$" || t === "US$" || t === "USD") return "USD";
+        if (t === "€" || t === "EUR") return "EUR";
+        if (t === "£" || t === "GBP") return "GBP";
+        if (t === "¥" || t === "JPY") return "JPY";
+        if (t === "C$" || t === "CAD") return "CAD";
+        if (t === "A$" || t === "AUD") return "AUD";
+        if (/^[A-Z]{3}$/.test(t)) return t;
+        return "USD";
+      };
 
       const created: any[] = [];
       const skipped: any[] = [];
