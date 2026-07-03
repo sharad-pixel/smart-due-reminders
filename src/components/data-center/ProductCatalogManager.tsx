@@ -70,6 +70,7 @@ interface FormState {
   product_description: string;
   unit_type: string;
   unit_cost: string;
+  default_quantity: string;
   currency: string;
   active: boolean;
   status_effective_date: string; // YYYY-MM-DD
