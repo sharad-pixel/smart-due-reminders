@@ -1707,6 +1707,38 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                     <p className="text-xs text-muted-foreground">Contact Email</p>
                     <p className="text-sm font-medium">{primaryContactEmail || invoice.debtors?.email || "—"}</p>
                   </div>
+                  {stripeConnected && (
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Stripe Customer</p>
+                      {invoice.debtors?.stripe_customer_id ? (
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 text-[10px]">
+                            <Link2 className="h-3 w-3 mr-1" />
+                            Linked
+                          </Badge>
+                          <code className="text-[11px] px-1.5 py-0.5 rounded bg-muted truncate max-w-[140px]" title={invoice.debtors.stripe_customer_id}>
+                            {invoice.debtors.stripe_customer_id}
+                          </code>
+                        </div>
+                      ) : (
+                        <div className="rounded-md border border-amber-200 bg-amber-50 p-2 space-y-2">
+                          <div className="flex items-center gap-2 text-xs text-amber-800">
+                            <Link2Off className="h-3.5 w-3.5 shrink-0" />
+                            <span>Not linked to a Stripe customer. Invoices for this account cannot be pushed to Stripe until you link one.</span>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="w-full border-amber-300 bg-white hover:bg-amber-100"
+                            onClick={() => navigate(`/debtors/${invoice.debtor_id}`)}
+                          >
+                            <Link2 className="h-3.5 w-3.5 mr-1.5" />
+                            Link Stripe customer
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <Button
                     variant="outline"
                     size="sm"
