@@ -41,11 +41,11 @@ export function ProductCatalogMatchCard({ importId }: Props) {
           .order("scheduled_date", { ascending: true }),
         supabase
           .from("product_catalog")
-          .select("id,name,sku,product_description,unit_cost,currency,pricing_model,billing_period,stripe_product_id,stripe_price_id")
-          .eq("is_active", true)
+          .select("id,description,product_description,unit_cost,currency,pricing_model,billing_period,stripe_product_id,stripe_price_id,lookup_key")
+          .eq("active", true)
           .limit(500),
       ]);
-      return { schedules: schedRes.data || [], catalog: catRes.data || [] };
+      return { schedules: schedRes.data || [], catalog: (catRes.data || []) as any[] };
     },
   });
 
