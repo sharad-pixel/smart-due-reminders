@@ -549,8 +549,8 @@ const Pricing = () => {
             </p>
           </div>
 
-          {/* Smart Ingestion Add-on */}
-          <div className="mt-10 max-w-2xl mx-auto">
+          {/* Add-ons: Smart Ingestion + Live Contracts */}
+          <div className="mt-10 grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
             <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-background">
               <CardContent className="pt-6">
                 <div className="flex items-center gap-3 mb-4">
