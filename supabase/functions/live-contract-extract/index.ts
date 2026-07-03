@@ -1147,7 +1147,7 @@ Deno.serve(async (req) => {
     const cust = extracted.customer || {};
     const { data: accountDebtors, error: debtorLookupError } = await supabase
       .from("debtors")
-      .select("id,company_name,name,email")
+      .select("id,company_name,name,email,billing_address,city,postal_code")
       .eq("user_id", imp.account_id)
       .limit(1000);
     if (debtorLookupError) throw new Error(`Customer match lookup failed: ${debtorLookupError.message}`);
@@ -1161,7 +1161,13 @@ Deno.serve(async (req) => {
         import_id: imp.id,
         candidate_debtor_id: debtor.id,
         match_score: match.score,
-        match_reasons: { reason: match.reason, name: debtor.company_name || debtor.name, email: debtor.email },
+        match_reasons: {
+          reason: match.reason,
+          band: bandFor(match.score),
+          signals: match.signals,
+          name: debtor.company_name || debtor.name,
+          email: debtor.email,
+        },
       }));
     if (candidates.length) {
       const { error: matchInsertError } = await supabase.from("contract_customer_matches").insert(candidates);
