@@ -90,6 +90,7 @@ const Debtors = () => {
   const navigate = useNavigate();
   const onboardingStatus = useOnboardingStatus();
   const { data: accountsAvgDPD } = useAccountsAvgDPD();
+  const { connected: stripeConnected } = useStripeConnected();
   const [debtors, setDebtors] = useState<Debtor[]>([]);
   const [filteredDebtors, setFilteredDebtors] = useState<Debtor[]>([]);
   const [loading, setLoading] = useState(true);
