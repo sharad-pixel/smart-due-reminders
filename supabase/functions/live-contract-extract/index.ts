@@ -487,7 +487,14 @@ function tokenOverlap(a: string, b: string): number {
   return matches / Math.max(aTokens.size, bTokens.size);
 }
 
-function scoreCustomerMatch(cust: any, debtor: any): { score: number; reason: string } {
+function bandFor(score: number): "high" | "medium" | "low" {
+  if (score >= 85) return "high";
+  if (score >= 60) return "medium";
+  return "low";
+}
+
+function scoreCustomerMatch(cust: any, debtor: any): { score: number; reason: string; signals: string[] } {
+  const signals: string[] = [];
   const extractedNames = [cust.legal_name, cust.dba_name, cust.billing_entity].filter(Boolean).map(normalizeCompanyName);
   const debtorNames = [debtor.company_name, debtor.name].filter(Boolean).map(normalizeCompanyName);
   let best = { score: 0, reason: "" };
@@ -495,26 +502,43 @@ function scoreCustomerMatch(cust: any, debtor: any): { score: number; reason: st
   for (const extracted of extractedNames) {
     for (const candidate of debtorNames) {
       if (!extracted || !candidate) continue;
-      if (extracted === candidate) best = { score: Math.max(best.score, 95), reason: "company_name_exact" };
-      else if (extracted.length > 6 && candidate.length > 6 && (extracted.includes(candidate) || candidate.includes(extracted))) {
-        best = { score: Math.max(best.score, 85), reason: "company_name_partial" };
+      if (extracted === candidate) {
+        if (best.score < 95) best = { score: 95, reason: "company_name_exact" };
+        if (!signals.includes("name")) signals.push("name");
+      } else if (extracted.length > 6 && candidate.length > 6 && (extracted.includes(candidate) || candidate.includes(extracted))) {
+        if (best.score < 85) best = { score: 85, reason: "company_name_partial" };
+        if (!signals.includes("name")) signals.push("name");
       } else {
         const overlap = tokenOverlap(extracted, candidate);
-        if (overlap >= 0.75) best = { score: Math.max(best.score, 75), reason: "company_name_token_match" };
-        else if (overlap >= 0.5) best = { score: Math.max(best.score, 60), reason: "company_name_possible_match" };
+        if (overlap >= 0.75) { if (best.score < 75) best = { score: 75, reason: "company_name_token_match" }; if (!signals.includes("name")) signals.push("name"); }
+        else if (overlap >= 0.5) { if (best.score < 60) best = { score: 60, reason: "company_name_possible_match" }; if (!signals.includes("name")) signals.push("name"); }
       }
     }
   }
 
-  const extractedDomains = [cust.email_domain, cust.billing_contact, cust.primary_contact, cust.legal_contact, cust.procurement_contact]
+  const extractedDomains = [cust.email_domain, cust.billing_contact, cust.primary_contact, cust.legal_contact, cust.procurement_contact, ...((cust.contacts || []).map((c: any) => c?.email) || [])]
     .map(extractEmailDomain)
     .filter(Boolean);
+  const freeDomains = new Set(["gmail.com", "yahoo.com", "outlook.com", "hotmail.com", "icloud.com"]);
   const debtorDomain = extractEmailDomain(debtor.email);
-  if (debtorDomain && extractedDomains.includes(debtorDomain) && !["gmail.com", "yahoo.com", "outlook.com", "hotmail.com"].includes(debtorDomain)) {
-    best = { score: Math.max(best.score, 90), reason: best.score ? `${best.reason}+email_domain` : "email_domain" };
+  if (debtorDomain && extractedDomains.includes(debtorDomain) && !freeDomains.has(debtorDomain)) {
+    best = { score: Math.max(best.score, 92), reason: best.reason ? `${best.reason}+email_domain` : "email_domain" };
+    signals.push("email_domain");
   }
 
-  return best;
+  // Address / postal signals
+  const ba = cust.billing_address || {};
+  const debtorAddr = `${debtor.billing_address || ""} ${debtor.city || ""} ${debtor.postal_code || ""}`.toLowerCase();
+  if (ba.postal_code && debtorAddr.includes(String(ba.postal_code).toLowerCase())) {
+    best = { score: Math.min(100, best.score + 5), reason: best.reason ? `${best.reason}+postal` : "postal" };
+    signals.push("postal");
+  }
+  if (ba.city && debtorAddr.includes(String(ba.city).toLowerCase())) {
+    best = { score: Math.min(100, best.score + 3), reason: best.reason ? `${best.reason}+city` : "city" };
+    if (!signals.includes("city")) signals.push("city");
+  }
+
+  return { ...best, signals };
 }
 
 Deno.serve(async (req) => {
