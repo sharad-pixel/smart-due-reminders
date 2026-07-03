@@ -13,6 +13,7 @@ export interface ProductCatalogItem {
   product_description?: string | null;
   unit_type: string;
   unit_cost: number;
+  default_quantity?: number;
   currency: string;
   active?: boolean;
   status_effective_date?: string | null;
