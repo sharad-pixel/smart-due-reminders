@@ -8039,6 +8039,60 @@ export type Database = {
           },
         ]
       }
+      live_contract_usage_monthly: {
+        Row: {
+          account_id: string | null
+          active_contracts: number
+          amount_cents: number
+          billable_contracts: number
+          computed_at: string
+          created_at: string
+          currency: string
+          id: string
+          included_contracts: number
+          last_synced_stripe_at: string | null
+          period_month: string
+          plan_type: string | null
+          unit_price_cents: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_id?: string | null
+          active_contracts?: number
+          amount_cents?: number
+          billable_contracts?: number
+          computed_at?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          included_contracts?: number
+          last_synced_stripe_at?: string | null
+          period_month: string
+          plan_type?: string | null
+          unit_price_cents?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_id?: string | null
+          active_contracts?: number
+          amount_cents?: number
+          billable_contracts?: number
+          computed_at?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          included_contracts?: number
+          last_synced_stripe_at?: string | null
+          period_month?: string
+          plan_type?: string | null
+          unit_price_cents?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       live_contract_watchers: {
         Row: {
           account_id: string
@@ -12375,6 +12429,32 @@ export type Database = {
           p_user_id: string
         }
         Returns: Json
+      }
+      recompute_live_contract_usage: {
+        Args: { _user_id?: string }
+        Returns: {
+          account_id: string | null
+          active_contracts: number
+          amount_cents: number
+          billable_contracts: number
+          computed_at: string
+          created_at: string
+          currency: string
+          id: string
+          included_contracts: number
+          last_synced_stripe_at: string | null
+          period_month: string
+          plan_type: string | null
+          unit_price_cents: number
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "live_contract_usage_monthly"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       request_clm_revision_review: {
         Args: { p_emails: string[]; p_revision_id: string }
