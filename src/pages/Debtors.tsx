@@ -18,6 +18,7 @@ import { Plus, Search, Upload, Building2, User, Mail, MapPin, Clock, DollarSign,
 import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 import { SetupRequiredBadge } from "@/components/onboarding/SetupRequiredBadge";
 import { EmailStatusBadge } from "@/components/alerts/EmailStatusBadge";
+import { useStripeConnected } from "@/hooks/useStripeConnected";
 import { ScoringModelTooltip } from "@/components/ai/ScoringModelTooltip";
 import { useNavigate } from "react-router-dom";
 import { SortableTableHead, useSorting } from "@/components/ui/sortable-table-head";
