@@ -99,6 +99,39 @@ export const CreateInvoiceModal = ({
     }
   }, [lineItems]);
 
+  // Auto-derive billing_period_end and next_billing_date from start + frequency
+  useEffect(() => {
+    if (!formData.billing_period_start || !formData.billing_frequency || formData.billing_frequency === "one_time" || formData.billing_frequency === "custom") {
+      return;
+    }
+    const start = new Date(formData.billing_period_start + "T00:00:00");
+    if (isNaN(start.getTime())) return;
+    const monthsByFreq: Record<string, number> = {
+      weekly: 0,
+      monthly: 1,
+      quarterly: 3,
+      semi_annual: 6,
+      annual: 12,
+    };
+    const end = new Date(start);
+    const next = new Date(start);
+    if (formData.billing_frequency === "weekly") {
+      end.setDate(end.getDate() + 6);
+      next.setDate(next.getDate() + 7);
+    } else {
+      const m = monthsByFreq[formData.billing_frequency] ?? 1;
+      end.setMonth(end.getMonth() + m);
+      end.setDate(end.getDate() - 1);
+      next.setMonth(next.getMonth() + m);
+    }
+    const iso = (d: Date) => d.toISOString().slice(0, 10);
+    setFormData(prev => ({
+      ...prev,
+      billing_period_end: prev.billing_period_end || iso(end),
+      next_billing_date: prev.next_billing_date || iso(next),
+    }));
+  }, [formData.billing_period_start, formData.billing_frequency]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
