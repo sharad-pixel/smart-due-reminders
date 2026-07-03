@@ -67,8 +67,8 @@ function evaluate(key: string, fields: any, totals: any, customerLinked?: boolea
   }
 }
 
-export function BillingReadinessCard({ fields, totals }: Props) {
-  const results = CHECK_ITEMS.map((it) => ({ ...it, ...evaluate(it.key, fields, totals) }));
+export function BillingReadinessCard({ fields, totals, customerLinked }: Props) {
+  const results = CHECK_ITEMS.map((it) => ({ ...it, ...evaluate(it.key, fields, totals, customerLinked) }));
   const required = results.filter((r) => !["professional_services", "usage_charges", "discounts", "taxes", "purchase_order"].includes(r.key));
   const passed = required.filter((r) => r.ok).length;
   const score = Math.round((passed / required.length) * 100);
