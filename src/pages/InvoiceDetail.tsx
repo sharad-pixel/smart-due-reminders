@@ -95,6 +95,7 @@ interface Invoice {
   debtors?: { 
     company_name: string; 
     email: string;
+    stripe_customer_id?: string | null;
     crm_account_id: string | null;
     outreach_paused?: boolean | null;
     account_outreach_enabled?: boolean | null;
