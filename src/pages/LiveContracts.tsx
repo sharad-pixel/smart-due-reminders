@@ -1000,13 +1000,25 @@ function ReviewDrawer({ importId, onClose }: { importId: string | null; onClose:
   const qc = useQueryClient();
   const { data, isLoading } = useReviewItem(importId);
   const [selectedDebtorId, setSelectedDebtorId] = useState<string | null>(null);
-  const [newDebtor, setNewDebtor] = useState({ company_name: "", primary_email: "", phone: "", address: "" });
+  const [newDebtor, setNewDebtor] = useState({
+    company_name: "", primary_email: "", phone: "", address: "",
+    billing_address_line1: "", billing_address_line2: "", billing_city: "",
+    billing_state: "", billing_postal_code: "", billing_country: "",
+    payment_terms: "", notes: "",
+  });
   const [prefilled, setPrefilled] = useState(false);
+  const [customerMode, setCustomerMode] = useState<"auto" | "manual">("auto");
 
   useEffect(() => {
     setSelectedDebtorId(null);
-    setNewDebtor({ company_name: "", primary_email: "", phone: "", address: "" });
+    setNewDebtor({
+      company_name: "", primary_email: "", phone: "", address: "",
+      billing_address_line1: "", billing_address_line2: "", billing_city: "",
+      billing_state: "", billing_postal_code: "", billing_country: "",
+      payment_terms: "", notes: "",
+    });
     setPrefilled(false);
+    setCustomerMode("auto");
   }, [importId]);
 
   useEffect(() => {
@@ -1015,22 +1027,33 @@ function ReviewDrawer({ importId, onClose }: { importId: string | null; onClose:
     if (confidentMatch?.candidate_debtor_id) setSelectedDebtorId(confidentMatch.candidate_debtor_id);
   }, [data?.matches, selectedDebtorId, newDebtor.company_name]);
 
-  // Pre-fill new-customer form from extracted customer fields
+  // Pre-fill new-customer form from extracted customer fields + structured jsonb
   useEffect(() => {
-    if (prefilled || !data?.fields?.length) return;
+    if (prefilled || (!data?.fields?.length && !data?.imp?.extracted_customer_jsonb)) return;
     const cust: Record<string, string> = {};
-    for (const f of data.fields) {
+    for (const f of (data.fields || [])) {
       if (f.field_group === "customer" && f.field_value) cust[f.field_key] = f.field_value;
     }
-    if (Object.keys(cust).length === 0) return;
+    const rich = (data?.imp?.extracted_customer_jsonb || {}) as any;
+    const ba = rich.billing_address || {};
+    const contactList: any[] = Array.isArray(rich.contacts) ? rich.contacts : [];
+    const billingContact = contactList.find((c) => (c.role || "").toLowerCase().includes("billing")) || contactList[0] || {};
     setNewDebtor((prev) => ({
-      company_name: prev.company_name || cust.legal_name || cust.dba_name || cust.billing_entity || "",
-      primary_email: prev.primary_email || cust.billing_contact || cust.primary_contact || (cust.email_domain ? `billing@${cust.email_domain.replace(/^@/, "")}` : ""),
-      phone: prev.phone || "",
-      address: prev.address || cust.address || "",
+      company_name: prev.company_name || rich.legal_name || cust.legal_name || cust.dba_name || cust.billing_entity || "",
+      primary_email: prev.primary_email || billingContact.email || cust.billing_contact || cust.primary_contact || (rich.email_domain ? `billing@${String(rich.email_domain).replace(/^@/, "")}` : ""),
+      phone: prev.phone || billingContact.phone || "",
+      address: prev.address || rich.address || cust.address || "",
+      billing_address_line1: prev.billing_address_line1 || ba.line1 || "",
+      billing_address_line2: prev.billing_address_line2 || ba.line2 || "",
+      billing_city: prev.billing_city || ba.city || "",
+      billing_state: prev.billing_state || ba.region || "",
+      billing_postal_code: prev.billing_postal_code || ba.postal_code || "",
+      billing_country: prev.billing_country || ba.country || "",
+      payment_terms: prev.payment_terms || rich.payment_terms || "",
+      notes: prev.notes || (contactList.length ? `Contacts from contract:\n${contactList.map((c) => `${c.role || "Contact"}: ${c.name || ""} ${c.email ? `<${c.email}>` : ""} ${c.phone || ""}`.trim()).join("\n")}` : ""),
     }));
     setPrefilled(true);
-  }, [data?.fields, prefilled]);
+  }, [data?.fields, data?.imp?.extracted_customer_jsonb, prefilled]);
 
   const approve = useMutation({
     mutationFn: async () => {
