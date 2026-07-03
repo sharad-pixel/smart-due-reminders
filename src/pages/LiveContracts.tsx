@@ -1000,13 +1000,25 @@ function ReviewDrawer({ importId, onClose }: { importId: string | null; onClose:
   const qc = useQueryClient();
   const { data, isLoading } = useReviewItem(importId);
   const [selectedDebtorId, setSelectedDebtorId] = useState<string | null>(null);
-  const [newDebtor, setNewDebtor] = useState({ company_name: "", primary_email: "", phone: "", address: "" });
+  const [newDebtor, setNewDebtor] = useState({
+    company_name: "", primary_email: "", phone: "", address: "",
+    billing_address_line1: "", billing_address_line2: "", billing_city: "",
+    billing_state: "", billing_postal_code: "", billing_country: "",
+    payment_terms: "", notes: "",
+  });
   const [prefilled, setPrefilled] = useState(false);
+  const [customerMode, setCustomerMode] = useState<"auto" | "manual">("auto");
 
   useEffect(() => {
     setSelectedDebtorId(null);
-    setNewDebtor({ company_name: "", primary_email: "", phone: "", address: "" });
+    setNewDebtor({
+      company_name: "", primary_email: "", phone: "", address: "",
+      billing_address_line1: "", billing_address_line2: "", billing_city: "",
+      billing_state: "", billing_postal_code: "", billing_country: "",
+      payment_terms: "", notes: "",
+    });
     setPrefilled(false);
+    setCustomerMode("auto");
   }, [importId]);
 
   useEffect(() => {
@@ -1015,27 +1027,40 @@ function ReviewDrawer({ importId, onClose }: { importId: string | null; onClose:
     if (confidentMatch?.candidate_debtor_id) setSelectedDebtorId(confidentMatch.candidate_debtor_id);
   }, [data?.matches, selectedDebtorId, newDebtor.company_name]);
 
-  // Pre-fill new-customer form from extracted customer fields
+  // Pre-fill new-customer form from extracted customer fields + structured jsonb
   useEffect(() => {
-    if (prefilled || !data?.fields?.length) return;
+    if (prefilled || (!data?.fields?.length && !data?.imp?.extracted_customer_jsonb)) return;
     const cust: Record<string, string> = {};
-    for (const f of data.fields) {
+    for (const f of (data.fields || [])) {
       if (f.field_group === "customer" && f.field_value) cust[f.field_key] = f.field_value;
     }
-    if (Object.keys(cust).length === 0) return;
+    const rich = (data?.imp?.extracted_customer_jsonb || {}) as any;
+    const ba = rich.billing_address || {};
+    const contactList: any[] = Array.isArray(rich.contacts) ? rich.contacts : [];
+    const billingContact = contactList.find((c) => (c.role || "").toLowerCase().includes("billing")) || contactList[0] || {};
     setNewDebtor((prev) => ({
-      company_name: prev.company_name || cust.legal_name || cust.dba_name || cust.billing_entity || "",
-      primary_email: prev.primary_email || cust.billing_contact || cust.primary_contact || (cust.email_domain ? `billing@${cust.email_domain.replace(/^@/, "")}` : ""),
-      phone: prev.phone || "",
-      address: prev.address || cust.address || "",
+      company_name: prev.company_name || rich.legal_name || cust.legal_name || cust.dba_name || cust.billing_entity || "",
+      primary_email: prev.primary_email || billingContact.email || cust.billing_contact || cust.primary_contact || (rich.email_domain ? `billing@${String(rich.email_domain).replace(/^@/, "")}` : ""),
+      phone: prev.phone || billingContact.phone || "",
+      address: prev.address || rich.address || cust.address || "",
+      billing_address_line1: prev.billing_address_line1 || ba.line1 || "",
+      billing_address_line2: prev.billing_address_line2 || ba.line2 || "",
+      billing_city: prev.billing_city || ba.city || "",
+      billing_state: prev.billing_state || ba.region || "",
+      billing_postal_code: prev.billing_postal_code || ba.postal_code || "",
+      billing_country: prev.billing_country || ba.country || "",
+      payment_terms: prev.payment_terms || rich.payment_terms || "",
+      notes: prev.notes || (contactList.length ? `Contacts from contract:\n${contactList.map((c) => `${c.role || "Contact"}: ${c.name || ""} ${c.email ? `<${c.email}>` : ""} ${c.phone || ""}`.trim()).join("\n")}` : ""),
     }));
     setPrefilled(true);
-  }, [data?.fields, prefilled]);
+  }, [data?.fields, data?.imp?.extracted_customer_jsonb, prefilled]);
 
   const approve = useMutation({
     mutationFn: async () => {
       const body: any = { importId, action: "approve" };
-      if (selectedDebtorId) body.debtorId = selectedDebtorId;
+      if (customerMode === "auto" && selectedDebtorId) body.debtorId = selectedDebtorId;
+      else if (customerMode === "manual" && newDebtor.company_name) body.newDebtor = newDebtor;
+      else if (selectedDebtorId) body.debtorId = selectedDebtorId;
       else if (newDebtor.company_name) body.newDebtor = newDebtor;
       // else: backend will auto-create from extracted customer data
       const { data, error } = await supabase.functions.invoke("live-contract-approve", { body });
@@ -1093,27 +1118,57 @@ function ReviewDrawer({ importId, onClose }: { importId: string | null; onClose:
               <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Building2 className="h-4 w-4" />Customer match</CardTitle></CardHeader>
               <CardContent className="space-y-3">
                 {data.matches.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No existing customer matched this contract. Confirm the customer below to create it.</p>
+                  <p className="text-sm text-muted-foreground">No existing customer matched this contract. Confirm the customer below to create it, or search & manually assign one.</p>
                 ) : (
                   <div className="space-y-2">
-                    {data.matches.slice(0, 5).map((m: any) => (
-                      <label key={m.id} className={`flex items-center gap-2 p-2 border rounded cursor-pointer ${selectedDebtorId === m.candidate_debtor_id ? "border-primary bg-primary/5" : ""}`}>
-                        <input type="radio" name="match" checked={selectedDebtorId === m.candidate_debtor_id} onChange={() => setSelectedDebtorId(m.candidate_debtor_id)} />
-                        <div className="flex-1 text-sm">
-                          <div className="font-medium">{m.match_reasons?.name || "Unknown"}</div>
-                          <div className="text-xs text-muted-foreground">{m.match_reasons?.email} · {m.match_reasons?.reason} · {m.match_score}%</div>
-                        </div>
-                      </label>
-                    ))}
+                    {data.matches.slice(0, 5).map((m: any) => {
+                      const band = m.match_reasons?.band || (Number(m.match_score) >= 85 ? "high" : Number(m.match_score) >= 60 ? "medium" : "low");
+                      const bandCls = band === "high" ? "bg-emerald-100 text-emerald-700 border-emerald-200" : band === "medium" ? "bg-amber-100 text-amber-700 border-amber-200" : "bg-slate-100 text-slate-700 border-slate-200";
+                      const signals: string[] = m.match_reasons?.signals || [];
+                      return (
+                        <label key={m.id} className={`flex items-start gap-2 p-2 border rounded cursor-pointer ${selectedDebtorId === m.candidate_debtor_id ? "border-primary bg-primary/5" : ""}`}>
+                          <input type="radio" name="match" className="mt-1" checked={selectedDebtorId === m.candidate_debtor_id} onChange={() => { setSelectedDebtorId(m.candidate_debtor_id); setCustomerMode("auto"); }} />
+                          <div className="flex-1 text-sm">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-medium">{m.match_reasons?.name || "Unknown"}</span>
+                              <span className={`text-[10px] uppercase tracking-wide border rounded px-1.5 py-0.5 ${bandCls}`}>{band} · {m.match_score}%</span>
+                              {signals.map((s) => (
+                                <span key={s} className="text-[10px] text-muted-foreground border rounded px-1.5 py-0.5 capitalize">{s.replace(/_/g, " ")}</span>
+                              ))}
+                            </div>
+                            <div className="text-xs text-muted-foreground">{m.match_reasons?.email || "—"} · {m.match_reasons?.reason}</div>
+                          </div>
+                        </label>
+                      );
+                    })}
                   </div>
                 )}
-                <div className="border-t pt-3 space-y-2">
-                  <p className="text-xs font-medium">Or create new customer {data.matches.length === 0 && <span className="text-muted-foreground">(auto-filled from contract)</span>}</p>
-                  <Input placeholder="Company name" value={newDebtor.company_name} onChange={(e) => { setNewDebtor({ ...newDebtor, company_name: e.target.value }); setSelectedDebtorId(null); }} />
-                  <Input placeholder="Primary email" value={newDebtor.primary_email} onChange={(e) => setNewDebtor({ ...newDebtor, primary_email: e.target.value })} />
-                  <Input placeholder="Phone" value={newDebtor.phone} onChange={(e) => setNewDebtor({ ...newDebtor, phone: e.target.value })} />
-                  <Input placeholder="Address" value={newDebtor.address} onChange={(e) => setNewDebtor({ ...newDebtor, address: e.target.value })} />
+
+                <div className="flex items-center gap-2 border-t pt-3">
+                  <button type="button" onClick={() => setCustomerMode("auto")} className={`text-xs px-2 py-1 rounded border ${customerMode === "auto" ? "bg-primary/10 border-primary text-primary" : "text-muted-foreground"}`}>Use suggested / existing</button>
+                  <button type="button" onClick={() => { setCustomerMode("manual"); setSelectedDebtorId(null); }} className={`text-xs px-2 py-1 rounded border ${customerMode === "manual" ? "bg-primary/10 border-primary text-primary" : "text-muted-foreground"}`}>Create new from contract</button>
                 </div>
+
+                {customerMode === "manual" && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium">New customer <span className="text-muted-foreground">(auto-filled from OCR — edit as needed)</span></p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input className="col-span-2" placeholder="Company name *" value={newDebtor.company_name} onChange={(e) => { setNewDebtor({ ...newDebtor, company_name: e.target.value }); setSelectedDebtorId(null); }} />
+                      <Input placeholder="Primary billing email" value={newDebtor.primary_email} onChange={(e) => setNewDebtor({ ...newDebtor, primary_email: e.target.value })} />
+                      <Input placeholder="Phone" value={newDebtor.phone} onChange={(e) => setNewDebtor({ ...newDebtor, phone: e.target.value })} />
+                      <Input className="col-span-2" placeholder="Billing address line 1" value={newDebtor.billing_address_line1} onChange={(e) => setNewDebtor({ ...newDebtor, billing_address_line1: e.target.value })} />
+                      <Input className="col-span-2" placeholder="Billing address line 2" value={newDebtor.billing_address_line2} onChange={(e) => setNewDebtor({ ...newDebtor, billing_address_line2: e.target.value })} />
+                      <Input placeholder="City" value={newDebtor.billing_city} onChange={(e) => setNewDebtor({ ...newDebtor, billing_city: e.target.value })} />
+                      <Input placeholder="State / Region" value={newDebtor.billing_state} onChange={(e) => setNewDebtor({ ...newDebtor, billing_state: e.target.value })} />
+                      <Input placeholder="Postal code" value={newDebtor.billing_postal_code} onChange={(e) => setNewDebtor({ ...newDebtor, billing_postal_code: e.target.value })} />
+                      <Input placeholder="Country" value={newDebtor.billing_country} onChange={(e) => setNewDebtor({ ...newDebtor, billing_country: e.target.value })} />
+                      <Input className="col-span-2" placeholder="Payment terms (e.g. Net 30)" value={newDebtor.payment_terms} onChange={(e) => setNewDebtor({ ...newDebtor, payment_terms: e.target.value })} />
+                    </div>
+                    {newDebtor.notes && (
+                      <div className="text-[11px] text-muted-foreground whitespace-pre-line border rounded p-2 bg-muted/40">{newDebtor.notes}</div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
 

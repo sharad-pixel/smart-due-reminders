@@ -47,6 +47,7 @@ import { ContractReassessPanel } from "@/components/clm/ContractReassessPanel";
 import ContractRevenueItemsPanel from "@/components/contracts/ContractRevenueItemsPanel";
 import { ContractOverviewEditor } from "@/components/clm/ContractOverviewEditor";
 import { ContractScheduleLines } from "@/components/clm/ContractScheduleLines";
+import { ProductCatalogMatchCard } from "@/components/clm/ProductCatalogMatchCard";
 import { ContractValueByYearCard } from "@/components/clm/ContractValueByYearCard";
 
 import { ContractExtractedFieldsEditor } from "@/components/clm/ContractExtractedFieldsEditor";
@@ -685,6 +686,8 @@ const LiveContractDetailInner = () => {
           status={c.status}
           ackAt={(c as any).nicolas_line_review_ack_at}
         />
+
+        <ProductCatalogMatchCard importId={c.id} />
 
         <ContractScheduleLines
           importId={c.id}

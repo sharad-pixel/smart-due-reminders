@@ -2306,6 +2306,7 @@ export type Database = {
           account_id: string
           amount: number | null
           attachment_source: string | null
+          billing_period: string | null
           billing_type: string | null
           category_source: string | null
           completed_at: string | null
@@ -2322,10 +2323,15 @@ export type Database = {
           invoice_created_at: string | null
           invoice_id: string | null
           is_demo: boolean
+          lookup_key: string | null
           ocr_scanned_file_id: string | null
           payment_terms: string | null
+          pricing_model: string | null
           product_category: string | null
           product_description: string | null
+          product_id: string | null
+          product_match_confidence: number | null
+          product_match_status: string | null
           quantity: number | null
           reconciled_at: string | null
           reconciliation_candidates: Json | null
@@ -2335,12 +2341,17 @@ export type Database = {
           service_period_end: string | null
           service_period_start: string | null
           status: string
+          stripe_price_id: string | null
+          stripe_product_id: string | null
+          tax_behavior: string | null
+          tax_category: string | null
           unit_price: number | null
         }
         Insert: {
           account_id: string
           amount?: number | null
           attachment_source?: string | null
+          billing_period?: string | null
           billing_type?: string | null
           category_source?: string | null
           completed_at?: string | null
@@ -2357,10 +2368,15 @@ export type Database = {
           invoice_created_at?: string | null
           invoice_id?: string | null
           is_demo?: boolean
+          lookup_key?: string | null
           ocr_scanned_file_id?: string | null
           payment_terms?: string | null
+          pricing_model?: string | null
           product_category?: string | null
           product_description?: string | null
+          product_id?: string | null
+          product_match_confidence?: number | null
+          product_match_status?: string | null
           quantity?: number | null
           reconciled_at?: string | null
           reconciliation_candidates?: Json | null
@@ -2370,12 +2386,17 @@ export type Database = {
           service_period_end?: string | null
           service_period_start?: string | null
           status?: string
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+          tax_behavior?: string | null
+          tax_category?: string | null
           unit_price?: number | null
         }
         Update: {
           account_id?: string
           amount?: number | null
           attachment_source?: string | null
+          billing_period?: string | null
           billing_type?: string | null
           category_source?: string | null
           completed_at?: string | null
@@ -2392,10 +2413,15 @@ export type Database = {
           invoice_created_at?: string | null
           invoice_id?: string | null
           is_demo?: boolean
+          lookup_key?: string | null
           ocr_scanned_file_id?: string | null
           payment_terms?: string | null
+          pricing_model?: string | null
           product_category?: string | null
           product_description?: string | null
+          product_id?: string | null
+          product_match_confidence?: number | null
+          product_match_status?: string | null
           quantity?: number | null
           reconciled_at?: string | null
           reconciliation_candidates?: Json | null
@@ -2405,6 +2431,10 @@ export type Database = {
           service_period_end?: string | null
           service_period_start?: string | null
           status?: string
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+          tax_behavior?: string | null
+          tax_category?: string | null
           unit_price?: number | null
         }
         Relationships: [
@@ -2420,6 +2450,13 @@ export type Database = {
             columns: ["invoice_id"]
             isOneToOne: false
             referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_invoice_schedules_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_catalog"
             referencedColumns: ["id"]
           },
         ]
@@ -7634,6 +7671,7 @@ export type Database = {
           duplicate_of: string | null
           effective_date: string | null
           error: string | null
+          extracted_customer_jsonb: Json | null
           file_name: string
           file_size: number | null
           folder_id: string | null
@@ -7681,6 +7719,7 @@ export type Database = {
           duplicate_of?: string | null
           effective_date?: string | null
           error?: string | null
+          extracted_customer_jsonb?: Json | null
           file_name: string
           file_size?: number | null
           folder_id?: string | null
@@ -7728,6 +7767,7 @@ export type Database = {
           duplicate_of?: string | null
           effective_date?: string | null
           error?: string | null
+          extracted_customer_jsonb?: Json | null
           file_name?: string
           file_size?: number | null
           folder_id?: string | null
