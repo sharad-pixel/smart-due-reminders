@@ -1147,7 +1147,7 @@ Deno.serve(async (req) => {
     const cust = extracted.customer || {};
     const { data: accountDebtors, error: debtorLookupError } = await supabase
       .from("debtors")
-      .select("id,company_name,name,email,billing_address,city,postal_code")
+      .select("id,company_name,name,email,billing_address_line1,billing_city,billing_postal_code,city,postal_code")
       .eq("user_id", imp.account_id)
       .limit(1000);
     if (debtorLookupError) throw new Error(`Customer match lookup failed: ${debtorLookupError.message}`);
