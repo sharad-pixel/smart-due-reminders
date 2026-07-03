@@ -434,6 +434,17 @@ Deno.serve(async (req) => {
         event_type: "invoices_generated",
         event_details: { created: created.length, skipped: skipped.length, duplicates: duplicates.length, posting_state: postingState, skipped_detail: skipped },
       });
+      // If nothing was created and there are non-duplicate failures, surface as an error so the UI can show the reason
+      const hardFailures = skipped.filter((s) => s.reason && !/duplicate|already invoiced|no amount/i.test(s.reason));
+      if (created.length === 0 && duplicates.length === 0 && hardFailures.length > 0) {
+        return json({
+          error: `Invoice generation failed: ${hardFailures[0].reason}`,
+          created: 0,
+          duplicates: 0,
+          skipped,
+          postingState,
+        }, 422);
+      }
       return json({ success: true, created: created.length, duplicates: duplicates.length, skipped, postingState });
     }
 
