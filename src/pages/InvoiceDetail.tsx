@@ -94,6 +94,10 @@ interface Invoice {
   last_synced_at: string | null;
   original_amount: number | null;
   original_due_date: string | null;
+  billing_period_start: string | null;
+  billing_period_end: string | null;
+  billing_frequency: string | null;
+  next_billing_date: string | null;
   debtors?: { 
     company_name: string; 
     email: string;
