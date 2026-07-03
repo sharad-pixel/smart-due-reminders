@@ -137,10 +137,10 @@ export const ProductCatalogManager = () => {
 
   const downloadTemplate = () => {
     const csv = [
-      "description,product_description,unit_type,unit_cost,currency,active,pricing_model,billing_period,tax_behavior,tax_category,price_description,lookup_key,image_url",
-      "Monthly subscription — Pro plan,Includes unlimited seats & support,month,49.00,USD,true,recurring,monthly,auto,txcd_10103000,Pro monthly,pro_monthly,",
-      "Implementation services,One-time onboarding engagement,hour,150.00,USD,true,one_off,,auto,txcd_20030000,,,",
-      "Annual license,Full-year access to platform,year,1200.00,USD,true,recurring,yearly,auto,txcd_10103000,Annual license,annual_license,",
+      "description,product_description,unit_type,unit_cost,default_quantity,currency,active,pricing_model,billing_period,tax_behavior,tax_category,price_description,lookup_key,image_url",
+      "Monthly subscription — Pro plan,Includes unlimited seats & support,month,49.00,1,USD,true,recurring,monthly,auto,txcd_10103000,Pro monthly,pro_monthly,",
+      "Implementation services,One-time onboarding engagement,hour,150.00,10,USD,true,one_off,,auto,txcd_20030000,,,",
+      "Annual license,Full-year access to platform,year,1200.00,1,USD,true,recurring,yearly,auto,txcd_10103000,Annual license,annual_license,",
     ].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
