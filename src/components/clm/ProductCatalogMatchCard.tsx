@@ -55,7 +55,7 @@ export function ProductCatalogMatchCard({ importId }: Props) {
     for (const s of data.schedules) {
       const label = s.description || s.billing_type || "";
       map[s.id] = data.catalog
-        .map((p) => ({ product: p, score: Math.max(score(label, p.name || ""), score(label, p.sku || "")) }))
+        .map((p: any) => ({ product: p, score: Math.max(score(label, p.description || ""), score(label, p.lookup_key || "")) }))
         .filter((x) => x.score >= 40)
         .sort((a, b) => b.score - a.score)
         .slice(0, 3);
