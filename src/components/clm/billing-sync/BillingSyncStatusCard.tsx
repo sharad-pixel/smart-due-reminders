@@ -62,7 +62,12 @@ export function BillingSyncStatusCard({ sync, stripeAccount, onRecompute, onSync
             <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${computing ? "animate-spin" : ""}`} />
             Recompute Readiness
           </Button>
-          <Button size="sm" onClick={onSync} disabled={syncing || score < 80}>
+          <Button
+            size="sm"
+            onClick={onSync}
+            disabled={syncing || score < 80 || blockedByCustomer}
+            title={blockedByCustomer ? "Link a Stripe customer to the account first" : undefined}
+          >
             <Upload className="h-3.5 w-3.5 mr-1.5" />
             Sync to Stripe
           </Button>
