@@ -7052,6 +7052,9 @@ export type Database = {
           amount: number
           amount_original: number | null
           amount_outstanding: number | null
+          billing_frequency: string | null
+          billing_period_end: string | null
+          billing_period_start: string | null
           bucket_entered_at: string | null
           created_at: string | null
           currency: string | null
@@ -7078,6 +7081,7 @@ export type Database = {
           last_contact_date: string | null
           last_contacted_at: string | null
           last_synced_at: string | null
+          next_billing_date: string | null
           next_contact_date: string | null
           normalized_status: string | null
           notes: string | null
@@ -7135,6 +7139,9 @@ export type Database = {
           amount: number
           amount_original?: number | null
           amount_outstanding?: number | null
+          billing_frequency?: string | null
+          billing_period_end?: string | null
+          billing_period_start?: string | null
           bucket_entered_at?: string | null
           created_at?: string | null
           currency?: string | null
@@ -7161,6 +7168,7 @@ export type Database = {
           last_contact_date?: string | null
           last_contacted_at?: string | null
           last_synced_at?: string | null
+          next_billing_date?: string | null
           next_contact_date?: string | null
           normalized_status?: string | null
           notes?: string | null
@@ -7218,6 +7226,9 @@ export type Database = {
           amount?: number
           amount_original?: number | null
           amount_outstanding?: number | null
+          billing_frequency?: string | null
+          billing_period_end?: string | null
+          billing_period_start?: string | null
           bucket_entered_at?: string | null
           created_at?: string | null
           currency?: string | null
@@ -7244,6 +7255,7 @@ export type Database = {
           last_contact_date?: string | null
           last_contacted_at?: string | null
           last_synced_at?: string | null
+          next_billing_date?: string | null
           next_contact_date?: string | null
           normalized_status?: string | null
           notes?: string | null

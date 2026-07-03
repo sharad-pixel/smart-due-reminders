@@ -94,6 +94,10 @@ interface Invoice {
   last_synced_at: string | null;
   original_amount: number | null;
   original_due_date: string | null;
+  billing_period_start: string | null;
+  billing_period_end: string | null;
+  billing_frequency: string | null;
+  next_billing_date: string | null;
   debtors?: { 
     company_name: string; 
     email: string;
@@ -1748,6 +1752,35 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                     View Account Details
                   </Button>
                 </div>
+
+                {/* Billing Terms Section — service period & recurrence */}
+                {(invoice.billing_period_start || invoice.billing_period_end || invoice.billing_frequency || invoice.next_billing_date) && (
+                  <div className="space-y-3 pt-4 border-t">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Billing Terms</p>
+                    {invoice.billing_frequency && (
+                      <div>
+                        <p className="text-xs text-muted-foreground">Frequency</p>
+                        <p className="font-medium capitalize">{invoice.billing_frequency.replace(/_/g, " ")}</p>
+                      </div>
+                    )}
+                    {(invoice.billing_period_start || invoice.billing_period_end) && (
+                      <div>
+                        <p className="text-xs text-muted-foreground">Service Period</p>
+                        <p className="font-medium text-sm">
+                          {invoice.billing_period_start ? new Date(invoice.billing_period_start).toLocaleDateString() : "—"}
+                          {" → "}
+                          {invoice.billing_period_end ? new Date(invoice.billing_period_end).toLocaleDateString() : "—"}
+                        </p>
+                      </div>
+                    )}
+                    {invoice.next_billing_date && invoice.billing_frequency && invoice.billing_frequency !== "one_time" && (
+                      <div>
+                        <p className="text-xs text-muted-foreground">Next Invoice Due</p>
+                        <p className="font-medium text-sm">{new Date(invoice.next_billing_date).toLocaleDateString()}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Payment Info Section */}
                 <div className="space-y-3 pt-4 border-t">
