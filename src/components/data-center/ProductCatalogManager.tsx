@@ -808,6 +808,8 @@ export const ProductCatalogManager = () => {
                     <TableHead>Unit</TableHead>
                     <TableHead>Pricing</TableHead>
                     <TableHead className="text-right">Unit Cost</TableHead>
+                    <TableHead className="text-right">Default Qty</TableHead>
+                    <TableHead className="text-right">Line Total</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Effective</TableHead>
                     <TableHead>Source</TableHead>
