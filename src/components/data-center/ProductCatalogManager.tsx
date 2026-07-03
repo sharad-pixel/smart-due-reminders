@@ -91,6 +91,7 @@ const emptyForm: FormState = {
   product_description: "",
   unit_type: "each",
   unit_cost: "0",
+  default_quantity: "1",
   currency: "USD",
   active: true,
   status_effective_date: todayIso(),
