@@ -457,6 +457,80 @@ export const CreateInvoiceModal = ({
             </div>
           </div>
 
+          {/* Billing Terms — service period covered + recurrence */}
+          <div className="border-t pt-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">Billing Terms</p>
+                <p className="text-xs text-muted-foreground">
+                  What service period does this invoice cover? For recurring billing, set the cadence.
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="billing_frequency">Billing Frequency</Label>
+                <Select
+                  value={formData.billing_frequency}
+                  onValueChange={(v) => setFormData({ ...formData, billing_frequency: v })}
+                >
+                  <SelectTrigger id="billing_frequency">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="one_time">One-time</SelectItem>
+                    <SelectItem value="weekly">Weekly</SelectItem>
+                    <SelectItem value="monthly">Monthly</SelectItem>
+                    <SelectItem value="quarterly">Quarterly</SelectItem>
+                    <SelectItem value="semi_annual">Semi-annual</SelectItem>
+                    <SelectItem value="annual">Annual</SelectItem>
+                    <SelectItem value="custom">Custom</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="billing_period_start">Period Start</Label>
+                <Input
+                  id="billing_period_start"
+                  type="date"
+                  value={formData.billing_period_start}
+                  onChange={(e) => setFormData({ ...formData, billing_period_start: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="billing_period_end">Period End</Label>
+                <Input
+                  id="billing_period_end"
+                  type="date"
+                  value={formData.billing_period_end}
+                  onChange={(e) => setFormData({ ...formData, billing_period_end: e.target.value })}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Auto-filled from frequency. Adjust for partial periods.
+                </p>
+              </div>
+
+              {formData.billing_frequency && formData.billing_frequency !== "one_time" && (
+                <div className="space-y-2">
+                  <Label htmlFor="next_billing_date">Next Invoice Date</Label>
+                  <Input
+                    id="next_billing_date"
+                    type="date"
+                    value={formData.next_billing_date}
+                    onChange={(e) => setFormData({ ...formData, next_billing_date: e.target.value })}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    When the next invoice in this series should be issued.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+
+
           {/* Line Items */}
           <div className="border-t pt-4">
             <LineItemsTable
