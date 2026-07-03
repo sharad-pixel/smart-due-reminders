@@ -1,0 +1,1 @@
+ALTER TABLE public.product_catalog ADD COLUMN IF NOT EXISTS default_quantity numeric NOT NULL DEFAULT 1;
