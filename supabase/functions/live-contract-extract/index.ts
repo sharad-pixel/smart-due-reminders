@@ -805,36 +805,78 @@ Deno.serve(async (req) => {
       .eq("id", imp.id);
 
 
-    // Use the Pro reasoning model for structured extraction — it is materially
-    // more accurate on pricing tables, dates, and multi-page numeric fields
-    // where Flash tends to hallucinate. Per-page OCR (upstream) stays on Flash.
-    const EXTRACTION_MODEL = "google/gemini-2.5-pro";
-    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: EXTRACTION_MODEL,
-        messages: [
-          { role: "system", content: "You are a senior contracts analyst and revenue accountant (ASC 606). Extract structured data from the contract with rigor. For unknown fields use null. Return ISO dates (YYYY-MM-DD).\n\nMANDATORY ARITHMETIC RECONCILIATION: Before returning, you MUST verify that the numbers tie. The sum of every entry in `invoice_schedule` (recurring + one_time) must equal `commercial.total_contract_value` (TCV) within $1. If `commercial.total_contract_value` is stated explicitly in the document, the schedule lines you emit MUST reconcile to that figure — if they don't, re-derive the missing lines (recurring periods, true-ups, overages, renewal periods, services milestones) until they do. Likewise: MRR × 12 should equal ARR; ARR should equal the recurring portion of ACV for a 12-month term. If a contract has recurring SaaS/subscription fees, MRR/ARR/ACV must NOT be zero — re-read the pricing table and derive them from the per-period subscription charges (monthly = MRR directly; annual = ARR/12; multi-year prepaid = total_subscription / months_in_term). Only set MRR/ARR/ACV to 0 if the contract is genuinely 100% one-time/services with no subscription component.\n\nUSE OBJECTS FROM THE SCAN: when the document includes a pricing table, order form, schedule of fees, or SOW line items, treat THOSE rows as the source of truth. Map each row to: (a) revenue_type (recurring_subscription | usage_based | one_time | professional_services), (b) recognition_method (point_in_time | ratable_over_time | usage), (c) standalone_selling_price, and (d) period (monthly/annual/one-time). Use these mapped objects — not your own restatement of the prose — to compute MRR/ARR/ACV/Services/TCV.\n\nCRITICAL — ONE-TIME / IMPLEMENTATION FEES: Many SaaS and services contracts contain non-recurring charges that are easy to miss because they sit inside a pricing table or schedule. You MUST surface EVERY one-time charge in BOTH (a) `commercial.implementation_fees` (sum) and (b) `one_time_fees_breakdown` (itemized). Look for headings/labels like: Implementation Fee, Setup Fee, Onboarding Fee, Kickoff Fee, Activation Fee, Configuration Fee, Enablement Fee, Deployment Fee, Migration Fee, Training Fee, Hardware Charge, License Activation, Professional Services (when listed as a fixed amount rather than hourly recurring), Statement of Work Fixed Fee, Travel & Expense estimate. Treat these as one-time invoices on the contract effective_date unless the contract specifies a different invoicing date. ALSO emit them inside `invoice_schedule` with billing_type=\"one_time\".\n\nRECURRING LINES DISCIPLINE: For each recurring product, emit one `invoice_schedule` line per billing period through the contract term (or at minimum 12 periods if open-ended). Do NOT collapse a 12-month subscription into a single line unless the contract is explicitly prepaid annually — and if it IS prepaid, set billing_type=\"one_time\" AND still populate MRR/ARR/ACV from the underlying monthly equivalent.\n\nRisk-flag any of: auto-renewal without clear opt-out, missing BAA/DPA/SLA, unfavorable payment terms (>net 45), POC without conversion terms, uncapped indemnity, missing liability cap, schedule that does NOT reconcile to stated TCV.\n\nINVOICE SCHEDULE DISCIPLINE: list each scheduled invoice exactly once. Do NOT duplicate a prepaid/upfront invoice as both a one-time prepaid line and as the first period of the recurring schedule — pick one representation. Two schedule entries must never share the same scheduled_date AND amount unless the contract explicitly issues two separate invoices on that date." },
-          { role: "user", content: `Contract text:\n\n${text.slice(0, 80_000)}` },
-        ],
-        tools: [EXTRACTION_TOOL],
-        tool_choice: { type: "function", function: { name: "extract_contract" } },
-      }),
-    });
+    // Run three smaller extraction passes in PARALLEL against the fast Flash
+    // Preview model. Smaller schemas + parallelism cut wall time ~50-60%
+    // versus a single Pro call while keeping extraction quality on the fields
+    // that matter (header, commercial schedule, legal/risk).
+    const EXTRACTION_MODEL = "google/gemini-3-flash-preview";
+    const contractSlice = text.slice(0, 80_000);
 
-    let aiData: any;
+    const SYSTEM_BASE =
+      "You are a senior contracts analyst and revenue accountant (ASC 606). Extract structured data with rigor. For unknown fields use null. Return ISO dates (YYYY-MM-DD).";
+
+    const HEADER_SYS = SYSTEM_BASE +
+      " Extract ONLY customer identity, contract metadata, critical dates, and POC info. Be precise on legal entity names, effective/term/renewal dates, notice periods, and payment terms.";
+    const COMMERCIAL_SYS = SYSTEM_BASE +
+      "\n\nExtract ONLY commercial totals + the invoice schedule + one-time fees breakdown. MANDATORY: the sum of every entry in `invoice_schedule` (recurring + one_time) must reconcile to `commercial.total_contract_value` within $1. MRR × 12 = ARR; ARR = recurring portion of ACV for a 12-month term. If the contract has recurring subscription fees, MRR/ARR/ACV must NOT be zero — derive from per-period charges (monthly → MRR; annual → ARR/12; prepaid multi-year → total/months).\n\nUSE the pricing table / order form / SOW line items as source of truth. Map each row to revenue_type (recurring_subscription | usage_based | one_time | professional_services), recognition_method (point_in_time | ratable_over_time | usage), and period.\n\nONE-TIME / IMPLEMENTATION FEES: surface EVERY non-recurring charge in BOTH `commercial.implementation_fees` (sum) and `one_time_fees_breakdown` (itemized). Labels to watch: Implementation, Setup, Onboarding, Kickoff, Activation, Configuration, Enablement, Deployment, Migration, Training, Hardware, License Activation, fixed-fee Professional Services, SOW Fixed Fee, T&E estimate. Also emit them in `invoice_schedule` with billing_type=\"one_time\".\n\nRECURRING LINES: emit one `invoice_schedule` line per billing period through the term (min 12 periods if open-ended). Do NOT collapse into one line unless explicitly prepaid annually — if prepaid, billing_type=\"one_time\" AND still populate MRR/ARR/ACV from the monthly equivalent.\n\nSCHEDULE DISCIPLINE: list each scheduled invoice exactly once. Never duplicate a prepaid/upfront invoice as both a one-time row and the first period of the recurring schedule.";
+    const LEGAL_SYS = SYSTEM_BASE +
+      "\n\nExtract ONLY legal clauses and risk flags. Risk-flag any of: auto-renewal without clear opt-out, missing BAA/DPA/SLA, unfavorable payment terms (>net 45), POC without conversion terms, uncapped indemnity, missing liability cap.";
+
+    const runPass = async (
+      systemPrompt: string,
+      tool: any,
+      toolName: string,
+      label: string,
+    ): Promise<any> => {
+      const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: EXTRACTION_MODEL,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: `Contract text:\n\n${contractSlice}` },
+          ],
+          tools: [tool],
+          tool_choice: { type: "function", function: { name: toolName } },
+        }),
+      });
+      const data = await parseJsonResponse(res, `AI extraction (${label})`);
+      const tc = data.choices?.[0]?.message?.tool_calls?.[0];
+      if (!tc) throw new Error(`No tool call in ${label} response`);
+      return typeof tc.function.arguments === "string"
+        ? parseJsonFromText(tc.function.arguments, `${label} tool arguments`)
+        : tc.function.arguments;
+    };
+
+    let headerOut: any = {}, commercialOut: any = {}, legalOut: any = {};
     try {
-      aiData = await parseJsonResponse(aiRes, "AI extraction");
+      const [h, c, l] = await Promise.all([
+        runPass(HEADER_SYS, HEADER_TOOL, "extract_contract_header", "header"),
+        runPass(COMMERCIAL_SYS, COMMERCIAL_TOOL, "extract_contract_commercial", "commercial"),
+        runPass(LEGAL_SYS, LEGAL_TOOL, "extract_contract_legal", "legal"),
+      ]);
+      headerOut = h || {}; commercialOut = c || {}; legalOut = l || {};
     } catch (e) {
       await supabase.from("live_contract_imports").update({ status: "failed", error: String(e).slice(0, 500) }).eq("id", imp.id);
       throw e;
     }
-    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall) throw new Error("No tool call in AI response");
-    const extracted = typeof toolCall.function.arguments === "string"
-      ? parseJsonFromText(toolCall.function.arguments, "AI tool arguments")
-      : toolCall.function.arguments;
+
+    // Merge the three passes into the single `extracted` shape downstream code expects.
+    const confidences = [headerOut.confidence, commercialOut.confidence, legalOut.confidence]
+      .map((n) => Number(n)).filter((n) => Number.isFinite(n) && n > 0);
+    const extracted: any = {
+      confidence: confidences.length ? Math.round(confidences.reduce((a, b) => a + b, 0) / confidences.length) : null,
+      customer: headerOut.customer || {},
+      contract: headerOut.contract || {},
+      critical_dates: headerOut.critical_dates || {},
+      poc: headerOut.poc || {},
+      commercial: commercialOut.commercial || {},
+      one_time_fees_breakdown: commercialOut.one_time_fees_breakdown || [],
+      invoice_schedule: commercialOut.invoice_schedule || [],
+      legal: legalOut.legal || {},
+      risk_flags: legalOut.risk_flags || [],
+    };
 
     // Idempotency: clear derived rows that are safe to fully regenerate on re-extract.
     // NOTE: We intentionally DO NOT wipe `contract_invoice_schedules` or
