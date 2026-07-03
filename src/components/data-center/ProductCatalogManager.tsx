@@ -849,6 +849,13 @@ export const ProductCatalogManager = () => {
                         <TableCell className="text-right">
                           {item.currency} {Number(item.unit_cost).toFixed(2)}
                         </TableCell>
+                        <TableCell className="text-right text-muted-foreground">
+                          {Number(item.default_quantity ?? 1)}
+                        </TableCell>
+                        <TableCell className="text-right font-medium">
+                          {item.currency}{" "}
+                          {(Number(item.unit_cost) * Number(item.default_quantity ?? 1)).toFixed(2)}
+                        </TableCell>
                         <TableCell>
                           <Badge variant={isActive ? "default" : "secondary"}>
                             {isActive ? "Active" : "Inactive"}
