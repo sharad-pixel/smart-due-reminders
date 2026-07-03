@@ -211,6 +211,10 @@ export const CreateInvoiceModal = ({
         product_description: "",
         external_invoice_id: "",
         po_number: "",
+        billing_period_start: "",
+        billing_period_end: "",
+        billing_frequency: "one_time",
+        next_billing_date: "",
       });
       setLineItems([]);
       setSelectedDebtorId(debtorId || "");
