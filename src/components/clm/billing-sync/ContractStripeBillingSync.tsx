@@ -6,6 +6,7 @@ import { BillingSyncStatusCard } from "./BillingSyncStatusCard";
 import { BillingReadinessCard } from "./BillingReadinessCard";
 import { StripeProductMappingCard } from "./StripeProductMappingCard";
 import { BillingPreviewCard } from "./BillingPreviewCard";
+import { ContractCustomerLinkCard } from "./ContractCustomerLinkCard";
 import { Card, CardContent } from "@/components/ui/card";
 import { CreditCard } from "lucide-react";
 
@@ -37,6 +38,31 @@ export function ContractStripeBillingSync({ contractId, fields, currency }: Prop
     },
   });
 
+  // Resolve the Recouply account → Stripe customer chain for this contract.
+  const { data: linkage } = useQuery({
+    queryKey: ["contract-debtor-stripe-link", contractId],
+    enabled: connected,
+    queryFn: async () => {
+      const { data: imp } = await supabase
+        .from("live_contract_imports")
+        .select("debtor_id")
+        .eq("id", contractId)
+        .maybeSingle();
+      const debtorId = (imp as any)?.debtor_id ?? null;
+      if (!debtorId) return { debtorId: null, debtorName: null, stripeCustomerId: null };
+      const { data: deb } = await supabase
+        .from("debtors")
+        .select("id, company_name, name, stripe_customer_id")
+        .eq("id", debtorId)
+        .maybeSingle();
+      return {
+        debtorId,
+        debtorName: (deb as any)?.company_name || (deb as any)?.name || null,
+        stripeCustomerId: (deb as any)?.stripe_customer_id ?? null,
+      };
+    },
+  });
+
   if (!connected) {
     return (
       <Card>
@@ -54,8 +80,15 @@ export function ContractStripeBillingSync({ contractId, fields, currency }: Prop
     totalContractValue: revenueItems.reduce((a: number, r: any) => a + (Number(r.amount) || 0), 0),
   };
 
+  const customerLinked = !!linkage?.stripeCustomerId;
+
   return (
     <div className="space-y-3">
+      <ContractCustomerLinkCard
+        debtorId={linkage?.debtorId ?? null}
+        debtorName={linkage?.debtorName ?? null}
+        stripeCustomerId={linkage?.stripeCustomerId ?? null}
+      />
       <BillingSyncStatusCard
         sync={sync}
         stripeAccount={integration?.stripe_account_id}
@@ -63,8 +96,14 @@ export function ContractStripeBillingSync({ contractId, fields, currency }: Prop
         onSync={() => syncToStripe.mutate()}
         computing={computeReadiness.isPending}
         syncing={syncToStripe.isPending}
+        customerLinked={customerLinked}
       />
-      <BillingReadinessCard fields={fields} totals={totals} blockingIssues={sync?.blocking_issues} />
+      <BillingReadinessCard
+        fields={fields}
+        totals={totals}
+        blockingIssues={sync?.blocking_issues}
+        customerLinked={customerLinked}
+      />
       <StripeProductMappingCard contractId={contractId} revenueItems={revenueItems} currency={currency} />
       <BillingPreviewCard fields={fields} revenueItems={revenueItems} schedules={schedules} currency={currency} />
     </div>
