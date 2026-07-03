@@ -248,12 +248,34 @@ Deno.serve(async (req) => {
     if (action === "generate_invoices") {
       const { scheduleIds, postingState: rawPostingState } = body;
       const postingState = rawPostingState === "posted" ? "posted" : "draft";
-      const { data: schedules } = await supabase
+      console.log("[generate_invoices]", { importId, scheduleIds, postingState, debtor_id: imp.debtor_id });
+      if (!Array.isArray(scheduleIds) || scheduleIds.length === 0) {
+        return json({ error: "No schedules selected — please tick at least one billing row before generating." }, 400);
+      }
+      const { data: schedules, error: schedErr } = await supabase
         .from("contract_invoice_schedules")
         .select("*")
         .eq("import_id", importId)
-        .in("id", scheduleIds || []);
-      if (!schedules || schedules.length === 0) return json({ error: "No schedules selected" }, 400);
+        .in("id", scheduleIds);
+      if (schedErr) {
+        console.error("[generate_invoices] schedules query failed", schedErr);
+        return json({ error: `Could not load schedules: ${schedErr.message}` }, 500);
+      }
+      if (!schedules || schedules.length === 0) return json({ error: "No matching schedules found for this contract" }, 400);
+
+      // Normalize currency symbols → ISO codes (schedules may store "$", "€", "£" from OCR)
+      const normalizeCurrency = (c?: string | null): string => {
+        if (!c) return "USD";
+        const t = c.trim().toUpperCase();
+        if (t === "$" || t === "US$" || t === "USD") return "USD";
+        if (t === "€" || t === "EUR") return "EUR";
+        if (t === "£" || t === "GBP") return "GBP";
+        if (t === "¥" || t === "JPY") return "JPY";
+        if (t === "C$" || t === "CAD") return "CAD";
+        if (t === "A$" || t === "AUD") return "AUD";
+        if (/^[A-Z]{3}$/.test(t)) return t;
+        return "USD";
+      };
 
       const created: any[] = [];
       const skipped: any[] = [];
@@ -342,7 +364,7 @@ Deno.serve(async (req) => {
           source_contract_id: imp.id,
           source_contract_schedule_id: s.id,
           source_origin: "contract_intelligence",
-          currency: s.currency || "USD",
+          currency: normalizeCurrency(s.currency),
           issue_date: issue,
           due_date: due,
           status: "Open",
@@ -355,11 +377,12 @@ Deno.serve(async (req) => {
           notes: `Auto-generated from contract: ${imp.contract_name || imp.file_name}${postingState === "draft" ? " — Draft, pending review" : ""}`,
         }).select("id").single();
         if (iErr) {
+          console.error("[generate_invoices] invoice insert failed", { schedule_id: s.id, code: (iErr as any).code, message: iErr.message, details: (iErr as any).details });
           // Treat unique-violation as duplicate, not failure
           if ((iErr as any).code === "23505") {
             skipped.push({ id: s.id, reason: "duplicate (unique constraint)" });
           } else {
-            skipped.push({ id: s.id, reason: iErr.message });
+            skipped.push({ id: s.id, reason: iErr.message, code: (iErr as any).code || null });
           }
           continue;
         }
@@ -411,6 +434,17 @@ Deno.serve(async (req) => {
         event_type: "invoices_generated",
         event_details: { created: created.length, skipped: skipped.length, duplicates: duplicates.length, posting_state: postingState, skipped_detail: skipped },
       });
+      // If nothing was created and there are non-duplicate failures, surface as an error so the UI can show the reason
+      const hardFailures = skipped.filter((s) => s.reason && !/duplicate|already invoiced|no amount/i.test(s.reason));
+      if (created.length === 0 && duplicates.length === 0 && hardFailures.length > 0) {
+        return json({
+          error: `Invoice generation failed: ${hardFailures[0].reason}`,
+          created: 0,
+          duplicates: 0,
+          skipped,
+          postingState,
+        }, 422);
+      }
       return json({ success: true, created: created.length, duplicates: duplicates.length, skipped, postingState });
     }
 
