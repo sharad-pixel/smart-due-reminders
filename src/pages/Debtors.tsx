@@ -1119,11 +1119,20 @@ const Debtors = () => {
                               <p className="font-medium truncate">{debtor.company_name}</p>
                               <div className="flex items-center gap-1.5 flex-wrap">
                                 <p className="text-xs text-muted-foreground font-mono">{debtor.reference_id}</p>
-                                {debtor.stripe_customer_id && (
+                                {debtor.stripe_customer_id ? (
                                   <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-indigo-50 text-indigo-700 border-indigo-200" title={debtor.stripe_customer_id}>
                                     Stripe
                                   </Badge>
-                                )}
+                                ) : stripeConnected ? (
+                                  <Badge
+                                    variant="outline"
+                                    className="text-[10px] px-1.5 py-0 h-4 bg-amber-50 text-amber-700 border-amber-200 cursor-pointer hover:bg-amber-100"
+                                    title="Not linked to a Stripe customer — click to link"
+                                    onClick={(e) => { e.stopPropagation(); navigate(`/debtors/${debtor.id}`); }}
+                                  >
+                                    Stripe: Not linked
+                                  </Badge>
+                                ) : null}
                               </div>
                             </div>
                           </div>
