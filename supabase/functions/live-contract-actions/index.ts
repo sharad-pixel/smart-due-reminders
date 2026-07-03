@@ -364,7 +364,7 @@ Deno.serve(async (req) => {
           source_contract_id: imp.id,
           source_contract_schedule_id: s.id,
           source_origin: "contract_intelligence",
-          currency: s.currency || "USD",
+          currency: normalizeCurrency(s.currency),
           issue_date: issue,
           due_date: due,
           status: "Open",
