@@ -7,7 +7,7 @@
  * - Live Contracts: $5.00 / active contract / month (metered add-on, includes alerts + standard risk).
  *
  * PLANS (v2):
- * - Launch:       $29/mo   — 50 credits,  0 contracts, 1 seat
+ * - Launch:       $29/mo   — 30 credits,  0 contracts, 1 seat
  * - Starter:      $99/mo   — 150 credits, 5 contracts, 2 seats
  * - Growth:       $299/mo  — 500 credits, 20 contracts, 5 seats
  * - Professional: $699/mo  — 1,500 credits, 75 contracts, 10 seats
