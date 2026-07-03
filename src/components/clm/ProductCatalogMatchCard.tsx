@@ -154,7 +154,7 @@ export function ProductCatalogMatchCard({ importId }: Props) {
                     return (
                       <div key={product.id} className="flex items-center justify-between border rounded p-1.5">
                         <div className="text-xs">
-                          <div className="font-medium">{product.name} {product.sku ? <span className="text-muted-foreground">· {product.sku}</span> : null}</div>
+                          <div className="font-medium">{product.description} {product.lookup_key ? <span className="text-muted-foreground">· {product.lookup_key}</span> : null}</div>
                           <div className="text-muted-foreground">{product.pricing_model || "one_off"}{product.billing_period ? ` · ${product.billing_period}` : ""} · {product.currency || "USD"} {product.unit_cost ?? "—"}</div>
                         </div>
                         <div className="flex items-center gap-2">
