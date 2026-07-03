@@ -686,6 +686,8 @@ const LiveContractDetailInner = () => {
           ackAt={(c as any).nicolas_line_review_ack_at}
         />
 
+        <ProductCatalogMatchCard importId={c.id} />
+
         <ContractScheduleLines
           importId={c.id}
           debtorId={c.debtor_id || null}
