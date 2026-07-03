@@ -22,13 +22,15 @@ interface Props {
   onSync: () => void;
   computing: boolean;
   syncing: boolean;
+  customerLinked?: boolean;
 }
 
-export function BillingSyncStatusCard({ sync, stripeAccount, onRecompute, onSync, computing, syncing }: Props) {
+export function BillingSyncStatusCard({ sync, stripeAccount, onRecompute, onSync, computing, syncing, customerLinked = true }: Props) {
   const status = (sync?.status ?? "not_connected") as BillingSyncStatus;
   const meta = STATUS_META[status];
   const Icon = meta.icon;
   const score = sync?.readiness_score ?? 0;
+  const blockedByCustomer = !customerLinked;
 
   return (
     <Card>
