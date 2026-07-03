@@ -27,11 +27,13 @@ interface Props {
   customerLinked?: boolean;
 }
 
-function evaluate(key: string, fields: any, totals: any): { ok: boolean; note?: string } {
+function evaluate(key: string, fields: any, totals: any, customerLinked?: boolean): { ok: boolean; note?: string } {
   const f = fields ?? {};
   switch (key) {
     case "customer":
       return { ok: !!(f.customer_name || f.debtor_name) };
+    case "stripe_customer_link":
+      return { ok: !!customerLinked, note: customerLinked ? "Linked" : "Link required" };
     case "products":
       return { ok: !!(totals?.revenueItemsCount > 0) };
     case "pricing":
