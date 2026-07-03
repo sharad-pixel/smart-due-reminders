@@ -1058,7 +1058,9 @@ function ReviewDrawer({ importId, onClose }: { importId: string | null; onClose:
   const approve = useMutation({
     mutationFn: async () => {
       const body: any = { importId, action: "approve" };
-      if (selectedDebtorId) body.debtorId = selectedDebtorId;
+      if (customerMode === "auto" && selectedDebtorId) body.debtorId = selectedDebtorId;
+      else if (customerMode === "manual" && newDebtor.company_name) body.newDebtor = newDebtor;
+      else if (selectedDebtorId) body.debtorId = selectedDebtorId;
       else if (newDebtor.company_name) body.newDebtor = newDebtor;
       // else: backend will auto-create from extracted customer data
       const { data, error } = await supabase.functions.invoke("live-contract-approve", { body });
