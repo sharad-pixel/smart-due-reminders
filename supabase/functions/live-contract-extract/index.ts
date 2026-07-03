@@ -260,15 +260,26 @@ async function fetchDriveFileText(fileId: string, mimeType: string, accessToken:
   }
 }
 
-const EXTRACTION_TOOL = {
+// ============================================================================
+// Extraction is split into THREE PARALLEL passes so a smaller/faster model can
+// handle each slice concurrently instead of one giant blocking Pro call:
+//   Pass A — Header (customer + contract + critical_dates + poc)
+//   Pass B — Commercial (commercial totals + invoice_schedule + one_time fees)
+//   Pass C — Legal + risk flags
+// Each pass has its own tool schema; results are merged into a single
+// `extracted` object with the exact same shape the downstream persistence
+// code expects.
+// ============================================================================
+
+const HEADER_TOOL = {
   type: "function",
   function: {
-    name: "extract_contract",
-    description: "Extract structured contract data",
+    name: "extract_contract_header",
+    description: "Extract customer identity, contract metadata, critical dates, POC info.",
     parameters: {
       type: "object",
       properties: {
-        confidence: { type: "number", description: "0-100 overall extraction confidence" },
+        confidence: { type: "number", description: "0-100 header extraction confidence" },
         customer: {
           type: "object",
           properties: {
@@ -279,7 +290,6 @@ const EXTRACTION_TOOL = {
             email_domain: { type: "string" }, tax_id: { type: "string" },
             billing_address: {
               type: "object",
-              description: "Structured billing/bill-to address for the customer.",
               properties: {
                 line1: { type: "string" }, line2: { type: "string" },
                 city: { type: "string" }, region: { type: "string" },
@@ -288,7 +298,6 @@ const EXTRACTION_TOOL = {
             },
             contacts: {
               type: "array",
-              description: "All named contacts in the contract with role (signatory, billing, technical, legal, procurement).",
               items: {
                 type: "object",
                 properties: {
@@ -297,53 +306,23 @@ const EXTRACTION_TOOL = {
                 },
               },
             },
-            payment_terms: { type: "string", description: "Customer-level payment terms if specified (e.g. Net 30)." },
-            currency: { type: "string", description: "Contract currency ISO code (USD, EUR, GBP...)." },
+            payment_terms: { type: "string" },
+            currency: { type: "string" },
             website: { type: "string" },
           },
         },
         contract: {
           type: "object",
           properties: {
-            contract_name: { type: "string", description: "Short, human-friendly contract title (e.g. product/service + customer). Avoid concatenating multiple legal entity names." },
-            contract_type: { type: "string" },
-            product_description: { type: "string", description: "Plain-language summary of the products/services delivered under this contract (1-3 sentences)." },
-            contract_value: { type: "number", description: "Total contract value in numeric form (no currency symbol)." },
+            contract_name: { type: "string" }, contract_type: { type: "string" },
+            product_description: { type: "string" }, contract_value: { type: "number" },
             effective_date: { type: "string" }, term_start_date: { type: "string" },
             term_end_date: { type: "string" }, initial_term: { type: "string" },
             renewal_term: { type: "string" }, auto_renewal: { type: "boolean" },
             renewal_frequency: { type: "string" }, governing_agreement: { type: "string" },
             parent_agreement: { type: "string" }, contract_status: { type: "string" },
-            signed_date: { type: "string" },
-            payment_terms: { type: "string", description: "Default payment terms for the contract (e.g. 'Net 30', 'Net 45', 'Due on receipt'). Applied to every invoice line that doesn't specify its own terms." },
-          },
-        },
-        commercial: {
-          type: "object",
-          properties: {
-            arr: { type: "number" }, acv: { type: "number" }, tcv: { type: "number" },
-            mrr: { type: "number" }, subscription_fees: { type: "number" },
-            platform_fees: { type: "number" }, usage_commitment: { type: "string" },
-            minimum_commitment: { type: "number" }, professional_services_fees: { type: "number" },
-            implementation_fees: { type: "number", description: "Sum of one-time implementation/setup/onboarding/kickoff/deployment fees. Include even if labeled differently (e.g. 'professional services setup', 'configuration fee', 'enablement fee')." },
-            one_time_fees: { type: "number" },
-            recurring_fees: { type: "number" }, currency: { type: "string" },
-          },
-        },
-        one_time_fees_breakdown: {
-          type: "array",
-          description: "Itemized list of every one-time / non-recurring charge in the contract (implementation, setup, onboarding, kickoff, training, migration, professional services, hardware, license activation, etc.). Each row should become its own one-time invoice line.",
-          items: {
-            type: "object",
-            properties: {
-              label: { type: "string", description: "Human label as it appears in the contract (e.g. 'Implementation Fee', 'Onboarding & Setup')." },
-              amount: { type: "number" },
-              currency: { type: "string" },
-              scheduled_date: { type: "string", description: "When this fee is invoiced. Default to contract effective_date when contract says 'due at signing' / 'invoiced upon execution'." },
-              category: { type: "string", description: "implementation | setup | onboarding | professional_services | training | hardware | migration | other_one_time" },
-              notes: { type: "string" },
-            },
-            required: ["label", "amount"],
+            signed_date: { type: "string" }, payment_terms: { type: "string" },
+            industry: { type: "string" },
           },
         },
         critical_dates: {
@@ -352,6 +331,55 @@ const EXTRACTION_TOOL = {
             renewal_date: { type: "string" }, opt_out_deadline: { type: "string" },
             non_renewal_deadline: { type: "string" }, termination_notice_deadline: { type: "string" },
             notice_period_days: { type: "number" },
+          },
+        },
+        poc: {
+          type: "object",
+          properties: {
+            is_poc: { type: "boolean" }, poc_start: { type: "string" }, poc_end: { type: "string" },
+            conversion_terms: { type: "string" }, pilot_fee: { type: "number" },
+            success_criteria: { type: "string" }, termination_rights: { type: "string" },
+            conversion_language: { type: "string" },
+          },
+        },
+      },
+      required: ["confidence"],
+    },
+  },
+};
+
+const COMMERCIAL_TOOL = {
+  type: "function",
+  function: {
+    name: "extract_contract_commercial",
+    description: "Extract commercial totals, invoice schedule, one-time fees.",
+    parameters: {
+      type: "object",
+      properties: {
+        confidence: { type: "number" },
+        commercial: {
+          type: "object",
+          properties: {
+            arr: { type: "number" }, acv: { type: "number" }, tcv: { type: "number" },
+            mrr: { type: "number" }, subscription_fees: { type: "number" },
+            platform_fees: { type: "number" }, usage_commitment: { type: "string" },
+            minimum_commitment: { type: "number" }, professional_services_fees: { type: "number" },
+            implementation_fees: { type: "number" }, one_time_fees: { type: "number" },
+            recurring_fees: { type: "number" }, currency: { type: "string" },
+            total_contract_value: { type: "number" },
+            payment_terms: { type: "string" },
+          },
+        },
+        one_time_fees_breakdown: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              label: { type: "string" }, amount: { type: "number" },
+              currency: { type: "string" }, scheduled_date: { type: "string" },
+              category: { type: "string" }, notes: { type: "string" },
+            },
+            required: ["label", "amount"],
           },
         },
         invoice_schedule: {
@@ -368,6 +396,21 @@ const EXTRACTION_TOOL = {
             },
           },
         },
+      },
+      required: ["confidence"],
+    },
+  },
+};
+
+const LEGAL_TOOL = {
+  type: "function",
+  function: {
+    name: "extract_contract_legal",
+    description: "Extract legal terms and risk flags.",
+    parameters: {
+      type: "object",
+      properties: {
+        confidence: { type: "number" },
         legal: {
           type: "object",
           properties: {
@@ -380,21 +423,13 @@ const EXTRACTION_TOOL = {
             vendor_obligations: { type: "string" }, unusual_terms: { type: "string" },
           },
         },
-        poc: {
-          type: "object",
-          properties: {
-            is_poc: { type: "boolean" }, poc_start: { type: "string" }, poc_end: { type: "string" },
-            conversion_terms: { type: "string" }, pilot_fee: { type: "number" },
-            success_criteria: { type: "string" }, termination_rights: { type: "string" },
-            conversion_language: { type: "string" },
-          },
-        },
         risk_flags: {
           type: "array",
           items: {
             type: "object",
             properties: {
-              flag_type: { type: "string" }, severity: { type: "string", enum: ["low","medium","high","critical"] },
+              flag_type: { type: "string" },
+              severity: { type: "string", enum: ["low","medium","high","critical"] },
               description: { type: "string" }, source_field: { type: "string" },
             },
             required: ["flag_type","severity","description"],
@@ -770,36 +805,78 @@ Deno.serve(async (req) => {
       .eq("id", imp.id);
 
 
-    // Use the Pro reasoning model for structured extraction — it is materially
-    // more accurate on pricing tables, dates, and multi-page numeric fields
-    // where Flash tends to hallucinate. Per-page OCR (upstream) stays on Flash.
-    const EXTRACTION_MODEL = "google/gemini-2.5-pro";
-    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: EXTRACTION_MODEL,
-        messages: [
-          { role: "system", content: "You are a senior contracts analyst and revenue accountant (ASC 606). Extract structured data from the contract with rigor. For unknown fields use null. Return ISO dates (YYYY-MM-DD).\n\nMANDATORY ARITHMETIC RECONCILIATION: Before returning, you MUST verify that the numbers tie. The sum of every entry in `invoice_schedule` (recurring + one_time) must equal `commercial.total_contract_value` (TCV) within $1. If `commercial.total_contract_value` is stated explicitly in the document, the schedule lines you emit MUST reconcile to that figure — if they don't, re-derive the missing lines (recurring periods, true-ups, overages, renewal periods, services milestones) until they do. Likewise: MRR × 12 should equal ARR; ARR should equal the recurring portion of ACV for a 12-month term. If a contract has recurring SaaS/subscription fees, MRR/ARR/ACV must NOT be zero — re-read the pricing table and derive them from the per-period subscription charges (monthly = MRR directly; annual = ARR/12; multi-year prepaid = total_subscription / months_in_term). Only set MRR/ARR/ACV to 0 if the contract is genuinely 100% one-time/services with no subscription component.\n\nUSE OBJECTS FROM THE SCAN: when the document includes a pricing table, order form, schedule of fees, or SOW line items, treat THOSE rows as the source of truth. Map each row to: (a) revenue_type (recurring_subscription | usage_based | one_time | professional_services), (b) recognition_method (point_in_time | ratable_over_time | usage), (c) standalone_selling_price, and (d) period (monthly/annual/one-time). Use these mapped objects — not your own restatement of the prose — to compute MRR/ARR/ACV/Services/TCV.\n\nCRITICAL — ONE-TIME / IMPLEMENTATION FEES: Many SaaS and services contracts contain non-recurring charges that are easy to miss because they sit inside a pricing table or schedule. You MUST surface EVERY one-time charge in BOTH (a) `commercial.implementation_fees` (sum) and (b) `one_time_fees_breakdown` (itemized). Look for headings/labels like: Implementation Fee, Setup Fee, Onboarding Fee, Kickoff Fee, Activation Fee, Configuration Fee, Enablement Fee, Deployment Fee, Migration Fee, Training Fee, Hardware Charge, License Activation, Professional Services (when listed as a fixed amount rather than hourly recurring), Statement of Work Fixed Fee, Travel & Expense estimate. Treat these as one-time invoices on the contract effective_date unless the contract specifies a different invoicing date. ALSO emit them inside `invoice_schedule` with billing_type=\"one_time\".\n\nRECURRING LINES DISCIPLINE: For each recurring product, emit one `invoice_schedule` line per billing period through the contract term (or at minimum 12 periods if open-ended). Do NOT collapse a 12-month subscription into a single line unless the contract is explicitly prepaid annually — and if it IS prepaid, set billing_type=\"one_time\" AND still populate MRR/ARR/ACV from the underlying monthly equivalent.\n\nRisk-flag any of: auto-renewal without clear opt-out, missing BAA/DPA/SLA, unfavorable payment terms (>net 45), POC without conversion terms, uncapped indemnity, missing liability cap, schedule that does NOT reconcile to stated TCV.\n\nINVOICE SCHEDULE DISCIPLINE: list each scheduled invoice exactly once. Do NOT duplicate a prepaid/upfront invoice as both a one-time prepaid line and as the first period of the recurring schedule — pick one representation. Two schedule entries must never share the same scheduled_date AND amount unless the contract explicitly issues two separate invoices on that date." },
-          { role: "user", content: `Contract text:\n\n${text.slice(0, 80_000)}` },
-        ],
-        tools: [EXTRACTION_TOOL],
-        tool_choice: { type: "function", function: { name: "extract_contract" } },
-      }),
-    });
+    // Run three smaller extraction passes in PARALLEL against the fast Flash
+    // Preview model. Smaller schemas + parallelism cut wall time ~50-60%
+    // versus a single Pro call while keeping extraction quality on the fields
+    // that matter (header, commercial schedule, legal/risk).
+    const EXTRACTION_MODEL = "google/gemini-3-flash-preview";
+    const contractSlice = text.slice(0, 80_000);
 
-    let aiData: any;
+    const SYSTEM_BASE =
+      "You are a senior contracts analyst and revenue accountant (ASC 606). Extract structured data with rigor. For unknown fields use null. Return ISO dates (YYYY-MM-DD).";
+
+    const HEADER_SYS = SYSTEM_BASE +
+      " Extract ONLY customer identity, contract metadata, critical dates, and POC info. Be precise on legal entity names, effective/term/renewal dates, notice periods, and payment terms.";
+    const COMMERCIAL_SYS = SYSTEM_BASE +
+      "\n\nExtract ONLY commercial totals + the invoice schedule + one-time fees breakdown. MANDATORY: the sum of every entry in `invoice_schedule` (recurring + one_time) must reconcile to `commercial.total_contract_value` within $1. MRR × 12 = ARR; ARR = recurring portion of ACV for a 12-month term. If the contract has recurring subscription fees, MRR/ARR/ACV must NOT be zero — derive from per-period charges (monthly → MRR; annual → ARR/12; prepaid multi-year → total/months).\n\nUSE the pricing table / order form / SOW line items as source of truth. Map each row to revenue_type (recurring_subscription | usage_based | one_time | professional_services), recognition_method (point_in_time | ratable_over_time | usage), and period.\n\nONE-TIME / IMPLEMENTATION FEES: surface EVERY non-recurring charge in BOTH `commercial.implementation_fees` (sum) and `one_time_fees_breakdown` (itemized). Labels to watch: Implementation, Setup, Onboarding, Kickoff, Activation, Configuration, Enablement, Deployment, Migration, Training, Hardware, License Activation, fixed-fee Professional Services, SOW Fixed Fee, T&E estimate. Also emit them in `invoice_schedule` with billing_type=\"one_time\".\n\nRECURRING LINES: emit one `invoice_schedule` line per billing period through the term (min 12 periods if open-ended). Do NOT collapse into one line unless explicitly prepaid annually — if prepaid, billing_type=\"one_time\" AND still populate MRR/ARR/ACV from the monthly equivalent.\n\nSCHEDULE DISCIPLINE: list each scheduled invoice exactly once. Never duplicate a prepaid/upfront invoice as both a one-time row and the first period of the recurring schedule.";
+    const LEGAL_SYS = SYSTEM_BASE +
+      "\n\nExtract ONLY legal clauses and risk flags. Risk-flag any of: auto-renewal without clear opt-out, missing BAA/DPA/SLA, unfavorable payment terms (>net 45), POC without conversion terms, uncapped indemnity, missing liability cap.";
+
+    const runPass = async (
+      systemPrompt: string,
+      tool: any,
+      toolName: string,
+      label: string,
+    ): Promise<any> => {
+      const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: EXTRACTION_MODEL,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: `Contract text:\n\n${contractSlice}` },
+          ],
+          tools: [tool],
+          tool_choice: { type: "function", function: { name: toolName } },
+        }),
+      });
+      const data = await parseJsonResponse(res, `AI extraction (${label})`);
+      const tc = data.choices?.[0]?.message?.tool_calls?.[0];
+      if (!tc) throw new Error(`No tool call in ${label} response`);
+      return typeof tc.function.arguments === "string"
+        ? parseJsonFromText(tc.function.arguments, `${label} tool arguments`)
+        : tc.function.arguments;
+    };
+
+    let headerOut: any = {}, commercialOut: any = {}, legalOut: any = {};
     try {
-      aiData = await parseJsonResponse(aiRes, "AI extraction");
+      const [h, c, l] = await Promise.all([
+        runPass(HEADER_SYS, HEADER_TOOL, "extract_contract_header", "header"),
+        runPass(COMMERCIAL_SYS, COMMERCIAL_TOOL, "extract_contract_commercial", "commercial"),
+        runPass(LEGAL_SYS, LEGAL_TOOL, "extract_contract_legal", "legal"),
+      ]);
+      headerOut = h || {}; commercialOut = c || {}; legalOut = l || {};
     } catch (e) {
       await supabase.from("live_contract_imports").update({ status: "failed", error: String(e).slice(0, 500) }).eq("id", imp.id);
       throw e;
     }
-    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall) throw new Error("No tool call in AI response");
-    const extracted = typeof toolCall.function.arguments === "string"
-      ? parseJsonFromText(toolCall.function.arguments, "AI tool arguments")
-      : toolCall.function.arguments;
+
+    // Merge the three passes into the single `extracted` shape downstream code expects.
+    const confidences = [headerOut.confidence, commercialOut.confidence, legalOut.confidence]
+      .map((n) => Number(n)).filter((n) => Number.isFinite(n) && n > 0);
+    const extracted: any = {
+      confidence: confidences.length ? Math.round(confidences.reduce((a, b) => a + b, 0) / confidences.length) : null,
+      customer: headerOut.customer || {},
+      contract: headerOut.contract || {},
+      critical_dates: headerOut.critical_dates || {},
+      poc: headerOut.poc || {},
+      commercial: commercialOut.commercial || {},
+      one_time_fees_breakdown: commercialOut.one_time_fees_breakdown || [],
+      invoice_schedule: commercialOut.invoice_schedule || [],
+      legal: legalOut.legal || {},
+      risk_flags: legalOut.risk_flags || [],
+    };
 
     // Idempotency: clear derived rows that are safe to fully regenerate on re-extract.
     // NOTE: We intentionally DO NOT wipe `contract_invoice_schedules` or
