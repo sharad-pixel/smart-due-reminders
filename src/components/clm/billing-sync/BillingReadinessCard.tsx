@@ -3,6 +3,7 @@ import { CheckCircle2, XCircle } from "lucide-react";
 
 const CHECK_ITEMS = [
   { key: "customer", label: "Customer" },
+  { key: "stripe_customer_link", label: "Stripe Customer Link" },
   { key: "products", label: "Products" },
   { key: "pricing", label: "Pricing" },
   { key: "billing_frequency", label: "Billing Frequency" },
@@ -23,6 +24,7 @@ interface Props {
   fields: any;
   totals: any;
   blockingIssues?: Array<{ field: string; message: string }>;
+  customerLinked?: boolean;
 }
 
 function evaluate(key: string, fields: any, totals: any): { ok: boolean; note?: string } {
