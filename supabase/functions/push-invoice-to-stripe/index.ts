@@ -24,29 +24,32 @@ serve(async (req) => {
       });
     }
 
+    if (!inv.debtor_id) {
+      return new Response(JSON.stringify({
+        error: "This invoice isn't linked to a Recouply account.",
+        code: "invoice_not_linked_to_debtor",
+      }), { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     const { data: debtor } = await supa
       .from("debtors")
-      .select("id, company_name, email, stripe_customer_id")
+      .select("id, company_name, name, email, stripe_customer_id")
       .eq("id", inv.debtor_id)
       .maybeSingle();
 
-    // Resolve / create Stripe customer
-    let customerId: string | null = (debtor as any)?.stripe_customer_id ?? null;
-    if (!customerId) {
-      if (debtor?.email) {
-        const list = await stripe.customers.list({ email: debtor.email, limit: 1 });
-        if (list.data.length) customerId = list.data[0].id;
-      }
-      if (!customerId) {
-        const c = await stripe.customers.create({
-          name: debtor?.company_name ?? undefined,
-          email: debtor?.email ?? undefined,
-          metadata: { recouply_debtor_id: debtor?.id ?? "" },
-        });
-        customerId = c.id;
-      }
-      await supa.from("debtors").update({ stripe_customer_id: customerId } as any).eq("id", inv.debtor_id);
+    // Hard requirement: the Recouply account must be explicitly linked to a Stripe
+    // customer via the account page. We no longer fall back to email lookup or
+    // auto-create, because both create silent wrong-customer / duplicate risks.
+    if (!debtor?.stripe_customer_id) {
+      const label = (debtor as any)?.company_name || (debtor as any)?.name || "this account";
+      return new Response(JSON.stringify({
+        error: `Account "${label}" is not linked to a Stripe customer. Open the account and link it before pushing invoices.`,
+        code: "debtor_not_linked_to_stripe",
+        debtor_id: inv.debtor_id,
+      }), { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
+
+    const customerId: string = debtor.stripe_customer_id;
 
     // Line items — prefer invoice_line_items, else single line from invoice
     const { data: lineItems } = await supa.from("invoice_line_items").select("*").eq("invoice_id", invoice_id).order("sort_order");

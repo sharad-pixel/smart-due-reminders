@@ -3,6 +3,7 @@ import { CheckCircle2, XCircle } from "lucide-react";
 
 const CHECK_ITEMS = [
   { key: "customer", label: "Customer" },
+  { key: "stripe_customer_link", label: "Stripe Customer Link" },
   { key: "products", label: "Products" },
   { key: "pricing", label: "Pricing" },
   { key: "billing_frequency", label: "Billing Frequency" },
@@ -23,13 +24,16 @@ interface Props {
   fields: any;
   totals: any;
   blockingIssues?: Array<{ field: string; message: string }>;
+  customerLinked?: boolean;
 }
 
-function evaluate(key: string, fields: any, totals: any): { ok: boolean; note?: string } {
+function evaluate(key: string, fields: any, totals: any, customerLinked?: boolean): { ok: boolean; note?: string } {
   const f = fields ?? {};
   switch (key) {
     case "customer":
       return { ok: !!(f.customer_name || f.debtor_name) };
+    case "stripe_customer_link":
+      return { ok: !!customerLinked, note: customerLinked ? "Linked" : "Link required" };
     case "products":
       return { ok: !!(totals?.revenueItemsCount > 0) };
     case "pricing":
@@ -63,8 +67,8 @@ function evaluate(key: string, fields: any, totals: any): { ok: boolean; note?: 
   }
 }
 
-export function BillingReadinessCard({ fields, totals }: Props) {
-  const results = CHECK_ITEMS.map((it) => ({ ...it, ...evaluate(it.key, fields, totals) }));
+export function BillingReadinessCard({ fields, totals, customerLinked }: Props) {
+  const results = CHECK_ITEMS.map((it) => ({ ...it, ...evaluate(it.key, fields, totals, customerLinked) }));
   const required = results.filter((r) => !["professional_services", "usage_charges", "discounts", "taxes", "purchase_order"].includes(r.key));
   const passed = required.filter((r) => r.ok).length;
   const score = Math.round((passed / required.length) * 100);

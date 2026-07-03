@@ -22,13 +22,15 @@ interface Props {
   onSync: () => void;
   computing: boolean;
   syncing: boolean;
+  customerLinked?: boolean;
 }
 
-export function BillingSyncStatusCard({ sync, stripeAccount, onRecompute, onSync, computing, syncing }: Props) {
+export function BillingSyncStatusCard({ sync, stripeAccount, onRecompute, onSync, computing, syncing, customerLinked = true }: Props) {
   const status = (sync?.status ?? "not_connected") as BillingSyncStatus;
   const meta = STATUS_META[status];
   const Icon = meta.icon;
   const score = sync?.readiness_score ?? 0;
+  const blockedByCustomer = !customerLinked;
 
   return (
     <Card>
@@ -60,7 +62,12 @@ export function BillingSyncStatusCard({ sync, stripeAccount, onRecompute, onSync
             <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${computing ? "animate-spin" : ""}`} />
             Recompute Readiness
           </Button>
-          <Button size="sm" onClick={onSync} disabled={syncing || score < 80}>
+          <Button
+            size="sm"
+            onClick={onSync}
+            disabled={syncing || score < 80 || blockedByCustomer}
+            title={blockedByCustomer ? "Link a Stripe customer to the account first" : undefined}
+          >
             <Upload className="h-3.5 w-3.5 mr-1.5" />
             Sync to Stripe
           </Button>
