@@ -377,11 +377,12 @@ Deno.serve(async (req) => {
           notes: `Auto-generated from contract: ${imp.contract_name || imp.file_name}${postingState === "draft" ? " — Draft, pending review" : ""}`,
         }).select("id").single();
         if (iErr) {
+          console.error("[generate_invoices] invoice insert failed", { schedule_id: s.id, code: (iErr as any).code, message: iErr.message, details: (iErr as any).details });
           // Treat unique-violation as duplicate, not failure
           if ((iErr as any).code === "23505") {
             skipped.push({ id: s.id, reason: "duplicate (unique constraint)" });
           } else {
-            skipped.push({ id: s.id, reason: iErr.message });
+            skipped.push({ id: s.id, reason: iErr.message, code: (iErr as any).code || null });
           }
           continue;
         }
