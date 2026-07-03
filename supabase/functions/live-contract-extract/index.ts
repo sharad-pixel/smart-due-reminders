@@ -1206,6 +1206,12 @@ Deno.serve(async (req) => {
       extracted_customer_jsonb: cust && Object.keys(cust).length ? cust : null,
     }).eq("id", imp.id);
 
+    await supabase.from("live_contract_review_queue").upsert({
+      account_id: imp.account_id, import_id: imp.id, status: "pending",
+    }, { onConflict: "import_id" });
+
+
+
     await supabase.from("live_contract_audit_log").insert({
       account_id: imp.account_id, user_id: user.id, import_id: imp.id,
       event_type: "ai_extraction_completed",
