@@ -7,7 +7,7 @@
  * - Live Contracts: $5.00 / active contract / month (metered add-on, includes alerts + standard risk).
  *
  * PLANS (v2):
- * - Launch:       $29/mo   — 50 credits,  0 contracts, 1 seat
+ * - Launch:       $29/mo   — 30 credits,  0 contracts, 1 seat
  * - Starter:      $99/mo   — 150 credits, 5 contracts, 2 seats
  * - Growth:       $299/mo  — 500 credits, 20 contracts, 5 seats
  * - Professional: $699/mo  — 1,500 credits, 75 contracts, 10 seats
@@ -209,12 +209,12 @@ export const PLAN_CONFIGS: Record<Exclude<PlanType, 'free'>, PlanConfig> = {
     name: 'launch',
     displayName: 'Launch',
     monthlyPrice: 29,
-    creditAllotment: 50,
+    creditAllotment: 30,
     includedContracts: 0,
     includedSeats: 1,
     maxAgents: 6,
     features: [
-      '50 credits/month included',
+      '30 credits/month included',
       'All 6 AI collection agents',
       'Stripe & QuickBooks integrations',
       'Email campaigns & full automation',
