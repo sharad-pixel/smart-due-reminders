@@ -231,6 +231,7 @@ export const ProductCatalogManager = () => {
         const commonFields = {
           currency,
           unit_cost,
+          default_quantity,
           product_description: product_description || null,
           active,
           status_effective_date: new Date().toISOString(),
