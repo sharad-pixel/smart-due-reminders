@@ -9526,6 +9526,7 @@ export type Database = {
           billing_period: string | null
           created_at: string
           currency: string
+          default_quantity: number
           description: string
           id: string
           image_url: string | null
@@ -9553,6 +9554,7 @@ export type Database = {
           billing_period?: string | null
           created_at?: string
           currency?: string
+          default_quantity?: number
           description: string
           id?: string
           image_url?: string | null
@@ -9580,6 +9582,7 @@ export type Database = {
           billing_period?: string | null
           created_at?: string
           currency?: string
+          default_quantity?: number
           description?: string
           id?: string
           image_url?: string | null

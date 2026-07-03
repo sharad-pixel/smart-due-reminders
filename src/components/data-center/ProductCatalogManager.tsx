@@ -70,6 +70,7 @@ interface FormState {
   product_description: string;
   unit_type: string;
   unit_cost: string;
+  default_quantity: string;
   currency: string;
   active: boolean;
   status_effective_date: string; // YYYY-MM-DD
@@ -90,6 +91,7 @@ const emptyForm: FormState = {
   product_description: "",
   unit_type: "each",
   unit_cost: "0",
+  default_quantity: "1",
   currency: "USD",
   active: true,
   status_effective_date: todayIso(),
@@ -135,10 +137,10 @@ export const ProductCatalogManager = () => {
 
   const downloadTemplate = () => {
     const csv = [
-      "description,product_description,unit_type,unit_cost,currency,active,pricing_model,billing_period,tax_behavior,tax_category,price_description,lookup_key,image_url",
-      "Monthly subscription — Pro plan,Includes unlimited seats & support,month,49.00,USD,true,recurring,monthly,auto,txcd_10103000,Pro monthly,pro_monthly,",
-      "Implementation services,One-time onboarding engagement,hour,150.00,USD,true,one_off,,auto,txcd_20030000,,,",
-      "Annual license,Full-year access to platform,year,1200.00,USD,true,recurring,yearly,auto,txcd_10103000,Annual license,annual_license,",
+      "description,product_description,unit_type,unit_cost,default_quantity,currency,active,pricing_model,billing_period,tax_behavior,tax_category,price_description,lookup_key,image_url",
+      "Monthly subscription — Pro plan,Includes unlimited seats & support,month,49.00,1,USD,true,recurring,monthly,auto,txcd_10103000,Pro monthly,pro_monthly,",
+      "Implementation services,One-time onboarding engagement,hour,150.00,10,USD,true,one_off,,auto,txcd_20030000,,,",
+      "Annual license,Full-year access to platform,year,1200.00,1,USD,true,recurring,yearly,auto,txcd_10103000,Annual license,annual_license,",
     ].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -208,6 +210,7 @@ export const ProductCatalogManager = () => {
         const unit_type = ((r.unit_type || r.unit || "each").trim() || "each");
         const currency = ((r.currency || "USD").trim().toUpperCase()) || "USD";
         const unit_cost = Number(r.unit_cost || r.price || 0) || 0;
+        const default_quantity = Number(r.default_quantity || r.quantity || 1) || 1;
         const product_description = ((r.product_description || r.details || "").trim()).slice(0, 50);
         const active = r.active === undefined || r.active === "" ? true : parseBool(r.active);
 
@@ -228,6 +231,7 @@ export const ProductCatalogManager = () => {
         const commonFields = {
           currency,
           unit_cost,
+          default_quantity,
           product_description: product_description || null,
           active,
           status_effective_date: new Date().toISOString(),
@@ -314,6 +318,7 @@ export const ProductCatalogManager = () => {
       product_description: item.product_description || "",
       unit_type: item.unit_type,
       unit_cost: String(item.unit_cost),
+      default_quantity: String(item.default_quantity ?? 1),
       currency: item.currency || "USD",
       active: item.active !== false,
       status_effective_date: item.status_effective_date
@@ -375,11 +380,18 @@ export const ProductCatalogManager = () => {
     const imageUrl = form.image_url.trim();
     const isRecurring = form.pricing_model === "recurring";
 
+    const qty = Number(form.default_quantity);
+    if (isNaN(qty) || qty <= 0) {
+      toast.error("Default quantity must be greater than 0");
+      return;
+    }
+
     const payload: Record<string, any> = {
       description: desc,
       product_description: form.product_description.trim() || null,
       unit_type: unit,
       unit_cost: cost,
+      default_quantity: qty,
       currency: form.currency || "USD",
       active: form.active,
       status_effective_date: effectiveIso,
@@ -542,6 +554,33 @@ export const ProductCatalogManager = () => {
                     }
                     maxLength={3}
                   />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Default quantity</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    value={form.default_quantity}
+                    onChange={(e) => setForm({ ...form, default_quantity: e.target.value })}
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Pre-fills quantity when this product is added to an invoice line.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Line total (calc)</Label>
+                  <div className="h-10 rounded-md border bg-muted/40 px-3 flex items-center font-medium">
+                    {form.currency || "USD"}{" "}
+                    {(
+                      (Number(form.unit_cost) || 0) * (Number(form.default_quantity) || 0)
+                    ).toFixed(2)}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Default quantity × Unit cost.
+                  </p>
                 </div>
               </div>
 
@@ -728,7 +767,7 @@ export const ProductCatalogManager = () => {
             </>
           ) : (
             <>
-              <span className="font-medium">Not using Stripe?</span> Add products one at a time with <span className="font-medium">Add Product</span>, or download the <span className="font-medium">Template</span> CSV and use <span className="font-medium">Bulk Upload</span> to load your entire catalog at once. Columns match Stripe's product model: <code>description, product_description, unit_type, unit_cost, currency, active, pricing_model, billing_period, tax_behavior, tax_category, price_description, lookup_key, image_url</code>. Rows that match an existing product (case-insensitive name + unit) will be updated in place.
+              <span className="font-medium">Not using Stripe?</span> Add products one at a time with <span className="font-medium">Add Product</span>, or download the <span className="font-medium">Template</span> CSV and use <span className="font-medium">Bulk Upload</span> to load your entire catalog at once. Columns match Stripe's product model: <code>description, product_description, unit_type, unit_cost, default_quantity, currency, active, pricing_model, billing_period, tax_behavior, tax_category, price_description, lookup_key, image_url</code>. Rows that match an existing product (case-insensitive name + unit) will be updated in place.
             </>
           )}
         </AlertDescription>
@@ -769,6 +808,8 @@ export const ProductCatalogManager = () => {
                     <TableHead>Unit</TableHead>
                     <TableHead>Pricing</TableHead>
                     <TableHead className="text-right">Unit Cost</TableHead>
+                    <TableHead className="text-right">Default Qty</TableHead>
+                    <TableHead className="text-right">Line Total</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Effective</TableHead>
                     <TableHead>Source</TableHead>
@@ -807,6 +848,13 @@ export const ProductCatalogManager = () => {
                         </TableCell>
                         <TableCell className="text-right">
                           {item.currency} {Number(item.unit_cost).toFixed(2)}
+                        </TableCell>
+                        <TableCell className="text-right text-muted-foreground">
+                          {Number(item.default_quantity ?? 1)}
+                        </TableCell>
+                        <TableCell className="text-right font-medium">
+                          {item.currency}{" "}
+                          {(Number(item.unit_cost) * Number(item.default_quantity ?? 1)).toFixed(2)}
                         </TableCell>
                         <TableCell>
                           <Badge variant={isActive ? "default" : "secondary"}>
