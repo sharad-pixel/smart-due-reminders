@@ -316,6 +316,7 @@ export const ProductCatalogManager = () => {
       product_description: item.product_description || "",
       unit_type: item.unit_type,
       unit_cost: String(item.unit_cost),
+      default_quantity: String(item.default_quantity ?? 1),
       currency: item.currency || "USD",
       active: item.active !== false,
       status_effective_date: item.status_effective_date
