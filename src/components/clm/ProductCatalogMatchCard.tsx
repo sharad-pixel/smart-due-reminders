@@ -79,7 +79,7 @@ export function ProductCatalogMatchCard({ importId }: Props) {
         })
         .eq("id", scheduleId);
       if (error) throw error;
-      toast.success(`Linked to “${product.name}”`);
+      toast.success(`Linked to “${product.description}”`);
       qc.invalidateQueries({ queryKey: ["product-catalog-match", importId] });
       qc.invalidateQueries({ queryKey: ["live-contract-detail", importId] });
     } catch (e: any) {
