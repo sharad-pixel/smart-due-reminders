@@ -261,7 +261,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
       const [invoiceRes, outreachLogsRes, activitiesRes, draftsRes, tasksRes] = await Promise.all([
         supabase
           .from("invoices")
-          .select("*, debtors(company_name, email, crm_account_id, outreach_paused, account_outreach_enabled)")
+          .select("*, debtors(company_name, email, stripe_customer_id, crm_account_id, outreach_paused, account_outreach_enabled)")
           .eq("id", id)
           .single(),
         supabase
