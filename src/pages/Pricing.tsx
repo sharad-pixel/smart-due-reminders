@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Check, Mail, Zap, Heart, Building2, Users, Shield, ArrowRight, ScanSearch } from "lucide-react";
+import { Check, Mail, Zap, Heart, Building2, Users, Shield, ArrowRight, ScanSearch, FileSignature } from "lucide-react";
 import MarketingLayout from "@/components/layout/MarketingLayout";
 import SaaSBenefits from "@/components/SaaSBenefits";
 import { Card, CardContent } from "@/components/ui/card";
@@ -549,8 +549,8 @@ const Pricing = () => {
             </p>
           </div>
 
-          {/* Smart Ingestion Add-on */}
-          <div className="mt-10 max-w-2xl mx-auto">
+          {/* Add-ons: Smart Ingestion + Live Contracts */}
+          <div className="mt-10 grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
             <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-background">
               <CardContent className="pt-6">
                 <div className="flex items-center gap-3 mb-4">
@@ -582,6 +582,50 @@ const Pricing = () => {
                   <li className="flex items-center gap-2">
                     <Check className="h-4 w-4 text-primary shrink-0" />
                     Rejected & duplicate files are free • aggregated monthly on your billing cycle
+                  </li>
+                </ul>
+                <Button variant="outline" className="w-full gap-2" onClick={() => navigate("/signup")}>
+                  Get Started <ArrowRight className="h-4 w-4" />
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Live Contracts Add-on */}
+            <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-background">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2.5 rounded-xl bg-primary/10">
+                    <FileSignature className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold">Live Contracts</h3>
+                    <p className="text-sm text-muted-foreground">Automation & AI risk assessments for every active contract</p>
+                  </div>
+                  <Badge className="ml-auto bg-primary/10 text-primary border-primary/20 hover:bg-primary/15">Add-on</Badge>
+                </div>
+                <div className="flex items-baseline gap-2 mb-1">
+                  <span className="text-4xl font-bold text-primary">${LIVE_CONTRACTS_PRICING.pricePerContractPerMonth.toFixed(2)}</span>
+                  <span className="text-muted-foreground">per contract · per month</span>
+                </div>
+                <div className="text-sm text-muted-foreground mb-3">
+                  Metered nightly · pro-rated · included allotments on Starter, Growth & Professional
+                </div>
+                <ul className="space-y-2 text-sm text-muted-foreground mb-4">
+                  <li className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-primary shrink-0" />
+                    Contract Intelligence extraction, Draft/Posted invoice lifecycle & Stripe sync
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-primary shrink-0" />
+                    ASC 606 revenue recognition, ECL / collectability scoring & risk flags
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-primary shrink-0" />
+                    Renewal, expiration & critical-date alerts tracked per account
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-primary shrink-0" />
+                    Billed only on active contracts — usage recorded monthly on every account
                   </li>
                 </ul>
                 <Button variant="outline" className="w-full gap-2" onClick={() => navigate("/signup")}>
