@@ -277,6 +277,29 @@ const EXTRACTION_TOOL = {
             primary_contact: { type: "string" }, billing_contact: { type: "string" },
             legal_contact: { type: "string" }, procurement_contact: { type: "string" },
             email_domain: { type: "string" }, tax_id: { type: "string" },
+            billing_address: {
+              type: "object",
+              description: "Structured billing/bill-to address for the customer.",
+              properties: {
+                line1: { type: "string" }, line2: { type: "string" },
+                city: { type: "string" }, region: { type: "string" },
+                postal_code: { type: "string" }, country: { type: "string" },
+              },
+            },
+            contacts: {
+              type: "array",
+              description: "All named contacts in the contract with role (signatory, billing, technical, legal, procurement).",
+              items: {
+                type: "object",
+                properties: {
+                  name: { type: "string" }, email: { type: "string" },
+                  phone: { type: "string" }, title: { type: "string" }, role: { type: "string" },
+                },
+              },
+            },
+            payment_terms: { type: "string", description: "Customer-level payment terms if specified (e.g. Net 30)." },
+            currency: { type: "string", description: "Contract currency ISO code (USD, EUR, GBP...)." },
+            website: { type: "string" },
           },
         },
         contract: {
