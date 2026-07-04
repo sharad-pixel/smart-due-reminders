@@ -24,6 +24,19 @@ serve(async (req) => {
       });
     }
 
+    // Only posted (open / active) invoices are eligible to push to Stripe.
+    // Drafts, disputed, and terminal statuses are blocked to prevent syncing
+    // provisional or already-closed records into the billing system.
+    const POSTED_STATUSES = new Set(["Open", "InPaymentPlan", "PartiallyPaid"]);
+    if (!POSTED_STATUSES.has(String(inv.status || ""))) {
+      return new Response(JSON.stringify({
+        error: `Only posted invoices can be pushed to Stripe. This invoice is "${inv.status}".`,
+        code: "invoice_not_posted",
+        status: inv.status,
+      }), { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+
     if (!inv.debtor_id) {
       return new Response(JSON.stringify({
         error: "This invoice isn't linked to a Recouply account.",
