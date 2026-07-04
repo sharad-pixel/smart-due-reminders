@@ -1785,6 +1785,10 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                                 {invoice.stripe_invoice_id}
                               </code>
                             </div>
+                          ) : (usesPostingLifecycle(invoice as any) && getPostingState(invoice as any) === "draft") ? (
+                            <p className="text-[11px] text-muted-foreground">
+                              This invoice is a <strong>Draft</strong>. Post it first — only posted invoices can be pushed to Stripe.
+                            </p>
                           ) : POSTED_STATUSES.has(invoice.status || "") ? (
                             <div className="space-y-2">
                               {(() => {
