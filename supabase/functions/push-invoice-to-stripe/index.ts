@@ -76,8 +76,7 @@ serve(async (req) => {
         const existingInvoice = await stripe.invoices.retrieve(inv.stripe_invoice_id, { expand: ["lines"] });
         if (existingInvoice.status !== "draft") {
           const existingTotal = typeof existingInvoice.total === "number" ? existingInvoice.total : 0;
-          const existingDue = typeof existingInvoice.amount_due === "number" ? existingInvoice.amount_due : existingTotal;
-          if (existingTotal <= 0 || existingDue <= 0) {
+          if (existingTotal <= 0) {
             await supa.from("invoices").update({
               stripe_push_status: "error",
               stripe_push_error: "Linked Stripe invoice is finalized at $0.00; clear/reverse the Stripe credit balance or void that invoice before retrying.",
