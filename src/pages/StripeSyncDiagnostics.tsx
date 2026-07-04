@@ -478,7 +478,9 @@ const StripeSyncDiagnostics = () => {
         </Card>
 
         {/* Integration Error Center — dedicated section for failed transactions */}
-        <IntegrationErrorCenter />
+        <div id="integration-error-center" className="scroll-mt-24">
+          <IntegrationErrorCenter />
+        </div>
 
         {/* Issues Panel */}
         {groupedErrors && groupedErrors.totalCount > 0 && (
