@@ -1742,14 +1742,44 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                     <div>
                       <p className="text-xs text-muted-foreground mb-1">Stripe Customer</p>
                       {invoice.debtors?.stripe_customer_id ? (
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 text-[10px]">
-                            <Link2 className="h-3 w-3 mr-1" />
-                            Linked
-                          </Badge>
-                          <code className="text-[11px] px-1.5 py-0.5 rounded bg-muted truncate max-w-[140px]" title={invoice.debtors.stripe_customer_id}>
-                            {invoice.debtors.stripe_customer_id}
-                          </code>
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 text-[10px]">
+                              <Link2 className="h-3 w-3 mr-1" />
+                              Linked
+                            </Badge>
+                            <code className="text-[11px] px-1.5 py-0.5 rounded bg-muted truncate max-w-[140px]" title={invoice.debtors.stripe_customer_id}>
+                              {invoice.debtors.stripe_customer_id}
+                            </code>
+                          </div>
+                          {invoice.stripe_invoice_id ? (
+                            <div className="flex items-center gap-2 text-[11px] text-emerald-700">
+                              <CheckCircle className="h-3.5 w-3.5" />
+                              <span>Pushed to Stripe</span>
+                              <code className="px-1.5 py-0.5 rounded bg-muted truncate max-w-[140px]" title={invoice.stripe_invoice_id}>
+                                {invoice.stripe_invoice_id}
+                              </code>
+                            </div>
+                          ) : POSTED_STATUSES.has(invoice.status || "") ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="w-full"
+                              onClick={handlePushToStripe}
+                              disabled={pushingToStripe}
+                            >
+                              {pushingToStripe ? (
+                                <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> Pushing…</>
+                              ) : (
+                                <><Upload className="h-3.5 w-3.5 mr-1.5" /> Push to Stripe</>
+                              )}
+                            </Button>
+                          ) : (
+                            <p className="text-[11px] text-muted-foreground">
+                              Only posted invoices (Open, In Payment Plan, Partially Paid) can be pushed to Stripe.
+                              This invoice is "{invoice.status}".
+                            </p>
+                          )}
                         </div>
                       ) : (
                         <div className="rounded-md border border-amber-200 bg-amber-50 p-2 space-y-2">
