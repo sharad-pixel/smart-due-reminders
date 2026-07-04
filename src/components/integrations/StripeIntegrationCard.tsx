@@ -96,28 +96,47 @@ export const StripeIntegrationCard = () => {
   const handleSync = async () => {
     setSyncing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('sync-stripe-invoices');
-      
-      if (error) throw error;
+      const [invRes, custRes] = await Promise.all([
+        supabase.functions.invoke('sync-stripe-invoices'),
+        supabase.functions.invoke('sync-stripe-customers'),
+      ]);
 
-       const invoiceCount = data.invoices_synced ?? data.synced_count ?? 0;
-       const txCount = data.transactions_synced ?? data.transactions_logged ?? 0;
-       toast.success(`Synced ${invoiceCount} invoices from Stripe!`, {
-         description: txCount > 0
-           ? `Imported ${txCount} invoice transactions (payments/credits/refunds)`
-           : data.created_debtors > 0 
-             ? `Created ${data.created_debtors} new accounts` 
-             : 'No new invoice transactions found on this sync'
-       });
+      if (invRes.error) throw invRes.error;
+
+      const data: any = invRes.data || {};
+      const invoiceCount = data.invoices_synced ?? data.synced_count ?? 0;
+      const txCount = data.transactions_synced ?? data.transactions_logged ?? 0;
+
+      const cust: any = custRes.data || {};
+      const custCreated = cust.created ?? 0;
+      const custLinked = cust.linked ?? 0;
+      const custScanned = cust.scanned ?? 0;
+
+      const parts: string[] = [];
+      if (custScanned > 0) {
+        parts.push(`${custCreated} new customer${custCreated === 1 ? "" : "s"}, ${custLinked} linked`);
+      }
+      if (txCount > 0) parts.push(`${txCount} invoice transactions`);
+      else if (data.created_debtors > 0) parts.push(`${data.created_debtors} new accounts from invoices`);
+
+      toast.success(`Synced ${invoiceCount} invoices from Stripe`, {
+        description: parts.length ? parts.join(" • ") : "No new activity on this sync",
+      });
+
+      if (custRes.error) {
+        console.warn("Customer sync warning:", custRes.error);
+        toast.warning("Customer sync had issues", { description: String(custRes.error?.message || custRes.error) });
+      }
 
       await fetchIntegration();
     } catch (error: any) {
       console.error("Sync error:", error);
-      toast.error(error.message || "Failed to sync Stripe invoices");
+      toast.error(error.message || "Failed to sync Stripe");
     } finally {
       setSyncing(false);
     }
   };
+
 
   const handleDisconnect = async () => {
     try {
