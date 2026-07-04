@@ -24,6 +24,28 @@ serve(async (req) => {
       });
     }
 
+    // Dedup guard: check Stripe for any invoice already tagged with this recouply_invoice_id
+    // (covers cases where a prior push created the Stripe invoice but failed to persist the link).
+    try {
+      const existing = await stripe.invoices.search({
+        query: `metadata['recouply_invoice_id']:'${invoice_id}'`,
+        limit: 1,
+      });
+      if (existing.data.length > 0) {
+        const found = existing.data[0];
+        await supa.from("invoices").update({
+          stripe_invoice_id: found.id,
+          pushed_to_stripe_at: new Date().toISOString(),
+          stripe_push_status: found.status === "draft" ? "draft" : "finalized",
+          stripe_push_error: null,
+        } as any).eq("id", invoice_id);
+        return new Response(JSON.stringify({ ok: true, already: found.id, recovered: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    } catch (_searchErr) { /* search unavailable — proceed to create */ }
+
+
     // Only posted (open / active) invoices are eligible to push to Stripe.
     // Drafts, disputed, and terminal statuses are blocked to prevent syncing
     // provisional or already-closed records into the billing system.
@@ -97,28 +119,37 @@ serve(async (req) => {
     const dueDate = rawDueSec ? (rawDueSec > nowSec ? rawDueSec : tomorrowSec) : tomorrowSec;
     const stripeInvoice = await stripe.invoices.create({
       customer: customerId,
+      currency,
       collection_method: "send_invoice",
       due_date: dueDate,
       pending_invoice_items_behavior: "include",
+      description: inv.product_description || `Recouply invoice ${inv.invoice_number}`,
+      footer: inv.invoice_number ? `Recouply reference: ${inv.invoice_number}` : undefined,
       metadata: {
         recouply_invoice_id: invoice_id,
-        recouply_invoice_number: inv.invoice_number,
+        recouply_invoice_number: inv.invoice_number ?? "",
         recouply_original_due_date: inv.due_date || "",
         recouply_due_date_adjusted: rawDueSec && rawDueSec <= nowSec ? "true" : "false",
       },
       auto_advance: false,
     });
 
-    if (finalize) {
-      await stripe.invoices.finalizeInvoice(stripeInvoice.id);
-    }
-
+    // Immediately persist the link BEFORE finalize, so a finalize failure can't
+    // orphan a Stripe invoice with no reference in Recouply (prevents duplicates
+    // on retry).
     await supa.from("invoices").update({
       stripe_invoice_id: stripeInvoice.id,
       pushed_to_stripe_at: new Date().toISOString(),
-      stripe_push_status: finalize ? "finalized" : "draft",
+      stripe_push_status: "draft",
       stripe_push_error: null,
     } as any).eq("id", invoice_id);
+
+    if (finalize) {
+      await stripe.invoices.finalizeInvoice(stripeInvoice.id);
+      await supa.from("invoices").update({
+        stripe_push_status: "finalized",
+      } as any).eq("id", invoice_id);
+    }
 
     return new Response(JSON.stringify({ ok: true, stripe_invoice_id: stripeInvoice.id }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
