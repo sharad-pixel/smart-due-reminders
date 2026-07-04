@@ -10792,6 +10792,36 @@ export type Database = {
           },
         ]
       }
+      stripe_reconciliation_dismissals: {
+        Row: {
+          account_id: string
+          created_at: string
+          discrepancy_key: string
+          discrepancy_type: string
+          id: string
+          note: string | null
+          user_id: string
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          discrepancy_key: string
+          discrepancy_type: string
+          id?: string
+          note?: string | null
+          user_id: string
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          discrepancy_key?: string
+          discrepancy_type?: string
+          id?: string
+          note?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       stripe_sync_log: {
         Row: {
           completed_at: string | null
