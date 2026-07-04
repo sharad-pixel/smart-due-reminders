@@ -20,6 +20,9 @@ export interface InvoiceListItem {
   last_contact_date: string | null;
   debtor_id: string;
   integration_source: string | null;
+  source_system: string | null;
+  source_contract_id: string | null;
+  posting_state: string | null;
   has_local_overrides: boolean | null;
   currency: string | null;
   is_on_payment_plan: boolean | null;
