@@ -897,7 +897,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
 
         const { error } = await supabase
           .from("invoices")
-          .update(updatePayload)
+          .update(updatePayload as any)
           .eq("id", invoice.id);
 
 

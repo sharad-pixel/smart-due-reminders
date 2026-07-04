@@ -129,7 +129,7 @@ export const ContractLinksPanel = ({ importId, accountId, debtorId }: Props) => 
   };
 
   const updateSelf = async (patch: Record<string, any>, successMsg = "Updated") => {
-    const { error } = await supabase.from("live_contract_imports").update(patch).eq("id", importId);
+    const { error } = await supabase.from("live_contract_imports").update(patch as any).eq("id", importId);
     if (error) {
       toast.error(error.message);
       return false;

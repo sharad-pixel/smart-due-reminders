@@ -409,7 +409,7 @@ export const ProductCatalogManager = () => {
       if (form.id) {
         const { error } = await supabase
           .from("product_catalog")
-          .update(payload)
+          .update(payload as any)
           .eq("id", form.id);
         if (error) throw error;
         toast.success("Product updated");
@@ -865,8 +865,13 @@ export const ProductCatalogManager = () => {
                           {effective}
                         </TableCell>
                         <TableCell>
-                          {item.source === "stripe" ? (
-                            <Badge variant="outline" className="text-[10px]">Stripe</Badge>
+                          {(item.source === "stripe" || item.stripe_product_id || item.stripe_price_id || item.stripe_synced_at) ? (
+                            <span
+                              className="inline-flex items-center rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200 px-1.5 py-0.5 text-[10px] font-medium"
+                              title={item.stripe_product_id ? `Stripe product: ${item.stripe_product_id}` : "Synced with Stripe"}
+                            >
+                              Stripe synced
+                            </span>
                           ) : (
                             <span className="text-xs text-muted-foreground">Manual</span>
                           )}

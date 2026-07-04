@@ -330,7 +330,7 @@ const AdminUserManagement = () => {
         title: "⚠️ Account Suspended & Deletion Scheduled",
         message: "Your account has been suspended and is scheduled for permanent deletion in 24 hours. All data will be permanently removed. Contact support immediately if you believe this is an error.",
         severity: "critical",
-      }).then(() => {});
+      } as any).then(() => {});
 
       toast.success(`User ${selectedUser.email} suspended. Deletion auto-scheduled in 24 hours.`);
       setSuspendDialogOpen(false);
@@ -466,7 +466,7 @@ const AdminUserManagement = () => {
           title: "⚠️ Account Deletion Scheduled",
           message: "Your account has been scheduled for permanent deletion in 24 hours. All data will be permanently removed. Contact support immediately if this was not requested.",
           severity: "critical",
-        });
+        } as any);
         // Ignore notification insert errors
 
         // Notify support@recouply.ai

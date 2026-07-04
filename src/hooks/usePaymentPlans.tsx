@@ -258,7 +258,7 @@ export function usePaymentPlans(debtorId?: string) {
 
       const { error: updateError } = await supabase
         .from("payment_plans")
-        .update(updateData)
+        .update(updateData as any)
         .eq("id", planId);
 
       if (updateError) throw updateError;
@@ -318,7 +318,7 @@ export function usePaymentPlans(debtorId?: string) {
 
       const { error } = await supabase
         .from("payment_plans")
-        .update(updateData)
+        .update(updateData as any)
         .eq("id", planId);
 
       if (error) throw error;

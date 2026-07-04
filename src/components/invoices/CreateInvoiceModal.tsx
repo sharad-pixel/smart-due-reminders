@@ -209,6 +209,7 @@ export const CreateInvoiceModal = ({
           tax_category: item.tax_category ?? null,
           lookup_key: item.lookup_key ?? null,
           stripe_price_id: item.stripe_price_id ?? null,
+          stripe_product_id: item.stripe_product_id ?? null,
         }));
 
         const { error: lineItemsError } = await supabase

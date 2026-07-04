@@ -41,7 +41,7 @@ export async function updateDebtor(
 ) {
   const { data, error } = await supabase
     .from("debtors")
-    .update(updates)
+    .update(updates as any)
     .eq("id", debtorId)
     .select()
     .single();
