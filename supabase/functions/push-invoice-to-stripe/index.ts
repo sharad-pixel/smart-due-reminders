@@ -88,12 +88,23 @@ serve(async (req) => {
       });
     }
 
-    const dueDate = inv.due_date ? Math.floor(new Date(inv.due_date).getTime() / 1000) : undefined;
+    // Stripe requires due_date to be in the future. If the invoice is already
+    // past due, bump the Stripe due_date to tomorrow so the push succeeds; the
+    // real original due date is preserved in metadata for reference.
+    const nowSec = Math.floor(Date.now() / 1000);
+    const tomorrowSec = nowSec + 24 * 60 * 60;
+    const rawDueSec = inv.due_date ? Math.floor(new Date(inv.due_date).getTime() / 1000) : undefined;
+    const dueDate = rawDueSec ? (rawDueSec > nowSec ? rawDueSec : tomorrowSec) : tomorrowSec;
     const stripeInvoice = await stripe.invoices.create({
       customer: customerId,
       collection_method: "send_invoice",
       due_date: dueDate,
-      metadata: { recouply_invoice_id: invoice_id, recouply_invoice_number: inv.invoice_number },
+      metadata: {
+        recouply_invoice_id: invoice_id,
+        recouply_invoice_number: inv.invoice_number,
+        recouply_original_due_date: inv.due_date || "",
+        recouply_due_date_adjusted: rawDueSec && rawDueSec <= nowSec ? "true" : "false",
+      },
       auto_advance: false,
     });
 

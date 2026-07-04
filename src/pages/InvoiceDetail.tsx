@@ -1772,19 +1772,60 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                               </code>
                             </div>
                           ) : POSTED_STATUSES.has(invoice.status || "") ? (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="w-full"
-                              onClick={handlePushToStripe}
-                              disabled={pushingToStripe}
-                            >
-                              {pushingToStripe ? (
-                                <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> Pushing…</>
-                              ) : (
-                                <><Upload className="h-3.5 w-3.5 mr-1.5" /> Push to Stripe</>
-                              )}
-                            </Button>
+                            <div className="space-y-2">
+                              {(() => {
+                                const dueMs = invoice.due_date ? new Date(invoice.due_date).getTime() : null;
+                                const isPastDue = dueMs !== null && dueMs <= Date.now();
+                                const amt = Number(invoice.total_amount ?? invoice.amount ?? 0);
+                                const checks = [
+                                  { label: "Customer linked", ok: !!invoice.debtors?.stripe_customer_id, detail: invoice.debtors?.stripe_customer_id || "Missing" },
+                                  { label: "Amount", ok: amt > 0, detail: amt > 0 ? `${invoice.currency || "USD"} ${amt.toFixed(2)}` : "Missing / zero" },
+                                  { label: "Currency", ok: !!invoice.currency, detail: invoice.currency || "USD (default)" },
+                                  { label: "Invoice number", ok: !!invoice.invoice_number, detail: invoice.invoice_number || "Missing" },
+                                  {
+                                    label: "Due date",
+                                    ok: !!invoice.due_date,
+                                    warn: isPastDue,
+                                    detail: invoice.due_date
+                                      ? `${new Date(invoice.due_date).toLocaleDateString()}${isPastDue ? " (past — Stripe will use tomorrow)" : ""}`
+                                      : "Missing (Stripe will use tomorrow)",
+                                  },
+                                ];
+                                return (
+                                  <div className="rounded-md border bg-muted/30 p-2 space-y-1">
+                                    <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Stripe push fields</p>
+                                    {checks.map((c) => (
+                                      <div key={c.label} className="flex items-start gap-1.5 text-[11px]">
+                                        {c.ok ? (
+                                          c.warn ? (
+                                            <AlertCircle className="h-3 w-3 mt-0.5 text-amber-600 shrink-0" />
+                                          ) : (
+                                            <CheckCircle className="h-3 w-3 mt-0.5 text-emerald-600 shrink-0" />
+                                          )
+                                        ) : (
+                                          <AlertCircle className="h-3 w-3 mt-0.5 text-red-600 shrink-0" />
+                                        )}
+                                        <span className="text-muted-foreground min-w-[90px]">{c.label}:</span>
+                                        <span className={c.ok ? (c.warn ? "text-amber-700" : "text-foreground") : "text-red-700"}>{c.detail}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                );
+                              })()}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="w-full"
+                                onClick={handlePushToStripe}
+                                disabled={pushingToStripe}
+                              >
+                                {pushingToStripe ? (
+                                  <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> Pushing…</>
+                                ) : (
+                                  <><Upload className="h-3.5 w-3.5 mr-1.5" /> Push to Stripe</>
+                                )}
+                              </Button>
+                            </div>
                           ) : (
                             <p className="text-[11px] text-muted-foreground">
                               Only posted invoices (Open, In Payment Plan, Partially Paid) can be pushed to Stripe.
