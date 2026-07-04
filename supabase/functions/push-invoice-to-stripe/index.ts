@@ -154,10 +154,6 @@ serve(async (req) => {
     return new Response(JSON.stringify({ ok: true, stripe_invoice_id: stripeInvoice.id }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-
-    return new Response(JSON.stringify({ ok: true, stripe_invoice_id: stripeInvoice.id }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
   } catch (e) {
     const msg = (e as Error).message;
     try {
