@@ -198,7 +198,18 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
       const { data, error } = await supabase.functions.invoke("push-invoice-to-stripe", {
         body: { invoice_id: invoice.id, finalize: true },
       });
-      if (error) throw error;
+      if (error) {
+        // Try to read the JSON body the edge function returned on non-2xx.
+        let serverMsg: string | null = null;
+        try {
+          const ctx: any = (error as any).context;
+          if (ctx && typeof ctx.json === "function") {
+            const body = await ctx.json();
+            serverMsg = body?.error || null;
+          }
+        } catch { /* noop */ }
+        throw new Error(serverMsg || (error as any).message || "Failed to push to Stripe");
+      }
       if ((data as any)?.error) throw new Error((data as any).error);
       toast.success("Invoice pushed to Stripe");
       // Refresh invoice to pick up stripe_invoice_id
