@@ -329,7 +329,8 @@ const AdminUserManagement = () => {
         type: "account_deletion_scheduled",
         title: "⚠️ Account Suspended & Deletion Scheduled",
         message: "Your account has been suspended and is scheduled for permanent deletion in 24 hours. All data will be permanently removed. Contact support immediately if you believe this is an error.",
-        severity: "critical" as any,
+        severity: "critical",
+      } as any).then(() => {});
       }).then(() => {});
 
       toast.success(`User ${selectedUser.email} suspended. Deletion auto-scheduled in 24 hours.`);
@@ -465,7 +466,8 @@ const AdminUserManagement = () => {
           type: "account_deletion_scheduled",
           title: "⚠️ Account Deletion Scheduled",
           message: "Your account has been scheduled for permanent deletion in 24 hours. All data will be permanently removed. Contact support immediately if this was not requested.",
-          severity: "critical" as any,
+          severity: "critical",
+      } as any).then(() => {});
         });
         // Ignore notification insert errors
 
