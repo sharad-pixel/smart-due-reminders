@@ -21,7 +21,7 @@ import {
   X,
   ExternalLink,
 } from "lucide-react";
-import { SEO } from "@/components/seo/SEO";
+import SEO from "@/components/seo/SEO";
 
 interface Discrepancy {
   key: string;
