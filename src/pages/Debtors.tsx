@@ -410,6 +410,30 @@ const Debtors = () => {
             </p>
           </div>
           <div className="flex gap-2">
+            {stripeConnected && (
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  const t = toast.loading("Syncing customers from Stripe…");
+                  try {
+                    const { data, error } = await supabase.functions.invoke("sync-stripe-customers");
+                    if (error) throw error;
+                    const d: any = data || {};
+                    if (d.error) throw new Error(d.error);
+                    toast.success(
+                      `Stripe sync complete • ${d.created ?? 0} created, ${d.linked ?? 0} linked, ${d.skipped ?? 0} already linked (scanned ${d.scanned ?? 0})`,
+                      { id: t },
+                    );
+                    fetchDebtors();
+                  } catch (e: any) {
+                    toast.error(e?.message || "Stripe customer sync failed", { id: t });
+                  }
+                }}
+              >
+                <CreditCard className="h-4 w-4 mr-2" />
+                Sync Stripe customers
+              </Button>
+            )}
             <Button variant="outline" onClick={() => navigate('/data-center')}>
               <Upload className="h-4 w-4 mr-2" />
               Data Center

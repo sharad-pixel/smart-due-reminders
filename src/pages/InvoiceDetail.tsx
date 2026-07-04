@@ -26,7 +26,7 @@ import { DraftPreviewModal } from "@/components/outreach/DraftPreviewModal";
 import { TasksSummaryCard } from "@/components/tasks/TasksSummaryCard";
 import type { CollectionTask } from "@/hooks/useCollectionTasks";
 import { useStripeConnected } from "@/hooks/useStripeConnected";
-import { Link2, Link2Off } from "lucide-react";
+import { Link2, Link2Off, Loader2, Upload } from "lucide-react";
 import { getPaymentTermsOptions, calculateDueDate } from "@/lib/paymentTerms";
 import CreateTaskModal from "@/components/tasks/CreateTaskModal";
 import { OutreachDetailModal, OutreachRecord } from "@/components/outreach/OutreachDetailModal";
@@ -187,6 +187,33 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
   const [sendingDraft, setSendingDraft] = useState<string | null>(null);
   const [_crmAccount, setCrmAccount] = useState<CRMAccount | null>(null);
   const [copiedRefId, setCopiedRefId] = useState(false);
+  const [pushingToStripe, setPushingToStripe] = useState(false);
+
+  const POSTED_STATUSES = new Set(["Open", "InPaymentPlan", "PartiallyPaid"]);
+
+  const handlePushToStripe = async () => {
+    if (!invoice) return;
+    setPushingToStripe(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("push-invoice-to-stripe", {
+        body: { invoice_id: invoice.id, finalize: true },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      toast.success("Invoice pushed to Stripe");
+      // Refresh invoice to pick up stripe_invoice_id
+      const { data: refreshed } = await supabase
+        .from("invoices")
+        .select("*, debtors(company_name, email, stripe_customer_id, crm_account_id, outreach_paused, account_outreach_enabled)")
+        .eq("id", invoice.id)
+        .maybeSingle();
+      if (refreshed) setInvoice(refreshed as any);
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to push to Stripe");
+    } finally {
+      setPushingToStripe(false);
+    }
+  };
   const [previewDraft, setPreviewDraft] = useState<any>(null);
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [tasks, setTasks] = useState<CollectionTask[]>([]);
@@ -1715,14 +1742,44 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                     <div>
                       <p className="text-xs text-muted-foreground mb-1">Stripe Customer</p>
                       {invoice.debtors?.stripe_customer_id ? (
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 text-[10px]">
-                            <Link2 className="h-3 w-3 mr-1" />
-                            Linked
-                          </Badge>
-                          <code className="text-[11px] px-1.5 py-0.5 rounded bg-muted truncate max-w-[140px]" title={invoice.debtors.stripe_customer_id}>
-                            {invoice.debtors.stripe_customer_id}
-                          </code>
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 text-[10px]">
+                              <Link2 className="h-3 w-3 mr-1" />
+                              Linked
+                            </Badge>
+                            <code className="text-[11px] px-1.5 py-0.5 rounded bg-muted truncate max-w-[140px]" title={invoice.debtors.stripe_customer_id}>
+                              {invoice.debtors.stripe_customer_id}
+                            </code>
+                          </div>
+                          {invoice.stripe_invoice_id ? (
+                            <div className="flex items-center gap-2 text-[11px] text-emerald-700">
+                              <CheckCircle className="h-3.5 w-3.5" />
+                              <span>Pushed to Stripe</span>
+                              <code className="px-1.5 py-0.5 rounded bg-muted truncate max-w-[140px]" title={invoice.stripe_invoice_id}>
+                                {invoice.stripe_invoice_id}
+                              </code>
+                            </div>
+                          ) : POSTED_STATUSES.has(invoice.status || "") ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="w-full"
+                              onClick={handlePushToStripe}
+                              disabled={pushingToStripe}
+                            >
+                              {pushingToStripe ? (
+                                <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> Pushing…</>
+                              ) : (
+                                <><Upload className="h-3.5 w-3.5 mr-1.5" /> Push to Stripe</>
+                              )}
+                            </Button>
+                          ) : (
+                            <p className="text-[11px] text-muted-foreground">
+                              Only posted invoices (Open, In Payment Plan, Partially Paid) can be pushed to Stripe.
+                              This invoice is "{invoice.status}".
+                            </p>
+                          )}
                         </div>
                       ) : (
                         <div className="rounded-md border border-amber-200 bg-amber-50 p-2 space-y-2">
