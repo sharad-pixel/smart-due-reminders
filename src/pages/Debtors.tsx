@@ -888,11 +888,26 @@ const Debtors = () => {
                                   AI Outreach
                                 </Badge>
                               )}
-                              {debtor.stripe_customer_id && (
-                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-indigo-50 text-indigo-700 border-indigo-200" title={debtor.stripe_customer_id}>
-                                  Stripe
+                              {debtor.stripe_customer_id ? (
+                                <Badge
+                                  variant="outline"
+                                  className="text-[10px] px-1.5 py-0 h-4 bg-emerald-50 text-emerald-700 border-emerald-200"
+                                  title={`Linked to Stripe customer ${debtor.stripe_customer_id}`}
+                                >
+                                  <CheckCircle2 className="h-2.5 w-2.5 mr-0.5" />
+                                  Stripe: Linked
                                 </Badge>
-                              )}
+                              ) : stripeConnected ? (
+                                <Badge
+                                  variant="outline"
+                                  className="text-[10px] px-1.5 py-0 h-4 bg-amber-50 text-amber-700 border-amber-200 cursor-pointer hover:bg-amber-100"
+                                  title="Not linked to a Stripe customer — click to link"
+                                  onClick={(e) => { e.stopPropagation(); navigate(`/debtors/${debtor.id}`); }}
+                                >
+                                  <AlertTriangle className="h-2.5 w-2.5 mr-0.5" />
+                                  Stripe: Not linked
+                                </Badge>
+                              ) : null}
                             </div>
                           </div>
                         </div>
