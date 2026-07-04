@@ -14,7 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Search, Upload, Building2, User, Mail, MapPin, Clock, DollarSign, TrendingUp, FileBarChart, ExternalLink, CreditCard, LayoutGrid, List, Trash2, UserPlus, ChevronLeft, ChevronRight, Radio, Zap, Merge, Sparkles } from "lucide-react";
+import { Plus, Search, Upload, Building2, User, Mail, MapPin, Clock, DollarSign, TrendingUp, FileBarChart, ExternalLink, CreditCard, LayoutGrid, List, Trash2, UserPlus, ChevronLeft, ChevronRight, Radio, Zap, Merge, Sparkles, CheckCircle2, AlertTriangle } from "lucide-react";
 import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 import { SetupRequiredBadge } from "@/components/onboarding/SetupRequiredBadge";
 import { EmailStatusBadge } from "@/components/alerts/EmailStatusBadge";
