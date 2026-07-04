@@ -8,6 +8,49 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const ZERO_DECIMAL_CURRENCIES = new Set([
+  "bif", "clp", "djf", "gnf", "jpy", "kmf", "krw", "mga", "pyg", "rwf", "ugx", "vnd", "vuv", "xaf", "xof", "xpf",
+]);
+
+function toNumber(value: unknown): number {
+  if (value === null || value === undefined || value === "") return 0;
+  if (typeof value === "number") return Number.isFinite(value) ? value : 0;
+  const cleaned = String(value).replace(/,/g, "").trim();
+  const parsed = Number(cleaned);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function toMinorUnits(value: unknown, currency: string): number {
+  const factor = ZERO_DECIMAL_CURRENCIES.has(currency.toLowerCase()) ? 1 : 100;
+  return Math.round(toNumber(value) * factor);
+}
+
+function invoiceExpectedCents(inv: any, lineItems: any[] | null | undefined, currency: string): number {
+  const direct = [inv.total_amount, inv.amount, inv.subtotal_amount, inv.amount_outstanding]
+    .map((value) => toMinorUnits(value, currency))
+    .find((amount) => amount > 0);
+  if (direct) return direct;
+
+  return (lineItems || []).reduce((sum, li) => sum + lineItemCents(li, currency), 0);
+}
+
+function lineItemCents(li: any, currency: string): number {
+  const explicitTotal = toMinorUnits(li.line_total, currency);
+  if (explicitTotal !== 0) return explicitTotal;
+
+  const quantity = toNumber(li.quantity) || 1;
+  const unitPrice = toNumber(li.unit_price);
+  return toMinorUnits(quantity * unitPrice, currency);
+}
+
+async function deleteDraftInvoice(stripe: Stripe, invoiceId: string) {
+  try {
+    await stripe.invoices.del(invoiceId);
+  } catch (_deleteErr) {
+    // If Stripe no longer allows deletion, leave the linked ID for traceability.
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
@@ -18,7 +61,35 @@ serve(async (req) => {
 
     const { data: inv } = await supa.from("invoices").select("*").eq("id", invoice_id).maybeSingle();
     if (!inv) throw new Error("Invoice not found");
+    const currency = (inv.currency || "usd").toLowerCase();
+    const { data: lineItems } = await supa.from("invoice_line_items").select("*").eq("invoice_id", invoice_id).order("sort_order");
+    const expectedCents = invoiceExpectedCents(inv, lineItems, currency);
+    if (expectedCents <= 0) {
+      return new Response(JSON.stringify({
+        error: "Invoice total is zero in Recouply, so it was not pushed to Stripe.",
+        code: "invoice_total_zero",
+      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     if (inv.stripe_invoice_id) {
+      try {
+        const existingInvoice = await stripe.invoices.retrieve(inv.stripe_invoice_id, { expand: ["lines"] });
+        if (existingInvoice.status !== "draft") {
+          const existingTotal = typeof existingInvoice.total === "number" ? existingInvoice.total : 0;
+          if (existingTotal <= 0) {
+            await supa.from("invoices").update({
+              stripe_push_status: "error",
+              stripe_push_error: "Linked Stripe invoice is finalized at $0.00; clear/reverse the Stripe credit balance or void that invoice before retrying.",
+            } as any).eq("id", invoice_id);
+            return new Response(JSON.stringify({
+              error: "This invoice is already linked to a finalized Stripe invoice with $0.00 due. Stripe customer credits may have been applied; void that Stripe invoice or remove the credit before retrying.",
+              code: "linked_stripe_invoice_zero",
+              stripe_invoice_id: inv.stripe_invoice_id,
+            }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+          }
+        }
+      } catch (_retrieveErr) { /* Keep legacy behavior if the linked invoice cannot be read. */ }
+
       return new Response(JSON.stringify({ ok: true, already: inv.stripe_invoice_id }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -91,10 +162,14 @@ serve(async (req) => {
     }
 
     const customerId: string = debtor.stripe_customer_id;
-
-    // Line items — prefer invoice_line_items, else single line from invoice
-    const { data: lineItems } = await supa.from("invoice_line_items").select("*").eq("invoice_id", invoice_id).order("sort_order");
-    const currency = (inv.currency || "usd").toLowerCase();
+    const stripeCustomer = await stripe.customers.retrieve(customerId);
+    if (!stripeCustomer.deleted && typeof stripeCustomer.balance === "number" && stripeCustomer.balance < 0) {
+      return new Response(JSON.stringify({
+        error: "Stripe has a credit balance on this customer. Stripe automatically applies customer credits to invoices, which can make the invoice push in at $0.00. Remove or reverse the Stripe customer credit before pushing.",
+        code: "stripe_customer_credit_balance",
+        stripe_customer_id: customerId,
+      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
     // Stripe requires due_date to be in the future. If the invoice is already
     // past due, bump the Stripe due_date to tomorrow so the push succeeds; the
@@ -139,7 +214,7 @@ serve(async (req) => {
     let attachedTotalCents = 0;
     if (lineItems && lineItems.length > 0) {
       for (const li of lineItems) {
-        const cents = Math.round(Number(li.line_total ?? 0) * 100);
+        const cents = lineItemCents(li, currency);
         if (!cents) continue;
         await stripe.invoiceItems.create({
           customer: customerId,
@@ -155,22 +230,64 @@ serve(async (req) => {
 
     // Fallback: no line items OR line items summed to 0 — attach the invoice total
     if (attachedTotalCents === 0) {
-      const totalCents = Math.round(Number(inv.total_amount ?? inv.amount ?? 0) * 100);
-      if (!totalCents) {
-        throw new Error("Invoice has no amount to push (total is 0).");
-      }
       await stripe.invoiceItems.create({
         customer: customerId,
         invoice: stripeInvoice.id,
-        amount: totalCents,
+        amount: expectedCents,
         currency,
         description: inv.product_description || inv.invoice_number || "Invoice",
         metadata: { recouply_invoice_id: invoice_id },
       });
+      attachedTotalCents = expectedCents;
+    }
+
+    // If line items represent the subtotal but Recouply has a processing fee,
+    // tax, or other total adjustment, add one balancing line so Stripe total
+    // exactly matches the trusted invoice total in the database.
+    const deltaCents = expectedCents - attachedTotalCents;
+    if (deltaCents !== 0) {
+      await stripe.invoiceItems.create({
+        customer: customerId,
+        invoice: stripeInvoice.id,
+        amount: deltaCents,
+        currency,
+        description: deltaCents > 0 ? "Invoice total adjustment" : "Invoice credit adjustment",
+        metadata: { recouply_invoice_id: invoice_id, recouply_adjustment: "true" },
+      });
+      attachedTotalCents += deltaCents;
+    }
+
+    const draftCheck = await stripe.invoices.retrieve(stripeInvoice.id, { expand: ["lines"] });
+    const draftTotal = typeof draftCheck.total === "number" ? draftCheck.total : 0;
+    const draftDue = typeof draftCheck.amount_due === "number" ? draftCheck.amount_due : draftTotal;
+    if (draftTotal <= 0 || draftDue <= 0) {
+      await deleteDraftInvoice(stripe, stripeInvoice.id);
+      await supa.from("invoices").update({
+        stripe_invoice_id: null,
+        pushed_to_stripe_at: null,
+        stripe_push_status: "error",
+        stripe_push_error: "Stripe calculated the invoice at $0.00 before finalization; push stopped to avoid creating a paid $0 invoice.",
+      } as any).eq("id", invoice_id);
+      return new Response(JSON.stringify({
+        error: "Stripe calculated this invoice at $0.00 before finalization, so Recouply stopped the push. Check the linked Stripe customer for credits/balance settings, then retry.",
+        code: "stripe_calculated_zero",
+        stripe_invoice_id: stripeInvoice.id,
+      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     if (finalize) {
-      await stripe.invoices.finalizeInvoice(stripeInvoice.id);
+      const finalized = await stripe.invoices.finalizeInvoice(stripeInvoice.id);
+      if ((finalized.total ?? 0) <= 0 || (finalized.amount_due ?? finalized.total ?? 0) <= 0) {
+        await supa.from("invoices").update({
+          stripe_push_status: "error",
+          stripe_push_error: "Stripe finalized the invoice at $0.00; customer credits may have been applied.",
+        } as any).eq("id", invoice_id);
+        return new Response(JSON.stringify({
+          error: "Stripe finalized this invoice at $0.00. The linked Stripe customer likely has credits that Stripe auto-applied.",
+          code: "stripe_finalized_zero",
+          stripe_invoice_id: stripeInvoice.id,
+        }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
       await supa.from("invoices").update({
         stripe_push_status: "finalized",
       } as any).eq("id", invoice_id);
