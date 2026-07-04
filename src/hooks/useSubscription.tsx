@@ -39,8 +39,8 @@ export function useSubscription(): SubscriptionState {
   const [isLoading, setIsLoading] = useState(true);
   const [plan, setPlan] = useState<PlanType>('free');
   const [subscriptionStatus, setSubscriptionStatus] = useState<string>('inactive');
-  const [invoiceLimit, setInvoiceLimit] = useState(TRIAL_INVOICE_LIMIT);
-  const [maxAgents, setMaxAgents] = useState(FREE_MAX_AGENTS);
+  const [invoiceLimit, setInvoiceLimit] = useState<number>(TRIAL_INVOICE_LIMIT);
+  const [maxAgents, setMaxAgents] = useState<number>(FREE_MAX_AGENTS);
   const [isTrial, setIsTrial] = useState(false);
   const [hasUsedTrial, setHasUsedTrial] = useState(false);
   const [trialEndsAt, setTrialEndsAt] = useState<string | null>(null);
