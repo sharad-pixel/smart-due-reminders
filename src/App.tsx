@@ -147,6 +147,7 @@ const Reconciliation = lazy(() => import("./pages/Reconciliation"));
 const ARAging = lazy(() => import("./pages/ARAging"));
 const DataCenter = lazy(() => import("./pages/DataCenter"));
 const DataCenterReview = lazy(() => import("./pages/DataCenterReview"));
+const StripeReconciliation = lazy(() => import("./pages/StripeReconciliation"));
 const DailyDigest = lazy(() => import("./pages/DailyDigest"));
 const Outreach = lazy(() => import("./pages/Outreach"));
 const OutreachHistory = lazy(() => import("./pages/OutreachHistory"));
@@ -390,6 +391,7 @@ const App = () => (
               <Route path="/ar-aging" element={<ARAging />} />
               <Route path="/data-center" element={<DataCenter />} />
               <Route path="/data-center/review/:uploadId" element={<DataCenterReview />} />
+              <Route path="/stripe-reconciliation" element={<StripeReconciliation />} />
               <Route path="/daily-digest" element={<DailyDigest />} />
               <Route path="/outreach" element={<Outreach />} />
               <Route path="/outreach-history" element={<OutreachHistory />} />
