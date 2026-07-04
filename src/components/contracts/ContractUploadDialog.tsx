@@ -66,6 +66,7 @@ export function ContractUploadDialog({ open, onOpenChange, debtorId, debtorName 
     const fd = new FormData();
     fd.append("file", file);
     if (debtorId) fd.append("debtor_id", debtorId);
+    if (contractType) fd.append("contract_type", contractType);
     const { data, error } = await supabase.functions.invoke("live-contract-upload", { body: fd });
     if (error) throw new Error(error.message || "Upload failed");
     if (!data?.success || !data?.import?.id) throw new Error(data?.error || "Upload failed");
@@ -74,6 +75,7 @@ export function ContractUploadDialog({ open, onOpenChange, debtorId, debtorName 
 
   const reset = () => {
     setFiles([]);
+    setContractType("");
     setProgress(null);
   };
 
