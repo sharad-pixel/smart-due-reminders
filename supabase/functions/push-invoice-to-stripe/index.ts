@@ -96,26 +96,6 @@ serve(async (req) => {
     const { data: lineItems } = await supa.from("invoice_line_items").select("*").eq("invoice_id", invoice_id).order("sort_order");
     const currency = (inv.currency || "usd").toLowerCase();
 
-    if (lineItems && lineItems.length > 0) {
-      for (const li of lineItems) {
-        await stripe.invoiceItems.create({
-          customer: customerId,
-          amount: Math.round(Number(li.line_total) * 100),
-          currency,
-          description: li.description,
-          metadata: { recouply_invoice_id: invoice_id },
-        });
-      }
-    } else {
-      await stripe.invoiceItems.create({
-        customer: customerId,
-        amount: Math.round(Number(inv.total_amount ?? inv.amount) * 100),
-        currency,
-        description: inv.product_description || inv.invoice_number,
-        metadata: { recouply_invoice_id: invoice_id },
-      });
-    }
-
     // Stripe requires due_date to be in the future. If the invoice is already
     // past due, bump the Stripe due_date to tomorrow so the push succeeds; the
     // real original due date is preserved in metadata for reference.
@@ -123,12 +103,18 @@ serve(async (req) => {
     const tomorrowSec = nowSec + 24 * 60 * 60;
     const rawDueSec = inv.due_date ? Math.floor(new Date(inv.due_date).getTime() / 1000) : undefined;
     const dueDate = rawDueSec ? (rawDueSec > nowSec ? rawDueSec : tomorrowSec) : tomorrowSec;
+
+    // Create the Stripe invoice FIRST (empty), then attach line items to it
+    // directly. This guarantees attachment regardless of Stripe's default
+    // `pending_invoice_items_behavior`, which has changed across API versions
+    // and previously caused $0 invoices when items ended up orphaned on the
+    // customer instead of the invoice.
     const stripeInvoice = await stripe.invoices.create({
       customer: customerId,
       currency,
       collection_method: "send_invoice",
       due_date: dueDate,
-      pending_invoice_items_behavior: "include",
+      pending_invoice_items_behavior: "exclude",
       description: inv.product_description || `Recouply invoice ${inv.invoice_number}`,
       footer: inv.invoice_number ? `Recouply reference: ${inv.invoice_number}` : undefined,
       metadata: {
@@ -140,15 +126,48 @@ serve(async (req) => {
       auto_advance: false,
     });
 
-    // Immediately persist the link BEFORE finalize, so a finalize failure can't
-    // orphan a Stripe invoice with no reference in Recouply (prevents duplicates
-    // on retry).
+    // Persist the link IMMEDIATELY so a failure below can't orphan a Stripe
+    // invoice with no reference in Recouply (prevents duplicates on retry).
     await supa.from("invoices").update({
       stripe_invoice_id: stripeInvoice.id,
       pushed_to_stripe_at: new Date().toISOString(),
       stripe_push_status: "draft",
       stripe_push_error: null,
     } as any).eq("id", invoice_id);
+
+    // Attach line items directly to this invoice
+    let attachedTotalCents = 0;
+    if (lineItems && lineItems.length > 0) {
+      for (const li of lineItems) {
+        const cents = Math.round(Number(li.line_total ?? 0) * 100);
+        if (!cents) continue;
+        await stripe.invoiceItems.create({
+          customer: customerId,
+          invoice: stripeInvoice.id,
+          amount: cents,
+          currency,
+          description: li.description || inv.invoice_number || "Invoice line",
+          metadata: { recouply_invoice_id: invoice_id },
+        });
+        attachedTotalCents += cents;
+      }
+    }
+
+    // Fallback: no line items OR line items summed to 0 — attach the invoice total
+    if (attachedTotalCents === 0) {
+      const totalCents = Math.round(Number(inv.total_amount ?? inv.amount ?? 0) * 100);
+      if (!totalCents) {
+        throw new Error("Invoice has no amount to push (total is 0).");
+      }
+      await stripe.invoiceItems.create({
+        customer: customerId,
+        invoice: stripeInvoice.id,
+        amount: totalCents,
+        currency,
+        description: inv.product_description || inv.invoice_number || "Invoice",
+        metadata: { recouply_invoice_id: invoice_id },
+      });
+    }
 
     if (finalize) {
       await stripe.invoices.finalizeInvoice(stripeInvoice.id);
