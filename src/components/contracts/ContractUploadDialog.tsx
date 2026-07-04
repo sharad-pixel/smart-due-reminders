@@ -36,6 +36,7 @@ const MAX_BYTES = 25 * 1024 * 1024;
 export function ContractUploadDialog({ open, onOpenChange, debtorId, debtorName }: Props) {
   const [files, setFiles] = useState<File[]>([]);
   const [dragActive, setDragActive] = useState(false);
+  const [contractType, setContractType] = useState<string>("");
   const [progress, setProgress] = useState<{ done: number; total: number; phase: string } | null>(null);
   const [manualOpen, setManualOpen] = useState(false);
   const [classify, setClassify] = useState<{ importId: string; accountId: string; debtorId: string | null; contractName: string | null } | null>(null);
