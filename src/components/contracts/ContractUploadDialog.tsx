@@ -5,12 +5,19 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Upload, Loader2, FileSearch, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ContractFileRow } from "@/components/contracts/ContractFileRow";
 import { ManualContractDialog } from "@/components/contracts/ManualContractDialog";
 import { ContractClassifyDialog } from "@/components/contracts/ContractClassifyDialog";
+
+const CONTRACT_TYPES = [
+  "MSA", "SOW", "Order Form", "Subscription", "Amendment",
+  "Renewal", "Addendum", "NDA", "Other",
+];
 
 interface Props {
   open: boolean;
