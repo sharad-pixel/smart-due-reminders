@@ -57,7 +57,17 @@ export const ProductCatalogPicker = ({ onSelect, disabled }: ProductCatalogPicke
                   className="flex items-start justify-between gap-2"
                 >
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium truncate">{item.description}</div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="font-medium truncate">{item.description}</div>
+                      {(item.stripe_product_id || item.stripe_price_id || item.stripe_synced_at) && (
+                        <span
+                          className="inline-flex items-center rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200 px-1.5 py-0.5 text-[10px] font-medium shrink-0"
+                          title={item.stripe_product_id ? `Stripe product: ${item.stripe_product_id}` : "Synced with Stripe"}
+                        >
+                          Stripe synced
+                        </span>
+                      )}
+                    </div>
                     {item.product_description && (
                       <div className="text-xs text-muted-foreground truncate">
                         {item.product_description}
