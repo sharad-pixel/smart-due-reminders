@@ -59,7 +59,7 @@ serve(async (req) => {
         error: `Account "${label}" is not linked to a Stripe customer. Open the account and link it before pushing invoices.`,
         code: "debtor_not_linked_to_stripe",
         debtor_id: inv.debtor_id,
-      }), { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const customerId: string = debtor.stripe_customer_id;
