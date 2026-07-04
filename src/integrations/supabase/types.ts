@@ -6468,6 +6468,7 @@ export type Database = {
           quantity: number
           sort_order: number
           stripe_price_id: string | null
+          stripe_product_id: string | null
           tax_behavior: string | null
           tax_category: string | null
           unit_price: number
@@ -6491,6 +6492,7 @@ export type Database = {
           quantity?: number
           sort_order?: number
           stripe_price_id?: string | null
+          stripe_product_id?: string | null
           tax_behavior?: string | null
           tax_category?: string | null
           unit_price: number
@@ -6514,6 +6516,7 @@ export type Database = {
           quantity?: number
           sort_order?: number
           stripe_price_id?: string | null
+          stripe_product_id?: string | null
           tax_behavior?: string | null
           tax_category?: string | null
           unit_price?: number

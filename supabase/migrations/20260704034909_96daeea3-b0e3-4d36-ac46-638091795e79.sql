@@ -1,0 +1,2 @@
+ALTER TABLE public.invoice_line_items ADD COLUMN IF NOT EXISTS stripe_product_id text;
+CREATE INDEX IF NOT EXISTS idx_invoice_line_items_stripe_product_id ON public.invoice_line_items(stripe_product_id);
