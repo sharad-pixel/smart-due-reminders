@@ -260,7 +260,7 @@ serve(async (req) => {
 
     // Fallback: no line items OR line items summed to 0 — attach the invoice total
     if (attachedTotalCents === 0) {
-      await stripe.invoiceItems.create({
+      await createInvoiceItemChunks(stripe, {
         customer: customerId,
         invoice: stripeInvoice.id,
         amount: expectedCents,
