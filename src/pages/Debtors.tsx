@@ -14,7 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Search, Upload, Building2, User, Mail, MapPin, Clock, DollarSign, TrendingUp, FileBarChart, ExternalLink, CreditCard, LayoutGrid, List, Trash2, UserPlus, ChevronLeft, ChevronRight, Radio, Zap, Merge, Sparkles } from "lucide-react";
+import { Plus, Search, Upload, Building2, User, Mail, MapPin, Clock, DollarSign, TrendingUp, FileBarChart, ExternalLink, CreditCard, LayoutGrid, List, Trash2, UserPlus, ChevronLeft, ChevronRight, Radio, Zap, Merge, Sparkles, CheckCircle2, AlertTriangle } from "lucide-react";
 import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 import { SetupRequiredBadge } from "@/components/onboarding/SetupRequiredBadge";
 import { EmailStatusBadge } from "@/components/alerts/EmailStatusBadge";
@@ -888,11 +888,26 @@ const Debtors = () => {
                                   AI Outreach
                                 </Badge>
                               )}
-                              {debtor.stripe_customer_id && (
-                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-indigo-50 text-indigo-700 border-indigo-200" title={debtor.stripe_customer_id}>
-                                  Stripe
+                              {debtor.stripe_customer_id ? (
+                                <Badge
+                                  variant="outline"
+                                  className="text-[10px] px-1.5 py-0 h-4 bg-emerald-50 text-emerald-700 border-emerald-200"
+                                  title={`Linked to Stripe customer ${debtor.stripe_customer_id}`}
+                                >
+                                  <CheckCircle2 className="h-2.5 w-2.5 mr-0.5" />
+                                  Stripe: Linked
                                 </Badge>
-                              )}
+                              ) : stripeConnected ? (
+                                <Badge
+                                  variant="outline"
+                                  className="text-[10px] px-1.5 py-0 h-4 bg-amber-50 text-amber-700 border-amber-200 cursor-pointer hover:bg-amber-100"
+                                  title="Not linked to a Stripe customer — click to link"
+                                  onClick={(e) => { e.stopPropagation(); navigate(`/debtors/${debtor.id}`); }}
+                                >
+                                  <AlertTriangle className="h-2.5 w-2.5 mr-0.5" />
+                                  Stripe: Not linked
+                                </Badge>
+                              ) : null}
                             </div>
                           </div>
                         </div>
@@ -1120,8 +1135,13 @@ const Debtors = () => {
                               <div className="flex items-center gap-1.5 flex-wrap">
                                 <p className="text-xs text-muted-foreground font-mono">{debtor.reference_id}</p>
                                 {debtor.stripe_customer_id ? (
-                                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-indigo-50 text-indigo-700 border-indigo-200" title={debtor.stripe_customer_id}>
-                                    Stripe
+                                  <Badge
+                                    variant="outline"
+                                    className="text-[10px] px-1.5 py-0 h-4 bg-emerald-50 text-emerald-700 border-emerald-200"
+                                    title={`Linked to Stripe customer ${debtor.stripe_customer_id}`}
+                                  >
+                                    <CheckCircle2 className="h-2.5 w-2.5 mr-0.5" />
+                                    Stripe: Linked
                                   </Badge>
                                 ) : stripeConnected ? (
                                   <Badge
@@ -1130,6 +1150,7 @@ const Debtors = () => {
                                     title="Not linked to a Stripe customer — click to link"
                                     onClick={(e) => { e.stopPropagation(); navigate(`/debtors/${debtor.id}`); }}
                                   >
+                                    <AlertTriangle className="h-2.5 w-2.5 mr-0.5" />
                                     Stripe: Not linked
                                   </Badge>
                                 ) : null}
