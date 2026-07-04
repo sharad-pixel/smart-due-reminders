@@ -150,6 +150,27 @@ export function ContractUploadDialog({ open, onOpenChange, debtorId, debtorName 
           </DialogDescription>
         </DialogHeader>
 
+        <div className="space-y-1.5">
+          <Label htmlFor="contract-type-select" className="text-xs font-medium">
+            Contract type <span className="text-destructive">*</span>
+          </Label>
+          <Select value={contractType} onValueChange={setContractType} disabled={upload.isPending}>
+            <SelectTrigger id="contract-type-select" className="h-9">
+              <SelectValue placeholder="Select contract type…" />
+            </SelectTrigger>
+            <SelectContent>
+              {CONTRACT_TYPES.map((t) => (
+                <SelectItem key={t} value={t}>{t}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {!contractType && (
+            <p className="text-[11px] text-muted-foreground">
+              Required — this tells AI workflows how to treat the document.
+            </p>
+          )}
+        </div>
+
         <div
           onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
           onDragLeave={() => setDragActive(false)}
