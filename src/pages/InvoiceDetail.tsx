@@ -26,7 +26,7 @@ import { DraftPreviewModal } from "@/components/outreach/DraftPreviewModal";
 import { TasksSummaryCard } from "@/components/tasks/TasksSummaryCard";
 import type { CollectionTask } from "@/hooks/useCollectionTasks";
 import { useStripeConnected } from "@/hooks/useStripeConnected";
-import { Link2, Link2Off } from "lucide-react";
+import { Link2, Link2Off, Loader2, Upload } from "lucide-react";
 import { getPaymentTermsOptions, calculateDueDate } from "@/lib/paymentTerms";
 import CreateTaskModal from "@/components/tasks/CreateTaskModal";
 import { OutreachDetailModal, OutreachRecord } from "@/components/outreach/OutreachDetailModal";
