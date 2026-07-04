@@ -235,6 +235,8 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
   const [editPaymentTerms, setEditPaymentTerms] = useState("NET30");
   const [editNotes, setEditNotes] = useState("");
   const [editProcessingFeePercent, setEditProcessingFeePercent] = useState("0");
+  const [editCurrency, setEditCurrency] = useState("USD");
+  const [editDueDate, setEditDueDate] = useState("");
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
   const [selectedOutreach, setSelectedOutreach] = useState<OutreachRecord | null>(null);
   const [outreachDetailOpen, setOutreachDetailOpen] = useState(false);
@@ -783,6 +785,8 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
     setEditIssueDate(invoice.issue_date);
     setEditPaymentTerms(invoice.payment_terms || "NET30");
     setEditNotes(invoice.notes || "");
+    setEditCurrency(invoice.currency || "USD");
+    setEditDueDate(invoice.due_date || "");
     setEditInvoiceDialogOpen(true);
   };
 
@@ -805,13 +809,16 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
     if (!invoice) return;
 
     // Processing fee is only available for Recouply-native invoices (not integrations or AI ingestion)
+    // Processing fee is only available for Recouply-native invoices (not integrations or AI ingestion)
     const isManualInvoice = !invoice.integration_source || invoice.integration_source === 'recouply_manual';
+    const isDraftInvoice = usesPostingLifecycle(invoice as any) && getPostingState(invoice as any) === "draft";
+    const allowFullEdit = isManualInvoice || isDraftInvoice;
     const subtotal = parseFloat(editAmount) || 0;
-    const feePercent = isManualInvoice
+    const feePercent = allowFullEdit
       ? Math.max(0, Math.min(100, parseFloat(editProcessingFeePercent) || 0))
       : 0;
-    const feeAmount = isManualInvoice ? Math.round(subtotal * feePercent) / 100 : 0;
-    const newTotal = isManualInvoice
+    const feeAmount = allowFullEdit ? Math.round(subtotal * feePercent) / 100 : 0;
+    const newTotal = allowFullEdit
       ? Math.round((subtotal + feeAmount) * 100) / 100
       : subtotal;
 
@@ -834,8 +841,12 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
         const selectedTerms = paymentTermsOptions.find(t => t.value === editPaymentTerms);
         const paymentTermsDays = selectedTerms?.days ?? 30;
         
-        // Calculate due date from issue date + payment terms
-        const dueDate = calculateDueDate(editIssueDate, paymentTermsDays);
+        // Calculate due date from issue date + payment terms.
+        // For drafts, an explicit editDueDate override wins if it differs from the current invoice due date.
+        const calculatedDue = calculateDueDate(editIssueDate, paymentTermsDays);
+        const dueDate = isDraftInvoice && editDueDate && editDueDate !== invoice.due_date
+          ? editDueDate
+          : calculatedDue;
 
         // Check if this is an integrated invoice that needs override logging
         const isIntegrated = invoice.integration_source && 
@@ -875,10 +886,13 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
           payment_terms: editPaymentTerms,
           notes: editNotes,
         };
-        if (isManualInvoice) {
+        if (allowFullEdit) {
           updatePayload.subtotal_amount = subtotal;
           updatePayload.processing_fee_percent = feePercent;
           updatePayload.processing_fee_amount = feeAmount;
+        }
+        if (isDraftInvoice) {
+          updatePayload.currency = editCurrency;
         }
 
         const { error } = await supabase
@@ -2531,12 +2545,59 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
         />
 
         <Dialog open={editInvoiceDialogOpen} onOpenChange={setEditInvoiceDialogOpen}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Edit Invoice</DialogTitle>
-              <DialogDescription>Update invoice details</DialogDescription>
+              <DialogDescription>
+                {usesPostingLifecycle(invoice as any) && getPostingState(invoice as any) === "draft"
+                  ? "Draft invoice — all fields editable"
+                  : "Update invoice details"}
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
+              {/* Stripe required fields checklist */}
+              {invoice?.debtors?.stripe_customer_id && (() => {
+                const dueMs = editDueDate ? new Date(editDueDate).getTime() : null;
+                const isPastDue = dueMs !== null && dueMs <= Date.now();
+                const sub = parseFloat(editAmount) || 0;
+                const pct = Math.max(0, Math.min(100, parseFloat(editProcessingFeePercent) || 0));
+                const total = Math.round((sub + Math.round(sub * pct) / 100) * 100) / 100;
+                const checks = [
+                  { label: "Customer linked", ok: !!invoice.debtors?.stripe_customer_id, detail: invoice.debtors?.stripe_customer_id || "Missing" },
+                  { label: "Amount", ok: total > 0, detail: total > 0 ? `${editCurrency || "USD"} ${total.toFixed(2)}` : "Missing / zero" },
+                  { label: "Currency", ok: !!editCurrency, detail: editCurrency || "USD (default)" },
+                  { label: "Invoice number", ok: !!editInvoiceNumber, detail: editInvoiceNumber || "Missing" },
+                  {
+                    label: "Due date",
+                    ok: !!editDueDate,
+                    warn: isPastDue,
+                    detail: editDueDate
+                      ? `${new Date(editDueDate).toLocaleDateString()}${isPastDue ? " (past — Stripe will use tomorrow)" : ""}`
+                      : "Missing (Stripe will use tomorrow)",
+                  },
+                ];
+                return (
+                  <div className="rounded-md border bg-muted/30 p-2 space-y-1">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Stripe push fields</p>
+                    {checks.map((c) => (
+                      <div key={c.label} className="flex items-start gap-1.5 text-[11px]">
+                        {c.ok ? (
+                          c.warn ? (
+                            <AlertCircle className="h-3 w-3 mt-0.5 text-amber-600 shrink-0" />
+                          ) : (
+                            <CheckCircle className="h-3 w-3 mt-0.5 text-emerald-600 shrink-0" />
+                          )
+                        ) : (
+                          <AlertCircle className="h-3 w-3 mt-0.5 text-red-600 shrink-0" />
+                        )}
+                        <span className="text-muted-foreground min-w-[90px]">{c.label}:</span>
+                        <span className={c.ok ? (c.warn ? "text-amber-700" : "text-foreground") : "text-red-700"}>{c.detail}</span>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+
               <div>
                 <Label htmlFor="invoice-number">Invoice Number</Label>
                 <Input
@@ -2547,10 +2608,12 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
               </div>
               {(() => {
                 const isManual = !invoice?.integration_source || invoice.integration_source === 'recouply_manual';
+                const isDraft = usesPostingLifecycle(invoice as any) && getPostingState(invoice as any) === "draft";
+                const allowFull = isManual || isDraft;
                 return (
                   <>
                     <div>
-                      <Label htmlFor="amount">{isManual ? 'Subtotal (before processing fee)' : 'Amount'}</Label>
+                      <Label htmlFor="amount">{allowFull ? 'Subtotal (before processing fee)' : 'Amount'}</Label>
                       <Input
                         id="amount"
                         type="number"
@@ -2559,7 +2622,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                         onChange={(e) => setEditAmount(e.target.value)}
                       />
                     </div>
-                    {isManual && (
+                    {allowFull && (
                       <div>
                         <Label htmlFor="processing-fee">Credit Card Processing Fee (%)</Label>
                         <Input
@@ -2577,7 +2640,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                           const pct = Math.max(0, Math.min(100, parseFloat(editProcessingFeePercent) || 0));
                           const fee = Math.round(sub * pct) / 100;
                           const total = Math.round((sub + fee) * 100) / 100;
-                          const currency = invoice?.currency || 'USD';
+                          const currency = editCurrency || invoice?.currency || 'USD';
                           return (
                             <div className="mt-2 text-xs text-muted-foreground space-y-0.5 rounded-md border p-2 bg-muted/30">
                               <div className="flex justify-between"><span>Subtotal</span><span>{formatCurrency(sub, currency)}</span></div>
@@ -2586,7 +2649,24 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                             </div>
                           );
                         })()}
-                        <p className="mt-1 text-[11px] text-muted-foreground">Available only for invoices created directly in Recouply.</p>
+                        {!isDraft && (
+                          <p className="mt-1 text-[11px] text-muted-foreground">Available only for invoices created directly in Recouply.</p>
+                        )}
+                      </div>
+                    )}
+                    {isDraft && (
+                      <div>
+                        <Label htmlFor="currency">Currency</Label>
+                        <Select value={editCurrency} onValueChange={setEditCurrency}>
+                          <SelectTrigger id="currency">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {["USD", "EUR", "GBP", "CAD", "AUD", "JPY", "INR", "SGD"].map((c) => (
+                              <SelectItem key={c} value={c}>{c}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                     )}
                   </>
@@ -2617,6 +2697,20 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                   </SelectContent>
                 </Select>
               </div>
+              {usesPostingLifecycle(invoice as any) && getPostingState(invoice as any) === "draft" && (
+                <div>
+                  <Label htmlFor="due-date">Due Date (override)</Label>
+                  <Input
+                    id="due-date"
+                    type="date"
+                    value={editDueDate}
+                    onChange={(e) => setEditDueDate(e.target.value)}
+                  />
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Leave matching issue date + terms to auto-calculate. Overrides win for drafts.
+                  </p>
+                </div>
+              )}
               <div>
                 <Label htmlFor="notes">Notes</Label>
                 <Textarea
