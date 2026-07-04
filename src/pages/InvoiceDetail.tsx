@@ -841,8 +841,12 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
         const selectedTerms = paymentTermsOptions.find(t => t.value === editPaymentTerms);
         const paymentTermsDays = selectedTerms?.days ?? 30;
         
-        // Calculate due date from issue date + payment terms
-        const dueDate = calculateDueDate(editIssueDate, paymentTermsDays);
+        // Calculate due date from issue date + payment terms.
+        // For drafts, an explicit editDueDate override wins if it differs from the current invoice due date.
+        const calculatedDue = calculateDueDate(editIssueDate, paymentTermsDays);
+        const dueDate = isDraftInvoice && editDueDate && editDueDate !== invoice.due_date
+          ? editDueDate
+          : calculatedDue;
 
         // Check if this is an integrated invoice that needs override logging
         const isIntegrated = invoice.integration_source && 
