@@ -360,8 +360,13 @@ const DataCenter = () => {
 
             <SyncHealthDashboard />
 
-            <div className="grid gap-4 grid-cols-1 lg:grid-cols-3">
-              {isIntegrationEnabled("stripe") && <StripeSyncSection />}
+            {isIntegrationEnabled("stripe") && (
+              <div className="w-full">
+                <StripeSyncSection />
+              </div>
+            )}
+
+            <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
               {isIntegrationEnabled("quickbooks") && <QuickBooksSyncSection />}
               {isIntegrationEnabled("salesforce") && <SalesforceSyncSection />}
             </div>
