@@ -14,7 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { RefreshCw, Check, X, Loader2, FileText, ArrowUpRight, DollarSign, RotateCcw, MinusCircle, Users } from "lucide-react";
+import { RefreshCw, Check, X, Loader2, FileText, ArrowUpRight, DollarSign, RotateCcw, MinusCircle, Users, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { 
   LastSyncRunCard, 
@@ -294,24 +294,35 @@ export const StripeSyncSection = () => {
                 </CardDescription>
               </div>
             </div>
-            <Button 
-              onClick={handleSync} 
-              disabled={isSyncRunning}
-              size="sm"
-              className="gap-2"
-            >
-              {isSyncRunning ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Syncing...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="h-4 w-4" />
-                  Sync Now
-                </>
-              )}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={() => window.location.assign('/stripe-reconciliation')}
+              >
+                <AlertTriangle className="h-4 w-4" />
+                Reconcile
+              </Button>
+              <Button
+                onClick={handleSync}
+                disabled={isSyncRunning}
+                size="sm"
+                className="gap-2"
+              >
+                {isSyncRunning ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Syncing...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-4 w-4" />
+                    Sync Now
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
