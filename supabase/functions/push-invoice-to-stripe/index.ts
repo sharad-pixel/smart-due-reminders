@@ -146,14 +146,14 @@ serve(async (req) => {
 
     if (finalize) {
       await stripe.invoices.finalizeInvoice(stripeInvoice.id);
+      await supa.from("invoices").update({
+        stripe_push_status: "finalized",
+      } as any).eq("id", invoice_id);
     }
 
-    await supa.from("invoices").update({
-      stripe_invoice_id: stripeInvoice.id,
-      pushed_to_stripe_at: new Date().toISOString(),
-      stripe_push_status: finalize ? "finalized" : "draft",
-      stripe_push_error: null,
-    } as any).eq("id", invoice_id);
+    return new Response(JSON.stringify({ ok: true, stripe_invoice_id: stripeInvoice.id }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
 
     return new Response(JSON.stringify({ ok: true, stripe_invoice_id: stripeInvoice.id }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
