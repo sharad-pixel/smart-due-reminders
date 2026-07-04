@@ -191,7 +191,7 @@ export const LineItemsTable = ({ items, onChange, disabled }: LineItemsTableProp
                           {item.product_description}
                         </div>
                       )}
-                      {isItem && (item.pricing_model || item.lookup_key || item.stripe_price_id) && (
+                      {isItem && (item.pricing_model || item.lookup_key || item.stripe_price_id || item.stripe_product_id) && (
                         <div className="flex flex-wrap gap-1 mt-1">
                           {item.pricing_model === "recurring" && (
                             <span className="inline-flex items-center rounded-md bg-blue-50 text-blue-700 border border-blue-200 px-1.5 py-0.5 text-[10px] font-medium">
@@ -208,9 +208,12 @@ export const LineItemsTable = ({ items, onChange, disabled }: LineItemsTableProp
                               Tax {item.tax_behavior}
                             </span>
                           )}
-                          {item.stripe_price_id && (
-                            <span className="inline-flex items-center rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200 px-1.5 py-0.5 text-[10px] font-medium">
-                              Stripe linked
+                          {(item.stripe_price_id || item.stripe_product_id) && (
+                            <span
+                              className="inline-flex items-center rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200 px-1.5 py-0.5 text-[10px] font-medium"
+                              title={item.stripe_product_id ? `Stripe product: ${item.stripe_product_id}` : `Stripe price: ${item.stripe_price_id}`}
+                            >
+                              Stripe synced
                             </span>
                           )}
                           {item.lookup_key && (
