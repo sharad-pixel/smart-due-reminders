@@ -809,13 +809,16 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
     if (!invoice) return;
 
     // Processing fee is only available for Recouply-native invoices (not integrations or AI ingestion)
+    // Processing fee is only available for Recouply-native invoices (not integrations or AI ingestion)
     const isManualInvoice = !invoice.integration_source || invoice.integration_source === 'recouply_manual';
+    const isDraftInvoice = usesPostingLifecycle(invoice as any) && getPostingState(invoice as any) === "draft";
+    const allowFullEdit = isManualInvoice || isDraftInvoice;
     const subtotal = parseFloat(editAmount) || 0;
-    const feePercent = isManualInvoice
+    const feePercent = allowFullEdit
       ? Math.max(0, Math.min(100, parseFloat(editProcessingFeePercent) || 0))
       : 0;
-    const feeAmount = isManualInvoice ? Math.round(subtotal * feePercent) / 100 : 0;
-    const newTotal = isManualInvoice
+    const feeAmount = allowFullEdit ? Math.round(subtotal * feePercent) / 100 : 0;
+    const newTotal = allowFullEdit
       ? Math.round((subtotal + feeAmount) * 100) / 100
       : subtotal;
 
