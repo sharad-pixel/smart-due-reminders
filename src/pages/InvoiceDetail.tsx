@@ -187,6 +187,33 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
   const [sendingDraft, setSendingDraft] = useState<string | null>(null);
   const [_crmAccount, setCrmAccount] = useState<CRMAccount | null>(null);
   const [copiedRefId, setCopiedRefId] = useState(false);
+  const [pushingToStripe, setPushingToStripe] = useState(false);
+
+  const POSTED_STATUSES = new Set(["Open", "InPaymentPlan", "PartiallyPaid"]);
+
+  const handlePushToStripe = async () => {
+    if (!invoice) return;
+    setPushingToStripe(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("push-invoice-to-stripe", {
+        body: { invoice_id: invoice.id, finalize: true },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      toast.success("Invoice pushed to Stripe");
+      // Refresh invoice to pick up stripe_invoice_id
+      const { data: refreshed } = await supabase
+        .from("invoices")
+        .select("*, debtors(company_name, email, stripe_customer_id, crm_account_id, outreach_paused, account_outreach_enabled)")
+        .eq("id", invoice.id)
+        .maybeSingle();
+      if (refreshed) setInvoice(refreshed as any);
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to push to Stripe");
+    } finally {
+      setPushingToStripe(false);
+    }
+  };
   const [previewDraft, setPreviewDraft] = useState<any>(null);
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [tasks, setTasks] = useState<CollectionTask[]>([]);
