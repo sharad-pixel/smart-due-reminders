@@ -95,6 +95,23 @@ export function useSubscription(): SubscriptionState {
       setIsAccountOwner(isOwner);
       setCanUpgrade(isOwner);
 
+      // Demo account bypass: unlimited invoices, active subscription, no trial expiry.
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if ((authUser?.email || '').toLowerCase() === 'demo@recouply.ai') {
+        setPlan('enterprise');
+        setSubscriptionStatus('active');
+        setInvoiceLimit(999999);
+        setMaxAgents(999);
+        setIsTrial(false);
+        setHasUsedTrial(false);
+        setTrialEndsAt(null);
+        setCurrentPeriodEnd(null);
+        setBillingInterval(null);
+        setCanUpgrade(false);
+        setIsLoading(false);
+        return;
+      }
+
       const [fallbackOwnerProfile, syncedSubscriptionResponse] = await Promise.all([
         getFallbackOwnerProfile(isOwner, accountId),
         invokeFunction('sync-subscription'),
