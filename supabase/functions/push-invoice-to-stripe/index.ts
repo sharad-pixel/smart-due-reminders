@@ -51,6 +51,36 @@ async function deleteDraftInvoice(stripe: Stripe, invoiceId: string) {
   }
 }
 
+// Stripe caps a single invoice item at 99,999,999 minor units (~$999,999.99).
+// For larger amounts we split into multiple items so the pushed invoice total
+// still matches Recouply exactly.
+const STRIPE_MAX_ITEM_MINOR = 99_999_999;
+
+async function createInvoiceItemChunks(
+  stripe: Stripe,
+  params: { customer: string; invoice: string; amount: number; currency: string; description: string; metadata: Record<string, string> },
+) {
+  const { amount } = params;
+  if (amount === 0) return;
+  const sign = amount < 0 ? -1 : 1;
+  let remaining = Math.abs(amount);
+  let part = 0;
+  const totalParts = Math.ceil(remaining / STRIPE_MAX_ITEM_MINOR);
+  while (remaining > 0) {
+    const chunk = Math.min(remaining, STRIPE_MAX_ITEM_MINOR) * sign;
+    part += 1;
+    await stripe.invoiceItems.create({
+      customer: params.customer,
+      invoice: params.invoice,
+      amount: chunk,
+      currency: params.currency,
+      description: totalParts > 1 ? `${params.description} (part ${part}/${totalParts})` : params.description,
+      metadata: params.metadata,
+    });
+    remaining -= Math.abs(chunk);
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
