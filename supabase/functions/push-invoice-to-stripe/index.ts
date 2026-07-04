@@ -246,7 +246,7 @@ serve(async (req) => {
       for (const li of lineItems) {
         const cents = lineItemCents(li, currency);
         if (!cents) continue;
-        await stripe.invoiceItems.create({
+        await createInvoiceItemChunks(stripe, {
           customer: customerId,
           invoice: stripeInvoice.id,
           amount: cents,
