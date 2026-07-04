@@ -99,6 +99,7 @@ serve(async (req) => {
       customer: customerId,
       collection_method: "send_invoice",
       due_date: dueDate,
+      pending_invoice_items_behavior: "include",
       metadata: {
         recouply_invoice_id: invoice_id,
         recouply_invoice_number: inv.invoice_number,
