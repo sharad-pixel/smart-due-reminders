@@ -334,16 +334,28 @@ const DataCenter = () => {
                   </p>
                 </div>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2"
-                onClick={() => window.location.assign("/integrations/stripe-sync#integration-error-center")}
-              >
-                <AlertTriangle className="h-4 w-4 text-amber-500" />
-                Integration Error Center
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Button>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={() => window.location.assign("/stripe-reconciliation")}
+                >
+                  <AlertTriangle className="h-4 w-4 text-indigo-500" />
+                  Stripe Reconciliation
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={() => window.location.assign("/integrations/stripe-sync#integration-error-center")}
+                >
+                  <AlertTriangle className="h-4 w-4 text-amber-500" />
+                  Integration Error Center
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Button>
+              </div>
             </div>
 
             <SyncHealthDashboard />
