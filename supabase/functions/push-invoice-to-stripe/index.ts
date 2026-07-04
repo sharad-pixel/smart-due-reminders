@@ -33,7 +33,7 @@ serve(async (req) => {
         error: `Only posted invoices can be pushed to Stripe. This invoice is "${inv.status}".`,
         code: "invoice_not_posted",
         status: inv.status,
-      }), { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
 
@@ -41,7 +41,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({
         error: "This invoice isn't linked to a Recouply account.",
         code: "invoice_not_linked_to_debtor",
-      }), { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const { data: debtor } = await supa
