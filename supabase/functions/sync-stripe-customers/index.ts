@@ -46,22 +46,32 @@ serve(async (req) => {
       return json({ ok: true, scanned: 0, created: 0, linked: 0, skipped: 0 });
     }
 
-    // Prefetch existing debtors in this account
+    // Prefetch existing debtors in this account. Chunked to keep URL small
+    // and avoid PostgREST OR-clause quirks.
     const customerIds = customers.map((c) => c.id);
-    const { data: existing } = await supa
-      .from("debtors")
-      .select("id, stripe_customer_id, external_customer_id, reference_id, email")
-      .eq("user_id", accountId)
-      .or(
-        `stripe_customer_id.in.(${customerIds.join(",")}),external_customer_id.in.(${customerIds.join(",")})`,
-      );
-
+    const CHUNK = 100;
     const byStripeId = new Map<string, any>();
     const byExternalId = new Map<string, any>();
-    for (const d of existing || []) {
-      if (d.stripe_customer_id) byStripeId.set(d.stripe_customer_id, d);
-      if (d.external_customer_id) byExternalId.set(d.external_customer_id, d);
+    for (let i = 0; i < customerIds.length; i += CHUNK) {
+      const slice = customerIds.slice(i, i + CHUNK);
+      const [{ data: aRows }, { data: bRows }] = await Promise.all([
+        supa.from("debtors")
+          .select("id, stripe_customer_id, external_customer_id, email")
+          .eq("user_id", accountId)
+          .in("stripe_customer_id", slice),
+        supa.from("debtors")
+          .select("id, stripe_customer_id, external_customer_id, email")
+          .eq("user_id", accountId)
+          .in("external_customer_id", slice),
+      ]);
+      for (const d of aRows || []) {
+        if (d.stripe_customer_id) byStripeId.set(d.stripe_customer_id, d);
+      }
+      for (const d of bRows || []) {
+        if (d.external_customer_id) byExternalId.set(d.external_customer_id, d);
+      }
     }
+
 
     let created = 0;
     let linked = 0;
