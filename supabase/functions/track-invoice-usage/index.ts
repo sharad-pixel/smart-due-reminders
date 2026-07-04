@@ -37,6 +37,16 @@ serve(async (req) => {
 
     logStep("User authenticated", { userId: user.id });
 
+    // Demo account: never tracked, never overage.
+    if ((user.email || '').toLowerCase() === 'demo@recouply.ai') {
+      return new Response(JSON.stringify({
+        success: true,
+        is_overage: false,
+        message: 'Demo account — usage not tracked',
+        counted: false,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 });
+    }
+
     const { invoice_id } = await req.json();
     if (!invoice_id) throw new Error("invoice_id is required");
 

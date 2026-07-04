@@ -35,6 +35,26 @@ Deno.serve(async (req) => {
 
     logStep("User authenticated", { userId: user.id });
 
+    // Demo account: unlimited, never over limit, no overage charges.
+    if ((user.email || '').toLowerCase() === 'demo@recouply.ai') {
+      const now = new Date();
+      const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      return new Response(JSON.stringify({
+        month: currentMonth,
+        included_allowance: 999999,
+        included_invoices_used: 0,
+        overage_invoices: 0,
+        overage_charges_total: 0,
+        total_invoices_used: 0,
+        remaining_quota: 999999,
+        is_over_limit: false,
+        plan_name: 'demo',
+        overage_rate: 0,
+        is_team_member: false,
+        billing_mode: 'demo_unlimited',
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 });
+    }
+
     // Resolve effective account ID — honor support impersonation header
     // when the caller is a verified Recouply admin with an active grant.
     const impersonateHeader = req.headers.get("x-support-impersonate-account");

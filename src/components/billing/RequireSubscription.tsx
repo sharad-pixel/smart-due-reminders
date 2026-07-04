@@ -99,10 +99,18 @@ export function RequireSubscription({ children }: RequireSubscriptionProps) {
       return;
     }
 
-    // Check email verification for non-OAuth users (skip for shared demo account)
-    const isOAuthUser = user.app_metadata?.provider && user.app_metadata.provider !== 'email';
+    // Shared demo account has no invoice limits, no trial expiry, and no
+    // email-verification requirement. It's used for public product demos.
     const isDemoUser = user.email?.toLowerCase() === 'demo@recouply.ai';
-    if (!isOAuthUser && !isDemoUser && profile?.email_verified === false) {
+    if (isDemoUser) {
+      setPathChecked(true);
+      setShouldRender(true);
+      return;
+    }
+
+    // Check email verification for non-OAuth users
+    const isOAuthUser = user.app_metadata?.provider && user.app_metadata.provider !== 'email';
+    if (!isOAuthUser && profile?.email_verified === false) {
       navigate('/email-verification-required', { replace: true });
       setPathChecked(true);
       setShouldRender(false);
