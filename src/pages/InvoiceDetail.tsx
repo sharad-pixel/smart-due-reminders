@@ -1843,6 +1843,9 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                                   <><Upload className="h-3.5 w-3.5 mr-1.5" /> Push to Stripe</>
                                 )}
                               </Button>
+                              <p className="text-[10px] text-muted-foreground leading-snug">
+                                Stripe caps a single invoice line item at $999,999.99. Larger amounts are automatically split into multiple line items (part 1/N, 2/N…) so the pushed total matches Recouply exactly.
+                              </p>
                             </div>
                           ) : (
                             <p className="text-[11px] text-muted-foreground">
