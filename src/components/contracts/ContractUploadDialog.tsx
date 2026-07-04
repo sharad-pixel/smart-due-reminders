@@ -82,6 +82,7 @@ export function ContractUploadDialog({ open, onOpenChange, debtorId, debtorName 
   const upload = useMutation({
     mutationFn: async () => {
       if (!files.length) throw new Error("Select at least one file");
+      if (!contractType) throw new Error("Select a contract type before scanning");
       setProgress({ done: 0, total: files.length, phase: "Uploading" });
       const results: any[] = [];
       for (let i = 0; i < files.length; i++) {
