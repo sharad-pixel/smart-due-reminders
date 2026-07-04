@@ -49,6 +49,12 @@ serve(async (req) => {
     // Only posted (open / active) invoices are eligible to push to Stripe.
     // Drafts, disputed, and terminal statuses are blocked to prevent syncing
     // provisional or already-closed records into the billing system.
+    if (String(inv.posting_state || "").toLowerCase() === "draft") {
+      return new Response(JSON.stringify({
+        error: "This invoice is a Draft. Post it before pushing to Stripe.",
+        code: "invoice_is_draft",
+      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
     const POSTED_STATUSES = new Set(["Open", "InPaymentPlan", "PartiallyPaid"]);
     if (!POSTED_STATUSES.has(String(inv.status || ""))) {
       return new Response(JSON.stringify({
