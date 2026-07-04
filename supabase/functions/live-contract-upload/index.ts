@@ -26,7 +26,10 @@ Deno.serve(async (req) => {
     const file = form.get("file") as File | null;
     const debtorIdRaw = form.get("debtor_id");
     const debtorId = typeof debtorIdRaw === "string" && debtorIdRaw.length > 0 ? debtorIdRaw : null;
+    const contractTypeRaw = form.get("contract_type");
+    const contractType = typeof contractTypeRaw === "string" && contractTypeRaw.trim().length > 0 ? contractTypeRaw.trim() : null;
     if (!file) throw new Error("file required");
+    if (!contractType) throw new Error("contract_type required");
     if (file.size > 25 * 1024 * 1024) throw new Error("File too large (25MB max)");
 
     // Verify debtor belongs to this account if provided
