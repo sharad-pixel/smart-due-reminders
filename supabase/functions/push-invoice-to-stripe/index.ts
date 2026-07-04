@@ -276,7 +276,7 @@ serve(async (req) => {
     // exactly matches the trusted invoice total in the database.
     const deltaCents = expectedCents - attachedTotalCents;
     if (deltaCents !== 0) {
-      await stripe.invoiceItems.create({
+      await createInvoiceItemChunks(stripe, {
         customer: customerId,
         invoice: stripeInvoice.id,
         amount: deltaCents,
