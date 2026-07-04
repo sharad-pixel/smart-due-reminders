@@ -317,10 +317,16 @@ export default function StripeReconciliation() {
                             Pull from Stripe
                           </Button>
                         )}
-                        {d.fixable === "link" && (
+                        {d.fixable === "link" && (d.invoice_id || d.stripe_invoice_id) && (
                           <Button
                             size="sm" variant="outline"
-                            onClick={() => navigate("/data-center")}
+                            onClick={() => {
+                              if (d.invoice_id) {
+                                navigate(`/invoices/${d.invoice_id}`);
+                              } else if (d.stripe_invoice_id) {
+                                window.open(`https://dashboard.stripe.com/invoices/${d.stripe_invoice_id}`, "_blank");
+                              }
+                            }}
                           >
                             <Link2 className="h-3.5 w-3.5 mr-1" />
                             Fix link
