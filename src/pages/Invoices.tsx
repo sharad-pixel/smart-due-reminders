@@ -260,7 +260,9 @@ const Invoices = () => {
       );
     }
 
-    if (statusFilter !== "all") {
+    if (statusFilter === "Draft") {
+      filtered = filtered.filter((inv) => (inv as any).posting_state === "draft");
+    } else if (statusFilter !== "all") {
       filtered = filtered.filter((inv) => inv.status === statusFilter);
     }
 
@@ -397,6 +399,7 @@ const Invoices = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All Status</SelectItem>
+                        <SelectItem value="Draft">Draft</SelectItem>
                         <SelectItem value="Open">Open</SelectItem>
                         <SelectItem value="Paid">Paid</SelectItem>
                         <SelectItem value="PartiallyPaid">Partially Paid</SelectItem>
