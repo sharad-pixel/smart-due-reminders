@@ -54,6 +54,7 @@ Deno.serve(async (req) => {
       file_size: file.size,
       status: "queued",
       debtor_id: debtorId,
+      contract_type: contractType,
     }).select().single();
     if (insErr) throw insErr;
 
