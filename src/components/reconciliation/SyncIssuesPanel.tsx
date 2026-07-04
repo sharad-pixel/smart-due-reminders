@@ -355,7 +355,7 @@ export function SyncIssuesPanel(props: {
                           )}
                           {inLocal && issue.entity === "payment" && (
                             <Button size="sm" variant="outline" asChild>
-                              <Link to={`/reconciliation?payment_id=${(inLocal as any).id}`} className="gap-2 inline-flex items-center">
+                              <Link to={`/payments?highlight=${(inLocal as any).id}`} className="gap-2 inline-flex items-center">
                                 <ExternalLink className="h-4 w-4" />
                                 Open
                               </Link>
