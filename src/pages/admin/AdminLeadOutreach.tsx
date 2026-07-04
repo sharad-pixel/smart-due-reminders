@@ -422,7 +422,7 @@ export default function AdminLeadOutreach() {
       if (status === "active" && !campaigns.find(c => c.id === id)?.started_at) {
         updates.started_at = new Date().toISOString();
       }
-      const { error } = await supabase.from("marketing_campaigns").update(updates).eq("id", id);
+      const { error } = await supabase.from("marketing_campaigns").update(updates as any).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {

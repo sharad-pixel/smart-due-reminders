@@ -409,7 +409,7 @@ export const ProductCatalogManager = () => {
       if (form.id) {
         const { error } = await supabase
           .from("product_catalog")
-          .update(payload)
+          .update(payload as any)
           .eq("id", form.id);
         if (error) throw error;
         toast.success("Product updated");

@@ -309,7 +309,7 @@ export const useUpdatePayment = () => {
       if (reference !== undefined) updateData.reference = reference;
       if (notes !== undefined) updateData.notes = notes;
 
-      const { error } = await supabase.from("payments").update(updateData).eq("id", paymentId);
+      const { error } = await supabase.from("payments").update(updateData as any).eq("id", paymentId);
       if (error) throw error;
     },
     onSuccess: () => {

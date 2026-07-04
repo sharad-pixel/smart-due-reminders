@@ -42,7 +42,7 @@ export async function updateCollectionTaskStatus(
 
   const { error } = await supabase
     .from("collection_tasks")
-    .update(updates)
+    .update(updates as any)
     .eq("id", taskId);
 
   if (error) throw error;
@@ -57,7 +57,7 @@ export async function updateCollectionTask(
 ) {
   const { error } = await supabase
     .from("collection_tasks")
-    .update(updates)
+    .update(updates as any)
     .eq("id", taskId);
 
   if (error) throw error;

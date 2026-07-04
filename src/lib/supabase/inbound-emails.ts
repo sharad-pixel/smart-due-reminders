@@ -100,7 +100,7 @@ export async function updateInboundEmailActionStatus(
 
   const { error } = await supabase
     .from("inbound_emails")
-    .update(updates)
+    .update(updates as any)
     .eq("id", emailId);
 
   if (error) throw error;
