@@ -235,7 +235,7 @@ export function ContractUploadDialog({ open, onOpenChange, debtorId, debtorName 
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={upload.isPending}>Cancel</Button>
-          <Button onClick={() => upload.mutate()} disabled={!files.length || upload.isPending}>
+          <Button onClick={() => upload.mutate()} disabled={!files.length || !contractType || upload.isPending}>
             {upload.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
             {upload.isPending ? "Scanning…" : `Scan ${files.length || ""}`.trim()}
           </Button>
