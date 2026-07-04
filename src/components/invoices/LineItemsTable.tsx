@@ -24,6 +24,7 @@ export interface LineItem {
   tax_category?: string | null;
   lookup_key?: string | null;
   stripe_price_id?: string | null;
+  stripe_product_id?: string | null;
 }
 
 interface LineItemsTableProps {
