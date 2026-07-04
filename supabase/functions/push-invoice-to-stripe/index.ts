@@ -24,6 +24,28 @@ serve(async (req) => {
       });
     }
 
+    // Dedup guard: check Stripe for any invoice already tagged with this recouply_invoice_id
+    // (covers cases where a prior push created the Stripe invoice but failed to persist the link).
+    try {
+      const existing = await stripe.invoices.search({
+        query: `metadata['recouply_invoice_id']:'${invoice_id}'`,
+        limit: 1,
+      });
+      if (existing.data.length > 0) {
+        const found = existing.data[0];
+        await supa.from("invoices").update({
+          stripe_invoice_id: found.id,
+          pushed_to_stripe_at: new Date().toISOString(),
+          stripe_push_status: found.status === "draft" ? "draft" : "finalized",
+          stripe_push_error: null,
+        } as any).eq("id", invoice_id);
+        return new Response(JSON.stringify({ ok: true, already: found.id, recovered: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    } catch (_searchErr) { /* search unavailable — proceed to create */ }
+
+
     // Only posted (open / active) invoices are eligible to push to Stripe.
     // Drafts, disputed, and terminal statuses are blocked to prevent syncing
     // provisional or already-closed records into the billing system.
