@@ -161,13 +161,26 @@ export default function ContractIntelligenceDashboard() {
     queryKey: ["cid-contracts", accountId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("contracts")
-        .select("id,title,status,contract_type,contract_value,currency,effective_date,expiry_date,renewal_date,counterparty_name,created_at")
+        .from("live_contract_imports")
+        .select("id,contract_name,status,contract_type,contract_value,effective_date,term_end_date,extracted_customer_jsonb,created_at")
         .eq("account_id", accountId!)
+        .neq("status", "archived")
         .order("created_at", { ascending: false })
         .limit(1000);
       if (error) throw error;
-      return (data ?? []) as ContractRow[];
+      return (data ?? []).map((r: any): ContractRow => ({
+        id: r.id,
+        title: r.contract_name,
+        status: r.status,
+        contract_type: r.contract_type,
+        contract_value: r.contract_value,
+        currency: "USD",
+        effective_date: r.effective_date,
+        expiry_date: r.term_end_date,
+        renewal_date: r.term_end_date,
+        counterparty_name: r.extracted_customer_jsonb?.name ?? r.extracted_customer_jsonb?.customer_name ?? null,
+        created_at: r.created_at,
+      }));
     },
   });
 
