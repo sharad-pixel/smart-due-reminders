@@ -5,12 +5,19 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Upload, Loader2, FileSearch, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ContractFileRow } from "@/components/contracts/ContractFileRow";
 import { ManualContractDialog } from "@/components/contracts/ManualContractDialog";
 import { ContractClassifyDialog } from "@/components/contracts/ContractClassifyDialog";
+
+const CONTRACT_TYPES = [
+  "MSA", "SOW", "Order Form", "Subscription", "Amendment",
+  "Renewal", "Addendum", "NDA", "Other",
+];
 
 interface Props {
   open: boolean;
@@ -29,6 +36,7 @@ const MAX_BYTES = 25 * 1024 * 1024;
 export function ContractUploadDialog({ open, onOpenChange, debtorId, debtorName }: Props) {
   const [files, setFiles] = useState<File[]>([]);
   const [dragActive, setDragActive] = useState(false);
+  const [contractType, setContractType] = useState<string>("");
   const [progress, setProgress] = useState<{ done: number; total: number; phase: string } | null>(null);
   const [manualOpen, setManualOpen] = useState(false);
   const [classify, setClassify] = useState<{ importId: string; accountId: string; debtorId: string | null; contractName: string | null } | null>(null);
@@ -58,6 +66,7 @@ export function ContractUploadDialog({ open, onOpenChange, debtorId, debtorName 
     const fd = new FormData();
     fd.append("file", file);
     if (debtorId) fd.append("debtor_id", debtorId);
+    if (contractType) fd.append("contract_type", contractType);
     const { data, error } = await supabase.functions.invoke("live-contract-upload", { body: fd });
     if (error) throw new Error(error.message || "Upload failed");
     if (!data?.success || !data?.import?.id) throw new Error(data?.error || "Upload failed");
@@ -66,12 +75,14 @@ export function ContractUploadDialog({ open, onOpenChange, debtorId, debtorName 
 
   const reset = () => {
     setFiles([]);
+    setContractType("");
     setProgress(null);
   };
 
   const upload = useMutation({
     mutationFn: async () => {
       if (!files.length) throw new Error("Select at least one file");
+      if (!contractType) throw new Error("Select a contract type before scanning");
       setProgress({ done: 0, total: files.length, phase: "Uploading" });
       const results: any[] = [];
       for (let i = 0; i < files.length; i++) {
@@ -139,6 +150,27 @@ export function ContractUploadDialog({ open, onOpenChange, debtorId, debtorName 
           </DialogDescription>
         </DialogHeader>
 
+        <div className="space-y-1.5">
+          <Label htmlFor="contract-type-select" className="text-xs font-medium">
+            Contract type <span className="text-destructive">*</span>
+          </Label>
+          <Select value={contractType} onValueChange={setContractType} disabled={upload.isPending}>
+            <SelectTrigger id="contract-type-select" className="h-9">
+              <SelectValue placeholder="Select contract type…" />
+            </SelectTrigger>
+            <SelectContent>
+              {CONTRACT_TYPES.map((t) => (
+                <SelectItem key={t} value={t}>{t}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {!contractType && (
+            <p className="text-[11px] text-muted-foreground">
+              Required — this tells AI workflows how to treat the document.
+            </p>
+          )}
+        </div>
+
         <div
           onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
           onDragLeave={() => setDragActive(false)}
@@ -203,7 +235,7 @@ export function ContractUploadDialog({ open, onOpenChange, debtorId, debtorName 
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={upload.isPending}>Cancel</Button>
-          <Button onClick={() => upload.mutate()} disabled={!files.length || upload.isPending}>
+          <Button onClick={() => upload.mutate()} disabled={!files.length || !contractType || upload.isPending}>
             {upload.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
             {upload.isPending ? "Scanning…" : `Scan ${files.length || ""}`.trim()}
           </Button>
