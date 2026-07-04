@@ -886,10 +886,13 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
           payment_terms: editPaymentTerms,
           notes: editNotes,
         };
-        if (isManualInvoice) {
+        if (allowFullEdit) {
           updatePayload.subtotal_amount = subtotal;
           updatePayload.processing_fee_percent = feePercent;
           updatePayload.processing_fee_amount = feeAmount;
+        }
+        if (isDraftInvoice) {
+          updatePayload.currency = editCurrency;
         }
 
         const { error } = await supabase
