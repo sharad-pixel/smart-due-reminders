@@ -260,7 +260,9 @@ const Invoices = () => {
       );
     }
 
-    if (statusFilter !== "all") {
+    if (statusFilter === "Draft") {
+      filtered = filtered.filter((inv) => (inv as any).posting_state === "draft");
+    } else if (statusFilter !== "all") {
       filtered = filtered.filter((inv) => inv.status === statusFilter);
     }
 
