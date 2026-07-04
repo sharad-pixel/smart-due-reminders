@@ -785,6 +785,8 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
     setEditIssueDate(invoice.issue_date);
     setEditPaymentTerms(invoice.payment_terms || "NET30");
     setEditNotes(invoice.notes || "");
+    setEditCurrency(invoice.currency || "USD");
+    setEditDueDate(invoice.due_date || "");
     setEditInvoiceDialogOpen(true);
   };
 
