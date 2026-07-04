@@ -119,17 +119,30 @@ serve(async (req) => {
     const dueDate = rawDueSec ? (rawDueSec > nowSec ? rawDueSec : tomorrowSec) : tomorrowSec;
     const stripeInvoice = await stripe.invoices.create({
       customer: customerId,
+      currency,
       collection_method: "send_invoice",
       due_date: dueDate,
       pending_invoice_items_behavior: "include",
+      description: inv.product_description || `Recouply invoice ${inv.invoice_number}`,
+      footer: inv.invoice_number ? `Recouply reference: ${inv.invoice_number}` : undefined,
       metadata: {
         recouply_invoice_id: invoice_id,
-        recouply_invoice_number: inv.invoice_number,
+        recouply_invoice_number: inv.invoice_number ?? "",
         recouply_original_due_date: inv.due_date || "",
         recouply_due_date_adjusted: rawDueSec && rawDueSec <= nowSec ? "true" : "false",
       },
       auto_advance: false,
     });
+
+    // Immediately persist the link BEFORE finalize, so a finalize failure can't
+    // orphan a Stripe invoice with no reference in Recouply (prevents duplicates
+    // on retry).
+    await supa.from("invoices").update({
+      stripe_invoice_id: stripeInvoice.id,
+      pushed_to_stripe_at: new Date().toISOString(),
+      stripe_push_status: "draft",
+      stripe_push_error: null,
+    } as any).eq("id", invoice_id);
 
     if (finalize) {
       await stripe.invoices.finalizeInvoice(stripeInvoice.id);
