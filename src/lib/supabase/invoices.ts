@@ -20,6 +20,9 @@ export interface InvoiceListItem {
   last_contact_date: string | null;
   debtor_id: string;
   integration_source: string | null;
+  source_system: string | null;
+  source_contract_id: string | null;
+  posting_state: string | null;
   has_local_overrides: boolean | null;
   currency: string | null;
   is_on_payment_plan: boolean | null;
@@ -32,7 +35,7 @@ const PAGE_SIZE = 1000;
 
 // Lean select for list views — only columns the Invoices page actually renders
 const LIST_SELECT =
-  "id, reference_id, invoice_number, amount, amount_outstanding, issue_date, due_date, payment_terms, status, last_contact_date, debtor_id, integration_source, has_local_overrides, currency, is_on_payment_plan, is_overage, debtors(company_name), ai_workflows(id, is_active)";
+  "id, reference_id, invoice_number, amount, amount_outstanding, issue_date, due_date, payment_terms, status, last_contact_date, debtor_id, integration_source, source_system, source_contract_id, posting_state, has_local_overrides, currency, is_on_payment_plan, is_overage, debtors(company_name), ai_workflows(id, is_active)";
 
 /**
  * Fetch all invoices with pagination to handle > 1000 rows.
