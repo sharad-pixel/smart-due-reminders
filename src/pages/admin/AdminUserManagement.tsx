@@ -466,8 +466,7 @@ const AdminUserManagement = () => {
           title: "⚠️ Account Deletion Scheduled",
           message: "Your account has been scheduled for permanent deletion in 24 hours. All data will be permanently removed. Contact support immediately if this was not requested.",
           severity: "critical",
-      } as any).then(() => {});
-        });
+        } as any);
         // Ignore notification insert errors
 
         // Notify support@recouply.ai
