@@ -27,20 +27,22 @@ export default function ContractsHub() {
         title="Contracts Hub · Recouply"
         description="Contract portfolio dashboard: value under management, upcoming renewals, revenue risk, and every active agreement."
       />
-      <div className="container max-w-7xl pt-6 pb-10 space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="space-y-1">
-            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full border border-primary/30 bg-primary/10 text-[11px] font-semibold uppercase tracking-wider text-primary">
-              <FileSignature className="h-3.5 w-3.5" /> Contracts Hub
+      <div className="container max-w-7xl pt-8 pb-10 space-y-8">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div className="space-y-1.5">
+            <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground flex items-center gap-1.5">
+              <FileSignature className="h-3 w-3" /> Contracts Hub
             </div>
-            <h1 className="text-2xl font-bold tracking-tight">Contract intelligence at a glance</h1>
-            <p className="text-sm text-muted-foreground">
-              Live contract value, upcoming renewals, revenue risk, and every active agreement in one place.
+            <h1 className="text-[26px] font-semibold tracking-tight text-foreground">
+              Contract intelligence at a glance
+            </h1>
+            <p className="text-[13px] text-muted-foreground max-w-2xl">
+              Live contract value, upcoming renewals, revenue risk, and every active agreement.
             </p>
           </div>
-          <Button asChild size="lg">
+          <Button asChild size="sm" className="h-9">
             <Link to="/contracts/new">
-              <Sparkles className="h-4 w-4 mr-2" />
+              <Sparkles className="h-3.5 w-3.5 mr-1.5" />
               New Contract
             </Link>
           </Button>

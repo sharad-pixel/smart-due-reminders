@@ -82,52 +82,45 @@ export const ContractIntelligenceSummary = () => {
   if (!accountId) return null;
 
   return (
-    <Card className="border-l-4 border-l-primary bg-gradient-to-br from-primary/5 via-transparent to-transparent">
-      <CardHeader className="pb-3">
+    <Card className="border shadow-none">
+      <CardHeader className="pb-4 border-b">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
-            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-              <FileSignature className="h-5 w-5 text-primary" /> Contract Intelligence
+            <CardTitle className="text-[13px] font-medium text-muted-foreground flex items-center gap-1.5">
+              <FileSignature className="h-3.5 w-3.5" /> Contract Intelligence
             </CardTitle>
-            <p className="text-xs text-muted-foreground mt-1">
-              Live revenue signal across every active contract
-            </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => navigate("/contracts/active")}>
+            <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => navigate("/contracts/active")}>
               <Search className="h-3.5 w-3.5 mr-1.5" /> Browse contracts
             </Button>
-            <Button size="sm" onClick={() => navigate("/contract-intelligence/dashboard")}>
+            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => navigate("/contract-intelligence/dashboard")}>
               Open dashboard <ArrowRight className="h-3.5 w-3.5 ml-1" />
             </Button>
           </div>
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <CardContent className="p-0">
+        <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-border">
           <Kpi
-            icon={<BadgeDollarSign className="h-4 w-4 text-emerald-500" />}
             label="Total Contract Value"
             value={formatCurrency(m.tcv, m.currency)}
             sub={`${m.active} active`}
           />
           <Kpi
-            icon={<Activity className="h-4 w-4 text-primary" />}
             label="Annual Recurring Revenue"
             value={formatCurrency(m.arr, m.currency)}
             sub="Subscription / MSA"
           />
           <Kpi
-            icon={<ShieldAlert className="h-4 w-4 text-amber-500" />}
             label="Revenue at Risk"
             value={formatCurrency(m.revenueAtRisk, m.currency)}
             sub="Critical flags & <30d expiry"
           />
           <Kpi
-            icon={<CalendarClock className="h-4 w-4 text-blue-500" />}
             label="Renewals (90 days)"
             value={String(m.renewals90)}
-            sub={<Badge variant="outline" className="text-[10px]">action required</Badge>}
+            sub="action required"
           />
         </div>
       </CardContent>
@@ -136,23 +129,22 @@ export const ContractIntelligenceSummary = () => {
 };
 
 const Kpi = ({
-  icon,
   label,
   value,
   sub,
 }: {
-  icon: React.ReactNode;
   label: string;
   value: string;
   sub?: React.ReactNode;
 }) => (
-  <div className="rounded-lg border bg-card p-3">
-    <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-      {icon}
-      <span className="truncate">{label}</span>
+  <div className="px-5 py-4">
+    <div className="text-[11px] font-medium text-muted-foreground tracking-wide truncate">
+      {label}
     </div>
-    <div className="mt-1.5 text-xl font-semibold tracking-tight truncate">{value}</div>
-    <div className="mt-0.5 text-xs text-muted-foreground">{sub}</div>
+    <div className="mt-1 text-2xl font-semibold tracking-tight text-foreground truncate">
+      {value}
+    </div>
+    {sub && <div className="mt-1 text-[11px] text-muted-foreground truncate">{sub}</div>}
   </div>
 );
 
