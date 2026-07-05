@@ -98,8 +98,8 @@ export const STRIPE_PRODUCTS = {
   seatAnnual: 'prod_TZkmyzUeLp2SmA',
   invoice: 'prod_TZ47dBqm7afkzi',
   smartIngestion: 'prod_UFnEUWvQL0RlJ0',
-  creditsPrepaid: 'prod_UeKNmWGVsxDe0E',
-  creditsOverage: 'prod_UeKNtASW5yOmfV',
+  creditsPrepaid: 'prod_UpNIt8RGC0aePD',
+  creditsOverage: 'prod_UpNJYwUXZrjK96',
 } as const;
 
 // ============================================================================
