@@ -294,6 +294,7 @@ const App = () => (
               {/* Ingestion detail pages */}
               <Route path="/ai-ingestion/:importId" element={<LiveContractDetail />} />
               <Route path="/contracts/live/:importId" element={<LiveContractDetail />} />
+              <Route path="/contracts/live/:importId/asc606" element={<Asc606AssessmentDetails />} />
               <Route path="/revenue-library" element={<RevenueLibrary />} />
               <Route path="/contract-intelligence/dashboard" element={<ContractIntelligenceDashboard />} />
 
