@@ -356,20 +356,56 @@ const Layout = ({ children }: LayoutProps) => {
               <div className="hidden lg:flex items-center gap-1">
                 {/* Revenue Hub — primary entry with Collections & Contracts nested below */}
                 {(() => {
-                  const subHubs = [
-                    { path: "/dashboard", label: "Collections Hub", icon: LayoutDashboard, description: "Invoices, payments & outreach" },
-                    { path: "/invoices", label: "Invoices", icon: FileText, description: "Open AR & invoice detail" },
-                    { path: "/payments", label: "Payments", icon: DollarSign, description: "Payment activity & reconciliation" },
-                    { path: "/contracts", label: "Contracts Hub", icon: FileSignature, description: "Live contracts & compliance" },
-                    { path: "/revenue-library", label: "Revenue Library", icon: Library, description: "Contract clauses & templates" },
-                    { path: "/revenue-risk", label: "Revenue Risk", icon: ShieldAlert, description: "Risk signals & exposure" },
-                  ];
+                  const collectionsGroup = {
+                    parent: { path: "/dashboard", label: "Collections Hub", icon: LayoutDashboard, description: "Invoices, payments & outreach" },
+                    children: [
+                      { path: "/invoices", label: "Invoices", icon: FileText, description: "Open AR & invoice detail" },
+                      { path: "/payments", label: "Payments", icon: DollarSign, description: "Payment activity & reconciliation" },
+                    ],
+                  };
+                  const contractsGroup = {
+                    parent: { path: "/contracts", label: "Contracts Hub", icon: FileSignature, description: "Live contracts & compliance" },
+                    children: [
+                      { path: "/revenue-library", label: "Revenue Library", icon: Library, description: "Contract clauses & templates" },
+                      { path: "/revenue-risk", label: "Revenue Risk", icon: ShieldAlert, description: "Risk signals & exposure" },
+                    ],
+                  };
                   const revenueActive = isActive("/hub");
                   const subActive =
                     isActive("/dashboard") || isActive("/invoices") || isActive("/payments") ||
-                    isActive("/contracts") || isActive("/contract-intelligence/dashboard") ||
+                    isActive("/contracts") ||
                     isActive("/revenue-library") || isActive("/revenue-risk");
                   const anyActive = revenueActive || subActive;
+                  const renderGroup = (group: typeof collectionsGroup) => {
+                    const ParentIcon = group.parent.icon;
+                    return (
+                      <div key={group.parent.path}>
+                        <DropdownMenuItem asChild>
+                          <Link to={group.parent.path} className="flex items-start gap-2 cursor-pointer">
+                            <ParentIcon className="h-4 w-4 text-primary mt-0.5" />
+                            <div className="flex flex-col">
+                              <span className="font-medium">{group.parent.label}</span>
+                              <span className="text-xs text-muted-foreground">{group.parent.description}</span>
+                            </div>
+                          </Link>
+                        </DropdownMenuItem>
+                        {group.children.map((c) => {
+                          const CIcon = c.icon;
+                          return (
+                            <DropdownMenuItem key={c.path} asChild>
+                              <Link to={c.path} className="flex items-start gap-2 cursor-pointer pl-8">
+                                <CIcon className="h-3.5 w-3.5 text-muted-foreground mt-0.5" />
+                                <div className="flex flex-col">
+                                  <span className="text-sm">{c.label}</span>
+                                  <span className="text-[11px] text-muted-foreground">{c.description}</span>
+                                </div>
+                              </Link>
+                            </DropdownMenuItem>
+                          );
+                        })}
+                      </div>
+                    );
+                  };
                   return (
                     <div className="flex items-center mr-1">
                       <Link
@@ -396,7 +432,7 @@ const Layout = ({ children }: LayoutProps) => {
                             <ChevronDown className="h-3.5 w-3.5" />
                           </button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start" className="w-64 z-[110] bg-card border shadow-lg">
+                        <DropdownMenuContent align="start" className="w-72 z-[110] bg-card border shadow-lg">
                           <DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                             Revenue Intelligence
                           </DropdownMenuLabel>
@@ -410,25 +446,15 @@ const Layout = ({ children }: LayoutProps) => {
                             </Link>
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          {subHubs.map((h) => {
-                            const Icon = h.icon;
-                            return (
-                              <DropdownMenuItem key={h.path} asChild>
-                                <Link to={h.path} className="flex items-start gap-2 cursor-pointer">
-                                  <Icon className="h-4 w-4 text-primary mt-0.5" />
-                                  <div className="flex flex-col">
-                                    <span className="font-medium">{h.label}</span>
-                                    <span className="text-xs text-muted-foreground">{h.description}</span>
-                                  </div>
-                                </Link>
-                              </DropdownMenuItem>
-                            );
-                          })}
+                          {renderGroup(collectionsGroup)}
+                          <DropdownMenuSeparator />
+                          {renderGroup(contractsGroup)}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
                   );
                 })()}
+
 
                 {coreNavItems.map((item) => {
                   const Icon = item.icon;
