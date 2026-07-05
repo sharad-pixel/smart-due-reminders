@@ -357,33 +357,37 @@ export function RevenueCommandCenter({ variant = "revenue" }: RevenueCommandCent
   ];
 
   const forecastMax = Math.max(...stats.buckets, 1);
+  const header = HEADERS[variant];
+  const allowed = new Set(CARD_KEYS[variant]);
+  const visibleCards = cards.filter((c) => allowed.has(c.label));
 
   return (
-    <section className="space-y-4">
+    <section className="space-y-6">
       <div className="flex items-end justify-between flex-wrap gap-2">
-        <div>
-          <p className="text-xs font-semibold tracking-[0.2em] text-primary uppercase">
-            Executive Revenue Intelligence
+        <div className="space-y-1.5">
+          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+            {header.eyebrow}
           </p>
-          <h2 className="text-2xl sm:text-3xl font-bold mt-1">Contracts & Collections Command Center</h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Cash, risk, renewals, and health — synthesized in real time from contracts, invoices, and every customer interaction.
+          <h2 className="text-[22px] sm:text-[26px] font-semibold tracking-tight text-foreground">
+            {header.title}
+          </h2>
+          <p className="text-[13px] text-muted-foreground max-w-2xl">
+            {header.description}
           </p>
         </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border bg-card">
+          <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md border bg-card text-[11px]">
             <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" /> Live
           </span>
-          <Link to="/analytics" className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border bg-card hover:bg-accent">
+          <Link to="/analytics" className="inline-flex items-center gap-1 px-2 py-1 rounded-md border bg-card hover:bg-accent text-[11px]">
             Deep-dive analytics <ArrowUpRight className="h-3 w-3" />
           </Link>
         </div>
       </div>
 
-      {/* Stat Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-        {cards.map((c) => {
-          const Icon = c.icon;
+      {/* Stat Grid — Stripe-style flat cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {visibleCards.map((c) => {
           const color =
             c.accent === "danger"
               ? "hsl(var(--destructive))"
@@ -396,28 +400,20 @@ export function RevenueCommandCenter({ variant = "revenue" }: RevenueCommandCent
             <Link
               key={c.label}
               to={c.href}
-              className="group relative overflow-hidden rounded-xl border bg-card p-4 hover:border-primary/50 hover:shadow-lg transition-all"
+              className="group relative overflow-hidden rounded-lg border bg-card p-4 hover:border-primary/40 hover:shadow-sm transition-all"
             >
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
-                    {c.label}
-                  </p>
-                  <div className="flex items-baseline gap-2 mt-1">
-                    <span className="text-2xl sm:text-3xl font-bold">{loading ? "—" : c.value}</span>
-                  </div>
-                  {c.sub && <p className="text-xs text-muted-foreground mt-0.5">{c.sub}</p>}
-                </div>
-                <div
-                  className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0"
-                  style={{ background: `${color}1A`, color }}
-                >
-                  <Icon className="h-4 w-4" />
-                </div>
+              <p className="text-[11px] font-medium tracking-wide text-muted-foreground truncate">
+                {c.label}
+              </p>
+              <div className="mt-1.5 flex items-baseline gap-2">
+                <span className="text-[26px] font-semibold tracking-tight text-foreground">
+                  {loading ? "—" : c.value}
+                </span>
               </div>
+              {c.sub && <p className="text-[11px] text-muted-foreground mt-0.5">{c.sub}</p>}
 
-              <div className="flex items-end justify-between">
-                <div className="flex items-center gap-1 text-xs">
+              <div className="mt-3 flex items-end justify-between gap-2">
+                <div className="flex items-center gap-1 text-[11px]">
                   {c.trend === "up" && <TrendingUp className="h-3 w-3 text-green-500" />}
                   {c.trend === "down" && <TrendingDown className="h-3 w-3 text-red-500" />}
                   {c.trendLabel && (
@@ -437,11 +433,11 @@ export function RevenueCommandCenter({ variant = "revenue" }: RevenueCommandCent
                 {c.spark && <Sparkline data={c.spark} color={color} />}
               </div>
 
-              <div className="mt-3 pt-3 border-t flex items-center justify-between text-xs">
+              <div className="mt-3 pt-3 border-t flex items-center justify-between text-[11px]">
                 <span className="text-muted-foreground group-hover:text-foreground transition-colors">
                   {c.cta}
                 </span>
-                <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
+                <ArrowUpRight className="h-3 w-3 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
               </div>
             </Link>
           );
@@ -450,20 +446,20 @@ export function RevenueCommandCenter({ variant = "revenue" }: RevenueCommandCent
 
       {/* Cash Forecast + Aging */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Card className="lg:col-span-2">
+        <Card className="lg:col-span-2 shadow-none">
           <CardContent className="p-5">
             <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
+              <div className="space-y-1">
+                <p className="text-[11px] font-medium tracking-wide text-muted-foreground">
                   Cash Forecast · Next 12 Weeks
                 </p>
-                <p className="text-lg font-semibold mt-0.5">
+                <p className="text-[20px] font-semibold tracking-tight">
                   {loading ? "—" : fmtCurrency(stats.forecastTotal)}
                 </p>
               </div>
               <Link
                 to="/payments-activity"
-                className="text-xs text-primary hover:underline inline-flex items-center gap-1"
+                className="text-[11px] text-primary hover:underline inline-flex items-center gap-1"
               >
                 Breakdown <ArrowUpRight className="h-3 w-3" />
               </Link>
@@ -474,7 +470,7 @@ export function RevenueCommandCenter({ variant = "revenue" }: RevenueCommandCent
                 return (
                   <div key={i} className="flex-1 flex flex-col items-center gap-1 group">
                     <div
-                      className="w-full rounded-md bg-gradient-to-t from-primary/60 to-primary transition-all group-hover:from-primary group-hover:to-primary/80"
+                      className="w-full rounded-sm bg-primary/70 group-hover:bg-primary transition-all"
                       style={{ height: `${h}%` }}
                       title={`Week ${i + 1}: ${fmtCurrency(v)}`}
                     />
