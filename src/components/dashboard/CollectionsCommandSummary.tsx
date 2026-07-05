@@ -27,14 +27,14 @@ export const CollectionsCommandSummary = () => {
     enabled: !!accountId,
     queryKey: ["hub-coll-invoices", accountId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("invoices")
         .select("id,amount,balance_due,due_date,status,currency")
         .eq("account_id", accountId!)
         .neq("status", "paid")
         .limit(2000);
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as any[];
     },
   });
 
@@ -42,14 +42,14 @@ export const CollectionsCommandSummary = () => {
     enabled: !!accountId,
     queryKey: ["hub-coll-tasks", accountId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("collection_tasks")
         .select("id,status")
         .eq("account_id", accountId!)
         .neq("status", "completed")
         .limit(2000);
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as any[];
     },
   });
 
