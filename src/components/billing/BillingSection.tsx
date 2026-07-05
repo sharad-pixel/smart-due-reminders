@@ -119,6 +119,10 @@ const BillingSection = ({ profile, canManageBilling, onRefresh, isTeamMember = f
         setUsageData({
           includedUsed: data.included_invoices_used || 0,
           allowance: data.included_allowance || 0,
+          baseAllowance: data.base_credit_allowance ?? data.included_allowance ?? 0,
+          liveContractBoost: data.live_contract_credit_boost || 0,
+          activeLiveContracts: data.active_live_contracts || 0,
+          creditsPerLiveContract: data.credits_per_live_contract || 5,
           overageCount: data.overage_invoices || 0,
           remaining: data.remaining_quota || 0,
         });
