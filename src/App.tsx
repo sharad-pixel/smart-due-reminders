@@ -182,6 +182,7 @@ const RevenueLibrary = lazy(() => import("./pages/RevenueLibrary"));
 const ContractIntelligenceDashboard = lazy(() => import("./pages/ContractIntelligenceDashboard"));
 const ActiveContracts = lazy(() => import("./pages/ActiveContracts"));
 const ContractsHub = lazy(() => import("./pages/ContractsHub"));
+const ContractIngestionWizard = lazy(() => import("./pages/ContractIngestionWizard"));
 
 // Admin Pages (heavy - definitely lazy load)
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
@@ -284,14 +285,16 @@ const App = () => (
               <Route path="/billing/asc606-credits" element={<Asc606Credits />} />
               {/* Contracts Hub — unified Active Contracts + Ingestion */}
               <Route path="/contracts" element={<ContractsHub />} />
+              <Route path="/contracts/new" element={<ContractIngestionWizard />} />
               <Route path="/contracts/hub" element={<Navigate to="/contracts" replace />} />
               <Route path="/contracts/active" element={<Navigate to="/contracts?hub=active" replace />} />
-              <Route path="/ai-ingestion" element={<Navigate to="/contracts?hub=ingestion" replace />} />
-              <Route path="/contracts/live" element={<Navigate to="/contracts?hub=ingestion" replace />} />
-              <Route path="/clm/live-contracts" element={<Navigate to="/contracts?hub=ingestion" replace />} />
-              <Route path="/clm-portal" element={<Navigate to="/contracts?hub=ingestion" replace />} />
-              <Route path="/contracts/templates/:id" element={<Navigate to="/contracts?hub=ingestion" replace />} />
-              <Route path="/contracts/instances/:id" element={<Navigate to="/contracts?hub=ingestion" replace />} />
+              <Route path="/ai-ingestion" element={<Navigate to="/contracts/new" replace />} />
+              <Route path="/contracts?hub=ingestion" element={<Navigate to="/contracts/new" replace />} />
+              <Route path="/contracts/live" element={<Navigate to="/contracts" replace />} />
+              <Route path="/clm/live-contracts" element={<Navigate to="/contracts" replace />} />
+              <Route path="/clm-portal" element={<Navigate to="/contracts" replace />} />
+              <Route path="/contracts/templates/:id" element={<Navigate to="/contracts" replace />} />
+              <Route path="/contracts/instances/:id" element={<Navigate to="/contracts" replace />} />
               {/* Ingestion detail pages */}
               <Route path="/ai-ingestion/:importId" element={<LiveContractDetail />} />
               <Route path="/contracts/live/:importId" element={<LiveContractDetail />} />

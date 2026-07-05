@@ -1,63 +1,62 @@
 
-## Goal
+# Unified Contract Ingestion & Compliance Wizard
 
-Rename and expand the existing ASC 606 surface into **Revenue Compliance Review** — an AI-assisted commercial review that categorizes findings, surfaces missing info, and generates recommended tasks. Keep the existing paid assessment engine (`asc606_assessments`, edge functions, credit wallets, dialog) fully intact underneath; this is an additive re-shaping of the presentation + a richer report structure.
+Today users navigate two overlapping surfaces — "AI Ingestion" and "Live Contracts" — plus a separate ASC 606 flow. This plan collapses them into ONE guided wizard that ends on a single Contract Command page. No backend logic is rewritten; we reuse existing edge functions and tables and only reorganize UI + add missing gap-prompts and a Stripe customer push.
 
-## Scope (this iteration)
+## End-state UX
 
-Build the full UI framework, wire it to the existing assessment data, and extend the edge function report schema so the AI populates the new categories. Configurable rules engine + manual override persistence are stubbed as future work (noted, not built).
+**Contracts Hub** (`/contracts`) keeps only two tabs:
+- **Active Contracts** (unchanged list)
+- **Ingest a Contract** — launches the new wizard (replaces the "Ingestion & Extraction" tab)
 
-## Changes
+**New wizard** (`/contracts/new`) — a single page, 4 numbered steps with a progress rail:
 
-### 1. Report schema (backend, minimal edit)
-File: `supabase/functions/asc606-run-assessment/index.ts`
-- Extend the system prompt + output schema so `report_jsonb` also returns:
-  - `compliance_score` (0–100), `risk_level` (low/medium/high), `confidence` (0–100)
-  - `categories[]`: `{ key, label, status: pass|review|missing, confidence, findings[], references[], commercial_impact, recommended_action }` for the 8 categories (Contract Identification, Performance Obligations, Transaction Price, Billing Terms, Contract Modifications, Renewal & Termination, Commercial Completeness, Revenue Intelligence Validation)
-  - `ai_observations[]` (natural-language strings)
-  - `recommended_actions[]`: `{ title, category, priority }`
-  - `executive_summary` (string)
-  - `readiness`: `{ commercial_completeness, revenue, billing, collection }` (each 0–100)
-- Preserve all existing fields for back-compat. Older assessments without new fields render with graceful fallbacks.
+1. **Upload & Classify** — drag/drop file + contract type (reuses `live-contract-upload`). Shows scan progress with `ScanProgressGauge`.
+2. **Review Extracted Data** — shows every field pulled by `live-contract-extract`. Any missing/low-confidence field is highlighted amber with an inline prompt: "Add value" or "Upload supporting doc" (reuses `ContractSupportingDocsPanel`, `live_contract_extracted_fields`). User cannot advance until required gaps are filled or explicitly skipped.
+3. **Customer Match** — auto-runs existing `contract_customer_matches` logic.
+   - If matched → confirm.
+   - If no match → two actions: **Create new customer** (inline form) or **Pick manually** (searchable debtor list, reuses `AssignContractDebtor`).
+   - If the account has an active Stripe integration (`useStripeConnected`) AND the customer is new/unlinked → show a **Push to Stripe** panel modeled on the invoice push: checklist of required fields (name, email, address, currency), green ticks / red gaps, single "Create in Stripe" button that calls a new `contract-push-customer-to-stripe` edge function (wraps `stripe.customers.create` + writes `debtors.stripe_customer_id`, mirrors `sync-stripe-customers` upsert logic).
+4. **Revenue Compliance Assessment (Paid)** — clear CTA: "Run PwC-governed ASC 606 Revenue Compliance Assessment". Shows credit cost via existing `Asc606ConsolidatedCard` gating, uses `asc606-purchase-credits` if needed, then triggers `asc606-run-assessment`. User can skip; skipping marks the contract as "Assessment pending" on the command page.
 
-### 2. New presentation components
-- `src/components/contracts/RevenueComplianceReview.tsx` — main card, replaces `Asc606ConsolidatedCard` on the contract detail page. Shows:
-  - Header: "Revenue Compliance Review" + subtitle
-  - Big score ring (green/yellow/red), Risk Level, Confidence badges
-  - Readiness mini-bars (Commercial / Revenue / Billing / Collection)
-  - Executive Summary block
-  - Accordion of 8 category cards (status pill, confidence, findings bullets, references, commercial impact, recommended action, "Create task" button)
-  - AI Observations list
-  - Recommended Actions list with per-item "Add to Tasks" (uses existing `collection_tasks` insert pattern from `ContractTasksPanel`)
-  - Locked/empty state when no completed paid assessment — CTA opens existing `Asc606AssessmentDialog`
-  - Re-run + "Open full report" links preserved
-- `src/components/contracts/revenue-compliance/CategoryCard.tsx`, `ScoreRing.tsx`, `ReadinessBars.tsx` — small presentational helpers.
+On finish → redirect to the **Contract Command page** = existing `LiveContractDetail` (already houses `RevenueComplianceReview`, critical dates, triggers, timeline, chat). No new command page; we just rename the header to "Contract Command" and remove duplicated ASC 606 buttons (they now live only inside `RevenueComplianceReview`).
 
-### 3. Contract detail page
-File: `src/pages/LiveContractDetail.tsx`
-- Reorder sections to: Contract Overview → Commercial Terms → Revenue Metrics → **Revenue Compliance Review** → Contract Intelligence Timeline → Tasks & Recommendations.
-- Swap `<Asc606ConsolidatedCard>` for `<RevenueComplianceReview>` (same props).
+## Route changes
 
-### 4. Full details page
-File: `src/pages/Asc606AssessmentDetails.tsx`
-- Rename title to "Revenue Compliance Review", keep route `/contracts/live/:importId/asc606` for link compatibility.
-- Reuse the new category/observations/actions components to render the full expanded view alongside the existing markdown report and AI advisor chat.
-
-### 5. Task integration
-- Recommended actions and per-category "Create task" call `supabase.from("collection_tasks").insert(...)` scoped to the contract's `debtor_id` (mirroring `ContractTasksPanel`). No new tables.
-
-### 6. Not in scope this pass (documented for future)
-- Manual override persistence (reviewer / date / notes / approval) — UI hooks stubbed with a "Coming soon" note; no schema change yet.
-- Configurable rules engine (company policies, SOX, IFRS 15) — architecture leaves `categories[]` open-ended so custom keys can be added later.
-
-## Preserved
-
-- Paid gating, credit wallet, `Asc606AssessmentDialog`, re-run confirmation, PwC reference banner, required-docs checklist, AI advisor chat, current-date anchoring — all untouched.
+- `/contracts/new` → new `ContractIngestionWizard.tsx` page.
+- `/contracts?hub=ingestion` → 301-style `<Navigate>` to `/contracts/new`.
+- `/ai-ingestion` and `/ai-ingestion/:importId` → redirect to `/contracts` and `/contracts/live/:importId` (already the canonical detail route).
+- Remove the "Ingestion & Extraction" tab from `ContractsHub`; replace with a prominent "New Contract" button.
+- `LiveContracts.tsx` page kept only as an admin/debug list, unlinked from nav.
 
 ## Files
 
-- Edit: `supabase/functions/asc606-run-assessment/index.ts`, `src/pages/LiveContractDetail.tsx`, `src/pages/Asc606AssessmentDetails.tsx`
-- Create: `src/components/contracts/RevenueComplianceReview.tsx`, `src/components/contracts/revenue-compliance/CategoryCard.tsx`, `ScoreRing.tsx`, `ReadinessBars.tsx`
-- Keep (unused going forward but not deleted): `Asc606ConsolidatedCard.tsx` — will remove once new card is validated.
+**New**
+- `src/pages/ContractIngestionWizard.tsx` — 4-step orchestrator, owns `importId` and step state.
+- `src/components/contracts/wizard/StepUpload.tsx`
+- `src/components/contracts/wizard/StepReviewFields.tsx` — gap detection + inline prompts.
+- `src/components/contracts/wizard/StepCustomerMatch.tsx` — match / create / manual / Stripe push panel.
+- `src/components/contracts/wizard/StepCompliance.tsx` — paid assessment CTA.
+- `src/components/contracts/wizard/WizardRail.tsx` — shared progress rail.
+- `src/components/contracts/StripeCustomerPushPanel.tsx` — checklist + push action.
+- `supabase/functions/contract-push-customer-to-stripe/index.ts` — creates Stripe customer, links `debtors.stripe_customer_id`, logs to `stripe_sync_log`.
 
-Approve and I'll build it.
+**Edit**
+- `src/App.tsx` — routes above.
+- `src/pages/ContractsHub.tsx` — drop ingestion tab, add "New Contract" CTA.
+- `src/pages/LiveContractDetail.tsx` — header rename to "Contract Command"; remove the redundant "Run ASC 606" top-level button (kept inside `RevenueComplianceReview`).
+- `src/components/contracts/ContractUploadDialog.tsx` — deprecate direct navigation to `/ai-ingestion/:id`; instead route into the wizard at the correct step when re-entered.
+
+**Preserved untouched**
+- All extraction/assessment edge functions and their prompts (including current-date anchoring).
+- `RevenueComplianceReview`, credit wallet, PwC banner, chat.
+- Existing debtor/Stripe schema.
+
+## Gap-prompt rules (Step 2)
+
+Required for advance: customer/vendor names, contract start & end dates, total value, billing frequency, currency. Recommended (warns but skippable): renewal notice window, auto-renew flag, POC/pilot flags, termination clauses, key milestones. Each gap row offers: inline edit, "Upload supporting doc" (attaches to `live_contract_supporting_docs` and re-runs extract), or "Mark N/A".
+
+## Out of scope this pass
+- Rewriting extraction prompts.
+- Bulk-upload wizard (single contract flow only; multi-file upload still lands on the list).
+- Removing `LiveContracts.tsx` file (kept as hidden fallback).

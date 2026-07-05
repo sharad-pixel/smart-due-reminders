@@ -1,57 +1,48 @@
-import { useSearchParams } from "react-router-dom";
+import { useEffect } from "react";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import SEO from "@/components/seo/SEO";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { FileSignature, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Sparkles } from "lucide-react";
 import ActiveContracts from "./ActiveContracts";
-import LiveContracts from "./LiveContracts";
 
 /**
- * Contracts Hub — unified page combining:
- *  - Active Contracts (browsing the live contract portfolio)
- *  - Ingestion & Extraction (AI Smart Ingestion for contract documents)
+ * Contracts Hub — the portfolio view of all active contracts.
+ * New contract ingestion has moved to a dedicated guided wizard at
+ * /contracts/new (Upload → Review → Customer → Compliance).
  */
 export default function ContractsHub() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const hub = searchParams.get("hub") === "ingestion" ? "ingestion" : "active";
+  const [sp] = useSearchParams();
+  const navigate = useNavigate();
 
-  const setHub = (value: string) => {
-    const next = new URLSearchParams(searchParams);
-    next.set("hub", value);
-    // Reset inner-tab params when swapping hubs
-    if (value === "active") {
-      next.delete("status");
-      next.delete("tab");
-    }
-    setSearchParams(next, { replace: true });
-  };
+  // Redirect legacy ?hub=ingestion links into the new wizard.
+  useEffect(() => {
+    if (sp.get("hub") === "ingestion") navigate("/contracts/new", { replace: true });
+  }, [sp, navigate]);
 
   return (
     <Layout>
       <SEO
         title="Contracts · Recouply"
-        description="Browse active contracts and ingest new documents with AI in a single workspace."
+        description="Portfolio of active contracts. Ingest new contracts through the guided wizard."
       />
-      <div className="container max-w-7xl pt-6">
-        <Tabs value={hub} onValueChange={setHub} className="space-y-4">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
-            <TabsTrigger value="active" className="gap-2">
-              <FileSignature className="h-4 w-4" />
-              Active Contracts
-            </TabsTrigger>
-            <TabsTrigger value="ingestion" className="gap-2">
-              <Sparkles className="h-4 w-4" />
-              Ingestion & Extraction
-            </TabsTrigger>
-          </TabsList>
+      <div className="container max-w-7xl pt-6 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Contracts</h1>
+            <p className="text-sm text-muted-foreground">
+              Every contract you've ingested, matched to a customer, and prepared for revenue compliance.
+            </p>
+          </div>
+          <Button asChild size="lg">
+            <Link to="/contracts/new">
+              <Sparkles className="h-4 w-4 mr-2" />
+              New Contract
+            </Link>
+          </Button>
+        </div>
 
-          <TabsContent value="active" className="mt-0">
-            <ActiveContracts embedded />
-          </TabsContent>
-          <TabsContent value="ingestion" className="mt-0">
-            <LiveContracts embedded />
-          </TabsContent>
-        </Tabs>
+        <ActiveContracts embedded />
       </div>
     </Layout>
   );
