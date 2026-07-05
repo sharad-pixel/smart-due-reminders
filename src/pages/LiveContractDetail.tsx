@@ -387,14 +387,9 @@ const LiveContractDetailInner = () => {
                 </Badge>
               );
             })()}
-            <Button
-              size="sm"
-              onClick={() => setAsc606Open(true)}
-              className="bg-primary"
-            >
-              <FileCheck2 className="h-4 w-4 mr-1" />
-              Revenue Compliance Review
-            </Button>
+            <Badge variant="outline" className="bg-primary/10 text-primary">
+              Contract Command
+            </Badge>
             <Button asChild variant="outline" size="sm">
               <Link to="/team">
                 <Users className="h-4 w-4 mr-1" />
