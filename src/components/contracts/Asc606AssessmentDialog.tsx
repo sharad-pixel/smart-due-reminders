@@ -82,7 +82,17 @@ export function Asc606AssessmentDialog({ open, onOpenChange, contractId, account
     return false;
   };
 
+  const confirmRerun = (label: string) => {
+    const latestDone = assessments[0]?.status === "complete";
+    if (!latestDone) return true;
+    return window.confirm(
+      `A completed ASC 606 assessment already exists for this contract. Running ${label} will charge you again for a new assessment. Continue?`
+    );
+  };
+
   const runWithCredits = async (method: "credits" | "overage") => {
+    const label = method === "credits" ? "with 10 credits" : "as $10 overage";
+    if (!confirmRerun(label)) return;
     setRunning(true);
     const startedAt = new Date(Date.now() - 5000);
     try {
@@ -111,6 +121,7 @@ export function Asc606AssessmentDialog({ open, onOpenChange, contractId, account
   };
 
   const payAndRun = async () => {
+    if (!confirmRerun("a paid $9.99 assessment")) return;
     setPaying(true);
     try {
       const { data, error } = await supabase.functions.invoke("asc606-pay-assessment", {
@@ -124,6 +135,7 @@ export function Asc606AssessmentDialog({ open, onOpenChange, contractId, account
       setPaying(false);
     }
   };
+
 
   const balance = Number(wallet?.balance_credits ?? 0);
   const canUseCredits = balance >= COST;
@@ -248,6 +260,12 @@ export function Asc606AssessmentDialog({ open, onOpenChange, contractId, account
                 <div className="text-xs text-muted-foreground">
                   Cost: <strong>$9.99</strong> per assessment OR <strong>10 credits</strong> ({balance >= COST ? `you have ${balance.toFixed(0)}` : `$8.00 with pre-paid credits`}).
                 </div>
+                {latest?.status === "complete" && (
+                  <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5 flex items-start gap-1.5">
+                    <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                    <span>A completed assessment already exists. Re-running will incur a new charge — you'll be asked to confirm.</span>
+                  </div>
+                )}
                 <div className="flex flex-wrap gap-2">
                   {canUseCredits && (
                     <Button onClick={() => runWithCredits("credits")} disabled={running}>
