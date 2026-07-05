@@ -71,18 +71,22 @@ export function useSessionTimeout(enabled = true): SessionTimeoutState {
     }
   }, [isWarningVisible]);
 
-  // Extend session (dismiss warning and reset timers)
-  const extendSession = useCallback(() => {
-    const now = Date.now();
-    lastActivityRef.current = now;
-    localStorage.setItem(STORAGE_KEY_LAST_ACTIVITY, String(now));
+  // "Login" handler on the Timed Out dialog — sign out cleanly and route to /login.
+  const extendSession = useCallback(async () => {
     setIsWarningVisible(false);
     if (warningToastRef.current) {
       toast.dismiss(warningToastRef.current);
       warningToastRef.current = null;
     }
-    toast.success("Session extended");
-  }, []);
+    try {
+      localStorage.removeItem(STORAGE_KEY_LAST_ACTIVITY);
+      localStorage.removeItem(STORAGE_KEY_SESSION_START);
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.error("Sign out on timeout failed:", e);
+    }
+    navigate("/login", { replace: true });
+  }, [navigate]);
 
   // Force logout
   const forceLogout = useCallback(
