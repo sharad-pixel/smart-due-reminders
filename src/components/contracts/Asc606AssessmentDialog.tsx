@@ -82,7 +82,17 @@ export function Asc606AssessmentDialog({ open, onOpenChange, contractId, account
     return false;
   };
 
+  const confirmRerun = (label: string) => {
+    const latestDone = assessments[0]?.status === "complete";
+    if (!latestDone) return true;
+    return window.confirm(
+      `A completed ASC 606 assessment already exists for this contract. Running ${label} will charge you again for a new assessment. Continue?`
+    );
+  };
+
   const runWithCredits = async (method: "credits" | "overage") => {
+    const label = method === "credits" ? "with 10 credits" : "as $10 overage";
+    if (!confirmRerun(label)) return;
     setRunning(true);
     const startedAt = new Date(Date.now() - 5000);
     try {
@@ -111,6 +121,7 @@ export function Asc606AssessmentDialog({ open, onOpenChange, contractId, account
   };
 
   const payAndRun = async () => {
+    if (!confirmRerun("a paid $9.99 assessment")) return;
     setPaying(true);
     try {
       const { data, error } = await supabase.functions.invoke("asc606-pay-assessment", {
@@ -124,6 +135,7 @@ export function Asc606AssessmentDialog({ open, onOpenChange, contractId, account
       setPaying(false);
     }
   };
+
 
   const balance = Number(wallet?.balance_credits ?? 0);
   const canUseCredits = balance >= COST;
