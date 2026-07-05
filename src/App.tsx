@@ -177,6 +177,7 @@ const RevenueIntelligenceHub = lazy(() => import("./pages/RevenueIntelligenceHub
 const Asc606Credits = lazy(() => import("./pages/Asc606Credits"));
 const LiveContracts = lazy(() => import("./pages/LiveContracts"));
 const LiveContractDetail = lazy(() => import("./pages/LiveContractDetail"));
+const Asc606AssessmentDetails = lazy(() => import("./pages/Asc606AssessmentDetails"));
 const RevenueLibrary = lazy(() => import("./pages/RevenueLibrary"));
 const ContractIntelligenceDashboard = lazy(() => import("./pages/ContractIntelligenceDashboard"));
 const ActiveContracts = lazy(() => import("./pages/ActiveContracts"));
