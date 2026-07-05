@@ -422,18 +422,20 @@ const BillingSection = ({ profile, canManageBilling, onRefresh, isTeamMember = f
 
               <div className="grid gap-4">
                 {Object.entries(PLAN_CONFIGS)
-                  .filter(([key]) => key !== 'enterprise')
+                  .filter(([key, config]) => key !== 'enterprise' && !config.legacy)
                   .filter(([key]) => {
                     // Show plans higher than current
-                    const planOrder = ['free', 'starter', 'growth', 'professional'];
-                    return planOrder.indexOf(key) > planOrder.indexOf(currentPlan);
+                    const planOrder = ['free', 'launch', 'starter', 'growth', 'professional'];
+                    const currentIdx = planOrder.indexOf(currentPlan);
+                    const idx = planOrder.indexOf(key);
+                    return idx > -1 && idx > currentIdx;
                   })
                   .map(([key, config]) => (
-                    <div 
+                    <div
                       key={key}
                       className={`p-4 rounded-lg border-2 transition-all ${
-                        config.highlighted 
-                          ? 'border-primary bg-primary/5' 
+                        config.highlighted
+                          ? 'border-primary bg-primary/5'
                           : 'border-border hover:border-primary/50'
                       }`}
                     >
@@ -446,13 +448,16 @@ const BillingSection = ({ profile, canManageBilling, onRefresh, isTeamMember = f
                             )}
                           </div>
                           <p className="text-xl font-bold text-primary mt-1">
-                            {formatPrice(billingInterval === 'year' 
-                              ? config.equivalentMonthly 
+                            {formatPrice(billingInterval === 'year'
+                              ? config.equivalentMonthly
                               : config.monthlyPrice)}
                             <span className="text-sm font-normal text-muted-foreground">/month</span>
                           </p>
                           <p className="text-sm text-muted-foreground">
-                            {config.invoiceLimit} invoices/month • {config.maxAgents} AI agents
+                            {config.creditAllotment.toLocaleString()} credits/month · {config.includedContracts > 0 ? `${config.includedContracts} Live Contracts included` : 'Live Contracts add-on'} · {config.includedSeats} seat{config.includedSeats === 1 ? '' : 's'}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            +5 credits/mo per active Live Contract · Overage: $0.80 pre-paid / $1.00 on-demand
                           </p>
                         </div>
                         <Button
