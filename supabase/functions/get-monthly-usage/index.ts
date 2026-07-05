@@ -285,31 +285,54 @@ Deno.serve(async (req) => {
 
     // Each invoice consumes 2 credits — usage is tracked in credits, not raw invoice count
     const CREDITS_PER_INVOICE = 2;
+    const CREDITS_PER_LIVE_CONTRACT = 5;
     const actualInvoiceCount = countableInvoices?.length || 0;
     const actualInvoicesUsed = actualInvoiceCount * CREDITS_PER_INVOICE;
-    const includedAllowance = plan.invoice_limit || 0;
+
+    // Count active Live Contracts and allocate 5 credits/month per contract
+    // on top of the plan's base credit allotment.
+    let activeLiveContracts = 0;
+    try {
+      const { count: lcCount } = await supabaseClient
+        .from('live_contract_imports')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', accountId)
+        .not('status', 'in', '("archived","rejected","deleted","duplicate")');
+      activeLiveContracts = lcCount || 0;
+    } catch (e) {
+      logStep('Live contract count failed (non-fatal)', { error: (e as Error).message });
+    }
+    const liveContractCreditBoost = activeLiveContracts * CREDITS_PER_LIVE_CONTRACT;
+
+    const baseAllowance = plan.invoice_limit || 0;
+    const includedAllowance = baseAllowance + liveContractCreditBoost;
 
     // Overage = total credits beyond plan allowance (high water mark model)
     const includedInvoicesUsed = Math.min(actualInvoicesUsed, includedAllowance);
     const overageInvoices = Math.max(0, actualInvoicesUsed - includedAllowance);
     const remaining = Math.max(0, includedAllowance - includedInvoicesUsed);
     const isOverLimit = actualInvoicesUsed > includedAllowance;
-    // Overage rate is per credit; OVERAGE_RATE represents the per-invoice cost,
-    // but since overageInvoices is already in credits we charge proportionally.
-    const overageChargesTotal = (overageInvoices / CREDITS_PER_INVOICE) * OVERAGE_RATE;
+    // Overage is priced per credit at $1.00 on-demand (matches CREDIT_PRICING.overagePerCredit).
+    const OVERAGE_PER_CREDIT = 1.00;
+    const overageChargesTotal = overageInvoices * OVERAGE_PER_CREDIT;
 
-    logStep("Active invoice credit usage v2", {
+    logStep("Active credit usage v3 (with live contract allocation)", {
       activeInvoiceCount: actualInvoiceCount,
-      creditsPerInvoice: CREDITS_PER_INVOICE,
       creditsUsed: actualInvoicesUsed,
+      baseAllowance,
+      activeLiveContracts,
+      liveContractCreditBoost,
       includedAllowance,
-      includedInvoicesUsed,
       overageInvoices,
     });
 
     return new Response(JSON.stringify({
       month: currentMonth,
       included_allowance: includedAllowance,
+      base_credit_allowance: baseAllowance,
+      live_contract_credit_boost: liveContractCreditBoost,
+      active_live_contracts: activeLiveContracts,
+      credits_per_live_contract: CREDITS_PER_LIVE_CONTRACT,
       included_invoices_used: includedInvoicesUsed,
       overage_invoices: overageInvoices,
       overage_charges_total: overageChargesTotal,
@@ -317,7 +340,8 @@ Deno.serve(async (req) => {
       remaining_quota: remaining,
       is_over_limit: isOverLimit,
       plan_name: plan.name,
-      overage_rate: OVERAGE_RATE,
+      overage_rate: OVERAGE_PER_CREDIT,
+      unit: 'credits',
       is_team_member: isTeamMember
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
