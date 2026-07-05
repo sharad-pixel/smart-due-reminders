@@ -3,12 +3,9 @@
 // (the edge function inlines the same values to stay dependency-free).
 
 export const DEMO_TEAM = [
-  { name: "Sarah Johnson", title: "CFO", email: "sarah.johnson@recouply-demo.com" },
-  { name: "Michael Chen", title: "Controller", email: "michael.chen@recouply-demo.com" },
-  { name: "Ashley Patel", title: "AR Manager", email: "ashley.patel@recouply-demo.com" },
-  { name: "David Kim", title: "Revenue Operations", email: "david.kim@recouply-demo.com" },
-  { name: "Emma Rodriguez", title: "Customer Success", email: "emma.rodriguez@recouply-demo.com" },
+  { name: "Demo User", title: "Revenue Operations", email: "demo.user@recouply-demo.com" },
 ];
+
 
 export const DEMO_CUSTOMERS = [
   {
