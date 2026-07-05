@@ -11,9 +11,14 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { DEMO_CUSTOMERS, DEMO_TEAM, DEMO_ACTION_LABELS, type DemoAction } from "@/lib/demoWorkspace";
+import { DEMO_TEAM } from "@/lib/demoWorkspace";
 import { useDemoWorkspace } from "@/contexts/DemoWorkspaceContext";
-import { AlertTriangle, Beaker, PlayCircle, RefreshCw, Trash2, Sparkles, FileText, ListChecks, CreditCard, CheckCircle2, LogIn } from "lucide-react";
+import { AlertTriangle, Beaker, Trash2, CreditCard, CheckCircle2, LogIn } from "lucide-react";
+
+type DemoAction = "wipe_all";
+const DEMO_ACTION_LABELS: Record<DemoAction, string> = {
+  wipe_all: "Wipe Demo Tenant",
+};
 
 interface DemoState {
   workspace_exists: boolean;
@@ -121,12 +126,7 @@ export default function AdminDemoWorkspace() {
   };
 
   const actions: { key: DemoAction; icon: any; variant?: "default" | "destructive" | "outline" | "secondary" }[] = [
-    { key: "seed", icon: Sparkles },
-    { key: "generate_invoices", icon: FileText, variant: "outline" },
-    { key: "generate_activity", icon: ListChecks, variant: "outline" },
-    { key: "recompute_insights", icon: RefreshCw, variant: "outline" },
-    { key: "reset", icon: PlayCircle, variant: "secondary" },
-    { key: "clear", icon: Trash2, variant: "destructive" },
+    { key: "wipe_all", icon: Trash2, variant: "destructive" },
   ];
 
   return (
@@ -139,7 +139,7 @@ export default function AdminDemoWorkspace() {
             <div className="text-sm">
               <div className="font-medium">Sign in as the shared demo user</div>
               <div className="text-muted-foreground">
-                Signs you out and back in as <code>demo@recouply.ai</code> — a dedicated account with the seeded NimbusHR / Atlas / Velocity / Global Mfg / Nova dataset. Perfect for recording clean demos. Return to <code>/admin/demo</code> and sign in as an admin to manage.
+                Signs you out and back in as <code>demo@recouply.ai</code> — a clean, dedicated tenant for testing and recording demos. Load whatever data you need through the app, then return to <code>/admin/demo</code> and sign in as an admin to wipe it.
               </div>
             </div>
           </div>
@@ -159,14 +159,11 @@ export default function AdminDemoWorkspace() {
             }}>
               <CreditCard className="h-4 w-4 mr-2" /> Enable Stripe for Demo
             </Button>
-            <Button onClick={enterDemoAsUser} disabled={loading || !state?.workspace_exists}>
+            <Button onClick={enterDemoAsUser} disabled={loading}>
               <LogIn className="h-4 w-4 mr-2" /> Enter Demo as demo@recouply.ai
             </Button>
           </div>
         </CardContent>
-        {!state?.workspace_exists && (
-          <div className="px-4 pb-3 text-xs text-amber-600">Click <b>Load Demo Dataset</b> below first — the demo user's workspace is currently empty.</div>
-        )}
       </Card>
 
       <div className="grid gap-4 lg:grid-cols-3">
@@ -242,34 +239,8 @@ export default function AdminDemoWorkspace() {
           </CardContent>
         </Card>
 
-        {/* Seed preview */}
+        {/* Demo Team */}
         <Card className="lg:col-span-2">
-          <CardHeader><CardTitle>Demo Customers</CardTitle></CardHeader>
-          <CardContent>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-xs uppercase text-muted-foreground border-b">
-                  <th className="py-2">Company</th><th>Industry</th><th>ARR</th><th>Invoice</th><th>CI</th><th>BR</th><th>CR</th>
-                </tr>
-              </thead>
-              <tbody>
-                {DEMO_CUSTOMERS.map((c) => (
-                  <tr key={c.slug} className="border-b last:border-0">
-                    <td className="py-2 font-medium">{c.company_name}{c.complete && <Badge className="ml-2" variant="outline">Full</Badge>}</td>
-                    <td>{c.industry}</td>
-                    <td>${c.arr.toLocaleString()}</td>
-                    <td>${c.invoice_amount.toLocaleString()}</td>
-                    <td>{c.contract_intelligence_score}</td>
-                    <td>{c.billing_readiness_score}</td>
-                    <td>{c.collection_readiness_score}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </CardContent>
-        </Card>
-
-        <Card>
           <CardHeader><CardTitle>Demo Team</CardTitle></CardHeader>
           <CardContent className="space-y-2">
             {DEMO_TEAM.map((m) => (
@@ -285,7 +256,7 @@ export default function AdminDemoWorkspace() {
           <CardContent className="p-4 flex items-start gap-3">
             <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
             <div className="text-sm">
-              This workspace contains fictional demo data for testing and product demonstrations. Reset only ever deletes rows where <code>is_demo = true</code> — production data is untouched.
+              <b>Wipe Demo Tenant</b> deletes <b>every</b> row owned by <code>demo@recouply.ai</code> across debtors, invoices, contracts, tasks, activity, alerts, and AI artifacts — regardless of the <code>is_demo</code> flag. The mock Stripe integration is automatically re-connected after the wipe. Load your own test data via the app once complete.
             </div>
           </CardContent>
         </Card>
@@ -296,12 +267,7 @@ export default function AdminDemoWorkspace() {
           <AlertDialogHeader>
             <AlertDialogTitle>{pendingAction && DEMO_ACTION_LABELS[pendingAction]}</AlertDialogTitle>
             <AlertDialogDescription>
-              {pendingAction === "clear" && "This will delete every row tagged is_demo = true for your account. Production data is not affected."}
-              {pendingAction === "reset" && "This will clear the current demo workspace and re-seed the full dataset."}
-              {pendingAction === "seed" && "Seeds the 5 demo customers, NimbusHR full contract & invoice, tasks, alerts, and AI assessments."}
-              {pendingAction === "generate_invoices" && "Creates one additional open invoice per demo customer."}
-              {pendingAction === "generate_activity" && "Logs a sample outreach activity per demo customer."}
-              {pendingAction === "recompute_insights" && "Marks readiness scores as freshly recomputed."}
+              {pendingAction === "wipe_all" && "This permanently deletes every debtor, invoice, contract, task, activity, alert, and AI artifact owned by demo@recouply.ai. Safety-gated to the demo account only — cannot affect real customer tenants. The mock Stripe integration will be re-enabled automatically."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

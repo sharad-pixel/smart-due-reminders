@@ -81,20 +81,62 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Full list of user-owned tables to purge on wipe. Ordered so children are
+    // deleted before parents to satisfy FK constraints.
+    const DEMO_TABLES = [
+      "user_alerts", "collection_activities", "collection_tasks",
+      "payment_invoice_links", "payments",
+      "invoice_line_items", "invoices",
+      "contract_stripe_invoice_link", "contract_stripe_product_map",
+      "contract_stripe_sync", "contract_stripe_sync_events",
+      "contract_invoice_schedules", "contract_revenue_items",
+      "contract_risk_flags", "contract_critical_dates", "contract_poc_details",
+      "contract_custom_triggers", "contract_customer_matches",
+      "contract_source_documents",
+      "live_contract_extracted_fields", "live_contract_extractions",
+      "live_contract_checklist_items", "live_contract_supporting_docs",
+      "live_contract_links", "live_contract_review_queue",
+      "live_contract_scan_jobs", "live_contract_audit_log",
+      "live_contract_drive_folders", "live_contract_watchers",
+      "live_contract_imports", "contracts",
+      "ai_assessments", "ai_drafts", "ai_creations",
+      "outreach_logs", "outreach_errors", "outreach_batch_runs",
+      "collection_outcomes", "collection_campaigns",
+      "cs_cases", "rca_records",
+      "debtor_contacts", "contacts",
+      "debtor_ai_context", "debtor_risk_profiles", "debtor_risk_history",
+      "invoice_risk_scores", "invoice_transactions", "invoice_outreach",
+      "debtors",
+      "product_catalog", "cached_reports", "user_notifications",
+    ];
+
     const clear = async () => {
-      const tables = [
-        "user_alerts", "collection_activities", "collection_tasks",
-        "payment_invoice_links", "payments",
-        "invoice_line_items", "invoices",
-        "contract_stripe_invoice_link", "contract_stripe_product_map", "contract_stripe_sync",
-        "contract_invoice_schedules", "live_contract_imports", "contracts",
-        "ai_assessments",
-        "debtor_contacts", "contacts", "debtors",
-      ];
-      for (const t of tables) {
+      // Legacy "clear" — only touches rows explicitly tagged is_demo = true.
+      for (const t of DEMO_TABLES) {
         await admin.from(t).delete().eq("user_id", userId).eq("is_demo", true);
       }
     };
+
+    // Full tenant wipe — deletes EVERY row owned by this user across the demo
+    // tables regardless of is_demo. Safety-gated to demo@recouply.ai only so
+    // it can never fire against a real customer tenant.
+    const wipeAll = async () => {
+      const { data: u } = await admin.auth.admin.getUserById(userId);
+      const email = u?.user?.email?.toLowerCase();
+      if (email !== "demo@recouply.ai") {
+        throw new Error(`wipe_all is only allowed on demo@recouply.ai (got ${email ?? "unknown"})`);
+      }
+      const summary: Record<string, number> = {};
+      for (const t of DEMO_TABLES) {
+        const { count } = await admin
+          .from(t)
+          .delete({ count: "exact" })
+          .eq("user_id", userId);
+        if (count && count > 0) summary[t] = count;
+      }
+      return summary;
+    };
+
 
     const seed = async () => {
       const summary = { debtors: 0, contracts: 0, invoices: 0, tasks: 0, alerts: 0 };
@@ -224,6 +266,30 @@ Deno.serve(async (req) => {
         result.summary = await seed();
         await admin.from("demo_workspace_state").update({ last_reset_at: new Date().toISOString() }).eq("user_id", userId);
         break;
+      case "wipe_all": {
+        // Full tenant wipe (demo@recouply.ai only). Deletes EVERY row across
+        // demo tables, then re-enables the mock Stripe connection so the
+        // integration stays preset for the next round of test data.
+        const deleted = await wipeAll();
+        await admin.from("stripe_integrations").upsert({
+          user_id: userId,
+          is_connected: true,
+          stripe_account_id: "acct_demo_recouply",
+          sync_status: "connected",
+          auto_sync_enabled: true,
+          last_sync_at: new Date().toISOString(),
+        }, { onConflict: "user_id" });
+        await admin.from("demo_workspace_state").upsert({
+          user_id: userId,
+          workspace_exists: false,
+          entity_counts: {},
+          last_reset_at: new Date().toISOString(),
+          last_seeded_at: null,
+        }, { onConflict: "user_id" });
+        result.deleted = deleted;
+        result.stripe_enabled = true;
+        break;
+      }
       case "generate_invoices": {
         const { data: debtors } = await admin.from("debtors").select("id, company_name").eq("user_id", userId).eq("is_demo", true);
         let created = 0;
