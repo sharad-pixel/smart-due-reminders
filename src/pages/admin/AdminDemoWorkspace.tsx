@@ -126,12 +126,7 @@ export default function AdminDemoWorkspace() {
   };
 
   const actions: { key: DemoAction; icon: any; variant?: "default" | "destructive" | "outline" | "secondary" }[] = [
-    { key: "seed", icon: Sparkles },
-    { key: "generate_invoices", icon: FileText, variant: "outline" },
-    { key: "generate_activity", icon: ListChecks, variant: "outline" },
-    { key: "recompute_insights", icon: RefreshCw, variant: "outline" },
-    { key: "reset", icon: PlayCircle, variant: "secondary" },
-    { key: "clear", icon: Trash2, variant: "destructive" },
+    { key: "wipe_all", icon: Trash2, variant: "destructive" },
   ];
 
   return (
