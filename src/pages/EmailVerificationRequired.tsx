@@ -17,13 +17,13 @@ export default function EmailVerificationRequired() {
   // verification state — bounce straight into the workspace.
   useEffect(() => {
     if (isImpersonating()) {
-      navigate('/dashboard', { replace: true });
+      navigate('/hub', { replace: true });
       return;
     }
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user?.email?.toLowerCase() === 'demo@recouply.ai') {
         // Shared demo account bypasses verification entirely.
-        navigate('/dashboard', { replace: true });
+        navigate('/hub', { replace: true });
         return;
       }
       setUserEmail(user?.email ?? null);
