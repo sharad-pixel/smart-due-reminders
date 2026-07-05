@@ -119,6 +119,21 @@ export default function RevenueLibrary() {
           </Button>
         </div>
 
+        <Asc606ReferenceBanner />
+
+        <div className="rounded-md border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-900 p-3 text-xs text-amber-900 dark:text-amber-100">
+          <div className="font-medium mb-1">Why SSP and revenue attributes matter</div>
+          <p className="leading-relaxed">
+            When you run an ASC 606 Assessment on a contract, the backend cross-references your
+            Revenue Library items against the{" "}
+            <span className="font-medium">PwC — Revenue from contracts with customers</span>{" "}
+            (June 2026) guide to apply Steps 1–5. Standalone Selling Price (SSP), performance
+            obligations, and the recognition method are the minimum attributes required for a
+            complete assessment — missing values become open issues in the report.
+          </p>
+        </div>
+
+
         <Card>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between gap-3 flex-wrap">
