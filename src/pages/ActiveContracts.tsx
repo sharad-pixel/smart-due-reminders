@@ -129,7 +129,7 @@ export default function ActiveContracts({ embedded = false }: { embedded?: boole
           </div>
           <div className="flex gap-2">
             <Button variant="outline" asChild>
-              <Link to="/contract-intelligence/dashboard">Open intelligence dashboard</Link>
+              <Link to="/contracts">Open intelligence dashboard</Link>
             </Button>
           </div>
         </div>

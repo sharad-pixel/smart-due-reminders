@@ -274,7 +274,7 @@ const Layout = ({ children }: LayoutProps) => {
   const isAnyRevenueHubActive = revenueHubItems.some(item => isActive(item.path));
 
   const revenueIntelligenceItems = [
-    { path: "/contract-intelligence/dashboard", label: "Contract Intelligence", icon: FileSignature },
+    { path: "/contracts", label: "Contract Intelligence", icon: FileSignature },
     { path: "/contracts", label: "Contracts", icon: FileSignature },
     { path: "/revenue-library", label: "Revenue Library", icon: Library },
     { path: "/revenue-risk", label: "Revenue Risk", icon: ShieldAlert },
@@ -301,7 +301,7 @@ const Layout = ({ children }: LayoutProps) => {
     { path: "/dashboard", label: "Collections Intelligence", icon: LayoutDashboard },
     { path: "/invoices", label: "Invoices", icon: FileText },
     { path: "/payments", label: "Payments", icon: DollarSign },
-    { path: "/contract-intelligence/dashboard", label: "Contract Intelligence", icon: FileSignature },
+    { path: "/contracts", label: "Contract Intelligence", icon: FileSignature },
     { path: "/contracts", label: "Contracts", icon: FileSignature },
     
     { path: "/revenue-risk", label: "Revenue Risk", icon: ShieldAlert },

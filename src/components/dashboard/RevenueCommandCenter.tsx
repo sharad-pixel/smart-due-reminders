@@ -294,7 +294,7 @@ export function RevenueCommandCenter({ variant = "revenue" }: RevenueCommandCent
       trend: "up",
       trendLabel: "Upcoming",
       icon: RefreshCcw,
-      href: "/contract-intelligence/dashboard",
+      href: "/contracts",
       cta: "Open renewals",
       spark: spark(3),
       accent: "primary",
@@ -530,7 +530,7 @@ export function RevenueCommandCenter({ variant = "revenue" }: RevenueCommandCent
       {/* Deep-dive links */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
         {[
-          { label: "Contract Intelligence", href: "/contract-intelligence/dashboard", icon: FileSignature },
+          { label: "Contract Intelligence", href: "/contracts", icon: FileSignature },
           { label: "Live Contracts", href: "/contracts/live", icon: FileText },
           { label: "Collections Tasks", href: "/tasks", icon: DollarSign },
           { label: "AR Aging", href: "/ar-aging", icon: Clock },
