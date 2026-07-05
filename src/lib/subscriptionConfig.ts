@@ -68,8 +68,8 @@ export const STRIPE_PRICES = {
 
   // Recouply Platform Credits — generic wallet top-up (replaces ASC 606-branded SKUs)
   // Prepaid = $0.80/credit (must be purchased before usage). Overage = $1.00/credit (settles usage after the fact).
-  creditsPrepaid: 'price_1TpiYKBfb0dWgtCDVBU5qxIf',
-  creditsOverage: 'price_1TpiYVBfb0dWgtCDO5FyUsTx',
+  creditsPrepaid: 'price_1Tpu82Bfb0dWgtCDze54GhRC',
+  creditsOverage: 'price_1Tpu7wBfb0dWgtCDPN5v2Igy',
 } as const;
 
 export const STRIPE_PRODUCTS = {
