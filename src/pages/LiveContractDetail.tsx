@@ -68,7 +68,7 @@ import { ContractCustomTriggersPanel } from "@/components/clm/ContractCustomTrig
 import { ContractStripeBillingSync } from "@/components/clm/billing-sync/ContractStripeBillingSync";
 
 import { Asc606AssessmentDialog } from "@/components/contracts/Asc606AssessmentDialog";
-import { Asc606ChatPanel } from "@/components/clm/Asc606ChatPanel";
+import { Asc606ConsolidatedCard } from "@/components/contracts/Asc606ConsolidatedCard";
 import { Asc606ReferenceBanner } from "@/components/contracts/Asc606ReferenceBanner";
 import { useClmEntitlement } from "@/hooks/useClmEntitlement";
 import { FileCheck2 } from "lucide-react";
@@ -773,14 +773,15 @@ const LiveContractDetailInner = () => {
         <ContractRevenueItemsPanel importId={importId} accountId={accountId} />
       )}
 
-      {importId && (
-        <Asc606ChatPanel
+      {importId && accountId && (
+        <Asc606ConsolidatedCard
           contractId={importId}
+          accountId={accountId}
           contractTitle={c.contract_name || "Untitled Contract"}
-          onOpenAssessment={() => setAsc606Open(true)}
         />
       )}
 
+      {/* Legacy standalone dialog trigger — kept for the header "ASC 606 Assessment" button */}
       {accountId && importId && (
         <Asc606AssessmentDialog
           open={asc606Open}
