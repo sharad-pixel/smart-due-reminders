@@ -37,7 +37,8 @@ const REQUIRED_FIELDS: Array<{ key: string; label: string }> = [
   { key: "customer_name", label: "Customer / counterparty" },
   { key: "effective_date", label: "Contract start date" },
   { key: "term_end_date", label: "Contract end date" },
-  { key: "total_contract_value", label: "Total contract value" },
+  { key: "total_contract_value", label: "Total contract value (TCV)" },
+  { key: "annual_contract_value", label: "Annual contract value (ARR)" },
   { key: "billing_frequency", label: "Billing frequency" },
   { key: "currency", label: "Currency" },
 ];
@@ -48,6 +49,38 @@ const RECOMMENDED_FIELDS: Array<{ key: string; label: string }> = [
   { key: "payment_terms", label: "Payment terms" },
   { key: "termination_clause", label: "Termination clause" },
 ];
+
+// OCR-alias keys the AI extractor may have emitted for TCV / ARR.
+// We fall back to these when the canonical key is empty so the user still
+// sees a suggested value they can accept or override.
+const TCV_ALIASES = ["total_contract_value", "contract_value", "tcv", "total_value"];
+const ARR_ALIASES = ["annual_contract_value", "arr", "annual_value", "annual_recurring_revenue"];
+
+const parseMoney = (v: unknown): number | null => {
+  if (v == null) return null;
+  const n = Number(String(v).replace(/[^0-9.-]/g, ""));
+  return Number.isFinite(n) && n > 0 ? n : null;
+};
+
+const monthsBetween = (start?: string, end?: string): number | null => {
+  if (!start || !end) return null;
+  const s = new Date(start).getTime();
+  const e = new Date(end).getTime();
+  if (Number.isNaN(s) || Number.isNaN(e) || e <= s) return null;
+  return Math.max(1, Math.round((e - s) / (1000 * 60 * 60 * 24 * 30.4375)));
+};
+
+const fmtMoney = (n: number, cur = "USD") => {
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: (cur || "USD").replace(/[^A-Z]/gi, "").slice(0, 3) || "USD",
+      maximumFractionDigits: 0,
+    }).format(n);
+  } catch {
+    return `$${Math.round(n).toLocaleString()}`;
+  }
+};
 
 type Step = 1 | 2 | 3 | 4;
 const STEPS: { n: Step; label: string; icon: any }[] = [
@@ -241,6 +274,54 @@ function StepReview({ importId, onNext }: { importId: string; onNext: () => void
     return fieldMap.get(key)?.field_value || "";
   };
 
+  // Was the current value produced by OCR (not the wizard user)?
+  const isOcrSuggested = (key: string) => {
+    if (edits[key] !== undefined) return false;
+    const rec = fieldMap.get(key);
+    if (!rec?.field_value) return false;
+    const editor = String(rec.edited_by_user || "").toLowerCase();
+    return editor !== "wizard" && editor !== "user";
+  };
+
+  // Compute suggested TCV / ARR from any alias key or from the counterpart.
+  const suggestedFor = (key: string): number | null => {
+    const cur = valueOf(key);
+    if (String(cur).trim()) return null; // only suggest when empty
+
+    const readAlias = (aliases: string[]): number | null => {
+      for (const a of aliases) {
+        const raw = fieldMap.get(a)?.field_value;
+        const n = parseMoney(raw);
+        if (n) return n;
+      }
+      return null;
+    };
+
+    const months = monthsBetween(valueOf("effective_date"), valueOf("term_end_date"));
+    const freq = String(valueOf("billing_frequency") || "").toLowerCase();
+
+    if (key === "total_contract_value") {
+      const direct = readAlias(TCV_ALIASES);
+      if (direct) return direct;
+      const arr = parseMoney(valueOf("annual_contract_value")) ?? readAlias(ARR_ALIASES);
+      if (arr && months) return Math.round((arr / 12) * months);
+      return null;
+    }
+    if (key === "annual_contract_value") {
+      const direct = readAlias(ARR_ALIASES);
+      if (direct) return direct;
+      const tcv = parseMoney(valueOf("total_contract_value")) ?? readAlias(TCV_ALIASES);
+      if (tcv && months) return Math.round(tcv / (months / 12));
+      if (tcv && /annual|year/.test(freq)) return tcv;
+      return null;
+    }
+    return null;
+  };
+
+  const applySuggestion = (key: string, value: number) => {
+    setEdits((prev) => ({ ...prev, [key]: String(value) }));
+  };
+
   const missing = REQUIRED_FIELDS.filter((f) => !String(valueOf(f.key)).trim());
   const missingRecommended = RECOMMENDED_FIELDS.filter((f) => !String(valueOf(f.key)).trim());
   const scanning = data?.imp && ["queued", "scanning", "ocr_processing", "ai_extracting", "processing", "extracting"]
@@ -324,6 +405,9 @@ function StepReview({ importId, onNext }: { importId: string; onNext: () => void
             {REQUIRED_FIELDS.map((f) => {
               const val = valueOf(f.key);
               const hasVal = !!String(val).trim();
+              const ocr = isOcrSuggested(f.key);
+              const suggestion = suggestedFor(f.key);
+              const cur = String(valueOf("currency") || "USD");
               return (
                 <div key={f.key} className="grid sm:grid-cols-[1fr_2fr] gap-2 items-center">
                   <Label className="flex items-center gap-2">
@@ -331,12 +415,37 @@ function StepReview({ importId, onNext }: { importId: string; onNext: () => void
                             : <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />}
                     {f.label}
                   </Label>
-                  <Input
-                    value={val}
-                    onChange={(e) => setEdits((prev) => ({ ...prev, [f.key]: e.target.value }))}
-                    placeholder={hasVal ? "" : "Add value…"}
-                    className={hasVal ? "" : "border-amber-300 bg-amber-50/30"}
-                  />
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={val}
+                        onChange={(e) => setEdits((prev) => ({ ...prev, [f.key]: e.target.value }))}
+                        placeholder={hasVal ? "" : "Add value…"}
+                        className={hasVal ? "" : "border-amber-300 bg-amber-50/30"}
+                      />
+                      {ocr && (
+                        <Badge variant="secondary" className="shrink-0 text-[10px] gap-1">
+                          <Sparkles className="h-3 w-3" /> OCR suggested
+                        </Badge>
+                      )}
+                    </div>
+                    {!hasVal && suggestion != null && (
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="text-muted-foreground">
+                          Suggested from OCR: <span className="font-medium text-foreground">{fmtMoney(suggestion, cur)}</span>
+                        </span>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-6 px-2 text-xs"
+                          onClick={() => applySuggestion(f.key, suggestion)}
+                        >
+                          Apply
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               );
             })}
