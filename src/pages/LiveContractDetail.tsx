@@ -68,7 +68,7 @@ import { ContractCustomTriggersPanel } from "@/components/clm/ContractCustomTrig
 import { ContractStripeBillingSync } from "@/components/clm/billing-sync/ContractStripeBillingSync";
 
 import { Asc606AssessmentDialog } from "@/components/contracts/Asc606AssessmentDialog";
-import { Asc606ConsolidatedCard } from "@/components/contracts/Asc606ConsolidatedCard";
+import { RevenueComplianceReview } from "@/components/contracts/RevenueComplianceReview";
 import { Asc606ReferenceBanner } from "@/components/contracts/Asc606ReferenceBanner";
 import { useClmEntitlement } from "@/hooks/useClmEntitlement";
 import { FileCheck2 } from "lucide-react";
@@ -393,7 +393,7 @@ const LiveContractDetailInner = () => {
               className="bg-primary"
             >
               <FileCheck2 className="h-4 w-4 mr-1" />
-              ASC 606 Assessment
+              Revenue Compliance Review
             </Button>
             <Button asChild variant="outline" size="sm">
               <Link to="/team">
@@ -774,7 +774,7 @@ const LiveContractDetailInner = () => {
       )}
 
       {importId && accountId && (
-        <Asc606ConsolidatedCard
+        <RevenueComplianceReview
           contractId={importId}
           accountId={accountId}
           contractTitle={c.contract_name || "Untitled Contract"}
