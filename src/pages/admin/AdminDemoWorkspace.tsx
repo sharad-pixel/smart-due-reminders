@@ -242,34 +242,8 @@ export default function AdminDemoWorkspace() {
           </CardContent>
         </Card>
 
-        {/* Seed preview */}
+        {/* Demo Team */}
         <Card className="lg:col-span-2">
-          <CardHeader><CardTitle>Demo Customers</CardTitle></CardHeader>
-          <CardContent>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-xs uppercase text-muted-foreground border-b">
-                  <th className="py-2">Company</th><th>Industry</th><th>ARR</th><th>Invoice</th><th>CI</th><th>BR</th><th>CR</th>
-                </tr>
-              </thead>
-              <tbody>
-                {DEMO_CUSTOMERS.map((c) => (
-                  <tr key={c.slug} className="border-b last:border-0">
-                    <td className="py-2 font-medium">{c.company_name}{c.complete && <Badge className="ml-2" variant="outline">Full</Badge>}</td>
-                    <td>{c.industry}</td>
-                    <td>${c.arr.toLocaleString()}</td>
-                    <td>${c.invoice_amount.toLocaleString()}</td>
-                    <td>{c.contract_intelligence_score}</td>
-                    <td>{c.billing_readiness_score}</td>
-                    <td>{c.collection_readiness_score}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </CardContent>
-        </Card>
-
-        <Card>
           <CardHeader><CardTitle>Demo Team</CardTitle></CardHeader>
           <CardContent className="space-y-2">
             {DEMO_TEAM.map((m) => (
@@ -285,7 +259,7 @@ export default function AdminDemoWorkspace() {
           <CardContent className="p-4 flex items-start gap-3">
             <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
             <div className="text-sm">
-              This workspace contains fictional demo data for testing and product demonstrations. Reset only ever deletes rows where <code>is_demo = true</code> — production data is untouched.
+              <b>Wipe Demo Tenant</b> deletes <b>every</b> row owned by <code>demo@recouply.ai</code> across debtors, invoices, contracts, tasks, activity, alerts, and AI artifacts — regardless of the <code>is_demo</code> flag. The mock Stripe integration is automatically re-connected after the wipe. Load your own test data via the app once complete.
             </div>
           </CardContent>
         </Card>
@@ -296,12 +270,7 @@ export default function AdminDemoWorkspace() {
           <AlertDialogHeader>
             <AlertDialogTitle>{pendingAction && DEMO_ACTION_LABELS[pendingAction]}</AlertDialogTitle>
             <AlertDialogDescription>
-              {pendingAction === "clear" && "This will delete every row tagged is_demo = true for your account. Production data is not affected."}
-              {pendingAction === "reset" && "This will clear the current demo workspace and re-seed the full dataset."}
-              {pendingAction === "seed" && "Seeds the 5 demo customers, NimbusHR full contract & invoice, tasks, alerts, and AI assessments."}
-              {pendingAction === "generate_invoices" && "Creates one additional open invoice per demo customer."}
-              {pendingAction === "generate_activity" && "Logs a sample outreach activity per demo customer."}
-              {pendingAction === "recompute_insights" && "Marks readiness scores as freshly recomputed."}
+              {pendingAction === "wipe_all" && "This permanently deletes every debtor, invoice, contract, task, activity, alert, and AI artifact owned by demo@recouply.ai. Safety-gated to the demo account only — cannot affect real customer tenants. The mock Stripe integration will be re-enabled automatically."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
