@@ -74,7 +74,10 @@ Deno.serve(async (req) => {
       .order("created_at", { ascending: false })
       .limit(8);
 
+    const nowIso = new Date().toISOString();
     const contextBlock = {
+      current_date: nowIso.slice(0, 10),
+      current_datetime_utc: nowIso,
       contract: contractCtx,
       latest_assessment: {
         risk_score: latest.risk_score,
@@ -95,6 +98,7 @@ Deno.serve(async (req) => {
 
     const reply = await callAi([
       { role: "system", content: SYSTEM_PROMPT },
+      { role: "system", content: `Today is ${nowIso.slice(0, 10)} (UTC). Anchor all date math to this value.` },
       { role: "system", content: `Contract, assessment, and guidance context:\n${JSON.stringify(contextBlock, null, 2)}` },
       ...chatMsgs,
     ]);
