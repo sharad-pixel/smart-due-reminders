@@ -263,11 +263,6 @@ const Layout = ({ children }: LayoutProps) => {
 
   const coreNavItems = [
     { path: "/debtors", label: "Accounts", icon: Users },
-    { path: "/invoices", label: "Invoices", icon: FileText },
-    { path: "/payments", label: "Payments", icon: DollarSign },
-    { path: "/contracts", label: "Contracts", icon: FileSignature },
-    { path: "/revenue-library", label: "Revenue Library", icon: Library },
-    { path: "/revenue-risk", label: "Revenue Risk", icon: ShieldAlert },
     { path: "/data-center", label: "Data Center", icon: Database },
   ];
 
