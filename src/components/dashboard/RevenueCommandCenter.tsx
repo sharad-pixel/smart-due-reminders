@@ -79,7 +79,37 @@ const Sparkline = ({ data, color = "hsl(var(--primary))" }: { data: number[]; co
   );
 };
 
-export function RevenueCommandCenter() {
+type HubVariant = "revenue" | "collections" | "contracts";
+
+interface RevenueCommandCenterProps {
+  variant?: HubVariant;
+}
+
+const HEADERS: Record<HubVariant, { eyebrow: string; title: string; description: string }> = {
+  revenue: {
+    eyebrow: "Executive Revenue Intelligence",
+    title: "Contracts & Collections Command Center",
+    description: "Cash, risk, renewals, and health — synthesized in real time from contracts, invoices, and every customer interaction.",
+  },
+  collections: {
+    eyebrow: "Collections Overview",
+    title: "Collections Command Center",
+    description: "Open receivables, overdue exposure, DSO, and collection health — live from your invoices and payments.",
+  },
+  contracts: {
+    eyebrow: "Contract Intelligence",
+    title: "Contracts Command Center",
+    description: "Contract value, renewals, ARR, and revenue risk — synthesized from every active agreement.",
+  },
+};
+
+const CARD_KEYS: Record<HubVariant, string[]> = {
+  revenue: ["Expected Cash · 30D", "Revenue at Risk", "Renewals · 90D", "Customer Health", "Open Invoices", "DSO", "ARR", "Collection Rate"],
+  collections: ["Expected Cash · 30D", "Open Invoices", "DSO", "Collection Rate", "Revenue at Risk", "Customer Health"],
+  contracts: ["ARR", "Renewals · 90D", "Revenue at Risk", "Customer Health"],
+};
+
+export function RevenueCommandCenter({ variant = "revenue" }: RevenueCommandCenterProps = {}) {
   const [loading, setLoading] = useState(true);
   const [invoices, setInvoices] = useState<any[]>([]);
   const [contracts, setContracts] = useState<any[]>([]);
