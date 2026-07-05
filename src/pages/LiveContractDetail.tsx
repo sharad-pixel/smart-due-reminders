@@ -82,6 +82,7 @@ import { ContractDetailSubHeader } from "@/components/clm/ContractDetailSubHeade
 import { ContractAgreementFamily } from "@/components/clm/ContractAgreementFamily";
 import { DocumentTypeBadge } from "@/components/clm/DocumentTypeBadge";
 import { NicolasLineReviewBanner } from "@/components/clm/NicolasLineReviewBanner";
+import { ContractSection } from "@/components/contracts/ContractSection";
 
 const FIN_KEYS = new Set<string>([
   ...Array.from(AMOUNT_KEYS),
@@ -484,11 +485,7 @@ const LiveContractDetailInner = () => {
       <ContractPageNav />
 
       {/* ============ 1. FINANCE ============ */}
-      <section id="finance" className="space-y-3 scroll-mt-16">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
-          <TrendingUp className="h-3.5 w-3.5" /> Finance
-        </h2>
-
+      <ContractSection id="finance" title="Finance" icon={<TrendingUp className="h-3.5 w-3.5" />}>
         <Card>
           <CardHeader className="pb-2 flex flex-row items-center justify-between gap-2 space-y-0 flex-wrap">
             <CardTitle className="text-base flex items-center gap-2">
@@ -586,7 +583,6 @@ const LiveContractDetailInner = () => {
           </CardContent>
         </Card>
 
-
         <ContractPerformanceObligations
           schedules={data.schedules as any}
           defaultCurrency={totals.currency}
@@ -616,14 +612,10 @@ const LiveContractDetailInner = () => {
           importId={c.id}
           onChanged={() => qc.invalidateQueries({ queryKey: ["live-contract-detail", importId] })}
         />
-      </section>
+      </ContractSection>
 
       {/* ============ 2. TERM & KEY DATES ============ */}
-      <section id="term-dates" className="space-y-3 scroll-mt-16">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
-          <CalendarClock className="h-3.5 w-3.5" /> Term & Key Dates
-        </h2>
-
+      <ContractSection id="term-dates" title="Term & Key Dates" icon={<CalendarClock className="h-3.5 w-3.5" />}>
         <ContractTermGauge
           effectiveDate={c.effective_date}
           termEndDate={c.term_end_date}
@@ -639,15 +631,11 @@ const LiveContractDetailInner = () => {
           contractTitle={c.contract_name || c.file_name}
         />
 
-
         <KeyDatesNotificationsPanel importId={c.id} dates={data.dates as any} />
-      </section>
+      </ContractSection>
 
       {/* ============ 3. RISK & READINESS ============ */}
-      <section id="risk" className="space-y-3 scroll-mt-16">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
-          <ShieldAlert className="h-3.5 w-3.5" /> Risk & Readiness
-        </h2>
+      <ContractSection id="risk" title="Risk & Readiness" icon={<ShieldAlert className="h-3.5 w-3.5" />}>
         <ContractComplianceChecklist
           importId={c.id}
           accountId={c.account_id}
@@ -669,15 +657,10 @@ const LiveContractDetailInner = () => {
           subjectType="contract"
           subjectId={c.id}
         />
-      </section>
-
+      </ContractSection>
 
       {/* ============ 4. INVOICING & COLLECTIBILITY ============ */}
-      <section id="invoicing" className="space-y-3 scroll-mt-16">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
-          <FileSignature className="h-3.5 w-3.5" /> Invoicing & Collectibility
-        </h2>
-
+      <ContractSection id="invoicing" title="Invoicing & Collectibility" icon={<FileSignature className="h-3.5 w-3.5" />}>
         <ContractBillingRequirements fields={data.fields as any} />
 
         <ContractInvoiceRecapture importId={c.id} debtorId={c.debtor_id || null} />
@@ -708,40 +691,30 @@ const LiveContractDetailInner = () => {
           subjectType="contract"
           subjectId={c.id}
         />
-      </section>
-
+      </ContractSection>
 
       {/* ============ 5. CUSTOM TRIGGERS ============ */}
-      <section id="triggers" className="space-y-3 scroll-mt-16">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
-          <FileCheck2 className="h-3.5 w-3.5" /> Custom Triggers
-        </h2>
+      <ContractSection id="triggers" title="Custom Triggers" icon={<FileCheck2 className="h-3.5 w-3.5" />} defaultOpen={false}>
         <ContractCustomTriggersPanel
           importId={c.id}
           accountId={c.account_id}
           fields={data.fields as any}
         />
-      </section>
+      </ContractSection>
 
       {/* ============ 5b. STRIPE BILLING SYNC ============ */}
-      <section id="billing-sync" className="space-y-3 scroll-mt-16">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
-          <FileCheck2 className="h-3.5 w-3.5" /> Billing Sync
-        </h2>
+      <ContractSection id="billing-sync" title="Billing Sync" icon={<FileCheck2 className="h-3.5 w-3.5" />} defaultOpen={false}>
         <ContractStripeBillingSync
           contractId={c.id}
           fields={(data.fields[0] as any) || {}}
           currency={(c as any).currency || (data.fields[0] as any)?.currency}
         />
-      </section>
+      </ContractSection>
+
 
 
       {/* ============ ALL EXTRACTED TERMS ============ */}
-      <section id="all-terms" className="space-y-3 scroll-mt-16">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
-          <FileSignature className="h-3.5 w-3.5" /> All Extracted Terms
-        </h2>
-
+      <ContractSection id="all-terms" title="All Extracted Terms" icon={<FileSignature className="h-3.5 w-3.5" />} defaultOpen={false}>
         <ContractExtractedFieldsEditor
           importId={c.id}
           accountId={c.account_id}
@@ -754,7 +727,8 @@ const LiveContractDetailInner = () => {
           debtorId={c.debtor_id || null}
           contractName={c.contract_name}
         />
-      </section>
+      </ContractSection>
+
 
       {/* Parties section omitted (no contract_parties table) */}
 

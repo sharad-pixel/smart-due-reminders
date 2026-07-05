@@ -13,6 +13,7 @@ import remarkGfm from "remark-gfm";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ComplianceDocsManager } from "@/components/clm/ComplianceDocsManager";
 import { Asc606ReferenceBanner } from "@/components/contracts/Asc606ReferenceBanner";
+import { Asc606RequiredDocsChecklist } from "@/components/contracts/Asc606RequiredDocsChecklist";
 
 type Wallet = {
   balance_credits: number;
@@ -221,8 +222,12 @@ export function Asc606AssessmentDialog({ open, onOpenChange, contractId, account
               </Card>
             )}
 
+            {/* Required documentation checklist */}
+            <Asc606RequiredDocsChecklist contractId={contractId} accountId={accountId} />
+
             {/* Compliance documents library */}
             <ComplianceDocsManager accountId={accountId} defaultStandard="ASC 606" />
+
 
             {latest && latest.status === "failed" && (
               <Card className="border-destructive/50">
