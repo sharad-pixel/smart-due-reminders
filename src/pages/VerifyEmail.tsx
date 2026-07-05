@@ -38,7 +38,7 @@ export default function VerifyEmail() {
         
         // Redirect to dashboard after 2 seconds
         setTimeout(() => {
-          navigate('/dashboard');
+          navigate('/hub');
         }, 2000);
       } catch (err) {
         console.error('Verification error:', err);
@@ -108,7 +108,7 @@ export default function VerifyEmail() {
                 <p className="text-foreground font-medium">Your email has been verified successfully!</p>
                 <p className="text-muted-foreground text-sm">Redirecting you to dashboard...</p>
               </div>
-              <Button onClick={() => navigate('/dashboard')} className="mt-4">
+              <Button onClick={() => navigate('/hub')} className="mt-4">
                 Go to Dashboard
               </Button>
             </div>

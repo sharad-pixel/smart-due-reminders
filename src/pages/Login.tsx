@@ -154,7 +154,7 @@ const Login = () => {
       }
       toast.success("Welcome back!");
       const returnTo = getSafeReturnTo();
-      navigate(returnTo ?? "/dashboard");
+      navigate(returnTo ?? "/hub");
     } catch (error: any) {
       toast.error(error.message || "Login failed");
     } finally {

@@ -171,7 +171,7 @@ export default function Onboarding() {
   }
 
   if (showCelebration) {
-    return <CelebrationScreen userName={userName} onContinue={() => navigate("/dashboard")} />;
+    return <CelebrationScreen userName={userName} onContinue={() => navigate("/hub")} />;
   }
 
   const completedCount = STEPS.filter(s => progress?.[s.key]).length;
@@ -193,7 +193,7 @@ export default function Onboarding() {
 
   const handleSkipOnboarding = async () => {
     await completeOnboarding();
-    navigate("/dashboard");
+    navigate("/hub");
   };
 
   const handleNavigateToStep = () => {
