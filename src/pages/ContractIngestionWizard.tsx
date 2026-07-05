@@ -405,6 +405,9 @@ function StepReview({ importId, onNext }: { importId: string; onNext: () => void
             {REQUIRED_FIELDS.map((f) => {
               const val = valueOf(f.key);
               const hasVal = !!String(val).trim();
+              const ocr = isOcrSuggested(f.key);
+              const suggestion = suggestedFor(f.key);
+              const cur = String(valueOf("currency") || "USD");
               return (
                 <div key={f.key} className="grid sm:grid-cols-[1fr_2fr] gap-2 items-center">
                   <Label className="flex items-center gap-2">
@@ -412,12 +415,37 @@ function StepReview({ importId, onNext }: { importId: string; onNext: () => void
                             : <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />}
                     {f.label}
                   </Label>
-                  <Input
-                    value={val}
-                    onChange={(e) => setEdits((prev) => ({ ...prev, [f.key]: e.target.value }))}
-                    placeholder={hasVal ? "" : "Add value…"}
-                    className={hasVal ? "" : "border-amber-300 bg-amber-50/30"}
-                  />
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={val}
+                        onChange={(e) => setEdits((prev) => ({ ...prev, [f.key]: e.target.value }))}
+                        placeholder={hasVal ? "" : "Add value…"}
+                        className={hasVal ? "" : "border-amber-300 bg-amber-50/30"}
+                      />
+                      {ocr && (
+                        <Badge variant="secondary" className="shrink-0 text-[10px] gap-1">
+                          <Sparkles className="h-3 w-3" /> OCR suggested
+                        </Badge>
+                      )}
+                    </div>
+                    {!hasVal && suggestion != null && (
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="text-muted-foreground">
+                          Suggested from OCR: <span className="font-medium text-foreground">{fmtMoney(suggestion, cur)}</span>
+                        </span>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-6 px-2 text-xs"
+                          onClick={() => applySuggestion(f.key, suggestion)}
+                        >
+                          Apply
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               );
             })}
