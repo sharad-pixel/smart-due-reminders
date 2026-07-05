@@ -260,6 +260,12 @@ export function Asc606AssessmentDialog({ open, onOpenChange, contractId, account
                 <div className="text-xs text-muted-foreground">
                   Cost: <strong>$9.99</strong> per assessment OR <strong>10 credits</strong> ({balance >= COST ? `you have ${balance.toFixed(0)}` : `$8.00 with pre-paid credits`}).
                 </div>
+                {latest?.status === "complete" && (
+                  <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5 flex items-start gap-1.5">
+                    <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                    <span>A completed assessment already exists. Re-running will incur a new charge — you'll be asked to confirm.</span>
+                  </div>
+                )}
                 <div className="flex flex-wrap gap-2">
                   {canUseCredits && (
                     <Button onClick={() => runWithCredits("credits")} disabled={running}>
