@@ -168,7 +168,7 @@ const Login = () => {
         provider: 'google',
         options: {
           // Redirect back into the app; access control will send non-subscribed users to /upgrade.
-          redirectTo: getAuthRedirectUrl('/dashboard'),
+          redirectTo: getAuthRedirectUrl('/hub'),
           queryParams: {
             access_type: 'offline',
             prompt: 'select_account',
