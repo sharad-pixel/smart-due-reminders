@@ -179,7 +179,7 @@ const LiveContracts = lazy(() => import("./pages/LiveContracts"));
 const LiveContractDetail = lazy(() => import("./pages/LiveContractDetail"));
 const Asc606AssessmentDetails = lazy(() => import("./pages/Asc606AssessmentDetails"));
 const RevenueLibrary = lazy(() => import("./pages/RevenueLibrary"));
-const ContractIntelligenceDashboard = lazy(() => import("./pages/ContractIntelligenceDashboard"));
+
 const ActiveContracts = lazy(() => import("./pages/ActiveContracts"));
 const ContractsHub = lazy(() => import("./pages/ContractsHub"));
 const ContractIngestionWizard = lazy(() => import("./pages/ContractIngestionWizard"));
@@ -301,7 +301,7 @@ const App = () => (
               <Route path="/contracts/live/:importId" element={<LiveContractDetail />} />
               <Route path="/contracts/live/:importId/asc606" element={<Asc606AssessmentDetails />} />
               <Route path="/revenue-library" element={<RevenueLibrary />} />
-              <Route path="/contract-intelligence/dashboard" element={<ContractIntelligenceDashboard />} />
+              <Route path="/contract-intelligence/dashboard" element={<Navigate to="/contracts" replace />} />
 
               {/* Pillar Pages */}
               <Route path="/collections-crm" element={<CollectionsCRM />} />

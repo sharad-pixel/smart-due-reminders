@@ -94,7 +94,7 @@ export const ContractIntelligenceSummary = () => {
             <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => navigate("/contracts/active")}>
               <Search className="h-3.5 w-3.5 mr-1.5" /> Browse contracts
             </Button>
-            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => navigate("/contract-intelligence/dashboard")}>
+            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => navigate("/contracts")}>
               Open dashboard <ArrowRight className="h-3.5 w-3.5 ml-1" />
             </Button>
           </div>
