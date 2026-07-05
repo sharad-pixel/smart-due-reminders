@@ -27,6 +27,8 @@ import {
   type RevenueLibraryItem, type RevenueLibraryInput,
 } from "@/hooks/useRevenueLibrary";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { Asc606ReferenceBanner } from "@/components/contracts/Asc606ReferenceBanner";
+
 
 const EMPTY: RevenueLibraryInput = {
   name: "",
