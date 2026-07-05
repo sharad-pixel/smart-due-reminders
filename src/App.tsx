@@ -291,8 +291,9 @@ const App = () => (
               <Route path="/contracts/active" element={<Navigate to="/contracts?hub=active" replace />} />
               <Route path="/ai-ingestion" element={<Navigate to="/contracts/new" replace />} />
               <Route path="/contracts?hub=ingestion" element={<Navigate to="/contracts/new" replace />} />
-              <Route path="/contracts/live" element={<Navigate to="/contracts" replace />} />
-              <Route path="/clm/live-contracts" element={<Navigate to="/contracts" replace />} />
+              <Route path="/contracts/ingestion" element={<LiveContracts />} />
+              <Route path="/contracts/live" element={<ActiveContracts />} />
+              <Route path="/clm/live-contracts" element={<Navigate to="/contracts/live" replace />} />
               <Route path="/clm-portal" element={<Navigate to="/contracts" replace />} />
               <Route path="/contracts/templates/:id" element={<Navigate to="/contracts" replace />} />
               <Route path="/contracts/instances/:id" element={<Navigate to="/contracts" replace />} />
