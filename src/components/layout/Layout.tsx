@@ -363,6 +363,8 @@ const Layout = ({ children }: LayoutProps) => {
                 {(() => {
                   const subHubs = [
                     { path: "/dashboard", label: "Collections Hub", icon: LayoutDashboard, description: "Invoices, payments & outreach" },
+                    { path: "/invoices", label: "Invoices", icon: FileText, description: "Open AR & invoice detail" },
+                    { path: "/payments", label: "Payments", icon: DollarSign, description: "Payment activity & reconciliation" },
                     { path: "/contracts", label: "Contracts Hub", icon: FileSignature, description: "Live contracts & compliance" },
                   ];
                   const revenueActive = isActive("/hub");
