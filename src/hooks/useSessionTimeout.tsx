@@ -222,32 +222,20 @@ export function useSessionTimeout(enabled = true): SessionTimeoutState {
       const lastActivity = lastActivityRef.current;
       const sessionStart = sessionStartRef.current;
 
-      // Check absolute timeout (12 hours)
+      // Absolute timeout (12 hours) — show the Timed Out dialog and stop.
+      // The user clicks "Login" to sign out and route to /login themselves.
       if (sessionStart && now - sessionStart >= ABSOLUTE_TIMEOUT_MS) {
-        forceLogout("absolute_timeout");
+        if (!isWarningVisible) setIsWarningVisible(true);
         return;
       }
 
       const idleTime = now - lastActivity;
 
-      // Check idle timeout (30 minutes) — fires immediately when reached.
+      // Idle timeout (30 minutes) — show the Timed Out dialog instead of
+      // silently logging out. The user clicks "Login" to complete sign out.
       if (idleTime >= IDLE_TIMEOUT_MS) {
-        forceLogout("idle_timeout");
+        if (!isWarningVisible) setIsWarningVisible(true);
         return;
-      }
-
-      // Show warning at 28 minutes (2 min before timeout)
-      if (idleTime >= IDLE_WARNING_MS && !isWarningVisible) {
-        setIsWarningVisible(true);
-      }
-
-      // Update countdown every tick while warning is visible
-      if (idleTime >= IDLE_WARNING_MS) {
-        const remaining = Math.max(
-          0,
-          Math.ceil((IDLE_TIMEOUT_MS - idleTime) / 1000),
-        );
-        setSecondsRemaining(remaining);
       }
     }, 1000);
 
