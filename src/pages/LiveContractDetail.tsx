@@ -349,7 +349,7 @@ const LiveContractDetailInner = () => {
         size="sm"
         onClick={() => {
           if (window.history.length > 1) navigate(-1);
-          else navigate(data.debtor ? `/debtors/${data.debtor.id}` : "/ai-ingestion");
+          else navigate(data.debtor ? `/debtors/${data.debtor.id}` : "/contracts");
         }}
       >
         <ArrowLeft className="h-4 w-4 mr-1" />
