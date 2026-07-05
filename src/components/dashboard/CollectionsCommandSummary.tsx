@@ -92,53 +92,42 @@ export const CollectionsCommandSummary = () => {
   if (!accountId) return null;
 
   return (
-    <Card className="border-l-4 border-l-accent bg-gradient-to-br from-accent/5 via-transparent to-transparent">
-      <CardHeader className="pb-3">
+    <Card className="border shadow-none">
+      <CardHeader className="pb-4 border-b">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
-            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-              <Brain className="h-5 w-5 text-accent" /> Collections Command
+            <CardTitle className="text-[13px] font-medium text-muted-foreground flex items-center gap-1.5">
+              <Brain className="h-3.5 w-3.5" /> Collections Command
             </CardTitle>
-            <p className="text-xs text-muted-foreground mt-1">
-              Live receivables, overdue exposure, and open collection tasks
-            </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => navigate("/tasks")}>
+            <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => navigate("/tasks")}>
               <Inbox className="h-3.5 w-3.5 mr-1.5" /> Tasks
             </Button>
-            <Button size="sm" onClick={() => navigate("/dashboard")}>
+            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => navigate("/dashboard")}>
               Open Collections Hub <ArrowRight className="h-3.5 w-3.5 ml-1" />
             </Button>
           </div>
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <CardContent className="p-0">
+        <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-border">
           <Kpi
-            icon={<Wallet className="h-4 w-4 text-emerald-500" />}
             label="Outstanding AR"
             value={formatCurrency(m.outstanding, m.currency)}
             sub={`${(invoices ?? []).length} open invoices`}
           />
           <Kpi
-            icon={<AlertTriangle className="h-4 w-4 text-amber-500" />}
             label="Overdue Balance"
             value={formatCurrency(m.overdueAmt, m.currency)}
             sub={`${m.overdueCount} overdue`}
           />
           <Kpi
-            icon={<Clock className="h-4 w-4 text-blue-500" />}
             label="Avg Days Past Due"
             value={String(m.dpd)}
-            sub={
-              <Badge variant="outline" className="text-[10px]">
-                weighted
-              </Badge>
-            }
+            sub="weighted"
           />
           <Kpi
-            icon={<ListChecks className="h-4 w-4 text-primary" />}
             label="Open Tasks"
             value={String(m.openTasks)}
             sub="collector actions"
@@ -150,23 +139,22 @@ export const CollectionsCommandSummary = () => {
 };
 
 const Kpi = ({
-  icon,
   label,
   value,
   sub,
 }: {
-  icon: React.ReactNode;
   label: string;
   value: string;
   sub?: React.ReactNode;
 }) => (
-  <div className="rounded-lg border bg-card p-3">
-    <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-      {icon}
-      <span className="truncate">{label}</span>
+  <div className="px-5 py-4">
+    <div className="text-[11px] font-medium text-muted-foreground tracking-wide truncate">
+      {label}
     </div>
-    <div className="mt-1.5 text-xl font-semibold tracking-tight truncate">{value}</div>
-    <div className="mt-0.5 text-xs text-muted-foreground">{sub}</div>
+    <div className="mt-1 text-2xl font-semibold tracking-tight text-foreground truncate">
+      {value}
+    </div>
+    {sub && <div className="mt-1 text-[11px] text-muted-foreground truncate">{sub}</div>}
   </div>
 );
 
