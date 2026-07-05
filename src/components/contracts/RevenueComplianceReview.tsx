@@ -324,7 +324,7 @@ export function RevenueComplianceReview({ contractId, accountId, contractTitle }
               <ScoreRing score={view.complianceScore} />
               <div className="flex-1 min-w-[200px] space-y-2">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <Badge variant="outline" className={`${c!.cls || ""} capitalize`}>
+                  <Badge variant="outline" className="capitalize">
                     Risk: {view.riskLevel}
                   </Badge>
                   <Badge variant="outline">Confidence {Math.round(view.confidence)}%</Badge>
