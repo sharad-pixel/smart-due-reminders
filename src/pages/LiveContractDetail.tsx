@@ -714,11 +714,7 @@ const LiveContractDetailInner = () => {
 
 
       {/* ============ ALL EXTRACTED TERMS ============ */}
-      <section id="all-terms" className="space-y-3 scroll-mt-16">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
-          <FileSignature className="h-3.5 w-3.5" /> All Extracted Terms
-        </h2>
-
+      <ContractSection id="all-terms" title="All Extracted Terms" icon={<FileSignature className="h-3.5 w-3.5" />} defaultOpen={false}>
         <ContractExtractedFieldsEditor
           importId={c.id}
           accountId={c.account_id}
@@ -731,7 +727,8 @@ const LiveContractDetailInner = () => {
           debtorId={c.debtor_id || null}
           contractName={c.contract_name}
         />
-      </section>
+      </ContractSection>
+
 
       {/* Parties section omitted (no contract_parties table) */}
 
