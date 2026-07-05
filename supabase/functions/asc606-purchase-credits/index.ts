@@ -8,10 +8,10 @@ const corsHeaders = {
 };
 
 // Generic Recouply Platform Credits (replaces ASC 606-branded SKUs on Stripe).
-// Pre-Paid (prod_UpNIt8RGC0aePD) = $0.80/credit (20% off; must be purchased before use).
-// Overage  (prod_UpNJYwUXZrjK96) = $1.00/credit (settles accrued usage after the fact).
-const OVERAGE_PRICE_STANDARD = "price_1TpiYVBfb0dWgtCDO5FyUsTx"; // $1.00/credit — Overage
-const OVERAGE_PRICE_PREPAID  = "price_1TpiYKBfb0dWgtCDVBU5qxIf"; // $0.80/credit — Prepaid
+// Pre-Paid (prod_UpZG4qLFe4lILI) = $0.80/credit (20% off; must be purchased before use).
+// Overage  (prod_UpZGNVSMkVTHI0) = $1.00/credit (settles accrued usage after the fact).
+const OVERAGE_PRICE_STANDARD = "price_1Tpu7wBfb0dWgtCDPN5v2Igy"; // $1.00/credit — Recouply Platform Credit – Overage
+const OVERAGE_PRICE_PREPAID  = "price_1Tpu82BFb0dWgtCDze54GhRC".replace("BF","Bf"); // $0.80/credit — Recouply Platform Credit – Pre-Paid
 
 const PRICES = {
   asc606: {
