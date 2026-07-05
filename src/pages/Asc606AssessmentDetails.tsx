@@ -72,8 +72,8 @@ const Asc606AssessmentDetails = () => {
   return (
     <Layout>
       <SEO
-        title={`ASC 606 Assessment · ${title}`}
-        description="Full paid ASC 606 assessment: compliance report, key risks, missing evidence, and AI advisor prompts."
+        title={`Revenue Compliance Review · ${title}`}
+        description="AI-assisted revenue compliance review: categorized findings, missing evidence, recommended actions, and AI advisor prompts."
       />
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-5">
         <div className="flex items-center gap-2">
@@ -85,7 +85,7 @@ const Asc606AssessmentDetails = () => {
         <div>
           <div className="flex items-center gap-2 flex-wrap">
             <Sparkles className="h-5 w-5 text-primary" />
-            <h1 className="text-2xl font-semibold">ASC 606 Assessment</h1>
+            <h1 className="text-2xl font-semibold">Revenue Compliance Review</h1>
             {latest?.risk_band && (
               <Badge variant={riskVariant(latest.risk_band)}>
                 {latest.risk_band}
@@ -93,7 +93,10 @@ const Asc606AssessmentDetails = () => {
               </Badge>
             )}
           </div>
-          <p className="text-sm text-muted-foreground mt-1">{title}</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            {title} · AI-assisted review of commercial terms that may impact revenue
+            recognition, billing, and finance operations. Does not replace Finance review.
+          </p>
         </div>
 
         <Asc606ReferenceBanner />

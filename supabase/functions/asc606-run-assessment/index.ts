@@ -42,9 +42,33 @@ Return STRICT JSON ONLY with this shape:
     { "trigger": "...", "date": "YYYY-MM-DD", "days_from_today": <int>, "status": "elapsed|imminent|upcoming", "impact": "...", "action": "..." }
   ],
   "key_risks": [ { "severity":"high|medium|low", "title":"...", "detail":"...", "remediation":"..." } ],
-  "recommendations": [ "..." ]
+  "recommendations": [ "..." ],
+  "compliance_score": <0-100 overall commercial + revenue readiness score>,
+  "risk_level": "low|medium|high",
+  "confidence": <0-100 AI confidence>,
+  "executive_summary": "<3-5 sentence Finance-oriented executive summary>",
+  "readiness": {
+    "commercial_completeness": <0-100>,
+    "revenue": <0-100>,
+    "billing": <0-100>,
+    "collection": <0-100>
+  },
+  "categories": [
+    {
+      "key": "contract_identification|performance_obligations|transaction_price|billing_terms|contract_modifications|renewal_termination|commercial_completeness|revenue_intelligence_validation",
+      "label": "<human label>",
+      "status": "pass|review|missing",
+      "confidence": <0-100>,
+      "findings": ["..."],
+      "references": ["<section / clause / doc reference>"],
+      "commercial_impact": "<short impact statement for Finance>",
+      "recommended_action": "<what to do next>"
+    }
+  ],
+  "ai_observations": [ "<natural-language observation>" ],
+  "recommended_actions": [ { "title": "...", "category": "...", "priority": "high|medium|low" } ]
 }
-Be concise but rigorous. Flag variable consideration, financing components, principal vs agent, distinct goods/services, contract modifications, rebates/credits, usage fees, renewal/termination rights, collectability, allocation evidence, and disclosure gaps.`;
+Populate ALL 8 categories in "categories" (Contract Identification, Performance Obligations, Transaction Price, Billing Terms, Contract Modifications, Renewal & Termination, Commercial Completeness, Revenue Intelligence Validation). Do NOT provide accounting conclusions — instead, identify commercial terms that require Finance review. Use status="missing" when required info is absent, "review" when Finance should validate, "pass" when the term appears commercially complete. Be concise but rigorous. Flag variable consideration, financing components, principal vs agent, distinct goods/services, contract modifications, rebates/credits, usage fees, renewal/termination rights, collectability, allocation evidence, and disclosure gaps.`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
