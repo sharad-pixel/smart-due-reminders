@@ -773,14 +773,15 @@ const LiveContractDetailInner = () => {
         <ContractRevenueItemsPanel importId={importId} accountId={accountId} />
       )}
 
-      {importId && (
-        <Asc606ChatPanel
+      {importId && accountId && (
+        <Asc606ConsolidatedCard
           contractId={importId}
+          accountId={accountId}
           contractTitle={c.contract_name || "Untitled Contract"}
-          onOpenAssessment={() => setAsc606Open(true)}
         />
       )}
 
+      {/* Legacy standalone dialog trigger — kept for the header "ASC 606 Assessment" button */}
       {accountId && importId && (
         <Asc606AssessmentDialog
           open={asc606Open}
