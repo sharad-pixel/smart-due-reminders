@@ -12,6 +12,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ComplianceDocsManager } from "@/components/clm/ComplianceDocsManager";
+import { Asc606ReferenceBanner } from "@/components/contracts/Asc606ReferenceBanner";
 
 type Wallet = {
   balance_credits: number;
