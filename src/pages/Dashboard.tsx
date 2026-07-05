@@ -552,9 +552,9 @@ const Dashboard = () => {
               />
             )}
             <div>
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary">RevenueHub</h1>
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary">Collections Hub</h1>
               <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">
-                Welcome back! Here's your collection overview.
+                Welcome back! Here's your collections dashboard.
               </p>
               <p className="text-xs text-muted-foreground/70 mt-1">
                 All activity tracked in one place for visibility and compliance
