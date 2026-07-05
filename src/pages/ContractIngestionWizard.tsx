@@ -250,27 +250,37 @@ function StepReview({ importId, onNext }: { importId: string; onNext: () => void
     if (!Object.keys(edits).length) return;
     setSaving(true);
     try {
-      // Upsert extracted field rows
-      const rows = Object.entries(edits).map(([k, v]) => ({
-        import_id: importId,
-        account_id: data!.imp.account_id,
-        field_key: k,
-        field_value: v,
-        source: "user_edit",
-        confidence: 1,
-      }));
-      // upsert one-by-one to avoid conflict issues
-      for (const r of rows) {
-        const existing = fieldMap.get(r.field_key);
+      // Find an extraction_id to attach new field rows to (required by schema).
+      let extractionId: string | null = (data?.fields as any[])?.[0]?.extraction_id || null;
+      if (!extractionId) {
+        const { data: ex } = await supabase
+          .from("live_contract_extractions")
+          .select("id").eq("import_id", importId)
+          .order("created_at", { ascending: false }).limit(1).maybeSingle();
+        extractionId = (ex as any)?.id || null;
+      }
+
+      for (const [k, v] of Object.entries(edits)) {
+        const existing = fieldMap.get(k);
         if (existing?.id) {
           await supabase.from("live_contract_extracted_fields")
-            .update({ field_value: r.field_value, source: "user_edit", confidence: 1 })
+            .update({ field_value: v, edited_by_user: "wizard", confidence: 1, approved: true })
             .eq("id", existing.id);
-        } else {
-          await supabase.from("live_contract_extracted_fields").insert(r);
+        } else if (extractionId) {
+          await supabase.from("live_contract_extracted_fields").insert({
+            import_id: importId,
+            account_id: data!.imp.account_id,
+            extraction_id: extractionId,
+            field_group: "commercial",
+            field_key: k,
+            field_value: v,
+            edited_by_user: "wizard",
+            confidence: 1,
+            approved: true,
+          });
         }
       }
-      // Mirror common commercial fields onto the import row
+      // Mirror common commercial fields onto the import row itself.
       const impPatch: any = {};
       if (edits.effective_date) impPatch.effective_date = edits.effective_date;
       if (edits.term_end_date) impPatch.term_end_date = edits.term_end_date;
