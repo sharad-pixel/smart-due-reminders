@@ -599,7 +599,7 @@ const Dashboard = () => {
 
 
         {/* Executive Contracts & Collections Command Center */}
-        <RevenueCommandCenter />
+        <RevenueCommandCenter variant="collections" />
 
         {/* Contract Intelligence — always visible */}
         <ContractIntelligenceSummary />
