@@ -60,7 +60,7 @@ const Login = () => {
           const status = profile?.subscription_status;
           const isPaidOrAdmin = !!profile?.is_admin || status === 'active' || status === 'past_due';
 
-          const target = returnTo === '/upgrade' && isPaidOrAdmin ? '/dashboard' : (returnTo ?? '/dashboard');
+          const target = returnTo === '/upgrade' && isPaidOrAdmin ? '/hub' : (returnTo ?? '/hub');
           navigate(target, { replace: true });
         }
       }
