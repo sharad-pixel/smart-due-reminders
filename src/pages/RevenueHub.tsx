@@ -21,18 +21,17 @@ export default function RevenueHub() {
         title="Revenue Intelligence Hub · Recouply"
         description="Ask Nicolas about revenue risk, contracts, and collections. Live command-center numbers across your entire contract-to-cash lifecycle."
       />
-      <div className="container max-w-7xl pt-6 pb-10 space-y-6">
+      <div className="container max-w-7xl pt-8 pb-10 space-y-8">
         {/* Hero */}
-        <header className="space-y-2">
-          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full border border-primary/30 bg-primary/10 text-[11px] font-semibold uppercase tracking-wider text-primary">
-            <Sparkles className="h-3.5 w-3.5" /> Revenue Intelligence Hub
+        <header className="space-y-1.5">
+          <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground flex items-center gap-1.5">
+            <Sparkles className="h-3 w-3" /> Revenue Intelligence Hub
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+          <h1 className="text-[26px] font-semibold tracking-tight text-foreground">
             Ask Nicolas anything about your revenue.
           </h1>
-          <p className="text-sm text-muted-foreground max-w-2xl">
-            Your Revenue Intelligence Agent has full context across contracts, invoices, payments,
-            and risk signals. Ask a question, or jump into the Contracts or Collections hub below.
+          <p className="text-[13px] text-muted-foreground max-w-2xl">
+            Full context across contracts, invoices, payments, and risk signals.
           </p>
         </header>
 
@@ -40,7 +39,7 @@ export default function RevenueHub() {
         <DashboardAskAI />
 
         {/* Command centers */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
           <ContractIntelligenceSummary />
           <CollectionsCommandSummary />
         </div>
