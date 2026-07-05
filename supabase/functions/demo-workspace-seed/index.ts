@@ -266,6 +266,30 @@ Deno.serve(async (req) => {
         result.summary = await seed();
         await admin.from("demo_workspace_state").update({ last_reset_at: new Date().toISOString() }).eq("user_id", userId);
         break;
+      case "wipe_all": {
+        // Full tenant wipe (demo@recouply.ai only). Deletes EVERY row across
+        // demo tables, then re-enables the mock Stripe connection so the
+        // integration stays preset for the next round of test data.
+        const deleted = await wipeAll();
+        await admin.from("stripe_integrations").upsert({
+          user_id: userId,
+          is_connected: true,
+          stripe_account_id: "acct_demo_recouply",
+          sync_status: "connected",
+          auto_sync_enabled: true,
+          last_sync_at: new Date().toISOString(),
+        }, { onConflict: "user_id" });
+        await admin.from("demo_workspace_state").upsert({
+          user_id: userId,
+          workspace_exists: false,
+          entity_counts: {},
+          last_reset_at: new Date().toISOString(),
+          last_seeded_at: null,
+        }, { onConflict: "user_id" });
+        result.deleted = deleted;
+        result.stripe_enabled = true;
+        break;
+      }
       case "generate_invoices": {
         const { data: debtors } = await admin.from("debtors").select("id, company_name").eq("user_id", userId).eq("is_demo", true);
         let created = 0;
