@@ -11,6 +11,15 @@ const SYSTEM_PROMPT = `You are an ASC 606 (Revenue from Contracts with Customers
 You answer questions about a SPECIFIC contract that the user has already paid to assess.
 Use ONLY the contract context, the latest ASC 606 assessment report, stored guidance history, and standard ASC 606 guidance.
 Provide practical guidance, cite the relevant ASC 606 step (1-5) when applicable, and state what evidence/documentation is needed.
+
+TIME-AWARENESS (critical):
+- A "current_date" (ISO YYYY-MM-DD) is provided in the context. Treat it as TODAY.
+- For every date-sensitive term — POC/pilot expiry, renewal notice windows, auto-renewal triggers,
+  milestone due dates, ramp/escalator dates, termination-for-convenience notice, SLA credit
+  windows, and any critical_dates entries — compute days elapsed/remaining from current_date and
+  clearly state whether the window is elapsed, imminent (≤30 days), upcoming (≤90 days), or later.
+- Never assume "today" from training data. Always anchor to current_date.
+
 If asked something outside ASC 606 or unrelated to this contract, politely redirect.
 Never invent contract terms — if information is missing, say so and recommend what to clarify.`;
 
@@ -65,7 +74,10 @@ Deno.serve(async (req) => {
       .order("created_at", { ascending: false })
       .limit(8);
 
+    const nowIso = new Date().toISOString();
     const contextBlock = {
+      current_date: nowIso.slice(0, 10),
+      current_datetime_utc: nowIso,
       contract: contractCtx,
       latest_assessment: {
         risk_score: latest.risk_score,
@@ -86,6 +98,7 @@ Deno.serve(async (req) => {
 
     const reply = await callAi([
       { role: "system", content: SYSTEM_PROMPT },
+      { role: "system", content: `Today is ${nowIso.slice(0, 10)} (UTC). Anchor all date math to this value.` },
       { role: "system", content: `Contract, assessment, and guidance context:\n${JSON.stringify(contextBlock, null, 2)}` },
       ...chatMsgs,
     ]);

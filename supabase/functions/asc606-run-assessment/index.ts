@@ -12,11 +12,24 @@ const COST_CENTS = 999;
 
 const SYSTEM_PROMPT = `You are a CPA and ASC 606 (Revenue from Contracts with Customers) GAAP expert.
 Given a contract, evaluate ALL revenue recognition compliance considerations under the 5-step framework.
+
+CRITICAL — TIME-AWARENESS:
+- A "current_assessment_date" (ISO YYYY-MM-DD) is provided in the user payload. Treat it as TODAY.
+- Compare every date-sensitive term against current_assessment_date: contract effective/start/end,
+  renewal notice windows, auto-renewal triggers, POC (proof-of-concept) expiry, pilot conversion
+  deadlines, ramp/step increases, price escalators, milestone due dates, SLA credit windows,
+  termination-for-convenience notice, and any critical_dates entries.
+- Flag any window that is (a) already elapsed, (b) within the next 30 days, or (c) within the next
+  90 days — including which specific date is affected and days elapsed/remaining relative to
+  current_assessment_date. Elevate risk_score accordingly.
+- Never assume "today" from training data; always compute deltas from current_assessment_date.
+
 Return STRICT JSON ONLY with this shape:
 {
   "risk_score": <0-100>,
   "risk_band": "<Low|Moderate|Elevated|High|Critical>",
-  "summary": "<2-3 sentence executive summary>",
+  "summary": "<2-3 sentence executive summary that references current_assessment_date when time-sensitive triggers apply>",
+  "assessment_date": "<echo current_assessment_date>",
   "step1_identify_contract": { "findings": [...], "issues": [...] },
   "step2_performance_obligations": { "obligations": [...], "issues": [...] },
   "step3_transaction_price": { "fixed": <number>, "variable_components": [...], "issues": [...] },
@@ -24,6 +37,9 @@ Return STRICT JSON ONLY with this shape:
   "step5_recognize_revenue": { "timing": "point_in_time|over_time|mixed", "method": "...", "issues": [...] },
   "revenue_compliance_guidance": [
     { "area": "...", "guidance": "...", "asc606_step": "Step 1|Step 2|Step 3|Step 4|Step 5", "evidence_needed": "..." }
+  ],
+  "time_sensitive_triggers": [
+    { "trigger": "...", "date": "YYYY-MM-DD", "days_from_today": <int>, "status": "elapsed|imminent|upcoming", "impact": "...", "action": "..." }
   ],
   "key_risks": [ { "severity":"high|medium|low", "title":"...", "detail":"...", "remediation":"..." } ],
   "recommendations": [ "..." ]
@@ -163,11 +179,13 @@ serve(async (req) => {
       critical_dates: contract.contract_critical_dates,
       financial_metrics: contract.metadata,
       compliance_policy_library: policyContext,
+      current_assessment_date: new Date().toISOString().slice(0, 10),
+      current_assessment_datetime_utc: new Date().toISOString(),
     };
 
     const report = await callAiJson([
       { role: "system", content: SYSTEM_PROMPT },
-      { role: "user", content: `Analyze this contract under ASC 606 and produce complete revenue compliance guidance. Apply the customer's own indexed compliance policy library where relevant:\n\n${JSON.stringify(userPayload, null, 2)}` },
+      { role: "user", content: `Analyze this contract under ASC 606 as of ${userPayload.current_assessment_date} and produce complete revenue compliance guidance. Compare every date-sensitive term (POC/pilot expiry, renewal notice, auto-renewal, milestone dates, escalators, termination windows, critical_dates) against current_assessment_date and populate time_sensitive_triggers. Apply the customer's own indexed compliance policy library where relevant:\n\n${JSON.stringify(userPayload, null, 2)}` },
     ]);
 
     const markdown = buildMarkdown(report, contract);
