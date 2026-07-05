@@ -12,6 +12,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ComplianceDocsManager } from "@/components/clm/ComplianceDocsManager";
+import { Asc606ReferenceBanner } from "@/components/contracts/Asc606ReferenceBanner";
 
 type Wallet = {
   balance_credits: number;
@@ -137,7 +138,11 @@ export function Asc606AssessmentDialog({ open, onOpenChange, contractId, account
             ASC 606 Revenue Risk Assessment
           </DialogTitle>
           <DialogDescription>{contractTitle}</DialogDescription>
+          <div className="pt-2">
+            <Asc606ReferenceBanner />
+          </div>
         </DialogHeader>
+
 
         <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6">
         {loading ? (
