@@ -82,6 +82,7 @@ import { ContractDetailSubHeader } from "@/components/clm/ContractDetailSubHeade
 import { ContractAgreementFamily } from "@/components/clm/ContractAgreementFamily";
 import { DocumentTypeBadge } from "@/components/clm/DocumentTypeBadge";
 import { NicolasLineReviewBanner } from "@/components/clm/NicolasLineReviewBanner";
+import { ContractSection } from "@/components/contracts/ContractSection";
 
 const FIN_KEYS = new Set<string>([
   ...Array.from(AMOUNT_KEYS),
