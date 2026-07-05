@@ -127,14 +127,26 @@ Deno.serve(async (req) => {
         throw new Error(`wipe_all is only allowed on demo@recouply.ai (got ${email ?? "unknown"})`);
       }
       const summary: Record<string, number> = {};
+      const errors: Record<string, string> = {};
       for (const t of DEMO_TABLES) {
-        const { count } = await admin
-          .from(t)
-          .delete({ count: "exact" })
-          .eq("user_id", userId);
-        if (count && count > 0) summary[t] = count;
+        try {
+          const { count, error } = await admin
+            .from(t)
+            .delete({ count: "exact" })
+            .eq("user_id", userId);
+          if (error) {
+            // Skip tables that don't exist or lack user_id column — log and continue.
+            console.error(`wipe_all[${t}]`, error.message);
+            errors[t] = error.message;
+            continue;
+          }
+          if (count && count > 0) summary[t] = count;
+        } catch (e) {
+          console.error(`wipe_all[${t}] threw`, e);
+          errors[t] = String((e as Error)?.message ?? e);
+        }
       }
-      return summary;
+      return { summary, errors };
     };
 
 
