@@ -542,22 +542,24 @@ const Dashboard = () => {
     <Layout>
       <div className="space-y-4 sm:space-y-6 lg:space-y-8">
         
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div className="flex items-center gap-4">
             {accountInfo.ownerLogoUrl && (
               <img 
                 src={accountInfo.ownerLogoUrl}
                 alt="Company logo" 
-                className="h-12 w-12 sm:h-14 sm:w-14 lg:h-16 lg:w-16 object-contain rounded-lg border border-border/50 bg-background/50 p-1"
+                className="h-10 w-10 sm:h-12 sm:w-12 object-contain rounded-md border border-border/50 bg-background/50 p-1"
               />
             )}
-            <div>
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary">Collections Hub</h1>
-              <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">
-                Welcome back! Here's your collections dashboard.
-              </p>
-              <p className="text-xs text-muted-foreground/70 mt-1">
-                All activity tracked in one place for visibility and compliance
+            <div className="space-y-1.5">
+              <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                Collections Hub
+              </div>
+              <h1 className="text-[26px] font-semibold tracking-tight text-foreground">
+                Welcome back
+              </h1>
+              <p className="text-[13px] text-muted-foreground">
+                Your collections dashboard — invoices, payments and outreach in one place.
               </p>
             </div>
           </div>
