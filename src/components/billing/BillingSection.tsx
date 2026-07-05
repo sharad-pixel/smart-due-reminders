@@ -55,6 +55,10 @@ const BillingSection = ({ profile, canManageBilling, onRefresh, isTeamMember = f
   const [usageData, setUsageData] = useState<{
     includedUsed: number;
     allowance: number;
+    baseAllowance: number;
+    liveContractBoost: number;
+    activeLiveContracts: number;
+    creditsPerLiveContract: number;
     overageCount: number;
     remaining: number;
   } | null>(null);
