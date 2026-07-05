@@ -139,7 +139,7 @@ export default function AdminDemoWorkspace() {
             <div className="text-sm">
               <div className="font-medium">Sign in as the shared demo user</div>
               <div className="text-muted-foreground">
-                Signs you out and back in as <code>demo@recouply.ai</code> — a dedicated account with the seeded NimbusHR / Atlas / Velocity / Global Mfg / Nova dataset. Perfect for recording clean demos. Return to <code>/admin/demo</code> and sign in as an admin to manage.
+                Signs you out and back in as <code>demo@recouply.ai</code> — a clean, dedicated tenant for testing and recording demos. Load whatever data you need through the app, then return to <code>/admin/demo</code> and sign in as an admin to wipe it.
               </div>
             </div>
           </div>
@@ -159,14 +159,11 @@ export default function AdminDemoWorkspace() {
             }}>
               <CreditCard className="h-4 w-4 mr-2" /> Enable Stripe for Demo
             </Button>
-            <Button onClick={enterDemoAsUser} disabled={loading || !state?.workspace_exists}>
+            <Button onClick={enterDemoAsUser} disabled={loading}>
               <LogIn className="h-4 w-4 mr-2" /> Enter Demo as demo@recouply.ai
             </Button>
           </div>
         </CardContent>
-        {!state?.workspace_exists && (
-          <div className="px-4 pb-3 text-xs text-amber-600">Click <b>Load Demo Dataset</b> below first — the demo user's workspace is currently empty.</div>
-        )}
       </Card>
 
       <div className="grid gap-4 lg:grid-cols-3">
