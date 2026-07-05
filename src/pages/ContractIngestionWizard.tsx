@@ -37,7 +37,8 @@ const REQUIRED_FIELDS: Array<{ key: string; label: string }> = [
   { key: "customer_name", label: "Customer / counterparty" },
   { key: "effective_date", label: "Contract start date" },
   { key: "term_end_date", label: "Contract end date" },
-  { key: "total_contract_value", label: "Total contract value" },
+  { key: "total_contract_value", label: "Total contract value (TCV)" },
+  { key: "annual_contract_value", label: "Annual contract value (ARR)" },
   { key: "billing_frequency", label: "Billing frequency" },
   { key: "currency", label: "Currency" },
 ];
@@ -48,6 +49,38 @@ const RECOMMENDED_FIELDS: Array<{ key: string; label: string }> = [
   { key: "payment_terms", label: "Payment terms" },
   { key: "termination_clause", label: "Termination clause" },
 ];
+
+// OCR-alias keys the AI extractor may have emitted for TCV / ARR.
+// We fall back to these when the canonical key is empty so the user still
+// sees a suggested value they can accept or override.
+const TCV_ALIASES = ["total_contract_value", "contract_value", "tcv", "total_value"];
+const ARR_ALIASES = ["annual_contract_value", "arr", "annual_value", "annual_recurring_revenue"];
+
+const parseMoney = (v: unknown): number | null => {
+  if (v == null) return null;
+  const n = Number(String(v).replace(/[^0-9.-]/g, ""));
+  return Number.isFinite(n) && n > 0 ? n : null;
+};
+
+const monthsBetween = (start?: string, end?: string): number | null => {
+  if (!start || !end) return null;
+  const s = new Date(start).getTime();
+  const e = new Date(end).getTime();
+  if (Number.isNaN(s) || Number.isNaN(e) || e <= s) return null;
+  return Math.max(1, Math.round((e - s) / (1000 * 60 * 60 * 24 * 30.4375)));
+};
+
+const fmtMoney = (n: number, cur = "USD") => {
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: (cur || "USD").replace(/[^A-Z]/gi, "").slice(0, 3) || "USD",
+      maximumFractionDigits: 0,
+    }).format(n);
+  } catch {
+    return `$${Math.round(n).toLocaleString()}`;
+  }
+};
 
 type Step = 1 | 2 | 3 | 4;
 const STEPS: { n: Step; label: string; icon: any }[] = [
