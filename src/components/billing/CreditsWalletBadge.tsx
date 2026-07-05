@@ -79,14 +79,15 @@ export function CreditsWalletBadge() {
       </TooltipTrigger>
       <TooltipContent side="bottom" className="max-w-xs">
         <div className="text-xs space-y-1.5">
-          <div><strong>{balance.toFixed(0)}</strong> platform credits available</div>
-          {hasDue && (
+          <div className="font-medium">Recouply Platform Credits</div>
+          <div><strong>{balance.toFixed(0)}</strong> prepaid credits available</div>
+          {hasDue ? (
             <>
               <div className="text-amber-700">
-                {overage.toFixed(0)} overage credits pending (<strong>${overage.toFixed(2)}</strong> due)
+                {overage.toFixed(0)} overage credits accrued (<strong>${overage.toFixed(2)}</strong> due at $1.00/credit)
               </div>
               <div className="text-foreground">
-                Net balance: <strong>{netCredits.toFixed(0)}</strong> credits
+                Net position: <strong>{netCredits.toFixed(0)}</strong> credits
               </div>
               <Button
                 size="sm"
@@ -94,11 +95,16 @@ export function CreditsWalletBadge() {
                 onClick={(e) => { e.preventDefault(); payOverage(); }}
                 disabled={paying}
               >
-                {paying ? <Loader2 className="h-3 w-3 animate-spin" /> : <><ExternalLink className="h-3 w-3 mr-1" />Pay ${overage.toFixed(2)} now</>}
+                {paying ? <Loader2 className="h-3 w-3 animate-spin" /> : <><ExternalLink className="h-3 w-3 mr-1" />Settle ${overage.toFixed(2)} overage</>}
               </Button>
             </>
+          ) : (
+            <div className="text-muted-foreground">No outstanding overage.</div>
           )}
-          <div className="text-muted-foreground pt-0.5">Click chip to manage or buy more</div>
+          <div className="text-muted-foreground pt-1 border-t">
+            Prepaid: <strong>$0.80/credit</strong> (buy in advance, 20% off) · Overage: <strong>$1.00/credit</strong> (billed after usage). Every purchase & consumption is logged in your Wallet ledger.
+          </div>
+          <div className="text-muted-foreground">Click to open Wallet →</div>
         </div>
       </TooltipContent>
     </Tooltip>

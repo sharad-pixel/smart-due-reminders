@@ -7,11 +7,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Dedicated ASC 606 Assessment Credits products.
-// Pre-Paid (prod_UeKNmWGVsxDe0E) = $0.80/credit (20% off).
-// Overage  (prod_UeKNtASW5yOmfV) = $1.00/credit (standard / post-paid).
-const OVERAGE_PRICE_STANDARD = "price_1Tf1j9Bfb0dWgtCD6KcElfX4"; // $1.00/credit (Overage)
-const OVERAGE_PRICE_PREPAID  = "price_1Tf1j7Bfb0dWgtCDFnr16iPS"; // $0.80/credit (Pre-Paid)
+// Generic Recouply Platform Credits (replaces ASC 606-branded SKUs on Stripe).
+// Pre-Paid (prod_UpNIt8RGC0aePD) = $0.80/credit (20% off; must be purchased before use).
+// Overage  (prod_UpNJYwUXZrjK96) = $1.00/credit (settles accrued usage after the fact).
+const OVERAGE_PRICE_STANDARD = "price_1TpiYVBfb0dWgtCDO5FyUsTx"; // $1.00/credit — Overage
+const OVERAGE_PRICE_PREPAID  = "price_1TpiYKBfb0dWgtCDVBU5qxIf"; // $0.80/credit — Prepaid
 
 const PRICES = {
   asc606: {
