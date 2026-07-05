@@ -177,7 +177,7 @@ const DashboardTasksList = ({
 };
 
 const Dashboard = () => {
-  usePageTitle("RevenueHub");
+  usePageTitle("Collections Hub");
   const navigate = useNavigate();
   const accountInfo = useEffectiveAccount();
   const { data: orgAvgDPD } = useOrgAvgDPD();
