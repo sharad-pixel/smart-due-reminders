@@ -12,13 +12,13 @@ export default function Index() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!mounted) return;
       if (session?.user) {
-        navigate("/dashboard", { replace: true });
+        navigate("/hub", { replace: true });
       }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
-        navigate("/dashboard", { replace: true });
+        navigate("/hub", { replace: true });
       }
     });
 

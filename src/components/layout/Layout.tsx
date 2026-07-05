@@ -348,103 +348,38 @@ const Layout = ({ children }: LayoutProps) => {
                 {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </Button>
               
-              <Link to="/dashboard" className="shrink-0 hover:opacity-80 transition-opacity">
+              <Link to="/hub" className="shrink-0 hover:opacity-80 transition-opacity">
                 <RecouplyLogo size="md" />
               </Link>
               
               {/* Desktop Navigation */}
               <div className="hidden lg:flex items-center gap-1">
-                {/* Revenue Intelligence dropdown — links to Collections + Contract Intelligence */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className={`flex items-center gap-1.5 px-3 py-2 h-auto rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
-                        isRevenueIntelHubActive
+                {/* Three top-level hubs — Revenue, Collections, Contracts */}
+                {[
+                  { path: "/hub", label: "Revenue Hub", icon: Sparkles },
+                  { path: "/dashboard", label: "Collections Hub", icon: LayoutDashboard },
+                  { path: "/contracts", label: "Contracts Hub", icon: FileSignature },
+                ].map((item) => {
+                  const Icon = item.icon;
+                  const active =
+                    isActive(item.path) ||
+                    (item.path === "/dashboard" && (isActive("/invoices") || isActive("/payments"))) ||
+                    (item.path === "/contracts" && isActive("/contract-intelligence/dashboard"));
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                        active
                           ? "bg-primary text-primary-foreground shadow-sm"
                           : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                       }`}
                     >
-                      <Sparkles className="h-4 w-4 shrink-0" />
-                      <span>Revenue Intelligence</span>
-                      <ChevronDown className="h-3 w-3 shrink-0" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-64 z-[110] bg-card border shadow-lg">
-                    <DropdownMenuItem asChild>
-                      <Link to="/dashboard" className="flex items-start gap-2 cursor-pointer">
-                        <LayoutDashboard className="h-4 w-4 text-primary mt-0.5" />
-                        <div>
-                          <div className="font-medium">Dashboard</div>
-                          <div className="text-xs text-muted-foreground">Your landing page</div>
-                        </div>
-                      </Link>
-                    </DropdownMenuItem>
-                    <div className="pl-6 space-y-1">
-                      <DropdownMenuItem asChild>
-                        <Link to="/invoices" className="flex items-center gap-2 cursor-pointer text-sm">
-                          <FileText className="h-3.5 w-3.5 text-muted-foreground" />
-                          <span>Invoices</span>
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link to="/payments" className="flex items-center gap-2 cursor-pointer text-sm">
-                          <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
-                          <span>Payments</span>
-                        </Link>
-                      </DropdownMenuItem>
-                    </div>
-                    <DropdownMenuItem asChild>
-                      <Link to="/contract-intelligence/dashboard" className="flex items-start gap-2 cursor-pointer">
-                        <FileSignature className="h-4 w-4 text-primary mt-0.5" />
-                        <div>
-                          <div className="font-medium">Contract Intelligence</div>
-                          <div className="text-xs text-muted-foreground">TCV, ARR, renewals & risk</div>
-                        </div>
-                      </Link>
-                    </DropdownMenuItem>
-                    <div className="pl-6 space-y-1">
-                      <DropdownMenuItem asChild>
-                        <Link to="/contracts?hub=active" className="flex items-center gap-2 cursor-pointer text-sm">
-                          <FileSignature className="h-3.5 w-3.5 text-muted-foreground" />
-                          <span>Active Contracts</span>
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link to="/contracts?hub=ingestion" className="flex items-center gap-2 cursor-pointer text-sm">
-                          <Sparkles className="h-3.5 w-3.5 text-muted-foreground" />
-                          <span>Ingestion & Extraction</span>
-                        </Link>
-                      </DropdownMenuItem>
-                    </div>
-                    <DropdownMenuItem asChild>
-                      <Link to="/revenue-risk" className="flex items-start gap-2 cursor-pointer">
-                        <ShieldAlert className="h-4 w-4 text-primary mt-0.5" />
-                        <div>
-                          <div className="font-medium">Revenue Risk</div>
-                          <div className="text-xs text-muted-foreground">ECL & risk signals</div>
-                        </div>
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/revenue-library" className="flex items-start gap-2 cursor-pointer">
-                        <Library className="h-4 w-4 text-primary mt-0.5" />
-                        <div>
-                          <div className="font-medium">Revenue Library</div>
-                          <div className="text-xs text-muted-foreground">Templates & playbooks</div>
-                        </div>
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link to="/revenue-intelligence" className="flex items-center gap-2 cursor-pointer text-muted-foreground">
-                        <Sparkles className="h-4 w-4" />
-                        <span>About Revenue Intelligence</span>
-                      </Link>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                      <Icon className="h-4 w-4 shrink-0" />
+                      <span>{item.label}</span>
+                    </Link>
+                  );
+                })}
 
                 {coreNavItems.map((item) => {
                   const Icon = item.icon;

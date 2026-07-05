@@ -183,6 +183,7 @@ const ContractIntelligenceDashboard = lazy(() => import("./pages/ContractIntelli
 const ActiveContracts = lazy(() => import("./pages/ActiveContracts"));
 const ContractsHub = lazy(() => import("./pages/ContractsHub"));
 const ContractIngestionWizard = lazy(() => import("./pages/ContractIngestionWizard"));
+const RevenueHub = lazy(() => import("./pages/RevenueHub"));
 
 // Admin Pages (heavy - definitely lazy load)
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
@@ -362,8 +363,11 @@ const App = () => (
               {/* Onboarding */}
               <Route path="/onboarding" element={<Onboarding />} />
 
-              {/* Dashboard & Core App */}
+              {/* Revenue Intelligence Hub — authenticated landing */}
+              <Route path="/hub" element={<RevenueHub />} />
+              {/* Collections Hub (existing rich collections dashboard) */}
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/collections-hub" element={<Navigate to="/dashboard" replace />} />
               <Route path="/payments" element={<PaymentsActivity />} />
               {/* Legacy route support (older alerts/emails) */}
               <Route path="/accounts" element={<LegacyAccountsRedirect />} />
