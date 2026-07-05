@@ -39,7 +39,7 @@ export const useFounderAuth = () => {
 
       if ((!isFounderEmail || !profile?.is_admin) && !activeSupportUser) {
         console.warn("Unauthorized admin/support access attempt:", user.email);
-        navigate("/dashboard");
+        navigate("/hub");
         return;
       }
 
@@ -52,7 +52,7 @@ export const useFounderAuth = () => {
       setIsSupportUser(!!activeSupportUser || !!profile?.is_support_user);
     } catch (error) {
       console.error("Error checking founder access:", error);
-      navigate("/dashboard");
+      navigate("/hub");
     } finally {
       setLoading(false);
     }

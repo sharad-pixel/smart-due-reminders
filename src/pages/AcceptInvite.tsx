@@ -87,7 +87,7 @@ const AcceptInvite = () => {
 
       if (data.success) {
         toast.success("You've joined the team successfully!");
-        navigate("/dashboard");
+        navigate("/hub");
       } else {
         toast.error(data.error || "Failed to accept invite");
       }
@@ -133,7 +133,7 @@ const AcceptInvite = () => {
 
         if (acceptData.success) {
           toast.success("Account created and team joined successfully!");
-          navigate("/dashboard");
+          navigate("/hub");
         } else {
           toast.success("Account created! Please check your email to verify, then return to accept the invite.");
         }

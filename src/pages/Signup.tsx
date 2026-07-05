@@ -100,7 +100,7 @@ const Signup = () => {
           if (profile?.name && profile?.business_name) {
             // Profile is complete, redirect to dashboard
             toast.success('Welcome back!');
-            navigate('/dashboard');
+            navigate('/hub');
             return;
           }
           
@@ -125,7 +125,7 @@ const Signup = () => {
         
         // Don't auto-redirect during invite flow - user needs to complete profile
         if (session?.user && !isInviteFlow) {
-          navigate("/dashboard");
+          navigate("/hub");
         }
       }
     );
@@ -134,7 +134,7 @@ const Signup = () => {
       if (!isInviteFlow) {
         setUser(session?.user ?? null);
         if (session?.user) {
-          navigate("/dashboard");
+          navigate("/hub");
         }
       }
     });
@@ -244,7 +244,7 @@ const Signup = () => {
         }
 
         toast.success("Welcome to Recouply.ai! You're on your way to Collection Excellence.");
-        navigate("/dashboard");
+        navigate("/hub");
         return;
       }
 
