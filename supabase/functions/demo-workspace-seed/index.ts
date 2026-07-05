@@ -282,7 +282,7 @@ Deno.serve(async (req) => {
         // Full tenant wipe (demo@recouply.ai only). Deletes EVERY row across
         // demo tables, then re-enables the mock Stripe connection so the
         // integration stays preset for the next round of test data.
-        const deleted = await wipeAll();
+        const { summary: deleted, errors } = await wipeAll();
         await admin.from("stripe_integrations").upsert({
           user_id: userId,
           is_connected: true,
@@ -299,7 +299,9 @@ Deno.serve(async (req) => {
           last_seeded_at: null,
         }, { onConflict: "user_id" });
         result.deleted = deleted;
+        result.table_errors = errors;
         result.stripe_enabled = true;
+        result.summary = `Wiped ${Object.values(deleted).reduce((a, b) => a + b, 0)} rows across ${Object.keys(deleted).length} tables${Object.keys(errors).length ? `; skipped ${Object.keys(errors).length} tables with errors` : ""}.`;
         break;
       }
       case "generate_invoices": {
