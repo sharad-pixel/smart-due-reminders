@@ -55,6 +55,10 @@ const BillingSection = ({ profile, canManageBilling, onRefresh, isTeamMember = f
   const [usageData, setUsageData] = useState<{
     includedUsed: number;
     allowance: number;
+    baseAllowance: number;
+    liveContractBoost: number;
+    activeLiveContracts: number;
+    creditsPerLiveContract: number;
     overageCount: number;
     remaining: number;
   } | null>(null);
@@ -115,6 +119,10 @@ const BillingSection = ({ profile, canManageBilling, onRefresh, isTeamMember = f
         setUsageData({
           includedUsed: data.included_invoices_used || 0,
           allowance: data.included_allowance || 0,
+          baseAllowance: data.base_credit_allowance ?? data.included_allowance ?? 0,
+          liveContractBoost: data.live_contract_credit_boost || 0,
+          activeLiveContracts: data.active_live_contracts || 0,
+          creditsPerLiveContract: data.credits_per_live_contract || 5,
           overageCount: data.overage_invoices || 0,
           remaining: data.remaining_quota || 0,
         });
@@ -329,39 +337,59 @@ const BillingSection = ({ profile, canManageBilling, onRefresh, isTeamMember = f
           )}
         </div>
 
-        {/* Invoice Usage Section */}
+        {/* Monthly Credit Usage */}
         {usageData && (
           <div className="p-4 rounded-lg border bg-muted/30 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                <span className="font-medium">Monthly Invoice Usage</span>
+                <span className="font-medium">Monthly Credit Usage</span>
               </div>
               <Badge variant="outline" className="capitalize">
                 {currentPlan}
               </Badge>
             </div>
-            
+
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="font-medium">
-                  {usageData.includedUsed} / {usageData.allowance} invoices
+                  {usageData.allowance >= 999999
+                    ? `${usageData.includedUsed.toLocaleString()} credits used · Unlimited`
+                    : `${usageData.includedUsed.toLocaleString()} / ${usageData.allowance.toLocaleString()} credits`}
                 </span>
                 <span className="text-muted-foreground">
-                  {usageData.remaining} remaining
+                  {usageData.allowance >= 999999 ? 'No cap' : `${usageData.remaining.toLocaleString()} remaining`}
                 </span>
               </div>
-              
-              <Progress 
-                value={usageData.allowance > 0 ? Math.min(100, (usageData.includedUsed / usageData.allowance) * 100) : 0} 
+
+              <Progress
+                value={usageData.allowance > 0 && usageData.allowance < 999999 ? Math.min(100, (usageData.includedUsed / usageData.allowance) * 100) : 0}
                 className="h-2"
               />
+
+
+              <p className="text-xs text-muted-foreground">
+                1 invoice processed = 2 credits · {usageData.creditsPerLiveContract} credits/month allocated per active Live Contract.
+              </p>
+
+              {usageData.activeLiveContracts > 0 && (
+                <div className="text-xs text-muted-foreground border-t pt-2 mt-2 space-y-0.5">
+                  <div className="flex justify-between">
+                    <span>Plan base allotment</span>
+                    <span className="font-medium text-foreground">{usageData.baseAllowance.toLocaleString()} credits</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Live Contracts boost ({usageData.activeLiveContracts} × {usageData.creditsPerLiveContract})</span>
+                    <span className="font-medium text-foreground">+{usageData.liveContractBoost.toLocaleString()} credits</span>
+                  </div>
+                </div>
+              )}
 
               {usageData.overageCount > 0 && (
                 <div className="flex items-center gap-2 text-sm text-amber-600 mt-2">
                   <AlertTriangle className="h-4 w-4" />
                   <span>
-                    {usageData.overageCount} overage invoices (${(usageData.overageCount * 1.99).toFixed(2)})
+                    {usageData.overageCount.toLocaleString()} overage credits (${(usageData.overageCount * 1.00).toFixed(2)} at on-demand rate)
                   </span>
                 </div>
               )}
@@ -397,18 +425,20 @@ const BillingSection = ({ profile, canManageBilling, onRefresh, isTeamMember = f
 
               <div className="grid gap-4">
                 {Object.entries(PLAN_CONFIGS)
-                  .filter(([key]) => key !== 'enterprise')
+                  .filter(([key, config]) => key !== 'enterprise' && !config.legacy)
                   .filter(([key]) => {
                     // Show plans higher than current
-                    const planOrder = ['free', 'starter', 'growth', 'professional'];
-                    return planOrder.indexOf(key) > planOrder.indexOf(currentPlan);
+                    const planOrder = ['free', 'launch', 'starter', 'growth', 'professional'];
+                    const currentIdx = planOrder.indexOf(currentPlan);
+                    const idx = planOrder.indexOf(key);
+                    return idx > -1 && idx > currentIdx;
                   })
                   .map(([key, config]) => (
-                    <div 
+                    <div
                       key={key}
                       className={`p-4 rounded-lg border-2 transition-all ${
-                        config.highlighted 
-                          ? 'border-primary bg-primary/5' 
+                        config.highlighted
+                          ? 'border-primary bg-primary/5'
                           : 'border-border hover:border-primary/50'
                       }`}
                     >
@@ -421,13 +451,16 @@ const BillingSection = ({ profile, canManageBilling, onRefresh, isTeamMember = f
                             )}
                           </div>
                           <p className="text-xl font-bold text-primary mt-1">
-                            {formatPrice(billingInterval === 'year' 
-                              ? config.equivalentMonthly 
+                            {formatPrice(billingInterval === 'year'
+                              ? config.equivalentMonthly
                               : config.monthlyPrice)}
                             <span className="text-sm font-normal text-muted-foreground">/month</span>
                           </p>
                           <p className="text-sm text-muted-foreground">
-                            {config.invoiceLimit} invoices/month • {config.maxAgents} AI agents
+                            {config.creditAllotment.toLocaleString()} credits/month · {config.includedContracts > 0 ? `${config.includedContracts} Live Contracts included` : 'Live Contracts add-on'} · {config.includedSeats} seat{config.includedSeats === 1 ? '' : 's'}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            +5 credits/mo per active Live Contract · Overage: $0.80 pre-paid / $1.00 on-demand
                           </p>
                         </div>
                         <Button
