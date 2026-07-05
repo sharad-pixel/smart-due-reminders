@@ -263,11 +263,6 @@ const Layout = ({ children }: LayoutProps) => {
 
   const coreNavItems = [
     { path: "/debtors", label: "Accounts", icon: Users },
-    { path: "/invoices", label: "Invoices", icon: FileText },
-    { path: "/payments", label: "Payments", icon: DollarSign },
-    { path: "/contracts", label: "Contracts", icon: FileSignature },
-    { path: "/revenue-library", label: "Revenue Library", icon: Library },
-    { path: "/revenue-risk", label: "Revenue Risk", icon: ShieldAlert },
     { path: "/data-center", label: "Data Center", icon: Database },
   ];
 
@@ -366,11 +361,14 @@ const Layout = ({ children }: LayoutProps) => {
                     { path: "/invoices", label: "Invoices", icon: FileText, description: "Open AR & invoice detail" },
                     { path: "/payments", label: "Payments", icon: DollarSign, description: "Payment activity & reconciliation" },
                     { path: "/contracts", label: "Contracts Hub", icon: FileSignature, description: "Live contracts & compliance" },
+                    { path: "/revenue-library", label: "Revenue Library", icon: Library, description: "Contract clauses & templates" },
+                    { path: "/revenue-risk", label: "Revenue Risk", icon: ShieldAlert, description: "Risk signals & exposure" },
                   ];
                   const revenueActive = isActive("/hub");
                   const subActive =
                     isActive("/dashboard") || isActive("/invoices") || isActive("/payments") ||
-                    isActive("/contracts") || isActive("/contract-intelligence/dashboard");
+                    isActive("/contracts") || isActive("/contract-intelligence/dashboard") ||
+                    isActive("/revenue-library") || isActive("/revenue-risk");
                   const anyActive = revenueActive || subActive;
                   return (
                     <div className="flex items-center mr-1">
