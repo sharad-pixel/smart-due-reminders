@@ -473,6 +473,8 @@ const LiveContractDetailInner = () => {
 
       <ContractStatusStepper importId={c.id} status={c.status} />
 
+      <Asc606ReferenceBanner />
+
       <ContractAgreementFamily
         importId={c.id}
         accountId={c.account_id}
