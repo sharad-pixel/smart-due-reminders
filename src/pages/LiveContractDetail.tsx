@@ -69,6 +69,7 @@ import { ContractStripeBillingSync } from "@/components/clm/billing-sync/Contrac
 
 import { Asc606AssessmentDialog } from "@/components/contracts/Asc606AssessmentDialog";
 import { Asc606ChatPanel } from "@/components/clm/Asc606ChatPanel";
+import { Asc606ReferenceBanner } from "@/components/contracts/Asc606ReferenceBanner";
 import { useClmEntitlement } from "@/hooks/useClmEntitlement";
 import { FileCheck2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
