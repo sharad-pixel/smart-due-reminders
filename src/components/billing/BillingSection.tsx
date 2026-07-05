@@ -353,17 +353,20 @@ const BillingSection = ({ profile, canManageBilling, onRefresh, isTeamMember = f
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="font-medium">
-                  {usageData.includedUsed.toLocaleString()} / {usageData.allowance.toLocaleString()} credits
+                  {usageData.allowance >= 999999
+                    ? `${usageData.includedUsed.toLocaleString()} credits used · Unlimited`
+                    : `${usageData.includedUsed.toLocaleString()} / ${usageData.allowance.toLocaleString()} credits`}
                 </span>
                 <span className="text-muted-foreground">
-                  {usageData.remaining.toLocaleString()} remaining
+                  {usageData.allowance >= 999999 ? 'No cap' : `${usageData.remaining.toLocaleString()} remaining`}
                 </span>
               </div>
 
               <Progress
-                value={usageData.allowance > 0 ? Math.min(100, (usageData.includedUsed / usageData.allowance) * 100) : 0}
+                value={usageData.allowance > 0 && usageData.allowance < 999999 ? Math.min(100, (usageData.includedUsed / usageData.allowance) * 100) : 0}
                 className="h-2"
               />
+
 
               <p className="text-xs text-muted-foreground">
                 1 invoice processed = 2 credits · {usageData.creditsPerLiveContract} credits/month allocated per active Live Contract.
