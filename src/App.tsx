@@ -179,7 +179,7 @@ const LiveContracts = lazy(() => import("./pages/LiveContracts"));
 const LiveContractDetail = lazy(() => import("./pages/LiveContractDetail"));
 const Asc606AssessmentDetails = lazy(() => import("./pages/Asc606AssessmentDetails"));
 const RevenueLibrary = lazy(() => import("./pages/RevenueLibrary"));
-const ContractIntelligenceDashboard = lazy(() => import("./pages/ContractIntelligenceDashboard"));
+
 const ActiveContracts = lazy(() => import("./pages/ActiveContracts"));
 const ContractsHub = lazy(() => import("./pages/ContractsHub"));
 const ContractIngestionWizard = lazy(() => import("./pages/ContractIngestionWizard"));
