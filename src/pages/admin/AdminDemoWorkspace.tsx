@@ -256,7 +256,7 @@ export default function AdminDemoWorkspace() {
           <CardContent className="p-4 flex items-start gap-3">
             <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
             <div className="text-sm">
-              <b>Wipe Demo Tenant</b> deletes <b>every</b> row owned by <code>demo@recouply.ai</code> across debtors, invoices, contracts, tasks, activity, alerts, and AI artifacts — regardless of the <code>is_demo</code> flag. The mock Stripe integration is automatically re-connected after the wipe. Load your own test data via the app once complete.
+              <b>Wipe Demo Tenant</b> deletes <b>every</b> row owned by <code>demo@recouply.ai</code> across debtors, invoices, contracts, tasks, activity, alerts, AI artifacts, <b>and all Stripe integration data + keys</b> (both live and test). Fully clean slate — use <b>Enable Stripe for Demo</b> to re-connect the mock integration when you're ready.
             </div>
           </CardContent>
         </Card>
@@ -267,7 +267,7 @@ export default function AdminDemoWorkspace() {
           <AlertDialogHeader>
             <AlertDialogTitle>{pendingAction && DEMO_ACTION_LABELS[pendingAction]}</AlertDialogTitle>
             <AlertDialogDescription>
-              {pendingAction === "wipe_all" && "This permanently deletes every debtor, invoice, contract, task, activity, alert, and AI artifact owned by demo@recouply.ai. Safety-gated to the demo account only — cannot affect real customer tenants. The mock Stripe integration will be re-enabled automatically."}
+              {pendingAction === "wipe_all" && "This permanently deletes every debtor, invoice, contract, task, activity, alert, AI artifact, and all Stripe integration data + keys owned by demo@recouply.ai. Safety-gated to the demo account only. Fully clean slate — re-enable Stripe manually afterward if needed."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
