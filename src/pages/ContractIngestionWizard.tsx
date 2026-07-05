@@ -274,6 +274,54 @@ function StepReview({ importId, onNext }: { importId: string; onNext: () => void
     return fieldMap.get(key)?.field_value || "";
   };
 
+  // Was the current value produced by OCR (not the wizard user)?
+  const isOcrSuggested = (key: string) => {
+    if (edits[key] !== undefined) return false;
+    const rec = fieldMap.get(key);
+    if (!rec?.field_value) return false;
+    const editor = String(rec.edited_by_user || "").toLowerCase();
+    return editor !== "wizard" && editor !== "user";
+  };
+
+  // Compute suggested TCV / ARR from any alias key or from the counterpart.
+  const suggestedFor = (key: string): number | null => {
+    const cur = valueOf(key);
+    if (String(cur).trim()) return null; // only suggest when empty
+
+    const readAlias = (aliases: string[]): number | null => {
+      for (const a of aliases) {
+        const raw = fieldMap.get(a)?.field_value;
+        const n = parseMoney(raw);
+        if (n) return n;
+      }
+      return null;
+    };
+
+    const months = monthsBetween(valueOf("effective_date"), valueOf("term_end_date"));
+    const freq = String(valueOf("billing_frequency") || "").toLowerCase();
+
+    if (key === "total_contract_value") {
+      const direct = readAlias(TCV_ALIASES);
+      if (direct) return direct;
+      const arr = parseMoney(valueOf("annual_contract_value")) ?? readAlias(ARR_ALIASES);
+      if (arr && months) return Math.round((arr / 12) * months);
+      return null;
+    }
+    if (key === "annual_contract_value") {
+      const direct = readAlias(ARR_ALIASES);
+      if (direct) return direct;
+      const tcv = parseMoney(valueOf("total_contract_value")) ?? readAlias(TCV_ALIASES);
+      if (tcv && months) return Math.round(tcv / (months / 12));
+      if (tcv && /annual|year/.test(freq)) return tcv;
+      return null;
+    }
+    return null;
+  };
+
+  const applySuggestion = (key: string, value: number) => {
+    setEdits((prev) => ({ ...prev, [key]: String(value) }));
+  };
+
   const missing = REQUIRED_FIELDS.filter((f) => !String(valueOf(f.key)).trim());
   const missingRecommended = RECOMMENDED_FIELDS.filter((f) => !String(valueOf(f.key)).trim());
   const scanning = data?.imp && ["queued", "scanning", "ocr_processing", "ai_extracting", "processing", "extracting"]
