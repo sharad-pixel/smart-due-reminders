@@ -280,17 +280,24 @@ Deno.serve(async (req) => {
         break;
       case "wipe_all": {
         // Full tenant wipe (demo@recouply.ai only). Deletes EVERY row across
-        // demo tables, then re-enables the mock Stripe connection so the
-        // integration stays preset for the next round of test data.
+        // demo tables AND all Stripe integration data / keys — clean slate.
         const { summary: deleted, errors } = await wipeAll();
-        await admin.from("stripe_integrations").upsert({
-          user_id: userId,
-          is_connected: true,
-          stripe_account_id: "acct_demo_recouply",
-          sync_status: "connected",
-          auto_sync_enabled: true,
-          last_sync_at: new Date().toISOString(),
-        }, { onConflict: "user_id" });
+        const STRIPE_TABLES = [
+          "stripe_sync_log",
+          "stripe_reconciliation_dismissals",
+          "stripe_test_integrations",
+          "stripe_integrations",
+        ];
+        const stripeDeleted: Record<string, number> = {};
+        for (const t of STRIPE_TABLES) {
+          try {
+            const { count, error } = await admin.from(t).delete({ count: "exact" }).eq("user_id", userId);
+            if (error) { errors[t] = error.message; continue; }
+            if (count && count > 0) stripeDeleted[t] = count;
+          } catch (e) {
+            errors[t] = String((e as Error)?.message ?? e);
+          }
+        }
         await admin.from("demo_workspace_state").upsert({
           user_id: userId,
           workspace_exists: false,
@@ -298,10 +305,11 @@ Deno.serve(async (req) => {
           last_reset_at: new Date().toISOString(),
           last_seeded_at: null,
         }, { onConflict: "user_id" });
-        result.deleted = deleted;
+        result.deleted = { ...deleted, ...stripeDeleted };
         result.table_errors = errors;
-        result.stripe_enabled = true;
-        result.summary = `Wiped ${Object.values(deleted).reduce((a, b) => a + b, 0)} rows across ${Object.keys(deleted).length} tables${Object.keys(errors).length ? `; skipped ${Object.keys(errors).length} tables with errors` : ""}.`;
+        result.stripe_enabled = false;
+        const total = Object.values(result.deleted).reduce((a: number, b) => a + (b as number), 0);
+        result.summary = `Wiped ${total} rows across ${Object.keys(result.deleted).length} tables (including all Stripe data & keys)${Object.keys(errors).length ? `; skipped ${Object.keys(errors).length} tables with errors` : ""}.`;
         break;
       }
       case "generate_invoices": {
