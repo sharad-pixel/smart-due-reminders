@@ -354,32 +354,76 @@ const Layout = ({ children }: LayoutProps) => {
               
               {/* Desktop Navigation */}
               <div className="hidden lg:flex items-center gap-1">
-                {/* Three top-level hubs — Revenue, Collections, Contracts */}
-                {[
-                  { path: "/hub", label: "Revenue Hub", icon: Sparkles },
-                  { path: "/dashboard", label: "Collections Hub", icon: LayoutDashboard },
-                  { path: "/contracts", label: "Contracts Hub", icon: FileSignature },
-                ].map((item) => {
-                  const Icon = item.icon;
-                  const active =
-                    isActive(item.path) ||
-                    (item.path === "/dashboard" && (isActive("/invoices") || isActive("/payments"))) ||
-                    (item.path === "/contracts" && isActive("/contract-intelligence/dashboard"));
+                {/* Revenue Hub — primary entry with Collections & Contracts nested below */}
+                {(() => {
+                  const subHubs = [
+                    { path: "/dashboard", label: "Collections Hub", icon: LayoutDashboard, description: "Invoices, payments & outreach" },
+                    { path: "/contracts", label: "Contracts Hub", icon: FileSignature, description: "Live contracts & compliance" },
+                  ];
+                  const revenueActive = isActive("/hub");
+                  const subActive =
+                    isActive("/dashboard") || isActive("/invoices") || isActive("/payments") ||
+                    isActive("/contracts") || isActive("/contract-intelligence/dashboard");
+                  const anyActive = revenueActive || subActive;
                   return (
-                    <Link
-                      key={item.path}
-                      to={item.path}
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
-                        active
-                          ? "bg-primary text-primary-foreground shadow-sm"
-                          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                      }`}
-                    >
-                      <Icon className="h-4 w-4 shrink-0" />
-                      <span>{item.label}</span>
-                    </Link>
+                    <div className="flex items-center mr-1">
+                      <Link
+                        to="/hub"
+                        className={`flex items-center gap-1.5 pl-3 pr-2 py-2 rounded-l-lg text-sm font-medium transition-all whitespace-nowrap ${
+                          anyActive
+                            ? "bg-primary text-primary-foreground shadow-sm"
+                            : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                        }`}
+                      >
+                        <Sparkles className="h-4 w-4 shrink-0" />
+                        <span>Revenue Hub</span>
+                      </Link>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            aria-label="Open Revenue Hub sub-navigation"
+                            className={`flex items-center px-1.5 py-2 rounded-r-lg text-sm font-medium transition-all border-l ${
+                              anyActive
+                                ? "bg-primary text-primary-foreground border-primary-foreground/20 shadow-sm"
+                                : "text-muted-foreground border-transparent hover:bg-accent hover:text-accent-foreground"
+                            }`}
+                          >
+                            <ChevronDown className="h-3.5 w-3.5" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="w-64 z-[110] bg-card border shadow-lg">
+                          <DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                            Revenue Intelligence
+                          </DropdownMenuLabel>
+                          <DropdownMenuItem asChild>
+                            <Link to="/hub" className="flex items-start gap-2 cursor-pointer">
+                              <Sparkles className="h-4 w-4 text-primary mt-0.5" />
+                              <div className="flex flex-col">
+                                <span className="font-medium">Revenue Hub</span>
+                                <span className="text-xs text-muted-foreground">Ask Nicolas & command center</span>
+                              </div>
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          {subHubs.map((h) => {
+                            const Icon = h.icon;
+                            return (
+                              <DropdownMenuItem key={h.path} asChild>
+                                <Link to={h.path} className="flex items-start gap-2 cursor-pointer">
+                                  <Icon className="h-4 w-4 text-primary mt-0.5" />
+                                  <div className="flex flex-col">
+                                    <span className="font-medium">{h.label}</span>
+                                    <span className="text-xs text-muted-foreground">{h.description}</span>
+                                  </div>
+                                </Link>
+                              </DropdownMenuItem>
+                            );
+                          })}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   );
-                })}
+                })()}
 
                 {coreNavItems.map((item) => {
                   const Icon = item.icon;
