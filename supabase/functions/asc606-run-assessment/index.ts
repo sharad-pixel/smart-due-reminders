@@ -179,11 +179,13 @@ serve(async (req) => {
       critical_dates: contract.contract_critical_dates,
       financial_metrics: contract.metadata,
       compliance_policy_library: policyContext,
+      current_assessment_date: new Date().toISOString().slice(0, 10),
+      current_assessment_datetime_utc: new Date().toISOString(),
     };
 
     const report = await callAiJson([
       { role: "system", content: SYSTEM_PROMPT },
-      { role: "user", content: `Analyze this contract under ASC 606 and produce complete revenue compliance guidance. Apply the customer's own indexed compliance policy library where relevant:\n\n${JSON.stringify(userPayload, null, 2)}` },
+      { role: "user", content: `Analyze this contract under ASC 606 as of ${userPayload.current_assessment_date} and produce complete revenue compliance guidance. Compare every date-sensitive term (POC/pilot expiry, renewal notice, auto-renewal, milestone dates, escalators, termination windows, critical_dates) against current_assessment_date and populate time_sensitive_triggers. Apply the customer's own indexed compliance policy library where relevant:\n\n${JSON.stringify(userPayload, null, 2)}` },
     ]);
 
     const markdown = buildMarkdown(report, contract);
