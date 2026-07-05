@@ -11,9 +11,14 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { DEMO_CUSTOMERS, DEMO_TEAM, DEMO_ACTION_LABELS, type DemoAction } from "@/lib/demoWorkspace";
+import { DEMO_TEAM } from "@/lib/demoWorkspace";
 import { useDemoWorkspace } from "@/contexts/DemoWorkspaceContext";
-import { AlertTriangle, Beaker, PlayCircle, RefreshCw, Trash2, Sparkles, FileText, ListChecks, CreditCard, CheckCircle2, LogIn } from "lucide-react";
+import { AlertTriangle, Beaker, Trash2, CreditCard, CheckCircle2, LogIn } from "lucide-react";
+
+type DemoAction = "wipe_all";
+const DEMO_ACTION_LABELS: Record<DemoAction, string> = {
+  wipe_all: "Wipe Demo Tenant",
+};
 
 interface DemoState {
   workspace_exists: boolean;
