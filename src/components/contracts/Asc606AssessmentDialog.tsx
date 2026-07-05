@@ -222,8 +222,12 @@ export function Asc606AssessmentDialog({ open, onOpenChange, contractId, account
               </Card>
             )}
 
+            {/* Required documentation checklist */}
+            <Asc606RequiredDocsChecklist contractId={contractId} accountId={accountId} />
+
             {/* Compliance documents library */}
             <ComplianceDocsManager accountId={accountId} defaultStandard="ASC 606" />
+
 
             {latest && latest.status === "failed" && (
               <Card className="border-destructive/50">
