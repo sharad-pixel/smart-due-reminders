@@ -91,11 +91,11 @@ export const ContractIntelligenceSummary = () => {
             </CardTitle>
           </div>
           <div className="flex gap-2">
-            <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => navigate("/contracts/active")}>
-              <Search className="h-3.5 w-3.5 mr-1.5" /> Browse contracts
+            <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => navigate("/contracts/ingestion")}>
+              <Activity className="h-3.5 w-3.5 mr-1.5" /> Contracts Ingestion
             </Button>
-            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => navigate("/contracts")}>
-              Open dashboard <ArrowRight className="h-3.5 w-3.5 ml-1" />
+            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => navigate("/contracts/live")}>
+              <FileSignature className="h-3.5 w-3.5 mr-1.5" /> Live Contracts <ArrowRight className="h-3.5 w-3.5 ml-1" />
             </Button>
           </div>
         </div>
