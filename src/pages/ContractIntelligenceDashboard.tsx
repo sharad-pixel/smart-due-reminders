@@ -221,13 +221,35 @@ export default function ContractIntelligenceDashboard() {
     const flags = riskFlags ?? [];
     const dates = criticalDates ?? [];
 
-    const activeContracts = list.filter((c) => (c.status ?? "").toLowerCase() !== "expired");
+    const activeContracts = list.filter((c) => {
+      const s = (c.status ?? "").toLowerCase();
+      // Anything not archived, expired, rejected, or still in draft/scan pipeline counts as active
+      return !["expired", "archived", "rejected", "duplicate", "failed"].includes(s);
+    });
     const tcv = activeContracts.reduce((s, c) => s + (Number(c.contract_value) || 0), 0);
 
-    const recurring = activeContracts.filter(
-      (c) => c.contract_type && /subscription|saas|recurring|msa/i.test(c.contract_type)
-    );
-    const arr = recurring.reduce((s, c) => s + (Number(c.contract_value) || 0), 0);
+    // Recurring / ARR-bearing = order forms, SOWs, MSAs, subscription/SaaS contracts,
+    // OR any contract with a defined term (effective + end date) — annualized.
+    const RECURRING_TYPE_RE = /subscription|saas|recurring|msa|order\s*form|sow|service|agreement/i;
+    const monthsBetween = (a: string | null, b: string | null): number | null => {
+      if (!a || !b) return null;
+      const start = new Date(a).getTime();
+      const end = new Date(b).getTime();
+      if (Number.isNaN(start) || Number.isNaN(end) || end <= start) return null;
+      return Math.max(1, Math.round((end - start) / (30.4375 * DAY)));
+    };
+    const recurring = activeContracts.filter((c) => {
+      const typeMatch = c.contract_type && RECURRING_TYPE_RE.test(c.contract_type);
+      const hasTerm = !!monthsBetween(c.effective_date, c.expiry_date);
+      return typeMatch || hasTerm;
+    });
+    const arr = recurring.reduce((sum, c) => {
+      const value = Number(c.contract_value) || 0;
+      const months = monthsBetween(c.effective_date, c.expiry_date);
+      // Annualize when term is known and > 12 months; otherwise take value as-is
+      if (months && months > 12) return sum + (value * 12) / months;
+      return sum + value;
+    }, 0);
 
     const renewalsNext90 = list.filter(
       (c) => isWithin(c.renewal_date, 90) || isWithin(c.expiry_date, 90)
