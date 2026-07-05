@@ -65,49 +65,64 @@ Deno.serve(async (req) => {
 
         logStep('Processing sync', { userId: setting.user_id, type: setting.integration_type });
 
-        // Determine which sync function to call
-        let syncUrl: string;
+        // Determine which sync function(s) to call. Stripe needs BOTH customers
+        // and invoices — customers first so new Stripe customers (without any
+        // invoices yet) are pulled into Recouply as debtors on the scheduled run.
+        let syncUrls: string[];
         if (setting.integration_type === 'stripe') {
-          syncUrl = `${supabaseUrl}/functions/v1/sync-stripe-invoices`;
+          syncUrls = [
+            `${supabaseUrl}/functions/v1/sync-stripe-customers`,
+            `${supabaseUrl}/functions/v1/sync-stripe-invoices`,
+          ];
         } else if (setting.integration_type === 'quickbooks') {
-          syncUrl = `${supabaseUrl}/functions/v1/sync-quickbooks-data`;
+          syncUrls = [`${supabaseUrl}/functions/v1/sync-quickbooks-data`];
         } else if (setting.integration_type === 'salesforce') {
-          syncUrl = `${supabaseUrl}/functions/v1/sync-salesforce-accounts`;
+          syncUrls = [`${supabaseUrl}/functions/v1/sync-salesforce-accounts`];
         } else if (setting.integration_type === 'hubspot') {
-          syncUrl = `${supabaseUrl}/functions/v1/sync-hubspot-data`;
+          syncUrls = [`${supabaseUrl}/functions/v1/sync-hubspot-data`];
         } else {
           logStep('Unknown integration type, skipping', { type: setting.integration_type });
           continue;
         }
 
-        logStep('Calling sync function', { url: syncUrl, userId: setting.user_id });
+        let allSucceeded = true;
+        let lastErrorText = '';
+        for (const syncUrl of syncUrls) {
+          logStep('Calling sync function', { url: syncUrl, userId: setting.user_id });
 
-        // Call the sync function with service role key and scheduled user ID
-        const syncRes = await fetch(syncUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${supabaseServiceKey}`,
-            'x-scheduled-sync-user-id': setting.user_id,
-          },
-          body: JSON.stringify({ 
-            scheduled: true,
+          const syncRes = await fetch(syncUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${supabaseServiceKey}`,
+              'x-scheduled-sync-user-id': setting.user_id,
+            },
+            body: JSON.stringify({
+              scheduled: true,
+              userId: setting.user_id,
+            }),
+          });
+
+          const syncResultText = await syncRes.text();
+          const ok = syncRes.ok;
+          if (!ok) {
+            allSucceeded = false;
+            lastErrorText = syncResultText;
+          }
+
+          logStep('Sync response received', {
             userId: setting.user_id,
-          }),
-        });
+            type: setting.integration_type,
+            url: syncUrl,
+            status: syncRes.status,
+            success: ok,
+            responsePreview: syncResultText.substring(0, 500),
+          });
+        }
 
-        const syncResultText = await syncRes.text();
-        const success = syncRes.ok;
+        const success = allSucceeded;
 
-        logStep('Sync response received', { 
-          userId: setting.user_id, 
-          type: setting.integration_type, 
-          status: syncRes.status,
-          success,
-          responsePreview: syncResultText.substring(0, 500),
-        });
-
-        // ONLY update last_auto_sync_at if the sync actually succeeded
+        // ONLY update last_auto_sync_at if all syncs succeeded
         if (success) {
           await supabase
             .from('integration_sync_settings')
@@ -115,21 +130,20 @@ Deno.serve(async (req) => {
             .eq('id', setting.id);
           logStep('Updated last_auto_sync_at', { userId: setting.user_id });
         } else {
-          logStep('Sync failed - NOT updating last_auto_sync_at', { 
-            userId: setting.user_id, 
-            status: syncRes.status,
-            error: syncResultText.substring(0, 300),
+          logStep('Sync failed - NOT updating last_auto_sync_at', {
+            userId: setting.user_id,
+            error: lastErrorText.substring(0, 300),
           });
         }
 
         // Always advance next_sync_due_at to prevent retry storms
         await updateNextSyncDue(supabase, setting.id, setting.sync_time, setting.sync_timezone);
 
-        results.push({ 
-          userId: setting.user_id, 
-          type: setting.integration_type, 
+        results.push({
+          userId: setting.user_id,
+          type: setting.integration_type,
           success,
-          error: success ? undefined : syncResultText.substring(0, 200),
+          error: success ? undefined : lastErrorText.substring(0, 200),
         });
 
       } catch (syncError) {
