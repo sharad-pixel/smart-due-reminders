@@ -337,39 +337,56 @@ const BillingSection = ({ profile, canManageBilling, onRefresh, isTeamMember = f
           )}
         </div>
 
-        {/* Invoice Usage Section */}
+        {/* Monthly Credit Usage */}
         {usageData && (
           <div className="p-4 rounded-lg border bg-muted/30 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                <span className="font-medium">Monthly Invoice Usage</span>
+                <span className="font-medium">Monthly Credit Usage</span>
               </div>
               <Badge variant="outline" className="capitalize">
                 {currentPlan}
               </Badge>
             </div>
-            
+
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="font-medium">
-                  {usageData.includedUsed} / {usageData.allowance} invoices
+                  {usageData.includedUsed.toLocaleString()} / {usageData.allowance.toLocaleString()} credits
                 </span>
                 <span className="text-muted-foreground">
-                  {usageData.remaining} remaining
+                  {usageData.remaining.toLocaleString()} remaining
                 </span>
               </div>
-              
-              <Progress 
-                value={usageData.allowance > 0 ? Math.min(100, (usageData.includedUsed / usageData.allowance) * 100) : 0} 
+
+              <Progress
+                value={usageData.allowance > 0 ? Math.min(100, (usageData.includedUsed / usageData.allowance) * 100) : 0}
                 className="h-2"
               />
+
+              <p className="text-xs text-muted-foreground">
+                1 invoice processed = 2 credits · {usageData.creditsPerLiveContract} credits/month allocated per active Live Contract.
+              </p>
+
+              {usageData.activeLiveContracts > 0 && (
+                <div className="text-xs text-muted-foreground border-t pt-2 mt-2 space-y-0.5">
+                  <div className="flex justify-between">
+                    <span>Plan base allotment</span>
+                    <span className="font-medium text-foreground">{usageData.baseAllowance.toLocaleString()} credits</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Live Contracts boost ({usageData.activeLiveContracts} × {usageData.creditsPerLiveContract})</span>
+                    <span className="font-medium text-foreground">+{usageData.liveContractBoost.toLocaleString()} credits</span>
+                  </div>
+                </div>
+              )}
 
               {usageData.overageCount > 0 && (
                 <div className="flex items-center gap-2 text-sm text-amber-600 mt-2">
                   <AlertTriangle className="h-4 w-4" />
                   <span>
-                    {usageData.overageCount} overage invoices (${(usageData.overageCount * 1.99).toFixed(2)})
+                    {usageData.overageCount.toLocaleString()} overage credits (${(usageData.overageCount * 1.00).toFixed(2)} at on-demand rate)
                   </span>
                 </div>
               )}
