@@ -301,7 +301,7 @@ const App = () => (
               <Route path="/contracts/live/:importId" element={<LiveContractDetail />} />
               <Route path="/contracts/live/:importId/asc606" element={<Asc606AssessmentDetails />} />
               <Route path="/revenue-library" element={<RevenueLibrary />} />
-              <Route path="/contract-intelligence/dashboard" element={<ContractIntelligenceDashboard />} />
+              <Route path="/contract-intelligence/dashboard" element={<Navigate to="/contracts" replace />} />
 
               {/* Pillar Pages */}
               <Route path="/collections-crm" element={<CollectionsCRM />} />
