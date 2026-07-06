@@ -68,16 +68,27 @@ function classify(
   sched: Schedule,
   invoices: Invoice[],
 ): { status: string; candidates: Array<{ invoice_id: string; score: number; reason: string }> } {
+  // If a schedule was previously linked to an invoice that has since been
+  // voided/canceled, unlink it here so this run downgrades it back to
+  // missing/pending instead of falsely reporting it as matched.
   if (sched.invoice_id) {
-    return {
-      status: "matched",
-      candidates: [{ invoice_id: sched.invoice_id, score: 100, reason: "manually linked" }],
-    };
+    const linked = invoices.find((i) => i.id === sched.invoice_id);
+    const linkedVoided = linked && VOIDED_STATUSES.has((linked.status || "").toLowerCase());
+    if (linked && !linkedVoided) {
+      return {
+        status: "matched",
+        candidates: [{ invoice_id: sched.invoice_id, score: 100, reason: "manually linked" }],
+      };
+    }
+    // fall through — treat as unlinked so a fresh candidate search runs
   }
   const target = sched.expected_due_date || sched.scheduled_date;
   const targetAmount = Number(sched.amount || 0);
   const candidates: Array<{ invoice_id: string; score: number; reason: string }> = [];
   for (const inv of invoices) {
+    // Voided invoices don't fulfill the schedule — skip so this line is
+    // reported as missing and stays actionable.
+    if (VOIDED_STATUSES.has((inv.status || "").toLowerCase())) continue;
     const invAmt = Number(inv.total_amount || inv.amount || 0);
     const dDate = dayDiff(target, inv.due_date || inv.issue_date);
     const aMatch = amountMatches(targetAmount, invAmt);
