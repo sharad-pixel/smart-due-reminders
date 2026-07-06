@@ -53,6 +53,7 @@ import {
   LogOut,
   ServerCog,
   Building2,
+  Gift,
 } from "lucide-react";
 
 interface NavItem {
@@ -91,6 +92,9 @@ export function AppSidebar(props: AppSidebarProps) {
   const revenueHub: NavItem[] = useMemo(() => [
     { path: "/hub", label: "Revenue Hub", icon: Sparkles },
     { path: "/dashboard", label: "Overview", icon: LayoutDashboard },
+  ], []);
+
+  const collectionIntel: NavItem[] = useMemo(() => [
     { path: "/invoices", label: "Invoices", icon: FileText },
     { path: "/payments", label: "Payments", icon: DollarSign },
   ], []);
@@ -156,6 +160,13 @@ export function AppSidebar(props: AppSidebarProps) {
         </SidebarGroup>
 
         <SidebarGroup>
+          <SidebarGroupLabel>Collection Intelligence</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>{collectionIntel.map(renderItem)}</SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
           <SidebarGroupLabel>Contract Intelligence</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>{contractIntel.map(renderItem)}</SidebarMenu>
@@ -184,6 +195,22 @@ export function AppSidebar(props: AppSidebarProps) {
           <SidebarGroupLabel>Data</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>{dataItems.map(renderItem)}</SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  onClick={() => window.dispatchEvent(new Event("open-referral-modal"))}
+                  tooltip="Invite & Earn"
+                >
+                  <Gift className="h-4 w-4 text-primary shrink-0" />
+                  <span className="flex-1 truncate">Invite & Earn</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
