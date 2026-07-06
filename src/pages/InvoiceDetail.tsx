@@ -237,6 +237,23 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
   const [editProcessingFeePercent, setEditProcessingFeePercent] = useState("0");
   const [editCurrency, setEditCurrency] = useState("USD");
   const [editDueDate, setEditDueDate] = useState("");
+  const [editDueDateTouched, setEditDueDateTouched] = useState(false);
+
+  // Auto-calc Due Date from Issue Date + Payment Terms while the edit dialog is
+  // open — unless the user has manually typed a due date (override).
+  useEffect(() => {
+    if (!editInvoiceDialogOpen) return;
+    if (editDueDateTouched) return;
+    if (!editIssueDate || !editPaymentTerms) return;
+    try {
+      const opt = getPaymentTermsOptions().find((o) => o.value === editPaymentTerms);
+      const days = typeof opt?.days === "number" ? opt.days : null;
+      if (days === null) return; // "Custom" — leave user's date alone
+      const next = calculateDueDate(editIssueDate, days);
+      setEditDueDate(next);
+    } catch { /* noop */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editIssueDate, editPaymentTerms, editInvoiceDialogOpen]);
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
   const [selectedOutreach, setSelectedOutreach] = useState<OutreachRecord | null>(null);
   const [outreachDetailOpen, setOutreachDetailOpen] = useState(false);
