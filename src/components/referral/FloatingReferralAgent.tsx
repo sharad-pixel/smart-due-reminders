@@ -115,94 +115,11 @@ export function FloatingReferralAgent() {
     window.open(linkedInUrl, "_blank", "noopener,noreferrer");
   };
 
-  // Minimized state — small gift icon
-  if (minimized) {
-    return (
-      <motion.button
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        className="fixed bottom-6 left-6 z-50 h-12 w-12 rounded-full bg-primary shadow-lg hover:shadow-xl flex items-center justify-center transition-shadow group"
-        onClick={handleRestore}
-        title="Referral rewards"
-      >
-        <Gift className="h-5 w-5 text-primary-foreground group-hover:scale-110 transition-transform" />
-        {availableCredits > 0 && (
-          <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center">
-            {availableCredits}
-          </span>
-        )}
-      </motion.button>
-    );
-  }
+  // Floating UI removed — modal now opened via sidebar "Invite & Earn" item
+  // which dispatches the "open-referral-modal" window event.
 
   return (
     <>
-      {/* Floating agent bubble */}
-      <div className="fixed bottom-6 left-6 z-50 flex flex-col items-start gap-2">
-        {/* Speech bubble */}
-        <AnimatePresence>
-          {showBubble && (
-            <motion.div
-              initial={{ opacity: 0, y: 10, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 10, scale: 0.9 }}
-              className="max-w-[260px] rounded-xl bg-card border shadow-xl p-3 relative"
-            >
-              <button
-                onClick={handleMinimize}
-                className="absolute top-1.5 right-1.5 h-5 w-5 rounded-full bg-muted hover:bg-muted-foreground/20 flex items-center justify-center transition-colors"
-              >
-                <X className="h-3 w-3 text-muted-foreground" />
-              </button>
-              <p className="text-xs text-foreground leading-relaxed pr-4">{agent.greeting}</p>
-              <Button
-                size="sm"
-                className="mt-2 w-full gap-1.5 text-xs"
-                onClick={() => { setModalOpen(true); setShowBubble(false); }}
-              >
-                <Gift className="h-3.5 w-3.5" />
-                Invite & Earn
-              </Button>
-              {/* Arrow pointing to avatar */}
-              <div className="absolute -bottom-2 left-6 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-card" />
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Agent avatar */}
-        <motion.button
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => {
-            if (showBubble) {
-              setModalOpen(true);
-              setShowBubble(false);
-            } else {
-              setShowBubble(true);
-            }
-          }}
-          className="relative h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-shadow ring-2 ring-primary/30 ring-offset-2 ring-offset-background overflow-hidden"
-        >
-          <img src={agent.avatar} alt={agent.name} className="h-full w-full object-cover" />
-          <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent h-5 flex items-end justify-center pb-0.5">
-            <span className="text-[8px] font-bold text-white tracking-wide uppercase">{agent.name}</span>
-          </div>
-          {/* Pulse ring */}
-          <span className="absolute inset-0 rounded-full animate-ping bg-primary/20 pointer-events-none" style={{ animationDuration: "3s" }} />
-        </motion.button>
-
-        {/* Minimize button */}
-        <button
-          onClick={handleMinimize}
-          className="h-6 w-6 rounded-full bg-muted border flex items-center justify-center hover:bg-muted-foreground/20 transition-colors"
-          title="Minimize"
-        >
-          <ChevronDown className="h-3 w-3 text-muted-foreground" />
-        </button>
-      </div>
-
       {/* Referral Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="sm:max-w-lg">
