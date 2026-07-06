@@ -1185,15 +1185,24 @@ Deno.serve(async (req) => {
               .eq('invoice_id', invoiceRecordId)
               .eq('user_id', effectiveAccountId);
 
-            const lineItemsToInsert = stripeLines.map((line: any, index: number) => ({
-              invoice_id: invoiceRecordId,
-              user_id: effectiveAccountId,
-              description: line.description || line.plan?.nickname || 'Stripe line item',
-              quantity: line.quantity || 1,
-              unit_price: (line.unit_amount || line.price?.unit_amount || 0) / 100,
-              line_total: (line.amount || 0) / 100,
-              sort_order: index,
-            }));
+            const lineItemsToInsert = stripeLines.map((line: any, index: number) => {
+              const ps = line?.period?.start ? new Date(line.period.start * 1000).toISOString().split('T')[0] : null;
+              const pe = line?.period?.end ? new Date(line.period.end * 1000).toISOString().split('T')[0] : null;
+              const interval = line?.price?.recurring?.interval || line?.plan?.interval || null;
+              return {
+                invoice_id: invoiceRecordId,
+                user_id: effectiveAccountId,
+                description: line.description || line.plan?.nickname || 'Stripe line item',
+                quantity: line.quantity || 1,
+                unit_price: (line.unit_amount || line.price?.unit_amount || 0) / 100,
+                line_total: (line.amount || 0) / 100,
+                sort_order: index,
+                billing_period: ps && pe ? `${ps} → ${pe}` : null,
+                pricing_model: interval ? 'recurring' : 'one_time',
+                stripe_price_id: line?.price?.id || null,
+                stripe_product_id: (typeof line?.price?.product === 'string' ? line.price.product : line?.price?.product?.id) || null,
+              };
+            });
 
             const { error: lineItemsError } = await supabaseClient
               .from('invoice_line_items')
