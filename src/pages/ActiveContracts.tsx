@@ -116,7 +116,7 @@ export default function ActiveContracts({ embedded = false }: { embedded?: boole
   return (
     <Shell>
       {!embedded && <SEO title="Active Contracts · Recouply" description="Search and browse all active contracts." />}
-      <div className="container max-w-7xl py-6 space-y-4">
+      <div className="w-full max-w-[1600px] mx-auto py-6 space-y-4">
         <div className="flex items-start justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">

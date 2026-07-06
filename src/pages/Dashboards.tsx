@@ -75,7 +75,7 @@ const dashboards: DashboardTile[] = [
 export default function Dashboards() {
   return (
     <Layout>
-      <div className="max-w-7xl mx-auto px-6 py-10 space-y-8">
+      <div className="max-w-[1600px] mx-auto px-6 py-10 space-y-8">
         <header className="space-y-2">
           <h1 className="text-3xl font-semibold tracking-tight">Dashboards</h1>
           <p className="text-muted-foreground max-w-2xl">
