@@ -196,6 +196,22 @@ export function AppSidebar(props: AppSidebarProps) {
             <SidebarMenu>{dataItems.map(renderItem)}</SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  onClick={() => window.dispatchEvent(new Event("open-referral-modal"))}
+                  tooltip="Invite & Earn"
+                >
+                  <Gift className="h-4 w-4 text-primary shrink-0" />
+                  <span className="flex-1 truncate">Invite & Earn</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
 
       <SidebarFooter className="border-t">
