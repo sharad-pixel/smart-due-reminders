@@ -58,7 +58,7 @@ const STRIPE_MAX_ITEM_MINOR = 99_999_999;
 
 async function createInvoiceItemChunks(
   stripe: Stripe,
-  params: { customer: string; invoice: string; amount: number; currency: string; description: string; metadata: Record<string, string> },
+  params: { customer: string; invoice: string; amount: number; currency: string; description: string; metadata: Record<string, string>; period?: { start: number; end: number } },
 ) {
   const { amount } = params;
   if (amount === 0) return;
@@ -69,16 +69,35 @@ async function createInvoiceItemChunks(
   while (remaining > 0) {
     const chunk = Math.min(remaining, STRIPE_MAX_ITEM_MINOR) * sign;
     part += 1;
-    await stripe.invoiceItems.create({
+    const payload: Record<string, unknown> = {
       customer: params.customer,
       invoice: params.invoice,
       amount: chunk,
       currency: params.currency,
       description: totalParts > 1 ? `${params.description} (part ${part}/${totalParts})` : params.description,
       metadata: params.metadata,
-    });
+    };
+    if (params.period) payload.period = params.period;
+    await stripe.invoiceItems.create(payload as any);
     remaining -= Math.abs(chunk);
   }
+}
+
+function toEpochSec(v: string | null | undefined): number | null {
+  if (!v) return null;
+  const t = new Date(v).getTime();
+  return Number.isFinite(t) ? Math.floor(t / 1000) : null;
+}
+
+function parseLineBillingPeriod(bp: string | null | undefined): { start: number; end: number } | undefined {
+  if (!bp) return undefined;
+  // Support "YYYY-MM-DD → YYYY-MM-DD" or "YYYY-MM-DD - YYYY-MM-DD"
+  const m = bp.match(/(\d{4}-\d{2}-\d{2})\s*(?:→|-|to)\s*(\d{4}-\d{2}-\d{2})/i);
+  if (!m) return undefined;
+  const s = toEpochSec(m[1]);
+  const e = toEpochSec(m[2]);
+  if (!s || !e || e <= s) return undefined;
+  return { start: s, end: e };
 }
 
 serve(async (req) => {
@@ -227,6 +246,9 @@ serve(async (req) => {
         recouply_invoice_number: inv.invoice_number ?? "",
         recouply_original_due_date: inv.due_date || "",
         recouply_due_date_adjusted: rawDueSec && rawDueSec <= nowSec ? "true" : "false",
+        recouply_billing_frequency: inv.billing_frequency || "",
+        recouply_billing_period_start: inv.billing_period_start || "",
+        recouply_billing_period_end: inv.billing_period_end || "",
       },
       auto_advance: false,
     });
@@ -240,12 +262,24 @@ serve(async (req) => {
       stripe_push_error: null,
     } as any).eq("id", invoice_id);
 
+    // Invoice-level coverage period (fallback for every line if the line
+    // itself doesn't carry one). Stripe renders this as "Service period" on
+    // the finalized invoice — this is what surfaces the term recurring
+    // items cover.
+    const invPeriodStart = toEpochSec(inv.billing_period_start);
+    const invPeriodEnd = toEpochSec(inv.billing_period_end);
+    const invoicePeriod =
+      invPeriodStart && invPeriodEnd && invPeriodEnd > invPeriodStart
+        ? { start: invPeriodStart, end: invPeriodEnd }
+        : undefined;
+
     // Attach line items directly to this invoice
     let attachedTotalCents = 0;
     if (lineItems && lineItems.length > 0) {
       for (const li of lineItems) {
         const cents = lineItemCents(li, currency);
         if (!cents) continue;
+        const linePeriod = parseLineBillingPeriod(li.billing_period) || invoicePeriod;
         await createInvoiceItemChunks(stripe, {
           customer: customerId,
           invoice: stripeInvoice.id,
@@ -253,6 +287,7 @@ serve(async (req) => {
           currency,
           description: li.description || inv.invoice_number || "Invoice line",
           metadata: { recouply_invoice_id: invoice_id },
+          period: linePeriod,
         });
         attachedTotalCents += cents;
       }
@@ -267,6 +302,7 @@ serve(async (req) => {
         currency,
         description: inv.product_description || inv.invoice_number || "Invoice",
         metadata: { recouply_invoice_id: invoice_id },
+        period: invoicePeriod,
       });
       attachedTotalCents = expectedCents;
     }

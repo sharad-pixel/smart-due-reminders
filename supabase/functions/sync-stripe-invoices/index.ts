@@ -592,6 +592,40 @@ Deno.serve(async (req) => {
           : new Date().toISOString().split('T')[0];
         const stripeIntegrationUrl = `https://dashboard.stripe.com/invoices/${stripeInvoice.id}`;
 
+        // Derive billing period + recurring frequency from Stripe line items so
+        // the Recouply UI can display the coverage window for recurring invoices.
+        let billingPeriodStart: string | null = null;
+        let billingPeriodEnd: string | null = null;
+        let billingFrequency: string | null = null;
+        let nextBillingDate: string | null = null;
+        try {
+          const lines = (stripeInvoice as any).lines?.data || [];
+          for (const ln of lines) {
+            const ps = ln?.period?.start ? new Date(ln.period.start * 1000) : null;
+            const pe = ln?.period?.end ? new Date(ln.period.end * 1000) : null;
+            if (ps && (!billingPeriodStart || ps.toISOString().split('T')[0] < billingPeriodStart)) {
+              billingPeriodStart = ps.toISOString().split('T')[0];
+            }
+            if (pe && (!billingPeriodEnd || pe.toISOString().split('T')[0] > billingPeriodEnd)) {
+              billingPeriodEnd = pe.toISOString().split('T')[0];
+            }
+            const interval = ln?.price?.recurring?.interval || ln?.plan?.interval;
+            const count = ln?.price?.recurring?.interval_count || ln?.plan?.interval_count || 1;
+            if (interval && !billingFrequency) {
+              const map: Record<string, string> = { day: 'daily', week: 'weekly', month: 'monthly', year: 'annual' };
+              billingFrequency = count === 1 ? (map[interval] || interval) :
+                (interval === 'month' && count === 3 ? 'quarterly' :
+                 interval === 'month' && count === 6 ? 'semi_annual' :
+                 `every_${count}_${interval}`);
+            }
+          }
+          if (billingPeriodEnd) {
+            const next = new Date(billingPeriodEnd);
+            next.setDate(next.getDate() + 1);
+            nextBillingDate = next.toISOString().split('T')[0];
+          }
+        } catch (_e) { /* period derivation is best-effort */ }
+
         const invoiceData: Record<string, any> = {
           user_id: effectiveAccountId,
           debtor_id: debtorId,
@@ -624,7 +658,12 @@ Deno.serve(async (req) => {
           integration_url: stripeIntegrationUrl,
           original_amount: stripeAmount,
           original_due_date: stripeDueDate,
-          last_synced_at: new Date().toISOString()
+          last_synced_at: new Date().toISOString(),
+          // Recurring / coverage period surfaced from Stripe subscription lines
+          billing_period_start: billingPeriodStart,
+          billing_period_end: billingPeriodEnd,
+          billing_frequency: billingFrequency,
+          next_billing_date: nextBillingDate,
         };
 
         if (paymentDate) {
@@ -1146,15 +1185,24 @@ Deno.serve(async (req) => {
               .eq('invoice_id', invoiceRecordId)
               .eq('user_id', effectiveAccountId);
 
-            const lineItemsToInsert = stripeLines.map((line: any, index: number) => ({
-              invoice_id: invoiceRecordId,
-              user_id: effectiveAccountId,
-              description: line.description || line.plan?.nickname || 'Stripe line item',
-              quantity: line.quantity || 1,
-              unit_price: (line.unit_amount || line.price?.unit_amount || 0) / 100,
-              line_total: (line.amount || 0) / 100,
-              sort_order: index,
-            }));
+            const lineItemsToInsert = stripeLines.map((line: any, index: number) => {
+              const ps = line?.period?.start ? new Date(line.period.start * 1000).toISOString().split('T')[0] : null;
+              const pe = line?.period?.end ? new Date(line.period.end * 1000).toISOString().split('T')[0] : null;
+              const interval = line?.price?.recurring?.interval || line?.plan?.interval || null;
+              return {
+                invoice_id: invoiceRecordId,
+                user_id: effectiveAccountId,
+                description: line.description || line.plan?.nickname || 'Stripe line item',
+                quantity: line.quantity || 1,
+                unit_price: (line.unit_amount || line.price?.unit_amount || 0) / 100,
+                line_total: (line.amount || 0) / 100,
+                sort_order: index,
+                billing_period: ps && pe ? `${ps} → ${pe}` : null,
+                pricing_model: interval ? 'recurring' : 'one_time',
+                stripe_price_id: line?.price?.id || null,
+                stripe_product_id: (typeof line?.price?.product === 'string' ? line.price.product : line?.price?.product?.id) || null,
+              };
+            });
 
             const { error: lineItemsError } = await supabaseClient
               .from('invoice_line_items')
