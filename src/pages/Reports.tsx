@@ -47,6 +47,24 @@ interface ContractStats {
   contractOverdueAmount: number;
 }
 
+interface ContractInsight {
+  contractId: string;
+  name: string;
+  invoiced: number;
+  recovered: number;
+  overdue: number;
+  overdueRate: number;
+  recoveryRate: number;
+  invoiceCount: number;
+  overdueInvoiceCount: number;
+  outreachCount: number;
+  outreachPerOverdueInvoice: number;
+  suggestedCadence: string;
+  currentCadence: string;
+  expectedLift: number;
+  severity: "high" | "medium" | "low";
+}
+
 const currency = (n: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 
