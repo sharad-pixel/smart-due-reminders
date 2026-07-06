@@ -2731,7 +2731,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                     id="due-date"
                     type="date"
                     value={editDueDate}
-                    onChange={(e) => setEditDueDate(e.target.value)}
+                    onChange={(e) => { setEditDueDate(e.target.value); setEditDueDateTouched(true); }}
                   />
                   <p className="mt-1 text-[11px] text-muted-foreground">
                     Leave matching issue date + terms to auto-calculate. Overrides win for drafts.
