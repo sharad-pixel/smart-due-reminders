@@ -1895,17 +1895,17 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                                 size="sm"
                                 variant="outline"
                                 className="w-full"
-                                onClick={handlePushToStripe}
+                                onClick={() => handlePushToStripe(false)}
                                 disabled={pushingToStripe}
                               >
                                 {pushingToStripe ? (
                                   <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> Pushing…</>
                                 ) : (
-                                  <><Upload className="h-3.5 w-3.5 mr-1.5" /> Push to Stripe</>
+                                  <><Upload className="h-3.5 w-3.5 mr-1.5" /> Push as Draft to Stripe</>
                                 )}
                               </Button>
                               <p className="text-[10px] text-muted-foreground leading-snug">
-                                Stripe caps a single invoice line item at $999,999.99. Larger amounts are automatically split into multiple line items (part 1/N, 2/N…) so the pushed total matches Recouply exactly.
+                                Creates a <strong>draft</strong> invoice in Stripe so you can validate the values before locking it. Finalize it from here once verified. Stripe caps a single line item at $999,999.99; larger amounts are auto-split (part 1/N, 2/N…) so the total matches Recouply exactly.
                               </p>
                             </div>
                           ) : (
