@@ -226,13 +226,22 @@ Deno.serve(async (req) => {
       if (r.status === "matched" && r.candidates[0]) {
         usedInvoiceIds.add(r.candidates[0].invoice_id);
       }
+      // If schedule was linked to an invoice that is now voided, clear the
+      // link so the UI stops rendering a stale "billed" state.
+      const stillLinkedVoided = !!(
+        s.invoice_id &&
+        invoices.find((i) => i.id === s.invoice_id && VOIDED_STATUSES.has((i.status || "").toLowerCase()))
+      );
       await supabase
         .from("contract_invoice_schedules")
         .update({
           reconciliation_status: r.status,
           reconciliation_candidates: r.candidates,
           reconciled_at: new Date().toISOString(),
-          ...(r.status === "matched" && r.candidates[0] && !s.invoice_id
+          ...(stillLinkedVoided
+            ? { invoice_id: null, attachment_source: null, completion_status: "pending", completed_at: null }
+            : {}),
+          ...(r.status === "matched" && r.candidates[0] && !s.invoice_id && !stillLinkedVoided
             ? { invoice_id: r.candidates[0].invoice_id, attachment_source: "linked" }
             : {}),
         })
