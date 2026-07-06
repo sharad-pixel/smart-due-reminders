@@ -247,6 +247,88 @@ export default function Reports() {
         0
       );
 
+      // Build optimization insights: rank contracts by overdue exposure
+      const candidateIds = Array.from(contractAgg.entries())
+        .filter(([, v]) => v.invoiced > 0)
+        .sort((a, b) => b[1].overdue - a[1].overdue)
+        .slice(0, 8)
+        .map(([id]) => id);
+
+      const nameById = new Map<string, string>();
+      if (candidateIds.length > 0) {
+        const { data: contractRows } = await supabase
+          .from("live_contract_imports")
+          .select("id, contract_name, file_name")
+          .in("id", candidateIds);
+        (contractRows || []).forEach((c: any) => {
+          nameById.set(c.id, c.contract_name || c.file_name || `Contract ${String(c.id).slice(0, 8)}`);
+        });
+      }
+
+      const builtInsights: ContractInsight[] = candidateIds
+        .map((cid) => {
+          const v = contractAgg.get(cid)!;
+          let outreachCount = 0;
+          v.invoiceIds.forEach((iid) => {
+            outreachCount += outreachByInvoice.get(iid) ?? 0;
+          });
+          const overdueRate = v.invoiced > 0 ? v.overdue / v.invoiced : 0;
+          const recoveryRate = v.invoiced > 0 ? v.recovered / v.invoiced : 0;
+          const outreachPerOverdue =
+            v.overdueInvoiceCount > 0 ? outreachCount / v.overdueInvoiceCount : outreachCount;
+
+          let currentCadence = "No outreach";
+          if (outreachPerOverdue >= 4) currentCadence = "Weekly";
+          else if (outreachPerOverdue >= 2) currentCadence = "Bi-weekly";
+          else if (outreachPerOverdue >= 1) currentCadence = "Monthly";
+
+          let suggestedCadence = currentCadence;
+          let uplift = 0.05;
+          let severity: "high" | "medium" | "low" = "low";
+
+          if (overdueRate > 0.5 && outreachPerOverdue < 2) {
+            suggestedCadence = "Every 3–5 days + escalation";
+            uplift = 0.25;
+            severity = "high";
+          } else if (overdueRate > 0.3 && outreachPerOverdue < 2) {
+            suggestedCadence = "Weekly with phone touchpoint";
+            uplift = 0.18;
+            severity = "high";
+          } else if (overdueRate > 0.15 && outreachPerOverdue < 3) {
+            suggestedCadence = "Weekly reminders";
+            uplift = 0.12;
+            severity = "medium";
+          } else if (overdueRate > 0.05) {
+            suggestedCadence = "Add pre-due-date reminder (T-3d)";
+            uplift = 0.08;
+            severity = "medium";
+          } else {
+            suggestedCadence = "Maintain current cadence";
+            uplift = 0.03;
+            severity = "low";
+          }
+
+          return {
+            contractId: cid,
+            name: nameById.get(cid) || `Contract ${cid.slice(0, 8)}`,
+            invoiced: v.invoiced,
+            recovered: v.recovered,
+            overdue: v.overdue,
+            overdueRate,
+            recoveryRate,
+            invoiceCount: v.invoiceCount,
+            overdueInvoiceCount: v.overdueInvoiceCount,
+            outreachCount,
+            outreachPerOverdueInvoice: outreachPerOverdue,
+            currentCadence,
+            suggestedCadence,
+            expectedLift: v.overdue * uplift,
+            severity,
+          };
+        })
+        .filter((i) => i.overdue > 0)
+        .slice(0, 5);
+
       if (!cancelled) {
         setBuckets(months);
         setActivityTotal(totalActs);
