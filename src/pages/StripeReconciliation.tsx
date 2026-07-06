@@ -22,6 +22,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import SEO from "@/components/seo/SEO";
+import Layout from "@/components/layout/Layout";
 
 interface Discrepancy {
   key: string;
@@ -146,7 +147,8 @@ export default function StripeReconciliation() {
   const typeCounts = summary?.byType || {};
 
   return (
-    <div className="container mx-auto p-6 space-y-6 max-w-7xl">
+    <Layout>
+    <div className="w-full max-w-[1600px] mx-auto p-6 space-y-6">
       <SEO title="Stripe reconciliation | Recouply" description="Reconcile Stripe invoices with Recouply and fix discrepancies." />
 
       <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -350,5 +352,6 @@ export default function StripeReconciliation() {
         </CardContent>
       </Card>
     </div>
+    </Layout>
   );
 }
