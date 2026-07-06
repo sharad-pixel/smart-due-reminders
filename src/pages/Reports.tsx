@@ -143,6 +143,19 @@ export default function Reports() {
       let contractOverdue = 0;
       let contractInvoiceCount = 0;
 
+      // Per-contract aggregation for optimization insights
+      const contractAgg = new Map<
+        string,
+        {
+          invoiced: number;
+          recovered: number;
+          overdue: number;
+          invoiceCount: number;
+          overdueInvoiceCount: number;
+          invoiceIds: Set<string>;
+        }
+      >();
+
       invoices.forEach((inv: any) => {
         const issue = inv.issue_date ? new Date(inv.issue_date) : null;
         if (!issue) return;
@@ -155,9 +168,8 @@ export default function Reports() {
         b.invoiced += amt;
         b.recovered += recovered;
         b.outstanding += outs;
-        if (inv.due_date && new Date(inv.due_date) < now && outs > 0) {
-          b.overdue += outs;
-        }
+        const isOverdue = !!(inv.due_date && new Date(inv.due_date) < now && outs > 0);
+        if (isOverdue) b.overdue += outs;
         if (inv.paid_date && inv.due_date) {
           const d = differenceInDays(new Date(inv.paid_date), new Date(inv.due_date));
           daysToPaySamples.push(d);
@@ -166,22 +178,44 @@ export default function Reports() {
           contractInvoiceCount++;
           contractInvoiced += amt;
           contractRecovered += recovered;
-          if (inv.due_date && new Date(inv.due_date) < now && outs > 0) contractOverdue += outs;
+          if (isOverdue) contractOverdue += outs;
+          const cid = inv.source_contract_id as string;
+          const agg = contractAgg.get(cid) ?? {
+            invoiced: 0,
+            recovered: 0,
+            overdue: 0,
+            invoiceCount: 0,
+            overdueInvoiceCount: 0,
+            invoiceIds: new Set<string>(),
+          };
+          agg.invoiced += amt;
+          agg.recovered += recovered;
+          if (isOverdue) {
+            agg.overdue += outs;
+            agg.overdueInvoiceCount++;
+          }
+          agg.invoiceCount++;
+          agg.invoiceIds.add(inv.id);
+          contractAgg.set(cid, agg);
         }
       });
 
-      // Collection activities per month
+      // Collection activities per month + per invoice
       const { data: acts } = await supabase
         .from("collection_activities")
-        .select("created_at, direction")
+        .select("created_at, direction, invoice_id")
         .gte("created_at", dateRange.start.toISOString())
         .lte("created_at", dateRange.end.toISOString())
         .limit(10000);
 
+      const outreachByInvoice = new Map<string, number>();
       (acts || []).forEach((a: any) => {
         const key = format(new Date(a.created_at), "yyyy-MM");
         const b = months.find((m) => m.key === key);
         if (b) b.outreach += 1;
+        if (a.invoice_id) {
+          outreachByInvoice.set(a.invoice_id, (outreachByInvoice.get(a.invoice_id) ?? 0) + 1);
+        }
       });
 
       // Split recovered into "automated" (months with outreach) vs "manual"
