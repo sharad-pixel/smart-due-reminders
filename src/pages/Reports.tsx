@@ -444,6 +444,8 @@ export default function Reports() {
                   />
                 </div>
 
+                <OptimizationInsights insights={insights} />
+
                 <ReportSection title="Recovery breakdown">
                   <div className="flex items-center gap-4 text-xs text-muted-foreground mb-3">
                     <LegendDot color="hsl(var(--muted-foreground) / 0.35)" label="Outstanding" />
