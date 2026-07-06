@@ -24,6 +24,10 @@ const AMOUNT_TOL = 0.02; // 2%
 const DATE_WINDOW_DAYS = 21; // generous for monthly billing-day drift
 const TERM_WINDOW_DAYS = 60;
 const SETTLED_STATUSES = new Set(["paid", "settled", "closed", "complete", "completed"]);
+// Voided / canceled invoices no longer represent a real billing against the
+// contract — the schedule line must remain pending/unresolved so it re-surfaces
+// as an obligation to bill.
+const VOIDED_STATUSES = new Set(["canceled", "cancelled", "voided", "void"]);
 
 const dayDiff = (a: string, b: string) =>
   Math.round(
@@ -64,16 +68,27 @@ function classify(
   sched: Schedule,
   invoices: Invoice[],
 ): { status: string; candidates: Array<{ invoice_id: string; score: number; reason: string }> } {
+  // If a schedule was previously linked to an invoice that has since been
+  // voided/canceled, unlink it here so this run downgrades it back to
+  // missing/pending instead of falsely reporting it as matched.
   if (sched.invoice_id) {
-    return {
-      status: "matched",
-      candidates: [{ invoice_id: sched.invoice_id, score: 100, reason: "manually linked" }],
-    };
+    const linked = invoices.find((i) => i.id === sched.invoice_id);
+    const linkedVoided = linked && VOIDED_STATUSES.has((linked.status || "").toLowerCase());
+    if (linked && !linkedVoided) {
+      return {
+        status: "matched",
+        candidates: [{ invoice_id: sched.invoice_id, score: 100, reason: "manually linked" }],
+      };
+    }
+    // fall through — treat as unlinked so a fresh candidate search runs
   }
   const target = sched.expected_due_date || sched.scheduled_date;
   const targetAmount = Number(sched.amount || 0);
   const candidates: Array<{ invoice_id: string; score: number; reason: string }> = [];
   for (const inv of invoices) {
+    // Voided invoices don't fulfill the schedule — skip so this line is
+    // reported as missing and stays actionable.
+    if (VOIDED_STATUSES.has((inv.status || "").toLowerCase())) continue;
     const invAmt = Number(inv.total_amount || inv.amount || 0);
     const dDate = dayDiff(target, inv.due_date || inv.issue_date);
     const aMatch = amountMatches(targetAmount, invAmt);
@@ -211,13 +226,22 @@ Deno.serve(async (req) => {
       if (r.status === "matched" && r.candidates[0]) {
         usedInvoiceIds.add(r.candidates[0].invoice_id);
       }
+      // If schedule was linked to an invoice that is now voided, clear the
+      // link so the UI stops rendering a stale "billed" state.
+      const stillLinkedVoided = !!(
+        s.invoice_id &&
+        invoices.find((i) => i.id === s.invoice_id && VOIDED_STATUSES.has((i.status || "").toLowerCase()))
+      );
       await supabase
         .from("contract_invoice_schedules")
         .update({
           reconciliation_status: r.status,
           reconciliation_candidates: r.candidates,
           reconciled_at: new Date().toISOString(),
-          ...(r.status === "matched" && r.candidates[0] && !s.invoice_id
+          ...(stillLinkedVoided
+            ? { invoice_id: null, attachment_source: null, completion_status: "pending", completed_at: null }
+            : {}),
+          ...(r.status === "matched" && r.candidates[0] && !s.invoice_id && !stillLinkedVoided
             ? { invoice_id: r.candidates[0].invoice_id, attachment_source: "linked" }
             : {}),
         })

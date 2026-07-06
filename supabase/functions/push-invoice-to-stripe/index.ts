@@ -104,12 +104,45 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
     const { supa, stripeKey } = await resolveStripeContext(req.headers.get("Authorization"));
-    const { invoice_id, finalize } = await req.json();
+    const { invoice_id, finalize, action } = await req.json();
     if (!invoice_id) throw new Error("invoice_id required");
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
     const { data: inv } = await supa.from("invoices").select("*").eq("id", invoice_id).maybeSingle();
     if (!inv) throw new Error("Invoice not found");
+
+    // Void action — called when the invoice is Canceled/Voided in Recouply so
+    // Stripe reflects the same terminal state. Draft invoices in Stripe must be
+    // deleted; finalized invoices are voided. Either way we clear the local
+    // push status so the invoice is no longer treated as "in Stripe".
+    if (action === "void") {
+      if (!inv.stripe_invoice_id) {
+        return new Response(JSON.stringify({ ok: true, skipped: "no_linked_stripe_invoice" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      try {
+        const existing = await stripe.invoices.retrieve(inv.stripe_invoice_id);
+        if (existing.status === "draft") {
+          await stripe.invoices.del(inv.stripe_invoice_id);
+        } else if (existing.status !== "void" && existing.status !== "paid") {
+          await stripe.invoices.voidInvoice(inv.stripe_invoice_id);
+        }
+      } catch (voidErr) {
+        return new Response(JSON.stringify({
+          error: `Could not void Stripe invoice: ${(voidErr as Error).message}`,
+          code: "stripe_void_failed",
+          stripe_invoice_id: inv.stripe_invoice_id,
+        }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      await supa.from("invoices").update({
+        stripe_push_status: "voided",
+        stripe_push_error: null,
+      } as any).eq("id", invoice_id);
+      return new Response(JSON.stringify({ ok: true, voided: inv.stripe_invoice_id }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const currency = (inv.currency || "usd").toLowerCase();
     const { data: lineItems } = await supa.from("invoice_line_items").select("*").eq("invoice_id", invoice_id).order("sort_order");
     const expectedCents = invoiceExpectedCents(inv, lineItems, currency);
