@@ -246,6 +246,9 @@ serve(async (req) => {
         recouply_invoice_number: inv.invoice_number ?? "",
         recouply_original_due_date: inv.due_date || "",
         recouply_due_date_adjusted: rawDueSec && rawDueSec <= nowSec ? "true" : "false",
+        recouply_billing_frequency: inv.billing_frequency || "",
+        recouply_billing_period_start: inv.billing_period_start || "",
+        recouply_billing_period_end: inv.billing_period_end || "",
       },
       auto_advance: false,
     });
@@ -259,12 +262,24 @@ serve(async (req) => {
       stripe_push_error: null,
     } as any).eq("id", invoice_id);
 
+    // Invoice-level coverage period (fallback for every line if the line
+    // itself doesn't carry one). Stripe renders this as "Service period" on
+    // the finalized invoice — this is what surfaces the term recurring
+    // items cover.
+    const invPeriodStart = toEpochSec(inv.billing_period_start);
+    const invPeriodEnd = toEpochSec(inv.billing_period_end);
+    const invoicePeriod =
+      invPeriodStart && invPeriodEnd && invPeriodEnd > invPeriodStart
+        ? { start: invPeriodStart, end: invPeriodEnd }
+        : undefined;
+
     // Attach line items directly to this invoice
     let attachedTotalCents = 0;
     if (lineItems && lineItems.length > 0) {
       for (const li of lineItems) {
         const cents = lineItemCents(li, currency);
         if (!cents) continue;
+        const linePeriod = parseLineBillingPeriod(li.billing_period) || invoicePeriod;
         await createInvoiceItemChunks(stripe, {
           customer: customerId,
           invoice: stripeInvoice.id,
@@ -272,6 +287,7 @@ serve(async (req) => {
           currency,
           description: li.description || inv.invoice_number || "Invoice line",
           metadata: { recouply_invoice_id: invoice_id },
+          period: linePeriod,
         });
         attachedTotalCents += cents;
       }
@@ -286,6 +302,7 @@ serve(async (req) => {
         currency,
         description: inv.product_description || inv.invoice_number || "Invoice",
         metadata: { recouply_invoice_id: invoice_id },
+        period: invoicePeriod,
       });
       attachedTotalCents = expectedCents;
     }
