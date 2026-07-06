@@ -19,6 +19,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { ArrowLeft, CheckCircle, AlertCircle, XCircle, Info, Copy, Check, Sparkles, Edit, DollarSign, Mail, FileText, X, PauseCircle, PlayCircle, Search, MessageSquare, CreditCard, FileX, Undo2, ExternalLink, Lock, FileEdit } from "lucide-react";
 import { InvoiceTransactionLog } from "@/components/invoices/InvoiceTransactionLog";
+import { InvoiceProductBreakdown } from "@/components/invoices/InvoiceProductBreakdown";
 import { PersonaAvatar } from "@/components/ai/PersonaAvatar";
 import { getPersonaByDaysPastDue } from "@/lib/personaConfig";
 import { PersonaCommandInput } from "@/components/ai/PersonaCommandInput";
@@ -1637,6 +1638,16 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                 )}
               </CardContent>
             </Card>
+
+            <InvoiceProductBreakdown
+              invoiceId={invoice.id}
+              currency={invoice.currency || "USD"}
+              invoicePeriodStart={invoice.billing_period_start}
+              invoicePeriodEnd={invoice.billing_period_end}
+              billingFrequency={invoice.billing_frequency}
+            />
+
+
 
             <Card>
               <CardHeader className="pb-3">
