@@ -54,6 +54,7 @@ import {
   ServerCog,
   Building2,
   Gift,
+  LineChart as LineChartIcon,
 } from "lucide-react";
 
 interface NavItem {
@@ -118,6 +119,11 @@ export function AppSidebar(props: AppSidebarProps) {
   const dataItems: NavItem[] = useMemo(() => [
     { path: "/debtors", label: "Accounts", icon: Users },
     { path: "/data-center", label: "Data Center", icon: Database },
+  ], []);
+
+  const analyticsItems: NavItem[] = useMemo(() => [
+    { path: "/dashboards", label: "Dashboards", icon: LayoutDashboard },
+    { path: "/reports", label: "Reports", icon: LineChartIcon },
   ], []);
 
   const isActive = (path: string) => location.pathname === path;
@@ -195,6 +201,13 @@ export function AppSidebar(props: AppSidebarProps) {
           <SidebarGroupLabel>Data</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>{dataItems.map(renderItem)}</SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Analytics</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>{analyticsItems.map(renderItem)}</SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 

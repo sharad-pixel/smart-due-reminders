@@ -159,6 +159,8 @@ const PublicInvoicePage = lazy(() => import("./pages/PublicInvoicePage"));
 const Alerts = lazy(() => import("./pages/Alerts"));
 const EmailDeliveryReport = lazy(() => import("./pages/EmailDeliveryReport"));
 const RevenueRisk = lazy(() => import("./pages/RevenueRisk"));
+const Dashboards = lazy(() => import("./pages/Dashboards"));
+const Reports = lazy(() => import("./pages/Reports"));
 
 
 // Payment & Billing
@@ -408,6 +410,8 @@ const App = () => (
               <Route path="/alerts" element={<Alerts />} />
               <Route path="/revenue-risk" element={<RevenueRisk />} />
               <Route path="/reports/email-delivery" element={<EmailDeliveryReport />} />
+              <Route path="/dashboards" element={<Dashboards />} />
+              <Route path="/reports" element={<Reports />} />
 
               {/* Admin Pages */}
               <Route path="/admin" element={<AdminDashboard />} />
