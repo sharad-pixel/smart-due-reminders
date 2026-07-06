@@ -1,54 +1,14 @@
 import { ReactNode, useEffect, useState } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
 import { User } from "@supabase/supabase-js";
 import { toast } from "sonner";
+import { Loader2, Building2, ShieldCheck } from "lucide-react";
 import {
-  LayoutDashboard,
-  Users,
-  FileText,
-  Settings,
-  LogOut,
-  User as UserIcon,
-  Workflow,
-  Mail,
-  CheckSquare,
-  Shield,
-  FolderOpen,
-  Menu,
-  X,
-  Inbox,
-  ChevronDown,
-  Bot,
-  Database,
-  CalendarDays,
-  ServerCog,
-  Building2,
-  Palette,
-  Bell,
-  BarChart3,
-  ShieldCheck,
-  Loader2,
-  DollarSign,
-  ShieldAlert,
-  FileSignature,
-  FileSearch,
-  Briefcase,
-  Sparkles,
-  CreditCard,
-  Wallet,
-  Library,
-} from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { UsageIndicator } from "@/components/billing/UsageIndicator";
+  SidebarProvider,
+  SidebarInset,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
 import { SecurityAlert } from "@/components/security/SecurityAlert";
 import { SupportAccessBanner } from "@/components/security/SupportAccessBanner";
 import { SupportImpersonationBanner } from "@/components/security/SupportImpersonationBanner";
@@ -61,19 +21,14 @@ import { NicolasPageTip } from "@/components/nicolas/NicolasPageTip";
 import { OnboardingWelcome } from "@/components/layout/OnboardingWelcome";
 import { useEffectiveAccount } from "@/hooks/useEffectiveAccount";
 import { useSubscription } from "@/hooks/useSubscription";
-import { NavProfileAvatar } from "@/components/layout/NavProfileAvatar";
-import { CreditsWalletBadge } from "@/components/billing/CreditsWalletBadge";
-import { OnboardingProgressRing } from "@/components/layout/OnboardingProgressRing";
 import { useOnboardingCompletion } from "@/hooks/useOnboardingCompletion";
-
-import { AlertNotifications } from "@/components/alerts/AlertNotifications";
 import { useClmEntitlement } from "@/hooks/useClmEntitlement";
 import { FloatingReferralAgent } from "@/components/referral/FloatingReferralAgent";
 import { useUserAlerts } from "@/hooks/useUserAlerts";
 import { RequireSubscription } from "@/components/billing/RequireSubscription";
 import { TrialBanner } from "@/components/billing/TrialBanner";
 import { AccountLockoutBanner } from "@/components/accounts/AccountLockoutBanner";
-
+import { AppSidebar } from "@/components/layout/AppSidebar";
 
 interface LayoutProps {
   children: ReactNode;
@@ -86,12 +41,12 @@ const Layout = ({ children }: LayoutProps) => {
   const [authChecked, setAuthChecked] = useState(false);
   const [userName, setUserName] = useState<string>("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [trialBannerVisible, setTrialBannerVisible] = useState(false);
   const [smartIngestionOpen, setSmartIngestionOpen] = useState(false);
   const [isFounder, setIsFounder] = useState(false);
+  const [showTeam, setShowTeam] = useState(false);
   const { unreadCount: alertUnreadCount } = useUserAlerts();
-  const { isActive: clmActive } = useClmEntitlement();
+  useClmEntitlement();
   const {
     isTeamMember,
     ownerName,
@@ -100,8 +55,6 @@ const Layout = ({ children }: LayoutProps) => {
     ownerPlanType,
     ownerSubscriptionStatus,
     memberRole,
-    ownerUserId: _ownerUserId,
-    organizationId: _organizationId,
     organizationName,
     loading: accountLoading,
   } = useEffectiveAccount();
@@ -113,16 +66,15 @@ const Layout = ({ children }: LayoutProps) => {
   const {
     percentage: onboardingPct,
     showRing,
-    missingItems,
     loading: onboardingLoading,
   } = useOnboardingCompletion();
 
   const displayPlanType = isTeamMember
-    ? (ownerPlanType || effectivePlan || 'free')
-    : (effectivePlan || 'free');
+    ? (ownerPlanType || effectivePlan || "free")
+    : (effectivePlan || "free");
   const displaySubscriptionStatus = isTeamMember
-    ? (ownerSubscriptionStatus || effectiveSubscriptionStatus || 'inactive')
-    : (effectiveSubscriptionStatus || 'inactive');
+    ? (ownerSubscriptionStatus || effectiveSubscriptionStatus || "inactive")
+    : (effectiveSubscriptionStatus || "inactive");
   const canUpgrade = !isTeamMember;
 
   const FOUNDER_EMAIL = "sharad@recouply.ai";
@@ -130,11 +82,8 @@ const Layout = ({ children }: LayoutProps) => {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
-
-      // Avoid redirecting to /login before we've completed the initial session check.
-      // This prevents breaking OAuth callback flows where the session is established asynchronously.
       if (!session?.user && authChecked) {
-        const publicPaths = ["/login", "/signup", "/auth", "/legal", "/pricing", "/features", "/about", "/integrations", "/contact", "/coming-soon"]; 
+        const publicPaths = ["/login", "/signup", "/auth", "/legal", "/pricing", "/features", "/about", "/integrations", "/contact", "/coming-soon"];
         const isPublic = publicPaths.some((p) => location.pathname === p || location.pathname.startsWith(p));
         if (!isPublic) {
           navigate("/login", { replace: true, state: { from: location.pathname + location.search } });
@@ -146,7 +95,7 @@ const Layout = ({ children }: LayoutProps) => {
       setUser(session?.user ?? null);
       setAuthChecked(true);
       if (!session?.user) {
-        const publicPaths = ["/login", "/signup", "/auth", "/legal", "/pricing", "/features", "/about", "/integrations", "/contact", "/coming-soon"]; 
+        const publicPaths = ["/login", "/signup", "/auth", "/legal", "/pricing", "/features", "/about", "/integrations", "/contact", "/coming-soon"];
         const isPublic = publicPaths.some((p) => location.pathname === p || location.pathname.startsWith(p));
         if (!isPublic) {
           navigate("/login", { replace: true, state: { from: location.pathname + location.search } });
@@ -157,28 +106,9 @@ const Layout = ({ children }: LayoutProps) => {
     return () => subscription.unsubscribe();
   }, [navigate, location.pathname, location.search, authChecked]);
 
-  const handleSignOut = async () => {
-    if (user) {
-      await logAuditEvent({
-        action: "logout",
-        resourceType: "profile",
-        resourceId: user.id,
-        metadata: { timestamp: new Date().toISOString() }
-      });
-    }
-    await supabase.auth.signOut();
-    toast.success("Signed out successfully");
-    navigate("/");
-  };
-
-  const isActive = (path: string) => location.pathname === path;
-
-  const [showTeam, setShowTeam] = useState(false);
-
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (!user) return;
-
       try {
         const { data: profile } = await supabase
           .from("profiles")
@@ -186,50 +116,35 @@ const Layout = ({ children }: LayoutProps) => {
           .eq("id", user.id)
           .single();
 
-        if (profile?.name) {
-          setUserName(profile.name);
-        } else if (profile?.email) {
-          setUserName(profile.email.split('@')[0]);
-        } else if (user.email) {
-          setUserName(user.email.split('@')[0]);
-        }
+        if (profile?.name) setUserName(profile.name);
+        else if (profile?.email) setUserName(profile.email.split("@")[0]);
+        else if (user.email) setUserName(user.email.split("@")[0]);
 
-        if (profile?.avatar_url) {
-          setAvatarUrl(profile.avatar_url);
-        }
+        if (profile?.avatar_url) setAvatarUrl(profile.avatar_url);
 
         if (user.email?.toLowerCase() === FOUNDER_EMAIL.toLowerCase() && profile?.is_admin) {
           setIsFounder(true);
         }
       } catch (error) {
         console.error("Error fetching profile:", error);
-        if (user.email) {
-          setUserName(user.email.split('@')[0]);
-        }
+        if (user.email) setUserName(user.email.split("@")[0]);
       }
     };
 
     const checkTeamAccess = async () => {
       if (!user) return;
-      
       try {
-        // Check if user is owner or admin - they should always see team management
         const { data: membershipData } = await supabase
           .from("account_users")
           .select("role, status")
           .eq("user_id", user.id)
           .eq("status", "active")
           .single();
-
-        // Show team for:
-        // 1. Users with no membership (they're managing their own account as owner)
-        // 2. Users with owner or admin role
         if (!membershipData || membershipData.role === "owner" || membershipData.role === "admin") {
           setShowTeam(true);
         }
       } catch (error) {
         console.error("Error checking team access:", error);
-        // Default to showing team for standalone users
         setShowTeam(true);
       }
     };
@@ -238,15 +153,19 @@ const Layout = ({ children }: LayoutProps) => {
     checkTeamAccess();
   }, [user]);
 
-  const _navItems = [
-    { path: "/dashboard", label: "RevenueHub", icon: LayoutDashboard },
-    { path: "/debtors", label: "Accounts", icon: Users },
-    { path: "/invoices", label: "Invoices", icon: FileText },
-    { path: "/settings/ai-workflows", label: "AI Workflows", icon: Workflow },
-    ...(showTeam ? [{ path: "/team", label: "Team & Roles", icon: Users }] : []),
-    { path: "/profile", label: userName || "Profile", icon: UserIcon },
-    { path: "/settings", label: "Settings", icon: Settings },
-  ];
+  const handleSignOut = async () => {
+    if (user) {
+      await logAuditEvent({
+        action: "logout",
+        resourceType: "profile",
+        resourceId: user.id,
+        metadata: { timestamp: new Date().toISOString() },
+      });
+    }
+    await supabase.auth.signOut();
+    toast.success("Signed out successfully");
+    navigate("/");
+  };
 
   if (!authChecked) {
     return (
@@ -261,552 +180,130 @@ const Layout = ({ children }: LayoutProps) => {
 
   if (!user) return null;
 
-  const coreNavItems = [
-    { path: "/debtors", label: "Accounts", icon: Users },
-    { path: "/data-center", label: "Data Center", icon: Database },
-  ];
-
-  const revenueHubItems = [
-    { path: "/dashboard", label: "Overview", icon: LayoutDashboard },
-    { path: "/invoices", label: "Invoices", icon: FileText, section: "Collection Intelligence" },
-    { path: "/payments", label: "Payments", icon: DollarSign, section: "Collection Intelligence" },
-  ];
-  const isAnyRevenueHubActive = revenueHubItems.some(item => isActive(item.path));
-
-  const revenueIntelligenceItems = [
-    { path: "/contracts", label: "Contract Intelligence", icon: FileSignature },
-    { path: "/contracts", label: "Contracts", icon: FileSignature },
-    { path: "/revenue-library", label: "Revenue Library", icon: Library },
-    { path: "/revenue-risk", label: "Revenue Risk", icon: ShieldAlert },
-  ];
-  const isAnyRevenueIntelActive = revenueIntelligenceItems.some(item => isActive(item.path)) || isActive("/contracts/live");
-
-  const aiToolsItems = [
-    { path: "/settings/ai-workflows", label: "AI Workflows", icon: Workflow },
-    { path: "/inbound", label: "Inbound AI", icon: Inbox },
-    { path: "/tasks", label: "Tasks", icon: CheckSquare },
-    { path: "/outreach-history", label: "Outreach History", icon: Mail },
-    { path: "/daily-digest", label: "Daily Digest", icon: CalendarDays },
-    { path: "/alerts", label: "Alerts", icon: Bell, badge: alertUnreadCount },
-    { path: "/reports/email-delivery", label: "Email Delivery", icon: BarChart3 },
-  ];
-
-  const revenueIntelHubItem = { path: "/revenue-intelligence", label: "Revenue Intelligence", icon: Sparkles };
-  const isRevenueIntelHubActive =
-    isActive("/revenue-intelligence") || isAnyRevenueHubActive || isAnyRevenueIntelActive;
-
-  // Mobile nav items - includes Collections + Contract Intelligence under Revenue Intelligence.
-  const revenueIntelMobileItems = [
-    { path: "/revenue-intelligence", label: "Revenue Intelligence", icon: Sparkles },
-    { path: "/dashboard", label: "Collections Intelligence", icon: LayoutDashboard },
-    { path: "/invoices", label: "Invoices", icon: FileText },
-    { path: "/payments", label: "Payments", icon: DollarSign },
-    { path: "/contracts", label: "Contract Intelligence", icon: FileSignature },
-    { path: "/contracts", label: "Contracts", icon: FileSignature },
-    
-    { path: "/revenue-risk", label: "Revenue Risk", icon: ShieldAlert },
-    { path: "/revenue-library", label: "Revenue Library", icon: Library },
-  ];
-  const mobileNavItems = [...revenueIntelMobileItems, ...coreNavItems, ...aiToolsItems];
-
-  const isAnyAIToolActive = aiToolsItems.some(item => isActive(item.path));
-
-
-  // Check if lockout banner should be shown (for degraded subscription states)
-  const getLockoutReason = (): 'past_due' | 'expired' | 'canceled' | 'locked' | null => {
+  const getLockoutReason = (): "past_due" | "expired" | "canceled" | "locked" | null => {
     if (accountLoading || subscriptionLoading) return null;
-
     const status = displaySubscriptionStatus;
-
-    if (status === 'past_due') return 'past_due';
-    if (status === 'canceled') return 'canceled';
-    if (status === 'expired') return 'expired';
-    if (status === 'inactive' && displayPlanType !== 'free') return 'expired';
-
+    if (status === "past_due") return "past_due";
+    if (status === "canceled") return "canceled";
+    if (status === "expired") return "expired";
+    if (status === "inactive" && displayPlanType !== "free") return "expired";
     return null;
   };
-  
+
   const lockoutReason = getLockoutReason();
   const showLockoutBanner = lockoutReason !== null;
+  const showViewingBanner =
+    (isTeamMember || isImpersonating()) &&
+    !accountLoading &&
+    (ownerName || ownerEmail || ownerCompanyName);
 
   return (
     <RequireSubscription>
-    <div className="min-h-screen bg-background">
-      {/* Trial countdown banner - shown at top of page for trial users */}
       <TrialBanner onVisibilityChange={setTrialBannerVisible} />
-      
-      <nav className={`fixed left-0 right-0 z-[100] border-b bg-card shadow-sm safe-top ${trialBannerVisible ? 'top-[40px]' : 'top-0'}`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16 sm:h-20">
-            <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="lg:hidden p-2"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              >
-                {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-              </Button>
-              
-              <Link to="/hub" className="shrink-0 hover:opacity-80 transition-opacity">
-                <RecouplyLogo size="md" />
-              </Link>
-              
-              {/* Desktop Navigation */}
-              <div className="hidden lg:flex items-center gap-1">
-                {/* Revenue Hub — primary entry with Collections & Contracts nested below */}
-                {(() => {
-                  const collectionsGroup = {
-                    parent: { path: "/dashboard", label: "Collections Hub", icon: LayoutDashboard, description: "Invoices, payments & outreach" },
-                    children: [
-                      { path: "/invoices", label: "Invoices", icon: FileText, description: "Open AR & invoice detail" },
-                      { path: "/payments", label: "Payments", icon: DollarSign, description: "Payment activity & reconciliation" },
-                    ],
-                  };
-                  const contractsGroup = {
-                    parent: { path: "/contracts", label: "Contracts Hub", icon: FileSignature, description: "Live contracts & compliance" },
-                    children: [
-                      { path: "/revenue-library", label: "Revenue Library", icon: Library, description: "Contract clauses & templates" },
-                      { path: "/revenue-risk", label: "Revenue Risk", icon: ShieldAlert, description: "Risk signals & exposure" },
-                    ],
-                  };
-                  const revenueActive = isActive("/hub");
-                  const subActive =
-                    isActive("/dashboard") || isActive("/invoices") || isActive("/payments") ||
-                    isActive("/contracts") ||
-                    isActive("/revenue-library") || isActive("/revenue-risk");
-                  const anyActive = revenueActive || subActive;
-                  const renderGroup = (group: typeof collectionsGroup) => {
-                    const ParentIcon = group.parent.icon;
-                    return (
-                      <div key={group.parent.path}>
-                        <DropdownMenuItem asChild>
-                          <Link to={group.parent.path} className="flex items-start gap-2 cursor-pointer">
-                            <ParentIcon className="h-4 w-4 text-primary mt-0.5" />
-                            <div className="flex flex-col">
-                              <span className="font-medium">{group.parent.label}</span>
-                              <span className="text-xs text-muted-foreground">{group.parent.description}</span>
-                            </div>
-                          </Link>
-                        </DropdownMenuItem>
-                        {group.children.map((c) => {
-                          const CIcon = c.icon;
-                          return (
-                            <DropdownMenuItem key={c.path} asChild>
-                              <Link to={c.path} className="flex items-start gap-2 cursor-pointer pl-8">
-                                <CIcon className="h-3.5 w-3.5 text-muted-foreground mt-0.5" />
-                                <div className="flex flex-col">
-                                  <span className="text-sm">{c.label}</span>
-                                  <span className="text-[11px] text-muted-foreground">{c.description}</span>
-                                </div>
-                              </Link>
-                            </DropdownMenuItem>
-                          );
-                        })}
-                      </div>
-                    );
-                  };
-                  return (
-                    <div className="flex items-center mr-1">
-                      <Link
-                        to="/hub"
-                        className={`flex items-center gap-1.5 pl-3 pr-2 py-2 rounded-l-lg text-sm font-medium transition-all whitespace-nowrap ${
-                          anyActive
-                            ? "bg-primary text-primary-foreground shadow-sm"
-                            : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                        }`}
-                      >
-                        <Sparkles className="h-4 w-4 shrink-0" />
-                        <span>Revenue Hub</span>
-                      </Link>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button
-                            aria-label="Open Revenue Hub sub-navigation"
-                            className={`flex items-center px-1.5 py-2 rounded-r-lg text-sm font-medium transition-all border-l ${
-                              anyActive
-                                ? "bg-primary text-primary-foreground border-primary-foreground/20 shadow-sm"
-                                : "text-muted-foreground border-transparent hover:bg-accent hover:text-accent-foreground"
-                            }`}
-                          >
-                            <ChevronDown className="h-3.5 w-3.5" />
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start" className="w-72 z-[110] bg-card border shadow-lg">
-                          <DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                            Revenue Intelligence
-                          </DropdownMenuLabel>
-                          <DropdownMenuItem asChild>
-                            <Link to="/hub" className="flex items-start gap-2 cursor-pointer">
-                              <Sparkles className="h-4 w-4 text-primary mt-0.5" />
-                              <div className="flex flex-col">
-                                <span className="font-medium">Revenue Hub</span>
-                                <span className="text-xs text-muted-foreground">Ask Nicolas & command center</span>
-                              </div>
-                            </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          {renderGroup(collectionsGroup)}
-                          <DropdownMenuSeparator />
-                          {renderGroup(contractsGroup)}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  );
-                })()}
-
-
-                {coreNavItems.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <Link
-                      key={item.path}
-                      to={item.path}
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
-                        isActive(item.path)
-                          ? "bg-primary text-primary-foreground shadow-sm"
-                          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                      }`}
-                    >
-                      <Icon className="h-4 w-4 shrink-0" />
-                      <span>{item.label}</span>
-                    </Link>
-                  );
-                })}
-
-                {/* AI Tools Dropdown */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      className={`flex items-center gap-1.5 px-3 py-2 h-auto text-sm font-medium ${
-                        isAnyAIToolActive
-                          ? "bg-primary text-primary-foreground shadow-sm"
-                          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                      }`}
-                    >
-                      <Bot className="h-4 w-4 shrink-0" />
-                      <span>AI Tools</span>
-                      <ChevronDown className="h-3 w-3 shrink-0" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-56 z-[110] bg-card border shadow-lg">
-                    <DropdownMenuItem
-                      onSelect={(e) => { e.preventDefault(); setSmartIngestionOpen(true); }}
-                      className="flex items-center gap-2 cursor-pointer"
-                    >
-                      <Sparkles className="h-4 w-4 text-primary" />
-                      <span>AI Smart Ingestion</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    {aiToolsItems.map((item) => {
-                      const Icon = item.icon;
-                      const badge = 'badge' in item ? item.badge : undefined;
-                      return (
-                        <DropdownMenuItem key={item.path} asChild>
-                          <Link
-                            to={item.path}
-                            className={`flex items-center justify-between cursor-pointer ${
-                              isActive(item.path) ? "bg-accent" : ""
-                            }`}
-                          >
-                            <div className="flex items-center gap-2">
-                              <Icon className="h-4 w-4" />
-                              <span>{item.label}</span>
-                            </div>
-                            {badge !== undefined && badge > 0 && (
-                              <span className="h-5 min-w-5 px-1.5 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center font-medium">
-                                {badge > 9 ? '9+' : badge}
-                              </span>
-                            )}
-                          </Link>
-                        </DropdownMenuItem>
-                      );
-                    })}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-2 shrink-0">
-              <CreditsWalletBadge />
-              <AlertNotifications />
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="flex items-center space-x-2 p-1.5 rounded-full hover:bg-accent/50">
-                    {showRing ? (
-                      <OnboardingProgressRing percentage={onboardingPct}>
-                        <NavProfileAvatar 
-                          avatarUrl={avatarUrl} 
-                          userName={userName}
-                          size="sm"
-                        />
-                      </OnboardingProgressRing>
-                    ) : (
-                      <NavProfileAvatar 
-                        avatarUrl={avatarUrl} 
-                        userName={userName}
-                        size="md"
-                      />
-                    )}
-                    <span className="hidden md:inline-block text-sm pr-1">{userName}</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-72 sm:w-80 bg-card border shadow-lg z-[100] max-h-[80vh] overflow-y-auto">
-                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  
-                  <div className="px-2 py-3 space-y-3">
-                    {isTeamMember && ownerCompanyName && (
-                      <div className="pb-2 border-b">
-                        <div className="flex items-center gap-2 text-sm">
-                          <Building2 className="h-4 w-4 text-primary" />
-                          <span className="font-medium">{ownerCompanyName}</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Connected via {ownerName || ownerEmail}
-                        </p>
-                      </div>
-                    )}
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Plan:</span>
-                        <span className="font-medium capitalize">{displayPlanType}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Status:</span>
-                        {displaySubscriptionStatus && displaySubscriptionStatus !== 'inactive' ? (
-                          <span className="text-green-600 font-medium capitalize">{displaySubscriptionStatus}</span>
-                        ) : (
-                          <span className="text-muted-foreground">Free Plan</span>
-                        )}
-                      </div>
-                      {isTeamMember && memberRole && (
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">Your Role:</span>
-                          <span className="font-medium capitalize">{memberRole}</span>
-                        </div>
-                      )}
-                    </div>
-                    <UsageIndicator />
-                    {canUpgrade && displayPlanType === 'free' && (
-                      <Button 
-                        size="sm" 
-                        className="w-full"
-                        onClick={() => navigate("/upgrade")}
-                      >
-                        Upgrade Plan
-                      </Button>
-                    )}
-                  </div>
-
-                  {!onboardingLoading && missingItems.length > 0 && (
-                    <>
-                      <DropdownMenuSeparator />
-                      <div className="px-2 py-2">
-                        <p className="text-xs font-semibold text-muted-foreground mb-2">Missing Setup Items</p>
-                        <div className="space-y-1.5">
-                          {missingItems.map((item) => (
-                            <div
-                              key={item.label}
-                              className="flex items-center justify-between text-xs cursor-pointer hover:bg-accent/50 rounded px-2 py-1.5"
-                              onClick={() => navigate(item.route)}
-                            >
-                              <span className="text-foreground">{item.label}</span>
-                              <span className="text-destructive font-medium">Required</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </>
-                  )}
-                  
-                  <DropdownMenuSeparator />
-                  
-                  <DropdownMenuItem onClick={() => navigate("/profile")}>
-                    <UserIcon className="mr-2 h-4 w-4" />
-                    Profile
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate("/documents")}>
-                    <FolderOpen className="mr-2 h-4 w-4" />
-                    Documents
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate("/settings")}>
-                    <Settings className="mr-2 h-4 w-4" />
-                    Settings
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate("/branding")}>
-                    <Palette className="mr-2 h-4 w-4" />
-                    Branding
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate("/billing")}>
-                    <Wallet className="mr-2 h-4 w-4" />
-                    Wallet
-                  </DropdownMenuItem>
-
-                  <DropdownMenuItem onClick={() => navigate("/security")}>
-                    <Shield className="mr-2 h-4 w-4" />
-                    Security Settings
-                  </DropdownMenuItem>
-                  
-                  {/* Admin Section */}
-                  {(showTeam || isFounder) && (
-                    <>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuLabel className="text-xs text-muted-foreground">Administration</DropdownMenuLabel>
-                      {showTeam && (
-                        <>
-                          <DropdownMenuItem onClick={() => navigate("/team")}>
-                            <Users className="mr-2 h-4 w-4" />
-                            Team & Roles
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => navigate("/security")}>
-                            <Shield className="mr-2 h-4 w-4" />
-                            Security Dashboard
-                          </DropdownMenuItem>
-                        </>
-                      )}
-                      {isFounder && (
-                        <DropdownMenuItem 
-                          onClick={() => navigate("/admin")}
-                          className="text-destructive focus:text-destructive"
-                        >
-                          <ServerCog className="mr-2 h-4 w-4" />
-                          Admin Center
-                        </DropdownMenuItem>
-                      )}
-                    </>
-                  )}
-                  
-                  <DropdownMenuSeparator />
-                  
-                  <DropdownMenuItem onClick={handleSignOut}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Sign Out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-          
-          {/* Mobile Navigation Menu */}
-          {mobileMenuOpen && (
-            <div className="lg:hidden py-4 space-y-1 border-t bg-card">
-              {mobileNavItems.map((item) => {
-                const Icon = item.icon;
-                
-                return (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all tap-target ${
-                      isActive(item.path)
-                        ? "bg-primary text-primary-foreground shadow-sm"
-                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                    }`}
-                  >
-                    <Icon className="h-5 w-5 shrink-0" />
-                    <span>{item.label}</span>
-                  </Link>
-                );
-              })}
-              <button
-                type="button"
-                onClick={() => { setMobileMenuOpen(false); setSmartIngestionOpen(true); }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground tap-target"
-              >
-                <Sparkles className="h-5 w-5 shrink-0" />
-                <span>AI Smart Ingestion</span>
-              </button>
-            </div>
-          )}
-        </div>
-      </nav>
-      {/* Spacer for fixed navbar + optional trial banner */}
-      <div className={trialBannerVisible ? "h-[104px] sm:h-[120px]" : "h-16 sm:h-20"}></div>
-      
-      {/* Banners - placed after nav spacer so they flow with content */}
-      <SupportImpersonationBanner />
-      <SupportAccessBanner />
-      <SecurityAlert />
-      
-      {/* Lockout banner for degraded subscription states */}
-      {showLockoutBanner && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
-          <AccountLockoutBanner
-            lockoutReason={lockoutReason}
+      <SidebarProvider>
+        <div className={`flex min-h-screen w-full bg-background ${trialBannerVisible ? "pt-[40px]" : ""}`}>
+          <AppSidebar
+            userName={userName}
+            avatarUrl={avatarUrl}
+            showRing={showRing && !onboardingLoading}
+            onboardingPct={onboardingPct}
+            alertUnreadCount={alertUnreadCount}
+            showTeam={showTeam}
+            isFounder={isFounder}
+            displayPlanType={displayPlanType}
+            displaySubscriptionStatus={displaySubscriptionStatus}
             isTeamMember={isTeamMember}
-            ownerEmail={ownerEmail}
+            memberRole={memberRole}
+            ownerCompanyName={ownerCompanyName}
             ownerName={ownerName}
+            ownerEmail={ownerEmail}
+            canUpgrade={canUpgrade}
+            onOpenSmartIngestion={() => setSmartIngestionOpen(true)}
+            onSignOut={handleSignOut}
           />
+
+          <SidebarInset className="flex flex-col min-w-0">
+            <header className="sticky top-0 z-40 flex h-12 items-center gap-2 border-b bg-card/80 backdrop-blur px-4">
+              <SidebarTrigger />
+              <div className="flex-1" />
+            </header>
+
+            <SupportImpersonationBanner />
+            <SupportAccessBanner />
+            <SecurityAlert />
+
+            {showLockoutBanner && (
+              <div className="px-4 sm:px-6 pt-4">
+                <AccountLockoutBanner
+                  lockoutReason={lockoutReason}
+                  isTeamMember={isTeamMember}
+                  ownerEmail={ownerEmail}
+                  ownerName={ownerName}
+                />
+              </div>
+            )}
+
+            {showViewingBanner && (
+              <div className="bg-primary/10 border-b border-primary/20 px-4 py-2">
+                <div className="flex flex-col items-center justify-center gap-1 text-sm sm:flex-row sm:flex-wrap sm:gap-2">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-primary" />
+                    <span className="text-muted-foreground">
+                      Viewing account of{" "}
+                      <span className="font-medium text-foreground">
+                        {ownerName || ownerCompanyName || ownerEmail}
+                      </span>
+                      {ownerEmail && (ownerName || ownerCompanyName) && (
+                        <span className="text-muted-foreground"> ({ownerEmail})</span>
+                      )}
+                    </span>
+                  </div>
+                  {organizationName && (
+                    <span className="text-xs text-muted-foreground">
+                      Org: <span className="font-medium text-foreground">{organizationName}</span>
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <main className="flex-1 w-full min-w-0 px-4 sm:px-6 py-4 sm:py-6">
+              {children}
+            </main>
+
+            <footer className="border-t bg-card/50 py-4 px-4 sm:px-6">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <RecouplyLogo size="sm" />
+                  <span className="text-muted-foreground text-xs">Revenue Intelligence Platform</span>
+                </div>
+                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                  <Link to="/knowledge-base" className="hover:text-foreground">Knowledge Base</Link>
+                  <Link to="/legal/privacy" className="hover:text-foreground">Privacy</Link>
+                  <Link to="/legal/terms" className="hover:text-foreground">Terms</Link>
+                  <Link to="/contact-us" className="hover:text-foreground">Support</Link>
+                  <Link
+                    to="/security#responsible-ai"
+                    className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-primary/10 border border-primary/20 hover:bg-primary/20"
+                  >
+                    <ShieldCheck className="h-3 w-3 text-primary" />
+                    <span className="font-medium text-primary">Responsible AI</span>
+                  </Link>
+                </div>
+                <div className="text-[11px] text-muted-foreground">
+                  © {new Date().getFullYear()} Recouply.ai
+                </div>
+              </div>
+            </footer>
+          </SidebarInset>
         </div>
-      )}
-      {/* Team Member / Support Impersonation: "Viewing account of" context bar */}
-      {(isTeamMember || isImpersonating()) && !accountLoading && (ownerName || ownerEmail || ownerCompanyName) && (
-        <div className="bg-primary/10 border-b border-primary/20 px-4 py-2">
-          <div className="max-w-7xl mx-auto flex flex-col items-center justify-center gap-1 text-sm sm:flex-row sm:flex-wrap sm:gap-2">
-            <div className="flex items-center justify-center gap-2 text-center">
-              <Building2 className="h-4 w-4 text-primary" />
-              <span className="text-muted-foreground">
-                Viewing account of <span className="font-medium text-foreground">{ownerName || ownerCompanyName || ownerEmail}</span>
-                {ownerEmail && (ownerName || ownerCompanyName) && (
-                  <span className="text-muted-foreground"> ({ownerEmail})</span>
-                )}
-              </span>
-            </div>
-            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-              {organizationName && <span>Org: <span className="font-medium text-foreground">{organizationName}</span></span>}
-            </div>
-          </div>
-        </div>
-      )}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 pb-20">
-        {children}
-      </main>
-      
-      {/* Footer */}
-      <footer className="border-t bg-card/50 py-6 mt-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <RecouplyLogo size="sm" />
-              <span className="text-muted-foreground text-sm">
-                Revenue Intelligence Platform
-              </span>
-            </div>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-              <Link to="/knowledge-base" className="hover:text-foreground transition-colors">
-                Knowledge Base
-              </Link>
-              <Link to="/legal/privacy" className="hover:text-foreground transition-colors">
-                Privacy Policy
-              </Link>
-              <Link to="/legal/terms" className="hover:text-foreground transition-colors">
-                Terms of Service
-              </Link>
-              <Link to="/contact-us" className="hover:text-foreground transition-colors">
-                Support
-              </Link>
-              <Link to="/security#responsible-ai" className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20 hover:bg-primary/20 transition-colors">
-                <ShieldCheck className="h-3 w-3 text-primary" />
-                <span className="text-xs font-medium text-primary">Responsible AI</span>
-              </Link>
-            </div>
-            <div className="text-xs text-muted-foreground">
-              © {new Date().getFullYear()} Recouply.ai. All rights reserved.
-            </div>
-          </div>
-        </div>
-      </footer>
-      
+      </SidebarProvider>
+
       <OnboardingWelcome />
       <NicolasPageTip />
       <NicolasChat />
       <SmartIngestionChooserDialog open={smartIngestionOpen} onOpenChange={setSmartIngestionOpen} />
       <FloatingReferralAgent />
-    </div>
     </RequireSubscription>
   );
 };
