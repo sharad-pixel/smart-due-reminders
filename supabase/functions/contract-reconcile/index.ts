@@ -24,6 +24,10 @@ const AMOUNT_TOL = 0.02; // 2%
 const DATE_WINDOW_DAYS = 21; // generous for monthly billing-day drift
 const TERM_WINDOW_DAYS = 60;
 const SETTLED_STATUSES = new Set(["paid", "settled", "closed", "complete", "completed"]);
+// Voided / canceled invoices no longer represent a real billing against the
+// contract — the schedule line must remain pending/unresolved so it re-surfaces
+// as an obligation to bill.
+const VOIDED_STATUSES = new Set(["canceled", "cancelled", "voided", "void"]);
 
 const dayDiff = (a: string, b: string) =>
   Math.round(
