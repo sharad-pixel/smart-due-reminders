@@ -1638,6 +1638,16 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
               </CardContent>
             </Card>
 
+            <InvoiceProductBreakdown
+              invoiceId={invoice.id}
+              currency={invoice.currency || "USD"}
+              invoicePeriodStart={invoice.billing_period_start}
+              invoicePeriodEnd={invoice.billing_period_end}
+              billingFrequency={invoice.billing_frequency}
+            />
+
+
+
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle>Status Actions</CardTitle>
