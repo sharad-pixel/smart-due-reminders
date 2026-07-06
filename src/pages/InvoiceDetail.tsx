@@ -237,6 +237,23 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
   const [editProcessingFeePercent, setEditProcessingFeePercent] = useState("0");
   const [editCurrency, setEditCurrency] = useState("USD");
   const [editDueDate, setEditDueDate] = useState("");
+  const [editDueDateTouched, setEditDueDateTouched] = useState(false);
+
+  // Auto-calc Due Date from Issue Date + Payment Terms while the edit dialog is
+  // open — unless the user has manually typed a due date (override).
+  useEffect(() => {
+    if (!editInvoiceDialogOpen) return;
+    if (editDueDateTouched) return;
+    if (!editIssueDate || !editPaymentTerms) return;
+    try {
+      const opt = getPaymentTermsOptions().find((o) => o.value === editPaymentTerms);
+      const days = typeof opt?.days === "number" ? opt.days : null;
+      if (days === null) return; // "Custom" — leave user's date alone
+      const next = calculateDueDate(editIssueDate, days);
+      setEditDueDate(next);
+    } catch { /* noop */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editIssueDate, editPaymentTerms, editInvoiceDialogOpen]);
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
   const [selectedOutreach, setSelectedOutreach] = useState<OutreachRecord | null>(null);
   const [outreachDetailOpen, setOutreachDetailOpen] = useState(false);
@@ -787,6 +804,9 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
     setEditNotes(invoice.notes || "");
     setEditCurrency(invoice.currency || "USD");
     setEditDueDate(invoice.due_date || "");
+    // Reset "touched" so opening the dialog resumes auto-calc unless the user
+    // edits the due date directly in this session.
+    setEditDueDateTouched(false);
     setEditInvoiceDialogOpen(true);
   };
 
@@ -2711,7 +2731,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                     id="due-date"
                     type="date"
                     value={editDueDate}
-                    onChange={(e) => setEditDueDate(e.target.value)}
+                    onChange={(e) => { setEditDueDate(e.target.value); setEditDueDateTouched(true); }}
                   />
                   <p className="mt-1 text-[11px] text-muted-foreground">
                     Leave matching issue date + terms to auto-calculate. Overrides win for drafts.

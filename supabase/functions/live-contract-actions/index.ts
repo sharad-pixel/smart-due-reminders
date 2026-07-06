@@ -351,6 +351,28 @@ Deno.serve(async (req) => {
         const refId = `REC-${ymd}-${rand4}`;
         const invNum = `REC-${ymd}-${rand4}`;
         const lineDescription = s.description || imp.contract_name || "Contract billing";
+        // Map contract schedule billing period → invoice billing_frequency
+        const scheduleFreq = ((): string | null => {
+          const bp = String((s as any).billing_period || (s as any).billing_type || "").toLowerCase().trim();
+          if (!bp) return null;
+          if (bp.includes("month")) return bp.includes("3") || bp.includes("quarter") ? "quarterly" : "monthly";
+          if (bp.includes("quarter")) return "quarterly";
+          if (bp.includes("year") || bp.includes("annual")) return "annual";
+          if (bp.includes("week")) return "weekly";
+          if (bp.includes("one") || bp.includes("once") || bp.includes("single")) return "one_time";
+          return bp;
+        })();
+        const servicePeriodStart = (s as any).service_period_start || null;
+        const servicePeriodEnd = (s as any).service_period_end || null;
+        // Derive next billing date for recurring schedules so the UI can show
+        // when the following invoice under this contract will land.
+        let nextBillingDate: string | null = null;
+        if (scheduleFreq && scheduleFreq !== "one_time" && servicePeriodEnd) {
+          const nb = new Date(String(servicePeriodEnd) + "T00:00:00Z");
+          nb.setUTCDate(nb.getUTCDate() + 1);
+          nextBillingDate = nb.toISOString().slice(0, 10);
+        }
+
         const { data: inv, error: iErr } = await supabase.from("invoices").insert({
           user_id: imp.account_id,
           debtor_id: imp.debtor_id,
@@ -373,7 +395,14 @@ Deno.serve(async (req) => {
           posted_by: postingState === "posted" ? user.id : null,
           source_system: "live_contract",
           payment_terms: s.payment_terms || null,
+          payment_terms_days: netDays,
           product_description: lineDescription,
+          // Recurring/coverage terms surfaced from the contract schedule so the
+          // invoice detail view can render the service period + frequency.
+          billing_period_start: servicePeriodStart,
+          billing_period_end: servicePeriodEnd,
+          billing_frequency: scheduleFreq,
+          next_billing_date: nextBillingDate,
           notes: `Auto-generated from contract: ${imp.contract_name || imp.file_name}${postingState === "draft" ? " — Draft, pending review" : ""}`,
         }).select("id").single();
         if (iErr) {
