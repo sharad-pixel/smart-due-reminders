@@ -34,13 +34,24 @@ export const ContractIntelligenceSummary = () => {
     enabled: !!accountId,
     queryKey: ["dash-cid-contracts", accountId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("contracts")
-        .select("id,status,contract_type,contract_value,currency,expiry_date,renewal_date")
+      // Pull from live_contract_imports (ingested contracts) — the legacy
+      // `contracts` table is unused in the current pipeline.
+      const { data, error } = await (supabase as any)
+        .from("live_contract_imports")
+        .select("id,status,contract_type,contract_value,term_end_date,effective_date")
         .eq("account_id", accountId!)
+        .neq("status", "archived")
         .limit(1000);
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []).map((r: any) => ({
+        id: r.id,
+        status: r.status,
+        contract_type: r.contract_type,
+        contract_value: r.contract_value,
+        currency: "USD",
+        expiry_date: r.term_end_date,
+        renewal_date: r.term_end_date,
+      }));
     },
   });
 
@@ -53,7 +64,7 @@ export const ContractIntelligenceSummary = () => {
         .select("id,severity,resolved,import_id")
         .eq("account_id", accountId!)
         .limit(1000);
-      if (error) throw error;
+      if (error) return [];
       return data ?? [];
     },
   });
