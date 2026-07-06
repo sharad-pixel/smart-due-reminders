@@ -804,6 +804,9 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
     setEditNotes(invoice.notes || "");
     setEditCurrency(invoice.currency || "USD");
     setEditDueDate(invoice.due_date || "");
+    // Reset "touched" so opening the dialog resumes auto-calc unless the user
+    // edits the due date directly in this session.
+    setEditDueDateTouched(false);
     setEditInvoiceDialogOpen(true);
   };
 
