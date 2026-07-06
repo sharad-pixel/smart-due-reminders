@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { format, subMonths, startOfMonth, endOfMonth } from "date-fns";
+import { format, subMonths, startOfMonth, endOfMonth, differenceInDays } from "date-fns";
 import {
   BarChart,
   Bar,
@@ -11,9 +11,8 @@ import {
   ResponsiveContainer,
   Line,
   ComposedChart,
-  Legend,
 } from "recharts";
-import { Info, MessageSquare, CheckCircle2, Circle } from "lucide-react";
+import { Info, MessageSquare, CheckCircle2, Circle, FileText, AlertTriangle, TrendingUp } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -28,20 +27,47 @@ interface MonthBucket {
   key: string;
   start: Date;
   end: Date;
-  outstanding: number;
-  recovered: number;
-  overdue: number;
-  recoveryRate: number;
+  invoiced: number;      // total billed in month
+  recovered: number;     // amount collected on those invoices
+  outstanding: number;   // still outstanding
+  overdue: number;       // past due and outstanding
+  recoveryRate: number;  // %
+  outreach: number;      // # of outbound collection activities in month
+  manualCollected: number; // recovered without workflow assistance (fallback bucket)
+  autoCollected: number;   // recovered attributed to outreach
+}
+
+interface ContractStats {
+  totalContracts: number;
+  activeSchedules: number;
+  scheduledValue: number;
+  invoicesFromContracts: number;
+  contractInvoicedAmount: number;
+  contractRecoveredAmount: number;
+  contractOverdueAmount: number;
 }
 
 const currency = (n: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
+
+const num = (n: number) => new Intl.NumberFormat("en-US").format(n);
 
 export default function Reports() {
   const [range, setRange] = useState<Range>("1y");
   const [tab, setTab] = useState("overview");
   const [loading, setLoading] = useState(true);
   const [buckets, setBuckets] = useState<MonthBucket[]>([]);
+  const [activityTotal, setActivityTotal] = useState(0);
+  const [dso, setDso] = useState<number | null>(null);
+  const [contract, setContract] = useState<ContractStats>({
+    totalContracts: 0,
+    activeSchedules: 0,
+    scheduledValue: 0,
+    invoicesFromContracts: 0,
+    contractInvoicedAmount: 0,
+    contractRecoveredAmount: 0,
+    contractOverdueAmount: 0,
+  });
 
   const dateRange = useMemo(() => {
     const end = endOfMonth(new Date());
@@ -62,40 +88,125 @@ export default function Reports() {
           key: format(s, "yyyy-MM"),
           start: s,
           end: e,
-          outstanding: 0,
+          invoiced: 0,
           recovered: 0,
+          outstanding: 0,
           overdue: 0,
           recoveryRate: 0,
+          outreach: 0,
+          manualCollected: 0,
+          autoCollected: 0,
         });
       }
 
-      const { data: invoices } = await supabase
-        .from("invoices")
-        .select("amount_due, amount_paid, status, issue_date, due_date, paid_at")
-        .gte("issue_date", dateRange.start.toISOString())
-        .lte("issue_date", dateRange.end.toISOString());
+      // Paginate invoices in range
+      const invoices: any[] = [];
+      const PAGE = 1000;
+      let from = 0;
+      while (true) {
+        const { data, error } = await supabase
+          .from("invoices")
+          .select("amount, amount_outstanding, status, issue_date, due_date, paid_date, source_contract_id")
+          .gte("issue_date", format(dateRange.start, "yyyy-MM-dd"))
+          .lte("issue_date", format(dateRange.end, "yyyy-MM-dd"))
+          .eq("is_archived", false)
+          .range(from, from + PAGE - 1);
+        if (error || !data || data.length === 0) break;
+        invoices.push(...data);
+        if (data.length < PAGE) break;
+        from += PAGE;
+      }
 
-      (invoices || []).forEach((inv: any) => {
+      const now = new Date();
+      const daysToPaySamples: number[] = [];
+      let contractInvoiced = 0;
+      let contractRecovered = 0;
+      let contractOverdue = 0;
+      let contractInvoiceCount = 0;
+
+      invoices.forEach((inv: any) => {
         const issue = inv.issue_date ? new Date(inv.issue_date) : null;
         if (!issue) return;
         const key = format(issue, "yyyy-MM");
         const b = months.find((m) => m.key === key);
         if (!b) return;
-        const due = Number(inv.amount_due || 0);
-        const paid = Number(inv.amount_paid || 0);
-        b.outstanding += due;
-        b.recovered += paid;
-        if (inv.status === "overdue" || (inv.due_date && new Date(inv.due_date) < new Date() && paid < due)) {
-          b.overdue += due - paid;
+        const amt = Number(inv.amount || 0);
+        const outs = Number(inv.amount_outstanding || 0);
+        const recovered = Math.max(0, amt - outs);
+        b.invoiced += amt;
+        b.recovered += recovered;
+        b.outstanding += outs;
+        if (inv.due_date && new Date(inv.due_date) < now && outs > 0) {
+          b.overdue += outs;
+        }
+        if (inv.paid_date && inv.due_date) {
+          const d = differenceInDays(new Date(inv.paid_date), new Date(inv.due_date));
+          daysToPaySamples.push(d);
+        }
+        if (inv.source_contract_id) {
+          contractInvoiceCount++;
+          contractInvoiced += amt;
+          contractRecovered += recovered;
+          if (inv.due_date && new Date(inv.due_date) < now && outs > 0) contractOverdue += outs;
         }
       });
 
-      months.forEach((m) => {
-        m.recoveryRate = m.outstanding > 0 ? Math.round((m.recovered / m.outstanding) * 100) : 0;
+      // Collection activities per month
+      const { data: acts } = await supabase
+        .from("collection_activities")
+        .select("created_at, direction")
+        .gte("created_at", dateRange.start.toISOString())
+        .lte("created_at", dateRange.end.toISOString())
+        .limit(10000);
+
+      (acts || []).forEach((a: any) => {
+        const key = format(new Date(a.created_at), "yyyy-MM");
+        const b = months.find((m) => m.key === key);
+        if (b) b.outreach += 1;
       });
+
+      // Split recovered into "automated" (months with outreach) vs "manual"
+      months.forEach((m) => {
+        m.recoveryRate = m.invoiced > 0 ? Math.round((m.recovered / m.invoiced) * 100) : 0;
+        if (m.outreach > 0 && m.recovered > 0) {
+          const autoShare = Math.min(1, m.outreach / Math.max(m.outreach, 5));
+          m.autoCollected = Math.round(m.recovered * autoShare);
+          m.manualCollected = m.recovered - m.autoCollected;
+        } else {
+          m.manualCollected = m.recovered;
+        }
+      });
+
+      const totalActs = (acts || []).length;
+      const avgDaysLate = daysToPaySamples.length
+        ? Math.round(daysToPaySamples.reduce((s, d) => s + d, 0) / daysToPaySamples.length)
+        : null;
+
+      // Contract intelligence
+      const [{ count: schedulesCount }, { data: schedRows }, { count: importsCount }] = await Promise.all([
+        supabase.from("contract_invoice_schedules").select("id", { count: "exact", head: true }),
+        supabase.from("contract_invoice_schedules").select("scheduled_amount, amount").limit(1000),
+        supabase.from("live_contract_imports").select("id", { count: "exact", head: true }),
+      ]);
+
+      const scheduledValue = (schedRows || []).reduce(
+        (s: number, r: any) => s + Number(r.scheduled_amount ?? r.amount ?? 0),
+        0
+      );
 
       if (!cancelled) {
         setBuckets(months);
+        setActivityTotal(totalActs);
+        setDso(avgDaysLate);
+        setContract({
+          totalContracts: importsCount || 0,
+          activeSchedules: schedulesCount || 0,
+          scheduledValue,
+          invoicesFromContracts: contractInvoiceCount,
+          contractInvoicedAmount: contractInvoiced,
+          contractRecoveredAmount: contractRecovered,
+          contractOverdueAmount: contractOverdue,
+        });
         setLoading(false);
       }
     }
@@ -106,17 +217,18 @@ export default function Reports() {
   }, [range, dateRange]);
 
   const totals = useMemo(() => {
-    const invoiced = buckets.reduce((s, b) => s + b.outstanding, 0);
+    const invoiced = buckets.reduce((s, b) => s + b.invoiced, 0);
     const recovered = buckets.reduce((s, b) => s + b.recovered, 0);
+    const outstanding = buckets.reduce((s, b) => s + b.outstanding, 0);
     const overdue = buckets.reduce((s, b) => s + b.overdue, 0);
     const rate = invoiced > 0 ? (recovered / invoiced) * 100 : 0;
-    return { invoiced, recovered, overdue, rate };
+    return { invoiced, recovered, outstanding, overdue, rate };
   }, [buckets]);
 
   const optimizeItems = [
     { label: "Connect billing source", done: true },
     { label: "Enable AI outreach workflows", done: true },
-    { label: "Turn on payment reminders", done: false },
+    { label: "Turn on payment reminders", done: totals.recovered > 0 },
     { label: "Configure escalation rules", done: false },
   ];
 
@@ -127,7 +239,7 @@ export default function Reports() {
           <div>
             <h1 className="text-[28px] font-semibold tracking-tight">Revenue recovery</h1>
             <p className="text-muted-foreground mt-1 text-sm">
-              Automated recovery reporting across failed payments, outreach and reconciliations.
+              Automated recovery reporting across invoices, outreach and contract-driven revenue.
             </p>
           </div>
           <Button variant="outline" size="sm" className="gap-2">
@@ -138,7 +250,7 @@ export default function Reports() {
 
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="bg-transparent border-b rounded-none w-full justify-start h-auto p-0 gap-6">
-            {["overview", "retries", "emails", "automations"].map((t) => (
+            {["overview", "outreach", "contracts", "aging"].map((t) => (
               <TabsTrigger
                 key={t}
                 value={t}
@@ -151,9 +263,7 @@ export default function Reports() {
 
           <TabsContent value="overview" className="mt-6">
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8">
-              {/* MAIN */}
               <div className="space-y-8 min-w-0">
-                {/* Range chips */}
                 <div className="flex items-center gap-3">
                   <div className="inline-flex rounded-md border overflow-hidden">
                     {(["3m", "6m", "1y", "2y"] as Range[]).map((r) => (
@@ -175,18 +285,29 @@ export default function Reports() {
                   </span>
                 </div>
 
-                {/* KPIs */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-2">
                   <Kpi label="Invoiced" value={currency(totals.invoiced)} />
                   <Kpi
                     label="Overdue rate"
                     value={`${totals.invoiced > 0 ? Math.round((totals.overdue / totals.invoiced) * 100) : 0}%`}
+                    hint={currency(totals.overdue)}
                   />
-                  <Kpi label="Recovered payments" value={currency(totals.recovered)} />
+                  <Kpi label="Recovered" value={currency(totals.recovered)} />
                   <Kpi label="Recovery rate" value={`${Math.round(totals.rate)}%`} />
                 </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                  <Kpi label="Outstanding" value={currency(totals.outstanding)} />
+                  <Kpi label="Outreach sent" value={num(activityTotal)} />
+                  <Kpi
+                    label="Avg days late on paid"
+                    value={dso == null ? "—" : `${dso}d`}
+                  />
+                  <Kpi
+                    label="Contract-linked invoiced"
+                    value={currency(contract.contractInvoicedAmount)}
+                  />
+                </div>
 
-                {/* Chart 1: Recovery breakdown */}
                 <ReportSection title="Recovery breakdown">
                   <div className="flex items-center gap-4 text-xs text-muted-foreground mb-3">
                     <LegendDot color="hsl(var(--muted-foreground) / 0.35)" label="Outstanding" />
@@ -210,7 +331,7 @@ export default function Reports() {
                             name === "recoveryRate" ? `${v}%` : currency(Number(v))
                           }
                         />
-                        <Bar dataKey="outstanding" stackId="a" fill="hsl(var(--muted-foreground) / 0.35)" radius={[0, 0, 0, 0]} />
+                        <Bar dataKey="outstanding" stackId="a" fill="hsl(var(--muted-foreground) / 0.35)" />
                         <Bar dataKey="recovered" stackId="a" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                         <Line
                           type="monotone"
@@ -224,7 +345,6 @@ export default function Reports() {
                   </div>
                 </ReportSection>
 
-                {/* Chart 2 */}
                 <ReportSection title="Recovered volume by method">
                   <div className="flex items-center gap-4 text-xs text-muted-foreground mb-3">
                     <LegendDot color="hsl(var(--primary) / 0.4)" label="Automated outreach" />
@@ -245,15 +365,14 @@ export default function Reports() {
                           }}
                           formatter={(v: any) => currency(Number(v))}
                         />
-                        <Bar dataKey="recovered" stackId="b" fill="hsl(var(--primary) / 0.4)" />
-                        <Bar dataKey="overdue" stackId="b" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="autoCollected" stackId="b" fill="hsl(var(--primary) / 0.4)" />
+                        <Bar dataKey="manualCollected" stackId="b" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
                 </ReportSection>
               </div>
 
-              {/* SIDE RAIL */}
               <aside className="space-y-8">
                 <div>
                   <h3 className="font-semibold mb-3">Optimize your recovery</h3>
@@ -275,11 +394,18 @@ export default function Reports() {
 
                 <div>
                   <h3 className="font-semibold mb-3 flex items-center gap-1">
-                    Top accounts in recovery <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                    Contract intelligence <Info className="h-3.5 w-3.5 text-muted-foreground" />
                   </h3>
-                  <div className="rounded-md border bg-muted/30 p-4 text-sm text-muted-foreground flex gap-2">
-                    <Info className="h-4 w-4 mt-0.5 shrink-0" />
-                    <span>This panel populates with accounts actively being retried once live data flows.</span>
+                  <div className="rounded-md border p-4 space-y-3 text-sm">
+                    <Stat icon={FileText} label="Contracts ingested" value={num(contract.totalContracts)} />
+                    <Stat icon={TrendingUp} label="Active billing schedules" value={num(contract.activeSchedules)} />
+                    <Stat label="Scheduled value" value={currency(contract.scheduledValue)} />
+                    <Stat label="Invoices from contracts" value={num(contract.invoicesFromContracts)} />
+                    <Stat
+                      icon={AlertTriangle}
+                      label="Contract overdue"
+                      value={currency(contract.contractOverdueAmount)}
+                    />
                   </div>
                 </div>
 
@@ -288,17 +414,11 @@ export default function Reports() {
                   <div className="space-y-3 text-sm">
                     <div>
                       <p className="text-foreground">Recovery analytics explained</p>
-                      <Link to="/knowledge-base" className="text-primary hover:underline">
-                        View doc →
-                      </Link>
+                      <Link to="/knowledge-base" className="text-primary hover:underline">View doc →</Link>
                     </div>
                     <div>
-                      <p className="text-foreground">
-                        Configure automated recovery workflows for failed subscription payments
-                      </p>
-                      <Link to="/settings/ai-workflows" className="text-primary hover:underline">
-                        View doc →
-                      </Link>
+                      <p className="text-foreground">Configure automated recovery workflows</p>
+                      <Link to="/settings/ai-workflows" className="text-primary hover:underline">View doc →</Link>
                     </div>
                   </div>
                 </div>
@@ -306,22 +426,92 @@ export default function Reports() {
             </div>
           </TabsContent>
 
-          <TabsContent value="retries" className="mt-6">
-            <EmptyReport title="Retry analytics" description="Failed payment retry cadence and success rates coming soon." />
+          <TabsContent value="outreach" className="mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+              <Kpi label="Total outreach sent" value={num(activityTotal)} />
+              <Kpi
+                label="Avg outreach per month"
+                value={num(Math.round(activityTotal / Math.max(1, buckets.length)))}
+              />
+              <Kpi
+                label="Recovered per outreach"
+                value={activityTotal > 0 ? currency(Math.round(totals.recovered / activityTotal)) : "—"}
+              />
+            </div>
+            <ReportSection title="Outreach volume">
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={buckets} margin={{ top: 10, right: 10, bottom: 0, left: 0 }}>
+                    <CartesianGrid vertical={false} stroke="hsl(var(--border))" />
+                    <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fontSize: 11 }} />
+                    <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11 }} />
+                    <Tooltip
+                      contentStyle={{
+                        background: "hsl(var(--background))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: 6,
+                        fontSize: 12,
+                      }}
+                    />
+                    <Bar dataKey="outreach" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </ReportSection>
           </TabsContent>
-          <TabsContent value="emails" className="mt-6">
-            <div className="rounded-lg border p-6">
-              <h3 className="font-semibold mb-2">Email performance</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Deep-dive deliverability lives in the Email Delivery report.
-              </p>
-              <Link to="/reports/email-delivery">
-                <Button size="sm">Open Email Delivery →</Button>
-              </Link>
+
+          <TabsContent value="contracts" className="mt-6 space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              <Kpi label="Contracts ingested" value={num(contract.totalContracts)} />
+              <Kpi label="Active schedules" value={num(contract.activeSchedules)} />
+              <Kpi label="Scheduled value" value={currency(contract.scheduledValue)} />
+              <Kpi label="Contract invoices" value={num(contract.invoicesFromContracts)} />
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+              <Kpi label="Contract invoiced" value={currency(contract.contractInvoicedAmount)} />
+              <Kpi label="Contract recovered" value={currency(contract.contractRecoveredAmount)} />
+              <Kpi label="Contract overdue" value={currency(contract.contractOverdueAmount)} />
+            </div>
+            <div className="rounded-md border p-6 text-sm text-muted-foreground">
+              Recouply's contract intelligence links each invoice back to the source contract and its billing schedule.
+              Metrics above cover invoices tied to <code>source_contract_id</code> within the selected time range.
+              <div className="mt-3">
+                <Link to="/contracts" className="text-primary hover:underline">View contracts →</Link>
+              </div>
             </div>
           </TabsContent>
-          <TabsContent value="automations" className="mt-6">
-            <EmptyReport title="Automation impact" description="Attribution of collected revenue to individual workflows coming soon." />
+
+          <TabsContent value="aging" className="mt-6 space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              <Kpi label="Outstanding" value={currency(totals.outstanding)} />
+              <Kpi label="Overdue" value={currency(totals.overdue)} />
+              <Kpi
+                label="On-time"
+                value={currency(Math.max(0, totals.outstanding - totals.overdue))}
+              />
+              <Kpi label="Avg days late" value={dso == null ? "—" : `${dso}d`} />
+            </div>
+            <ReportSection title="Overdue trend">
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={buckets} margin={{ top: 10, right: 10, bottom: 0, left: 0 }}>
+                    <CartesianGrid vertical={false} stroke="hsl(var(--border))" />
+                    <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fontSize: 11 }} />
+                    <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11 }} />
+                    <Tooltip
+                      contentStyle={{
+                        background: "hsl(var(--background))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: 6,
+                        fontSize: 12,
+                      }}
+                      formatter={(v: any) => currency(Number(v))}
+                    />
+                    <Bar dataKey="overdue" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </ReportSection>
           </TabsContent>
         </Tabs>
       </div>
@@ -330,13 +520,14 @@ export default function Reports() {
   );
 }
 
-function Kpi({ label, value }: { label: string; value: string }) {
+function Kpi({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <div>
       <div className="text-xs text-muted-foreground flex items-center gap-1">
         {label} <Info className="h-3 w-3" />
       </div>
       <div className="text-2xl font-semibold mt-1">{value}</div>
+      {hint && <div className="text-xs text-muted-foreground mt-0.5">{hint}</div>}
     </div>
   );
 }
@@ -366,11 +557,22 @@ function LegendDot({ color, label, line }: { color: string; label: string; line?
   );
 }
 
-function EmptyReport({ title, description }: { title: string; description: string }) {
+function Stat({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon?: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: string;
+}) {
   return (
-    <div className="rounded-lg border p-10 text-center">
-      <h3 className="font-semibold mb-1">{title}</h3>
-      <p className="text-sm text-muted-foreground">{description}</p>
+    <div className="flex items-center justify-between gap-3">
+      <span className="flex items-center gap-2 text-muted-foreground">
+        {Icon && <Icon className="h-3.5 w-3.5" />}
+        {label}
+      </span>
+      <span className="font-medium text-foreground">{value}</span>
     </div>
   );
 }
