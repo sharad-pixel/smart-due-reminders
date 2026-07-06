@@ -1803,12 +1803,48 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                             </code>
                           </div>
                           {invoice.stripe_invoice_id ? (
-                            <div className="flex items-center gap-2 text-[11px] text-emerald-700">
-                              <CheckCircle className="h-3.5 w-3.5" />
-                              <span>Pushed to Stripe</span>
-                              <code className="px-1.5 py-0.5 rounded bg-muted truncate max-w-[140px]" title={invoice.stripe_invoice_id}>
-                                {invoice.stripe_invoice_id}
-                              </code>
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2 text-[11px] text-emerald-700">
+                                {invoice.stripe_push_status === "draft" ? (
+                                  <AlertCircle className="h-3.5 w-3.5 text-amber-600" />
+                                ) : (
+                                  <CheckCircle className="h-3.5 w-3.5" />
+                                )}
+                                <span className={invoice.stripe_push_status === "draft" ? "text-amber-700" : "text-emerald-700"}>
+                                  {invoice.stripe_push_status === "draft" ? "Draft in Stripe" : "Pushed to Stripe"}
+                                </span>
+                                <code className="px-1.5 py-0.5 rounded bg-muted truncate max-w-[140px]" title={invoice.stripe_invoice_id}>
+                                  {invoice.stripe_invoice_id}
+                                </code>
+                              </div>
+                              <a
+                                href={`https://dashboard.stripe.com/invoices/${invoice.stripe_invoice_id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[11px] text-indigo-600 hover:underline inline-flex items-center gap-1"
+                              >
+                                <ExternalLink className="h-3 w-3" />
+                                View in Stripe to validate values
+                              </a>
+                              {invoice.stripe_push_status === "draft" && (
+                                <>
+                                  <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded p-2 leading-snug">
+                                    Review the draft in Stripe. When the values look correct, finalize to lock the invoice — once locked, line items cannot be edited.
+                                  </p>
+                                  <Button
+                                    size="sm"
+                                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                                    onClick={() => handlePushToStripe(true)}
+                                    disabled={pushingToStripe}
+                                  >
+                                    {pushingToStripe ? (
+                                      <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> Finalizing…</>
+                                    ) : (
+                                      <><CheckCircle className="h-3.5 w-3.5 mr-1.5" /> Finalize & Lock in Stripe</>
+                                    )}
+                                  </Button>
+                                </>
+                              )}
                             </div>
                           ) : (usesPostingLifecycle(invoice as any) && getPostingState(invoice as any) === "draft") ? (
                             <p className="text-[11px] text-muted-foreground">
