@@ -342,6 +342,7 @@ export default function Reports() {
           contractRecoveredAmount: contractRecovered,
           contractOverdueAmount: contractOverdue,
         });
+        setInsights(builtInsights);
         setLoading(false);
       }
     }
