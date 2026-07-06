@@ -58,7 +58,7 @@ const STRIPE_MAX_ITEM_MINOR = 99_999_999;
 
 async function createInvoiceItemChunks(
   stripe: Stripe,
-  params: { customer: string; invoice: string; amount: number; currency: string; description: string; metadata: Record<string, string> },
+  params: { customer: string; invoice: string; amount: number; currency: string; description: string; metadata: Record<string, string>; period?: { start: number; end: number } },
 ) {
   const { amount } = params;
   if (amount === 0) return;
@@ -69,16 +69,35 @@ async function createInvoiceItemChunks(
   while (remaining > 0) {
     const chunk = Math.min(remaining, STRIPE_MAX_ITEM_MINOR) * sign;
     part += 1;
-    await stripe.invoiceItems.create({
+    const payload: Record<string, unknown> = {
       customer: params.customer,
       invoice: params.invoice,
       amount: chunk,
       currency: params.currency,
       description: totalParts > 1 ? `${params.description} (part ${part}/${totalParts})` : params.description,
       metadata: params.metadata,
-    });
+    };
+    if (params.period) payload.period = params.period;
+    await stripe.invoiceItems.create(payload as any);
     remaining -= Math.abs(chunk);
   }
+}
+
+function toEpochSec(v: string | null | undefined): number | null {
+  if (!v) return null;
+  const t = new Date(v).getTime();
+  return Number.isFinite(t) ? Math.floor(t / 1000) : null;
+}
+
+function parseLineBillingPeriod(bp: string | null | undefined): { start: number; end: number } | undefined {
+  if (!bp) return undefined;
+  // Support "YYYY-MM-DD → YYYY-MM-DD" or "YYYY-MM-DD - YYYY-MM-DD"
+  const m = bp.match(/(\d{4}-\d{2}-\d{2})\s*(?:→|-|to)\s*(\d{4}-\d{2}-\d{2})/i);
+  if (!m) return undefined;
+  const s = toEpochSec(m[1]);
+  const e = toEpochSec(m[2]);
+  if (!s || !e || e <= s) return undefined;
+  return { start: s, end: e };
 }
 
 serve(async (req) => {
