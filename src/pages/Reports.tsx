@@ -12,7 +12,7 @@ import {
   Line,
   ComposedChart,
 } from "recharts";
-import { Info, MessageSquare, CheckCircle2, Circle, FileText, AlertTriangle, TrendingUp } from "lucide-react";
+import { Info, MessageSquare, CheckCircle2, Circle, FileText, AlertTriangle, TrendingUp, Sparkles, ArrowUpRight, Gauge } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -47,6 +47,24 @@ interface ContractStats {
   contractOverdueAmount: number;
 }
 
+interface ContractInsight {
+  contractId: string;
+  name: string;
+  invoiced: number;
+  recovered: number;
+  overdue: number;
+  overdueRate: number;
+  recoveryRate: number;
+  invoiceCount: number;
+  overdueInvoiceCount: number;
+  outreachCount: number;
+  outreachPerOverdueInvoice: number;
+  suggestedCadence: string;
+  currentCadence: string;
+  expectedLift: number;
+  severity: "high" | "medium" | "low";
+}
+
 const currency = (n: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 
@@ -68,6 +86,7 @@ export default function Reports() {
     contractRecoveredAmount: 0,
     contractOverdueAmount: 0,
   });
+  const [insights, setInsights] = useState<ContractInsight[]>([]);
 
   const dateRange = useMemo(() => {
     const end = endOfMonth(new Date());
@@ -106,7 +125,7 @@ export default function Reports() {
       while (true) {
         const { data, error } = await supabase
           .from("invoices")
-          .select("amount, amount_outstanding, status, issue_date, due_date, paid_date, source_contract_id")
+          .select("id, amount, amount_outstanding, status, issue_date, due_date, paid_date, source_contract_id")
           .gte("issue_date", format(dateRange.start, "yyyy-MM-dd"))
           .lte("issue_date", format(dateRange.end, "yyyy-MM-dd"))
           .eq("is_archived", false)
@@ -124,6 +143,19 @@ export default function Reports() {
       let contractOverdue = 0;
       let contractInvoiceCount = 0;
 
+      // Per-contract aggregation for optimization insights
+      const contractAgg = new Map<
+        string,
+        {
+          invoiced: number;
+          recovered: number;
+          overdue: number;
+          invoiceCount: number;
+          overdueInvoiceCount: number;
+          invoiceIds: Set<string>;
+        }
+      >();
+
       invoices.forEach((inv: any) => {
         const issue = inv.issue_date ? new Date(inv.issue_date) : null;
         if (!issue) return;
@@ -136,9 +168,8 @@ export default function Reports() {
         b.invoiced += amt;
         b.recovered += recovered;
         b.outstanding += outs;
-        if (inv.due_date && new Date(inv.due_date) < now && outs > 0) {
-          b.overdue += outs;
-        }
+        const isOverdue = !!(inv.due_date && new Date(inv.due_date) < now && outs > 0);
+        if (isOverdue) b.overdue += outs;
         if (inv.paid_date && inv.due_date) {
           const d = differenceInDays(new Date(inv.paid_date), new Date(inv.due_date));
           daysToPaySamples.push(d);
@@ -147,22 +178,44 @@ export default function Reports() {
           contractInvoiceCount++;
           contractInvoiced += amt;
           contractRecovered += recovered;
-          if (inv.due_date && new Date(inv.due_date) < now && outs > 0) contractOverdue += outs;
+          if (isOverdue) contractOverdue += outs;
+          const cid = inv.source_contract_id as string;
+          const agg = contractAgg.get(cid) ?? {
+            invoiced: 0,
+            recovered: 0,
+            overdue: 0,
+            invoiceCount: 0,
+            overdueInvoiceCount: 0,
+            invoiceIds: new Set<string>(),
+          };
+          agg.invoiced += amt;
+          agg.recovered += recovered;
+          if (isOverdue) {
+            agg.overdue += outs;
+            agg.overdueInvoiceCount++;
+          }
+          agg.invoiceCount++;
+          agg.invoiceIds.add(inv.id);
+          contractAgg.set(cid, agg);
         }
       });
 
-      // Collection activities per month
+      // Collection activities per month + per invoice
       const { data: acts } = await supabase
         .from("collection_activities")
-        .select("created_at, direction")
+        .select("created_at, direction, invoice_id")
         .gte("created_at", dateRange.start.toISOString())
         .lte("created_at", dateRange.end.toISOString())
         .limit(10000);
 
+      const outreachByInvoice = new Map<string, number>();
       (acts || []).forEach((a: any) => {
         const key = format(new Date(a.created_at), "yyyy-MM");
         const b = months.find((m) => m.key === key);
         if (b) b.outreach += 1;
+        if (a.invoice_id) {
+          outreachByInvoice.set(a.invoice_id, (outreachByInvoice.get(a.invoice_id) ?? 0) + 1);
+        }
       });
 
       // Split recovered into "automated" (months with outreach) vs "manual"
@@ -194,6 +247,88 @@ export default function Reports() {
         0
       );
 
+      // Build optimization insights: rank contracts by overdue exposure
+      const candidateIds = Array.from(contractAgg.entries())
+        .filter(([, v]) => v.invoiced > 0)
+        .sort((a, b) => b[1].overdue - a[1].overdue)
+        .slice(0, 8)
+        .map(([id]) => id);
+
+      const nameById = new Map<string, string>();
+      if (candidateIds.length > 0) {
+        const { data: contractRows } = await supabase
+          .from("live_contract_imports")
+          .select("id, contract_name, file_name")
+          .in("id", candidateIds);
+        (contractRows || []).forEach((c: any) => {
+          nameById.set(c.id, c.contract_name || c.file_name || `Contract ${String(c.id).slice(0, 8)}`);
+        });
+      }
+
+      const builtInsights: ContractInsight[] = candidateIds
+        .map((cid) => {
+          const v = contractAgg.get(cid)!;
+          let outreachCount = 0;
+          v.invoiceIds.forEach((iid) => {
+            outreachCount += outreachByInvoice.get(iid) ?? 0;
+          });
+          const overdueRate = v.invoiced > 0 ? v.overdue / v.invoiced : 0;
+          const recoveryRate = v.invoiced > 0 ? v.recovered / v.invoiced : 0;
+          const outreachPerOverdue =
+            v.overdueInvoiceCount > 0 ? outreachCount / v.overdueInvoiceCount : outreachCount;
+
+          let currentCadence = "No outreach";
+          if (outreachPerOverdue >= 4) currentCadence = "Weekly";
+          else if (outreachPerOverdue >= 2) currentCadence = "Bi-weekly";
+          else if (outreachPerOverdue >= 1) currentCadence = "Monthly";
+
+          let suggestedCadence = currentCadence;
+          let uplift = 0.05;
+          let severity: "high" | "medium" | "low" = "low";
+
+          if (overdueRate > 0.5 && outreachPerOverdue < 2) {
+            suggestedCadence = "Every 3–5 days + escalation";
+            uplift = 0.25;
+            severity = "high";
+          } else if (overdueRate > 0.3 && outreachPerOverdue < 2) {
+            suggestedCadence = "Weekly with phone touchpoint";
+            uplift = 0.18;
+            severity = "high";
+          } else if (overdueRate > 0.15 && outreachPerOverdue < 3) {
+            suggestedCadence = "Weekly reminders";
+            uplift = 0.12;
+            severity = "medium";
+          } else if (overdueRate > 0.05) {
+            suggestedCadence = "Add pre-due-date reminder (T-3d)";
+            uplift = 0.08;
+            severity = "medium";
+          } else {
+            suggestedCadence = "Maintain current cadence";
+            uplift = 0.03;
+            severity = "low";
+          }
+
+          return {
+            contractId: cid,
+            name: nameById.get(cid) || `Contract ${cid.slice(0, 8)}`,
+            invoiced: v.invoiced,
+            recovered: v.recovered,
+            overdue: v.overdue,
+            overdueRate,
+            recoveryRate,
+            invoiceCount: v.invoiceCount,
+            overdueInvoiceCount: v.overdueInvoiceCount,
+            outreachCount,
+            outreachPerOverdueInvoice: outreachPerOverdue,
+            currentCadence,
+            suggestedCadence,
+            expectedLift: v.overdue * uplift,
+            severity,
+          };
+        })
+        .filter((i) => i.overdue > 0)
+        .slice(0, 5);
+
       if (!cancelled) {
         setBuckets(months);
         setActivityTotal(totalActs);
@@ -207,6 +342,7 @@ export default function Reports() {
           contractRecoveredAmount: contractRecovered,
           contractOverdueAmount: contractOverdue,
         });
+        setInsights(builtInsights);
         setLoading(false);
       }
     }
@@ -307,6 +443,8 @@ export default function Reports() {
                     value={currency(contract.contractInvoicedAmount)}
                   />
                 </div>
+
+                <OptimizationInsights insights={insights} />
 
                 <ReportSection title="Recovery breakdown">
                   <div className="flex items-center gap-4 text-xs text-muted-foreground mb-3">
@@ -576,3 +714,85 @@ function Stat({
     </div>
   );
 }
+
+function OptimizationInsights({ insights }: { insights: ContractInsight[] }) {
+  const totalLift = insights.reduce((s, i) => s + i.expectedLift, 0);
+  const severityBadge = (s: ContractInsight["severity"]) => {
+    if (s === "high") return "bg-destructive/10 text-destructive border-destructive/20";
+    if (s === "medium") return "bg-amber-500/10 text-amber-600 border-amber-500/20";
+    return "bg-primary/10 text-primary border-primary/20";
+  };
+
+  return (
+    <section>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-primary" />
+          <h2 className="font-semibold">Optimization insights</h2>
+        </div>
+        {totalLift > 0 && (
+          <div className="text-sm text-muted-foreground">
+            Projected recovery lift{" "}
+            <span className="font-semibold text-foreground">{currency(totalLift)}</span>
+          </div>
+        )}
+      </div>
+
+      {insights.length === 0 ? (
+        <div className="rounded-md border bg-muted/30 p-6 text-sm text-muted-foreground">
+          No underperforming contracts detected in this period. Ingest more contracts or extend the
+          time range to surface cadence recommendations.
+        </div>
+      ) : (
+        <div className="rounded-md border divide-y">
+          {insights.map((i) => (
+            <div key={i.contractId} className="p-4 grid grid-cols-1 md:grid-cols-[1.4fr_1fr_1fr_auto] gap-4 items-start">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <span
+                    className={`text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded border ${severityBadge(i.severity)}`}
+                  >
+                    {i.severity}
+                  </span>
+                  <span className="font-medium truncate">{i.name}</span>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {i.invoiceCount} invoice{i.invoiceCount === 1 ? "" : "s"} · {i.overdueInvoiceCount} overdue ·{" "}
+                  {Math.round(i.overdueRate * 100)}% overdue rate
+                </div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  Recovery rate {Math.round(i.recoveryRate * 100)}% · {i.outreachCount} outreach touchpoints
+                </div>
+              </div>
+
+              <div className="text-sm">
+                <div className="flex items-center gap-1.5 text-muted-foreground text-xs">
+                  <Gauge className="h-3 w-3" /> Cadence
+                </div>
+                <div className="mt-0.5">
+                  <span className="text-muted-foreground line-through mr-1">{i.currentCadence}</span>
+                  <span className="font-medium">{i.suggestedCadence}</span>
+                </div>
+              </div>
+
+              <div className="text-sm">
+                <div className="flex items-center gap-1.5 text-muted-foreground text-xs">
+                  <ArrowUpRight className="h-3 w-3" /> Expected lift
+                </div>
+                <div className="mt-0.5 font-semibold text-primary">{currency(i.expectedLift)}</div>
+                <div className="text-xs text-muted-foreground">of {currency(i.overdue)} overdue</div>
+              </div>
+
+              <div className="justify-self-start md:justify-self-end">
+                <Link to={`/contracts?id=${i.contractId}`}>
+                  <Button size="sm" variant="outline">Apply</Button>
+                </Link>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
