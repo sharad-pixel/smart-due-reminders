@@ -85,6 +85,7 @@ interface Invoice {
   outreach_paused_at: string | null;
   stripe_invoice_id: string | null;
   stripe_hosted_url: string | null;
+  stripe_push_status: string | null;
   // Integration source tracking
   integration_source: string | null;
   integration_id: string | null;
@@ -191,12 +192,12 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
 
   const POSTED_STATUSES = new Set(["Open", "InPaymentPlan", "PartiallyPaid"]);
 
-  const handlePushToStripe = async () => {
+  const handlePushToStripe = async (finalize: boolean = false) => {
     if (!invoice) return;
     setPushingToStripe(true);
     try {
       const { data, error } = await supabase.functions.invoke("push-invoice-to-stripe", {
-        body: { invoice_id: invoice.id, finalize: true },
+        body: { invoice_id: invoice.id, finalize },
       });
       if (error) {
         // Try to read the JSON body the edge function returned on non-2xx.
@@ -211,8 +212,12 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
         throw new Error(serverMsg || (error as any).message || "Failed to push to Stripe");
       }
       if ((data as any)?.error) throw new Error((data as any).error);
-      toast.success("Invoice pushed to Stripe");
-      // Refresh invoice to pick up stripe_invoice_id
+      toast.success(
+        finalize
+          ? "Stripe invoice finalized and locked"
+          : "Draft invoice pushed to Stripe — review the values, then finalize & lock"
+      );
+      // Refresh invoice to pick up stripe_invoice_id / status
       const { data: refreshed } = await supabase
         .from("invoices")
         .select("*, debtors(company_name, email, stripe_customer_id, crm_account_id, outreach_paused, account_outreach_enabled)")
@@ -1798,12 +1803,48 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                             </code>
                           </div>
                           {invoice.stripe_invoice_id ? (
-                            <div className="flex items-center gap-2 text-[11px] text-emerald-700">
-                              <CheckCircle className="h-3.5 w-3.5" />
-                              <span>Pushed to Stripe</span>
-                              <code className="px-1.5 py-0.5 rounded bg-muted truncate max-w-[140px]" title={invoice.stripe_invoice_id}>
-                                {invoice.stripe_invoice_id}
-                              </code>
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2 text-[11px] text-emerald-700">
+                                {invoice.stripe_push_status === "draft" ? (
+                                  <AlertCircle className="h-3.5 w-3.5 text-amber-600" />
+                                ) : (
+                                  <CheckCircle className="h-3.5 w-3.5" />
+                                )}
+                                <span className={invoice.stripe_push_status === "draft" ? "text-amber-700" : "text-emerald-700"}>
+                                  {invoice.stripe_push_status === "draft" ? "Draft in Stripe" : "Pushed to Stripe"}
+                                </span>
+                                <code className="px-1.5 py-0.5 rounded bg-muted truncate max-w-[140px]" title={invoice.stripe_invoice_id}>
+                                  {invoice.stripe_invoice_id}
+                                </code>
+                              </div>
+                              <a
+                                href={`https://dashboard.stripe.com/invoices/${invoice.stripe_invoice_id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[11px] text-indigo-600 hover:underline inline-flex items-center gap-1"
+                              >
+                                <ExternalLink className="h-3 w-3" />
+                                View in Stripe to validate values
+                              </a>
+                              {invoice.stripe_push_status === "draft" && (
+                                <>
+                                  <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded p-2 leading-snug">
+                                    Review the draft in Stripe. When the values look correct, finalize to lock the invoice — once locked, line items cannot be edited.
+                                  </p>
+                                  <Button
+                                    size="sm"
+                                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                                    onClick={() => handlePushToStripe(true)}
+                                    disabled={pushingToStripe}
+                                  >
+                                    {pushingToStripe ? (
+                                      <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> Finalizing…</>
+                                    ) : (
+                                      <><CheckCircle className="h-3.5 w-3.5 mr-1.5" /> Finalize & Lock in Stripe</>
+                                    )}
+                                  </Button>
+                                </>
+                              )}
                             </div>
                           ) : (usesPostingLifecycle(invoice as any) && getPostingState(invoice as any) === "draft") ? (
                             <p className="text-[11px] text-muted-foreground">
@@ -1854,17 +1895,17 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                                 size="sm"
                                 variant="outline"
                                 className="w-full"
-                                onClick={handlePushToStripe}
+                                onClick={() => handlePushToStripe(false)}
                                 disabled={pushingToStripe}
                               >
                                 {pushingToStripe ? (
                                   <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> Pushing…</>
                                 ) : (
-                                  <><Upload className="h-3.5 w-3.5 mr-1.5" /> Push to Stripe</>
+                                  <><Upload className="h-3.5 w-3.5 mr-1.5" /> Push as Draft to Stripe</>
                                 )}
                               </Button>
                               <p className="text-[10px] text-muted-foreground leading-snug">
-                                Stripe caps a single invoice line item at $999,999.99. Larger amounts are automatically split into multiple line items (part 1/N, 2/N…) so the pushed total matches Recouply exactly.
+                                Creates a <strong>draft</strong> invoice in Stripe so you can validate the values before locking it. Finalize it from here once verified. Stripe caps a single line item at $999,999.99; larger amounts are auto-split (part 1/N, 2/N…) so the total matches Recouply exactly.
                               </p>
                             </div>
                           ) : (
