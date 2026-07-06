@@ -61,6 +61,12 @@ export function FloatingReferralAgent() {
     setShowBubble(false);
   }, [minimized]);
 
+  useEffect(() => {
+    const openHandler = () => setModalOpen(true);
+    window.addEventListener("open-referral-modal", openHandler);
+    return () => window.removeEventListener("open-referral-modal", openHandler);
+  }, []);
+
   const handleMinimize = () => {
     setMinimized(true);
     setShowBubble(false);
