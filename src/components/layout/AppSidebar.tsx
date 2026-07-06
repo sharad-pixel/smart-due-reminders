@@ -159,6 +159,13 @@ export function AppSidebar(props: AppSidebarProps) {
         </SidebarGroup>
 
         <SidebarGroup>
+          <SidebarGroupLabel>Collection Intelligence</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>{collectionIntel.map(renderItem)}</SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
           <SidebarGroupLabel>Contract Intelligence</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>{contractIntel.map(renderItem)}</SidebarMenu>
