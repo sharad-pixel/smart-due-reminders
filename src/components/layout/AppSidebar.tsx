@@ -91,6 +91,9 @@ export function AppSidebar(props: AppSidebarProps) {
   const revenueHub: NavItem[] = useMemo(() => [
     { path: "/hub", label: "Revenue Hub", icon: Sparkles },
     { path: "/dashboard", label: "Overview", icon: LayoutDashboard },
+  ], []);
+
+  const collectionIntel: NavItem[] = useMemo(() => [
     { path: "/invoices", label: "Invoices", icon: FileText },
     { path: "/payments", label: "Payments", icon: DollarSign },
   ], []);
