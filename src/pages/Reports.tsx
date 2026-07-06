@@ -125,7 +125,7 @@ export default function Reports() {
       while (true) {
         const { data, error } = await supabase
           .from("invoices")
-          .select("amount, amount_outstanding, status, issue_date, due_date, paid_date, source_contract_id")
+          .select("id, amount, amount_outstanding, status, issue_date, due_date, paid_date, source_contract_id")
           .gte("issue_date", format(dateRange.start, "yyyy-MM-dd"))
           .lte("issue_date", format(dateRange.end, "yyyy-MM-dd"))
           .eq("is_archived", false)
