@@ -53,6 +53,8 @@ import {
   LogOut,
   ServerCog,
   Building2,
+  Building2,
+  Gift,
 } from "lucide-react";
 
 interface NavItem {
