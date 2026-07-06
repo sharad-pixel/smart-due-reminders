@@ -714,3 +714,85 @@ function Stat({
     </div>
   );
 }
+
+function OptimizationInsights({ insights }: { insights: ContractInsight[] }) {
+  const totalLift = insights.reduce((s, i) => s + i.expectedLift, 0);
+  const severityBadge = (s: ContractInsight["severity"]) => {
+    if (s === "high") return "bg-destructive/10 text-destructive border-destructive/20";
+    if (s === "medium") return "bg-amber-500/10 text-amber-600 border-amber-500/20";
+    return "bg-primary/10 text-primary border-primary/20";
+  };
+
+  return (
+    <section>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-primary" />
+          <h2 className="font-semibold">Optimization insights</h2>
+        </div>
+        {totalLift > 0 && (
+          <div className="text-sm text-muted-foreground">
+            Projected recovery lift{" "}
+            <span className="font-semibold text-foreground">{currency(totalLift)}</span>
+          </div>
+        )}
+      </div>
+
+      {insights.length === 0 ? (
+        <div className="rounded-md border bg-muted/30 p-6 text-sm text-muted-foreground">
+          No underperforming contracts detected in this period. Ingest more contracts or extend the
+          time range to surface cadence recommendations.
+        </div>
+      ) : (
+        <div className="rounded-md border divide-y">
+          {insights.map((i) => (
+            <div key={i.contractId} className="p-4 grid grid-cols-1 md:grid-cols-[1.4fr_1fr_1fr_auto] gap-4 items-start">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <span
+                    className={`text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded border ${severityBadge(i.severity)}`}
+                  >
+                    {i.severity}
+                  </span>
+                  <span className="font-medium truncate">{i.name}</span>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {i.invoiceCount} invoice{i.invoiceCount === 1 ? "" : "s"} · {i.overdueInvoiceCount} overdue ·{" "}
+                  {Math.round(i.overdueRate * 100)}% overdue rate
+                </div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  Recovery rate {Math.round(i.recoveryRate * 100)}% · {i.outreachCount} outreach touchpoints
+                </div>
+              </div>
+
+              <div className="text-sm">
+                <div className="flex items-center gap-1.5 text-muted-foreground text-xs">
+                  <Gauge className="h-3 w-3" /> Cadence
+                </div>
+                <div className="mt-0.5">
+                  <span className="text-muted-foreground line-through mr-1">{i.currentCadence}</span>
+                  <span className="font-medium">{i.suggestedCadence}</span>
+                </div>
+              </div>
+
+              <div className="text-sm">
+                <div className="flex items-center gap-1.5 text-muted-foreground text-xs">
+                  <ArrowUpRight className="h-3 w-3" /> Expected lift
+                </div>
+                <div className="mt-0.5 font-semibold text-primary">{currency(i.expectedLift)}</div>
+                <div className="text-xs text-muted-foreground">of {currency(i.overdue)} overdue</div>
+              </div>
+
+              <div className="justify-self-start md:justify-self-end">
+                <Link to={`/contracts?id=${i.contractId}`}>
+                  <Button size="sm" variant="outline">Apply</Button>
+                </Link>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
