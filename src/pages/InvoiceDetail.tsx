@@ -85,6 +85,7 @@ interface Invoice {
   outreach_paused_at: string | null;
   stripe_invoice_id: string | null;
   stripe_hosted_url: string | null;
+  stripe_push_status: string | null;
   // Integration source tracking
   integration_source: string | null;
   integration_id: string | null;
