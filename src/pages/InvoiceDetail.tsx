@@ -192,12 +192,12 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
 
   const POSTED_STATUSES = new Set(["Open", "InPaymentPlan", "PartiallyPaid"]);
 
-  const handlePushToStripe = async () => {
+  const handlePushToStripe = async (finalize: boolean = false) => {
     if (!invoice) return;
     setPushingToStripe(true);
     try {
       const { data, error } = await supabase.functions.invoke("push-invoice-to-stripe", {
-        body: { invoice_id: invoice.id, finalize: true },
+        body: { invoice_id: invoice.id, finalize },
       });
       if (error) {
         // Try to read the JSON body the edge function returned on non-2xx.
@@ -212,8 +212,12 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
         throw new Error(serverMsg || (error as any).message || "Failed to push to Stripe");
       }
       if ((data as any)?.error) throw new Error((data as any).error);
-      toast.success("Invoice pushed to Stripe");
-      // Refresh invoice to pick up stripe_invoice_id
+      toast.success(
+        finalize
+          ? "Stripe invoice finalized and locked"
+          : "Draft invoice pushed to Stripe — review the values, then finalize & lock"
+      );
+      // Refresh invoice to pick up stripe_invoice_id / status
       const { data: refreshed } = await supabase
         .from("invoices")
         .select("*, debtors(company_name, email, stripe_customer_id, crm_account_id, outreach_paused, account_outreach_enabled)")
