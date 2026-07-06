@@ -30,7 +30,7 @@ export const CollectionsCommandSummary = () => {
       const { data, error } = await (supabase as any)
         .from("invoices")
         .select("id,amount,balance_due,due_date,status,currency")
-        .eq("account_id", accountId!)
+        .eq("user_id", accountId!)
         .neq("status", "paid")
         .limit(2000);
       if (error) throw error;
