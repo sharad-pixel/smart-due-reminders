@@ -12,7 +12,7 @@ import {
   Line,
   ComposedChart,
 } from "recharts";
-import { Info, MessageSquare, CheckCircle2, Circle, FileText, AlertTriangle, TrendingUp } from "lucide-react";
+import { Info, MessageSquare, CheckCircle2, Circle, FileText, AlertTriangle, TrendingUp, Sparkles, ArrowUpRight, Gauge } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
