@@ -546,10 +546,30 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
           .eq("id", id);
 
         if (error) throw error;
-        
+
+        // Mirror void/cancel into Stripe so the linked invoice reflects the
+        // same terminal state — a canceled invoice in Recouply must not
+        // remain collectible in Stripe.
+        let stripeVoidNote = "";
+        if (
+          (newStatus === "Canceled") &&
+          invoice.stripe_invoice_id &&
+          invoice.stripe_push_status !== "voided"
+        ) {
+          const { data: voidData, error: voidErr } = await supabase.functions.invoke(
+            "push-invoice-to-stripe",
+            { body: { invoice_id: invoice.id, action: "void" } },
+          );
+          if (voidErr || (voidData as any)?.error) {
+            stripeVoidNote = ` (Stripe void failed: ${voidErr?.message || (voidData as any)?.error})`;
+          } else {
+            stripeVoidNote = " · Stripe invoice voided";
+          }
+        }
+
         const successMessage = isIntegratedInvoice
-          ? `Status changed to ${newStatus}. This manual override has been logged.`
-          : `Invoice marked as ${newStatus}`;
+          ? `Status changed to ${newStatus}. This manual override has been logged.${stripeVoidNote}`
+          : `Invoice marked as ${newStatus}${stripeVoidNote}`;
         toast.success(successMessage);
         fetchData();
       } catch (error: any) {
