@@ -27,7 +27,7 @@ export default function ContractsHub() {
         title="Contracts Hub · Recouply"
         description="Contract portfolio dashboard: value under management, upcoming renewals, revenue risk, and every active agreement."
       />
-      <div className="container max-w-7xl pt-8 pb-10 space-y-8">
+      <div className="w-full max-w-[1600px] mx-auto pt-8 pb-10 space-y-8">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div className="space-y-1.5">
             <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground flex items-center gap-1.5">
