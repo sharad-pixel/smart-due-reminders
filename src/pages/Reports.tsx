@@ -86,6 +86,7 @@ export default function Reports() {
     contractRecoveredAmount: 0,
     contractOverdueAmount: 0,
   });
+  const [insights, setInsights] = useState<ContractInsight[]>([]);
 
   const dateRange = useMemo(() => {
     const end = endOfMonth(new Date());
