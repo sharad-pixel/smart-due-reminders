@@ -879,3 +879,118 @@ function OptimizationInsights({ insights }: { insights: ContractInsight[] }) {
   );
 }
 
+function CollectionsByAgent({ agents }: { agents: AgentStat[] }) {
+  const totals = agents.reduce(
+    (acc, a) => ({
+      completed: acc.completed + a.completed,
+      inbound: acc.inbound + a.inbound,
+      forecasted: acc.forecasted + a.forecasted,
+      overdue: acc.overdue + a.overdueAmount,
+      recovered: acc.recovered + a.recoveredAmount,
+    }),
+    { completed: 0, inbound: 0, forecasted: 0, overdue: 0, recovered: 0 }
+  );
+  const totalContact = totals.completed + totals.inbound;
+  const avgResponse = totalContact > 0 ? (totals.inbound / totalContact) * 100 : 0;
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
+        <Kpi label="Outreach completed" value={num(totals.completed)} />
+        <Kpi label="Inbound replies" value={num(totals.inbound)} />
+        <Kpi label="Forecasted (next 30d)" value={num(totals.forecasted)} />
+        <Kpi label="Avg response rate" value={`${Math.round(avgResponse)}%`} />
+        <Kpi label="Overdue under management" value={currency(totals.overdue)} />
+      </div>
+
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <UsersIcon className="h-4 w-4 text-primary" />
+            <h2 className="font-semibold">Collections by agent</h2>
+          </div>
+          <span className="text-xs text-muted-foreground">
+            Outreach attribution based on invoice aging bucket
+          </span>
+        </div>
+
+        <div className="rounded-md border overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/40 text-xs text-muted-foreground">
+              <tr>
+                <th className="text-left px-4 py-2 font-medium">Agent</th>
+                <th className="text-left px-4 py-2 font-medium">Bucket</th>
+                <th className="text-right px-4 py-2 font-medium">Completed</th>
+                <th className="text-right px-4 py-2 font-medium">Forecasted</th>
+                <th className="text-right px-4 py-2 font-medium">Inbound</th>
+                <th className="text-right px-4 py-2 font-medium">Response rate</th>
+                <th className="text-right px-4 py-2 font-medium">Open invoices</th>
+                <th className="text-right px-4 py-2 font-medium">Overdue $</th>
+                <th className="text-right px-4 py-2 font-medium">Recovered $</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {agents.map((a) => {
+                const maxBar = Math.max(1, ...agents.map((x) => x.completed + x.forecasted));
+                const completedPct = (a.completed / maxBar) * 100;
+                const forecastPct = (a.forecasted / maxBar) * 100;
+                return (
+                  <tr key={a.agentKey} className="hover:bg-muted/20">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <div className="h-7 w-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold">
+                          {a.agentName.slice(0, 1)}
+                        </div>
+                        <div>
+                          <div className="font-medium">{a.agentName}</div>
+                          <div className="text-[11px] text-muted-foreground capitalize">{a.agentKey} persona</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">{a.bucketLabel}</td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="font-medium">{num(a.completed)}</div>
+                      <div className="mt-1 h-1 bg-muted rounded">
+                        <div className="h-1 bg-primary rounded" style={{ width: `${completedPct}%` }} />
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="font-medium">{num(a.forecasted)}</div>
+                      <div className="mt-1 h-1 bg-muted rounded">
+                        <div className="h-1 bg-primary/40 rounded" style={{ width: `${forecastPct}%` }} />
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-right font-medium">{num(a.inbound)}</td>
+                    <td className="px-4 py-3 text-right">
+                      <span
+                        className={
+                          a.responseRate >= 25
+                            ? "text-primary font-medium"
+                            : a.responseRate >= 10
+                            ? "text-amber-600 font-medium"
+                            : "text-muted-foreground"
+                        }
+                      >
+                        {Math.round(a.responseRate)}%
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right">{num(a.invoicesInBucket)}</td>
+                    <td className="px-4 py-3 text-right">{currency(a.overdueAmount)}</td>
+                    <td className="px-4 py-3 text-right text-primary">{currency(a.recoveredAmount)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        <p className="text-xs text-muted-foreground mt-3">
+          Agents are mapped to aging buckets: Sam (1-30d), James (31-60d), Katy (61-90d), Jimmy (91-120d),
+          Troy (121-150d), Rocco (150+d). Forecasted assumes ~2 touches per open overdue invoice next month.
+        </p>
+      </section>
+    </div>
+  );
+}
+
+
