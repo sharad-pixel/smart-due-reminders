@@ -57,7 +57,7 @@ export const CollectionsCommandSummary = () => {
     const list = invoices ?? [];
     const now = Date.now();
     const outstanding = list.reduce(
-      (s: number, i: any) => s + (Number(i.balance_due ?? i.amount) || 0),
+      (s: number, i: any) => s + (Number(i.amount_outstanding ?? i.amount) || 0),
       0,
     );
     const overdue = list.filter((i: any) => {
@@ -66,7 +66,7 @@ export const CollectionsCommandSummary = () => {
       return !Number.isNaN(t) && t < now;
     });
     const overdueAmt = overdue.reduce(
-      (s: number, i: any) => s + (Number(i.balance_due ?? i.amount) || 0),
+      (s: number, i: any) => s + (Number(i.amount_outstanding ?? i.amount) || 0),
       0,
     );
     const dpd =
