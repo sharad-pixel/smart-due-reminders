@@ -419,6 +419,7 @@ export default function Reports() {
           contractOverdueAmount: contractOverdue,
         });
         setInsights(builtInsights);
+        setAgentStats(builtAgentStats);
         setLoading(false);
       }
     }
