@@ -12,7 +12,7 @@ import {
   Line,
   ComposedChart,
 } from "recharts";
-import { Info, MessageSquare, CheckCircle2, Circle, FileText, AlertTriangle, TrendingUp, Sparkles, ArrowUpRight, Gauge, Users as UsersIcon } from "lucide-react";
+import { Info, CheckCircle2, Circle, FileText, AlertTriangle, TrendingUp, Sparkles, ArrowUpRight, Gauge, Users as UsersIcon } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -455,10 +455,6 @@ export default function Reports() {
               Automated recovery reporting across invoices, outreach and contract-driven revenue.
             </p>
           </div>
-          <Button variant="outline" size="sm" className="gap-2">
-            <MessageSquare className="h-3.5 w-3.5" />
-            Give feedback
-          </Button>
         </div>
 
         <Tabs value={tab} onValueChange={setTab}>
@@ -758,7 +754,6 @@ function ReportSection({ title, children }: { title: string; children: React.Rea
     <section>
       <div className="flex items-center justify-between mb-4">
         <h2 className="font-semibold">{title}</h2>
-        <Button variant="outline" size="sm">Explore</Button>
       </div>
       {children}
     </section>
