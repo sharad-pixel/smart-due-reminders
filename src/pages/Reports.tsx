@@ -66,6 +66,19 @@ interface ContractInsight {
   severity: "high" | "medium" | "low";
 }
 
+interface AgentStat {
+  agentKey: string;
+  agentName: string;
+  bucketLabel: string;
+  completed: number;
+  inbound: number;
+  forecasted: number;
+  responseRate: number;
+  invoicesInBucket: number;
+  overdueAmount: number;
+  recoveredAmount: number;
+}
+
 const currency = (n: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 
