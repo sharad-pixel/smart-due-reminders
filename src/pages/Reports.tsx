@@ -463,7 +463,7 @@ export default function Reports() {
 
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="bg-transparent border-b rounded-none w-full justify-start h-auto p-0 gap-6">
-            {["overview", "outreach", "contracts", "aging"].map((t) => (
+            {["overview", "outreach", "agents", "contracts", "aging"].map((t) => (
               <TabsTrigger
                 key={t}
                 value={t}
