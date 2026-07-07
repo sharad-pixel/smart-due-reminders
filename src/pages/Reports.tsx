@@ -171,6 +171,11 @@ export default function Reports() {
         }
       >();
 
+      // Per-invoice aging bucket (for agent attribution)
+      const invoiceBucket = new Map<string, string>();
+      // Aggregate open invoices per bucket for forecasting
+      const bucketOpenCounts = new Map<string, { count: number; overdue: number; recovered: number }>();
+
       invoices.forEach((inv: any) => {
         const issue = inv.issue_date ? new Date(inv.issue_date) : null;
         if (!issue) return;
@@ -189,6 +194,26 @@ export default function Reports() {
           const d = differenceInDays(new Date(inv.paid_date), new Date(inv.due_date));
           daysToPaySamples.push(d);
         }
+
+        // Determine bucket for agent attribution
+        let bucketKey: string = inv.aging_bucket;
+        if (!bucketKey && inv.due_date) {
+          const dpd = differenceInDays(now, new Date(inv.due_date));
+          bucketKey = getAgingBucketFromDays(dpd);
+        }
+        if (bucketKey) {
+          invoiceBucket.set(inv.id, bucketKey);
+          if (bucketKey !== "current") {
+            const agg = bucketOpenCounts.get(bucketKey) ?? { count: 0, overdue: 0, recovered: 0 };
+            if (outs > 0) {
+              agg.count++;
+              agg.overdue += outs;
+            }
+            agg.recovered += recovered;
+            bucketOpenCounts.set(bucketKey, agg);
+          }
+        }
+
         if (inv.source_contract_id) {
           contractInvoiceCount++;
           contractInvoiced += amt;
@@ -215,7 +240,7 @@ export default function Reports() {
         }
       });
 
-      // Collection activities per month + per invoice
+      // Collection activities per month + per invoice + per agent bucket
       const { data: acts } = await supabase
         .from("collection_activities")
         .select("created_at, direction, invoice_id")
@@ -224,14 +249,50 @@ export default function Reports() {
         .limit(10000);
 
       const outreachByInvoice = new Map<string, number>();
+      const agentAgg = new Map<string, { completed: number; inbound: number }>();
       (acts || []).forEach((a: any) => {
         const key = format(new Date(a.created_at), "yyyy-MM");
         const b = months.find((m) => m.key === key);
         if (b) b.outreach += 1;
         if (a.invoice_id) {
           outreachByInvoice.set(a.invoice_id, (outreachByInvoice.get(a.invoice_id) ?? 0) + 1);
+          const bucket = invoiceBucket.get(a.invoice_id);
+          if (bucket && bucket !== "current") {
+            const cur = agentAgg.get(bucket) ?? { completed: 0, inbound: 0 };
+            if (a.direction === "inbound") cur.inbound++;
+            else cur.completed++;
+            agentAgg.set(bucket, cur);
+          }
         }
       });
+
+      // Build per-agent stats (skip current bucket which has no agent)
+      const monthsInRange = Math.max(1, rangeMonths[range]);
+      const builtAgentStats: AgentStat[] = Object.entries(BUCKET_AGENT_MAP).map(
+        ([bucketKey, agent]) => {
+          const acts = agentAgg.get(bucketKey) ?? { completed: 0, inbound: 0 };
+          const open = bucketOpenCounts.get(bucketKey) ?? { count: 0, overdue: 0, recovered: 0 };
+          const totalContact = acts.completed + acts.inbound;
+          // Forecasted = expected touches next month based on open overdue invoices in bucket.
+          // Assume ~2 touches per open overdue invoice per month for that bucket.
+          const forecasted = open.count * 2;
+          const bucketDef = AGING_BUCKETS.find((b) => b.key === bucketKey);
+          return {
+            agentKey: agent.key,
+            agentName: agent.name,
+            bucketLabel: bucketDef?.label ?? bucketKey,
+            completed: acts.completed,
+            inbound: acts.inbound,
+            forecasted,
+            responseRate: totalContact > 0 ? (acts.inbound / totalContact) * 100 : 0,
+            invoicesInBucket: open.count,
+            overdueAmount: open.overdue,
+            recoveredAmount: open.recovered,
+          };
+        }
+      );
+
+
 
       // Split recovered into "automated" (months with outreach) vs "manual"
       months.forEach((m) => {
