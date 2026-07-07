@@ -29,9 +29,9 @@ export const CollectionsCommandSummary = () => {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("invoices")
-        .select("id,amount,balance_due,due_date,status,currency")
+        .select("id,amount,amount_outstanding,due_date,status,currency")
         .eq("user_id", accountId!)
-        .neq("status", "paid")
+        .not("status", "in", "(Paid,Settled,Canceled,Voided,WrittenOff)")
         .limit(2000);
       if (error) throw error;
       return (data ?? []) as any[];
@@ -57,7 +57,7 @@ export const CollectionsCommandSummary = () => {
     const list = invoices ?? [];
     const now = Date.now();
     const outstanding = list.reduce(
-      (s: number, i: any) => s + (Number(i.balance_due ?? i.amount) || 0),
+      (s: number, i: any) => s + (Number(i.amount_outstanding ?? i.amount) || 0),
       0,
     );
     const overdue = list.filter((i: any) => {
@@ -66,7 +66,7 @@ export const CollectionsCommandSummary = () => {
       return !Number.isNaN(t) && t < now;
     });
     const overdueAmt = overdue.reduce(
-      (s: number, i: any) => s + (Number(i.balance_due ?? i.amount) || 0),
+      (s: number, i: any) => s + (Number(i.amount_outstanding ?? i.amount) || 0),
       0,
     );
     const dpd =
