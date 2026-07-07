@@ -101,6 +101,7 @@ export default function Reports() {
     contractOverdueAmount: 0,
   });
   const [insights, setInsights] = useState<ContractInsight[]>([]);
+  const [agentStats, setAgentStats] = useState<AgentStat[]>([]);
 
   const dateRange = useMemo(() => {
     const end = endOfMonth(new Date());
