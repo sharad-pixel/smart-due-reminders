@@ -29,9 +29,9 @@ export const CollectionsCommandSummary = () => {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("invoices")
-        .select("id,amount,balance_due,due_date,status,currency")
+        .select("id,amount,amount_outstanding,due_date,status,currency")
         .eq("user_id", accountId!)
-        .neq("status", "paid")
+        .not("status", "in", "(Paid,Settled,Canceled,Voided,WrittenOff)")
         .limit(2000);
       if (error) throw error;
       return (data ?? []) as any[];
