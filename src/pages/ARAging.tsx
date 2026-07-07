@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -269,7 +270,11 @@ const ARAging = () => {
                   <TableBody>
                     {filteredData?.map((row) => (
                       <TableRow key={row.debtor_id}>
-                        <TableCell className="font-medium">{row.debtor_name}</TableCell>
+                        <TableCell className="font-medium">
+                          <Link to={`/debtors/${row.debtor_id}`} className="text-primary hover:underline">
+                            {row.debtor_name}
+                          </Link>
+                        </TableCell>
                         <TableCell className="text-right">
                           {row.current > 0 ? formatCurrency(row.current) : "-"}
                         </TableCell>

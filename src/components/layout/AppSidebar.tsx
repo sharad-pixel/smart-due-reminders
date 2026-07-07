@@ -98,6 +98,7 @@ export function AppSidebar(props: AppSidebarProps) {
   const collectionIntel: NavItem[] = useMemo(() => [
     { path: "/invoices", label: "Invoices", icon: FileText },
     { path: "/payments", label: "Payments", icon: DollarSign },
+    { path: "/ar-aging", label: "AR Aging", icon: BarChart3 },
   ], []);
 
   const contractIntel: NavItem[] = useMemo(() => [

@@ -12,11 +12,12 @@ import {
   Line,
   ComposedChart,
 } from "recharts";
-import { Info, MessageSquare, CheckCircle2, Circle, FileText, AlertTriangle, TrendingUp, Sparkles, ArrowUpRight, Gauge } from "lucide-react";
+import { Info, MessageSquare, CheckCircle2, Circle, FileText, AlertTriangle, TrendingUp, Sparkles, ArrowUpRight, Gauge, Users as UsersIcon } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
+import { BUCKET_AGENT_MAP, AGING_BUCKETS, getAgingBucketFromDays } from "@/lib/agingBuckets";
 
 type Range = "3m" | "6m" | "1y" | "2y";
 
@@ -65,6 +66,19 @@ interface ContractInsight {
   severity: "high" | "medium" | "low";
 }
 
+interface AgentStat {
+  agentKey: string;
+  agentName: string;
+  bucketLabel: string;
+  completed: number;
+  inbound: number;
+  forecasted: number;
+  responseRate: number;
+  invoicesInBucket: number;
+  overdueAmount: number;
+  recoveredAmount: number;
+}
+
 const currency = (n: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 
@@ -87,6 +101,7 @@ export default function Reports() {
     contractOverdueAmount: 0,
   });
   const [insights, setInsights] = useState<ContractInsight[]>([]);
+  const [agentStats, setAgentStats] = useState<AgentStat[]>([]);
 
   const dateRange = useMemo(() => {
     const end = endOfMonth(new Date());
@@ -125,7 +140,7 @@ export default function Reports() {
       while (true) {
         const { data, error } = await supabase
           .from("invoices")
-          .select("id, amount, amount_outstanding, status, issue_date, due_date, paid_date, source_contract_id")
+          .select("id, amount, amount_outstanding, status, issue_date, due_date, paid_date, source_contract_id, aging_bucket")
           .gte("issue_date", format(dateRange.start, "yyyy-MM-dd"))
           .lte("issue_date", format(dateRange.end, "yyyy-MM-dd"))
           .eq("is_archived", false)
@@ -156,6 +171,11 @@ export default function Reports() {
         }
       >();
 
+      // Per-invoice aging bucket (for agent attribution)
+      const invoiceBucket = new Map<string, string>();
+      // Aggregate open invoices per bucket for forecasting
+      const bucketOpenCounts = new Map<string, { count: number; overdue: number; recovered: number }>();
+
       invoices.forEach((inv: any) => {
         const issue = inv.issue_date ? new Date(inv.issue_date) : null;
         if (!issue) return;
@@ -174,6 +194,26 @@ export default function Reports() {
           const d = differenceInDays(new Date(inv.paid_date), new Date(inv.due_date));
           daysToPaySamples.push(d);
         }
+
+        // Determine bucket for agent attribution
+        let bucketKey: string = inv.aging_bucket;
+        if (!bucketKey && inv.due_date) {
+          const dpd = differenceInDays(now, new Date(inv.due_date));
+          bucketKey = getAgingBucketFromDays(dpd);
+        }
+        if (bucketKey) {
+          invoiceBucket.set(inv.id, bucketKey);
+          if (bucketKey !== "current") {
+            const agg = bucketOpenCounts.get(bucketKey) ?? { count: 0, overdue: 0, recovered: 0 };
+            if (outs > 0) {
+              agg.count++;
+              agg.overdue += outs;
+            }
+            agg.recovered += recovered;
+            bucketOpenCounts.set(bucketKey, agg);
+          }
+        }
+
         if (inv.source_contract_id) {
           contractInvoiceCount++;
           contractInvoiced += amt;
@@ -200,7 +240,7 @@ export default function Reports() {
         }
       });
 
-      // Collection activities per month + per invoice
+      // Collection activities per month + per invoice + per agent bucket
       const { data: acts } = await supabase
         .from("collection_activities")
         .select("created_at, direction, invoice_id")
@@ -209,14 +249,50 @@ export default function Reports() {
         .limit(10000);
 
       const outreachByInvoice = new Map<string, number>();
+      const agentAgg = new Map<string, { completed: number; inbound: number }>();
       (acts || []).forEach((a: any) => {
         const key = format(new Date(a.created_at), "yyyy-MM");
         const b = months.find((m) => m.key === key);
         if (b) b.outreach += 1;
         if (a.invoice_id) {
           outreachByInvoice.set(a.invoice_id, (outreachByInvoice.get(a.invoice_id) ?? 0) + 1);
+          const bucket = invoiceBucket.get(a.invoice_id);
+          if (bucket && bucket !== "current") {
+            const cur = agentAgg.get(bucket) ?? { completed: 0, inbound: 0 };
+            if (a.direction === "inbound") cur.inbound++;
+            else cur.completed++;
+            agentAgg.set(bucket, cur);
+          }
         }
       });
+
+      // Build per-agent stats (skip current bucket which has no agent)
+      const monthsInRange = Math.max(1, rangeMonths[range]);
+      const builtAgentStats: AgentStat[] = Object.entries(BUCKET_AGENT_MAP).map(
+        ([bucketKey, agent]) => {
+          const acts = agentAgg.get(bucketKey) ?? { completed: 0, inbound: 0 };
+          const open = bucketOpenCounts.get(bucketKey) ?? { count: 0, overdue: 0, recovered: 0 };
+          const totalContact = acts.completed + acts.inbound;
+          // Forecasted = expected touches next month based on open overdue invoices in bucket.
+          // Assume ~2 touches per open overdue invoice per month for that bucket.
+          const forecasted = open.count * 2;
+          const bucketDef = AGING_BUCKETS.find((b) => b.key === bucketKey);
+          return {
+            agentKey: agent.key,
+            agentName: agent.name,
+            bucketLabel: bucketDef?.label ?? bucketKey,
+            completed: acts.completed,
+            inbound: acts.inbound,
+            forecasted,
+            responseRate: totalContact > 0 ? (acts.inbound / totalContact) * 100 : 0,
+            invoicesInBucket: open.count,
+            overdueAmount: open.overdue,
+            recoveredAmount: open.recovered,
+          };
+        }
+      );
+
+
 
       // Split recovered into "automated" (months with outreach) vs "manual"
       months.forEach((m) => {
@@ -343,6 +419,7 @@ export default function Reports() {
           contractOverdueAmount: contractOverdue,
         });
         setInsights(builtInsights);
+        setAgentStats(builtAgentStats);
         setLoading(false);
       }
     }
@@ -386,7 +463,7 @@ export default function Reports() {
 
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="bg-transparent border-b rounded-none w-full justify-start h-auto p-0 gap-6">
-            {["overview", "outreach", "contracts", "aging"].map((t) => (
+            {["overview", "outreach", "agents", "contracts", "aging"].map((t) => (
               <TabsTrigger
                 key={t}
                 value={t}
@@ -598,6 +675,12 @@ export default function Reports() {
             </ReportSection>
           </TabsContent>
 
+          <TabsContent value="agents" className="mt-6 space-y-6">
+            <CollectionsByAgent agents={agentStats} />
+          </TabsContent>
+
+
+
           <TabsContent value="contracts" className="mt-6 space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               <Kpi label="Contracts ingested" value={num(contract.totalContracts)} />
@@ -795,4 +878,119 @@ function OptimizationInsights({ insights }: { insights: ContractInsight[] }) {
     </section>
   );
 }
+
+function CollectionsByAgent({ agents }: { agents: AgentStat[] }) {
+  const totals = agents.reduce(
+    (acc, a) => ({
+      completed: acc.completed + a.completed,
+      inbound: acc.inbound + a.inbound,
+      forecasted: acc.forecasted + a.forecasted,
+      overdue: acc.overdue + a.overdueAmount,
+      recovered: acc.recovered + a.recoveredAmount,
+    }),
+    { completed: 0, inbound: 0, forecasted: 0, overdue: 0, recovered: 0 }
+  );
+  const totalContact = totals.completed + totals.inbound;
+  const avgResponse = totalContact > 0 ? (totals.inbound / totalContact) * 100 : 0;
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
+        <Kpi label="Outreach completed" value={num(totals.completed)} />
+        <Kpi label="Inbound replies" value={num(totals.inbound)} />
+        <Kpi label="Forecasted (next 30d)" value={num(totals.forecasted)} />
+        <Kpi label="Avg response rate" value={`${Math.round(avgResponse)}%`} />
+        <Kpi label="Overdue under management" value={currency(totals.overdue)} />
+      </div>
+
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <UsersIcon className="h-4 w-4 text-primary" />
+            <h2 className="font-semibold">Collections by agent</h2>
+          </div>
+          <span className="text-xs text-muted-foreground">
+            Outreach attribution based on invoice aging bucket
+          </span>
+        </div>
+
+        <div className="rounded-md border overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/40 text-xs text-muted-foreground">
+              <tr>
+                <th className="text-left px-4 py-2 font-medium">Agent</th>
+                <th className="text-left px-4 py-2 font-medium">Bucket</th>
+                <th className="text-right px-4 py-2 font-medium">Completed</th>
+                <th className="text-right px-4 py-2 font-medium">Forecasted</th>
+                <th className="text-right px-4 py-2 font-medium">Inbound</th>
+                <th className="text-right px-4 py-2 font-medium">Response rate</th>
+                <th className="text-right px-4 py-2 font-medium">Open invoices</th>
+                <th className="text-right px-4 py-2 font-medium">Overdue $</th>
+                <th className="text-right px-4 py-2 font-medium">Recovered $</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {agents.map((a) => {
+                const maxBar = Math.max(1, ...agents.map((x) => x.completed + x.forecasted));
+                const completedPct = (a.completed / maxBar) * 100;
+                const forecastPct = (a.forecasted / maxBar) * 100;
+                return (
+                  <tr key={a.agentKey} className="hover:bg-muted/20">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <div className="h-7 w-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold">
+                          {a.agentName.slice(0, 1)}
+                        </div>
+                        <div>
+                          <div className="font-medium">{a.agentName}</div>
+                          <div className="text-[11px] text-muted-foreground capitalize">{a.agentKey} persona</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">{a.bucketLabel}</td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="font-medium">{num(a.completed)}</div>
+                      <div className="mt-1 h-1 bg-muted rounded">
+                        <div className="h-1 bg-primary rounded" style={{ width: `${completedPct}%` }} />
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="font-medium">{num(a.forecasted)}</div>
+                      <div className="mt-1 h-1 bg-muted rounded">
+                        <div className="h-1 bg-primary/40 rounded" style={{ width: `${forecastPct}%` }} />
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-right font-medium">{num(a.inbound)}</td>
+                    <td className="px-4 py-3 text-right">
+                      <span
+                        className={
+                          a.responseRate >= 25
+                            ? "text-primary font-medium"
+                            : a.responseRate >= 10
+                            ? "text-amber-600 font-medium"
+                            : "text-muted-foreground"
+                        }
+                      >
+                        {Math.round(a.responseRate)}%
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right">{num(a.invoicesInBucket)}</td>
+                    <td className="px-4 py-3 text-right">{currency(a.overdueAmount)}</td>
+                    <td className="px-4 py-3 text-right text-primary">{currency(a.recoveredAmount)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        <p className="text-xs text-muted-foreground mt-3">
+          Agents are mapped to aging buckets: Sam (1-30d), James (31-60d), Katy (61-90d), Jimmy (91-120d),
+          Troy (121-150d), Rocco (150+d). Forecasted assumes ~2 touches per open overdue invoice next month.
+        </p>
+      </section>
+    </div>
+  );
+}
+
 
