@@ -675,6 +675,12 @@ export default function Reports() {
             </ReportSection>
           </TabsContent>
 
+          <TabsContent value="agents" className="mt-6 space-y-6">
+            <CollectionsByAgent agents={agentStats} />
+          </TabsContent>
+
+
+
           <TabsContent value="contracts" className="mt-6 space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               <Kpi label="Contracts ingested" value={num(contract.totalContracts)} />
