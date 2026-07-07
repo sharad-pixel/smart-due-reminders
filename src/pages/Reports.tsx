@@ -12,11 +12,12 @@ import {
   Line,
   ComposedChart,
 } from "recharts";
-import { Info, MessageSquare, CheckCircle2, Circle, FileText, AlertTriangle, TrendingUp, Sparkles, ArrowUpRight, Gauge } from "lucide-react";
+import { Info, MessageSquare, CheckCircle2, Circle, FileText, AlertTriangle, TrendingUp, Sparkles, ArrowUpRight, Gauge, Users as UsersIcon } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
+import { BUCKET_AGENT_MAP, AGING_BUCKETS, getAgingBucketFromDays } from "@/lib/agingBuckets";
 
 type Range = "3m" | "6m" | "1y" | "2y";
 
