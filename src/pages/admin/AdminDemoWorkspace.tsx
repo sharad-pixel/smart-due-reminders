@@ -90,7 +90,7 @@ export default function AdminDemoWorkspace() {
       const { error: sErr } = await supabase.auth.signInWithPassword({ email, password });
       if (sErr) throw sErr;
       toast({ title: "Signed in as demo user", description: "You are now recording as demo@recouply.ai." });
-      navigate("/dashboard");
+      navigate("/hub");
     } catch (e: any) {
       toast({ title: "Could not enter demo", description: e?.message ?? String(e), variant: "destructive" });
     } finally {
