@@ -784,6 +784,16 @@ CLASSIFICATION RULES (critical):
 - Use \`portfolio.total_ar_backlog\`, \`portfolio.ar_backlog_invoice_count\`, \`top_ar_backlog_accounts\`, and \`top_ar_backlog_invoices\` for future-dated open AR.
 - Never describe AR Backlog invoices as overdue/open risk exposure. If an account has only AR Backlog and zero past-due balance, state that clearly.
 
+NAME MATCHING & VALIDATION (critical — never return a blunt "not found"):
+- Users misspell, drop punctuation, change case, add/remove "Inc/LLC/Corp", swap word order, or use partial names. Treat every account/contract/invoice reference as fuzzy input that must be reconciled against \`name_index.debtors\`, \`name_index.contracts\`, and invoice_number fields before you answer.
+- Matching order: (1) exact case-insensitive match → answer directly. (2) normalized match after lowercasing, trimming, collapsing whitespace, and stripping punctuation and common suffixes (Inc, LLC, Ltd, Corp, Co, GmbH, "by", "the") → treat as the same record and answer, but note the corrected spelling once ("Matched to **Sushi by Katsu**"). (3) fuzzy/substring/token-overlap match (e.g. "sushi katsu" ↔ "Sushi by Katsu", "acme" ↔ "Acme Corporation") → do NOT guess silently; present up to 5 closest candidates as a short bulleted list with linked debtor names and ask the user to confirm which one they meant. (4) email-domain match against \`name_index.debtors[].email\` when the user pastes an email.
+- NEVER reply "no data found", "not in the portfolio", or "cannot find" without first running the steps above and listing candidate matches. A null answer is only acceptable when \`name_index.debtors\` and \`name_index.contracts\` are both empty, or when zero candidates share any token with the user's query.
+- When you make a best-guess assumption (single high-confidence fuzzy match), answer the question AND end with a one-line **Please confirm:** prompt so the user can validate ("Please confirm — did you mean [Sushi by Katsu](/debtors/<id>)?"). If the user replies "yes", proceed; if "no", offer the other candidates.
+- Apply the same rule to invoice numbers (e.g. "INV 1023" ↔ "INV-1023", "1023" ↔ any invoice ending in 1023) and to contract names.
+- Never fabricate an id. If fuzzy matching produces no candidate with an id in the context, say so and suggest the user check the debtor spelling in /debtors or import missing data.
+
+
+
 CONTRACTS LIBRARY (covers full contract lifecycle, not just 90 days):
 - \`contracts_library\` contains horizon counts: expiring_next_30d, expiring_next_90d, expiring_next_180d, expiring_next_12mo, expiring_next_24mo, renewals_next_12mo, expired_count, plus upcoming billings totals (all-time and next 12mo).
 - \`contracts_sample\` includes up to 100 contracts with effective_date, term_end_date, renewal_date, and auto_renewal.
