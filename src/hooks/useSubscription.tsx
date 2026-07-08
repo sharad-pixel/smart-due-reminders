@@ -112,10 +112,16 @@ export function useSubscription(): SubscriptionState {
         return;
       }
 
+      // Guard: only call the edge function when we actually have a session.
+      // Otherwise the function returns 401 "User not authenticated" (e.g. right after sign-out).
+      const { data: { session } } = await supabase.auth.getSession();
       const [fallbackOwnerProfile, syncedSubscriptionResponse] = await Promise.all([
         getFallbackOwnerProfile(isOwner, accountId),
-        invokeFunction('sync-subscription'),
+        session?.access_token
+          ? invokeFunction('sync-subscription')
+          : Promise.resolve({ data: null, error: null } as { data: any; error: any }),
       ]);
+
 
       if (syncedSubscriptionResponse.error) {
         console.warn('sync-subscription fallback in useSubscription:', syncedSubscriptionResponse.error);
