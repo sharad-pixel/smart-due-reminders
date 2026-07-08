@@ -745,7 +745,18 @@ Deno.serve(async (req) => {
       salesforce_cases: csCasesSummary,
       rca_records: rcaSummary,
       contract_intelligence: contractIntelligence,
+      // Lightweight name index so Nicolas can fuzzy-match user typos to known records.
+      name_index: {
+        debtors: (debtors as any[]).map((d) => ({ id: d.id, name: d.name, email: d.email })).filter((d) => d.name),
+        contracts: (contracts as any[]).map((c) => ({
+          id: c.id,
+          name: c.contract_name || c.file_name,
+          debtor: debtorNameMap.get(c.debtor_id) || null,
+          debtor_id: c.debtor_id,
+        })).filter((c) => c.name),
+      },
     };
+
 
     log("portfolio", portfolio, "contracts", contractPortfolio);
 
