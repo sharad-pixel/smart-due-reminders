@@ -32,13 +32,84 @@ export default function EnterpriseHero() {
   }, []);
 
   return (
-    <section className="dark relative overflow-hidden bg-background text-foreground">
-      {/* ambient background — softened */}
+    <section className="relative overflow-hidden bg-white text-foreground">
+      {/* ambient background — light, revenue-intelligence themed */}
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-40 left-1/2 h-[520px] w-[820px] -translate-x-1/2 rounded-full bg-primary/10 blur-[160px]" />
-        <div className="absolute bottom-0 right-0 h-[360px] w-[360px] rounded-full bg-accent/[0.06] blur-[140px]" />
-        <div className="absolute inset-0 bg-grid-pattern opacity-[0.04]" />
+        {/* soft aurora blooms */}
+        <motion.div
+          aria-hidden
+          className="absolute -top-40 left-1/2 h-[560px] w-[900px] -translate-x-1/2 rounded-full bg-primary/[0.10] blur-[160px]"
+          animate={{ opacity: [0.55, 0.9, 0.55], scale: [1, 1.06, 1] }}
+          transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div
+          aria-hidden
+          className="absolute bottom-[-120px] right-[-40px] h-[420px] w-[420px] rounded-full bg-accent/[0.10] blur-[150px]"
+          animate={{ opacity: [0.5, 0.85, 0.5], scale: [1, 1.08, 1] }}
+          transition={{ duration: 11, repeat: Infinity, ease: "easeInOut", delay: 1.5 }}
+        />
+        <div className="absolute inset-0 bg-grid-pattern opacity-[0.05]" />
+
+        {/* Revenue-flow streams: contract → cash */}
+        <svg
+          aria-hidden
+          className="absolute inset-0 h-full w-full"
+          viewBox="0 0 1200 800"
+          preserveAspectRatio="none"
+        >
+          <defs>
+            <linearGradient id="revStream" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0" />
+              <stop offset="50%" stopColor="hsl(var(--primary))" stopOpacity="0.55" />
+              <stop offset="100%" stopColor="hsl(var(--accent))" stopOpacity="0" />
+            </linearGradient>
+            <linearGradient id="cashStream" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="hsl(var(--accent))" stopOpacity="0" />
+              <stop offset="50%" stopColor="hsl(var(--accent))" stopOpacity="0.5" />
+              <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          {[120, 240, 380, 520, 660].map((y, i) => (
+            <motion.path
+              key={y}
+              d={`M -50 ${y} C 300 ${y - 40}, 700 ${y + 60}, 1250 ${y - 20}`}
+              stroke={i % 2 === 0 ? "url(#revStream)" : "url(#cashStream)"}
+              strokeWidth="1.2"
+              fill="none"
+              initial={{ pathLength: 0, opacity: 0 }}
+              animate={{ pathLength: 1, opacity: [0, 1, 0.6] }}
+              transition={{
+                duration: 6 + i * 0.6,
+                repeat: Infinity,
+                repeatType: "loop",
+                ease: "easeInOut",
+                delay: i * 0.7,
+              }}
+            />
+          ))}
+          {/* flowing revenue "particles" */}
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <motion.circle
+              key={i}
+              r="2.5"
+              fill="hsl(var(--primary))"
+              initial={{ opacity: 0 }}
+              animate={{
+                cx: [-40, 1240],
+                cy: [140 + i * 100, 120 + i * 100],
+                opacity: [0, 1, 1, 0],
+              }}
+              transition={{
+                duration: 7 + i * 0.9,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: i * 1.1,
+              }}
+            />
+          ))}
+        </svg>
       </div>
+
 
       <div className="container relative mx-auto px-6 pt-28 pb-24 lg:pt-36 lg:pb-32">
         <div className="grid gap-16 lg:grid-cols-[1.05fr_1fr] lg:gap-12 items-center">
