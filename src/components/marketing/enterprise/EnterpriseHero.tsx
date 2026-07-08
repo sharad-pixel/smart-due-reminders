@@ -73,10 +73,23 @@ export default function EnterpriseHero() {
               transition={{ duration: 0.7, delay: 0.15 }}
               className="mt-6 max-w-xl text-lg text-muted-foreground leading-relaxed"
             >
-              Revenue Intelligence, from contract to cash. AI-native Contract Intelligence
-              and Collection Intelligence — one system that reads every clause, tracks every
-              obligation, and turns every receivable into predictable cash.
+              <span className="text-foreground font-medium">Revenue is defined in the contract.</span>{" "}
+              Recouply.ai operationalizes it — capturing every commercial term, obligation,
+              and transaction, then orchestrating the AI workflows that eliminate revenue
+              leakage, contain credit risk, and enforce collectability across the enterprise.
             </motion.p>
+
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.2 }}
+              className="mt-4 max-w-xl text-sm text-muted-foreground/90 leading-relaxed"
+            >
+              One AI-native system of record connecting Finance, RevOps, and CS to a single
+              source of truth — from clause extraction and revenue recognition to prioritized
+              collections and executive cash forecasting.
+            </motion.p>
+
 
             {/* Contract → Cash lifecycle strip */}
             <motion.div
