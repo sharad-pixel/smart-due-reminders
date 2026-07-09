@@ -51,6 +51,13 @@ export function Asc606AssessmentDialog({ open, onOpenChange, contractId, account
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
   const [paying, setPaying] = useState(false);
+  const [rerunConfirmed, setRerunConfirmed] = useState(false);
+
+  // Reset the re-run confirmation whenever the dialog closes so the paid
+  // payment options stay locked next time it opens on a completed assessment.
+  useEffect(() => { if (!open) setRerunConfirmed(false); }, [open]);
+
+
 
   const load = async () => {
     setLoading(true);
@@ -253,38 +260,72 @@ export function Asc606AssessmentDialog({ open, onOpenChange, contractId, account
               </Card>
             )}
 
-            {/* Actions */}
+            {/* Actions — payment options are locked once an assessment is complete
+                so users don't accidentally pay twice for the same contract. */}
             <Card>
               <CardContent className="p-4 space-y-3">
                 <div className="text-sm font-medium">{latest?.status === "complete" ? "Re-run assessment" : "Run assessment"}</div>
-                <div className="text-xs text-muted-foreground">
-                  Cost: <strong>$9.99</strong> per assessment OR <strong>10 credits</strong> ({balance >= COST ? `you have ${balance.toFixed(0)}` : `$8.00 with pre-paid credits`}).
-                </div>
-                {latest?.status === "complete" && (
-                  <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5 flex items-start gap-1.5">
-                    <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                    <span>A completed assessment already exists. Re-running will incur a new charge — you'll be asked to confirm.</span>
-                  </div>
+                {latest?.status === "complete" && !rerunConfirmed ? (
+                  <>
+                    <div className="text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 rounded px-2 py-1.5 flex items-start gap-1.5">
+                      <FileCheck2 className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                      <span>
+                        This contract already has a completed ASC 606 assessment
+                        {latest.completed_at ? ` (${new Date(latest.completed_at).toLocaleDateString()})` : ""}
+                        {latest.payment_method ? ` — paid via ${latest.payment_method}` : ""}.
+                        You don't need to pay again unless the contract changed.
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button asChild variant="default">
+                        <Link to={`/contracts/live/${contractId}/asc606`}>
+                          <FileCheck2 className="h-4 w-4 mr-1" /> View full report
+                        </Link>
+                      </Button>
+                      <Button variant="outline" onClick={() => setRerunConfirmed(true)}>
+                        Re-run (requires new payment)
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="text-xs text-muted-foreground">
+                      Cost: <strong>$9.99</strong> per assessment OR <strong>10 credits</strong> ({balance >= COST ? `you have ${balance.toFixed(0)}` : `$8.00 with pre-paid credits`}).
+                    </div>
+                    {latest?.status === "complete" && rerunConfirmed && (
+                      <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5 flex items-start gap-1.5">
+                        <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                        <span>Re-running will charge you again. You'll be asked to confirm once more before we run it.</span>
+                      </div>
+                    )}
+                    <div className="flex flex-wrap gap-2">
+                      {canUseCredits && (
+                        <Button onClick={() => runWithCredits("credits")} disabled={running}>
+                          {running ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Sparkles className="h-4 w-4 mr-1" />}
+                          Use 10 credits
+                        </Button>
+                      )}
+                      <Button variant={canUseCredits ? "outline" : "default"} onClick={payAndRun} disabled={paying}>
+                        {paying ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <ExternalLink className="h-4 w-4 mr-1" />}
+                        Pay $9.99
+                      </Button>
+                      {canUseOverage && (
+                        <Button variant="outline" onClick={() => runWithCredits("overage")} disabled={running}>
+                          Use overage ($10 billed monthly)
+                        </Button>
+                      )}
+                      {latest?.status === "complete" && rerunConfirmed && (
+                        <Button variant="ghost" onClick={() => setRerunConfirmed(false)}>
+                          Cancel re-run
+                        </Button>
+                      )}
+                    </div>
+                  </>
                 )}
-                <div className="flex flex-wrap gap-2">
-                  {canUseCredits && (
-                    <Button onClick={() => runWithCredits("credits")} disabled={running}>
-                      {running ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Sparkles className="h-4 w-4 mr-1" />}
-                      Use 10 credits
-                    </Button>
-                  )}
-                  <Button variant={canUseCredits ? "outline" : "default"} onClick={payAndRun} disabled={paying}>
-                    {paying ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <ExternalLink className="h-4 w-4 mr-1" />}
-                    Pay $9.99
-                  </Button>
-                  {canUseOverage && (
-                    <Button variant="outline" onClick={() => runWithCredits("overage")} disabled={running}>
-                      Use overage ($10 billed monthly)
-                    </Button>
-                  )}
-                </div>
               </CardContent>
             </Card>
+
+
 
             {/* History */}
             {assessments.length > 1 && (
