@@ -20,15 +20,18 @@ const Login = () => {
   const location = useLocation();
 
   const getSafeReturnTo = () => {
-    const from = (location.state as any)?.from;
-    if (typeof from !== "string") return null;
-    if (!from.startsWith("/")) return null;
-    // Avoid loops / sending users back to auth screens.
-    if (from === "/login" || from.startsWith("/login?") || from === "/signup" || from.startsWith("/signup?")) {
-      return null;
+    // Prefer ?next= query param (used by OAuth consent redirect), fall back to router state.
+    const query = new URLSearchParams(location.search);
+    const candidates: (string | null | undefined)[] = [query.get("next"), (location.state as any)?.from];
+    for (const from of candidates) {
+      if (typeof from !== "string") continue;
+      if (!from.startsWith("/") || from.startsWith("//")) continue;
+      if (from === "/login" || from.startsWith("/login?") || from === "/signup" || from.startsWith("/signup?")) continue;
+      return from;
     }
-    return from;
+    return null;
   };
+
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -164,17 +167,23 @@ const Login = () => {
 
   const handleGoogleSignIn = async () => {
     try {
+      // Preserve `next` (used by OAuth consent) across the Google round-trip
+      // by pointing redirectTo at /login itself.
+      const returnTo = getSafeReturnTo();
+      const redirectPath = returnTo
+        ? `/login?next=${encodeURIComponent(returnTo)}`
+        : "/hub";
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          // Redirect back into the app; access control will send non-subscribed users to /upgrade.
-          redirectTo: getAuthRedirectUrl('/hub'),
+          redirectTo: getAuthRedirectUrl(redirectPath),
           queryParams: {
             access_type: 'offline',
             prompt: 'select_account',
           },
         },
       });
+
 
       if (error) {
         if (error.message?.includes('provider') || error.message?.includes('not enabled')) {

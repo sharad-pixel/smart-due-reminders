@@ -122,6 +122,7 @@ const Login = lazy(() => import("./pages/Login"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
 const EmailVerificationRequired = lazy(() => import("./pages/EmailVerificationRequired"));
+const OAuthConsent = lazy(() => import("./pages/OAuthConsent"));
 
 // Dashboard & Core App Pages
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -355,6 +356,7 @@ const App = () => (
               <Route path="/auth/reset-password" element={<ResetPassword />} />
               <Route path="/verify-email" element={<VerifyEmail />} />
               <Route path="/email-verification-required" element={<EmailVerificationRequired />} />
+              <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
 
               {/* Payment & Contact */}
               <Route path="/checkout" element={<Checkout />} />
