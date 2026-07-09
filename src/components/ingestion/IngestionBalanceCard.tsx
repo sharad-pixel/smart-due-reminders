@@ -79,7 +79,7 @@ export default function IngestionBalanceCard() {
                   className="bg-amber-600 hover:bg-amber-700 text-white gap-2"
                 >
                   {payingOverage ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}
-                  Pay ${overage.toFixed(2)} now
+                  Pay ${Math.round(overage)} now
                 </Button>
               )}
             </div>
