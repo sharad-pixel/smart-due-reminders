@@ -769,25 +769,51 @@ function StepCustomer({ importId, onNext }: { importId: string; onNext: () => vo
             </p>
           </CardHeader>
           <CardContent className="space-y-3">
-            <ul className="space-y-1.5 text-sm">
-              {stripeChecks.map((c) => (
-                <li key={c.label} className="flex items-center gap-2">
-                  {c.ok
-                    ? <CheckCircle2 className="h-4 w-4 text-primary" />
-                    : c.optional
-                      ? <span className="h-4 w-4 rounded-full border border-muted-foreground/40" />
-                      : <AlertTriangle className="h-4 w-4 text-destructive" />}
-                  <span className={c.ok ? "" : c.optional ? "text-muted-foreground" : "text-destructive"}>
-                    {c.label}{c.optional ? " — optional" : ""}
+            <div className="rounded-md border bg-muted/30 p-2.5 space-y-1.5">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Stripe push fields
+              </p>
+              {stripeChecks.map((c: any) => (
+                <div key={c.label} className="flex items-start gap-2 text-xs">
+                  {c.ok ? (
+                    c.warn
+                      ? <AlertTriangle className="h-3.5 w-3.5 mt-0.5 text-amber-600 shrink-0" />
+                      : <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 text-emerald-600 shrink-0" />
+                  ) : c.optional ? (
+                    <span className="h-3.5 w-3.5 mt-0.5 rounded-full border border-muted-foreground/40 shrink-0" />
+                  ) : (
+                    <AlertTriangle className="h-3.5 w-3.5 mt-0.5 text-destructive shrink-0" />
+                  )}
+                  <span className="text-muted-foreground min-w-[110px]">
+                    {c.label}{c.optional ? " (optional)" : ""}:
                   </span>
-                </li>
+                  <span className={
+                    !c.ok && !c.optional ? "text-destructive"
+                    : c.warn ? "text-amber-700"
+                    : c.ok ? "text-foreground" : "text-muted-foreground"
+                  }>
+                    {c.detail}
+                  </span>
+                </div>
               ))}
-            </ul>
+            </div>
+            {!stripeRequiredOk && (
+              <div className="flex items-center justify-between gap-2 rounded-md border border-amber-500/40 bg-amber-500/5 p-2.5 text-xs">
+                <span className="text-amber-800">
+                  Required fields are missing. Update the account, then retry.
+                </span>
+                <Button asChild size="sm" variant="outline">
+                  <Link to={`/accounts/${debtor.id}`} target="_blank" rel="noreferrer">
+                    Edit account <ExternalLink className="h-3 w-3 ml-1" />
+                  </Link>
+                </Button>
+              </div>
+            )}
             <div className="flex justify-end">
               <Button onClick={pushToStripe} disabled={!stripeRequiredOk || pushingStripe}>
                 {pushingStripe ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                               : <CreditCard className="h-4 w-4 mr-2" />}
-                Create in Stripe
+                {stripeDupe ? "Link existing Stripe customer" : "Create in Stripe"}
               </Button>
             </div>
           </CardContent>
