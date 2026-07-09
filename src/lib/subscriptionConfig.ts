@@ -26,7 +26,7 @@
 export const STRIPE_PRICES = {
   monthly: {
     // v2 (new credit-economy plans — active for new signups)
-    launch: 'price_1TfDx6Bfb0dWgtCDc3HpAtye',         // $29/mo
+    launch: 'price_1TrL2gBfb0dWgtCDqxf6ri8d',         // $49/mo
     starter: 'price_1TfDx7Bfb0dWgtCDNkLduVxc',        // $99/mo
     growth: 'price_1TfDx9Bfb0dWgtCDp94E6iNn',         // $299/mo
     professional: 'price_1TfDxBBfb0dWgtCD4ObmfoEW',   // $699/mo
@@ -34,7 +34,7 @@ export const STRIPE_PRICES = {
     solo_pro: 'price_1SvLJHBfb0dWgtCDMHCSyVWo',       // $49/mo legacy
   },
   annual: {
-    launch: 'price_1TfDx6Bfb0dWgtCDfcEwQEEt',         // $278.40/yr
+    launch: 'price_1TrL86Bfb0dWgtCDIuq2l6Rq',         // $470.40/yr
     starter: 'price_1TfDx8Bfb0dWgtCDCnnclvGu',        // $950.40/yr
     growth: 'price_1TfDxABfb0dWgtCDt6aAIuH9',         // $2,870.40/yr
     professional: 'price_1TfDxDBfb0dWgtCDNjPFUgaG',   // $6,710.40/yr
