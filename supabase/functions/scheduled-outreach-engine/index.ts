@@ -38,6 +38,12 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  if (!(await isAuthorizedCronRequest(req))) {
+    return unauthorizedResponse(corsHeaders);
+  }
+
+
+
   const result: EngineResult = {
     phase: 'initializing',
     draftsGenerated: 0,
