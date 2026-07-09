@@ -39,6 +39,7 @@ const contractUrl = (importId: string) => `${APP_URL}/contracts/live/${importId}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (!(await isAuthorizedCronRequest(req))) return unauthorizedResponse(corsHeaders);
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
