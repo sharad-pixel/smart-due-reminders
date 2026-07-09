@@ -128,7 +128,7 @@ export function Asc606AssessmentDialog({ open, onOpenChange, contractId, account
   };
 
   const payAndRun = async () => {
-    if (!confirmRerun("a paid $9.99 assessment")) return;
+    if (!confirmRerun("a paid $10 assessment")) return;
     setPaying(true);
     try {
       const { data, error } = await supabase.functions.invoke("asc606-pay-assessment", {
