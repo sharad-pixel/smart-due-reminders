@@ -167,17 +167,23 @@ const Login = () => {
 
   const handleGoogleSignIn = async () => {
     try {
+      // Preserve `next` (used by OAuth consent) across the Google round-trip
+      // by pointing redirectTo at /login itself.
+      const returnTo = getSafeReturnTo();
+      const redirectPath = returnTo
+        ? `/login?next=${encodeURIComponent(returnTo)}`
+        : "/hub";
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          // Redirect back into the app; access control will send non-subscribed users to /upgrade.
-          redirectTo: getAuthRedirectUrl('/hub'),
+          redirectTo: getAuthRedirectUrl(redirectPath),
           queryParams: {
             access_type: 'offline',
             prompt: 'select_account',
           },
         },
       });
+
 
       if (error) {
         if (error.message?.includes('provider') || error.message?.includes('not enabled')) {
