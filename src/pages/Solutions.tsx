@@ -11,7 +11,7 @@ const Solutions = () => {
   const industries = [
     {
       icon: User,
-      title: "Solo Pro",
+      title: "Launch",
       description: "For independent operators and sole proprietors",
       benefits: [
         "Full platform power at $49/month",

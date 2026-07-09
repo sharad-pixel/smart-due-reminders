@@ -85,7 +85,7 @@ const enterpriseFeatures = [
 
 const icpBenefits = [
   {
-    title: "Solo Operators",
+    title: "Launch",
     description: "Independent consultants and sole proprietors with lean operations needing full platform power",
     link: "/solutions/solo-pro"
   },
