@@ -93,7 +93,22 @@ Deno.serve(async (req) => {
     // Determine which account to calculate for
     const targetAccountId = accountId || user.id;
 
+    // Authorize: caller must be the account owner or an account manager.
+    if (targetAccountId !== user.id) {
+      const { data: isMgr } = await supabaseClient.rpc('is_account_manager', {
+        _user_id: user.id,
+        _account_id: targetAccountId,
+      });
+      if (!isMgr) {
+        return new Response(JSON.stringify({ error: 'Forbidden' }), {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
     logStep('Starting', { targetAccountId, action });
+
 
     // Get all active users for this account
     const { data: accountUsers, error: usersError } = await supabaseClient
