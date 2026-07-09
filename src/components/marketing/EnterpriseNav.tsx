@@ -61,7 +61,7 @@ const solutionsGroups: MenuGroup[] = [
   {
     label: "By company size",
     items: [
-      { icon: User, title: "Solo Pro", description: "Full platform for independent operators.", path: "/solutions/solo-pro" },
+      { icon: User, title: "Launch", description: "Full platform for independent operators.", path: "/solutions/solo-pro" },
       { icon: Rocket, title: "Startups", description: "Scale collections from day one.", path: "/startups" },
       { icon: Users, title: "SMB", description: "Right-sized for growing finance teams.", path: "/smb" },
       { icon: Building2, title: "Enterprise", description: "Multi-entity, SSO, custom roles.", path: "/enterprise" },

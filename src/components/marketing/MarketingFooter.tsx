@@ -23,7 +23,7 @@ const columns: Col[] = [
   {
     title: "Solutions",
     links: [
-      { label: "Solo Pro", path: "/solutions/solo-pro" },
+      { label: "Launch", path: "/solutions/solo-pro" },
       { label: "Startups", path: "/startups" },
       { label: "SMB", path: "/smb" },
       { label: "Enterprise", path: "/enterprise" },
