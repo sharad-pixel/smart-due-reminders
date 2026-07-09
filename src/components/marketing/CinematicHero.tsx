@@ -1063,7 +1063,7 @@ const formatNum = (n: number) => {
 type PlanCyclerProps = { navigate: (path: string) => void };
 
 const PLANS = [
-  { name: "Solo Pro", tagline: "Independents who bill on credit", path: "/solutions/solo-pro" },
+  { name: "Launch", tagline: "Independents who bill on credit", path: "/solutions/solo-pro" },
   { name: "Startups", tagline: "Scale collections from day one", path: "/startups" },
   { name: "SMB", tagline: "Right-sized for growing finance teams", path: "/smb" },
   { name: "Enterprise", tagline: "Full-scale AR & risk deployment", path: "/enterprise" },

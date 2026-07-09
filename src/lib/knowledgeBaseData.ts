@@ -348,7 +348,7 @@ export const knowledgeBaseData: FAQCategory[] = [
     faqs: [
       {
         question: "What plans are available?",
-        answer: "Recouply offers plans for every size: 1) Solo Pro ($49/mo) - 25 invoices, perfect for independent operators and sole proprietors, 2) Starter - up to 100 invoices/month, 1 user, 3) Growth - up to 300 invoices/month, 3 users, priority support, 4) Professional - up to 500 invoices/month, 5) Enterprise Custom - unlimited invoices and users, CRM integrations, dedicated support. All features are available on every plan—you only pay based on invoice volume and team size.",
+        answer: "Recouply offers plans for every size: 1) Launch ($49/mo, 50 credits) - 25 invoices, perfect for independent operators and sole proprietors, 2) Starter - up to 100 invoices/month, 1 user, 3) Growth - up to 300 invoices/month, 3 users, priority support, 4) Professional - up to 500 invoices/month, 5) Enterprise Custom - unlimited invoices and users, CRM integrations, dedicated support. All features are available on every plan—you only pay based on invoice volume and team size.",
         keywords: ["plans", "pricing", "cost", "subscription", "solo pro", "starter", "growth", "enterprise"]
       },
       {
@@ -357,8 +357,8 @@ export const knowledgeBaseData: FAQCategory[] = [
         keywords: ["features", "included", "what's included", "all features"]
       },
       {
-        question: "What is the Solo Pro plan?",
-        answer: "Solo Pro is designed for independent operators, consultants, and sole proprietors who need full collection intelligence power without enterprise pricing. At $49/month, you get 25 active invoices, all AI agents, all features, and the same powerful automation as larger plans. Additional invoices are billed at $1.99 each.",
+        question: "What is the Launch plan?",
+        answer: "Launch is designed for independent operators, consultants, and sole proprietors who need full collection intelligence power without enterprise pricing. At $49/month, you get 25 active invoices, all AI agents, all features, and the same powerful automation as larger plans. Additional invoices are billed at $1.99 each.",
         keywords: ["solo pro", "solo", "freelancer", "consultant", "small business"]
       },
       {

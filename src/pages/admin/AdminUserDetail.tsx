@@ -703,7 +703,7 @@ const AdminUserDetail = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="free">Free</SelectItem>
-                        <SelectItem value="solo_pro">Solo Pro</SelectItem>
+                        <SelectItem value="solo_pro">Solo Pro (Legacy)</SelectItem>
                         <SelectItem value="starter">Starter</SelectItem>
                         <SelectItem value="growth">Growth</SelectItem>
                         <SelectItem value="professional">Professional</SelectItem>

@@ -26,7 +26,7 @@ const SoloPro = () => {
     {
       icon: DollarSign,
       title: "Affordable Power",
-      description: `Just $${PLAN_CONFIGS.solo_pro.monthlyPrice}/month for 25 active invoices—full platform access at a fraction of team plans.`
+      description: `Just $${PLAN_CONFIGS.launch.monthlyPrice}/month for 25 active invoices—full platform access at a fraction of team plans.`
     },
     {
       icon: Zap,
@@ -43,7 +43,7 @@ const SoloPro = () => {
   return (
     <MarketingLayout>
       <SEOHead
-        title="Solo Pro Plan for Independent Operators | Recouply.ai"
+        title="Launch Plan for Independent Operators | Recouply.ai"
         description="Full-powered AI collection platform for sole proprietors and independent operators. $49/month for 25 invoices with all 6 AI agents and complete automation."
         keywords="solo collections software, independent operator billing, freelancer invoice collection, sole proprietor AR automation"
         canonical="https://recouply.ai/solutions/solo-pro"
@@ -54,7 +54,7 @@ const SoloPro = () => {
         <div className="container mx-auto max-w-4xl text-center">
           <div className="inline-flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-full mb-6">
             <User className="w-4 h-4 text-primary" />
-            <span className="text-sm font-medium">AR Intelligence for Solo Operators</span>
+            <span className="text-sm font-medium">AR Intelligence for Solo Operators — Launch Plan</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
             Full AR Platform Power at a Solo Price
@@ -65,14 +65,14 @@ const SoloPro = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
             <div className="text-3xl font-bold text-primary">
-              ${PLAN_CONFIGS.solo_pro.monthlyPrice}<span className="text-lg font-normal text-muted-foreground">/month</span>
+              ${PLAN_CONFIGS.launch.monthlyPrice}<span className="text-lg font-normal text-muted-foreground">/month</span>
             </div>
             <span className="text-muted-foreground">•</span>
             <span className="text-muted-foreground">25 invoices included</span>
           </div>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
-              onClick={() => navigate("/signup?plan=solo_pro")}
+              onClick={() => navigate("/signup?plan=launch")}
               size="lg"
             >
               Start 7-Day Free Trial
@@ -99,7 +99,7 @@ const SoloPro = () => {
               including the uncomfortable task of chasing unpaid invoices.
             </p>
             <p className="text-muted-foreground">
-              Solo Pro gives you the same AI-powered collection intelligence used by larger businesses, 
+              Launch gives you the same AI-powered collection intelligence used by larger businesses, 
               right-sized for your operation. No feature limitations. No compromises. Just powerful automation 
               at a price that makes sense for one-person shops.
             </p>
@@ -110,7 +110,7 @@ const SoloPro = () => {
       {/* Benefits Grid */}
       <section className="py-16 px-4 bg-muted/30">
         <div className="container mx-auto max-w-4xl">
-          <h2 className="text-3xl font-bold mb-8 text-center">Why Solo Pro?</h2>
+          <h2 className="text-3xl font-bold mb-8 text-center">Why Launch?</h2>
           <div className="grid md:grid-cols-3 gap-6">
             {benefits.map((benefit, idx) => (
               <Card key={idx}>
@@ -223,7 +223,7 @@ const SoloPro = () => {
           </div>
 
           <div className="text-center">
-            <Button onClick={() => navigate("/signup?plan=solo_pro")} size="lg" className="group">
+            <Button onClick={() => navigate("/signup?plan=launch")} size="lg" className="group">
               Build Your First Template
               <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
             </Button>
@@ -260,7 +260,7 @@ const SoloPro = () => {
           <div className="text-center mb-8">
             <div className="inline-flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-full mb-4">
               <QrCode className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium">Solo Pro Feature</span>
+              <span className="text-sm font-medium">Launch Plan Feature</span>
             </div>
             <h2 className="text-3xl font-bold mb-3">Accept Payments via QR Code</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
@@ -391,7 +391,7 @@ const SoloPro = () => {
                       </li>
                     ))}
                   </ul>
-                  <Button onClick={() => navigate("/signup?plan=solo_pro")} className="group">
+                  <Button onClick={() => navigate("/signup?plan=launch")} className="group">
                     Start Issuing Invoices Today
                     <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                   </Button>
@@ -437,7 +437,7 @@ const SoloPro = () => {
           <div className="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto">
             <Card>
               <CardContent className="pt-6 text-center">
-                <div className="text-4xl font-bold text-primary mb-2">${PLAN_CONFIGS.solo_pro.monthlyPrice}</div>
+                <div className="text-4xl font-bold text-primary mb-2">${PLAN_CONFIGS.launch.monthlyPrice}</div>
                 <div className="text-muted-foreground mb-4">per month</div>
                 <ul className="text-sm text-left space-y-2">
                   <li className="flex items-center gap-2">
@@ -489,7 +489,7 @@ const SoloPro = () => {
             Join independent operators using enterprise-grade collection intelligence at a solo price.
           </p>
           <Button 
-            onClick={() => navigate("/signup?plan=solo_pro")}
+            onClick={() => navigate("/signup?plan=launch")}
             size="lg"
           >
             Start Your 7-Day Free Trial
