@@ -20,7 +20,7 @@ export const OcrPricingNotice = ({
   className,
 }: OcrPricingNoticeProps) => {
   const estimated = pageCount && pageCount > 0
-    ? `${pageCount} credit${pageCount === 1 ? "" : "s"} for ${pageCount} page${pageCount === 1 ? "" : "s"} — $${(pageCount * 0.8).toFixed(2)} pre-paid / $${(pageCount * 1.0).toFixed(2)} standard`
+    ? `${pageCount} credit${pageCount === 1 ? "" : "s"} for ${pageCount} page${pageCount === 1 ? "" : "s"} — $${Math.round(pageCount * 0.8)} pre-paid / $${Math.round(pageCount * 1.0)} standard`
     : null;
 
   if (variant === "inline") {
