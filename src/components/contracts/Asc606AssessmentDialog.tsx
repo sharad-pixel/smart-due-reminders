@@ -179,7 +179,7 @@ export function Asc606AssessmentDialog({ open, onOpenChange, contractId, account
                     <div className="text-xs text-muted-foreground">
                       {Number(wallet?.pending_overage_credits ?? 0) > 0
                         ? `${Number(wallet?.pending_overage_credits).toFixed(0)} pending overage credits this month`
-                        : "Pre-paid credits = $0.80 each (20% off)"}
+                        : "Pre-paid credits = $1 each (20% off)"}
                     </div>
                   </div>
                 </div>
