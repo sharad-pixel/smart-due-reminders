@@ -12,6 +12,7 @@ import {
   BrandingConfig 
 } from "../_shared/renderBrandedEmail.ts";
 import { INBOUND_EMAIL_DOMAIN } from "../_shared/emailConfig.ts";
+import { isAuthorizedCronRequest, unauthorizedResponse } from "../_shared/cronAuth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
