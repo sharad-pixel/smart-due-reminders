@@ -51,11 +51,12 @@ export function Asc606AssessmentDialog({ open, onOpenChange, contractId, account
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
   const [paying, setPaying] = useState(false);
-  const [confirmRerun, setConfirmRerun] = useState(false);
+  const [rerunConfirmed, setRerunConfirmed] = useState(false);
 
   // Reset the re-run confirmation whenever the dialog closes so the paid
   // payment options stay locked next time it opens on a completed assessment.
-  useEffect(() => { if (!open) setConfirmRerun(false); }, [open]);
+  useEffect(() => { if (!open) setRerunConfirmed(false); }, [open]);
+
 
 
   const load = async () => {
