@@ -1,28 +1,18 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { supabase as baseSupabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { RecouplyLogo } from "@/components/layout/RecouplyLogo";
 
-// The Supabase JS `auth.oauth` namespace is beta and not in the exported types yet.
-// Keep a small local typing so we can call the three helpers cleanly.
 type AuthorizationDetails = {
   redirect_url?: string;
   redirect_to?: string;
-  client?: { name?: string; client_uri?: string };
   redirect_uri?: string;
+  client?: { name?: string; client_uri?: string };
   scope?: string;
 };
-type OAuthResult<T = AuthorizationDetails> = { data: T | null; error: { message: string } | null };
-type OAuthNamespace = {
-  getAuthorizationDetails: (id: string) => Promise<OAuthResult>;
-  approveAuthorization: (id: string) => Promise<OAuthResult>;
-  denyAuthorization: (id: string) => Promise<OAuthResult>;
-};
-const supabase = baseSupabase as unknown as typeof baseSupabase & {
-  auth: (typeof baseSupabase)["auth"] & { oauth: OAuthNamespace };
-};
+
 
 export default function OAuthConsent() {
   const [params] = useSearchParams();
