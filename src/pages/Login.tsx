@@ -20,15 +20,18 @@ const Login = () => {
   const location = useLocation();
 
   const getSafeReturnTo = () => {
-    const from = (location.state as any)?.from;
-    if (typeof from !== "string") return null;
-    if (!from.startsWith("/")) return null;
-    // Avoid loops / sending users back to auth screens.
-    if (from === "/login" || from.startsWith("/login?") || from === "/signup" || from.startsWith("/signup?")) {
-      return null;
+    // Prefer ?next= query param (used by OAuth consent redirect), fall back to router state.
+    const query = new URLSearchParams(location.search);
+    const candidates: (string | null | undefined)[] = [query.get("next"), (location.state as any)?.from];
+    for (const from of candidates) {
+      if (typeof from !== "string") continue;
+      if (!from.startsWith("/") || from.startsWith("//")) continue;
+      if (from === "/login" || from.startsWith("/login?") || from === "/signup" || from.startsWith("/signup?")) continue;
+      return from;
     }
-    return from;
+    return null;
   };
+
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
