@@ -36,7 +36,8 @@ export default function OAuthConsent() {
         return;
       }
       setUserEmail(sess.session.user?.email ?? null);
-      const { data, error } = await supabase.auth.oauth.getAuthorizationDetails(authorizationId);
+      const { data: rawData, error } = await supabase.auth.oauth.getAuthorizationDetails(authorizationId);
+      const data = rawData as AuthorizationDetails | null;
       if (!active) return;
       if (error) {
         setError(error.message);
@@ -48,6 +49,7 @@ export default function OAuthConsent() {
         return;
       }
       setDetails(data);
+
     })();
     return () => {
       active = false;
@@ -56,10 +58,12 @@ export default function OAuthConsent() {
 
   async function decide(approve: boolean) {
     setBusy(true);
-    const { data, error } = approve
+    const { data: rawData, error } = approve
       ? await supabase.auth.oauth.approveAuthorization(authorizationId)
       : await supabase.auth.oauth.denyAuthorization(authorizationId);
+    const data = rawData as AuthorizationDetails | null;
     if (error) {
+
       setBusy(false);
       setError(error.message);
       return;
