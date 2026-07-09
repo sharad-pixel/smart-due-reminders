@@ -627,34 +627,52 @@ function StepCustomer({ importId, onNext }: { importId: string; onNext: () => vo
       const { data, error } = await supabase.functions.invoke("link-debtor-to-stripe", {
         body: { action: "create", debtor_id: debtor.id, force_create: false },
       });
-      if (error) throw new Error(error.message);
+      if (error) throw new Error(error.message || "Stripe request failed");
+      if (data?.error) throw new Error(data.error);
       if (data?.duplicate && data?.candidate?.id) {
         // Auto-link the duplicate to avoid Stripe dupes
-        const { error: linkErr } = await supabase.functions.invoke("link-debtor-to-stripe", {
+        const { data: linkData, error: linkErr } = await supabase.functions.invoke("link-debtor-to-stripe", {
           body: { action: "link", debtor_id: debtor.id, stripe_customer_id: data.candidate.id },
         });
-        if (linkErr) throw new Error(linkErr.message);
+        if (linkErr) throw new Error(linkErr.message || "Failed to link existing Stripe customer");
+        if (linkData?.error) throw new Error(linkData.error);
         toast.success(`Linked to existing Stripe customer ${data.candidate.name || data.candidate.id}`);
       } else if (data?.ok) {
         toast.success("Customer created in Stripe");
-      } else if (data?.error) {
-        throw new Error(data.error);
       }
       await qc.invalidateQueries({ queryKey: ["wizard-debtor"] });
+      await qc.invalidateQueries({ queryKey: ["wizard-stripe-dupe"] });
     } catch (e: any) {
-      toast.error(e.message);
+      toast.error(e?.message || "Failed to push customer to Stripe");
     } finally {
       setPushingStripe(false);
     }
   };
 
-  // Stripe readiness checklist
+  // Stripe readiness checklist — mirrors the invoice push pre-flight so users
+  // can fix data gaps before hitting the API and getting a cryptic error.
+  const emailValid = !!debtor?.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(debtor.email);
+  const hasAddress = !!(debtor?.billing_address_line1 || debtor?.billing_city || debtor?.billing_country || debtor?.country);
   const stripeChecks = debtor ? [
-    { ok: !!(debtor.company_name || debtor.name), label: "Customer name" },
-    { ok: !!debtor.email, label: "Email address" },
-    { ok: !!debtor.phone, label: "Phone (optional)", optional: true },
+    { ok: !!(debtor.company_name || debtor.name), label: "Customer name",
+      detail: debtor.company_name || debtor.name || "Missing" },
+    { ok: emailValid, label: "Email address",
+      detail: debtor.email ? (emailValid ? debtor.email : `Invalid format: ${debtor.email}`) : "Missing" },
+    { ok: hasAddress, optional: true, label: "Billing address",
+      detail: hasAddress
+        ? [debtor.billing_city, debtor.billing_state, debtor.billing_country || debtor.country].filter(Boolean).join(", ")
+        : "Recommended for tax & receipts" },
+    { ok: !!debtor.phone, optional: true, label: "Phone",
+      detail: debtor.phone || "Optional" },
+    { ok: !stripeDupe, optional: true, warn: !!stripeDupe, label: "Duplicate check",
+      detail: dupChecking
+        ? "Checking Stripe…"
+        : stripeDupe
+          ? `A Stripe customer with this email already exists (${stripeDupe.id}) — will auto-link on push`
+          : "No existing Stripe customer with this email" },
   ] : [];
   const stripeRequiredOk = stripeChecks.filter((c) => !c.optional).every((c) => c.ok);
+
 
   return (
     <div className="space-y-4">
