@@ -135,6 +135,10 @@ const MarketingFooter = () => {
               <Link to="/support/login" className="text-muted-foreground hover:text-foreground transition-colors">
                 Support
               </Link>
+              <Link to="/connect" className="text-muted-foreground hover:text-foreground transition-colors">
+                Connect AI
+              </Link>
+
             </nav>
 
             <Link
