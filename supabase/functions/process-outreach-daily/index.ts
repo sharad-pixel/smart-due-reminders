@@ -12,6 +12,7 @@ import {
   BrandingConfig 
 } from "../_shared/renderBrandedEmail.ts";
 import { INBOUND_EMAIL_DOMAIN } from "../_shared/emailConfig.ts";
+import { isAuthorizedCronRequest, unauthorizedResponse } from "../_shared/cronAuth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -55,6 +56,12 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
+  if (!(await isAuthorizedCronRequest(req))) {
+    return unauthorizedResponse(corsHeaders);
+  }
+
+
 
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
