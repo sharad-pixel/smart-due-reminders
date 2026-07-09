@@ -528,9 +528,27 @@ function StepCustomer({ importId, onNext }: { importId: string; onNext: () => vo
     enabled: !!imp?.debtor_id,
     queryFn: async () => {
       const { data } = await supabase.from("debtors")
-        .select("id, company_name, name, email, phone, stripe_customer_id").eq("id", imp!.debtor_id).maybeSingle();
+        .select("id, company_name, name, email, phone, stripe_customer_id, billing_address_line1, billing_city, billing_country, billing_postal_code, billing_state, country")
+        .eq("id", imp!.debtor_id).maybeSingle();
       return data as any;
     },
+  });
+
+  // Pre-flight duplicate check: does a Stripe customer already exist for this email?
+  const { data: stripeDupe, isFetching: dupChecking } = useQuery({
+    queryKey: ["wizard-stripe-dupe", debtor?.id, debtor?.email],
+    enabled: !!debtor?.id && !!debtor?.email && stripeConnected && !debtor?.stripe_customer_id,
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("link-debtor-to-stripe", {
+        body: { action: "search", debtor_id: debtor!.id, query: debtor!.email },
+      });
+      if (error) return null;
+      const match = (data?.candidates || []).find((c: any) =>
+        (c.email || "").toLowerCase() === (debtor!.email || "").toLowerCase()
+      );
+      return match || null;
+    },
+    staleTime: 30_000,
   });
 
   // Suggested match — grab counterparty name from extracted fields
