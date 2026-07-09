@@ -12,7 +12,7 @@ interface OcrPricingNoticeProps {
 
 /**
  * Standardized callout for any UI that triggers AI Smart Ingestion.
- * Always communicates the 1 credit ($1.00) per page billing rate.
+ * Always communicates the 1 credit ($1) per page billing rate.
  */
 export const OcrPricingNotice = ({
   pageCount,
