@@ -27,7 +27,7 @@ export const OcrPricingNotice = ({
     return (
       <p className={cn("text-xs text-muted-foreground inline-flex items-center gap-1", className)}>
         <Info className="h-3 w-3" />
-        AI Smart Ingestion: 1 credit per page ($0.80 pre-paid / $1.00 standard)
+        AI Smart Ingestion: 1 credit per page ($8 per 10 pre-paid / $1 standard)
         {estimated ? ` — ${estimated}` : ""}.
       </p>
     );
