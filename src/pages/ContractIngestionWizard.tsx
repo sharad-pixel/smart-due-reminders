@@ -528,9 +528,27 @@ function StepCustomer({ importId, onNext }: { importId: string; onNext: () => vo
     enabled: !!imp?.debtor_id,
     queryFn: async () => {
       const { data } = await supabase.from("debtors")
-        .select("id, company_name, name, email, phone, stripe_customer_id").eq("id", imp!.debtor_id).maybeSingle();
+        .select("id, company_name, name, email, phone, stripe_customer_id, billing_address_line1, billing_city, billing_country, billing_postal_code, billing_state, country")
+        .eq("id", imp!.debtor_id).maybeSingle();
       return data as any;
     },
+  });
+
+  // Pre-flight duplicate check: does a Stripe customer already exist for this email?
+  const { data: stripeDupe, isFetching: dupChecking } = useQuery({
+    queryKey: ["wizard-stripe-dupe", debtor?.id, debtor?.email],
+    enabled: !!debtor?.id && !!debtor?.email && stripeConnected && !debtor?.stripe_customer_id,
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("link-debtor-to-stripe", {
+        body: { action: "search", debtor_id: debtor!.id, query: debtor!.email },
+      });
+      if (error) return null;
+      const match = (data?.candidates || []).find((c: any) =>
+        (c.email || "").toLowerCase() === (debtor!.email || "").toLowerCase()
+      );
+      return match || null;
+    },
+    staleTime: 30_000,
   });
 
   // Suggested match — grab counterparty name from extracted fields
@@ -609,34 +627,52 @@ function StepCustomer({ importId, onNext }: { importId: string; onNext: () => vo
       const { data, error } = await supabase.functions.invoke("link-debtor-to-stripe", {
         body: { action: "create", debtor_id: debtor.id, force_create: false },
       });
-      if (error) throw new Error(error.message);
+      if (error) throw new Error(error.message || "Stripe request failed");
+      if (data?.error) throw new Error(data.error);
       if (data?.duplicate && data?.candidate?.id) {
         // Auto-link the duplicate to avoid Stripe dupes
-        const { error: linkErr } = await supabase.functions.invoke("link-debtor-to-stripe", {
+        const { data: linkData, error: linkErr } = await supabase.functions.invoke("link-debtor-to-stripe", {
           body: { action: "link", debtor_id: debtor.id, stripe_customer_id: data.candidate.id },
         });
-        if (linkErr) throw new Error(linkErr.message);
+        if (linkErr) throw new Error(linkErr.message || "Failed to link existing Stripe customer");
+        if (linkData?.error) throw new Error(linkData.error);
         toast.success(`Linked to existing Stripe customer ${data.candidate.name || data.candidate.id}`);
       } else if (data?.ok) {
         toast.success("Customer created in Stripe");
-      } else if (data?.error) {
-        throw new Error(data.error);
       }
       await qc.invalidateQueries({ queryKey: ["wizard-debtor"] });
+      await qc.invalidateQueries({ queryKey: ["wizard-stripe-dupe"] });
     } catch (e: any) {
-      toast.error(e.message);
+      toast.error(e?.message || "Failed to push customer to Stripe");
     } finally {
       setPushingStripe(false);
     }
   };
 
-  // Stripe readiness checklist
+  // Stripe readiness checklist — mirrors the invoice push pre-flight so users
+  // can fix data gaps before hitting the API and getting a cryptic error.
+  const emailValid = !!debtor?.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(debtor.email);
+  const hasAddress = !!(debtor?.billing_address_line1 || debtor?.billing_city || debtor?.billing_country || debtor?.country);
   const stripeChecks = debtor ? [
-    { ok: !!(debtor.company_name || debtor.name), label: "Customer name" },
-    { ok: !!debtor.email, label: "Email address" },
-    { ok: !!debtor.phone, label: "Phone (optional)", optional: true },
+    { ok: !!(debtor.company_name || debtor.name), label: "Customer name",
+      detail: debtor.company_name || debtor.name || "Missing" },
+    { ok: emailValid, label: "Email address",
+      detail: debtor.email ? (emailValid ? debtor.email : `Invalid format: ${debtor.email}`) : "Missing" },
+    { ok: hasAddress, optional: true, label: "Billing address",
+      detail: hasAddress
+        ? [debtor.billing_city, debtor.billing_state, debtor.billing_country || debtor.country].filter(Boolean).join(", ")
+        : "Recommended for tax & receipts" },
+    { ok: !!debtor.phone, optional: true, label: "Phone",
+      detail: debtor.phone || "Optional" },
+    { ok: !stripeDupe, optional: true, warn: !!stripeDupe, label: "Duplicate check",
+      detail: dupChecking
+        ? "Checking Stripe…"
+        : stripeDupe
+          ? `A Stripe customer with this email already exists (${stripeDupe.id}) — will auto-link on push`
+          : "No existing Stripe customer with this email" },
   ] : [];
   const stripeRequiredOk = stripeChecks.filter((c) => !c.optional).every((c) => c.ok);
+
 
   return (
     <div className="space-y-4">
@@ -733,25 +769,51 @@ function StepCustomer({ importId, onNext }: { importId: string; onNext: () => vo
             </p>
           </CardHeader>
           <CardContent className="space-y-3">
-            <ul className="space-y-1.5 text-sm">
-              {stripeChecks.map((c) => (
-                <li key={c.label} className="flex items-center gap-2">
-                  {c.ok
-                    ? <CheckCircle2 className="h-4 w-4 text-primary" />
-                    : c.optional
-                      ? <span className="h-4 w-4 rounded-full border border-muted-foreground/40" />
-                      : <AlertTriangle className="h-4 w-4 text-destructive" />}
-                  <span className={c.ok ? "" : c.optional ? "text-muted-foreground" : "text-destructive"}>
-                    {c.label}{c.optional ? " — optional" : ""}
+            <div className="rounded-md border bg-muted/30 p-2.5 space-y-1.5">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Stripe push fields
+              </p>
+              {stripeChecks.map((c: any) => (
+                <div key={c.label} className="flex items-start gap-2 text-xs">
+                  {c.ok ? (
+                    c.warn
+                      ? <AlertTriangle className="h-3.5 w-3.5 mt-0.5 text-amber-600 shrink-0" />
+                      : <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 text-emerald-600 shrink-0" />
+                  ) : c.optional ? (
+                    <span className="h-3.5 w-3.5 mt-0.5 rounded-full border border-muted-foreground/40 shrink-0" />
+                  ) : (
+                    <AlertTriangle className="h-3.5 w-3.5 mt-0.5 text-destructive shrink-0" />
+                  )}
+                  <span className="text-muted-foreground min-w-[110px]">
+                    {c.label}{c.optional ? " (optional)" : ""}:
                   </span>
-                </li>
+                  <span className={
+                    !c.ok && !c.optional ? "text-destructive"
+                    : c.warn ? "text-amber-700"
+                    : c.ok ? "text-foreground" : "text-muted-foreground"
+                  }>
+                    {c.detail}
+                  </span>
+                </div>
               ))}
-            </ul>
+            </div>
+            {!stripeRequiredOk && (
+              <div className="flex items-center justify-between gap-2 rounded-md border border-amber-500/40 bg-amber-500/5 p-2.5 text-xs">
+                <span className="text-amber-800">
+                  Required fields are missing. Update the account, then retry.
+                </span>
+                <Button asChild size="sm" variant="outline">
+                  <Link to={`/accounts/${debtor.id}`} target="_blank" rel="noreferrer">
+                    Edit account <ExternalLink className="h-3 w-3 ml-1" />
+                  </Link>
+                </Button>
+              </div>
+            )}
             <div className="flex justify-end">
               <Button onClick={pushToStripe} disabled={!stripeRequiredOk || pushingStripe}>
                 {pushingStripe ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                               : <CreditCard className="h-4 w-4 mr-2" />}
-                Create in Stripe
+                {stripeDupe ? "Link existing Stripe customer" : "Create in Stripe"}
               </Button>
             </div>
           </CardContent>
