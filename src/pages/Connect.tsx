@@ -81,14 +81,15 @@ export default function Connect() {
                 <li>
                   Open{" "}
                   <a
-                    href="https://chatgpt.com/#settings/Connectors/Advanced"
+                    href="https://chatgpt.com/"
                     target="_blank"
-                    rel="noreferrer"
+                    rel="noopener noreferrer"
                     className="text-primary hover:underline"
                   >
-                    ChatGPT settings &rarr; Connectors &rarr; Advanced
-                  </a>{" "}
-                  and enable <strong>Developer mode</strong> (read the risk notice shown there).
+                    chatgpt.com
+                  </a>
+                  , then go to <strong>Settings &rarr; Connectors &rarr; Advanced</strong> and enable{" "}
+                  <strong>Developer mode</strong> (read the risk notice shown there).
                 </li>
                 <li>
                   In the chat composer's <strong>+</strong> menu, turn on <strong>Developer mode</strong>.
@@ -116,14 +117,14 @@ export default function Connect() {
                 <li>
                   Open{" "}
                   <a
-                    href="https://claude.ai/customize/connectors?modal=add-custom-connector"
+                    href="https://claude.ai/settings/connectors"
                     target="_blank"
-                    rel="noreferrer"
+                    rel="noopener noreferrer"
                     className="text-primary hover:underline"
                   >
-                    Claude &rarr; Add custom connector
-                  </a>
-                  .
+                    claude.ai &rarr; Settings &rarr; Connectors
+                  </a>{" "}
+                  and click <strong>Add custom connector</strong>.
                 </li>
                 <li>
                   Name the connector (e.g. <em>Recouply</em>) and paste the MCP URL above.
