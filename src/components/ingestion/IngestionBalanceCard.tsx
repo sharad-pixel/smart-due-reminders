@@ -61,7 +61,7 @@ export default function IngestionBalanceCard() {
                   Covers ASC 606 (10 cr/contract) and Smart Ingestion (1 cr/page).
                   {hasOverage && (
                     <span className="block text-amber-700 font-medium">
-                      {overage.toFixed(0)} credits of overage pending — ${overage.toFixed(2)} due.
+                      {overage.toFixed(0)} credits of overage pending — ${Math.round(overage)} due.
                     </span>
                   )}
                 </div>
@@ -79,7 +79,7 @@ export default function IngestionBalanceCard() {
                   className="bg-amber-600 hover:bg-amber-700 text-white gap-2"
                 >
                   {payingOverage ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}
-                  Pay ${overage.toFixed(2)} now
+                  Pay ${Math.round(overage)} now
                 </Button>
               )}
             </div>

@@ -12,7 +12,7 @@ interface OcrPricingNoticeProps {
 
 /**
  * Standardized callout for any UI that triggers AI Smart Ingestion.
- * Always communicates the 1 credit ($1.00) per page billing rate.
+ * Always communicates the 1 credit ($1) per page billing rate.
  */
 export const OcrPricingNotice = ({
   pageCount,
@@ -20,14 +20,14 @@ export const OcrPricingNotice = ({
   className,
 }: OcrPricingNoticeProps) => {
   const estimated = pageCount && pageCount > 0
-    ? `${pageCount} credit${pageCount === 1 ? "" : "s"} for ${pageCount} page${pageCount === 1 ? "" : "s"} — $${(pageCount * 0.8).toFixed(2)} pre-paid / $${(pageCount * 1.0).toFixed(2)} standard`
+    ? `${pageCount} credit${pageCount === 1 ? "" : "s"} for ${pageCount} page${pageCount === 1 ? "" : "s"} — $${Math.round(pageCount * 0.8)} pre-paid / $${Math.round(pageCount * 1.0)} standard`
     : null;
 
   if (variant === "inline") {
     return (
       <p className={cn("text-xs text-muted-foreground inline-flex items-center gap-1", className)}>
         <Info className="h-3 w-3" />
-        AI Smart Ingestion: 1 credit per page ($0.80 pre-paid / $1.00 standard)
+        AI Smart Ingestion: 1 credit per page ($8 per 10 pre-paid / $1 standard)
         {estimated ? ` — ${estimated}` : ""}.
       </p>
     );
@@ -49,7 +49,7 @@ export const OcrPricingNotice = ({
           {estimated
             ? `Estimated cost: ${estimated}. `
             : "Pages are detected automatically after upload. "}
-          Pre-paid credits cost <strong>$0.80/credit</strong>; standard (overage) rate is <strong>$1.00/credit</strong>. Manage at{" "}
+          Pre-paid credits are bundled at <strong>$8 per 10 credits</strong> (20% off); standard (overage) rate is <strong>$1/credit</strong>. Manage at{" "}
           <a className="underline" href="/billing?tab=credits">Billing → Credits</a>.
         </div>
       </div>

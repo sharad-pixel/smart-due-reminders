@@ -128,7 +128,7 @@ export function Asc606AssessmentDialog({ open, onOpenChange, contractId, account
   };
 
   const payAndRun = async () => {
-    if (!confirmRerun("a paid $9.99 assessment")) return;
+    if (!confirmRerun("a paid $10 assessment")) return;
     setPaying(true);
     try {
       const { data, error } = await supabase.functions.invoke("asc606-pay-assessment", {
@@ -179,7 +179,7 @@ export function Asc606AssessmentDialog({ open, onOpenChange, contractId, account
                     <div className="text-xs text-muted-foreground">
                       {Number(wallet?.pending_overage_credits ?? 0) > 0
                         ? `${Number(wallet?.pending_overage_credits).toFixed(0)} pending overage credits this month`
-                        : "Pre-paid credits = $0.80 each (20% off)"}
+                        : "10 pre-paid credits = $8 (20% off)"}
                     </div>
                   </div>
                 </div>
@@ -290,7 +290,7 @@ export function Asc606AssessmentDialog({ open, onOpenChange, contractId, account
                 ) : (
                   <>
                     <div className="text-xs text-muted-foreground">
-                      Cost: <strong>$9.99</strong> per assessment OR <strong>10 credits</strong> ({balance >= COST ? `you have ${balance.toFixed(0)}` : `$8.00 with pre-paid credits`}).
+                      Cost: <strong>$10</strong> per assessment OR <strong>10 credits</strong> ({balance >= COST ? `you have ${balance.toFixed(0)}` : `$8 with pre-paid credits`}).
                     </div>
                     {latest?.status === "complete" && rerunConfirmed && (
                       <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5 flex items-start gap-1.5">
@@ -307,7 +307,7 @@ export function Asc606AssessmentDialog({ open, onOpenChange, contractId, account
                       )}
                       <Button variant={canUseCredits ? "outline" : "default"} onClick={payAndRun} disabled={paying}>
                         {paying ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <ExternalLink className="h-4 w-4 mr-1" />}
-                        Pay $9.99
+                        Pay $10
                       </Button>
                       {canUseOverage && (
                         <Button variant="outline" onClick={() => runWithCredits("overage")} disabled={running}>
