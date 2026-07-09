@@ -307,7 +307,7 @@ export function Asc606AssessmentDialog({ open, onOpenChange, contractId, account
                       )}
                       <Button variant={canUseCredits ? "outline" : "default"} onClick={payAndRun} disabled={paying}>
                         {paying ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <ExternalLink className="h-4 w-4 mr-1" />}
-                        Pay $9.99
+                        Pay $10
                       </Button>
                       {canUseOverage && (
                         <Button variant="outline" onClick={() => runWithCredits("overage")} disabled={running}>
