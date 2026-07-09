@@ -250,9 +250,9 @@ const Pricing = () => {
               <div className="flex justify-center mb-3">
                 <Users className="h-6 w-6 text-primary" />
               </div>
-              <h3 className="font-semibold mb-2">Solo Operators</h3>
+              <h3 className="font-semibold mb-2">Launch</h3>
               <p className="text-sm text-muted-foreground">
-                Start at just ${PLAN_CONFIGS.solo_pro.monthlyPrice}/mo with full platform access
+                Start at just ${PLAN_CONFIGS.launch.monthlyPrice}/mo with {PLAN_CONFIGS.launch.creditAllotment} credits and full platform access
               </p>
             </div>
             <div className="bg-card rounded-xl p-6 border shadow-sm">
