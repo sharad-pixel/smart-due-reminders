@@ -49,7 +49,7 @@ export const OcrPricingNotice = ({
           {estimated
             ? `Estimated cost: ${estimated}. `
             : "Pages are detected automatically after upload. "}
-          Pre-paid credits cost <strong>$0.80/credit</strong>; standard (overage) rate is <strong>$1.00/credit</strong>. Manage at{" "}
+          Pre-paid credits are bundled at <strong>$8 per 10 credits</strong> (20% off); standard (overage) rate is <strong>$1/credit</strong>. Manage at{" "}
           <a className="underline" href="/billing?tab=credits">Billing → Credits</a>.
         </div>
       </div>
