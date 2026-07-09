@@ -852,7 +852,8 @@ function StepCompliance({ importId, onFinish }: { importId: string; onFinish: ()
           </CardTitle>
           <p className="text-sm text-muted-foreground">
             Run the paid ASC 606 review to score contract compliance, surface commercial risks, and prepare
-            the contract for finance handoff. You can skip this and run it later from the Contract Command page.
+            the contract for finance handoff. This step is optional — you can skip it and run it later from
+            the Contract Command page whenever you're ready.
           </p>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -867,8 +868,22 @@ function StepCompliance({ importId, onFinish }: { importId: string; onFinish: ()
         </CardContent>
       </Card>
 
-      <div className="flex justify-between items-center">
-        <Button variant="ghost" onClick={onFinish}>Skip — I'll run it later</Button>
+      <Card className="border-dashed">
+        <CardContent className="p-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="text-sm">
+            <div className="font-medium">Not ready to run compliance?</div>
+            <div className="text-xs text-muted-foreground">
+              Skip for now — the contract is fully saved and you can run the ASC 606 assessment
+              anytime from the contract page.
+            </div>
+          </div>
+          <Button variant="outline" onClick={onFinish}>
+            Skip compliance & finish
+          </Button>
+        </CardContent>
+      </Card>
+
+      <div className="flex justify-end items-center">
         <Button onClick={onFinish}>
           Finish & open contract <ArrowRight className="h-4 w-4 ml-2" />
         </Button>
@@ -876,6 +891,7 @@ function StepCompliance({ importId, onFinish }: { importId: string; onFinish: ()
     </div>
   );
 }
+
 
 /* ============================================================
  * Orchestrator
