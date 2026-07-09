@@ -26,23 +26,24 @@
           "openWorldHint": false
         },
         "inputSchema": {
-          "$schema": "http://json-schema.org/draft-07/schema#",
           "type": "object",
           "properties": {
             "limit": {
-              "default": 25,
-              "description": "Max debtors to return.",
               "type": "integer",
               "minimum": 1,
-              "maximum": 100
+              "maximum": 100,
+              "default": 25,
+              "description": "Max debtors to return."
             },
             "min_balance": {
-              "default": 0,
-              "description": "Only include debtors whose total_open_balance is at least this amount.",
               "type": "number",
-              "minimum": 0
+              "minimum": 0,
+              "default": 0,
+              "description": "Only include debtors whose total_open_balance is at least this amount."
             }
-          }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
         },
         "outputSchema": null
       },
@@ -56,23 +57,20 @@
           "openWorldHint": false
         },
         "inputSchema": {
-          "$schema": "http://json-schema.org/draft-07/schema#",
           "type": "object",
           "properties": {
             "limit": {
-              "default": 50,
               "type": "integer",
               "minimum": 1,
-              "maximum": 200
+              "maximum": 200,
+              "default": 50
             },
             "debtor_id": {
-              "description": "Restrict to a single debtor id.",
               "type": "string",
               "format": "uuid",
-              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              "description": "Restrict to a single debtor id."
             },
             "aging_bucket": {
-              "description": "Restrict to a single aging bucket.",
               "type": "string",
               "enum": [
                 "current",
@@ -81,9 +79,12 @@
                 "61-90",
                 "91-120",
                 "121+"
-              ]
+              ],
+              "description": "Restrict to a single aging bucket."
             }
-          }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
         },
         "outputSchema": null
       },
@@ -97,24 +98,23 @@
           "openWorldHint": false
         },
         "inputSchema": {
-          "$schema": "http://json-schema.org/draft-07/schema#",
           "type": "object",
           "properties": {
             "limit": {
-              "default": 25,
               "type": "integer",
               "minimum": 1,
-              "maximum": 100
+              "maximum": 100,
+              "default": 25
             },
             "status": {
-              "description": "Filter by task status.",
               "type": "string",
               "enum": [
                 "open",
                 "in_progress",
                 "waiting",
                 "completed"
-              ]
+              ],
+              "description": "Filter by task status."
             },
             "priority": {
               "type": "string",
@@ -125,7 +125,9 @@
                 "urgent"
               ]
             }
-          }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
         },
         "outputSchema": null
       },
@@ -139,19 +141,19 @@
           "openWorldHint": false
         },
         "inputSchema": {
-          "$schema": "http://json-schema.org/draft-07/schema#",
           "type": "object",
           "properties": {
             "debtor_id": {
               "type": "string",
               "format": "uuid",
-              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
               "description": "The debtor's UUID."
             }
           },
           "required": [
             "debtor_id"
-          ]
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
         },
         "outputSchema": null
       }
