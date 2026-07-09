@@ -1,0 +1,160 @@
+{
+  "version": 1,
+  "sdk_version": "0.20.0",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://kguurazunazhhrhasahd.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "recouply-mcp",
+      "version": "0.1.0",
+      "title": "Recouply"
+    },
+    "tools": [
+      {
+        "name": "list_debtors",
+        "title": "List debtors",
+        "description": "List debtors (customer accounts) for the signed-in Recouply user, sorted by open balance descending.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "limit": {
+              "default": 25,
+              "description": "Max debtors to return.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            },
+            "min_balance": {
+              "default": 0,
+              "description": "Only include debtors whose total_open_balance is at least this amount.",
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_open_invoices",
+        "title": "List open invoices",
+        "description": "List open (unpaid) invoices for the signed-in Recouply user. Filter by aging bucket or debtor. Sorted by days past due descending.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "limit": {
+              "default": 50,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            },
+            "debtor_id": {
+              "description": "Restrict to a single debtor id.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "aging_bucket": {
+              "description": "Restrict to a single aging bucket.",
+              "type": "string",
+              "enum": [
+                "current",
+                "1-30",
+                "31-60",
+                "61-90",
+                "91-120",
+                "121+"
+              ]
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_collection_tasks",
+        "title": "List collection tasks",
+        "description": "List active collection tasks (Command Center kanban) for the signed-in Recouply user, filtered by status and priority.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "limit": {
+              "default": 25,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            },
+            "status": {
+              "description": "Filter by task status.",
+              "type": "string",
+              "enum": [
+                "open",
+                "in_progress",
+                "waiting",
+                "completed"
+              ]
+            },
+            "priority": {
+              "type": "string",
+              "enum": [
+                "low",
+                "medium",
+                "high",
+                "urgent"
+              ]
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_debtor",
+        "title": "Get debtor",
+        "description": "Fetch full details for a single debtor (customer account), including balance, risk, and aging mix.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "debtor_id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "description": "The debtor's UUID."
+            }
+          },
+          "required": [
+            "debtor_id"
+          ]
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
