@@ -20,7 +20,7 @@ interface PricingTierCampaign {
   displayName: string;
   description: string;
   price: number;
-  invoiceLimit: number;
+  creditAllotment: number;
   icon: React.ComponentType<{ className?: string }>;
   color: string;
   targetAudience: string;
@@ -31,11 +31,11 @@ export const PRICING_TIER_CAMPAIGNS: PricingTierCampaign[] = [
   {
     id: "campaign_solo_pro",
     tier: "solo_pro",
-    name: "Solo Pro Campaign",
-    displayName: PLAN_CONFIGS.solo_pro.displayName,
-    description: "Target freelancers and solopreneurs with 25 or fewer invoices monthly",
-    price: PLAN_CONFIGS.solo_pro.monthlyPrice,
-    invoiceLimit: PLAN_CONFIGS.solo_pro.invoiceLimit,
+    name: "Launch Campaign",
+    displayName: PLAN_CONFIGS.launch.displayName,
+    description: `Target freelancers and solopreneurs with ${PLAN_CONFIGS.launch.creditAllotment} credits/month included`,
+    price: PLAN_CONFIGS.launch.monthlyPrice,
+    creditAllotment: PLAN_CONFIGS.launch.creditAllotment,
     icon: Users,
     color: "bg-blue-500",
     targetAudience: "Freelancers, Consultants, Solo Business Owners",
@@ -51,9 +51,9 @@ export const PRICING_TIER_CAMPAIGNS: PricingTierCampaign[] = [
     tier: "starter",
     name: "Starter Campaign",
     displayName: PLAN_CONFIGS.starter.displayName,
-    description: "Target small businesses managing up to 100 invoices monthly",
+    description: `Target small businesses with ${PLAN_CONFIGS.starter.creditAllotment} credits/month included`,
     price: PLAN_CONFIGS.starter.monthlyPrice,
-    invoiceLimit: PLAN_CONFIGS.starter.invoiceLimit,
+    creditAllotment: PLAN_CONFIGS.starter.creditAllotment,
     icon: Rocket,
     color: "bg-emerald-500",
     targetAudience: "Small Businesses, Growing Agencies",
@@ -69,9 +69,9 @@ export const PRICING_TIER_CAMPAIGNS: PricingTierCampaign[] = [
     tier: "growth",
     name: "Growth Campaign",
     displayName: PLAN_CONFIGS.growth.displayName,
-    description: "Target scaling businesses with up to 300 invoices monthly",
+    description: `Target scaling businesses with ${PLAN_CONFIGS.growth.creditAllotment} credits/month included`,
     price: PLAN_CONFIGS.growth.monthlyPrice,
-    invoiceLimit: PLAN_CONFIGS.growth.invoiceLimit,
+    creditAllotment: PLAN_CONFIGS.growth.creditAllotment,
     icon: TrendingUp,
     color: "bg-orange-500",
     targetAudience: "Mid-Market, Scaling Companies",
@@ -87,9 +87,9 @@ export const PRICING_TIER_CAMPAIGNS: PricingTierCampaign[] = [
     tier: "professional",
     name: "Professional Campaign",
     displayName: PLAN_CONFIGS.professional.displayName,
-    description: "Target established businesses with up to 500 invoices monthly",
+    description: `Target established businesses with ${PLAN_CONFIGS.professional.creditAllotment.toLocaleString()} credits/month included`,
     price: PLAN_CONFIGS.professional.monthlyPrice,
-    invoiceLimit: PLAN_CONFIGS.professional.invoiceLimit,
+    creditAllotment: PLAN_CONFIGS.professional.creditAllotment,
     icon: Crown,
     color: "bg-purple-500",
     targetAudience: "Established Businesses, Large Teams",
@@ -194,7 +194,7 @@ export const PricingTierCampaigns = ({
                 </div>
                 
                 <div className="text-xs text-muted-foreground">
-                  Up to {tier.invoiceLimit} invoices/month
+                  {tier.creditAllotment.toLocaleString()} credits/month included
                 </div>
 
                 {/* Target audience */}

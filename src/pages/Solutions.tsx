@@ -16,8 +16,8 @@ const Solutions = () => {
       benefits: [
         "Full platform power at $49/month",
         "All 6 AI agents with no feature limits",
-        "25 invoices included, pay-as-you-grow pricing",
-        "Enterprise-grade intelligence, solo-sized"
+        "50 credits/month included — pay-as-you-grow overage",
+        "Add Live Contracts at $5/contract/mo when you need them"
       ],
       link: "/solutions/solo-pro"
     },

@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { CheckCircle2, User, Brain, Zap, DollarSign, Clock, QrCode, FileText, CalendarClock, HandCoins, ArrowRight } from "lucide-react";
 import SEOHead from "@/components/seo/SEOHead";
-import { PLAN_CONFIGS, INVOICE_PRICING } from "@/lib/subscriptionConfig";
+import { PLAN_CONFIGS, CREDIT_PRICING, CREDITS_PER_INVOICE, LIVE_CONTRACTS_PRICING } from "@/lib/subscriptionConfig";
 import venmoLogo from "@/assets/venmo-logo.png";
 import paypalLogo from "@/assets/paypal-logo.png";
 import cashappLogo from "@/assets/cashapp-logo.png";
@@ -26,7 +26,7 @@ const SoloPro = () => {
     {
       icon: DollarSign,
       title: "Affordable Power",
-      description: `Just $${PLAN_CONFIGS.launch.monthlyPrice}/month for 25 active invoices—full platform access at a fraction of team plans.`
+      description: `Just $${PLAN_CONFIGS.launch.monthlyPrice}/month with ${PLAN_CONFIGS.launch.creditAllotment} credits included — full platform access at a fraction of team plans.`
     },
     {
       icon: Zap,
@@ -35,8 +35,8 @@ const SoloPro = () => {
     },
     {
       icon: Clock,
-      title: "Consumption-Based",
-      description: `Only $${INVOICE_PRICING.perInvoice} per additional invoice when you exceed your monthly limit. Pay for what you use.`
+      title: "Credit-Based, Not Capped",
+      description: `Top up at $${CREDIT_PRICING.prepaidPerCredit.toFixed(2)}/credit pre-paid or $${CREDIT_PRICING.overagePerCredit.toFixed(2)}/credit on-demand. Each invoice processed uses ${CREDITS_PER_INVOICE} credits — pay only for what you use.`
     }
   ];
 
@@ -44,8 +44,8 @@ const SoloPro = () => {
     <MarketingLayout>
       <SEOHead
         title="Launch Plan for Independent Operators | Recouply.ai"
-        description="Full-powered AI collection platform for sole proprietors and independent operators. $49/month for 25 invoices with all 6 AI agents and complete automation."
-        keywords="solo collections software, independent operator billing, freelancer invoice collection, sole proprietor AR automation"
+        description="Full-powered AI Revenue Intelligence platform for sole proprietors and independent operators. $49/month with 50 credits included, all 6 AI agents, and complete automation."
+        keywords="solo collections software, independent operator billing, freelancer AR automation, credit-based collections pricing"
         canonical="https://recouply.ai/solutions/solo-pro"
       />
       
@@ -68,7 +68,7 @@ const SoloPro = () => {
               ${PLAN_CONFIGS.launch.monthlyPrice}<span className="text-lg font-normal text-muted-foreground">/month</span>
             </div>
             <span className="text-muted-foreground">•</span>
-            <span className="text-muted-foreground">25 invoices included</span>
+            <span className="text-muted-foreground">{PLAN_CONFIGS.launch.creditAllotment} credits/month included</span>
           </div>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
@@ -442,7 +442,7 @@ const SoloPro = () => {
                 <ul className="text-sm text-left space-y-2">
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-primary" />
-                    25 active invoices included
+                    {PLAN_CONFIGS.launch.creditAllotment} credits/month included
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-primary" />
@@ -457,20 +457,20 @@ const SoloPro = () => {
             </Card>
             <Card>
               <CardContent className="pt-6 text-center">
-                <div className="text-4xl font-bold text-muted-foreground mb-2">${INVOICE_PRICING.perInvoice}</div>
-                <div className="text-muted-foreground mb-4">per additional invoice</div>
+                <div className="text-4xl font-bold text-muted-foreground mb-2">${CREDIT_PRICING.prepaidPerCredit.toFixed(2)}</div>
+                <div className="text-muted-foreground mb-4">per credit (pre-paid overage)</div>
                 <ul className="text-sm text-left space-y-2">
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-primary" />
-                    Pay only when you exceed 25
+                    ${CREDIT_PRICING.overagePerCredit.toFixed(2)}/credit on-demand
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-primary" />
-                    Calculated monthly
+                    {CREDITS_PER_INVOICE} credits per invoice processed
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-primary" />
-                    Scale seamlessly as you grow
+                    Add Live Contracts at ${LIVE_CONTRACTS_PRICING.pricePerContractPerMonth.toFixed(2)}/contract/mo
                   </li>
                 </ul>
               </CardContent>
