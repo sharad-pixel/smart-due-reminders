@@ -147,18 +147,100 @@ var get_debtor_default = defineTool4({
   }
 });
 
+// src/lib/mcp/tools/list-contracts.ts
+import { createClient as createClient5 } from "npm:@supabase/supabase-js@^2.84.0";
+import { defineTool as defineTool5 } from "npm:@lovable.dev/mcp-js@0.20.0";
+import { z as z5 } from "npm:zod@^3.23.8";
+function sb5(ctx) {
+  return createClient5(process.env.SUPABASE_URL, process.env.SUPABASE_PUBLISHABLE_KEY, {
+    global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
+}
+var list_contracts_default = defineTool5({
+  name: "list_contracts",
+  title: "List contracts",
+  description: "List contracts for the signed-in Recouply user. Optionally filter by status, contract type, or counterparty name. Sorted by expiry date ascending (soonest first).",
+  inputSchema: {
+    limit: z5.number().int().min(1).max(100).default(25),
+    status: z5.string().optional().describe("Filter by contract status (e.g. active, expired, draft)."),
+    contract_type: z5.string().optional().describe("Filter by contract type."),
+    counterparty: z5.string().optional().describe("Case-insensitive match on counterparty name.")
+  },
+  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  handler: async ({ limit, status, contract_type, counterparty }, ctx) => {
+    if (!ctx.isAuthenticated()) {
+      return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
+    }
+    let q = sb5(ctx).from("contracts").select(
+      "id, title, contract_type, status, counterparty_name, counterparty_email, contract_value, currency, effective_date, expiry_date, renewal_date, ai_summary, created_at"
+    ).order("expiry_date", { ascending: true, nullsFirst: false }).limit(limit);
+    if (status) q = q.eq("status", status);
+    if (contract_type) q = q.eq("contract_type", contract_type);
+    if (counterparty) q = q.ilike("counterparty_name", `%${counterparty}%`);
+    const { data, error } = await q;
+    if (error) return { content: [{ type: "text", text: error.message }], isError: true };
+    return {
+      content: [{ type: "text", text: JSON.stringify(data ?? [], null, 2) }],
+      structuredContent: { contracts: data ?? [] }
+    };
+  }
+});
+
+// src/lib/mcp/tools/get-contract.ts
+import { createClient as createClient6 } from "npm:@supabase/supabase-js@^2.84.0";
+import { defineTool as defineTool6 } from "npm:@lovable.dev/mcp-js@0.20.0";
+import { z as z6 } from "npm:zod@^3.23.8";
+function sb6(ctx) {
+  return createClient6(process.env.SUPABASE_URL, process.env.SUPABASE_PUBLISHABLE_KEY, {
+    global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
+}
+var get_contract_default = defineTool6({
+  name: "get_contract",
+  title: "Get contract",
+  description: "Get a single contract by id, including AI summary, extracted terms, key dates, risk flags, and critical dates for the signed-in user.",
+  inputSchema: {
+    contract_id: z6.string().uuid().describe("The contract id.")
+  },
+  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  handler: async ({ contract_id }, ctx) => {
+    if (!ctx.isAuthenticated()) {
+      return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
+    }
+    const client = sb6(ctx);
+    const { data: contract, error } = await client.from("contracts").select("*").eq("id", contract_id).maybeSingle();
+    if (error) return { content: [{ type: "text", text: error.message }], isError: true };
+    if (!contract) return { content: [{ type: "text", text: "Contract not found" }], isError: true };
+    const [riskFlags, criticalDates] = await Promise.all([
+      client.from("contract_risk_flags").select("*").eq("contract_id", contract_id),
+      client.from("contract_critical_dates").select("*").eq("contract_id", contract_id).order("date", { ascending: true })
+    ]);
+    const payload = {
+      contract,
+      risk_flags: riskFlags.data ?? [],
+      critical_dates: criticalDates.data ?? []
+    };
+    return {
+      content: [{ type: "text", text: JSON.stringify(payload, null, 2) }],
+      structuredContent: payload
+    };
+  }
+});
+
 // src/lib/mcp/index.ts
 var projectRef = "kguurazunazhhrhasahd";
 var mcp_default = defineMcp({
   name: "recouply-mcp",
   title: "Recouply",
   version: "0.1.0",
-  instructions: "Tools for Recouply, an AI-powered accounts receivable and collections platform. Use these tools to inspect debtors (customer accounts), open invoices, and active collection tasks for the signed-in user. All calls run under the user's row-level security, so results are scoped to their organization.",
+  instructions: "Tools for Recouply, an AI-powered accounts receivable and collections platform. Use these tools to inspect debtors (customer accounts), open invoices, active collection tasks, and contracts (with AI summaries, key dates, and risk flags) for the signed-in user. All calls run under the user's row-level security, so results are scoped to their organization.",
   auth: auth.oauth.issuer({
     issuer: `https://${projectRef}.supabase.co/auth/v1`,
     acceptedAudiences: "authenticated"
   }),
-  tools: [list_debtors_default, list_open_invoices_default, list_collection_tasks_default, get_debtor_default]
+  tools: [list_debtors_default, list_open_invoices_default, list_collection_tasks_default, get_debtor_default, list_contracts_default, get_contract_default]
 });
 
 // lovable-mcp-supabase-entry.ts

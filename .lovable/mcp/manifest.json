@@ -156,6 +156,68 @@
           "$schema": "http://json-schema.org/draft-07/schema#"
         },
         "outputSchema": null
+      },
+      {
+        "name": "list_contracts",
+        "title": "List contracts",
+        "description": "List contracts for the signed-in Recouply user. Optionally filter by status, contract type, or counterparty name. Sorted by expiry date ascending (soonest first).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            },
+            "status": {
+              "type": "string",
+              "description": "Filter by contract status (e.g. active, expired, draft)."
+            },
+            "contract_type": {
+              "type": "string",
+              "description": "Filter by contract type."
+            },
+            "counterparty": {
+              "type": "string",
+              "description": "Case-insensitive match on counterparty name."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_contract",
+        "title": "Get contract",
+        "description": "Get a single contract by id, including AI summary, extracted terms, key dates, risk flags, and critical dates for the signed-in user.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "contract_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The contract id."
+            }
+          },
+          "required": [
+            "contract_id"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
       }
     ]
   }
