@@ -354,3 +354,6 @@ verify_jwt = true
 
 [functions.anthropic-cleanup]
 verify_jwt = false
+
+[functions.resources-ask]
+verify_jwt = false
