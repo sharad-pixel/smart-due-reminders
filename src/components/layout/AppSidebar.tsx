@@ -55,6 +55,7 @@ import {
   Building2,
   Gift,
   LineChart as LineChartIcon,
+  Plug,
 } from "lucide-react";
 
 interface NavItem {
@@ -115,6 +116,7 @@ export function AppSidebar(props: AppSidebarProps) {
     { path: "/daily-digest", label: "Daily Digest", icon: CalendarDays },
     { path: "/alerts", label: "Alerts", icon: Bell, badge: props.alertUnreadCount },
     { path: "/reports/email-delivery", label: "Email Delivery", icon: BarChart3 },
+    { path: "/connect", label: "Connect AI", icon: Plug },
   ], [props.alertUnreadCount]);
 
   const dataItems: NavItem[] = useMemo(() => [
