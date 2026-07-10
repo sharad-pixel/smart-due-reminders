@@ -37,6 +37,11 @@ export default function Connect() {
       />
       <div className="max-w-3xl mx-auto px-4 py-16 md:py-24">
         <header className="mb-10 text-center space-y-4">
+          <img
+            src={recouplyLogo}
+            alt="Recouply brain logo"
+            className="h-16 w-16 mx-auto rounded-xl shadow-sm"
+          />
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border/60 bg-muted/40 text-xs font-medium text-muted-foreground">
             <Sparkles className="h-3.5 w-3.5" />
             AI assistant integration
