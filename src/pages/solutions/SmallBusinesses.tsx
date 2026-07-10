@@ -66,6 +66,13 @@ const SmallBusinesses = () => {
     "Full collections dashboard with real-time visibility"
   ];
 
+  const examples = [
+    { icon: Wrench, text: "Service providers with recurring maintenance contracts" },
+    { icon: HardHat, text: "Contractors and trades with progress billing" },
+    { icon: Truck, text: "Local distributors and B2B suppliers on Net 30" },
+    { icon: Utensils, text: "Restaurants, retailers, and cash-flow-sensitive operators" }
+  ];
+
   return (
     <MarketingLayout>
       <SEOHead
