@@ -322,8 +322,10 @@ const App = () => (
               <Route path="/ai-collections-platform" element={<AICollectionsPlatform />} />
               <Route path="/revenue-risk-intelligence" element={<RevenueRiskIntelligence />} />
 
-              {/* Blog Pages */}
-              <Route path="/blog" element={<BlogIndex />} />
+              {/* Resources / Blog Pages */}
+              <Route path="/resources" element={<ResourcesIndex />} />
+              <Route path="/blog" element={<ResourcesIndex />} />
+              <Route path="/blog-legacy" element={<BlogIndex />} />
               <Route path="/blog/celebrate-cash" element={<CelebrateCash />} />
               <Route path="/blog/power-of-outreach" element={<PowerOfOutreach />} />
               <Route path="/blog/cash-leakage" element={<CashLeakage />} />
