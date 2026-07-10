@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Copy, Check, Sparkles } from "lucide-react";
+import recouplyLogo from "@/assets/recouply-logo.png";
 import MarketingLayout from "@/components/layout/MarketingLayout";
 import SEO from "@/components/seo/SEO";
 import { Button } from "@/components/ui/button";
