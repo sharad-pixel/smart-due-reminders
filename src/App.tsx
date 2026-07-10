@@ -115,6 +115,8 @@ const TrustApplicationSecurity = lazy(() => import("./pages/trust/ApplicationSec
 const TrustVendorSecurity = lazy(() => import("./pages/trust/VendorSecurity"));
 const TrustPrivacyDataHandling = lazy(() => import("./pages/trust/PrivacyDataHandling"));
 const TrustSecurityReviewResources = lazy(() => import("./pages/trust/SecurityReviewResources"));
+const TrustDPA = lazy(() => import("./pages/trust/DPA"));
+const TrustSubprocessors = lazy(() => import("./pages/trust/Subprocessors"));
 
 // Auth Pages
 const Signup = lazy(() => import("./pages/Signup"));
@@ -350,6 +352,8 @@ const App = () => (
               <Route path="/trust/vendor-security" element={<TrustVendorSecurity />} />
               <Route path="/trust/privacy-data-handling" element={<TrustPrivacyDataHandling />} />
               <Route path="/trust/security-review-resources" element={<TrustSecurityReviewResources />} />
+              <Route path="/trust/dpa" element={<TrustDPA />} />
+              <Route path="/trust/subprocessors" element={<TrustSubprocessors />} />
 
               {/* Auth Pages */}
               <Route path="/signup" element={<Signup />} />
