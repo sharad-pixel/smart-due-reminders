@@ -47,7 +47,7 @@ const columns: Col[] = [
     title: "Company",
     links: [
       { label: "About", path: "/about" },
-      { label: "Blog", path: "/blog" },
+      { label: "Resources", path: "/resources" },
       { label: "Careers", path: "/careers" },
       { label: "Investors", path: "/investors" },
       { label: "Design Partners", path: "/design-partners" },
