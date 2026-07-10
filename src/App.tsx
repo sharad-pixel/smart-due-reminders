@@ -80,6 +80,7 @@ const RevenueRiskIntelligence = lazy(() => import("./pages/pillar/RevenueRiskInt
 const AnalyticsPage = lazy(() => import("./pages/AnalyticsPage"));
 // Blog Pages
 const BlogIndex = lazy(() => import("./pages/blog/BlogIndex"));
+const ResourcesIndex = lazy(() => import("./pages/ResourcesIndex"));
 const CelebrateCash = lazy(() => import("./pages/blog/CelebrateCash"));
 const PowerOfOutreach = lazy(() => import("./pages/blog/PowerOfOutreach"));
 const CashLeakage = lazy(() => import("./pages/blog/CashLeakage"));
@@ -97,6 +98,12 @@ const DeathOfTraditionalCollections = lazy(() => import("./pages/blog/DeathOfTra
 const SetItAndForgetItAutomation = lazy(() => import("./pages/blog/SetItAndForgetItAutomation"));
 const RiskAsRealtimeSystem = lazy(() => import("./pages/blog/RiskAsRealtimeSystem"));
 const WhyCollectionsNeedsCrm = lazy(() => import("./pages/blog/WhyCollectionsNeedsCrm"));
+// Revenue Intelligence Series (cornerstone)
+const HiddenCostOfContractOversight = lazy(() => import("./pages/blog/HiddenCostOfContractOversight"));
+const EveryRevenueProblemStartsWithContract = lazy(() => import("./pages/blog/EveryRevenueProblemStartsWithContract"));
+const OrderFormsAsStructuredData = lazy(() => import("./pages/blog/OrderFormsAsStructuredData"));
+const ReactiveRevenueOperationsCostingMillions = lazy(() => import("./pages/blog/ReactiveRevenueOperationsCostingMillions"));
+const FromOcrToRevenueIntelligence = lazy(() => import("./pages/blog/FromOcrToRevenueIntelligence"));
 
 // Legal Pages
 const Terms = lazy(() => import("./pages/legal/Terms"));
@@ -315,8 +322,10 @@ const App = () => (
               <Route path="/ai-collections-platform" element={<AICollectionsPlatform />} />
               <Route path="/revenue-risk-intelligence" element={<RevenueRiskIntelligence />} />
 
-              {/* Blog Pages */}
-              <Route path="/blog" element={<BlogIndex />} />
+              {/* Resources / Blog Pages */}
+              <Route path="/resources" element={<ResourcesIndex />} />
+              <Route path="/blog" element={<ResourcesIndex />} />
+              <Route path="/blog-legacy" element={<BlogIndex />} />
               <Route path="/blog/celebrate-cash" element={<CelebrateCash />} />
               <Route path="/blog/power-of-outreach" element={<PowerOfOutreach />} />
               <Route path="/blog/cash-leakage" element={<CashLeakage />} />
@@ -334,6 +343,12 @@ const App = () => (
               <Route path="/blog/set-it-and-forget-it-automation" element={<SetItAndForgetItAutomation />} />
               <Route path="/blog/risk-as-a-real-time-operational-system" element={<RiskAsRealtimeSystem />} />
               <Route path="/blog/why-collections-needs-a-crm" element={<WhyCollectionsNeedsCrm />} />
+              {/* Revenue Intelligence Series (cornerstone) */}
+              <Route path="/blog/hidden-cost-of-contract-oversight" element={<HiddenCostOfContractOversight />} />
+              <Route path="/blog/every-revenue-problem-starts-with-a-contract" element={<EveryRevenueProblemStartsWithContract />} />
+              <Route path="/blog/order-forms-as-structured-data" element={<OrderFormsAsStructuredData />} />
+              <Route path="/blog/reactive-revenue-operations-costing-millions" element={<ReactiveRevenueOperationsCostingMillions />} />
+              <Route path="/blog/from-ocr-to-revenue-intelligence" element={<FromOcrToRevenueIntelligence />} />
 
               {/* Legal Pages */}
               <Route path="/legal/terms" element={<Terms />} />

@@ -1,61 +1,63 @@
-# Stripe-style Left Sidebar + Full-Width App Layout
+## Revenue Intelligence Hub — /resources
 
-Today the signed-in app uses `src/components/layout/Layout.tsx` — a top navigation bar with dropdowns, and every page renders inside a `max-w-7xl mx-auto` container, which is why content looks condensed vs. Stripe's edge-to-edge dashboard.
+Transform the existing `/blog` experience into an enterprise Resource Center at `/resources` (keeping `/blog` as a redirect), with a new hero, richer taxonomy, 5 cornerstone articles, upgraded article layout, and an "Ask Revenue Questions" AI agent powered by Lovable AI.
 
-Goal: match the Stripe pattern from your screenshot — a persistent left sidebar with grouped navigation + user/account area, and a main content region that uses the full remaining width of the viewport.
+### 1. Routing & structure
+- New route `/resources` → `ResourcesIndex.tsx` (replaces the marketing role of `BlogIndex`).
+- Keep `/blog` and `/blog/:slug` working; add `/resources/:slug` as the canonical path. Redirect `/blog` → `/resources` (301-style client redirect) and mirror slugs.
+- Update `MarketingFooter` + `EnterpriseNav` links from Blog → Resources.
+- Extend `src/lib/blogConfig.ts` → rename conceptually to `resourceConfig` (keep file, add fields): `contentType` (article | guide | whitepaper | playbook | case-study), `series?`, `topics: string[]`, `popularity?: number`, `editorsPick?: boolean`, `toc?: {id,title,level}[]`, `faq?: {q,a}[]`.
 
-Marketing pages (`MarketingLayout`), the founder `AdminLayout`, and the debtor portal are out of scope — this only changes the authenticated product shell.
+### 2. Hero section (ResourcesIndex)
+- Headline: "Revenue Intelligence Starts With Better Contracts"
+- Subheadline as specified.
+- CTAs: **Read Articles** (scrolls to grid), **Book a Demo** (→ Sharad's Calendly).
+- Background: layered gradient + subtle SVG motifs (contract lines, dashboard bars, workflow nodes) using existing design tokens. No new heavy image — use `framer-motion` for subtle entrance.
 
-## What changes
+### 3. Ask Revenue Questions AI agent
+- Component `AskRevenueAgent.tsx` placed prominently below the hero.
+- Chat UI (input + streamed answer + suggested prompts like "What is revenue leakage?", "Explain ASC 606 for SaaS", "How does contract intelligence work?").
+- Backend: new Supabase edge function `resources-ask` using Lovable AI Gateway (`google/gemini-2.5-flash`) with a system prompt scoped to Recouply's Revenue/Contract/Collections Intelligence domain and a short knowledge blurb about the platform. Streams via `toUIMessageStreamResponse`. Uses `useChat` on the client.
+- Handles 429 / 402 errors with toasts.
 
-1. **New shell using shadcn `Sidebar`**
-   - New `src/components/layout/AppSidebar.tsx` built on `SidebarProvider` / `Sidebar` / `SidebarGroup` / `SidebarMenu` (already in `src/components/ui/sidebar.tsx`).
-   - Sidebar sections mirror today's top-nav grouping so nothing gets lost:
-     - **Brand** — Recouply logo + workspace switcher (org name, plan badge).
-     - **Revenue Hub** — Overview, Invoices, Payments.
-     - **Contract Intelligence** — Contracts, Revenue Library, Revenue Risk.
-     - **AI Tools** — AI Workflows, Inbound AI, Tasks, Outreach History, Daily Digest, Alerts (with unread badge), Email Delivery.
-     - **Data** — Accounts, Data Center.
-     - **Footer (bottom of sidebar)** — Credits wallet, Onboarding progress ring, Notifications bell, User profile menu (avatar, name, plan, Settings, Team, Sign out) — the same items currently in the top-right dropdown.
-   - Collapsible via `collapsible="icon"` so it shrinks to a 56px icon rail (Stripe behavior). `SidebarTrigger` lives in a slim top header.
-   - Active-route highlighting via `NavLink` / `useLocation`, active group auto-expanded.
+### 4. Discovery: search + filters + sorting
+- Global search box (title, excerpt, topics).
+- Category chips (existing categories + new: Revenue Intelligence, Contract Intelligence, Collections Intelligence, Revenue Operations, Finance Automation, ASC 606, SaaS Metrics, AI, OCR, Risk Intelligence).
+- Sort: Newest / Most Popular / Editor's Picks.
+- Featured section: **The Revenue Intelligence Series** (5 cornerstone articles below).
 
-2. **Full-width content region**
-   - Rewrite `Layout.tsx` to render:
-     ```
-     <SidebarProvider>
-       <AppSidebar />
-       <SidebarInset>
-         <header> trial banner, support banners, breadcrumbs, SidebarTrigger, search </header>
-         <main className="flex-1 w-full p-6"> {children} </main>
-       </SidebarInset>
-     </SidebarProvider>
-     ```
-   - Remove the `max-w-7xl mx-auto` wrapper so pages can span the viewport like Stripe's Invoices table.
-   - Keep the trial banner, `SupportAccessBanner`, `SupportImpersonationBanner`, `AccountLockoutBanner`, `RequireSubscription`, `NicolasChat`, `FloatingReferralAgent`, `OnboardingWelcome`, and auth-guard logic — just relocated into the new shell.
+### 5. Cornerstone articles (5 new)
+Add to `blogConfig.ts` + create page components under `src/pages/blog/`:
+1. `hidden-cost-of-contract-oversight`
+2. `every-revenue-problem-starts-with-a-contract`
+3. `order-forms-as-structured-data`
+4. `reactive-revenue-operations-costing-millions`
+5. `from-ocr-to-revenue-intelligence`
 
-3. **Page-level width cleanup (targeted)**
-   - Individual pages that hard-code `max-w-7xl` / `max-w-6xl` at the top of the page currently double up on the container. Sweep those wrappers in the main product pages so the sidebar-based full-width layout actually reaches the edges:
-     - `Invoices`, `PaymentsActivity`, `ARAging`, `Debtors`, `DebtorDetail`, `ContractsHub`, `ActiveContracts`, `RevenueRisk`, `RevenueHub`, `RevenueIntelligenceHub`, `Dashboard`, `Tasks`, `Alerts`, `DailyDigest`, `Settings`, `Profile`, `Team`, `DataCenter`.
-   - Reading-heavy pages (Knowledge Base, legal, onboarding wizard) keep a max-width for readability.
+Each uses the new `ArticleLayout` (below) with H1, intro, H2/H3, pull quotes, callout stat cards, bullet lists, workflow diagrams (ASCII/flex box), summary, and CTA.
 
-4. **Mobile behavior**
-   - Sidebar switches to `collapsible="offcanvas"` under `lg`, opened via a hamburger `SidebarTrigger` in the header.
-   - Delete the existing bespoke `mobileNavItems` / `mobileMenuOpen` code — the shadcn Sidebar handles it.
+### 6. Article layout upgrade (`ArticleLayout.tsx`)
+- Large hero image, category badge, reading time, publish date, author card (Sharad).
+- Sticky **left** Table of Contents (desktop) auto-generated from `toc` field with scroll-spy active state.
+- Right rail: share buttons (LinkedIn, X, Copy link), reading progress bar at top.
+- Body typography: `prose` with tuned tokens.
+- After article: **CTA banner** ("Stop Revenue Leakage Before It Happens" — Book Demo / Start Free Trial), **Related articles** (by shared category/topic), **About Recouply.ai**, **Newsletter signup** (posts to existing `notifications` capture or new `newsletter_subscribers` table — MVP: simple form → toast).
+- Reusable components: `PullQuote`, `StatCallout`, `WorkflowDiagram`, `FAQAccordion`.
 
-5. **Cleanup**
-   - Remove the old top-nav JSX, dropdown menus, and mobile-menu state from `Layout.tsx`.
-   - Keep `RecouplyLogo`, `NavProfileAvatar`, `CreditsWalletBadge`, `OnboardingProgressRing`, `AlertNotifications` — they get re-mounted inside the sidebar/header instead of the top bar.
+### 7. SEO
+- `<SEOHead>` per page with title, description, keywords, canonical `https://recouply.ai/resources/<slug>`.
+- Structured data: `BlogPosting`, `BreadcrumbList`, `Person` (author), `FAQPage` (when `faq` present).
+- Update `public/sitemap.xml` to include `/resources` and each new article slug.
 
-## Technical notes
+### 8. Internal linking
+- In article footer, render "Related product pages" chips linking to `/pillar/*`, `/solutions/*`, `/pricing`, and Book Demo — chosen by article's `topics`.
 
-- Uses existing `src/components/ui/sidebar.tsx` (shadcn) — no new dependencies.
-- `SidebarProvider` must wrap a `div` (or `SidebarInset`) with `w-full` to avoid layout collapse; `SidebarInset` from the shadcn primitive already handles this.
-- All auth/subscription/banner logic in current `Layout.tsx` is preserved 1:1; only the visual shell changes.
-- Nothing about routing, data fetching, or business logic changes.
+### 9. Future-proof surface
+- `contentType` filter tabs on `/resources`: Articles | Guides | Playbooks | Case Studies | Whitepapers (empty states shown when none yet).
+- Sidebar link "Resources" placed where "Blog" was.
 
-## Out of scope
-
-- No redesign of individual page internals beyond removing the outer max-width wrapper.
-- No change to marketing/admin/debtor-portal shells.
-- No color/theme changes — sidebar uses the existing `--sidebar-*` tokens already defined in `index.css`.
+### Technical notes
+- New edge function `supabase/functions/resources-ask/index.ts` following `classic-ai-chat` pattern (no auth required, CORS open, `verify_jwt=false` in `supabase/config.toml`).
+- Client uses `@ai-sdk/react` `useChat` + `DefaultChatTransport` pointed at the function URL with the publishable key.
+- No DB schema changes required for MVP; newsletter is a fire-and-forget form (can wire to a table later).
+- Keep changes additive — existing blog posts continue to render through the new layout automatically.

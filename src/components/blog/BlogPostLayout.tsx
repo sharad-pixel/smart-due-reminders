@@ -1,12 +1,15 @@
+import { useEffect, useState } from "react";
 import MarketingLayout from "@/components/layout/MarketingLayout";
 import SEOHead from "@/components/seo/SEOHead";
 import { generateArticleSchema, SITE_CONFIG } from "@/lib/seoConfig";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Calendar, Clock, Linkedin, Link2 } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, Linkedin, Link2, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import type { BlogPost } from "@/lib/blogConfig";
+import { getRelatedPosts, type BlogPost } from "@/lib/blogConfig";
 import { buildBlogShareText } from "@/lib/linkedinShareMessages";
+import { founderConfig } from "@/lib/founderConfig";
+import ResourceCard from "@/components/resources/ResourceCard";
 
 interface BlogPostLayoutProps {
   post: BlogPost;
@@ -15,6 +18,19 @@ interface BlogPostLayoutProps {
 
 const BlogPostLayout = ({ post, children }: BlogPostLayoutProps) => {
   const navigate = useNavigate();
+  const [progress, setProgress] = useState(0);
+  const related = getRelatedPosts(post, 3);
+
+  useEffect(() => {
+    const onScroll = () => {
+      const h = document.documentElement;
+      const total = h.scrollHeight - h.clientHeight;
+      setProgress(total > 0 ? Math.min(100, Math.max(0, (h.scrollTop / total) * 100)) : 0);
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [post.slug]);
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -70,16 +86,27 @@ const BlogPostLayout = ({ post, children }: BlogPostLayoutProps) => {
         })}
       />
 
+      {/* Reading progress bar */}
+      <div
+        aria-hidden
+        className="fixed top-0 left-0 right-0 h-0.5 z-50 bg-transparent"
+      >
+        <div
+          className="h-full bg-primary transition-[width] duration-100"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+
       <article className="py-8 md:py-12 lg:py-16">
         <div className="container mx-auto px-4">
           {/* Back Button */}
           <Button
             variant="ghost"
-            onClick={() => navigate("/blog")}
+            onClick={() => navigate("/resources")}
             className="mb-6 -ml-2 text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            All Articles
+            All Resources
           </Button>
 
           {/* Article Header */}
@@ -229,24 +256,53 @@ const BlogPostLayout = ({ post, children }: BlogPostLayoutProps) => {
               </div>
             </div>
 
-            {/* Footer CTA */}
-            <aside className="p-8 md:p-10 rounded-2xl bg-gradient-to-br from-primary/5 via-primary/10 to-accent/5 border border-primary/20 text-center">
-              <h3 className="text-2xl font-bold mb-3">About Recouply.ai</h3>
+            {/* Stop Revenue Leakage CTA */}
+            <aside className="p-8 md:p-10 rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-accent/5 border border-primary/20 text-center">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary mb-3">
+                Recouply.ai
+              </div>
+              <h3 className="text-2xl md:text-3xl font-bold mb-3">
+                Stop Revenue Leakage Before It Happens
+              </h3>
               <p className="text-muted-foreground mb-6 max-w-xl mx-auto">
-                Recouply.ai is a Revenue Intelligence Platform that helps businesses automate, centralize, 
-                and optimize accounts receivable and collections. By combining AI-driven workflows, 
-                customer-centric engagement, and real-time insights, Recouply.ai enables faster cash collection, 
-                reduced risk, and stronger cash flow.
+                Upload your contracts and let Recouply.ai automatically identify financial
+                obligations, renewal risks, payment terms, revenue metrics, and workflow
+                opportunities.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <Button onClick={() => navigate("/features")} size="lg">
-                  Explore Features
+                <Button
+                  size="lg"
+                  onClick={() => window.open(founderConfig.calendly, "_blank", "noopener")}
+                >
+                  Book Demo
                 </Button>
                 <Button onClick={() => navigate("/signup")} variant="outline" size="lg">
                   Start Free Trial
                 </Button>
               </div>
             </aside>
+
+            {/* Related articles */}
+            {related.length > 0 && (
+              <section className="mt-16">
+                <div className="flex items-end justify-between mb-6">
+                  <h3 className="text-xl md:text-2xl font-bold tracking-tight">
+                    Related resources
+                  </h3>
+                  <button
+                    onClick={() => navigate("/resources")}
+                    className="text-sm text-primary font-medium inline-flex items-center gap-1 hover:gap-2 transition-all"
+                  >
+                    All resources <ArrowRight className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {related.map((r) => (
+                    <ResourceCard key={r.slug} post={r} />
+                  ))}
+                </div>
+              </section>
+            )}
           </div>
         </div>
       </article>

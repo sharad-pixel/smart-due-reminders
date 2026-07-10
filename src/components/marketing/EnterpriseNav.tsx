@@ -78,7 +78,7 @@ const solutionsGroups: MenuGroup[] = [
 ];
 
 const customersItems: MenuItem[] = [
-  { icon: Quote, title: "Blog", description: "Insights, playbooks, and customer stories.", path: "/blog" },
+  { icon: Quote, title: "Resources", description: "Revenue Intelligence Hub — articles, guides, playbooks.", path: "/resources" },
   { icon: BarChart3, title: "Collections ROI Calculator", description: "Estimate cost of delay and write-off risk.", path: "/roi-calculator" },
   { icon: Calculator, title: "Contract Intelligence ROI", description: "Quantify revenue leakage in signed agreements.", path: "/contract-roi-calculator" },
   { icon: CreditCard, title: "Payment Portal", description: "Where your customers pay, upload W-9s, and self-serve.", path: "/debtor-portal" },
@@ -86,7 +86,7 @@ const customersItems: MenuItem[] = [
 
 const companyItems: MenuItem[] = [
   { icon: Info, title: "About", description: "Our mission for finance teams.", path: "/about" },
-  { icon: Newspaper, title: "Blog", description: "Insights on revenue intelligence.", path: "/blog" },
+  { icon: Newspaper, title: "Resources", description: "Revenue Intelligence Hub.", path: "/resources" },
   { icon: Briefcase, title: "Careers", description: "Build the future of enterprise finance.", path: "/careers" },
   { icon: ShieldCheck, title: "Trust Center", description: "Security, privacy, and compliance.", path: "/trust" },
   { icon: BookOpen, title: "Knowledge Base", description: "Docs, guides, and best practices.", path: "/knowledge-base" },
