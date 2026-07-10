@@ -38,9 +38,9 @@ const About = () => {
     <MarketingLayout>
       <SEO
         title="About Recouply.ai | Founder Story & Company Mission"
-        description="Enterprise functionality with startup mentality. Founded by RevOps leader Sharad Chanana with 15+ years modernizing RevOps, Q2C, Collections, and Billing at scale."
+        description="Enterprise functionality with startup mentality. Founded by Deal Desk and Deal Strategy leader Sharad Chanana with 20+ years scaling Deal Operations, Pricing, and Quote-to-Cash."
         canonical="https://recouply.ai/about"
-        keywords="Recouply founder, collection intelligence company, AR automation startup, Sharad Chanana, RevOps leader"
+        keywords="Recouply founder, deal desk, deal strategy, deal operations, revenue operations, quote to cash, Sharad Chanana"
       />
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-br from-background via-background to-primary/5 py-20 lg:py-32">
@@ -49,7 +49,7 @@ const About = () => {
           <div className="max-w-4xl mx-auto text-center">
             <Badge variant="secondary" className="mb-6 px-4 py-2 text-sm">
               <Briefcase className="w-4 h-4 mr-2 inline" />
-              Founded by Operators, Built for Revenue Teams
+              Founded by Deal Desk & Deal Strategy Operators
             </Badge>
             
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
@@ -60,9 +60,11 @@ const About = () => {
             </h1>
             
             <p className="text-xl md:text-2xl text-muted-foreground mb-8 leading-relaxed">
-              Built by operators who have transformed Revenue Operations, Billing, and Collections 
-              for the world's leading SaaS, AI, and enterprise companies.
+              Built by Deal Desk, Deal Operations, and Deal Strategy leaders who have architected
+              pricing, quote-to-cash, and enterprise deal governance for the world's leading SaaS,
+              AI, and enterprise companies.
             </p>
+
             
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
               <div className="flex items-center gap-3 bg-card/50 backdrop-blur-sm border rounded-full px-6 py-3 animate-float" style={{ animationDelay: '0.5s' }}>
@@ -77,7 +79,7 @@ const About = () => {
                 <div className="text-left">
                   <p className="font-semibold">{founderConfig.name}</p>
                   <p className="text-sm text-muted-foreground">
-                    {founderConfig.yearsExperience} years modernizing RevOps, Q2C, Collections & Billing
+                    {founderConfig.yearsExperience} years leading Deal Desk, Deal Strategy & Quote-to-Cash
                   </p>
                 </div>
               </div>
@@ -129,7 +131,7 @@ const About = () => {
                     
                     <div className="mt-6 text-center animate-fade-in" style={{ animationDelay: '0.6s' }}>
                       <p className="italic text-muted-foreground text-sm border-l-2 border-primary pl-4 text-left">
-                        "Building the future of collections — where enterprise-grade reliability meets startup agility."
+                        "Building the future of Deal Desk and Deal Operations — where enterprise-grade governance meets startup agility."
                       </p>
                       <p className="mt-3 font-signature text-lg bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                         — {founderConfig.name}
@@ -147,7 +149,7 @@ const About = () => {
                 </Badge>
                 
                 <h2 className="text-3xl md:text-4xl font-bold mb-6">
-                  A Leader Trusted by CROs, CFOs, and CEOs
+                  A Deal Desk & Deal Strategy Leader Trusted by CROs, CFOs, and CEOs
                 </h2>
                 
                 <p className="text-lg text-muted-foreground leading-relaxed">
@@ -155,9 +157,11 @@ const About = () => {
                 </p>
                 
                 <p className="text-lg text-muted-foreground leading-relaxed">
-                  Sharad is trusted by CROs, CFOs, and CEOs as a systems thinker and hands-on operator, 
-                  known for delivering measurable outcomes in the most complex revenue environments.
+                  Sharad is trusted by CROs, CFOs, and CEOs to stand up Deal Desk functions, structure
+                  complex enterprise deals, and operationalize pricing, packaging, and quote-to-cash
+                  in the most demanding revenue environments.
                 </p>
+
                 
                 <div className="pt-6">
                   <h4 className="font-semibold text-lg mb-4 flex items-center gap-2">
@@ -189,18 +193,20 @@ const About = () => {
             </Badge>
             
             <h2 className="text-3xl md:text-4xl font-bold mb-6">
-              AR & Revenue Intelligence Designed by Real Operators
+              Deal Desk, Deal Strategy & Revenue Intelligence — Designed by Real Operators
             </h2>
             
             <p className="text-lg text-muted-foreground leading-relaxed mb-4">
-              Recouply.ai was created to solve a real problem: companies struggle with late payments, 
-              messy AR workflows, inaccurate billing, broken aging reports, and manual collections processes. 
-              Built from real enterprise RevOps experience, Recouply.ai delivers a smarter, automated 
-              approach to accounts receivable — turning AR chaos into clarity.
+              Recouply.ai was created to solve a real problem: enterprise deals stall in approval
+              queues, pricing and packaging drift out of alignment, and quote-to-cash breaks down
+              between Sales, Finance, and Legal. Built from real Deal Desk and Deal Operations
+              experience, Recouply.ai brings governance, structure, and AI-native automation to
+              every stage from contract to cash.
             </p>
             <p className="text-sm text-muted-foreground/80 mb-8">
-              One centralized AR platform replaces scattered spreadsheets and disconnected inboxes with AI-powered automation and built-in audit logs.
+              One platform for Deal Desk intake, pricing guardrails, approval workflows, and downstream billing and collections — replacing scattered spreadsheets and disconnected inboxes with audit-ready automation.
             </p>
+
           </div>
           
           <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
@@ -210,11 +216,12 @@ const About = () => {
                 <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                   <Building2 className="w-7 h-7 text-primary" />
                 </div>
-                <h3 className="text-xl font-bold mb-3">Enterprise Functionality</h3>
+                <h3 className="text-xl font-bold mb-3">Enterprise Deal Governance</h3>
                 <p className="text-muted-foreground leading-relaxed">
-                  Robust billing logic, aging accuracy, compliance readiness, real data governance. 
-                  Built for the complexity of modern revenue operations.
+                  Deal Desk intake, pricing guardrails, approval workflows, and ASC 606-ready
+                  revenue controls. Built for the complexity of enterprise deal structures.
                 </p>
+
               </CardContent>
             </Card>
             
@@ -306,9 +313,10 @@ const About = () => {
                   <h3 className="text-xl font-bold">Built by Experts</h3>
                 </div>
                 <p className="text-muted-foreground mb-4">
-                  {founderConfig.yearsExperience} years of RevOps, Q2C, Billing, and Collections 
-                  experience powering every workflow.
+                  {founderConfig.yearsExperience} years of Deal Desk, Deal Strategy, Pricing, and
+                  Quote-to-Cash leadership powering every workflow.
                 </p>
+
                 <p className="text-muted-foreground text-sm">
                   Designed with the realities of enterprise systems in mind — from ServiceTitan to 
                   Workday, Contentful to Maxio, and beyond.
