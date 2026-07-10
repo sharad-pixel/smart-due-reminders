@@ -94,8 +94,8 @@ export default function AskRevenueAgent() {
       toast.error(message);
       setMessages((m) => {
         const copy = [...m];
-        // If last assistant message is empty, remove it
-        if (copy.at(-1)?.role === "assistant" && !copy.at(-1)?.content) copy.pop();
+        const last = copy[copy.length - 1];
+        if (last && last.role === "assistant" && !last.content) copy.pop();
         return copy;
       });
     } finally {
