@@ -55,6 +55,7 @@ import {
   Building2,
   Gift,
   LineChart as LineChartIcon,
+  Plug,
 } from "lucide-react";
 
 interface NavItem {
