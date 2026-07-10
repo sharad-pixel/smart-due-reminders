@@ -349,8 +349,6 @@ const App = () => (
               <Route path="/blog/order-forms-as-structured-data" element={<OrderFormsAsStructuredData />} />
               <Route path="/blog/reactive-revenue-operations-costing-millions" element={<ReactiveRevenueOperationsCostingMillions />} />
               <Route path="/blog/from-ocr-to-revenue-intelligence" element={<FromOcrToRevenueIntelligence />} />
-              {/* /resources/:slug mirrors /blog/:slug */}
-              <Route path="/resources/:slug" element={<Navigate to="/blog/:slug" replace />} />
 
               {/* Legal Pages */}
               <Route path="/legal/terms" element={<Terms />} />
