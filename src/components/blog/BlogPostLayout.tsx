@@ -1,12 +1,15 @@
+import { useEffect, useState } from "react";
 import MarketingLayout from "@/components/layout/MarketingLayout";
 import SEOHead from "@/components/seo/SEOHead";
 import { generateArticleSchema, SITE_CONFIG } from "@/lib/seoConfig";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Calendar, Clock, Linkedin, Link2 } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, Linkedin, Link2, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import type { BlogPost } from "@/lib/blogConfig";
+import { getRelatedPosts, type BlogPost } from "@/lib/blogConfig";
 import { buildBlogShareText } from "@/lib/linkedinShareMessages";
+import { founderConfig } from "@/lib/founderConfig";
+import ResourceCard from "@/components/resources/ResourceCard";
 
 interface BlogPostLayoutProps {
   post: BlogPost;
