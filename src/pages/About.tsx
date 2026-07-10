@@ -131,7 +131,7 @@ const About = () => {
                     
                     <div className="mt-6 text-center animate-fade-in" style={{ animationDelay: '0.6s' }}>
                       <p className="italic text-muted-foreground text-sm border-l-2 border-primary pl-4 text-left">
-                        "Building the future of collections — where enterprise-grade reliability meets startup agility."
+                        "Building the future of Deal Desk and Deal Operations — where enterprise-grade governance meets startup agility."
                       </p>
                       <p className="mt-3 font-signature text-lg bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                         — {founderConfig.name}
