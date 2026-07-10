@@ -313,9 +313,10 @@ const About = () => {
                   <h3 className="text-xl font-bold">Built by Experts</h3>
                 </div>
                 <p className="text-muted-foreground mb-4">
-                  {founderConfig.yearsExperience} years of RevOps, Q2C, Billing, and Collections 
-                  experience powering every workflow.
+                  {founderConfig.yearsExperience} years of Deal Desk, Deal Strategy, Pricing, and
+                  Quote-to-Cash leadership powering every workflow.
                 </p>
+
                 <p className="text-muted-foreground text-sm">
                   Designed with the realities of enterprise systems in mind — from ServiceTitan to 
                   Workday, Contentful to Maxio, and beyond.
