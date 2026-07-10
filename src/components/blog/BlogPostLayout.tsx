@@ -18,8 +18,24 @@ interface BlogPostLayoutProps {
 
 const BlogPostLayout = ({ post, children }: BlogPostLayoutProps) => {
   const navigate = useNavigate();
+  const [progress, setProgress] = useState(0);
+  const related = getRelatedPosts(post, 3);
+
+  useEffect(() => {
+    const onScroll = () => {
+      const h = document.documentElement;
+      const total = h.scrollHeight - h.clientHeight;
+      setProgress(total > 0 ? Math.min(100, Math.max(0, (h.scrollTop / total) * 100)) : 0);
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [post.slug]);
 
   const handleCopyLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+    toast.success("Link copied to clipboard");
+  };
     navigator.clipboard.writeText(window.location.href);
     toast.success("Link copied to clipboard");
   };
