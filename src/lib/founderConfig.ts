@@ -4,56 +4,62 @@ export const founderConfig = {
   title: "Founder",
   company: "Recouply.ai",
   tagline: "Enterprise Functionality with Startup Mentality",
-  yearsExperience: "15+",
+  yearsExperience: "20+",
   linkedIn: "https://www.linkedin.com/in/schanana/",
   calendly: "https://calendly.com/sharad-recouply/30min",
   supportEmail: "support@recouply.ai",
   email: "sharad@recouply.ai",
-  bio: `Sharad Chanana is the Founder of Recouply.ai — building the first AI-Native Revenue Intelligence platform from Contract to Cash. A data-driven, transformational leader with 15+ years shaping Deal Operations, Deal Strategy, Revenue Operations, Quote-to-Cash architecture, Billing modernization, Collections strategy, and enterprise-grade GTM systems. As a Deal Ops and Deal Strategy leader, he has partnered with sales, finance, and legal to structure complex enterprise deals, operationalize pricing and discounting frameworks, and turn contract data into revenue signal. He has built and scaled operational frameworks for some of the most respected high-growth SaaS and enterprise companies, including ServiceTitan, 11x.ai, Workday, Maxio (RevOps Inc.), Contentful, Leanplum, CallidusCloud, Ooyala, and Chegg.`,
+  bio: `Sharad Chanana is the Founder of Recouply.ai — building the first AI-Native Revenue Intelligence platform from Contract to Cash. A Revenue Operations and Deal Strategy executive with 20+ years leading Deal Desk, pricing, monetization, quote-to-cash, and commercial operations for high-growth B2B SaaS companies. He has built and scaled revenue operations organizations from startup through enterprise scale, including global teams, pricing programs, forecasting models, compensation plans, and complex enterprise deal governance. Sharad combines deep commercial expertise with hands-on AI product development, including the design and deployment of agentic workflow and revenue intelligence platforms. He has led revenue operations at companies including Notable Health (Zealth), ServiceTitan, 11x.ai, Workday, Maxio (RevOps Inc.), Contentful, Leanplum (CleverTap), Ooyala, CallidusCloud, and Chegg.`,
   expertise: [
-    "Architecting scalable Q2C and Billing operations",
-    "Modernizing enterprise billing across Salesforce, Workday, Zuora, NetSuite, and Stripe",
-    "Driving compliance frameworks (ASC 606, SOX, audit readiness)",
-    "Unlocking predictable revenue through automation and strong governance",
-    "Building data-driven teams and operational workflows that support durable growth"
+    "Deal Strategy and Deal Desk leadership",
+    "Pricing, packaging and monetization",
+    "Quote-to-Cash and billing architecture (Zuora, Stripe, NetSuite, Workday, RevPro)",
+    "Complex enterprise deal structuring, ROI frameworks, and value engineering",
+    "AI-native agentic workflow design and revenue intelligence platforms",
+    "Compensation plan design, forecasting, and commercial governance"
   ]
 };
 
 export const companyTimeline = [
   {
-    year: "2025",
+    year: "2025–Present",
+    company: "Founder, Recouply.ai",
+    description: "Built an AI-native B2B revenue intelligence and contract-to-cash platform end to end — six-agent workflow system, contract intelligence engine, and PwC ASC 606 compliance integration."
+  },
+  {
+    year: "2026–Present",
+    company: "Notable Health (Zealth)",
+    description: "Deal & Business Operations Lead. Built Deal Desk from the ground up, deployed m3ter and LinkSquares CLM, and standardized usage-based pricing governance."
+  },
+  {
+    year: "2025–2026",
     company: "ServiceTitan & 11x.ai",
-    description: "Billing transformation, enterprise collections, Q2C framework building."
+    description: "Consultant, Quote-to-Cash. Deal controls and ASC 606/SOX guardrails at ServiceTitan; end-to-end Q2C rebuild across Deal Desk, Billing, and Collections at 11x.ai."
   },
   {
     year: "2022–2025",
     company: "Workday",
-    description: "Subscription billing modernization, enterprise CPQ & revenue architecture."
+    description: "Sr. Field Architect & Sr. Product Advisor. Positioned subscription and CPQ offerings, shaped consumption-based pricing design with Product."
   },
   {
     year: "2021–2022",
-    company: "VP RevOps at Maxio (RevOps Inc.)",
-    description: "Billing infrastructure, CPQ automation, Stripe integration."
+    company: "VP RevOps, Maxio (RevOps Inc.)",
+    description: "Built the Revenue Operations function from scratch — Deal Desk, forecasting, pricing, and compensation plan design."
   },
   {
     year: "2018–2021",
-    company: "Contentful",
-    description: "Billing transformation (Zuora/Stripe), RevOps restructuring, governance."
+    company: "Director, RevOps, Contentful",
+    description: "Led a 15-person global commercial operations org through hypergrowth. Renewal playbooks, enterprise deal strategy, and Zuora/Stripe billing rebuild."
   },
   {
     year: "2016–2018",
-    company: "Leanplum",
-    description: "Billing & Q2C rebuild, Salesforce automation, revenue integrity."
+    company: "Director, RevOps, Leanplum (CleverTap)",
+    description: "Built Deal Desk, renewals, and compensation from zero. Reworked Quote-to-Cash and automated billing."
   },
   {
-    year: "2014–2016",
-    company: "CallidusCloud & Ooyala",
-    description: "Enterprise revenue management, risk analysis, SOX compliance."
-  },
-  {
-    year: "2013–2014",
-    company: "Chegg",
-    description: "99.9% revenue compliance, AR optimization, DSO reduction."
+    year: "Earlier",
+    company: "Ooyala, CallidusCloud, Chegg",
+    description: "Revenue operations and billing roles focused on Quote-to-Cash improvement, faster close cycles, and working capital."
   }
 ];
 
@@ -95,6 +101,7 @@ export const startupFeatures = [
 ];
 
 export const notableCompanies = [
+  "Notable Health",
   "ServiceTitan",
   "11x.ai",
   "Workday",
