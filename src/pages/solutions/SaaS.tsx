@@ -4,13 +4,14 @@ import { PAGE_SEO } from "@/lib/seoConfig";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
-import { CheckCircle2, Building2, TrendingUp, Users, DollarSign, Brain } from "lucide-react";
+import { CheckCircle2, Building2, TrendingUp, Users, DollarSign, Brain, ArrowRight } from "lucide-react";
 import StripeLogo from "@/components/brand/StripeLogo";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import SaaSBenefits from "@/components/SaaSBenefits";
 import RiskAndPayLinksSection from "@/components/marketing/RiskAndPayLinksSection";
+import { PLAN_CONFIGS, CREDIT_PRICING, LIVE_CONTRACTS_PRICING } from "@/lib/subscriptionConfig";
 
 const SaaS = () => {
   const navigate = useNavigate();
@@ -18,13 +19,12 @@ const SaaS = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // SEO metadata
-    document.title = "Recouply.ai for SaaS – Six AI Agents Reducing ARR Leakage 24/7";
+    document.title = "Revenue Intelligence for SaaS | Recouply.ai";
     const metaDescription = document.querySelector('meta[name="description"]');
     if (metaDescription) {
-      metaDescription.setAttribute('content', 'Recouply.ai deploys six AI agents that recover revenue 24/7 for SaaS companies. Reduce ARR leakage, lower DSO, and free up CSMs—at a fraction of the cost of one employee.');
+      metaDescription.setAttribute('content', 'AI-powered Revenue Intelligence for SaaS finance teams. Six agents reduce ARR leakage, lower DSO, and protect NRR — for less than the cost of one employee.');
     }
-    
+
     loadMarketingCopy();
   }, []);
 
@@ -56,19 +56,19 @@ const SaaS = () => {
   };
 
   const features = [
-    "Six AI agents working 24/7 on invoice recovery",
-    "Agents learn and improve recovery rates over time",
-    "CRM-connected context-aware outreach",
-    "Automated promise-to-pay and renewal reminders",
-    "Customer-safe language that preserves relationships",
-    "Full collections DSO dashboard with real-time visibility"
+    "Six AI agents working 24/7 across your receivables",
+    "Contract-aware outreach that references renewal + billing terms",
+    "CRM-connected context (Salesforce, HubSpot) for every message",
+    "Automated promise-to-pay, dunning, and renewal reminders",
+    "Customer-safe language that preserves NRR and reduces churn risk",
+    "Real-time DSO, ECL, and revenue-risk dashboards"
   ];
 
   const examples = [
-    { icon: DollarSign, text: "SaaS billing on NetSuite/Stripe/Chargebee" },
+    { icon: DollarSign, text: "SaaS billing on NetSuite, Stripe, or Chargebee" },
     { icon: TrendingUp, text: "Usage-based billing with overdue true-ups" },
     { icon: Building2, text: "Annual contracts with overdue prepayments" },
-    { icon: Users, text: "Expansion and renewal automation" }
+    { icon: Users, text: "Expansion, renewal, and retention automation" }
   ];
 
   return (
@@ -82,28 +82,29 @@ const SaaS = () => {
           { name: 'SaaS', url: 'https://recouply.ai/solutions/saas' },
         ]}
       />
+
       {/* Hero Section */}
       <section className="py-20 px-4 bg-gradient-to-b from-primary/5 to-background">
         <div className="container mx-auto max-w-4xl text-center">
           <div className="inline-flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-full mb-6">
             <Building2 className="w-4 h-4 text-primary" />
-            <span className="text-sm font-medium">AR Intelligence for SaaS</span>
+            <span className="text-sm font-medium">Revenue Intelligence for SaaS</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
-            Six AI Agents Reducing ARR Leakage—24/7
+            Six AI Agents Reducing ARR Leakage — 24/7
           </h1>
           <p className="text-xl text-muted-foreground mb-8">
-            Get the power of an entire collections department for less than the cost of one employee. 
-            Our AI agents work around the clock, getting smarter with every interaction.
+            Recouply.ai connects contracts, billing, collections, and risk into one operational workflow —
+            so your finance team drives cash outcomes without diverting CSMs and AEs from revenue work.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button 
+            <Button
               onClick={() => navigate("/signup?icp=saas")}
               size="lg"
             >
               Start Free Trial
             </Button>
-            <Button 
+            <Button
               onClick={() => navigate("/stripe-collections")}
               variant="outline"
               size="lg"
@@ -128,12 +129,12 @@ const SaaS = () => {
           ) : (
             <div className="prose prose-lg max-w-none">
               <p className="text-muted-foreground whitespace-pre-line">
-                {copy?.problem_copy || `Small finance teams manually chasing overdue invoices while collections responsibilities fall on CSMs and AEs. Disorganized shared inboxes lead to inconsistent follow-up, and ARR leakage from unmanaged renewals or overdue invoices creates cash flow unpredictability.
+                {copy?.problem_copy || `Small finance teams manually chase overdue invoices while collections responsibilities fall on CSMs and AEs. Disorganized shared inboxes lead to inconsistent follow-up, and ARR leakage from unmanaged renewals or overdue invoices creates cash flow unpredictability.
 
-Without scalable collections processes, SaaS companies struggle with:
-• Manual invoice follow-up consuming valuable time
+Without a scalable revenue workflow, SaaS companies struggle with:
+• Manual invoice follow-up consuming valuable finance capacity
 • CSMs and AEs diverted from revenue-generating activities
-• No systematic approach to handling overdue accounts
+• No systematic approach to overdue accounts or renewal risk
 • Revenue recognition delays impacting financial reporting
 • Customer relationships strained by inconsistent communication`}
               </p>
@@ -155,7 +156,7 @@ Without scalable collections processes, SaaS companies struggle with:
           ) : (
             <div className="prose prose-lg max-w-none mb-8">
               <p className="text-muted-foreground whitespace-pre-line">
-                {copy?.solution_copy || `Recouply.ai deploys six specialized AI agents that work 24/7, automatically tracking invoices and triggering intelligent follow-up sequences. Each agent learns from customer responses, payment outcomes, and message effectiveness—continuously improving recovery rates.
+                {copy?.solution_copy || `Recouply.ai deploys six specialized AI agents that work 24/7 across your receivables, automatically tracking invoices and triggering intelligent follow-up sequences. Each agent learns from customer responses, payment outcomes, and message effectiveness — continuously improving recovery rates.
 
 When an account becomes past due, our AI agents generate professional, customer-safe reminders that maintain your brand voice and protect NRR. The agents automatically adapt tone, frequency, and sequencing based on real-world results.
 
@@ -192,9 +193,9 @@ Communications come directly from YOUR company, ensuring continuity in customer 
                 <div>
                   <h3 className="text-xl font-semibold mb-2">Intelligence That Compounds Over Time</h3>
                   <p className="text-muted-foreground">
-                    Each AI agent improves with every interaction, learning from customer responses, payment outcomes, 
-                    engagement patterns, and message effectiveness. Recouply.ai becomes more accurate, more predictive, 
-                    and more effective as time goes on—driving higher recovery rates with less manual work.
+                    Each AI agent improves with every interaction, learning from customer responses, payment outcomes,
+                    engagement patterns, and message effectiveness. Recouply.ai becomes more accurate, more predictive,
+                    and more effective as time goes on — driving higher recovery rates with less manual work.
                   </p>
                 </div>
               </div>
@@ -254,14 +255,41 @@ Communications come directly from YOUR company, ensuring continuity in customer 
           ) : (
             <div className="prose prose-lg max-w-none">
               <p className="text-muted-foreground whitespace-pre-line">
-                {copy?.results_copy || `SaaS companies using Recouply.ai collect past-due accounts 20–40% faster than manual processes. Finance teams save hours every week—time they can redirect to strategic work, forecasting, and analysis.
+                {copy?.results_copy || `SaaS companies using Recouply.ai collect past-due accounts 20–40% faster than manual processes. Finance teams save hours every week — time they can redirect to strategic work, forecasting, and analysis.
 
 CSMs and AEs are freed from uncomfortable collection conversations, allowing them to focus on expansion and retention. Real-time visibility into receivables provides accurate forecasting and reduces cash flow uncertainty.
 
-Most importantly, customer relationships remain strong. Professional, courteous reminders preserve NRR and reduce churn risk. Many customers simply forgot to pay or missed the invoice—a friendly, AI-optimized reminder is all it takes. Stop paying for expensive headcount—our agents work nonstop, at a fraction of the cost of one employee.`}
+Most importantly, customer relationships remain strong. Professional, courteous reminders preserve NRR and reduce churn risk. Many customers simply forgot to pay or missed the invoice — a friendly, AI-optimized reminder is all it takes. Stop paying for expensive headcount — our agents work nonstop, at a fraction of the cost of one employee.`}
               </p>
             </div>
           )}
+        </div>
+      </section>
+
+      {/* Pricing Band */}
+      <section className="py-16 px-4">
+        <div className="container mx-auto max-w-4xl">
+          <Card className="bg-gradient-to-br from-primary/5 to-secondary/5 border-primary/20">
+            <CardContent className="pt-8 pb-8">
+              <div className="grid md:grid-cols-2 gap-6 items-center">
+                <div>
+                  <h3 className="text-2xl font-bold mb-2">Credit-based pricing that scales with revenue</h3>
+                  <p className="text-muted-foreground">
+                    Starter starts at ${PLAN_CONFIGS.starter.monthlyPrice}/mo with {PLAN_CONFIGS.starter.creditAllotment} credits included.
+                    Growth at ${PLAN_CONFIGS.growth.monthlyPrice}/mo unlocks {PLAN_CONFIGS.growth.creditAllotment} credits and
+                    {" "}{PLAN_CONFIGS.growth.includedContracts} Live Contracts. Overage credits at
+                    {" "}${CREDIT_PRICING.prepaidPerCredit.toFixed(2)} pre-paid / ${CREDIT_PRICING.overagePerCredit.toFixed(2)} on-demand.
+                    Add Live Contracts at ${LIVE_CONTRACTS_PRICING.pricePerContractPerMonth.toFixed(2)}/contract/mo.
+                  </p>
+                </div>
+                <div className="flex md:justify-end">
+                  <Button onClick={() => navigate("/pricing")} size="lg" className="gap-2">
+                    See Pricing <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </section>
 
@@ -272,14 +300,20 @@ Most importantly, customer relationships remain strong. Professional, courteous 
             Ready to Put Six AI Agents to Work?
           </h2>
           <p className="text-lg text-muted-foreground mb-8">
-            Start your free trial—six AI agents recovering your revenue 24/7, getting smarter with every invoice.
+            Start your free trial — six AI agents recovering your revenue 24/7, getting smarter with every invoice.
           </p>
-          <Button 
-            onClick={() => navigate("/signup?icp=saas")}
-            size="lg"
-          >
-            Start Free Trial
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button onClick={() => navigate("/signup?icp=saas")} size="lg">
+              Start Free Trial
+            </Button>
+            <Button
+              onClick={() => window.open("https://calendly.com/sharad-recouply/30min", "_blank")}
+              variant="outline"
+              size="lg"
+            >
+              Book a Demo
+            </Button>
+          </div>
         </div>
       </section>
     </MarketingLayout>
