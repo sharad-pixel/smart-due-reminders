@@ -80,6 +80,7 @@ const RevenueRiskIntelligence = lazy(() => import("./pages/pillar/RevenueRiskInt
 const AnalyticsPage = lazy(() => import("./pages/AnalyticsPage"));
 // Blog Pages
 const BlogIndex = lazy(() => import("./pages/blog/BlogIndex"));
+const ResourcesIndex = lazy(() => import("./pages/ResourcesIndex"));
 const CelebrateCash = lazy(() => import("./pages/blog/CelebrateCash"));
 const PowerOfOutreach = lazy(() => import("./pages/blog/PowerOfOutreach"));
 const CashLeakage = lazy(() => import("./pages/blog/CashLeakage"));
@@ -97,6 +98,12 @@ const DeathOfTraditionalCollections = lazy(() => import("./pages/blog/DeathOfTra
 const SetItAndForgetItAutomation = lazy(() => import("./pages/blog/SetItAndForgetItAutomation"));
 const RiskAsRealtimeSystem = lazy(() => import("./pages/blog/RiskAsRealtimeSystem"));
 const WhyCollectionsNeedsCrm = lazy(() => import("./pages/blog/WhyCollectionsNeedsCrm"));
+// Revenue Intelligence Series (cornerstone)
+const HiddenCostOfContractOversight = lazy(() => import("./pages/blog/HiddenCostOfContractOversight"));
+const EveryRevenueProblemStartsWithContract = lazy(() => import("./pages/blog/EveryRevenueProblemStartsWithContract"));
+const OrderFormsAsStructuredData = lazy(() => import("./pages/blog/OrderFormsAsStructuredData"));
+const ReactiveRevenueOperationsCostingMillions = lazy(() => import("./pages/blog/ReactiveRevenueOperationsCostingMillions"));
+const FromOcrToRevenueIntelligence = lazy(() => import("./pages/blog/FromOcrToRevenueIntelligence"));
 
 // Legal Pages
 const Terms = lazy(() => import("./pages/legal/Terms"));
