@@ -256,24 +256,53 @@ const BlogPostLayout = ({ post, children }: BlogPostLayoutProps) => {
               </div>
             </div>
 
-            {/* Footer CTA */}
-            <aside className="p-8 md:p-10 rounded-2xl bg-gradient-to-br from-primary/5 via-primary/10 to-accent/5 border border-primary/20 text-center">
-              <h3 className="text-2xl font-bold mb-3">About Recouply.ai</h3>
+            {/* Stop Revenue Leakage CTA */}
+            <aside className="p-8 md:p-10 rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-accent/5 border border-primary/20 text-center">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary mb-3">
+                Recouply.ai
+              </div>
+              <h3 className="text-2xl md:text-3xl font-bold mb-3">
+                Stop Revenue Leakage Before It Happens
+              </h3>
               <p className="text-muted-foreground mb-6 max-w-xl mx-auto">
-                Recouply.ai is a Revenue Intelligence Platform that helps businesses automate, centralize, 
-                and optimize accounts receivable and collections. By combining AI-driven workflows, 
-                customer-centric engagement, and real-time insights, Recouply.ai enables faster cash collection, 
-                reduced risk, and stronger cash flow.
+                Upload your contracts and let Recouply.ai automatically identify financial
+                obligations, renewal risks, payment terms, revenue metrics, and workflow
+                opportunities.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <Button onClick={() => navigate("/features")} size="lg">
-                  Explore Features
+                <Button
+                  size="lg"
+                  onClick={() => window.open(founderConfig.calendly, "_blank", "noopener")}
+                >
+                  Book Demo
                 </Button>
                 <Button onClick={() => navigate("/signup")} variant="outline" size="lg">
                   Start Free Trial
                 </Button>
               </div>
             </aside>
+
+            {/* Related articles */}
+            {related.length > 0 && (
+              <section className="mt-16">
+                <div className="flex items-end justify-between mb-6">
+                  <h3 className="text-xl md:text-2xl font-bold tracking-tight">
+                    Related resources
+                  </h3>
+                  <button
+                    onClick={() => navigate("/resources")}
+                    className="text-sm text-primary font-medium inline-flex items-center gap-1 hover:gap-2 transition-all"
+                  >
+                    All resources <ArrowRight className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {related.map((r) => (
+                    <ResourceCard key={r.slug} post={r} />
+                  ))}
+                </div>
+              </section>
+            )}
           </div>
         </div>
       </article>
