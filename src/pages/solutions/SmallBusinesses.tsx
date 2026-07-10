@@ -4,12 +4,13 @@ import { PAGE_SEO } from "@/lib/seoConfig";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
-import { CheckCircle2, Store, Brain } from "lucide-react";
+import { CheckCircle2, Store, Brain, Wrench, Truck, Utensils, HardHat, ArrowRight } from "lucide-react";
 import StripeLogo from "@/components/brand/StripeLogo";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import RiskAndPayLinksSection from "@/components/marketing/RiskAndPayLinksSection";
+import { PLAN_CONFIGS, CREDIT_PRICING, LIVE_CONTRACTS_PRICING } from "@/lib/subscriptionConfig";
 
 const SmallBusinesses = () => {
   const navigate = useNavigate();
@@ -65,6 +66,13 @@ const SmallBusinesses = () => {
     "Full collections dashboard with real-time visibility"
   ];
 
+  const examples = [
+    { icon: Wrench, text: "Service providers with recurring maintenance contracts" },
+    { icon: HardHat, text: "Contractors and trades with progress billing" },
+    { icon: Truck, text: "Local distributors and B2B suppliers on Net 30" },
+    { icon: Utensils, text: "Restaurants, retailers, and cash-flow-sensitive operators" }
+  ];
+
   return (
     <MarketingLayout>
       <SEOHead
@@ -81,14 +89,14 @@ const SmallBusinesses = () => {
         <div className="container mx-auto max-w-4xl text-center">
           <div className="inline-flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-full mb-6">
             <Store className="w-4 h-4 text-primary" />
-            <span className="text-sm font-medium">AR Intelligence for Small Businesses</span>
+            <span className="text-sm font-medium">Revenue Intelligence for Small Businesses</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
-            Six AI Agents Recovering Your AR Revenue—24/7
+            Six AI Agents Recovering Your AR Revenue — 24/7
           </h1>
           <p className="text-xl text-muted-foreground mb-8">
-            Stop chasing AR payments. Our six AI agents handle accounts receivable outreach around the clock, 
-            getting smarter with every interaction—at a fraction of the cost of one employee.
+            Stop chasing payments. Our six AI agents handle accounts receivable outreach around the clock,
+            getting smarter with every interaction — at a fraction of the cost of one employee.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
@@ -200,8 +208,32 @@ You review and approve every message before it goes out, maintaining complete co
         ctaHref="/signup?icp=small-businesses"
       />
 
-      {/* Results Section */}
+      {/* Industry Examples */}
       <section className="py-16 px-4">
+        <div className="container mx-auto max-w-4xl">
+          <h2 className="text-3xl font-bold mb-6">Perfect For</h2>
+          <div className="grid md:grid-cols-2 gap-6">
+            {examples.map((example, idx) => {
+              const Icon = example.icon;
+              return (
+                <Card key={idx}>
+                  <CardContent className="pt-6">
+                    <div className="flex items-start gap-4">
+                      <div className="p-3 bg-primary/10 rounded-lg">
+                        <Icon className="w-6 h-6 text-primary" />
+                      </div>
+                      <p className="text-lg font-medium mt-2">{example.text}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Results Section */}
+      <section className="py-16 px-4 bg-card">
         <div className="container mx-auto max-w-4xl">
           <h2 className="text-3xl font-bold mb-6">The Results</h2>
           {loading ? (
@@ -215,12 +247,38 @@ You review and approve every message before it goes out, maintaining complete co
               <p className="text-muted-foreground whitespace-pre-line">
                 {copy?.results_copy || `Small businesses using Recouply.ai typically see payments 12-15 days faster than manual follow-ups. That means better cash flow to invest back into your business, pay your team on time, and grow without the stress of unpredictable revenue.
 
-You'll spend 90% less time on collections. No more awkward phone calls or manual reminder emails. Six AI agents handle it all automatically while you focus on what you do best—serving customers and growing your business.
+You'll spend 90% less time on collections. No more awkward phone calls or manual reminder emails. Six AI agents handle it all automatically while you focus on what you do best — serving customers and growing your business.
 
-Most importantly, you'll maintain the customer relationships you've worked so hard to build. Professional, AI-optimized reminders keep the conversation positive. Many customers simply forget to pay—a friendly automated reminder is all they need.`}
+Most importantly, you'll maintain the customer relationships you've worked so hard to build. Professional, AI-optimized reminders keep the conversation positive. Many customers simply forget to pay — a friendly automated reminder is all they need.`}
               </p>
             </div>
           )}
+        </div>
+      </section>
+
+      {/* Pricing Band */}
+      <section className="py-16 px-4">
+        <div className="container mx-auto max-w-4xl">
+          <Card className="bg-gradient-to-br from-primary/5 to-secondary/5 border-primary/20">
+            <CardContent className="pt-8 pb-8">
+              <div className="grid md:grid-cols-2 gap-6 items-center">
+                <div>
+                  <h3 className="text-2xl font-bold mb-2">Credit-based pricing sized for small business</h3>
+                  <p className="text-muted-foreground">
+                    Launch starts at ${PLAN_CONFIGS.launch.monthlyPrice}/mo with {PLAN_CONFIGS.launch.creditAllotment} credits included — perfect for owner-operators.
+                    Starter at ${PLAN_CONFIGS.starter.monthlyPrice}/mo unlocks {PLAN_CONFIGS.starter.creditAllotment} credits and {PLAN_CONFIGS.starter.includedContracts} Live Contracts as you grow.
+                    Overage credits at ${CREDIT_PRICING.prepaidPerCredit.toFixed(2)} pre-paid / ${CREDIT_PRICING.overagePerCredit.toFixed(2)} on-demand.
+                    Add Live Contracts at ${LIVE_CONTRACTS_PRICING.pricePerContractPerMonth.toFixed(2)}/contract/mo.
+                  </p>
+                </div>
+                <div className="flex md:justify-end">
+                  <Button onClick={() => navigate("/pricing")} size="lg" className="gap-2">
+                    See Pricing <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </section>
 
@@ -233,12 +291,18 @@ Most importantly, you'll maintain the customer relationships you've worked so ha
           <p className="text-lg text-muted-foreground mb-8">
             Join small businesses recovering revenue 24/7 with AI agents that get smarter with every invoice.
           </p>
-          <Button 
-            onClick={() => navigate("/signup?icp=small-businesses")}
-            size="lg"
-          >
-            Start Free Trial
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button onClick={() => navigate("/signup?icp=small-businesses")} size="lg">
+              Start Free Trial
+            </Button>
+            <Button
+              onClick={() => window.open("https://calendly.com/sharad-recouply/30min", "_blank")}
+              variant="outline"
+              size="lg"
+            >
+              Book a Demo
+            </Button>
+          </div>
         </div>
       </section>
     </MarketingLayout>
