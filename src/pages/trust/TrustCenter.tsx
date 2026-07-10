@@ -50,6 +50,8 @@ const policyLinks = [
   { title: "Application Security", desc: "Secure SDLC and change management", path: "/trust/application-security", icon: Code },
   { title: "Vendor Security", desc: "Third-party review and oversight", path: "/trust/vendor-security", icon: Users },
   { title: "Privacy & Data Handling", desc: "Data use, retention, and deletion", path: "/trust/privacy-data-handling", icon: FileText },
+  { title: "Data Processing Addendum", desc: "GDPR Article 28 terms for customers", path: "/trust/dpa", icon: FileText },
+  { title: "Subprocessors", desc: "Vendors that process customer data", path: "/trust/subprocessors", icon: Users },
 ];
 
 const TrustCenter = () => {
