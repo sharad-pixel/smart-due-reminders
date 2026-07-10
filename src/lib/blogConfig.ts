@@ -24,6 +24,13 @@ export interface BlogAuthor {
   bio: string;
 }
 
+export type ResourceContentType =
+  | "article"
+  | "guide"
+  | "whitepaper"
+  | "playbook"
+  | "case-study";
+
 export interface BlogPost {
   slug: string;
   title: string;
@@ -39,6 +46,16 @@ export interface BlogPost {
   heroAlt: string;
   keywords: string;
   featured?: boolean;
+  /** Optional cornerstone series grouping (e.g. "The Revenue Intelligence Series"). */
+  series?: string;
+  /** Editorial curation flag surfaced in the /resources hub. */
+  editorsPick?: boolean;
+  /** Simple popularity signal for sorting Most Popular. */
+  popularity?: number;
+  /** Content type — future-proofs Guides / Playbooks / Case Studies / Whitepapers. */
+  contentType?: ResourceContentType;
+  /** Topic tags used for filtering and internal-link recommendations. */
+  topics?: string[];
 }
 
 // Define authors
