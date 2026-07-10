@@ -149,7 +149,7 @@ const About = () => {
                 </Badge>
                 
                 <h2 className="text-3xl md:text-4xl font-bold mb-6">
-                  A Leader Trusted by CROs, CFOs, and CEOs
+                  A Deal Desk & Deal Strategy Leader Trusted by CROs, CFOs, and CEOs
                 </h2>
                 
                 <p className="text-lg text-muted-foreground leading-relaxed">
@@ -157,9 +157,11 @@ const About = () => {
                 </p>
                 
                 <p className="text-lg text-muted-foreground leading-relaxed">
-                  Sharad is trusted by CROs, CFOs, and CEOs as a systems thinker and hands-on operator, 
-                  known for delivering measurable outcomes in the most complex revenue environments.
+                  Sharad is trusted by CROs, CFOs, and CEOs to stand up Deal Desk functions, structure
+                  complex enterprise deals, and operationalize pricing, packaging, and quote-to-cash
+                  in the most demanding revenue environments.
                 </p>
+
                 
                 <div className="pt-6">
                   <h4 className="font-semibold text-lg mb-4 flex items-center gap-2">
