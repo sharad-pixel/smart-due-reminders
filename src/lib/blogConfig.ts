@@ -342,6 +342,114 @@ export const blogPosts: BlogPost[] = [
     keywords: "collections CRM, AR, receivables, Salesforce analogy, system of record, audit logs, AI automation, finance ops, B2B SaaS",
     featured: true,
   },
+  // ────────────────────────────────────────────────────────────
+  // The Revenue Intelligence Series (cornerstone content)
+  // ────────────────────────────────────────────────────────────
+  {
+    slug: "hidden-cost-of-contract-oversight",
+    title: "The Hidden Cost of Contract Oversight: How Revenue Leakage Begins Before the First Invoice",
+    metaTitle: "The Hidden Cost of Contract Oversight | Recouply.ai",
+    metaDescription: "Revenue leakage doesn't start at collections — it starts in the contract. Learn how missed renewals, pricing ramps, and overlooked terms erode ARR before the first invoice.",
+    excerpt: "Revenue leakage doesn't start at collections. It starts inside the contract — the moment terms, dates, and obligations stop being watched.",
+    category: "Contract Intelligence",
+    author: authors.sharad,
+    publishDate: "May 5, 2026",
+    publishDateISO: "2026-05-05",
+    readingTime: "8 min read",
+    heroImage: cashLeakageHero,
+    heroAlt: "Contract pages with dissolving fine print representing hidden revenue leakage",
+    keywords: "revenue leakage, contract oversight, missed renewals, pricing ramps, ASC 606, revenue recognition, contract intelligence",
+    featured: true,
+    editorsPick: true,
+    popularity: 98,
+    series: "The Revenue Intelligence Series",
+    contentType: "article",
+    topics: ["Contract Intelligence", "Revenue Intelligence", "ASC 606", "Risk Intelligence"],
+  },
+  {
+    slug: "every-revenue-problem-starts-with-a-contract",
+    title: "Every Revenue Problem Starts With a Contract",
+    metaTitle: "Every Revenue Problem Starts With a Contract | Recouply.ai",
+    metaDescription: "From order form to renewal, every downstream revenue issue traces back to a contract. See the full contract-to-cash chain and why disconnected systems break it.",
+    excerpt: "Follow any revenue miss upstream and you'll land in the contract. Here's the full contract-to-cash chain — and where the breaks happen.",
+    category: "Revenue Intelligence",
+    author: authors.sharad,
+    publishDate: "May 8, 2026",
+    publishDateISO: "2026-05-08",
+    readingTime: "9 min read",
+    heroImage: collectionsIntelligenceHero,
+    heroAlt: "Contract-to-cash chain visualization from signature to revenue recognition",
+    keywords: "contract to cash, revenue operations, order form, revenue recognition, renewals, expansion, quote to cash",
+    featured: true,
+    editorsPick: true,
+    popularity: 95,
+    series: "The Revenue Intelligence Series",
+    contentType: "article",
+    topics: ["Revenue Intelligence", "Revenue Operations", "Contract Intelligence"],
+  },
+  {
+    slug: "order-forms-as-structured-data",
+    title: "Why Finance Teams Should Treat Order Forms Like Structured Data",
+    metaTitle: "Order Forms as Structured Data | Recouply.ai",
+    metaDescription: "PDFs are not a system of record. Learn why order forms belong in structured, operational data — ARR, ACV, TCV, ramps, and renewal notice fields all extractable and queryable.",
+    excerpt: "Order forms carry ARR, ACV, ramps, and renewal notice terms — but sit in PDFs no system can read. Here's how AI turns them into structured operational data.",
+    category: "Contract Intelligence",
+    author: authors.sharad,
+    publishDate: "May 12, 2026",
+    publishDateISO: "2026-05-12",
+    readingTime: "7 min read",
+    heroImage: dataTrustHero,
+    heroAlt: "Order form PDF being parsed into structured fields for finance systems",
+    keywords: "order form data, structured contract data, ARR extraction, ACV, TCV, price escalators, auto-renewal, contract AI",
+    featured: false,
+    editorsPick: true,
+    popularity: 88,
+    series: "The Revenue Intelligence Series",
+    contentType: "article",
+    topics: ["Contract Intelligence", "OCR", "AI", "Finance Automation"],
+  },
+  {
+    slug: "reactive-revenue-operations-costing-millions",
+    title: "Reactive Revenue Operations Are Costing Companies Millions",
+    metaTitle: "Reactive Revenue Operations Cost Millions | Recouply.ai",
+    metaDescription: "Manual spreadsheets, missed renewals, late invoicing — reactive RevOps compounds silently into eight-figure leakage. Here's the proactive Revenue Intelligence alternative.",
+    excerpt: "Manual spreadsheets, missed renewals, late invoicing, and forecast drift compound into eight-figure revenue leakage. Proactive intelligence is the fix.",
+    category: "Revenue Operations",
+    author: authors.sharad,
+    publishDate: "May 15, 2026",
+    publishDateISO: "2026-05-15",
+    readingTime: "7 min read",
+    heroImage: predictiveCollectionsHero,
+    heroAlt: "Reactive vs proactive revenue operations dashboard comparison",
+    keywords: "revenue operations, reactive RevOps, revenue leakage, forecast accuracy, quote to cash, finance automation",
+    featured: false,
+    editorsPick: true,
+    popularity: 82,
+    series: "The Revenue Intelligence Series",
+    contentType: "article",
+    topics: ["Revenue Operations", "Revenue Intelligence", "Finance Automation"],
+  },
+  {
+    slug: "from-ocr-to-revenue-intelligence",
+    title: "From OCR to Revenue Intelligence",
+    metaTitle: "From OCR to Revenue Intelligence | Recouply.ai",
+    metaDescription: "OCR is step one. Real value comes from turning contract text into revenue classification, risk detection, workflows, and financial exposure — a full Revenue Intelligence pipeline.",
+    excerpt: "OCR is the easy part. Real Revenue Intelligence begins after extraction — when classification, risk, workflow, and financial exposure meet.",
+    category: "AI",
+    author: authors.sharad,
+    publishDate: "May 20, 2026",
+    publishDateISO: "2026-05-20",
+    readingTime: "8 min read",
+    heroImage: futureAiCollectionsHero,
+    heroAlt: "AI pipeline from contract OCR to Revenue Intelligence dashboard",
+    keywords: "OCR, contract AI, revenue intelligence, risk detection, contract workflows, financial exposure",
+    featured: true,
+    editorsPick: true,
+    popularity: 90,
+    series: "The Revenue Intelligence Series",
+    contentType: "article",
+    topics: ["AI", "OCR", "Contract Intelligence", "Revenue Intelligence"],
+  },
 ];
 
 // Helper functions
@@ -366,3 +474,35 @@ export const getPostsByCategory = (category: string): BlogPost[] => {
 export const getAllCategories = (): string[] => {
   return [...new Set(blogPosts.map((post) => post.category))];
 };
+
+export const getAllTopics = (): string[] => {
+  const topics = new Set<string>();
+  blogPosts.forEach((p) => p.topics?.forEach((t) => topics.add(t)));
+  return [...topics].sort();
+};
+
+export const getSeriesPosts = (series: string): BlogPost[] => {
+  return blogPosts
+    .filter((p) => p.series === series)
+    .sort((a, b) => new Date(a.publishDateISO).getTime() - new Date(b.publishDateISO).getTime());
+};
+
+export const getEditorsPicks = (): BlogPost[] => {
+  return blogPosts.filter((p) => p.editorsPick);
+};
+
+export const getRelatedPosts = (post: BlogPost, limit: number = 3): BlogPost[] => {
+  const postTopics = new Set(post.topics ?? []);
+  return blogPosts
+    .filter((p) => p.slug !== post.slug)
+    .map((p) => {
+      const shared = (p.topics ?? []).filter((t) => postTopics.has(t)).length;
+      const categoryMatch = p.category === post.category ? 1 : 0;
+      return { post: p, score: shared * 2 + categoryMatch };
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map((r) => r.post);
+};
+
+export const REVENUE_INTELLIGENCE_SERIES = "The Revenue Intelligence Series";
