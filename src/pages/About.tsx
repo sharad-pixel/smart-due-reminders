@@ -216,11 +216,12 @@ const About = () => {
                 <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                   <Building2 className="w-7 h-7 text-primary" />
                 </div>
-                <h3 className="text-xl font-bold mb-3">Enterprise Functionality</h3>
+                <h3 className="text-xl font-bold mb-3">Enterprise Deal Governance</h3>
                 <p className="text-muted-foreground leading-relaxed">
-                  Robust billing logic, aging accuracy, compliance readiness, real data governance. 
-                  Built for the complexity of modern revenue operations.
+                  Deal Desk intake, pricing guardrails, approval workflows, and ASC 606-ready
+                  revenue controls. Built for the complexity of enterprise deal structures.
                 </p>
+
               </CardContent>
             </Card>
             
