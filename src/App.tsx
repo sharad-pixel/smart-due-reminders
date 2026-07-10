@@ -343,6 +343,14 @@ const App = () => (
               <Route path="/blog/set-it-and-forget-it-automation" element={<SetItAndForgetItAutomation />} />
               <Route path="/blog/risk-as-a-real-time-operational-system" element={<RiskAsRealtimeSystem />} />
               <Route path="/blog/why-collections-needs-a-crm" element={<WhyCollectionsNeedsCrm />} />
+              {/* Revenue Intelligence Series (cornerstone) */}
+              <Route path="/blog/hidden-cost-of-contract-oversight" element={<HiddenCostOfContractOversight />} />
+              <Route path="/blog/every-revenue-problem-starts-with-a-contract" element={<EveryRevenueProblemStartsWithContract />} />
+              <Route path="/blog/order-forms-as-structured-data" element={<OrderFormsAsStructuredData />} />
+              <Route path="/blog/reactive-revenue-operations-costing-millions" element={<ReactiveRevenueOperationsCostingMillions />} />
+              <Route path="/blog/from-ocr-to-revenue-intelligence" element={<FromOcrToRevenueIntelligence />} />
+              {/* /resources/:slug mirrors /blog/:slug */}
+              <Route path="/resources/:slug" element={<Navigate to="/blog/:slug" replace />} />
 
               {/* Legal Pages */}
               <Route path="/legal/terms" element={<Terms />} />
