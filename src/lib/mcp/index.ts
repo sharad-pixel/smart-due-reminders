@@ -3,6 +3,8 @@ import listDebtors from "./tools/list-debtors";
 import listOpenInvoices from "./tools/list-open-invoices";
 import listCollectionTasks from "./tools/list-collection-tasks";
 import getDebtor from "./tools/get-debtor";
+import listContracts from "./tools/list-contracts";
+import getContract from "./tools/get-contract";
 
 // The OAuth issuer must be the direct Supabase host (never the .lovable.cloud proxy).
 // VITE_SUPABASE_PROJECT_ID is inlined at build time so this stays import-safe.
