@@ -38,9 +38,9 @@ const About = () => {
     <MarketingLayout>
       <SEO
         title="About Recouply.ai | Founder Story & Company Mission"
-        description="Enterprise functionality with startup mentality. Founded by RevOps leader Sharad Chanana with 15+ years modernizing RevOps, Q2C, Collections, and Billing at scale."
+        description="Enterprise functionality with startup mentality. Founded by Deal Desk and Deal Strategy leader Sharad Chanana with 20+ years scaling Deal Operations, Pricing, and Quote-to-Cash."
         canonical="https://recouply.ai/about"
-        keywords="Recouply founder, collection intelligence company, AR automation startup, Sharad Chanana, RevOps leader"
+        keywords="Recouply founder, deal desk, deal strategy, deal operations, revenue operations, quote to cash, Sharad Chanana"
       />
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-br from-background via-background to-primary/5 py-20 lg:py-32">
@@ -49,7 +49,7 @@ const About = () => {
           <div className="max-w-4xl mx-auto text-center">
             <Badge variant="secondary" className="mb-6 px-4 py-2 text-sm">
               <Briefcase className="w-4 h-4 mr-2 inline" />
-              Founded by Operators, Built for Revenue Teams
+              Founded by Deal Desk & Deal Strategy Operators
             </Badge>
             
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
@@ -60,9 +60,11 @@ const About = () => {
             </h1>
             
             <p className="text-xl md:text-2xl text-muted-foreground mb-8 leading-relaxed">
-              Built by operators who have transformed Revenue Operations, Billing, and Collections 
-              for the world's leading SaaS, AI, and enterprise companies.
+              Built by Deal Desk, Deal Operations, and Deal Strategy leaders who have architected
+              pricing, quote-to-cash, and enterprise deal governance for the world's leading SaaS,
+              AI, and enterprise companies.
             </p>
+
             
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
               <div className="flex items-center gap-3 bg-card/50 backdrop-blur-sm border rounded-full px-6 py-3 animate-float" style={{ animationDelay: '0.5s' }}>
