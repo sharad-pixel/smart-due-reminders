@@ -102,11 +102,11 @@ const BlogPostLayout = ({ post, children }: BlogPostLayoutProps) => {
           {/* Back Button */}
           <Button
             variant="ghost"
-            onClick={() => navigate("/blog")}
+            onClick={() => navigate("/resources")}
             className="mb-6 -ml-2 text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            All Articles
+            All Resources
           </Button>
 
           {/* Article Header */}
