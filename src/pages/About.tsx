@@ -79,7 +79,7 @@ const About = () => {
                 <div className="text-left">
                   <p className="font-semibold">{founderConfig.name}</p>
                   <p className="text-sm text-muted-foreground">
-                    {founderConfig.yearsExperience} years modernizing RevOps, Q2C, Collections & Billing
+                    {founderConfig.yearsExperience} years leading Deal Desk, Deal Strategy & Quote-to-Cash
                   </p>
                 </div>
               </div>
