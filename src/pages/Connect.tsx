@@ -6,10 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const mcpUrl = supabaseUrl
-  ? `${supabaseUrl.replace(/\/$/, "")}/functions/v1/mcp`
-  : `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/mcp`;
+const SUPABASE_PROJECT_REF = "kguurazunazhhrhasahd";
+const envUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+const envRef = import.meta.env.VITE_SUPABASE_PROJECT_ID as string | undefined;
+const base =
+  (envUrl && !envUrl.includes("undefined") ? envUrl.replace(/\/$/, "") : null) ??
+  `https://${envRef && envRef !== "undefined" ? envRef : SUPABASE_PROJECT_REF}.supabase.co`;
+const mcpUrl = `${base}/functions/v1/mcp`;
 
 export default function Connect() {
   const [copied, setCopied] = useState(false);
