@@ -4,12 +4,13 @@ import { PAGE_SEO } from "@/lib/seoConfig";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
-import { CheckCircle2, Store, Brain } from "lucide-react";
+import { CheckCircle2, Store, Brain, Wrench, Truck, Utensils, HardHat, ArrowRight } from "lucide-react";
 import StripeLogo from "@/components/brand/StripeLogo";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import RiskAndPayLinksSection from "@/components/marketing/RiskAndPayLinksSection";
+import { PLAN_CONFIGS, CREDIT_PRICING, LIVE_CONTRACTS_PRICING } from "@/lib/subscriptionConfig";
 
 const SmallBusinesses = () => {
   const navigate = useNavigate();
