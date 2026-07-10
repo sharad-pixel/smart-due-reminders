@@ -36,9 +36,6 @@ const BlogPostLayout = ({ post, children }: BlogPostLayoutProps) => {
     navigator.clipboard.writeText(window.location.href);
     toast.success("Link copied to clipboard");
   };
-    navigator.clipboard.writeText(window.location.href);
-    toast.success("Link copied to clipboard");
-  };
 
   const handleShareLinkedIn = async () => {
     const url = `https://recouply.ai/blog/${post.slug}`;
