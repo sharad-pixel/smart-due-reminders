@@ -86,6 +86,17 @@ const BlogPostLayout = ({ post, children }: BlogPostLayoutProps) => {
         })}
       />
 
+      {/* Reading progress bar */}
+      <div
+        aria-hidden
+        className="fixed top-0 left-0 right-0 h-0.5 z-50 bg-transparent"
+      >
+        <div
+          className="h-full bg-primary transition-[width] duration-100"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+
       <article className="py-8 md:py-12 lg:py-16">
         <div className="container mx-auto px-4">
           {/* Back Button */}
