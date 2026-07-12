@@ -187,20 +187,23 @@ Deno.serve(async (req) => {
       });
     }
     try {
+      const token = authHeader.replace('Bearer ', '');
       const authClient = createClient(
         Deno.env.get('SUPABASE_URL') ?? '',
-        Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-        { global: { headers: { Authorization: authHeader } } }
+        serviceKey,
+        { auth: { persistSession: false } }
       );
-      const { data, error } = await authClient.auth.getUser();
+      const { data, error } = await authClient.auth.getUser(token);
       if (error || !data?.user) {
-        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        console.error('[AUTO-SEND] Auth verification failed:', error?.message);
+        return new Response(JSON.stringify({ error: 'Unauthorized', detail: error?.message }), {
           status: 401,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
       scopedUserId = data.user.id;
-    } catch {
+    } catch (e) {
+      console.error('[AUTO-SEND] Auth exception:', e);
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
