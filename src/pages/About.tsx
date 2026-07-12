@@ -37,10 +37,10 @@ const About = () => {
   return (
     <MarketingLayout>
       <SEO
-        title="About Recouply.ai | Founder Story & Company Mission"
-        description="Enterprise functionality with startup mentality. Founded by Deal Desk and Deal Strategy leader Sharad Chanana with 20+ years scaling Deal Operations, Pricing, and Quote-to-Cash."
+        title="About Recouply.ai | Builder Story & Company Mission"
+        description="Enterprise functionality with startup mentality. Built by Deal Desk and Deal Strategy leader Sharad Chanana with 25+ years scaling Deal Operations, Pricing, and Quote-to-Cash / Contract-to-Cash."
         canonical="https://recouply.ai/about"
-        keywords="Recouply founder, deal desk, deal strategy, deal operations, revenue operations, quote to cash, Sharad Chanana"
+        keywords="Recouply builder, deal desk, deal strategy, deal operations, revenue operations, quote to cash, contract to cash, Sharad Chanana"
       />
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-br from-background via-background to-primary/5 py-20 lg:py-32">
@@ -49,7 +49,7 @@ const About = () => {
           <div className="max-w-4xl mx-auto text-center">
             <Badge variant="secondary" className="mb-6 px-4 py-2 text-sm">
               <Briefcase className="w-4 h-4 mr-2 inline" />
-              Founded by Deal Desk & Deal Strategy Operators
+              Built by Deal Desk & Deal Strategy Operators
             </Badge>
             
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
@@ -60,9 +60,9 @@ const About = () => {
             </h1>
             
             <p className="text-xl md:text-2xl text-muted-foreground mb-8 leading-relaxed">
-              Built by Deal Desk, Deal Operations, and Deal Strategy leaders who have architected
-              pricing, quote-to-cash, and enterprise deal governance for the world's leading SaaS,
-              AI, and enterprise companies.
+              Built by Deal Operations and Strategy leaders with 25+ years architecting pricing,
+              Quote-to-Cash, and Contract-to-Cash (Q2C / C2C) operations for the world's leading SaaS,
+              AI, and enterprise companies — around the real pain points they experienced firsthand.
             </p>
 
             
@@ -79,7 +79,7 @@ const About = () => {
                 <div className="text-left">
                   <p className="font-semibold">{founderConfig.name}</p>
                   <p className="text-sm text-muted-foreground">
-                    {founderConfig.yearsExperience} years leading Deal Desk, Deal Strategy & Quote-to-Cash
+                    {founderConfig.yearsExperience} years leading Deal Ops, Strategy, Q2C & C2C
                   </p>
                 </div>
               </div>
@@ -145,11 +145,11 @@ const About = () => {
               <div className="lg:col-span-3 space-y-6">
                 <Badge variant="secondary" className="mb-4">
                   <Award className="w-4 h-4 mr-2" />
-                  Meet the Founder
+                  Meet the Builder
                 </Badge>
                 
                 <h2 className="text-3xl md:text-4xl font-bold mb-6">
-                  A Deal Desk & Deal Strategy Leader Trusted by CROs, CFOs, and CEOs
+                  A Deal Operations & Strategy Leader Trusted by CROs, CFOs, and CEOs
                 </h2>
                 
                 <p className="text-lg text-muted-foreground leading-relaxed">
@@ -158,7 +158,7 @@ const About = () => {
                 
                 <p className="text-lg text-muted-foreground leading-relaxed">
                   Sharad is trusted by CROs, CFOs, and CEOs to stand up Deal Desk functions, structure
-                  complex enterprise deals, and operationalize pricing, packaging, and quote-to-cash
+                  complex enterprise deals, and operationalize pricing, packaging, and Quote-to-Cash / Contract-to-Cash
                   in the most demanding revenue environments.
                 </p>
 
@@ -313,8 +313,8 @@ const About = () => {
                   <h3 className="text-xl font-bold">Built by Experts</h3>
                 </div>
                 <p className="text-muted-foreground mb-4">
-                  {founderConfig.yearsExperience} years of Deal Desk, Deal Strategy, Pricing, and
-                  Quote-to-Cash leadership powering every workflow.
+                  {founderConfig.yearsExperience} years of Deal Operations, Deal Strategy, Pricing, and
+                  Q2C / C2C leadership — built around the real pain points of enterprise revenue teams.
                 </p>
 
                 <p className="text-muted-foreground text-sm">
@@ -336,7 +336,7 @@ const About = () => {
               Journey
             </Badge>
             <h2 className="text-3xl md:text-4xl font-bold mb-6">
-              The Founder's Career Timeline
+              The Builder's Career Timeline
             </h2>
             <p className="text-lg text-muted-foreground">
               From enterprise revenue operations to building the future of collection intelligence

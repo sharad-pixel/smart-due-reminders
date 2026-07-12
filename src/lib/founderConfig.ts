@@ -1,19 +1,19 @@
 // Founder and company information for easy editing
 export const founderConfig = {
   name: "Sharad Chanana",
-  title: "Founder",
+  title: "Builder",
   company: "Recouply.ai",
   tagline: "Enterprise Functionality with Startup Mentality",
-  yearsExperience: "20+",
+  yearsExperience: "25+",
   linkedIn: "https://www.linkedin.com/in/schanana/",
   calendly: "https://calendly.com/sharad-recouply/30min",
   supportEmail: "support@recouply.ai",
   email: "sharad@recouply.ai",
-  bio: `Sharad Chanana is the Founder of Recouply.ai — building the first AI-Native Revenue Intelligence platform from Contract to Cash. A Revenue Operations and Deal Strategy executive with 20+ years leading Deal Desk, pricing, monetization, quote-to-cash, and commercial operations for high-growth B2B SaaS companies. He has built and scaled revenue operations organizations from startup through enterprise scale, including global teams, pricing programs, forecasting models, compensation plans, and complex enterprise deal governance. Sharad combines deep commercial expertise with hands-on AI product development, including the design and deployment of agentic workflow and revenue intelligence platforms. He has led revenue operations at companies including Notable Health (Zealth), ServiceTitan, 11x.ai, Workday, Maxio (RevOps Inc.), Contentful, Leanplum (CleverTap), Ooyala, CallidusCloud, and Chegg.`,
+  bio: `Sharad Chanana is the Builder of Recouply.ai — architecting the first AI-Native Revenue Intelligence platform from Contract to Cash. A Deal Operations and Strategy executive with 25+ years leading Deal Desk, pricing, monetization, Quote-to-Cash, and Contract-to-Cash operations for high-growth B2B SaaS companies. He has built and scaled revenue operations organizations from startup through enterprise scale, including global teams, pricing programs, forecasting models, compensation plans, and complex enterprise deal governance. Sharad founded Recouply.ai around the real pain points he experienced firsthand: deals stalling in approval queues, pricing and packaging drifting out of alignment, and quote-to-cash breaking down between Sales, Finance, and Legal. He combines deep commercial expertise with hands-on AI product development, including the design and deployment of agentic workflow and revenue intelligence platforms. He has led revenue operations at companies including Notable Health (Zealth), ServiceTitan, 11x.ai, Workday, Maxio (RevOps Inc.), Contentful, Leanplum (CleverTap), Ooyala, CallidusCloud, and Chegg.`,
   expertise: [
     "Deal Strategy and Deal Desk leadership",
     "Pricing, packaging and monetization",
-    "Quote-to-Cash and billing architecture (Zuora, Stripe, NetSuite, Workday, RevPro)",
+    "Quote-to-Cash (Q2C) and Contract-to-Cash (C2C) architecture (Zuora, Stripe, NetSuite, Workday, RevPro)",
     "Complex enterprise deal structuring, ROI frameworks, and value engineering",
     "AI-native agentic workflow design and revenue intelligence platforms",
     "Compensation plan design, forecasting, and commercial governance"
