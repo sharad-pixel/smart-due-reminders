@@ -71,8 +71,6 @@ const solutionsGroups: MenuGroup[] = [
     label: "By workflow",
     items: [
       { icon: FileSignature, title: "Professional Services", description: "Milestone billing and PS revenue capture.", path: "/solutions/professional-services" },
-      { icon: Brain, title: "SaaS Revenue", description: "MRR, ARR, renewals, and churn signal.", path: "/solutions/saas" },
-      { icon: Building2, title: "Small Business", description: "Simple collections without the overhead.", path: "/solutions/small-businesses" },
     ],
   },
 ];

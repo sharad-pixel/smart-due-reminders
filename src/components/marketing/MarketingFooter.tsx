@@ -28,8 +28,6 @@ const columns: Col[] = [
       { label: "SMB", path: "/smb" },
       { label: "Enterprise", path: "/enterprise" },
       { label: "Professional Services", path: "/solutions/professional-services" },
-      { label: "SaaS", path: "/solutions/saas" },
-      { label: "Small Businesses", path: "/solutions/small-businesses" },
     ],
   },
   {
