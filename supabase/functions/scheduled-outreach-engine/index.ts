@@ -456,16 +456,28 @@ Deno.serve(async (req) => {
     console.log('[OUTREACH-ENGINE] Phase 3: Sending approved drafts due today...');
 
     try {
-      const { data: sendResult, error: sendError } = await supabaseAdmin.functions.invoke(
-        'auto-send-approved-drafts',
-        { body: { send_window_date: next24hStr } }
-      );
-
-      if (sendError) {
-        console.error('[OUTREACH-ENGINE] Auto-send error:', sendError);
-        result.errors.push(`Auto-send error: ${sendError.message}`);
+      // Invoke via fetch with service-role Authorization so the cron auth branch matches.
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      const cronSecret = Deno.env.get('CRON_SECRET') ?? '';
+      const sendRes = await fetch(`${supabaseUrl}/functions/v1/auto-send-approved-drafts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${serviceKey}`,
+          ...(cronSecret ? { 'X-Cron-Secret': cronSecret } : {}),
+        },
+        body: JSON.stringify({ send_window_date: next24hStr }),
+      });
+      const sendText = await sendRes.text();
+      if (!sendRes.ok) {
+        console.error('[OUTREACH-ENGINE] Auto-send error:', sendRes.status, sendText.substring(0, 300));
+        result.errors.push(`Auto-send error: ${sendRes.status} ${sendText.substring(0, 200)}`);
       } else {
-        result.draftsSent = sendResult?.sent || 0;
+        try {
+          const sendResult = JSON.parse(sendText);
+          result.draftsSent = sendResult?.sent || 0;
+        } catch { /* ignore parse */ }
         console.log(`[OUTREACH-ENGINE] Sent ${result.draftsSent} approved drafts`);
       }
     } catch (err) {
