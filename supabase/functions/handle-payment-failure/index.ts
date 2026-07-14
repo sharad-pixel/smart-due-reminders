@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
     // Get all accounts with past_due subscription status
     const { data: pastDueAccounts, error: fetchError } = await supabaseClient
       .from('profiles')
-      .select('id, email, display_name, subscription_status, payment_failure_notice_sent_at, is_account_locked, payment_failure_count')
+      .select('id, email, name, subscription_status, payment_failure_notice_sent_at, is_account_locked, payment_failure_count')
       .eq('subscription_status', 'past_due');
 
     if (fetchError) throw fetchError;
@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
             '⚠️ Payment Failed - Action Required',
             `
             <h2>Payment Failed</h2>
-            <p>Hi ${account.display_name || 'there'},</p>
+            <p>Hi ${account.name || 'there'},</p>
             <p>We were unable to process your payment for Recouply.ai. Please update your payment method to avoid service interruption.</p>
             <p><strong>Your account will be locked in ${GRACE_PERIOD_DAYS} days if payment is not received.</strong></p>
             <p><a href="https://recouply.ai/billing" style="background-color: #0070f3; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">Update Payment Method</a></p>
@@ -147,7 +147,7 @@ Deno.serve(async (req) => {
             // Get all team members to notify
             const { data: teamMembers } = await supabaseClient
               .from('account_users')
-              .select('profiles:user_id(email, display_name)')
+              .select('profiles:user_id(email, name)')
               .eq('account_id', account.id)
               .eq('status', 'active');
 
@@ -157,7 +157,7 @@ Deno.serve(async (req) => {
               '🔒 Account Locked - Payment Required',
               `
               <h2>Your Account Has Been Locked</h2>
-              <p>Hi ${account.display_name || 'there'},</p>
+              <p>Hi ${account.name || 'there'},</p>
               <p>Your Recouply.ai account has been locked due to failed payment. All users on your account have lost access.</p>
               <p>To restore access immediately, please update your payment method:</p>
               <p><a href="https://recouply.ai/billing" style="background-color: #dc2626; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">Restore Access Now</a></p>
@@ -175,7 +175,7 @@ Deno.serve(async (req) => {
                   '⚠️ Recouply.ai Access Suspended',
                   `
                   <h2>Your Access Has Been Suspended</h2>
-                  <p>Hi ${memberProfile.display_name || 'there'},</p>
+                  <p>Hi ${memberProfile.name || 'there'},</p>
                   <p>Your access to Recouply.ai has been suspended because the account owner's payment has failed.</p>
                   <p>Please contact your account administrator (${account.email}) to resolve this issue.</p>
                   <p>Access will be restored automatically once payment is received.</p>
@@ -195,7 +195,7 @@ Deno.serve(async (req) => {
               `⏰ ${daysRemaining} day${daysRemaining > 1 ? 's' : ''} until account lockout`,
               `
               <h2>Payment Still Required</h2>
-              <p>Hi ${account.display_name || 'there'},</p>
+              <p>Hi ${account.name || 'there'},</p>
               <p>This is a reminder that your Recouply.ai payment is still past due.</p>
               <p><strong>Your account will be locked in ${daysRemaining} day${daysRemaining > 1 ? 's' : ''} if payment is not received.</strong></p>
               <p><a href="https://recouply.ai/billing" style="background-color: #f59e0b; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">Update Payment Method</a></p>
