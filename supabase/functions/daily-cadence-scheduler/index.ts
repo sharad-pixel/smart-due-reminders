@@ -437,16 +437,30 @@ Deno.serve(async (req) => {
     let sendErrors: string[] = [];
     
     try {
-      const { data: sendResult, error: sendError } = await supabaseAdmin.functions.invoke(
-        'auto-send-approved-drafts',
-        { body: {} }
-      );
-      
-      if (sendError) {
-        console.error('[CADENCE-SCHEDULER] Auto-send error:', sendError);
-        sendErrors.push(sendError.message || 'Auto-send failed');
+      // Invoke via fetch with service-role Authorization so the cron auth branch matches.
+      // supabase-js functions.invoke forwards the client Authorization (anon key JWT),
+      // which fails the cron auth check in auto-send-approved-drafts.
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      const cronSecret = Deno.env.get('CRON_SECRET') ?? '';
+      const sendRes = await fetch(`${supabaseUrl}/functions/v1/auto-send-approved-drafts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${serviceKey}`,
+          ...(cronSecret ? { 'X-Cron-Secret': cronSecret } : {}),
+        },
+        body: JSON.stringify({}),
+      });
+      const sendText = await sendRes.text();
+      if (!sendRes.ok) {
+        console.error('[CADENCE-SCHEDULER] Auto-send error:', sendRes.status, sendText.substring(0, 300));
+        sendErrors.push(`Auto-send failed: ${sendRes.status} ${sendText.substring(0, 200)}`);
       } else {
-        sentCount = sendResult?.sent || 0;
+        try {
+          const sendResult = JSON.parse(sendText);
+          sentCount = sendResult?.sent || 0;
+        } catch { /* ignore parse */ }
         console.log(`[CADENCE-SCHEDULER] Auto-send result: ${sentCount} drafts sent`);
       }
     } catch (err) {
