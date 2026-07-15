@@ -204,7 +204,7 @@ export function SheetTemplatesSection() {
     pollIntervals.current.set(templateId, interval);
   }, [templates, queryClient]);
 
-  const { data: hasDrive } = useQuery({
+  const { data: driveConn } = useQuery({
     queryKey: ["drive-connection-check"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -212,15 +212,29 @@ export function SheetTemplatesSection() {
         ? await supabase.rpc('get_effective_account_id', { p_user_id: user.id })
         : { data: null };
       const accountId = (_eff as string | null) || user?.id;
-      if (!user) return false;
+      if (!user) return null;
       const { data } = await supabase
         .from("drive_connections")
-        .select("id")
+        .select("id, needs_reconnect, reconnect_reason")
         .eq("user_id", accountId)
         .eq("is_active", true)
         .maybeSingle();
-      return !!data;
+      return data as { id: string; needs_reconnect: boolean | null; reconnect_reason: string | null } | null;
     },
+    refetchInterval: 60_000,
+  });
+  const hasDrive = !!driveConn;
+  const needsReconnect = !!driveConn?.needs_reconnect;
+
+  const reconnectMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke("google-drive-auth", {
+        body: { origin: window.location.origin },
+      });
+      if (error) throw error;
+      if (data?.authUrl) window.location.href = data.authUrl;
+    },
+    onError: (err: any) => toast.error("Reconnect failed", { description: err.message }),
   });
 
   const existingTypes = new Set((templates || []).map((t: any) => t.template_type));
