@@ -312,6 +312,33 @@ export function SheetTemplatesSection() {
   return (
     <>
       <Card>
+        {needsReconnect && (
+          <div className="mx-6 mt-4 rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 p-3 flex items-start gap-3">
+            <RefreshCw className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+            <div className="flex-1 text-sm">
+              <div className="font-medium text-amber-900 dark:text-amber-200">
+                Google connection expired
+              </div>
+              <div className="text-amber-800/80 dark:text-amber-300/80 mt-0.5">
+                {driveConn?.reconnect_reason ||
+                  "Your Google refresh token was revoked. Scheduled syncs are paused until you reconnect."}
+              </div>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => reconnectMutation.mutate()}
+              disabled={reconnectMutation.isPending}
+            >
+              {reconnectMutation.isPending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+              ) : (
+                <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+              )}
+              Reconnect Google
+            </Button>
+          </div>
+        )}
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between gap-4">
             <div>
