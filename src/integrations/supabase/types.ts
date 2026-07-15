@@ -4744,8 +4744,11 @@ export type Database = {
           id: string
           is_active: boolean | null
           last_sync_at: string | null
+          needs_reconnect: boolean
           organization_id: string | null
           provider: string
+          reconnect_flagged_at: string | null
+          reconnect_reason: string | null
           refresh_token: string | null
           refresh_token_encrypted: string | null
           sync_frequency: string | null
@@ -4762,8 +4765,11 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           last_sync_at?: string | null
+          needs_reconnect?: boolean
           organization_id?: string | null
           provider?: string
+          reconnect_flagged_at?: string | null
+          reconnect_reason?: string | null
           refresh_token?: string | null
           refresh_token_encrypted?: string | null
           sync_frequency?: string | null
@@ -4780,8 +4786,11 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           last_sync_at?: string | null
+          needs_reconnect?: boolean
           organization_id?: string | null
           provider?: string
+          reconnect_flagged_at?: string | null
+          reconnect_reason?: string | null
           refresh_token?: string | null
           refresh_token_encrypted?: string | null
           sync_frequency?: string | null
