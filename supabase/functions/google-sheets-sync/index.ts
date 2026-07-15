@@ -20,11 +20,26 @@ async function getValidAccessToken(supabase: any, connection: any) {
     body: new URLSearchParams({ client_id: clientId, client_secret: clientSecret, refresh_token: refreshTokenValue ?? '', grant_type: 'refresh_token' }),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(`Token refresh failed: ${JSON.stringify(data)}`);
+  if (!res.ok) {
+    // If refresh token is revoked/expired, flag the connection so the UI can prompt reconnect
+    const errCode = (data && (data.error || data.error_description)) || '';
+    if (String(errCode).toLowerCase().includes('invalid_grant')) {
+      await supabase.from('drive_connections').update({
+        needs_reconnect: true,
+        reconnect_reason: 'Google refresh token revoked or expired (invalid_grant). Please reconnect Google.',
+        reconnect_flagged_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }).eq('id', connection.id);
+    }
+    throw new Error(`Token refresh failed: ${JSON.stringify(data)}`);
+  }
   await supabase.from('drive_connections').update({
     access_token: null,
     access_token_encrypted: await encryptToken(data.access_token),
     token_expires_at: new Date(Date.now() + data.expires_in * 1000).toISOString(),
+    needs_reconnect: false,
+    reconnect_reason: null,
+    reconnect_flagged_at: null,
     updated_at: new Date().toISOString(),
   }).eq('id', connection.id);
   return data.access_token;
