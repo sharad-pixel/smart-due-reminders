@@ -53,13 +53,14 @@ export default function IntegrationsShowcase() {
             >
               <div className="flex items-center gap-3">
                 <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-background border border-border/60 transition group-hover:scale-110">
-                  {it.logoSlug ? (
+                  {it.logoUrl ? (
                     <img
-                      src={`https://cdn.simpleicons.org/${it.logoSlug}/${it.logoColor ?? "000000"}`}
+                      src={it.logoUrl}
                       alt={`${it.name} logo`}
                       loading="lazy"
                       className="h-6 w-6 object-contain"
                     />
+
                   ) : it.icon ? (
                     <it.icon className="h-5 w-5 text-primary" />
                   ) : null}
