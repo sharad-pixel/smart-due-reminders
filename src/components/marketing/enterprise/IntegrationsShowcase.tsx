@@ -1,19 +1,27 @@
 import { motion } from "framer-motion";
-import { CreditCard, Database, Cloud, Users, Boxes, FileSpreadsheet, Mail, Code2, Webhook, FileText, ScanLine, HardDrive } from "lucide-react";
+import { Mail, Code2, Webhook, FileText } from "lucide-react";
 
-const integrations = [
-  { icon: CreditCard, name: "Stripe", body: "Real-time invoice sync, payment reconciliation, and refund control." },
-  { icon: Database, name: "QuickBooks", body: "Bidirectional invoice, customer, and payment sync." },
-  { icon: Cloud, name: "NetSuite", body: "Enterprise ERP sync with GL and multi-entity support." },
-  { icon: Users, name: "Salesforce", body: "Contract → opportunity linkage with account context." },
-  { icon: Boxes, name: "HubSpot", body: "Customer engagement signals feeding risk scoring." },
-  { icon: HardDrive, name: "Google Drive", body: "AI OCR on any contract or invoice folder." },
-  { icon: FileSpreadsheet, name: "Google Sheets", body: "Bidirectional source-of-truth spreadsheet sync." },
-  { icon: Cloud, name: "Microsoft 365", body: "Outlook mail, calendar, and OneDrive ingestion." },
-  { icon: Mail, name: "Email", body: "Inbound parsing, thread tracking, auto-categorization." },
-  { icon: Code2, name: "REST API", body: "Programmatic access to every entity and event." },
-  { icon: Webhook, name: "Webhooks", body: "Real-time event streams for downstream systems." },
-  { icon: FileText, name: "CSV Import", body: "Structured bulk import with validation." },
+type Integration = {
+  name: string;
+  body: string;
+  logoSlug?: string;
+  logoColor?: string; // hex without #
+  icon?: typeof Mail;
+};
+
+const integrations: Integration[] = [
+  { name: "Stripe", body: "Real-time invoice sync, payment reconciliation, and refund control.", logoSlug: "stripe", logoColor: "635BFF" },
+  { name: "QuickBooks", body: "Bidirectional invoice, customer, and payment sync.", logoSlug: "quickbooks", logoColor: "2CA01C" },
+  { name: "NetSuite", body: "Enterprise ERP sync with GL and multi-entity support.", logoSlug: "oracle", logoColor: "F80000" },
+  { name: "Salesforce", body: "Contract → opportunity linkage with account context.", logoSlug: "salesforce", logoColor: "00A1E0" },
+  { name: "HubSpot", body: "Customer engagement signals feeding risk scoring.", logoSlug: "hubspot", logoColor: "FF7A59" },
+  { name: "Google Drive", body: "AI OCR on any contract or invoice folder.", logoSlug: "googledrive", logoColor: "4285F4" },
+  { name: "Google Sheets", body: "Bidirectional source-of-truth spreadsheet sync.", logoSlug: "googlesheets", logoColor: "34A853" },
+  { name: "Microsoft 365", body: "Outlook mail, calendar, and OneDrive ingestion.", logoSlug: "microsoft365", logoColor: "D83B01" },
+  { name: "Email", body: "Inbound parsing, thread tracking, auto-categorization.", icon: Mail },
+  { name: "REST API", body: "Programmatic access to every entity and event.", icon: Code2 },
+  { name: "Webhooks", body: "Real-time event streams for downstream systems.", icon: Webhook },
+  { name: "CSV Import", body: "Structured bulk import with validation.", icon: FileText },
 ];
 
 export default function IntegrationsShowcase() {
@@ -43,8 +51,17 @@ export default function IntegrationsShowcase() {
               className="group rounded-xl border border-border bg-card p-5 shadow-sm transition-all hover:shadow-xl hover:border-primary/40"
             >
               <div className="flex items-center gap-3">
-                <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 text-primary transition group-hover:scale-110">
-                  <it.icon className="h-5 w-5" />
+                <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-background border border-border/60 transition group-hover:scale-110">
+                  {it.logoSlug ? (
+                    <img
+                      src={`https://cdn.simpleicons.org/${it.logoSlug}/${it.logoColor ?? "000000"}`}
+                      alt={`${it.name} logo`}
+                      loading="lazy"
+                      className="h-6 w-6 object-contain"
+                    />
+                  ) : it.icon ? (
+                    <it.icon className="h-5 w-5 text-primary" />
+                  ) : null}
                 </span>
                 <div className="text-base font-semibold">{it.name}</div>
               </div>
