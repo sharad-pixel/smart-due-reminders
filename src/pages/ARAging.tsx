@@ -9,6 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import { Search, DollarSign, TrendingUp, Users, Loader2 } from "lucide-react";
 import { formatCurrency } from "@/lib/formatters";
+import { getOpenBalance, resolveAgingBucket } from "@/lib/agingBuckets";
+import { OPEN_INVOICE_STATUSES } from "@/lib/invoiceStatuses";
 
 interface AgingData {
   debtor_id: string;
