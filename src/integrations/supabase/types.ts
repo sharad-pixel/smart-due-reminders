@@ -12510,6 +12510,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      refresh_invoice_aging_buckets: { Args: never; Returns: number }
       request_clm_revision_review: {
         Args: { p_emails: string[]; p_revision_id: string }
         Returns: undefined
