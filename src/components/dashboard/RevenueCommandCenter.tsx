@@ -126,7 +126,7 @@ export function RevenueCommandCenter({ variant = "revenue" }: RevenueCommandCent
         const [invRes, contRes, liveRes, paidRes] = await Promise.all([
           supabase
             .from("invoices")
-            .select("amount,due_date,status,aging_bucket,currency,payment_date")
+            .select("amount,total_amount,amount_outstanding,due_date,status,aging_bucket,currency,payment_date")
             .limit(5000),
           supabase
             .from("contracts")
