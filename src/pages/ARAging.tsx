@@ -104,7 +104,6 @@ const ARAging = () => {
             break;
           case "dpd_121_150":
           case "dpd_150_plus":
-          case "dpd_121_plus":
             data.dpd_121_plus += amount;
             break;
         }
