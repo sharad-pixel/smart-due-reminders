@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
         )
       `)
       .eq('user_id', userId)
-      .in('status', ['Open', 'InPaymentPlan']);
+      .in('status', ['Open', 'InPaymentPlan', 'PartiallyPaid']);
 
     // Filter by debtor if provided
     if (debtorId) {
@@ -101,10 +101,18 @@ Deno.serve(async (req) => {
     };
 
     for (const invoice of invoices || []) {
+      // Outstanding balance so applied payments are netted out of Open AR
+      const openBalance = Number(
+        invoice.amount_outstanding ?? invoice.total_amount ?? invoice.amount ?? 0
+      );
+      if (!(openBalance > 0)) continue;
+
       const dueDate = new Date(invoice.due_date);
-      const daysPastDue = Math.max(0, Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
-      
-      // Determine aging bucket - use >= for inclusive boundaries matching persona bucket ranges
+      const startOfDay = (d: Date) => Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+      const daysPastDue = Math.floor((startOfDay(today) - startOfDay(dueDate)) / 86400000);
+
+      // Boundaries match calculate_aging_bucket() in the database and
+      // getAgingBucketFromDays() in the frontend: due today counts as 1-30.
       let bucket: keyof typeof categorized = 'current';
       if (daysPastDue >= 151) {
         bucket = 'dpd_150_plus';
@@ -116,19 +124,20 @@ Deno.serve(async (req) => {
         bucket = 'dpd_61_90';
       } else if (daysPastDue >= 31) {
         bucket = 'dpd_31_60';
-      } else if (daysPastDue >= 1) {
+      } else if (daysPastDue >= 0) {
         bucket = 'dpd_1_30';
       }
 
       const enrichedInvoice = {
         ...invoice,
-        days_past_due: daysPastDue,
+        days_past_due: Math.max(0, daysPastDue),
+        open_balance: openBalance,
         aging_bucket: bucket,
       };
 
       categorized[bucket].invoices.push(enrichedInvoice);
       categorized[bucket].count++;
-      categorized[bucket].total_amount += Number(invoice.amount || 0);
+      categorized[bucket].total_amount += openBalance;
     }
 
     // Add cache headers for dashboard data - cache for 30 seconds
