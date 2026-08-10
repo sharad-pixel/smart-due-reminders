@@ -195,11 +195,14 @@ export default function Reports() {
           daysToPaySamples.push(d);
         }
 
-        // Determine bucket for agent attribution
-        let bucketKey: string = inv.aging_bucket;
-        if (!bucketKey && inv.due_date) {
+        // Determine bucket for agent attribution (live from due date; stored
+        // aging_bucket goes stale between trigger writes)
+        let bucketKey: string | undefined;
+        if (inv.due_date) {
           const dpd = differenceInDays(now, new Date(inv.due_date));
           bucketKey = getAgingBucketFromDays(dpd);
+        } else {
+          bucketKey = inv.aging_bucket;
         }
         if (bucketKey) {
           invoiceBucket.set(inv.id, bucketKey);

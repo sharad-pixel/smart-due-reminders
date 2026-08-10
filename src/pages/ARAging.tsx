@@ -9,6 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import { Search, DollarSign, TrendingUp, Users, Loader2 } from "lucide-react";
 import { formatCurrency } from "@/lib/formatters";
+import { getOpenBalance, resolveAgingBucket } from "@/lib/agingBuckets";
+import { OPEN_INVOICE_STATUSES } from "@/lib/invoiceStatuses";
 
 interface AgingData {
   debtor_id: string;
@@ -42,7 +44,10 @@ const ARAging = () => {
         .select(`
           id,
           debtor_id,
+          amount,
+          total_amount,
           amount_outstanding,
+          due_date,
           aging_bucket,
           debtors (
             company_name,
@@ -50,8 +55,7 @@ const ARAging = () => {
           )
         `)
         .eq("user_id", accountId)
-        .in("status", ["Open", "InPaymentPlan"])
-        .gt("amount_outstanding", 0);
+        .in("status", OPEN_INVOICE_STATUSES as any);
 
       if (error) throw error;
 
@@ -59,10 +63,11 @@ const ARAging = () => {
       const debtorMap = new Map<string, AgingData>();
 
       invoices?.forEach((inv: any) => {
+        const amount = getOpenBalance(inv);
+        if (amount <= 0) return;
         const debtorId = inv.debtor_id;
         const debtorName = inv.debtors?.company_name || inv.debtors?.name || "Unknown";
-        const amount = parseFloat(inv.amount_outstanding) || 0;
-        const bucket = inv.aging_bucket || "current";
+        const bucket = resolveAgingBucket(inv);
 
         if (!debtorMap.has(debtorId)) {
           debtorMap.set(debtorId, {
@@ -99,7 +104,6 @@ const ARAging = () => {
             break;
           case "dpd_121_150":
           case "dpd_150_plus":
-          case "dpd_121_plus":
             data.dpd_121_plus += amount;
             break;
         }

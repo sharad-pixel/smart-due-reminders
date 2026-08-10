@@ -66,3 +66,50 @@ export function getPersonaKeyFromDays(daysPastDue: number | null | undefined): s
   const bucket = getAgingBucketFromDays(dpd);
   return BUCKET_AGENT_MAP[bucket]?.key || 'sam';
 }
+
+/** Statuses that represent open (unpaid) receivables. Kept in sync with OPEN_INVOICE_STATUSES. */
+const OPEN_STATUS_SET = new Set(['open', 'inpaymentplan', 'partiallypaid', 'partially_paid']);
+
+/** True when an invoice should be counted in Open AR. */
+export function isOpenARInvoice(invoice: any): boolean {
+  if (!invoice) return false;
+  if (invoice.payment_date) return false;
+  const status = String(invoice.status ?? '').toLowerCase();
+  if (status && !OPEN_STATUS_SET.has(status)) return false;
+  return getOpenBalance(invoice) > 0;
+}
+
+/**
+ * Resolve the outstanding balance for an invoice.
+ * Always prefers amount_outstanding so applied payments are reflected.
+ */
+export function getOpenBalance(invoice: any): number {
+  const outstanding = invoice?.amount_outstanding;
+  if (outstanding !== null && outstanding !== undefined && outstanding !== '') {
+    return Number(outstanding) || 0;
+  }
+  return Number(invoice?.total_amount ?? invoice?.amount ?? 0) || 0;
+}
+
+/** Whole days past due for a due date (negative when not yet due). */
+export function getDaysPastDue(dueDate: string | Date | null | undefined): number | null {
+  if (!dueDate) return null;
+  const due = new Date(dueDate);
+  if (Number.isNaN(due.getTime())) return null;
+  const startOfDay = (d: Date) => Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+  return Math.floor((startOfDay(new Date()) - startOfDay(due)) / 86400000);
+}
+
+/**
+ * Live aging bucket for an invoice, computed from due_date.
+ * The stored `aging_bucket` column goes stale between trigger writes, so it is
+ * only used as a fallback when no due date is available.
+ */
+export function resolveAgingBucket(invoice: any): AgingBucketKey {
+  const dpd = getDaysPastDue(invoice?.due_date);
+  if (dpd === null) {
+    const stored = invoice?.aging_bucket;
+    return (AGING_BUCKETS.find(b => b.key === stored)?.key as AgingBucketKey) ?? 'current';
+  }
+  return getAgingBucketFromDays(dpd);
+}
