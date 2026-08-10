@@ -186,21 +186,18 @@ export function RevenueCommandCenter({ variant = "revenue" }: RevenueCommandCent
   }, []);
 
   const stats = useMemo(() => {
-    const openStatuses = new Set(["open", "overdue", "pending", "sent", "past_due", "unpaid"]);
-    const open = invoices.filter((i) => !i.payment_date && (i.status ? openStatuses.has(String(i.status).toLowerCase()) : true));
+    // Open AR = unpaid invoices in an open status, valued at outstanding balance
+    // so applied payments are always netted out.
+    const open = invoices.filter((i) => isOpenARInvoice(i));
 
-    const openTotal = open.reduce((s, i) => s + Number(i.amount || 0), 0);
+    const openTotal = open.reduce((s, i) => s + getOpenBalance(i), 0);
     const openCount = open.length;
 
     // Revenue at risk = overdue >30 days
     const today = new Date();
     const atRisk = open
-      .filter((i) => {
-        if (!i.due_date) return false;
-        const diff = (today.getTime() - new Date(i.due_date).getTime()) / (1000 * 60 * 60 * 24);
-        return diff > 30;
-      })
-      .reduce((s, i) => s + Number(i.amount || 0), 0);
+      .filter((i) => (getDaysPastDue(i.due_date) ?? -1) > 30)
+      .reduce((s, i) => s + getOpenBalance(i), 0);
 
     // DSO (approx): (openTotal / (paidLast90.amount / 90)) capped
     const dailyRevenue = paidLast90.amount / 90;
@@ -217,22 +214,21 @@ export function RevenueCommandCenter({ variant = "revenue" }: RevenueCommandCent
       if (!i.due_date) return;
       const diffDays = (new Date(i.due_date).getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
       const week = Math.floor(diffDays / 7);
-      if (week >= 0 && week < 12) buckets[week] += Number(i.amount || 0);
+      if (week >= 0 && week < 12) buckets[week] += getOpenBalance(i);
     });
     const forecastTotal = buckets.reduce((a, b) => a + b, 0);
 
-    // Aging buckets
+    // Aging buckets — computed live from due dates so they always reconcile to Open AR
     const aging = { current: 0, "1-30": 0, "31-60": 0, "61+": 0 };
     open.forEach((i) => {
-      const amt = Number(i.amount || 0);
-      if (!i.due_date) {
+      const amt = getOpenBalance(i);
+      const dpd = getDaysPastDue(i.due_date);
+      if (dpd === null || dpd < 0) {
         aging.current += amt;
         return;
       }
-      const diff = (today.getTime() - new Date(i.due_date).getTime()) / (1000 * 60 * 60 * 24);
-      if (diff <= 0) aging.current += amt;
-      else if (diff <= 30) aging["1-30"] += amt;
-      else if (diff <= 60) aging["31-60"] += amt;
+      if (dpd <= 30) aging["1-30"] += amt;
+      else if (dpd <= 60) aging["31-60"] += amt;
       else aging["61+"] += amt;
     });
     const agingTotal = Object.values(aging).reduce((a, b) => a + b, 0) || 1;
