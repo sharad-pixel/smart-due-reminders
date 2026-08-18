@@ -153,66 +153,84 @@ serve(async (req) => {
       );
     }
 
-    // Fetch active payment plans with installments (include dual approval fields)
-    const { data: plans, error: plansError } = await supabase
-      .from("payment_plans")
-      .select(`
-        id,
-        plan_name,
-        total_amount,
-        number_of_installments,
-        installment_amount,
-        frequency,
-        start_date,
-        status,
-        public_token,
-        notes,
-        proposed_at,
-        created_at,
-        debtor_id,
-        user_id,
-        requires_dual_approval,
-        debtor_approved_at,
-        debtor_approved_by_email,
-        admin_approved_at,
-        admin_approved_by
-      `)
-      .in("debtor_id", debtorIds)
-      .in("status", ["proposed", "accepted", "active", "draft"])
-      .order("created_at", { ascending: false });
+    // Chunk debtorIds — a single .in() with hundreds of ids blows the URL length limit (400).
+    const chunk = <T,>(arr: T[], size: number): T[][] => {
+      const out: T[][] = [];
+      for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+      return out;
+    };
+    const debtorIdChunks = chunk(debtorIds, 100);
 
-    if (plansError) {
-      console.error("[VERIFY-DEBTOR-TOKEN] Error fetching plans:", plansError);
-      throw plansError;
+    // Fetch active payment plans with installments (include dual approval fields)
+    const plans: any[] = [];
+    for (const ids of debtorIdChunks) {
+      const { data, error: plansError } = await supabase
+        .from("payment_plans")
+        .select(`
+          id,
+          plan_name,
+          total_amount,
+          number_of_installments,
+          installment_amount,
+          frequency,
+          start_date,
+          status,
+          public_token,
+          notes,
+          proposed_at,
+          created_at,
+          debtor_id,
+          user_id,
+          requires_dual_approval,
+          debtor_approved_at,
+          debtor_approved_by_email,
+          admin_approved_at,
+          admin_approved_by
+        `)
+        .in("debtor_id", ids)
+        .in("status", ["proposed", "accepted", "active", "draft"])
+        .order("created_at", { ascending: false });
+
+      if (plansError) {
+        console.error("[VERIFY-DEBTOR-TOKEN] Error fetching plans:", plansError);
+        throw plansError;
+      }
+      if (data) plans.push(...data);
     }
 
     // Fetch open invoices for all debtors (not on a payment plan)
     // Invoice "overdue" is derived from due_date (DPD), not a database status.
-    const { data: invoices, error: invoicesError } = await supabase
-      .from("invoices")
-      .select(`
-        id,
-        invoice_number,
-        amount,
-        amount_outstanding,
-        due_date,
-        status,
-        product_description,
-        po_number,
-        reference_id,
-        debtor_id,
-        user_id,
-        is_on_payment_plan,
-        created_at
-      `)
-      .in("debtor_id", debtorIds)
-      .in("status", ["Open", "PartiallyPaid"])
-      .eq("is_on_payment_plan", false)
-      .order("due_date", { ascending: true });
+    // Status values exist in both cased and lowercase enum variants — accept both.
+    const OPEN_STATUSES = ["Open", "PartiallyPaid", "open", "partiallypaid", "partially_paid"];
+    const invoices: any[] = [];
+    for (const ids of debtorIdChunks) {
+      const { data, error: invoicesError } = await supabase
+        .from("invoices")
+        .select(`
+          id,
+          invoice_number,
+          amount,
+          amount_outstanding,
+          due_date,
+          status,
+          product_description,
+          po_number,
+          reference_id,
+          debtor_id,
+          user_id,
+          is_on_payment_plan,
+          created_at
+        `)
+        .in("debtor_id", ids)
+        .in("status", OPEN_STATUSES)
+        .or("is_on_payment_plan.is.null,is_on_payment_plan.eq.false")
+        .order("due_date", { ascending: true });
 
-    if (invoicesError) {
-      console.error("[VERIFY-DEBTOR-TOKEN] Error fetching invoices:", invoicesError);
-      throw invoicesError;
+      if (invoicesError) {
+        console.error("[VERIFY-DEBTOR-TOKEN] Error fetching invoices:", invoicesError);
+        throw invoicesError;
+      }
+      if (data) invoices.push(...data);
     }
 
     // Build a debtor metadata map (so we can render company_name/reference_id even if the
