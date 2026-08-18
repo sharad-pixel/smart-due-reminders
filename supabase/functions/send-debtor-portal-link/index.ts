@@ -131,8 +131,8 @@ serve(async (req) => {
         .from("invoices")
         .select("id, debtor_id, user_id, status, is_on_payment_plan")
         .in("debtor_id", ids)
-        .in("status", ["Open", "PartiallyPaid"])
-        .eq("is_on_payment_plan", false);
+        .in("status", ["Open", "PartiallyPaid", "open", "partiallypaid", "partially_paid"])
+        .or("is_on_payment_plan.is.null,is_on_payment_plan.eq.false");
       if (error) {
         console.error("[DEBTOR-PORTAL-LINK] Error checking invoices:", error);
         throw error;
@@ -255,9 +255,19 @@ serve(async (req) => {
             </p>
             ${vendorSection}
             <div style="text-align: center; margin: 32px 0;">
-              <a href="${portalUrl}" style="display: inline-block; background: linear-gradient(135deg, ${platformColor} 0%, #0f172a 100%); color: white; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 14px rgba(30, 58, 95, 0.35);">
-                View My Account
-              </a>
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto;">
+                <tr>
+                  <td bgcolor="#2563eb" style="background-color: #2563eb; border-radius: 8px;">
+                    <a href="${portalUrl}" style="display: inline-block; background-color: #2563eb; color: #ffffff !important; text-decoration: none; padding: 16px 44px; border-radius: 8px; font-weight: 700; font-size: 16px; border: 1px solid #1d4ed8; mso-padding-alt: 16px 44px;">
+                      <span style="color: #ffffff;">View My Account</span>
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin: 16px 0 0; font-size: 12px; color: #94a3b8;">
+                Or paste this link into your browser:<br>
+                <a href="${portalUrl}" style="color: #2563eb; word-break: break-all;">${portalUrl}</a>
+              </p>
             </div>
             <div style="background: #f8fafc; border-radius: 8px; padding: 16px; margin-top: 28px;">
               <p style="color: #94a3b8; font-size: 13px; margin: 0; line-height: 1.6;">
