@@ -47,7 +47,7 @@ const FinalCTA = () => {
               transition={{ duration: 2, repeat: Infinity }}
             >
               <Sparkles className="h-4 w-4" />
-              Revenue Intelligence — from contract to cash
+              The Order to Cash Operating Model
             </motion.div>
 
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">

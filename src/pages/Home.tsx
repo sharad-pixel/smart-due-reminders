@@ -30,9 +30,9 @@ const Home = () => {
   return (
     <MarketingLayout>
       <SEOHead
-        title="Recouply · Revenue Intelligence — From Contract to Cash"
-        description="Revenue Intelligence — from contract to cash. AI-native Contract Intelligence and Collection Intelligence that reads every clause, tracks every obligation, and turns every receivable into predictable cash."
-        keywords="revenue intelligence platform, contract intelligence, collection intelligence, ai contract extraction, ar automation, cash forecasting, dso reduction, enterprise finance software"
+        title="Recouply · The Order to Cash Operating Model"
+        description="The Order to Cash Operating Model. AI-native Contract Intelligence and Collection Intelligence that reads every clause, tracks every obligation, and turns every receivable into predictable cash."
+        keywords="order to cash operating model, order to cash automation, revenue intelligence platform, contract intelligence, collection intelligence, ai contract extraction, ar automation, cash forecasting, dso reduction, enterprise finance software"
         canonical="https://recouply.ai"
         structuredData={generateFAQSchema(homeFaqs)}
       />

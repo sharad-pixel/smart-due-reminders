@@ -122,7 +122,7 @@ export default function EnterpriseHero() {
               className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/40 px-3.5 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur"
             >
               <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-              Revenue Intelligence — from contract to cash
+              The Order to Cash Operating Model
             </motion.div>
 
             <motion.h1

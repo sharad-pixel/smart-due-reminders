@@ -8,9 +8,9 @@
 export const COMPANY_INFO = {
   legalName: "RecouplyAI Inc.",
   displayName: "Recouply.ai",
-  tagline: "Revenue Intelligence — from contract to cash",
-  revopsStatement: "Revenue Intelligence — from contract to cash. Recouply reads every contract, tracks every obligation, and turns every receivable into a real-time signal so finance, sales, and CS run on one source of truth.",
-  description: "Revenue Intelligence from contract to cash. Recouply unifies Contract Intelligence and Collection Intelligence — extracting every clause, obligation, and price, then guiding every invoice from issued to paid with AI-native workflows.",
+  tagline: "The Order to Cash Operating Model",
+  revopsStatement: "The Order to Cash Operating Model. Recouply reads every contract, tracks every obligation, and turns every receivable into a real-time signal so finance, sales, and CS run on one source of truth.",
+  description: "The Order to Cash Operating Model — order, contract, invoice, cash. Recouply unifies Contract Intelligence and Collection Intelligence — extracting every clause, obligation, and price, then guiding every invoice from issued to paid with AI-native workflows.",
   website: "https://recouply.ai",
   emails: {
     collections: "collections@recouply.ai",
