@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import RollingAgentIntro from "./RollingAgentIntro";
 
 const headlines = [
-  "Revenue Intelligence — from contract to cash",
+  "The Order to Cash Operating Model",
   "One System from Contract Signed to Cash Collected",
   "AI-Native Revenue Intelligence for Modern Finance",
   "Contract to Cash, Intelligently Orchestrated",
@@ -94,7 +94,7 @@ const AnimatedHero = () => {
              transition={{ duration: 0.6, ease: "easeOut" }}
            >
             <Sparkles className="w-4 h-4 animate-pulse" />
-            Revenue Intelligence — from contract to cash
+            The Order to Cash Operating Model
            </motion.div>
           
           {/* Supporting tagline */}

@@ -35,7 +35,7 @@ const FeatureGrid = () => {
           transition={{ duration: 0.5 }}
         >
           <div className="inline-block px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
-            Revenue Intelligence — from contract to cash
+            The Order to Cash Operating Model
           </div>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
             AI-Native Workflows Across the Entire Contract-to-Cash Lifecycle
