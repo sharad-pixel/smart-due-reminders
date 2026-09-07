@@ -409,7 +409,7 @@ const Debtors = () => {
               Manage your customer accounts • <span className="font-medium">{debtors.length} total accounts</span>
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
             {stripeConnected && (
               <Button
                 variant="outline"
@@ -1066,7 +1066,7 @@ const Debtors = () => {
                 ))}
               </div>
             ) : (
-              <div className="border rounded-lg overflow-hidden">
+              <div className="border rounded-lg overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
