@@ -524,7 +524,57 @@ const Invoices = () => {
                 </p>
               </div>
             ) : (
+              <>
+              {/* Mobile card list */}
+              <div className="lg:hidden space-y-3">
+                {sortedInvoices.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((invoice) => {
+                  const daysPastDue = invoice.days_past_due;
+                  return (
+                    <div
+                      key={invoice.id}
+                      className="rounded-lg border p-3 space-y-2 active:bg-muted/50"
+                      onClick={() => navigate(`/invoices/${invoice.id}`)}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="font-medium truncate">{invoice.invoice_number}</p>
+                          <p className="text-sm text-muted-foreground truncate">{invoice.debtors?.company_name}</p>
+                        </div>
+                        <p className="font-semibold tabular-nums whitespace-nowrap">
+                          {getCurrencySymbol(invoice.currency || "USD")}{invoice.amount.toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(invoice.status)}`}>
+                          {invoice.status}
+                        </span>
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            daysPastDue === 0
+                              ? "bg-green-100 text-green-800"
+                              : daysPastDue <= 30
+                              ? "bg-yellow-100 text-yellow-800"
+                              : daysPastDue <= 60
+                              ? "bg-orange-100 text-orange-800"
+                              : daysPastDue <= 90
+                              ? "bg-red-100 text-red-800"
+                              : "bg-rose-100 text-rose-800"
+                          }`}
+                        >
+                          {daysPastDue === 0 ? "Current" : `${daysPastDue} days`}
+                        </span>
+                        <span className="text-xs text-muted-foreground ml-auto tabular-nums">
+                          {new Date(invoice.issue_date).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="hidden lg:block overflow-x-auto">
               <Table>
+
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-12">
