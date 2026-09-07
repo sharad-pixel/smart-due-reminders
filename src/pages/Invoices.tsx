@@ -791,7 +791,10 @@ const Invoices = () => {
                   })}
                 </TableBody>
               </Table>
+              </div>
+              </>
             )}
+
             
             {/* Pagination */}
             {sortedInvoices.length > itemsPerPage && (
