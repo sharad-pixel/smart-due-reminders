@@ -1,6 +1,6 @@
 import { lazy, Suspense } from "react";
 import MarketingLayout from "@/components/layout/MarketingLayout";
-import EnterpriseHero from "@/components/marketing/enterprise/EnterpriseHero";
+import { O2CHomeHero, ChoosePathSection, PlatformReminder, O2CFinalCTA } from "@/components/marketing/o2c/O2CLandingSections";
 import SEOHead from "@/components/seo/SEOHead";
 import { generateFAQSchema } from "@/lib/seoConfig";
 
@@ -13,7 +13,6 @@ const AIRecommendationsSection = lazy(() => import("@/components/marketing/enter
 const EnterpriseFeaturesSection = lazy(() => import("@/components/marketing/enterprise/EnterpriseFeaturesSection"));
 const IntegrationsShowcase = lazy(() => import("@/components/marketing/enterprise/IntegrationsShowcase"));
 const CustomerResultsMetrics = lazy(() => import("@/components/marketing/enterprise/CustomerResultsMetrics"));
-const EnterpriseFinalCTA = lazy(() => import("@/components/marketing/enterprise/EnterpriseFinalCTA"));
 const FAQAccordion = lazy(() => import("@/components/marketing/FAQAccordion"));
 
 const Home = () => {
@@ -36,7 +35,8 @@ const Home = () => {
         canonical="https://recouply.ai"
         structuredData={generateFAQSchema(homeFaqs)}
       />
-      <EnterpriseHero />
+      <O2CHomeHero />
+      <ChoosePathSection />
       <Suspense fallback={null}>
         <RevenueJourney />
         <ContractIntelligenceSection />
@@ -47,8 +47,9 @@ const Home = () => {
         <EnterpriseFeaturesSection />
         <IntegrationsShowcase />
         <CustomerResultsMetrics />
+        <PlatformReminder />
         <FAQAccordion />
-        <EnterpriseFinalCTA />
+        <O2CFinalCTA />
       </Suspense>
     </MarketingLayout>
   );

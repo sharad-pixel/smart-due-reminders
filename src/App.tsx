@@ -183,6 +183,7 @@ const ARIntroduction = lazy(() => import("./pages/ARIntroduction"));
 
 // Contact
 const ContactUs = lazy(() => import("./pages/ContactUs"));
+const O2CTransformation = lazy(() => import("./pages/O2CTransformation"));
 
 // Contract Intelligence — marketing page
 const ContractIntelligence = lazy(() => import("./pages/ContractIntelligence"));
@@ -382,6 +383,7 @@ const App = () => (
               {/* Payment & Contact */}
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/contact-us" element={<ContactUs />} />
+              <Route path="/o2c-transformation" element={<O2CTransformation />} />
               <Route path="/contact" element={<ContactUs />} />
               <Route path="/upgrade" element={<Upgrade />} />
               <Route path="/billing" element={<Billing />} />

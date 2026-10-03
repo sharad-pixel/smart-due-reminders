@@ -197,7 +197,13 @@ const EnterpriseNav = () => {
 
         {/* Desktop */}
         <nav className="hidden lg:flex items-center gap-7">
-          <MegaMenu label="Product" groups={productGroups} navigate={navigate} />
+          <MegaMenu label="Platform" groups={productGroups} navigate={navigate} />
+          <button
+            onClick={() => navigate("/o2c-transformation")}
+            className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors py-2"
+          >
+            O2C Transformation
+          </button>
           <MegaMenu label="Solutions" groups={solutionsGroups} navigate={navigate} />
           <SimpleMenu label="Customers" items={customersItems} navigate={navigate} />
           <button
@@ -226,7 +232,7 @@ const EnterpriseNav = () => {
             size="sm"
             className="text-sm font-medium bg-foreground text-background hover:bg-foreground/90"
           >
-            Get Started
+            Start Free
           </Button>
         </div>
 
@@ -305,6 +311,12 @@ const EnterpriseNav = () => {
 
             <div className="flex flex-col gap-2 pt-3 border-t border-border/60">
               <button
+                onClick={() => goto("/o2c-transformation")}
+                className="text-left py-2 text-sm font-medium"
+              >
+                O2C Transformation
+              </button>
+              <button
                 onClick={() => goto("/pricing")}
                 className="text-left py-2 text-sm font-medium"
               >
@@ -321,7 +333,7 @@ const EnterpriseNav = () => {
                 onClick={() => goto("/signup")}
                 className="w-full bg-foreground text-background hover:bg-foreground/90"
               >
-                Get Started
+                Start Free
               </Button>
             </div>
           </div>
