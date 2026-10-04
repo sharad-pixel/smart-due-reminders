@@ -124,6 +124,7 @@ export function O2CHomeHero() {
               <h1 className="mx-auto mt-6 max-w-5xl text-4xl font-semibold leading-[1.04] sm:text-6xl lg:text-7xl">
                 {titleStart}
                 <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">{offering.highlight}</span>
+                {titleEnd}
               </h1>
               <p className="mx-auto mt-6 max-w-3xl text-lg text-foreground/80 sm:text-xl">
                 {offering.summary}
