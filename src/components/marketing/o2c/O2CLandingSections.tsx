@@ -14,9 +14,9 @@ const HOME_OFFERINGS = [
     id: "platform",
     label: "Recouply Platform",
     eyebrow: "The Order to Cash Operating Model",
-    title: "Turn Receivables Into Predictable Cash",
-    highlight: "Predictable Cash",
-    summary: "AI-powered collections workflows help finance teams prioritize risk, automate outreach, and manage every outstanding invoice in one system of record.",
+    title: "AI-Driven Revenue Intelligence and Collections",
+    highlight: "Revenue Intelligence",
+    summary: "More than collections: Recouply combines automated receivables workflows with revenue intelligence — risk and ECL scoring, cash-flow forecasting, a customer payment portal, and deep ERP, CRM, and billing integrations — so finance teams see and manage every dollar outstanding.",
     primaryLabel: "Start Free",
     primaryHref: "/signup",
     secondaryLabel: "Explore the Platform",
@@ -25,6 +25,14 @@ const HOME_OFFERINGS = [
     tertiaryHref: "/login",
     tertiaryIcon: "login",
     icon: Sparkles,
+    chips: [
+      "Revenue Intelligence",
+      "Collections Automation",
+      "Risk & ECL Scoring",
+      "Cash-Flow Forecasting",
+      "Payment Portal",
+      "ERP & CRM Integrations",
+    ],
   },
   {
     id: "transformation",
@@ -60,7 +68,9 @@ export function O2CHomeHero() {
     return () => window.clearInterval(interval);
   }, [isPaused, prefersReducedMotion]);
 
-  const titleStart = offering.title.slice(0, offering.title.indexOf(offering.highlight));
+  const highlightStart = offering.title.indexOf(offering.highlight);
+  const titleStart = offering.title.slice(0, highlightStart);
+  const titleEnd = offering.title.slice(highlightStart + offering.highlight.length);
 
   return (
     <section
@@ -114,10 +124,20 @@ export function O2CHomeHero() {
               <h1 className="mx-auto mt-6 max-w-5xl text-4xl font-semibold leading-[1.04] sm:text-6xl lg:text-7xl">
                 {titleStart}
                 <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">{offering.highlight}</span>
+                {titleEnd}
               </h1>
               <p className="mx-auto mt-6 max-w-3xl text-lg text-foreground/80 sm:text-xl">
                 {offering.summary}
               </p>
+              {"chips" in offering && (
+                <div className="mt-7 flex flex-wrap justify-center gap-2">
+                  {offering.chips.map((chip) => (
+                    <span key={chip} className="rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground/80">
+                      {chip}
+                    </span>
+                  ))}
+                </div>
+              )}
               <div className="mt-10 flex flex-col flex-wrap justify-center gap-3 sm:flex-row">
                 <Button asChild size="lg" className="px-7 text-base">
                   <Link to={offering.primaryHref}>{offering.primaryLabel} <ArrowRight className="ml-2 h-4 w-4" /></Link>
@@ -153,8 +173,10 @@ export function O2CHomeHero() {
 
 export function ChoosePathSection() {
   const platform = [
-    "Collections workflows", "Aging management", "AI-assisted outreach", "Invoice tracking",
-    "Risk visibility", "Collections dashboards", "Team assignments", "Customer communication",
+    "Revenue intelligence dashboards", "Collections automation", "AI-assisted outreach",
+    "Risk & ECL scoring", "Aging management", "Cash-flow forecasting",
+    "Customer payment portal", "Invoice tracking", "Payment plans & reconciliation",
+    "ERP, CRM & billing integrations", "Team assignments & workflows", "Multi-currency reporting",
   ];
   return (
     <section className="container mx-auto px-4 sm:px-6 py-20">
@@ -162,10 +184,10 @@ export function ChoosePathSection() {
       <div className="mt-12 grid gap-6 lg:grid-cols-2">
         <div className="rounded-2xl border border-border bg-card p-8 flex flex-col">
           <div className="flex items-center gap-2 text-sm font-semibold text-primary"><Layers className="h-4 w-4" /> Recouply Platform</div>
-          <h3 className="mt-3 text-2xl font-semibold">Start Improving Collections Today</h3>
+          <h3 className="mt-3 text-2xl font-semibold">Revenue Intelligence, Built on Collections Automation</h3>
           <p className="mt-3 text-muted-foreground">
-            Manage collections workflows, prioritize receivables, automate outreach, improve visibility, and give
-            finance teams greater control over outstanding invoices.
+            Go beyond collections workflows: prioritize receivables with risk scoring, forecast cash flow,
+            automate outreach, and give finance teams a single, intelligent view of every dollar outstanding.
           </p>
           <ul className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
             {platform.map((p) => (
@@ -205,8 +227,8 @@ export function PlatformReminder() {
       <div className="rounded-2xl border border-border bg-card p-8 sm:p-12 text-center">
         <h2 className="text-3xl font-semibold tracking-tight">Not Ready for a Full Transformation?</h2>
         <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
-          Start with Recouply's collections platform today. Give finance teams a centralized way to manage receivables,
-          aging, collections activity, customer outreach, and outstanding invoice workflows.
+          Start with the Recouply Platform today. Revenue intelligence, collections automation, customer payment
+          portals, and integration with your ERP, CRM, and billing systems — all in one place, ready to grow with you.
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Button asChild size="lg"><Link to="/signup">Create Your Account</Link></Button>
