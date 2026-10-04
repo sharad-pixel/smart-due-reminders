@@ -224,8 +224,8 @@ export function PlatformReminder() {
       <div className="rounded-2xl border border-border bg-card p-8 sm:p-12 text-center">
         <h2 className="text-3xl font-semibold tracking-tight">Not Ready for a Full Transformation?</h2>
         <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
-          Start with Recouply's collections platform today. Give finance teams a centralized way to manage receivables,
-          aging, collections activity, customer outreach, and outstanding invoice workflows.
+          Start with the Recouply Platform today. Revenue intelligence, collections automation, customer payment
+          portals, and integration with your ERP, CRM, and billing systems — all in one place, ready to grow with you.
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Button asChild size="lg"><Link to="/signup">Create Your Account</Link></Button>
