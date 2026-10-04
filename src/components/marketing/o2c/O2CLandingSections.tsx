@@ -170,8 +170,10 @@ export function O2CHomeHero() {
 
 export function ChoosePathSection() {
   const platform = [
-    "Collections workflows", "Aging management", "AI-assisted outreach", "Invoice tracking",
-    "Risk visibility", "Collections dashboards", "Team assignments", "Customer communication",
+    "Revenue intelligence dashboards", "Collections automation", "AI-assisted outreach",
+    "Risk & ECL scoring", "Aging management", "Cash-flow forecasting",
+    "Customer payment portal", "Invoice tracking", "Payment plans & reconciliation",
+    "ERP, CRM & billing integrations", "Team assignments & workflows", "Multi-currency reporting",
   ];
   return (
     <section className="container mx-auto px-4 sm:px-6 py-20">
