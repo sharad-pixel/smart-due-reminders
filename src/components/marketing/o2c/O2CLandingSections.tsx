@@ -68,7 +68,9 @@ export function O2CHomeHero() {
     return () => window.clearInterval(interval);
   }, [isPaused, prefersReducedMotion]);
 
-  const titleStart = offering.title.slice(0, offering.title.indexOf(offering.highlight));
+  const highlightStart = offering.title.indexOf(offering.highlight);
+  const titleStart = offering.title.slice(0, highlightStart);
+  const titleEnd = offering.title.slice(highlightStart + offering.highlight.length);
 
   return (
     <section
