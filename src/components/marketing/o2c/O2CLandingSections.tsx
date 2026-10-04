@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, LogIn, Layers, Workflow, CheckCircle2, Sparkles } from "lucide-react";
+import { ArrowRight, LogIn, MessageSquare, Layers, Workflow, CheckCircle2, Sparkles } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 
