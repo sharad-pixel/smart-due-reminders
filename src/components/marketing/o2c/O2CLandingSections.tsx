@@ -126,6 +126,15 @@ export function O2CHomeHero() {
               <p className="mx-auto mt-6 max-w-3xl text-lg text-foreground/80 sm:text-xl">
                 {offering.summary}
               </p>
+              {"chips" in offering && (
+                <div className="mt-7 flex flex-wrap justify-center gap-2">
+                  {offering.chips.map((chip) => (
+                    <span key={chip} className="rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground/80">
+                      {chip}
+                    </span>
+                  ))}
+                </div>
+              )}
               <div className="mt-10 flex flex-col flex-wrap justify-center gap-3 sm:flex-row">
                 <Button asChild size="lg" className="px-7 text-base">
                   <Link to={offering.primaryHref}>{offering.primaryLabel} <ArrowRight className="ml-2 h-4 w-4" /></Link>
