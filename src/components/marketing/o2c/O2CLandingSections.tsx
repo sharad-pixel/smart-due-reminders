@@ -181,10 +181,10 @@ export function ChoosePathSection() {
       <div className="mt-12 grid gap-6 lg:grid-cols-2">
         <div className="rounded-2xl border border-border bg-card p-8 flex flex-col">
           <div className="flex items-center gap-2 text-sm font-semibold text-primary"><Layers className="h-4 w-4" /> Recouply Platform</div>
-          <h3 className="mt-3 text-2xl font-semibold">Start Improving Collections Today</h3>
+          <h3 className="mt-3 text-2xl font-semibold">Revenue Intelligence, Built on Collections Automation</h3>
           <p className="mt-3 text-muted-foreground">
-            Manage collections workflows, prioritize receivables, automate outreach, improve visibility, and give
-            finance teams greater control over outstanding invoices.
+            Go beyond collections workflows: prioritize receivables with risk scoring, forecast cash flow,
+            automate outreach, and give finance teams a single, intelligent view of every dollar outstanding.
           </p>
           <ul className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
             {platform.map((p) => (
