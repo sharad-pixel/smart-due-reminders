@@ -21,6 +21,9 @@ const HOME_OFFERINGS = [
     primaryHref: "/signup",
     secondaryLabel: "Explore the Platform",
     secondaryHref: "/solutions",
+    tertiaryLabel: "Sign In",
+    tertiaryHref: "/login",
+    tertiaryIcon: "login",
     icon: Sparkles,
   },
   {
@@ -34,6 +37,9 @@ const HOME_OFFERINGS = [
     primaryHref: "/o2c-transformation",
     secondaryLabel: "Request an Assessment",
     secondaryHref: "/o2c-transformation#assessment",
+    tertiaryLabel: "Talk to Us",
+    tertiaryHref: "/contact",
+    tertiaryIcon: "message",
     icon: Workflow,
   },
 ] as const;
@@ -120,7 +126,12 @@ export function O2CHomeHero() {
                   <Link to={offering.secondaryHref}>{offering.secondaryLabel}</Link>
                 </Button>
                 <Button asChild size="lg" variant="ghost" className="text-base">
-                  <Link to="/login"><LogIn className="mr-2 h-4 w-4" /> Sign In</Link>
+                  <Link to={offering.tertiaryHref}>
+                    {offering.tertiaryIcon === "message"
+                      ? <MessageSquare className="mr-2 h-4 w-4" />
+                      : <LogIn className="mr-2 h-4 w-4" />}
+                    {offering.tertiaryLabel}
+                  </Link>
                 </Button>
               </div>
             </motion.div>
