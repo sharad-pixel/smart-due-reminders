@@ -38,7 +38,7 @@ const HOME_OFFERINGS = [
     secondaryLabel: "Request an Assessment",
     secondaryHref: "/o2c-transformation#assessment",
     tertiaryLabel: "Talk to Us",
-    tertiaryHref: "/contact",
+    tertiaryHref: "/o2c-transformation#assessment",
     tertiaryIcon: "message",
     icon: Workflow,
   },
