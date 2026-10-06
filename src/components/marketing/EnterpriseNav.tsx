@@ -204,6 +204,12 @@ const EnterpriseNav = () => {
           >
             O2C Transformation
           </button>
+          <button
+            onClick={() => navigate("/o2c-transformation#custom-applications")}
+            className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors py-2"
+          >
+            Custom Applications
+          </button>
           <MegaMenu label="Solutions" groups={solutionsGroups} navigate={navigate} />
           <SimpleMenu label="Customers" items={customersItems} navigate={navigate} />
           <button
@@ -315,6 +321,12 @@ const EnterpriseNav = () => {
                 className="text-left py-2 text-sm font-medium"
               >
                 O2C Transformation
+              </button>
+              <button
+                onClick={() => goto("/o2c-transformation#custom-applications")}
+                className="text-left py-2 text-sm font-medium"
+              >
+                Custom Applications
               </button>
               <button
                 onClick={() => goto("/pricing")}
