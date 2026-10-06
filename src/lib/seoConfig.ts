@@ -9,7 +9,7 @@ export const SITE_CONFIG = {
   companyName: 'RecouplyAI Inc.',
   description: 'The Order to Cash Operating Model. Recouply reads every contract, tracks every obligation, and turns every receivable into a real-time signal for finance, RevOps, and CS teams.',
   logo: 'https://recouply.ai/favicon.png',
-  ogImage: 'https://recouply.ai/og-image.png',
+  ogImage: 'https://recouply.ai/og-image.png?v=3',
   twitterHandle: '@recouplyai',
   foundingDate: '2024',
   email: 'support@recouply.ai',
