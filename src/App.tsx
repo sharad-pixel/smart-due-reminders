@@ -102,6 +102,7 @@ const WhyCollectionsNeedsCrm = lazy(() => import("./pages/blog/WhyCollectionsNee
 const HiddenCostOfContractOversight = lazy(() => import("./pages/blog/HiddenCostOfContractOversight"));
 const EveryRevenueProblemStartsWithContract = lazy(() => import("./pages/blog/EveryRevenueProblemStartsWithContract"));
 const OrderFormsAsStructuredData = lazy(() => import("./pages/blog/OrderFormsAsStructuredData"));
+const FinanceTransformationArticle = lazy(() => import("./pages/blog/FinanceTransformationArticle"));
 const ReactiveRevenueOperationsCostingMillions = lazy(() => import("./pages/blog/ReactiveRevenueOperationsCostingMillions"));
 const FromOcrToRevenueIntelligence = lazy(() => import("./pages/blog/FromOcrToRevenueIntelligence"));
 
@@ -350,6 +351,18 @@ const App = () => (
               <Route path="/blog/order-forms-as-structured-data" element={<OrderFormsAsStructuredData />} />
               <Route path="/blog/reactive-revenue-operations-costing-millions" element={<ReactiveRevenueOperationsCostingMillions />} />
               <Route path="/blog/from-ocr-to-revenue-intelligence" element={<FromOcrToRevenueIntelligence />} />
+
+              {/* Finance Transformation Series */}
+              <Route path="/blog/next-era-of-finance-transformation" element={<FinanceTransformationArticle slug="next-era-of-finance-transformation" />} />
+              <Route path="/blog/from-spreadsheet-to-business-application" element={<FinanceTransformationArticle slug="from-spreadsheet-to-business-application" />} />
+              <Route path="/blog/ai-changing-economics-of-custom-business-software" element={<FinanceTransformationArticle slug="ai-changing-economics-of-custom-business-software" />} />
+              <Route path="/blog/build-vs-buy-wrong-question-modern-finance" element={<FinanceTransformationArticle slug="build-vs-buy-wrong-question-modern-finance" />} />
+              <Route path="/blog/missing-layer-in-finance-transformation" element={<FinanceTransformationArticle slug="missing-layer-in-finance-transformation" />} />
+              <Route path="/blog/erp-shouldnt-solve-every-finance-problem" element={<FinanceTransformationArticle slug="erp-shouldnt-solve-every-finance-problem" />} />
+              <Route path="/blog/raci-and-raid-shouldnt-live-in-spreadsheets" element={<FinanceTransformationArticle slug="raci-and-raid-shouldnt-live-in-spreadsheets" />} />
+              <Route path="/blog/order-to-cash-perfect-candidate-purpose-built-applications" element={<FinanceTransformationArticle slug="order-to-cash-perfect-candidate-purpose-built-applications" />} />
+              <Route path="/blog/finance-transformation-stack-of-the-future" element={<FinanceTransformationArticle slug="finance-transformation-stack-of-the-future" />} />
+              <Route path="/blog/finance-teams-becoming-application-builders" element={<FinanceTransformationArticle slug="finance-teams-becoming-application-builders" />} />
 
               {/* Legal Pages */}
               <Route path="/legal/terms" element={<Terms />} />
