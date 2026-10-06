@@ -196,17 +196,17 @@ const EnterpriseNav = () => {
         </Link>
 
         {/* Desktop */}
-        <nav className="hidden lg:flex items-center gap-7">
+        <nav className="hidden lg:flex items-center gap-5 xl:gap-7">
           <MegaMenu label="Platform" groups={productGroups} navigate={navigate} />
           <button
             onClick={() => navigate("/o2c-transformation")}
-            className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors py-2"
+            className="whitespace-nowrap text-sm font-medium text-foreground/80 hover:text-foreground transition-colors py-2"
           >
             O2C Transformation
           </button>
           <button
             onClick={() => navigate("/o2c-transformation#custom-applications")}
-            className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors py-2"
+            className="whitespace-nowrap text-sm font-medium text-foreground/80 hover:text-foreground transition-colors py-2"
           >
             Custom Applications
           </button>
@@ -214,7 +214,7 @@ const EnterpriseNav = () => {
           <SimpleMenu label="Customers" items={customersItems} navigate={navigate} />
           <button
             onClick={() => navigate("/pricing")}
-            className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors py-2"
+            className="whitespace-nowrap text-sm font-medium text-foreground/80 hover:text-foreground transition-colors py-2"
           >
             Pricing
           </button>
