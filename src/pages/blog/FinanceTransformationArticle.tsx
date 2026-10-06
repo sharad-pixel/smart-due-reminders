@@ -9,16 +9,16 @@ import {
 } from "@/lib/financeTransformationSeries";
 
 const Block = ({ block }: { block: ArticleBlock }) => {
-  if (typeof block === "string") return <p>{block}</p>;
+  if (typeof block === "string") return <p className="mb-4 leading-relaxed text-muted-foreground">{block}</p>;
   if ("list" in block)
     return (
-      <ul>
+      <ul className="my-4 list-disc space-y-2 pl-6">
         {block.list.map((i) => (
-          <li key={i}>{i}</li>
+          <li key={i} className="leading-relaxed text-muted-foreground">{i}</li>
         ))}
       </ul>
     );
-  if ("quote" in block) return <blockquote><p className="mb-0 text-foreground font-medium">{block.quote}</p></blockquote>;
+  if ("quote" in block) return <blockquote className="not-prose my-6 rounded-r-lg border-l-4 border-primary bg-muted/30 px-6 py-4"><p className="mb-0 text-lg text-foreground font-medium">{block.quote}</p></blockquote>;
   if ("flow" in block)
     return (
       <div className="not-prose my-6 flex flex-wrap items-center gap-2">
@@ -77,14 +77,14 @@ const FinanceTransformationArticle = ({ slug }: { slug: string }) => {
 
   return (
     <BlogPostLayout post={post}>
-      <p className="lead text-xl text-foreground/90">{article.subtitle}</p>
+      <p className="mb-6 text-xl leading-relaxed text-foreground/90">{article.subtitle}</p>
       {article.intro.map((b, i) => (
         <Block key={`intro-${i}`} block={b} />
       ))}
 
       {article.sections.map((s) => (
         <section key={s.heading}>
-          <h2>{s.heading}</h2>
+          <h2 className="mt-10 mb-4 border-b border-border/50 pb-3 text-2xl md:text-3xl font-bold tracking-tight text-foreground">{s.heading}</h2>
           {s.blocks.map((b, i) => (
             <Block key={`${s.heading}-${i}`} block={b} />
           ))}
@@ -103,15 +103,15 @@ const FinanceTransformationArticle = ({ slug }: { slug: string }) => {
         </ul>
       </div>
 
-      <h2>The Recouply.ai Perspective</h2>
+      <h2 className="mt-10 mb-4 border-b border-border/50 pb-3 text-2xl md:text-3xl font-bold tracking-tight text-foreground">The Recouply.ai Perspective</h2>
       {article.perspective.map((p) => (
-        <p key={p}>{p}</p>
+        <p key={p} className="mb-4 leading-relaxed text-muted-foreground">{p}</p>
       ))}
-      <p>
+      <p className="mb-4 leading-relaxed text-muted-foreground">
         Our focus is helping finance organizations connect collections, Order-to-Cash transformation, workflow
         automation, governance and custom business applications into practical operating solutions.
       </p>
-      <p><strong>{PERSPECTIVE_TAGLINE}</strong></p>
+      <p className="mb-4"><strong className="text-foreground">{PERSPECTIVE_TAGLINE}</strong></p>
 
       <div className="not-prose my-10 rounded-2xl border border-primary/20 bg-primary/5 p-6">
         <p className="text-foreground mb-4">{article.cta.text}</p>
