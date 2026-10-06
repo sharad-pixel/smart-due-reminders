@@ -83,7 +83,7 @@ const RoiCalculator = () => {
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground">
               Move the sliders. See your cost of delay, write-off risk, and the savings
-              you'd unlock with AI-powered collections — instantly.
+              you'd unlock with AI Revenue Intelligence — instantly.
             </p>
           </motion.div>
         </div>

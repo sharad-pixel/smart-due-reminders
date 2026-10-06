@@ -257,7 +257,7 @@ var mcp_default = defineMcp({
   name: "recouply-mcp",
   title: "Recouply",
   version: "0.1.0",
-  instructions: "Tools for Recouply, an AI-powered accounts receivable and collections platform. Use these tools to inspect debtors (customer accounts), open invoices, active collection tasks, and contracts (with AI summaries, key dates, and risk flags) for the signed-in user. All calls run under the user's row-level security, so results are scoped to their organization.",
+  instructions: "Tools for Recouply, an AI Revenue Intelligence platform for contracts, receivables and collections. Use these tools to inspect debtors (customer accounts), open invoices, active collection tasks, and contracts (with AI summaries, key dates, and risk flags) for the signed-in user. All calls run under the user's row-level security, so results are scoped to their organization.",
   auth: auth.oauth.issuer({
     issuer: `https://${projectRef}.supabase.co/auth/v1`,
     acceptedAudiences: "authenticated"

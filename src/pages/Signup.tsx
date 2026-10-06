@@ -439,7 +439,7 @@ const Signup = () => {
             <CardDescription>
               {isInviteFlow && user 
                 ? "Just a few more details to get started" 
-                : "Get started with AI-powered collections"}
+                : "Get started with AI Revenue Intelligence"}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

@@ -433,7 +433,7 @@ const About = () => {
                       Meet <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Nicolas</span>
                     </h3>
                     <p className="text-lg text-muted-foreground leading-relaxed">
-                      Nicolas is Recouply's AI-powered collections advisor and your personal guide across the platform. 
+                      Nicolas is Recouply's AI Revenue Intelligence advisor and your personal guide across the platform. 
                       From onboarding to strategy, Nicolas provides step-by-step guidance, answers product and billing 
                       questions using our built-in Knowledge Base, and helps you navigate every feature with confidence.
                     </p>

@@ -2,7 +2,7 @@ import { Brain, Mail, Zap, CheckCircle, TrendingUp, Shield } from "lucide-react"
 import { motion } from "framer-motion";
 
 const differentiators = [
-  { icon: Brain, title: "Centralized Account Intelligence", description: "Every receivable, every interaction, and every risk signal — consolidated into one collections CRM with real-time decision support" },
+  { icon: Brain, title: "Centralized Account Intelligence", description: "Every receivable, every interaction, and every risk signal — consolidated into one Revenue Intelligence platform with real-time decision support" },
   { icon: Mail, title: "AI-Powered Outreach Engine", description: "Agents read, understand, and respond to customer emails with context-aware drafts — escalating only when human judgment is needed" },
   { icon: Zap, title: "Risk-Based Prioritization", description: "AI continuously scores and ranks accounts by collectability risk — ensuring your team works the highest-impact accounts first" },
   { icon: CheckCircle, title: "Revenue Risk Assessment Engine", description: "Continuous ECL scoring, Paydex-style ratings, and engagement-adjusted PD modeling across your entire portfolio" },
@@ -51,7 +51,7 @@ const WhyDifferent = () => {
             transition={{ delay: 0.2, duration: 0.5 }}
           >
             <p className="text-muted-foreground">
-              Recouply.ai is the AI-powered collections CRM that centralizes every receivable, prioritizes by risk, and maintains a complete audit trail — so your team drives cash outcomes with confidence, not guesswork.
+              Recouply.ai is the AI-native Revenue Intelligence platform that centralizes every contract and receivable, prioritizes by risk, and maintains a complete audit trail — so your team drives cash outcomes with confidence, not guesswork.
             </p>
             <p className="text-sm text-muted-foreground/80 mt-3 font-medium">
               No handoffs. No scattered inboxes. No lost context. One CRM for collections.

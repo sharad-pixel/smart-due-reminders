@@ -319,7 +319,7 @@ export default function O2CTransformation() {
           <div className="text-center mb-8">
             <H2>Request an O2C Assessment or Discuss Your Use Case</H2>
             <p className="mt-3 text-muted-foreground">
-              Just want to use the collections platform? <Link to="/signup" className="text-primary underline">Start free</Link> — no form needed.
+              Just want to use the Revenue Intelligence platform? <Link to="/signup" className="text-primary underline">Start free</Link> — no form needed.
             </p>
           </div>
           <O2CLeadForm />

@@ -93,7 +93,7 @@ const Solutions = () => {
               so your team drives cash outcomes, not manual follow-ups.
             </p>
             <p className="text-lg text-primary font-medium">
-              "AI-powered collections workflows for consistent recovery, human-approved outcomes."
+              "Revenue Intelligence and AI workflows for consistent recovery, human-approved outcomes."
             </p>
           </div>
 
@@ -139,11 +139,11 @@ const Solutions = () => {
               Ready to Centralize Your Collections?
             </h2>
             <p className="text-lg text-muted-foreground mb-4 max-w-2xl mx-auto">
-              Let AI-powered collections workflows handle the repeatable work — while your CRM tracks every interaction,
+              Let AI Revenue Intelligence workflows handle the repeatable work — while your CRM tracks every interaction,
               prioritizes by risk, and strengthens cash flow consistently.
             </p>
             <p className="text-md text-primary font-medium mb-8">
-              "The collections CRM that replaces manual effort with consistent, auditable recovery."
+              "Revenue Intelligence that replaces manual effort with consistent, auditable recovery."
             </p>
             <div className="flex gap-4 justify-center flex-wrap">
               <Button 
