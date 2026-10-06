@@ -8,12 +8,37 @@ import { O2C_DOMAINS, PlatformReminder, O2CFinalCTA } from "@/components/marketi
 import O2CLeadForm from "@/components/marketing/o2c/O2CLeadForm";
 
 const stages = [
-  { icon: Search, name: "Discover", text: "Map current-state processes, systems, ownership, controls, exceptions, bottlenecks, and data flows." },
-  { icon: PenTool, name: "Design", text: "Develop future-state workflows, operating models, transformation roadmap, KPIs, controls, and automation opportunities." },
-  { icon: Hammer, name: "Build", text: "Configure customized workflows, dashboards, approvals, automation, AI capabilities, and integrations." },
-  { icon: ShieldCheck, name: "Govern", text: "Manage execution through RACI, RAID, milestones, dependencies, decisions, risks, and executive reporting." },
-  { icon: TrendingUp, name: "Optimize", text: "Continuously identify operational bottlenecks, risks, automation opportunities, and process improvements." },
+  { icon: Search, name: "Discover", items: ["Processes", "Systems", "Teams", "Roles", "Controls", "Data flows", "Approvals", "Exceptions", "Manual processes", "Spreadsheets", "Bottlenecks"] },
+  { icon: PenTool, name: "Design", items: ["Future-state process", "RACI", "RAID", "Workflow design", "System requirements", "Controls", "Automation opportunities", "Data requirements", "KPI framework", "Transformation roadmap"] },
+  { icon: Hammer, name: "Build", items: ["Custom business applications", "Workflows & approvals", "Dashboards", "AI capabilities", "Integrations"] },
+  { icon: ShieldCheck, name: "Govern", items: ["RACI", "RAID", "Milestones", "Risks", "Dependencies", "Decisions", "Controls", "Owners", "Status", "Executive reporting"] },
+  { icon: TrendingUp, name: "Optimize", items: ["Process bottlenecks", "Manual activity", "Exceptions", "Delays", "Risks", "Automation opportunities", "Workflow improvements"] },
 ];
+
+const buildComponents = ["Forms", "Workflow logic", "Dashboards", "Approval chains", "User roles", "Notifications", "AI capabilities", "Data validation", "Exception management", "API integrations", "Reporting", "Audit history", "Business rules"];
+
+const journey = [
+  { t: "Business Problem", d: "“We manage this in email and Excel.”" },
+  { t: "Process Discovery", d: "How does the process actually work?" },
+  { t: "RACI + Controls", d: "Who owns what and what approvals are required?" },
+  { t: "Data + Systems", d: "Where does the information come from?" },
+  { t: "Application Design", d: "What does the user need to see and do?" },
+  { t: "Build", d: "Create the workflow and interface." },
+  { t: "Deploy", d: "Launch into the client's environment." },
+  { t: "Optimize", d: "Improve using real operational feedback." },
+];
+
+const billingRows = [
+  { c: "Northwind Labs", o: "SO-1042", po: "Received", appr: "Approved", ex: "—", owner: "Billing Ops", s: "Ready to Bill" },
+  { c: "Acme Health", o: "SO-1047", po: "Missing", appr: "Approved", ex: "No customer PO", owner: "Sales Ops", s: "Blocked" },
+  { c: "Globex Retail", o: "SO-1051", po: "Received", appr: "Pending Finance", ex: "Non-standard terms", owner: "Controller", s: "At Risk" },
+  { c: "Initech", o: "SO-1055", po: "Received", appr: "Approved", ex: "Incomplete contract data", owner: "Deal Desk", s: "Blocked" },
+];
+const billingStatus: Record<string, string> = {
+  "Ready to Bill": "bg-accent/15 text-accent",
+  "At Risk": "bg-primary/15 text-primary",
+  Blocked: "bg-destructive/15 text-destructive",
+};
 
 const workstreams = [
   { w: "Deal Desk", o: "Sales Ops", s: "On Track", r: 2, d: "CLM" },
@@ -35,6 +60,7 @@ const services = [
   { name: "O2C Transformation Assessment", cta: "Request an Assessment", items: ["Current-state process mapping", "RACI", "RAID", "System landscape", "Control gaps", "Automation opportunities", "AI opportunities", "KPI framework", "Future-state process", "Transformation roadmap"] },
   { name: "O2C Transformation Implementation", cta: "Discuss a Transformation", items: ["Future-state workflow design", "Workflow development", "Governance", "Automation", "Integration design", "Dashboards", "Controls", "Testing", "Change management", "Deployment support"] },
   { name: "Managed O2C Intelligence", cta: "Explore Managed O2C", items: ["Transformation monitoring", "KPI tracking", "Risk management", "Exception management", "Workflow optimization", "AI recommendations", "Executive reporting"] },
+  { name: "Custom Business Application", cta: "Discuss Your Use Case", desc: "For operational workflows that don't justify purchasing or implementing another enterprise platform.", items: ["Process discovery", "Application design", "Workflow development", "Role-based access", "Dashboards", "Approval workflows", "AI capabilities", "Reporting", "Integrations", "Testing", "Deployment", "Iterative enhancement"] },
 ];
 
 const expertise = ["Collections", "Revenue Accounting", "Billing", "Deal Desk", "Quote-to-Cash", "Order-to-Cash", "Finance Systems", "Revenue Operations", "Controls", "Finance Transformation"];
