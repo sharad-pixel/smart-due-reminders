@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, LogIn, MessageSquare, Layers, Workflow, CheckCircle2, Sparkles } from "lucide-react";
+import { ArrowRight, LogIn, MessageSquare, Layers, Workflow, CheckCircle2, Sparkles, Boxes } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 
@@ -50,7 +50,25 @@ const HOME_OFFERINGS = [
     tertiaryIcon: "message",
     icon: Workflow,
   },
+  {
+    id: "apps",
+    label: "Custom Applications",
+    eyebrow: "Custom Business Applications",
+    title: "Build What Your Business Actually Needs",
+    highlight: "Actually Needs",
+    summary: "Not every business problem needs another software platform. Recouply designs and builds purpose-built applications around your workflows, data, controls, and approvals — connected to the systems you already use.",
+    primaryLabel: "Build a Custom Application",
+    primaryHref: "/o2c-transformation#custom-applications",
+    secondaryLabel: "Start Free",
+    secondaryHref: "/signup",
+    tertiaryLabel: "Discuss Your Use Case",
+    tertiaryHref: "/o2c-transformation#assessment",
+    tertiaryIcon: "message",
+    icon: Boxes,
+  },
 ] as const;
+
+const SHORT_LABELS = ["Platform", "O2C", "Apps"];
 
 export function O2CHomeHero() {
   const [activeOffering, setActiveOffering] = useState(0);
@@ -103,7 +121,7 @@ export function O2CHomeHero() {
               >
                 <Icon className="h-4 w-4" />
                 <span className="hidden sm:inline">{item.label}</span>
-                <span className="sm:hidden">{index === 0 ? "Platform" : "O2C"}</span>
+                <span className="sm:hidden">{SHORT_LABELS[index]}</span>
               </Button>
             );
           })}
@@ -246,11 +264,13 @@ export function O2CFinalCTA() {
       <div className="container relative mx-auto px-6 py-28 text-center">
         <h2 className="mx-auto max-w-4xl text-4xl sm:text-6xl font-semibold tracking-tight leading-[1.05]">
           Start With Collections.{" "}
-          <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Transform the Entire O2C Lifecycle.</span>
+          <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Transform How Your Business Operates.</span>
         </h2>
+        <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground">Your workflows. Your data. Your controls. Your applications.</p>
         <div className="mt-10 flex flex-wrap justify-center gap-3">
           <Button asChild size="lg"><Link to="/signup">Start Free <ArrowRight className="ml-2 h-4 w-4" /></Link></Button>
           <Button asChild size="lg" variant="outline"><Link to="/o2c-transformation#assessment">Discuss O2C Transformation</Link></Button>
+          <Button asChild size="lg" variant="outline"><Link to="/o2c-transformation#custom-applications">Build a Custom Application</Link></Button>
         </div>
       </div>
     </section>

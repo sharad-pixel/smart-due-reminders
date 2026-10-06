@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import MarketingLayout from "@/components/layout/MarketingLayout";
-import { O2CHomeHero, ChoosePathSection, PlatformReminder, O2CFinalCTA } from "@/components/marketing/o2c/O2CLandingSections";
+import { O2CHomeHero, PlatformReminder, O2CFinalCTA } from "@/components/marketing/o2c/O2CLandingSections";
+import { ThreeWaysSection, CustomAppsIntroSection, AppExamplesSection, BuildVsBuySection, TechAndSecuritySection, UseCaseCTA } from "@/components/marketing/o2c/CustomAppSections";
 import SEOHead from "@/components/seo/SEOHead";
 import { generateFAQSchema } from "@/lib/seoConfig";
 
@@ -36,17 +37,22 @@ const Home = () => {
         structuredData={generateFAQSchema(homeFaqs)}
       />
       <O2CHomeHero />
-      <ChoosePathSection />
+      <ThreeWaysSection />
       <Suspense fallback={null}>
         <RevenueJourney />
         <ContractIntelligenceSection />
         <CollectabilityAssuranceSection />
         <CollectionIntelligenceSection />
+        <CustomAppsIntroSection id="custom-applications" />
+        <AppExamplesSection />
+        <BuildVsBuySection />
+        <TechAndSecuritySection />
         <ExecutiveDashboardSection />
         <AIRecommendationsSection />
         <EnterpriseFeaturesSection />
         <IntegrationsShowcase />
         <CustomerResultsMetrics />
+        <UseCaseCTA />
         <PlatformReminder />
         <FAQAccordion />
         <O2CFinalCTA />
