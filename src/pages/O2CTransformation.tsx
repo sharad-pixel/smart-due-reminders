@@ -215,9 +215,9 @@ export default function O2CTransformation() {
       <section className="border-y border-border/60 bg-muted/30">
         <div className="container mx-auto px-4 sm:px-6 py-20 grid gap-10 lg:grid-cols-5">
           <div className="lg:col-span-2">
-            <H2>Move RACI and RAID Beyond the Spreadsheet</H2>
+            <H2>Govern Transformation in the Same Environment You Build It</H2>
             <p className="mt-4 text-muted-foreground">
-              A transformation control center that connects governance directly to your O2C processes.
+              RACI and RAID become interactive operating components — connected to workstreams, owners, and dependencies — rather than static spreadsheets.
             </p>
             <div className="mt-8 grid grid-cols-2 gap-4 text-sm">
               <div><div className="font-semibold mb-2">RACI</div>{["Responsible", "Accountable", "Consulted", "Informed"].map((x) => <div key={x} className="text-muted-foreground">{x}</div>)}</div>
@@ -245,10 +245,10 @@ export default function O2CTransformation() {
               </table>
             </div>
             <div className="mt-6 rounded-xl border border-primary/25 bg-primary/5 p-4 text-sm">
-              <div className="font-medium">“What is preventing us from completing the Billing transformation?”</div>
+              <div className="font-medium">“What is preventing Billing from going live?”</div>
               <div className="mt-2 flex gap-2 text-muted-foreground">
                 <Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                Three open issues are affecting the Billing workstream. Two depend on CRM product hierarchy cleanup and one requires a Finance policy decision.
+                The primary blockers are customer master cleanup and ERP configuration. Both dependencies affect 60% of currently open Billing issues.
               </div>
             </div>
           </div>
@@ -287,10 +287,11 @@ export default function O2CTransformation() {
       <section className="border-t border-border/60 bg-muted/30">
         <div className="container mx-auto px-4 sm:px-6 py-20">
           <H2>From O2C Assessment to Transformation Execution</H2>
-          <div className="mt-10 grid gap-6 lg:grid-cols-3">
+          <div className="mt-10 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
             {services.map((s) => (
               <div key={s.name} className="rounded-2xl border border-border bg-card p-7 flex flex-col">
                 <h3 className="text-xl font-semibold">{s.name}</h3>
+                {"desc" in s && s.desc && <p className="mt-2 text-sm text-muted-foreground">{s.desc}</p>}
                 <ul className="mt-5 space-y-2 text-sm">
                   {s.items.map((i) => <li key={i} className="flex gap-2"><CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />{i}</li>)}
                 </ul>
@@ -316,7 +317,7 @@ export default function O2CTransformation() {
       <section id="assessment" className="container mx-auto px-4 sm:px-6 py-20 scroll-mt-20">
         <div className="mx-auto max-w-3xl">
           <div className="text-center mb-8">
-            <H2>Request an O2C Assessment</H2>
+            <H2>Request an O2C Assessment or Discuss Your Use Case</H2>
             <p className="mt-3 text-muted-foreground">
               Just want to use the collections platform? <Link to="/signup" className="text-primary underline">Start free</Link> — no form needed.
             </p>
