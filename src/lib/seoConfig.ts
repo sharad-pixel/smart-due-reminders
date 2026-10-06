@@ -143,7 +143,7 @@ export const PAGE_SEO: Record<string, { title: string; description: string; keyw
   },
   features: {
     title: 'AI Revenue Intelligence Platform Features | Risk Scoring & Workflow Engine',
-    description: 'AI-powered collections CRM features: risk-based prioritization, centralized receivables, full audit trail, AI-powered collections workflows, and intelligent outreach.',
+    description: 'AI Revenue Intelligence features: risk-based prioritization, centralized receivables, full audit trail, AI-powered collections workflows, and intelligent outreach.',
     keywords: 'AI collections CRM features, risk-based prioritization, collections audit trail, AI-powered collections workflows, centralized receivables management, payment behavior prediction',
   },
   pricing: {
@@ -183,7 +183,7 @@ export const PAGE_SEO: Record<string, { title: string; description: string; keyw
   },
   collectionIntelligence: {
     title: 'Revenue Intelligence Platform | AI-Powered Workflows & Risk Scoring',
-    description: 'AI-powered collections CRM with risk-based prioritization, centralized receivables management, full audit trail, and intelligent collections workflows for maximum recovery.',
+    description: 'AI Revenue Intelligence platform with risk-based prioritization, centralized receivables management, full audit trail, and intelligent collections workflows for maximum recovery.',
     keywords: 'collections CRM, AI collections workflows, risk-based prioritization, collections audit trail, centralized receivables, predictive collections, AI credit risk, AR intelligence platform',
   },
   personas: {
@@ -244,7 +244,7 @@ export const PAGE_SEO: Record<string, { title: string; description: string; keyw
   },
   designPartners: {
     title: 'Design Partner Program | Shape the Future of Collections',
-    description: 'Join our Design Partner program and help shape the future of AI-powered collections. Early access, direct input, and exclusive pricing for founding partners.',
+    description: 'Join our Design Partner program and help shape the future of AI Revenue Intelligence. Early access, direct input, and exclusive pricing for founding partners.',
     keywords: 'design partner program, beta access, early adopter, collections software partnership',
   },
   careers: {
@@ -263,8 +263,8 @@ export const PAGE_SEO: Record<string, { title: string; description: string; keyw
     keywords: 'SaaS AR automation, subscription collections, failed payment recovery, involuntary churn prevention, SaaS receivables',
   },
   smallBusinesses: {
-    title: 'Small Business Collections Software | Recouply.ai',
-    description: 'Affordable AI-powered collections for small businesses. Automate invoice follow-ups, get paid faster, and protect cash flow without hiring a collections team.',
+    title: 'Small Business Revenue Intelligence | Recouply.ai',
+    description: 'Affordable AI Revenue Intelligence and collections for small businesses. Automate invoice follow-ups, get paid faster, and protect cash flow without hiring a collections team.',
     keywords: 'small business collections, affordable AR automation, invoice follow-up software, SMB cash collections',
   },
   comingSoon: {

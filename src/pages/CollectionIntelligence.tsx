@@ -302,7 +302,7 @@ const CollectionIntelligence = () => {
               Collections Workflows That Run 24/7
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Set up workflows once, and let your collections CRM handle the rest. 
+              Set up workflows once, and let Recouply's Revenue Intelligence handle the rest. 
               From initial reminder to final escalation — AI-powered, risk-aware, and fully auditable.
             </p>
           </div>

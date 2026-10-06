@@ -32,7 +32,7 @@ const HEADLINES: string[] = [
   "Your First AR Hire — At a Fraction of the Cost",
   "Turn Revenue Risk Into Predictable Cash Flow",
   "From Overdue to Recovered — Without Hiring a Collections Team",
-  "AI-Powered Collections Workflows That Recover Cash",
+  "AI Revenue Intelligence That Turns Receivables Into Cash",
   "Stop Chasing. Start Closing the Cash Gap.",
   "Know the Risk Before You Grow the Account",
   "Recover More Cash. Keep Every Customer Relationship.",

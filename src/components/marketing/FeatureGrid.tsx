@@ -3,7 +3,7 @@ import { Users, Mail, Target, AlertTriangle, DollarSign, Clock, BarChart3, Brain
 import { motion } from "framer-motion";
 
 const features = [
-  { icon: Brain, title: "AI-Powered Collections Workflows", description: "6 specialized AI agents orchestrate follow-ups, escalations, and negotiations — all tracked in your CRM", micro: "Consistent execution, zero manual effort on repeatable tasks" },
+  { icon: Brain, title: "AI Revenue Intelligence Workflows", description: "6 specialized AI agents orchestrate follow-ups, escalations, and negotiations — all tracked in your CRM", micro: "Consistent execution, zero manual effort on repeatable tasks" },
   { icon: Mail, title: "Intelligent Email Triage", description: "AI reads inbound replies, detects intent, and drafts context-aware responses", micro: "Dispute? Payment promise? Your agents already know" },
   { icon: Target, title: "Risk-Based Prioritization", description: "Real-time collectability scores powered by payment behavior and engagement signals", micro: "ASC 326 / IFRS 9 aligned ECL calculations" },
   { icon: AlertTriangle, title: "Predictive Early Warnings", description: "AI surfaces at-risk accounts before payments age — proactive, not reactive", micro: "Engagement-adjusted probability of default modeling" },

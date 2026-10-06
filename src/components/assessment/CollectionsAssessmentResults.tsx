@@ -365,7 +365,7 @@ const CollectionsAssessmentResults = ({
             </div>
             <p className="text-muted-foreground max-w-lg mx-auto leading-relaxed">
               Your assessment reveals <span className="font-semibold text-foreground">{formatCurrency(results.total_impact)}</span> in potential impact. 
-              Book a personalized demo to see how Recouply's AI-powered collections intelligence can help you recover more, faster — with less manual effort.
+              Book a personalized demo to see how Recouply's AI Revenue Intelligence can help you recover more, faster — with less manual effort.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
               <Button

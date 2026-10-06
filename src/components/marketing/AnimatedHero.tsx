@@ -24,16 +24,16 @@ const headlines = [
 ];
 
 const subheadlines = [
-  "Recouply.ai is the AI-powered collections CRM that centralizes every receivable, prioritizes by risk, and maintains a complete audit trail of every interaction.",
+  "Recouply.ai is the AI-native Revenue Intelligence platform that centralizes every contract and receivable, prioritizes by risk, and maintains a complete audit trail of every interaction.",
   "AI-powered collections workflows replace manual follow-ups with consistent, risk-aware outreach — all tracked in one system of record.",
-  "From first reminder to final resolution — every action, decision, and outcome lives in one centralized collections CRM.",
+  "From first reminder to final resolution — every action, decision, and outcome lives in one Revenue Intelligence system of record.",
   "Risk-based prioritization ensures your team works the right accounts at the right time. AI handles the rest.",
   "A complete system of record for collections activity — full audit trail, risk scoring, and AI-driven workflows.",
   "Centralized receivables management with AI agents that execute outreach, assess risk, and recover cash — all human-approved.",
   "Every interaction makes the system smarter. Consistent workflows, compounding results, complete visibility.",
-  "Purpose-built collections CRM with AI workflows that reduce DSO, mitigate risk, and strengthen cash position.",
+  "Purpose-built Revenue Intelligence with AI workflows that reduce DSO, mitigate risk, and strengthen cash position.",
   "Enterprise-grade collections management at a fraction of the cost of manual AR teams.",
-  "The collections CRM that knows when to nudge and when to escalate — always with a full audit trail.",
+  "The Revenue Intelligence platform that knows when to nudge and when to escalate — always with a full audit trail.",
 ];
 
 const AnimatedHero = () => {
@@ -179,7 +179,7 @@ const AnimatedHero = () => {
                  animate={{ scale: [1, 1.3, 1], opacity: [1, 0.7, 1] }}
                  transition={{ duration: 1.5, repeat: Infinity }}
                />
-              Your system of record for collections — AI workflows, risk scoring, and full audit trail
+              Your Revenue Intelligence system of record — contracts, collections, risk scoring, and full audit trail
             </span>
            </motion.p>
 
@@ -203,7 +203,7 @@ const AnimatedHero = () => {
                    transition={{ duration: 0.3 }}
                  />
                  <span className="relative flex items-center gap-2">
-                    Start Recovering Revenue
+                    Start Free
                     <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
                  </span>
                </Button>

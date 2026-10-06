@@ -8,7 +8,7 @@ Recouply.ai deploys autonomous AI agents that orchestrate the entire accounts re
 
 - [Home](/): Revenue Intelligence Platform overview and AI agent showcase.
 - [Features](/features): Risk scoring, collections workflows, audit trail.
-- [Collection Intelligence](/collection-intelligence): AI-powered collections CRM and workflow engine.
+- [Collection Intelligence](/collection-intelligence): AI collections workflows within the Recouply Revenue Intelligence platform.
 - [Revenue Risk](/revenue-risk): Expected Credit Loss and collectability scoring (ASC 326 / IFRS 9).
 - [Pricing](/pricing): Plans from solo operators to enterprise.
 - [Integrations](/integrations): Stripe, QuickBooks, Google Sheets, NetSuite, Sage Intacct.

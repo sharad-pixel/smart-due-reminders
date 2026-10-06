@@ -80,7 +80,7 @@ export const DemoWelcome = () => {
         steps={[
           { title: "AI agents handle repeatable workflows", description: "Each agent adapts tone and cadence to invoice aging — consistent outreach, risk-aware prioritization, full audit trail." },
           { title: "Interact with realistic data", description: "25 customer accounts and 75 invoices are pre-loaded. Activate agents, trigger outreach, and watch cash recover." },
-          { title: "See the cash impact", description: "Track how AI-powered collections workflows translate directly into reduced DSO, mitigated risk, and stronger cash position." },
+          { title: "See the cash impact", description: "Track how Revenue Intelligence workflows translate directly into reduced DSO, mitigated risk, and stronger cash position." },
         ]}
       />
 
