@@ -86,6 +86,7 @@ const companyItems: MenuItem[] = [
   { icon: Info, title: "About", description: "Our mission for finance teams.", path: "/about" },
   { icon: Newspaper, title: "Resources", description: "Revenue Intelligence Hub.", path: "/resources" },
   { icon: BookOpen, title: "Blog", description: "Insights on revenue operations and finance transformation.", path: "/blog" },
+  { icon: Briefcase, title: "Careers", description: "Build the future of enterprise finance.", path: "/careers" },
   { icon: ShieldCheck, title: "Trust Center", description: "Security, privacy, and compliance.", path: "/trust" },
   { icon: BookOpen, title: "Knowledge Base", description: "Docs, guides, and best practices.", path: "/knowledge-base" },
 ];
