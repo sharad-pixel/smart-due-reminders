@@ -221,8 +221,9 @@ serve(async (req) => {
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('[RESEND-WEBHOOK] Error:', errorMessage);
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      status: 500,
+    // Acknowledge so Resend doesn't disable the endpoint over internal processing errors
+    return new Response(JSON.stringify({ received: true, error: errorMessage }), {
+      status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
