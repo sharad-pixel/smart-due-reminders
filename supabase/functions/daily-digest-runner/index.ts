@@ -25,8 +25,16 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  if (!(await isAuthorizedCronRequest(req))) {
-    return unauthorizedResponse(corsHeaders);
+  const isCron = await isAuthorizedCronRequest(req);
+  let callerUserId: string | null = null;
+  if (!isCron) {
+    const authHeader = req.headers.get('Authorization') || '';
+    const token = authHeader.replace(/^Bearer\s+/i, '');
+    if (!token) return unauthorizedResponse(corsHeaders);
+    const authClient = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+    const { data: { user }, error: authErr } = await authClient.auth.getUser(token);
+    if (authErr || !user) return unauthorizedResponse(corsHeaders);
+    callerUserId = user.id;
   }
 
   try {
@@ -45,6 +53,11 @@ serve(async (req) => {
       skipEmail = body?.skipEmail === true; // Skip email sending for manual syncs
     } catch {
       // No body or invalid JSON, use defaults
+    }
+    // Signed-in users may only regenerate their own digest, without email
+    if (!isCron) {
+      targetUserId = callerUserId;
+      skipEmail = true;
     }
 
     logStep('Starting daily digest generation', { forceRegenerate, targetUserId, skipEmail });
