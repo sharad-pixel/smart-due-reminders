@@ -16,7 +16,17 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, X, ListChecks, Download } from "lucide-react";
+import { Plus, Search, X, ListChecks, Download, AlertTriangle } from "lucide-react";
+
+const LOCAL_SOURCES = ["recouply_manual", "csv_upload", "google_sheets", "manual"];
+const SOURCE_LABELS: Record<string, string> = {
+  stripe: "Stripe",
+  quickbooks: "QuickBooks",
+  xero: "Xero",
+  netsuite: "NetSuite",
+  sage_intacct: "Sage Intacct",
+  salesforce: "Salesforce",
+};
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -116,6 +126,21 @@ const Invoices = () => {
   const [showBulkStatusDialog, setShowBulkStatusDialog] = useState(false);
   const [selectedAgingBucket, setSelectedAgingBucket] = useState<string>("");
   const [selectedBulkStatus, setSelectedBulkStatus] = useState<"Open" | "Paid" | "Disputed" | "Settled" | "InPaymentPlan" | "Canceled" | "FinalInternalCollections" | "">("");
+  const [syncedAcknowledged, setSyncedAcknowledged] = useState(false);
+  const [skipSynced, setSkipSynced] = useState(false);
+
+  // Invoices synced from external systems (anything not created in Recouply or uploaded via CSV)
+  const { syncedSelected, manualSelected, syncedBySource } = useMemo(() => {
+    const sel = invoices.filter((i) => selectedInvoices.includes(i.id));
+    const isSynced = (i: Invoice) => !LOCAL_SOURCES.includes(i.integration_source || "recouply_manual");
+    const synced = sel.filter(isSynced);
+    const bySource: Record<string, number> = {};
+    synced.forEach((i) => {
+      const s = i.integration_source as string;
+      bySource[s] = (bySource[s] || 0) + 1;
+    });
+    return { syncedSelected: synced, manualSelected: sel.filter((i) => !isSynced(i)), syncedBySource: bySource };
+  }, [invoices, selectedInvoices]);
 
 
   useEffect(() => {
@@ -226,16 +251,30 @@ const Invoices = () => {
       toast.error("Please select a status");
       return;
     }
+    const targetIds = skipSynced ? manualSelected.map((i) => i.id) : selectedInvoices;
+    if (targetIds.length === 0) {
+      toast.error("No invoices to update");
+      return;
+    }
 
     try {
       const { error } = await supabase
         .from("invoices")
         .update({ status: selectedBulkStatus })
-        .in("id", selectedInvoices);
+        .in("id", targetIds);
 
       if (error) throw error;
 
-      toast.success(`Status updated to ${selectedBulkStatus} for ${selectedInvoices.length} invoice(s)`);
+      const syncedUpdated = skipSynced ? [] : syncedSelected;
+      if (syncedUpdated.length > 0) {
+        toast.warning(
+          `${syncedUpdated.length} synced invoice(s) were updated in Recouply only. Remember to update them in ${Object.keys(syncedBySource).map((s) => SOURCE_LABELS[s] || s).join(", ")} too.`,
+          { duration: 10000 }
+        );
+      }
+      setSyncedAcknowledged(false);
+      setSkipSynced(false);
+      toast.success(`Status updated to ${selectedBulkStatus} for ${targetIds.length} invoice(s)`);
       setSelectedInvoices([]);
       setShowBulkStatusDialog(false);
       setSelectedBulkStatus("");
@@ -482,6 +521,12 @@ const Invoices = () => {
                   <span className="text-sm text-muted-foreground py-2">
                     {selectedInvoices.length} selected
                   </span>
+                  {syncedSelected.length > 0 && (
+                    <Badge variant="outline" className="self-center border-warning/40 text-warning gap-1">
+                      <AlertTriangle className="h-3 w-3" />
+                      {syncedSelected.length} synced from {Object.keys(syncedBySource).map((s) => SOURCE_LABELS[s] || s).join(", ")}
+                    </Badge>
+                  )}
                   <Button
                     variant="outline"
                     size="sm"
@@ -829,15 +874,15 @@ const Invoices = () => {
           </Card>
 
         {/* Bulk Status Change Dialog */}
-        <Dialog open={showBulkStatusDialog} onOpenChange={setShowBulkStatusDialog}>
-          <DialogContent>
+        <Dialog open={showBulkStatusDialog} onOpenChange={(o) => { setShowBulkStatusDialog(o); if (!o) { setSyncedAcknowledged(false); setSkipSynced(false); } }}>
+          <DialogContent className="max-w-lg">
             <DialogHeader>
               <DialogTitle>Change Invoice Status</DialogTitle>
               <DialogDescription>
                 Update the status for {selectedInvoices.length} selected invoice(s).
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
+            <div className="space-y-4 py-2">
               <div className="space-y-2">
                 <Label>New Status</Label>
                 <Select
@@ -858,13 +903,55 @@ const Invoices = () => {
                   </SelectContent>
                 </Select>
               </div>
+
+              {syncedSelected.length > 0 && (
+                <div className="rounded-md border border-warning/40 bg-warning/10 p-3 space-y-3">
+                  <div className="flex gap-2">
+                    <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
+                    <div className="text-sm space-y-1">
+                      <p className="font-medium">
+                        {syncedSelected.length} of {selectedInvoices.length} invoice(s) are synced from a connected system
+                      </p>
+                      <p className="text-muted-foreground">
+                        Changing the status here updates Recouply only. You must also settle, void or update these invoices in the source system, or the next sync may overwrite your change.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(syncedBySource).map(([src, count]) => (
+                      <Badge key={src} variant="outline" className="capitalize">
+                        {SOURCE_LABELS[src] || src}: {count}
+                      </Badge>
+                    ))}
+                  </div>
+                  {manualSelected.length > 0 && (
+                    <div className="flex items-start gap-2">
+                      <Checkbox id="skip-synced" checked={skipSynced} onCheckedChange={(c) => setSkipSynced(c === true)} />
+                      <Label htmlFor="skip-synced" className="text-sm font-normal leading-snug">
+                        Only update the {manualSelected.length} invoice(s) managed in Recouply. Leave synced invoices unchanged.
+                      </Label>
+                    </div>
+                  )}
+                  {!skipSynced && (
+                    <div className="flex items-start gap-2">
+                      <Checkbox id="ack-synced" checked={syncedAcknowledged} onCheckedChange={(c) => setSyncedAcknowledged(c === true)} />
+                      <Label htmlFor="ack-synced" className="text-sm font-normal leading-snug">
+                        I understand I need to update these {syncedSelected.length} invoice(s) in {Object.keys(syncedBySource).map((s) => SOURCE_LABELS[s] || s).join(", ")} as well.
+                      </Label>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowBulkStatusDialog(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleBulkStatusChange} disabled={!selectedBulkStatus}>
-                Update Status
+              <Button
+                onClick={handleBulkStatusChange}
+                disabled={!selectedBulkStatus || (syncedSelected.length > 0 && !skipSynced && !syncedAcknowledged)}
+              >
+                Update {skipSynced ? manualSelected.length : selectedInvoices.length} Invoice(s)
               </Button>
             </DialogFooter>
           </DialogContent>
