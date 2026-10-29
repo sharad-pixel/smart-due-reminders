@@ -20,7 +20,29 @@ export const founderConfig = {
   ]
 };
 
+export const founderAdobeRole = {
+  title: "Finance Program Manager – Quote-to-Cash Transformation",
+  company: "Adobe Inc.",
+  project: "Project Delta",
+  period: "September 2026 – Present",
+  introduction: "Supporting Adobe's enterprise-wide Quote-to-Cash transformation as a Finance Program Manager and Q2C Subject Matter Expert, partnering with Boston Consulting Group (BCG) on future-state process design, transformation strategy, and program governance.",
+  collaboration: "Working across Finance, Sales, Operations, and Technology stakeholders to assess existing processes, identify operational inefficiencies, define scalable target operating models, and coordinate cross-functional transformation initiatives.",
+  focusAreas: [
+    { title: "Future-State Transformation", description: "Partnering with BCG on process redesign, operating model development, and implementation readiness." },
+    { title: "Program Governance", description: "Supporting workstream coordination, stakeholder alignment, executive reporting, milestone tracking, and dependency management." },
+    { title: "Quote-to-Cash Expertise", description: "Providing functional guidance across commercial operations, order management, billing, and downstream financial processes." },
+    { title: "Scalability and Efficiency", description: "Helping identify opportunities to streamline workflows, strengthen controls, and support evolving business requirements." },
+    { title: "AI and Automation Opportunities", description: "Exploring how intelligent automation and AI-native workflows can improve operational visibility, reduce manual effort, and support proactive decision-making." },
+  ],
+  conclusion: "Focused on enabling scalable, efficient Quote-to-Cash operations that support business growth, evolving commercial models, and long-term operational agility.",
+};
+
 export const companyTimeline = [
+  {
+    year: founderAdobeRole.period,
+    company: founderAdobeRole.company,
+    description: "Finance Program Manager – Quote-to-Cash Transformation | Project Delta. Partnering with BCG on future-state process design, transformation strategy, and program governance.",
+  },
   {
     year: "2025–Present",
     company: "Founder, Recouply.ai",
@@ -101,6 +123,7 @@ export const startupFeatures = [
 ];
 
 export const notableCompanies = [
+  "Adobe Inc.",
   "Notable Health",
   "ServiceTitan",
   "11x.ai",

@@ -20,8 +20,10 @@ import {
 } from "lucide-react";
 import founderPhoto from "@/assets/founder-sharad-anime.png";
 import founderCarPhoto from "@/assets/founder-car-anime.png";
+import adobeLogo from "@/assets/adobe-logo.svg.asset.json";
 import {
   founderConfig,
+  founderAdobeRole,
   companyTimeline,
   companyValues,
   enterpriseFeatures,
@@ -179,6 +181,36 @@ const About = () => {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Current transformation engagement */}
+      <section className="py-16 md:py-20 border-y bg-muted/30" aria-labelledby="adobe-role-title">
+        <div className="container mx-auto px-4">
+          <div className="max-w-5xl mx-auto">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-6 mb-8">
+              <img src={adobeLogo.url} alt="Adobe Inc. logo" className="w-16 h-16 shrink-0 object-contain" />
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-primary mb-2">{founderAdobeRole.company} · {founderAdobeRole.project}</p>
+                <h2 id="adobe-role-title" className="text-2xl md:text-3xl font-bold leading-tight break-words">{founderAdobeRole.title}</h2>
+                <p className="text-sm text-muted-foreground mt-3">{founderAdobeRole.period}</p>
+              </div>
+            </div>
+            <div className="space-y-5 text-lg text-muted-foreground leading-relaxed">
+              <p>{founderAdobeRole.introduction}</p>
+              <p>{founderAdobeRole.collaboration}</p>
+            </div>
+            <h3 className="text-lg font-semibold mt-10 mb-6">Key areas of focus</h3>
+            <ul className="grid md:grid-cols-2 gap-x-10 gap-y-6">
+              {founderAdobeRole.focusAreas.map((area) => (
+                <li key={area.title} className="border-l-2 border-primary/30 pl-5">
+                  <h4 className="font-semibold mb-2">{area.title}</h4>
+                  <p className="text-muted-foreground leading-relaxed">{area.description}</p>
+                </li>
+              ))}
+            </ul>
+            <p className="text-lg text-muted-foreground leading-relaxed mt-10 pt-8 border-t">{founderAdobeRole.conclusion}</p>
           </div>
         </div>
       </section>
@@ -363,6 +395,9 @@ const About = () => {
                     <Card className="inline-block text-left">
                       <CardContent className="p-6">
                         <Badge variant="outline" className="mb-2">{item.year}</Badge>
+                        {item.company === founderAdobeRole.company && (
+                          <img src={adobeLogo.url} alt="Adobe Inc. logo" className="w-10 h-10 object-contain my-3" />
+                        )}
                         <h4 className="font-bold text-lg mb-2">{item.company}</h4>
                         <p className="text-muted-foreground text-sm">{item.description}</p>
                       </CardContent>
