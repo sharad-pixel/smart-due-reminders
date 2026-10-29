@@ -94,11 +94,19 @@ serve(async (req) => {
         });
         if (inboundResponse.error) {
           console.error('[RESEND-WEBHOOK] Error forwarding to resend-inbound-tasks:', inboundResponse.error);
+          return new Response(JSON.stringify({ received: false, forwarded: false, error: 'Inbound intake failed; retry required' }), {
+            status: 503,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
         } else {
           console.log('[RESEND-WEBHOOK] Successfully forwarded to resend-inbound-tasks');
         }
       } catch (fwdErr) {
         console.error('[RESEND-WEBHOOK] Failed to forward to resend-inbound-tasks:', fwdErr);
+        return new Response(JSON.stringify({ received: false, forwarded: false, error: 'Inbound intake failed; retry required' }), {
+          status: 503,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
       }
       return new Response(JSON.stringify({ received: true, forwarded: true }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -221,9 +229,9 @@ serve(async (req) => {
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('[RESEND-WEBHOOK] Error:', errorMessage);
-    // Acknowledge so Resend doesn't disable the endpoint over internal processing errors
-    return new Response(JSON.stringify({ received: true, error: errorMessage }), {
-      status: 200,
+    // Failed intake must remain retryable rather than silently discard the event.
+    return new Response(JSON.stringify({ received: false, error: errorMessage }), {
+      status: 503,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }

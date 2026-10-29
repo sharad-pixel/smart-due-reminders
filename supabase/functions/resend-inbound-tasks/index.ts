@@ -2,6 +2,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Webhook } from "https://esm.sh/svix@1.15.0";
+import { isTrustedInboundRequest } from "../_shared/inboundAuth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -117,7 +118,12 @@ serve(async (req) => {
     });
   }
 
-  // Require Svix signature on every request — no unauthenticated bypass.
+  // Backend handoff/replay is service-authenticated; external calls require Svix.
+  const trustedInternal = isTrustedInboundRequest(
+    req.headers.get("authorization"),
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"),
+  );
+  if (!trustedInternal) {
   const svixId = req.headers.get("svix-id");
   const svixTimestamp = req.headers.get("svix-timestamp");
   const svixSignature = req.headers.get("svix-signature");
@@ -155,6 +161,7 @@ serve(async (req) => {
     });
   }
 
+  }
   const eventType = rawPayload.type || "direct";
   console.log("Received webhook payload type:", eventType);
 
