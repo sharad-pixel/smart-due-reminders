@@ -1,3 +1,3 @@
-- [ ] Repair authenticated webhook forwarding and verify unsigned requests remain rejected.
-- [ ] Re-enable the Recouply Resend webhook; keep the duplicate direct webhook disabled.
-- [ ] Recover missed replies and verify AI results in the signed-in Inbound page.
+- [x] Repair authenticated webhook forwarding and verify unsigned requests remain rejected.
+- [x] Re-enable the Recouply Resend webhook; keep the duplicate direct webhook disabled.
+- [x] Recover missed replies and verify AI results in the signed-in Inbound page.
