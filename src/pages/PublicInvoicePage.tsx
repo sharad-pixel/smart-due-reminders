@@ -222,8 +222,57 @@ const PublicInvoicePage = () => {
       ].filter((q) => q.url)
     : [];
 
-  const handleDownloadPDF = () => {
-    window.print();
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownloadPDF = async () => {
+    const el = document.querySelector<HTMLElement>(".print-invoice");
+    if (!el || downloading) return;
+    setDownloading(true);
+    try {
+      const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+        import("html2canvas"),
+        import("jspdf"),
+      ]);
+      const canvas = await html2canvas(el, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        logging: false,
+      });
+      // US Letter at 96dpi-equivalent points: 612 x 792 pt
+      const pdf = new jsPDF({ unit: "pt", format: "letter", orientation: "portrait" });
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const margin = 36; // 0.5in
+      const imgW = pageW - margin * 2;
+      const pxPerPt = canvas.width / imgW;
+      const pagePxH = Math.floor((pageH - margin * 2) * pxPerPt);
+
+      let y = 0;
+      let page = 0;
+      while (y < canvas.height) {
+        const sliceH = Math.min(pagePxH, canvas.height - y);
+        const slice = document.createElement("canvas");
+        slice.width = canvas.width;
+        slice.height = sliceH;
+        const ctx = slice.getContext("2d");
+        if (!ctx) break;
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, slice.width, slice.height);
+        ctx.drawImage(canvas, 0, y, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+        const img = slice.toDataURL("image/jpeg", 0.92);
+        if (page > 0) pdf.addPage();
+        pdf.addImage(img, "JPEG", margin, margin, imgW, sliceH / pxPerPt);
+        y += sliceH;
+        page += 1;
+      }
+      pdf.save(`Invoice-${invoice.invoice_number}.pdf`);
+    } catch (err) {
+      console.error("PDF download failed, falling back to print:", err);
+      window.print();
+    } finally {
+      setDownloading(false);
+    }
   };
 
   return (
