@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Download } from "lucide-react";
+import { Loader2, Download, Eye } from "lucide-react";
 import SEOHead from "@/components/seo/SEOHead";
 import { Button } from "@/components/ui/button";
 import venmoLogo from "@/assets/venmo-logo.png";
@@ -111,14 +111,17 @@ const PublicInvoicePage = () => {
   const [downloading, setDownloading] = useState(false);
   const [paymentDocuments, setPaymentDocuments] = useState<{ id: string; file_name: string; url: string }[]>([]);
   const [documentError, setDocumentError] = useState(false);
+  const [documentsLoading, setDocumentsLoading] = useState(true);
 
   useEffect(() => {
     setPaymentDocuments([]);
     setDocumentError(false);
     if (!token || !data) return;
+    setDocumentsLoading(true);
     supabase.functions.invoke("invoice-payment-documents", { body: { token } }).then(({ data: result, error }) => {
       if (error || result?.error) setDocumentError(true);
       else setPaymentDocuments(result?.documents ?? []);
+      setDocumentsLoading(false);
     });
   }, [token, data]);
 
@@ -127,6 +130,25 @@ const PublicInvoicePage = () => {
     const doc = result?.documents?.find((d: { id: string }) => d.id === documentId);
     if (error || !doc) { setDocumentError(true); return; }
     const link = document.createElement("a"); link.href = doc.url; link.download = doc.file_name; link.click();
+  };
+
+  const viewPaymentDocument = async (documentId: string) => {
+    const preview = window.open("about:blank", "_blank");
+    if (!preview) return;
+    preview.opener = null;
+    try {
+      const { data: result, error } = await supabase.functions.invoke("invoice-payment-documents", { body: { token } });
+      const doc = result?.documents?.find((d: { id: string }) => d.id === documentId);
+      if (error || !doc) throw new Error("Document unavailable");
+      const response = await fetch(doc.url);
+      if (!response.ok) throw new Error("Document unavailable");
+      const url = URL.createObjectURL(await response.blob());
+      preview.location.href = url;
+      setTimeout(() => URL.revokeObjectURL(url), 300000);
+    } catch {
+      preview.close();
+      setDocumentError(true);
+    }
   };
 
   useEffect(() => {
@@ -245,7 +267,7 @@ const PublicInvoicePage = () => {
 
   const handleDownloadPDF = async () => {
     const el = document.querySelector<HTMLElement>(".print-invoice");
-    if (!el || downloading) return;
+    if (!el || downloading || documentsLoading) return;
     setDownloading(true);
     try {
       const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
@@ -257,6 +279,7 @@ const PublicInvoicePage = () => {
         useCORS: true,
         backgroundColor: "#ffffff",
         logging: false,
+        onclone: (doc) => doc.querySelectorAll(".no-print").forEach(node => node.remove()),
       });
       // US Letter at 96dpi-equivalent points: 612 x 792 pt
       const pdf = new jsPDF({ unit: "pt", format: "letter", orientation: "portrait" });
@@ -317,7 +340,7 @@ const PublicInvoicePage = () => {
           <div className="flex justify-end mb-4 no-print">
             <button
               onClick={handleDownloadPDF}
-              disabled={downloading}
+              disabled={downloading || documentsLoading}
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-white font-medium text-sm transition-opacity hover:opacity-90 shadow-md disabled:opacity-60"
               style={{ backgroundColor: hc }}
             >
@@ -697,6 +720,7 @@ const PublicInvoicePage = () => {
               {documentError && <p className="text-sm text-destructive">Payment documents could not be loaded. Please refresh to try again.</p>}
               {paymentDocuments.map(doc => <div key={doc.id} className="flex items-center justify-between gap-3 py-2">
                 <span className="text-sm break-words min-w-0">{doc.file_name}</span>
+                <Button variant="outline" size="sm" className="shrink-0 no-print" onClick={() => viewPaymentDocument(doc.id)}><Eye className="h-4 w-4 mr-2" />View</Button>
                 <Button variant="outline" size="sm" className="shrink-0 no-print" onClick={() => downloadPaymentDocument(doc.id)}><Download className="h-4 w-4 mr-2" />Download</Button>
               </div>)}
             </div>}
