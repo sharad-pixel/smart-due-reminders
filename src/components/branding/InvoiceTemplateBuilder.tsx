@@ -126,7 +126,7 @@ export const InvoiceTemplateBuilder = ({
       if (!effectiveAccountId) return null;
       const { data, error } = await supabase
         .from("invoices")
-        .select("product_description, invoice_number, reference_id, amount, due_date, issue_date, notes")
+        .select("id, product_description, invoice_number, reference_id, amount, due_date, issue_date, notes")
         .eq("user_id", effectiveAccountId)
         .order("created_at", { ascending: false })
         .limit(1)
@@ -135,6 +135,23 @@ export const InvoiceTemplateBuilder = ({
       return data;
     },
     enabled: !!effectiveAccountId,
+  });
+
+  const { data: paymentDocuments = [] } = useQuery({
+    queryKey: ["invoice-preview-documents", sampleInvoice?.id],
+    enabled: !!sampleInvoice?.id && showPreview,
+    queryFn: async () => {
+      if (!sampleInvoice?.id) return [];
+      const { data, error } = await supabase.from("invoice_document_attachments")
+        .select("documents(id,file_name,status,expires_at)")
+        .eq("invoice_id", sampleInvoice.id);
+      if (error) throw error;
+      return (data ?? []).flatMap(link => {
+        const doc = link.documents;
+        if (!doc || ["rejected", "expired"].includes(doc.status) || (doc.expires_at && new Date(doc.expires_at).getTime() <= Date.now())) return [];
+        return [{ id: doc.id, file_name: doc.file_name }];
+      });
+    },
   });
 
   useEffect(() => {
@@ -456,6 +473,7 @@ export const InvoiceTemplateBuilder = ({
           }}
           businessName={profileAddress?.business_name || businessName}
           logoUrl={logoUrl}
+          paymentDocuments={paymentDocuments}
           sampleInvoice={sampleInvoice ? {
             description: sampleInvoice.product_description || null,
             invoice_number: sampleInvoice.invoice_number || null,

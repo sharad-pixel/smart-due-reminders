@@ -21,6 +21,7 @@ interface InvoiceTemplatePreviewProps {
   businessName: string;
   logoUrl: string | null;
   sampleInvoice?: SampleInvoice;
+  paymentDocuments?: Array<{ id: string; file_name: string }>;
 }
 
 export const InvoiceTemplatePreview = ({
@@ -28,6 +29,7 @@ export const InvoiceTemplatePreview = ({
   businessName,
   logoUrl,
   sampleInvoice,
+  paymentDocuments = [],
 }: InvoiceTemplatePreviewProps) => {
   const fontFamily =
     template.font_style === "classic"
@@ -387,6 +389,15 @@ export const InvoiceTemplatePreview = ({
                 </div>
               </div>
             )}
+
+          {paymentDocuments.length > 0 && (
+            <div className="mx-5 mt-3 border-t pt-2 text-foreground">
+              <h3 className="text-[10px] font-semibold mb-1">Wire &amp; Payment Documents</h3>
+              {paymentDocuments.map(doc => (
+                <div key={doc.id} className="text-[10px] break-words py-1">{doc.file_name}</div>
+              ))}
+            </div>
+          )}
 
           {/* Spacer to push portal + footer to bottom */}
           <div className="flex-1" />
