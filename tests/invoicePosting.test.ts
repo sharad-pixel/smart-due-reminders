@@ -1,6 +1,6 @@
 import { describe, it as test } from "node:test";
 import { strict as assert } from "node:assert";
-import { isInvoiceEditLocked, isRecouplyManualInvoice } from "./invoicePosting";
+import { isInvoiceEditLocked, isRecouplyManualInvoice } from "../src/lib/invoicePosting";
 
 describe("manual invoice editing", () => {
   test("Recouply-created invoices remain editable when posted", () => {
