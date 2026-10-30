@@ -36,3 +36,13 @@ export function usesPostingLifecycle(inv: PostingLifecycleInvoice | null | undef
 export function getPostingState(inv: PostingLifecycleInvoice | null | undefined): PostingState {
   return ((inv?.posting_state as PostingState) === "draft") ? "draft" : "posted";
 }
+
+export function isRecouplyManualInvoice(inv: PostingLifecycleInvoice | null | undefined): boolean {
+  if (!inv || inv.source_contract_id) return false;
+  const source = (inv.integration_source || inv.source_system || "").toLowerCase();
+  return ["", "manual", "recouply_manual"].includes(source);
+}
+
+export function isInvoiceEditLocked(inv: PostingLifecycleInvoice | null | undefined): boolean {
+  return !isRecouplyManualInvoice(inv) && usesPostingLifecycle(inv) && getPostingState(inv) === "posted";
+}

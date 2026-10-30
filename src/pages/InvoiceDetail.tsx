@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { formatCurrency } from "@/lib/formatters";
 import { getAgingBucketFromDays as getAgingBucket, getAgingBucketLabel } from "@/lib/agingBuckets";
 import { getInvoiceStatusColor as getStatusColor } from "@/lib/invoiceStatuses";
-import { usesPostingLifecycle, getPostingState } from "@/lib/invoicePosting";
+import { usesPostingLifecycle, getPostingState, isRecouplyManualInvoice, isInvoiceEditLocked } from "@/lib/invoicePosting";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/layout/Layout";
@@ -245,6 +245,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
   const [editCurrency, setEditCurrency] = useState("USD");
   const [editDueDate, setEditDueDate] = useState("");
   const [editDueDateTouched, setEditDueDateTouched] = useState(false);
+  const [savingInvoiceEdit, setSavingInvoiceEdit] = useState(false);
 
   // Auto-calc Due Date from Issue Date + Payment Terms while the edit dialog is
   // open — unless the user has manually typed a due date (override).
@@ -817,7 +818,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
 
   const handleEditInvoice = () => {
     if (!invoice) return;
-    if (usesPostingLifecycle(invoice as any) && getPostingState(invoice as any) === "posted") {
+    if (isInvoiceEditLocked(invoice)) {
       toast.error("This invoice is Posted (locked). Unpost it to edit.");
       return;
     }
@@ -827,13 +828,16 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
     setEditAmount(currentSubtotal.toString());
     setEditProcessingFeePercent((invoice.processing_fee_percent ?? 0).toString());
     setEditIssueDate(invoice.issue_date);
-    setEditPaymentTerms(invoice.payment_terms || "NET30");
+    const terms = getPaymentTermsOptions().find(option =>
+      option.value === invoice.payment_terms || option.label.toLowerCase().replace(/\s/g, "") === invoice.payment_terms?.toLowerCase().replace(/\s/g, "")
+    );
+    setEditPaymentTerms(terms?.value || "CUSTOM");
     setEditNotes(invoice.notes || "");
     setEditCurrency(invoice.currency || "USD");
     setEditDueDate(invoice.due_date || "");
     // Reset "touched" so opening the dialog resumes auto-calc unless the user
     // edits the due date directly in this session.
-    setEditDueDateTouched(false);
+    setEditDueDateTouched(true);
     setEditInvoiceDialogOpen(true);
   };
 
@@ -853,11 +857,11 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
   };
 
   const handleSaveInvoiceEdit = async () => {
-    if (!invoice) return;
+    if (!invoice || savingInvoiceEdit || isInvoiceEditLocked(invoice)) return;
 
     // Processing fee is only available for Recouply-native invoices (not integrations or AI ingestion)
     // Processing fee is only available for Recouply-native invoices (not integrations or AI ingestion)
-    const isManualInvoice = !invoice.integration_source || invoice.integration_source === 'recouply_manual';
+    const isManualInvoice = isRecouplyManualInvoice(invoice);
     const isDraftInvoice = usesPostingLifecycle(invoice as any) && getPostingState(invoice as any) === "draft";
     const allowFullEdit = isManualInvoice || isDraftInvoice;
     const subtotal = parseFloat(editAmount) || 0;
@@ -869,12 +873,18 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
       ? Math.round((subtotal + feeAmount) * 100) / 100
       : subtotal;
 
+    if (!editInvoiceNumber.trim() || !editIssueDate || !editDueDate || !Number.isFinite(Number(editAmount)) || subtotal <= 0) {
+      toast.error("Enter an invoice number, valid dates, and an amount greater than zero.");
+      return;
+    }
+
 
     // Determine which fields changed for override logging
     const amountChanged = newTotal !== invoice.amount;
-    const dueDateWillChange = editIssueDate !== invoice.issue_date || editPaymentTerms !== invoice.payment_terms;
+    const dueDateWillChange = editDueDate !== invoice.due_date;
 
     const performSave = async () => {
+      setSavingInvoiceEdit(true);
       try {
         const { data: { user } } = await supabase.auth.getUser();
         const { data: _eff } = user
@@ -891,7 +901,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
         // Calculate due date from issue date + payment terms.
         // For drafts, an explicit editDueDate override wins if it differs from the current invoice due date.
         const calculatedDue = calculateDueDate(editIssueDate, paymentTermsDays);
-        const dueDate = isDraftInvoice && editDueDate && editDueDate !== invoice.due_date
+        const dueDate = allowFullEdit && editDueDate
           ? editDueDate
           : calculatedDue;
 
@@ -926,7 +936,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
         }
 
         const updatePayload: Record<string, any> = {
-          invoice_number: editInvoiceNumber,
+          invoice_number: editInvoiceNumber.trim(),
           amount: newTotal,
           issue_date: editIssueDate,
           due_date: dueDate,
@@ -937,15 +947,18 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
           updatePayload.subtotal_amount = subtotal;
           updatePayload.processing_fee_percent = feePercent;
           updatePayload.processing_fee_amount = feeAmount;
+          updatePayload.total_amount = newTotal;
         }
-        if (isDraftInvoice) {
+        if (allowFullEdit) {
           updatePayload.currency = editCurrency;
         }
 
         const { error } = await supabase
           .from("invoices")
           .update(updatePayload as any)
-          .eq("id", invoice.id);
+          .eq("id", invoice.id)
+          .select("id")
+          .single();
 
 
         if (error) throw error;
@@ -958,6 +971,8 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
         fetchData();
       } catch (error: any) {
         toast.error(error.message || "Failed to update invoice");
+      } finally {
+        setSavingInvoiceEdit(false);
       }
     };
 
@@ -1474,8 +1489,8 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
             )}
             <Button
               onClick={handleEditInvoice}
-              disabled={usesPostingLifecycle(invoice as any) && getPostingState(invoice as any) === "posted"}
-              title={usesPostingLifecycle(invoice as any) && getPostingState(invoice as any) === "posted" ? "Posted invoices are locked" : undefined}
+              disabled={isInvoiceEditLocked(invoice)}
+              title={isInvoiceEditLocked(invoice) ? "Posted invoices are locked" : undefined}
             >
               <Edit className="h-4 w-4 mr-2" />
               Edit Invoice
@@ -2708,7 +2723,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                 />
               </div>
               {(() => {
-                const isManual = !invoice?.integration_source || invoice.integration_source === 'recouply_manual';
+                const isManual = isRecouplyManualInvoice(invoice);
                 const isDraft = usesPostingLifecycle(invoice as any) && getPostingState(invoice as any) === "draft";
                 const allowFull = isManual || isDraft;
                 return (
@@ -2755,7 +2770,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                         )}
                       </div>
                     )}
-                    {isDraft && (
+                    {allowFull && (
                       <div>
                         <Label htmlFor="currency">Currency</Label>
                         <Select value={editCurrency} onValueChange={setEditCurrency}>
@@ -2780,12 +2795,12 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                   id="issue-date"
                   type="date"
                   value={editIssueDate}
-                  onChange={(e) => setEditIssueDate(e.target.value)}
+                  onChange={(e) => { setEditIssueDate(e.target.value); setEditDueDateTouched(false); }}
                 />
               </div>
               <div>
                 <Label htmlFor="payment-terms">Payment Terms</Label>
-                <Select value={editPaymentTerms} onValueChange={setEditPaymentTerms}>
+                <Select value={editPaymentTerms} onValueChange={(value) => { setEditPaymentTerms(value); setEditDueDateTouched(false); }}>
                   <SelectTrigger id="payment-terms">
                     <SelectValue />
                   </SelectTrigger>
@@ -2798,7 +2813,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                   </SelectContent>
                 </Select>
               </div>
-              {usesPostingLifecycle(invoice as any) && getPostingState(invoice as any) === "draft" && (
+              {(isRecouplyManualInvoice(invoice) || (usesPostingLifecycle(invoice) && getPostingState(invoice) === "draft")) && (
                 <div>
                   <Label htmlFor="due-date">Due Date (override)</Label>
                   <Input
@@ -2808,7 +2823,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
                     onChange={(e) => { setEditDueDate(e.target.value); setEditDueDateTouched(true); }}
                   />
                   <p className="mt-1 text-[11px] text-muted-foreground">
-                    Leave matching issue date + terms to auto-calculate. Overrides win for drafts.
+                    Changing the issue date or payment terms recalculates this date.
                   </p>
                 </div>
               )}
@@ -2824,11 +2839,12 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setEditInvoiceDialogOpen(false)}>
+              <Button variant="outline" disabled={savingInvoiceEdit} onClick={() => setEditInvoiceDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleSaveInvoiceEdit}>
-                Save Changes
+              <Button onClick={handleSaveInvoiceEdit} disabled={savingInvoiceEdit}>
+                {savingInvoiceEdit && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {savingInvoiceEdit ? "Saving…" : "Save Changes"}
               </Button>
             </DialogFooter>
           </DialogContent>
