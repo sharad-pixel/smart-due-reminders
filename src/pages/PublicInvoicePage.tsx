@@ -340,7 +340,7 @@ const PublicInvoicePage = () => {
           <div className="flex justify-end mb-4 no-print">
             <button
               onClick={handleDownloadPDF}
-              disabled={downloading}
+              disabled={downloading || documentsLoading}
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-white font-medium text-sm transition-opacity hover:opacity-90 shadow-md disabled:opacity-60"
               style={{ backgroundColor: hc }}
             >
