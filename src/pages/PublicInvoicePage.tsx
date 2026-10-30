@@ -298,11 +298,12 @@ const PublicInvoicePage = () => {
           <div className="flex justify-end mb-4 no-print">
             <button
               onClick={handleDownloadPDF}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-white font-medium text-sm transition-opacity hover:opacity-90 shadow-md"
+              disabled={downloading}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-white font-medium text-sm transition-opacity hover:opacity-90 shadow-md disabled:opacity-60"
               style={{ backgroundColor: hc }}
             >
-              <Download className="h-4 w-4" />
-              Download PDF
+              {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              {downloading ? "Preparing PDF…" : "Download PDF"}
             </button>
           </div>
           {isPaid && (
