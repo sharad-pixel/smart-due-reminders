@@ -140,7 +140,7 @@ export default function DocumentUpload({ organizationId, debtorId, onUploadCompl
                 Drop your document here or click to browse
               </p>
               <p className="text-xs text-muted-foreground">
-                PDF, Word, Excel, Images (Max 50MB)
+                PDF, Word, Excel, Images (Max 5MB)
               </p>
             </div>
           )}

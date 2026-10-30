@@ -39,6 +39,7 @@ import { useOverrideWarning, useStatusActionWarning, logOverrideAndUpdateInvoice
 import { ApplyPaymentButton } from "@/components/invoices/ApplyPaymentButton";
 import { OutreachTimeline } from "@/components/outreach/OutreachTimeline";
 import { InvoiceLinkCard } from "@/components/invoices/InvoiceLinkCard";
+import InvoicePaymentDocuments from "@/components/invoices/InvoicePaymentDocuments";
 
 interface Invoice {
   id: string;
@@ -2078,6 +2079,7 @@ const [workflowStepsCount, setWorkflowStepsCount] = useState<number>(0);
               }}
               debtorName={invoice.debtors?.company_name}
             />
+            <InvoicePaymentDocuments invoiceId={invoice.id} debtorId={invoice.debtor_id} />
           </div>
 
           {/* Right Column - Revenue Intelligence */}

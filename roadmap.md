@@ -1,3 +1,5 @@
 - [x] Repair authenticated webhook forwarding and verify unsigned requests remain rejected.
 - [x] Re-enable the Recouply Resend webhook; keep the duplicate direct webhook disabled.
 - [x] Recover missed replies and verify AI results in the signed-in Inbound page.
+- [x] Fix document upload permissions without exposing private documents.
+- [x] Allow invoice wire/payment attachments and verify upload and recipient download.

@@ -118,9 +118,15 @@ export default function DocumentsList({ organizationId, debtorId, isParentAccoun
     }
   };
 
-  const handleDownload = (document: any) => {
-    const url = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/documents/${document.file_url}`;
-    window.open(url, "_blank");
+  const handleDownload = async (document: any) => {
+    const { data, error } = await supabase.storage.from("documents").download(document.file_url);
+    if (error) { toast.error(error.message); return; }
+    const url = URL.createObjectURL(data);
+    const link = window.document.createElement("a");
+    link.href = url;
+    link.download = document.file_name;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
   if (isLoading) {

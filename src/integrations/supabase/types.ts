@@ -6386,6 +6386,42 @@ export type Database = {
           },
         ]
       }
+      invoice_document_attachments: {
+        Row: {
+          created_at: string
+          created_by: string
+          document_id: string
+          invoice_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          document_id: string
+          invoice_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          document_id?: string
+          invoice_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_document_attachments_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_document_attachments_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_import_errors: {
         Row: {
           error_message: string
