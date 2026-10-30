@@ -107,6 +107,7 @@ const PublicInvoicePage = () => {
   const [data, setData] = useState<PublicInvoiceData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     if (!token) return;
@@ -221,8 +222,6 @@ const PublicInvoicePage = () => {
         { url: template.qr_code_stripe_url, label: "Stripe" },
       ].filter((q) => q.url)
     : [];
-
-  const [downloading, setDownloading] = useState(false);
 
   const handleDownloadPDF = async () => {
     const el = document.querySelector<HTMLElement>(".print-invoice");
