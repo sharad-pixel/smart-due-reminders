@@ -89,7 +89,9 @@ export function useUploadDocument() {
       // Compress images before upload
       const processedFile = IMAGE_TYPES.includes(file.type) ? await compressImage(file) : file;
 
-      const filePath = `${Date.now()}-${processedFile.name}`;
+      const { data: { user: uploadUser } } = await supabase.auth.getUser();
+      if (!uploadUser) throw new Error("Not authenticated");
+      const filePath = `${uploadUser.id}/${crypto.randomUUID()}-${processedFile.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
       let uploadPath = filePath;
 
       // Check if file is an image type - use moderated upload
@@ -163,7 +165,10 @@ export function useUploadDocument() {
         .select()
         .single();
 
-      if (docError) throw docError;
+      if (docError) {
+        await supabase.storage.from("documents").remove([uploadPath]);
+        throw docError;
+      }
 
       // Log the upload action
       await supabase.rpc("log_document_access", {
@@ -295,9 +300,10 @@ export function useDocumentUrl(filePath: string | null | undefined) {
     queryFn: async () => {
       if (!filePath) return null;
 
-      const { data } = supabase.storage
+      const { data, error } = await supabase.storage
         .from("documents")
-        .getPublicUrl(filePath);
+        .createSignedUrl(filePath, 300);
+      if (error) throw error;
 
       // Log the view action
       const { data: document } = await supabase
@@ -313,7 +319,7 @@ export function useDocumentUrl(filePath: string | null | undefined) {
         });
       }
 
-      return data.publicUrl;
+      return data.signedUrl;
     },
     enabled: !!filePath,
   });

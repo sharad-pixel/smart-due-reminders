@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Download } from "lucide-react";
 import SEOHead from "@/components/seo/SEOHead";
+import { Button } from "@/components/ui/button";
 import venmoLogo from "@/assets/venmo-logo.png";
 import paypalLogo from "@/assets/paypal-logo.png";
 import cashappLogo from "@/assets/cashapp-logo.png";
@@ -108,6 +109,25 @@ const PublicInvoicePage = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
+  const [paymentDocuments, setPaymentDocuments] = useState<{ id: string; file_name: string; url: string }[]>([]);
+  const [documentError, setDocumentError] = useState(false);
+
+  useEffect(() => {
+    setPaymentDocuments([]);
+    setDocumentError(false);
+    if (!token || !data) return;
+    supabase.functions.invoke("invoice-payment-documents", { body: { token } }).then(({ data: result, error }) => {
+      if (error || result?.error) setDocumentError(true);
+      else setPaymentDocuments(result?.documents ?? []);
+    });
+  }, [token, data]);
+
+  const downloadPaymentDocument = async (documentId: string) => {
+    const { data: result, error } = await supabase.functions.invoke("invoice-payment-documents", { body: { token } });
+    const doc = result?.documents?.find((d: { id: string }) => d.id === documentId);
+    if (error || !doc) { setDocumentError(true); return; }
+    const link = document.createElement("a"); link.href = doc.url; link.download = doc.file_name; link.click();
+  };
 
   useEffect(() => {
     if (!token) return;
@@ -671,6 +691,15 @@ const PublicInvoicePage = () => {
                   </div>
                 </div>
               )}
+
+            {(paymentDocuments.length > 0 || documentError) && <div className="px-8 py-4 border-t text-foreground">
+              <h2 className="font-semibold text-sm mb-2">Wire & Payment Documents</h2>
+              {documentError && <p className="text-sm text-destructive">Payment documents could not be loaded. Please refresh to try again.</p>}
+              {paymentDocuments.map(doc => <div key={doc.id} className="flex items-center justify-between gap-3 py-2">
+                <span className="text-sm break-words min-w-0">{doc.file_name}</span>
+                <Button variant="outline" size="sm" className="shrink-0 no-print" onClick={() => downloadPaymentDocument(doc.id)}><Download className="h-4 w-4 mr-2" />Download</Button>
+              </div>)}
+            </div>}
 
             {/* Disclaimer */}
             {branding.footer_disclaimer && (
