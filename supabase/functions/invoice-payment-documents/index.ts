@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { isPaymentDocumentAvailable } from "../_shared/paymentDocumentAccess.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -23,7 +24,7 @@ Deno.serve(async (req) => {
     const documents = [];
     for (const link of links ?? []) {
       const doc = link.documents as unknown as { id: string; file_name: string; file_url: string; file_type: string; category: string; status: string; expires_at: string | null } | null;
-      if (!doc || ["rejected", "expired"].includes(doc.status) || (doc.expires_at && new Date(doc.expires_at) <= new Date())) continue;
+      if (!doc || !isPaymentDocumentAvailable(doc)) continue;
       const { data: signed, error: signError } = await client.storage.from("documents").createSignedUrl(doc.file_url, 300, { download: doc.file_name });
       if (signError) throw signError;
       documents.push({ id: doc.id, file_name: doc.file_name, category: doc.category, url: signed.signedUrl });
