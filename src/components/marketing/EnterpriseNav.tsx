@@ -23,6 +23,14 @@ import {
   CreditCard,
   BookOpen,
   Briefcase,
+  Plug,
+  Workflow,
+  Boxes,
+  ClipboardCheck,
+  Layers,
+  Store,
+  Library,
+  Mail,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -40,19 +48,32 @@ type MenuGroup = {
 
 const productGroups: MenuGroup[] = [
   {
-    label: "Platform",
+    label: "Revenue Intelligence",
     items: [
-      { icon: FileSignature, title: "Contract Intelligence", description: "Extract terms, revenue, and renewal risk from every agreement.", path: "/contract-intelligence" },
-      { icon: Brain, title: "Collection Intelligence", description: "Prioritized outreach with unified customer intelligence.", path: "/collection-intelligence" },
-      { icon: LineChart, title: "Executive Insights", description: "Real-time cash forecasting and revenue exposure.", path: "/revenue-intelligence" },
+      { icon: Brain, title: "Collection Intelligence", description: "Risk-prioritized outreach with unified customer context.", path: "/collection-intelligence" },
+      { icon: FileSignature, title: "Contract Intelligence", description: "Extract terms, revenue, and renewal risk from agreements.", path: "/contract-intelligence" },
+      { icon: LineChart, title: "Executive Insights", description: "Cash forecasting and revenue exposure in real time.", path: "/revenue-intelligence" },
     ],
   },
   {
     label: "Capabilities",
     items: [
-      { icon: Bot, title: "AI Agents", description: "Autonomous collection personas with human approval.", path: "/personas" },
-      { icon: Zap, title: "Automation", description: "Workflow orchestration across contract-to-cash.", path: "/automation" },
-      { icon: BarChart3, title: "Analytics", description: "Aging, DSO, cohort, and cash trajectory.", path: "/analytics" },
+      { icon: Bot, title: "AI Agents", description: "Collection personas with human approval.", path: "/personas" },
+      { icon: Zap, title: "Automation", description: "Workflow orchestration across order to cash.", path: "/automation" },
+      { icon: BarChart3, title: "Analytics", description: "Aging, DSO, cohorts, and cash trajectory.", path: "/analytics" },
+      { icon: CreditCard, title: "Payment Portal", description: "Where your customers pay and self-serve.", path: "/debtor-portal" },
+      { icon: Plug, title: "Integrations", description: "Stripe, QuickBooks, NetSuite, Salesforce and more.", path: "/integrations" },
+    ],
+  },
+];
+
+const servicesGroups: MenuGroup[] = [
+  {
+    label: "Enterprise Services",
+    items: [
+      { icon: Workflow, title: "O2C Transformation", description: "Discover, design, build, govern, and optimize order to cash.", path: "/o2c-transformation" },
+      { icon: Boxes, title: "Custom Business Applications", description: "Purpose-built apps around your workflows, data, and controls.", path: "/o2c-transformation#custom-applications" },
+      { icon: ClipboardCheck, title: "Request an Assessment", description: "Talk to us about your O2C challenges.", path: "/o2c-transformation#assessment" },
     ],
   },
 ];
@@ -62,33 +83,53 @@ const solutionsGroups: MenuGroup[] = [
     label: "By company size",
     items: [
       { icon: User, title: "Launch", description: "Full platform for independent operators.", path: "/solutions/solo-pro" },
-      { icon: Rocket, title: "Startups", description: "Scale collections from day one.", path: "/startups" },
+      { icon: Rocket, title: "Startups", description: "Build revenue discipline from day one.", path: "/startups" },
       { icon: Users, title: "SMB", description: "Right-sized for growing finance teams.", path: "/smb" },
       { icon: Building2, title: "Enterprise", description: "Multi-entity, SSO, custom roles.", path: "/enterprise" },
     ],
   },
   {
-    label: "By workflow",
+    label: "By business model",
     items: [
-      { icon: FileSignature, title: "Professional Services", description: "Milestone billing and PS revenue capture.", path: "/solutions/professional-services" },
+      { icon: Layers, title: "SaaS", description: "Subscriptions, renewals, and usage billing.", path: "/solutions/saas" },
+      { icon: Briefcase, title: "Professional Services", description: "Milestone billing and PS revenue capture.", path: "/solutions/professional-services" },
+      { icon: Store, title: "Small Businesses", description: "Get paid faster without extra headcount.", path: "/solutions/small-businesses" },
     ],
   },
 ];
 
-const customersItems: MenuItem[] = [
-  { icon: Quote, title: "Resources", description: "Revenue Intelligence Hub — articles, guides, playbooks.", path: "/resources" },
-  { icon: BarChart3, title: "Collections ROI Calculator", description: "Estimate cost of delay and write-off risk.", path: "/roi-calculator" },
-  { icon: Calculator, title: "Contract Intelligence ROI", description: "Quantify revenue leakage in signed agreements.", path: "/contract-roi-calculator" },
-  { icon: CreditCard, title: "Payment Portal", description: "Where your customers pay, upload W-9s, and self-serve.", path: "/debtor-portal" },
+const resourcesGroups: MenuGroup[] = [
+  {
+    label: "Learn",
+    items: [
+      { icon: Newspaper, title: "Revenue Intelligence Hub", description: "Articles, guides, and playbooks.", path: "/resources" },
+      { icon: BookOpen, title: "Blog", description: "Finance and O2C transformation insights.", path: "/blog" },
+      { icon: Library, title: "Knowledge Base", description: "Docs and best practices.", path: "/knowledge-base" },
+    ],
+  },
+  {
+    label: "Tools",
+    items: [
+      { icon: Calculator, title: "Collections ROI Calculator", description: "Estimate cost of delay and write-off risk.", path: "/roi-calculator" },
+      { icon: Quote, title: "Contract Intelligence ROI", description: "Quantify leakage in signed agreements.", path: "/contract-roi-calculator" },
+    ],
+  },
 ];
 
 const companyItems: MenuItem[] = [
   { icon: Info, title: "About", description: "Our mission for finance teams.", path: "/about" },
-  { icon: Newspaper, title: "Resources", description: "Revenue Intelligence Hub.", path: "/resources" },
-  { icon: BookOpen, title: "Blog", description: "Insights on revenue operations and finance transformation.", path: "/blog" },
   { icon: Briefcase, title: "Careers", description: "Build the future of enterprise finance.", path: "/careers" },
   { icon: ShieldCheck, title: "Trust Center", description: "Security, privacy, and compliance.", path: "/trust" },
-  { icon: BookOpen, title: "Knowledge Base", description: "Docs, guides, and best practices.", path: "/knowledge-base" },
+  { icon: Mail, title: "Contact", description: "Talk to the Recouply.ai team.", path: "/contact" },
+];
+
+const companyGroups: MenuGroup[] = [{ label: "Company", items: companyItems }];
+
+const MENUS: { label: string; groups: MenuGroup[] }[] = [
+  { label: "Platform", groups: productGroups },
+  { label: "Services", groups: servicesGroups },
+  { label: "Solutions", groups: solutionsGroups },
+  { label: "Resources", groups: resourcesGroups },
 ];
 
 const MegaMenu = ({
@@ -105,10 +146,10 @@ const MegaMenu = ({
       {label}
       <ChevronDown className="h-3.5 w-3.5 opacity-60 transition-transform group-hover:rotate-180" />
     </button>
-    <div className="absolute top-full left-1/2 -translate-x-1/2 pt-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+    <div className={`absolute top-full pt-3 ${label === "Platform" ? "left-0" : "left-1/2 -translate-x-1/2"} opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50`}>
       <div
         className="bg-card border border-border/70 rounded-xl shadow-2xl overflow-hidden"
-        style={{ width: `${Math.min(720, 360 * groups.length)}px` }}
+        style={{ width: `${groups.length > 1 ? 680 : 380}px` }}
       >
         <div className={`grid gap-0 ${groups.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
           {groups.map((group, gi) => (
@@ -198,21 +239,9 @@ const EnterpriseNav = () => {
 
         {/* Desktop */}
         <nav className="hidden lg:flex items-center gap-5 xl:gap-7">
-          <MegaMenu label="Platform" groups={productGroups} navigate={navigate} />
-          <button
-            onClick={() => navigate("/o2c-transformation")}
-            className="whitespace-nowrap text-sm font-medium text-foreground/80 hover:text-foreground transition-colors py-2"
-          >
-            O2C Transformation
-          </button>
-          <button
-            onClick={() => navigate("/o2c-transformation#custom-applications")}
-            className="whitespace-nowrap text-sm font-medium text-foreground/80 hover:text-foreground transition-colors py-2"
-          >
-            Custom Applications
-          </button>
-          <MegaMenu label="Solutions" groups={solutionsGroups} navigate={navigate} />
-          <SimpleMenu label="Customers" items={customersItems} navigate={navigate} />
+          {MENUS.map((m) => (
+            <MegaMenu key={m.label} label={m.label} groups={m.groups} navigate={navigate} />
+          ))}
           <button
             onClick={() => navigate("/pricing")}
             className="whitespace-nowrap text-sm font-medium text-foreground/80 hover:text-foreground transition-colors py-2"
@@ -263,13 +292,10 @@ const EnterpriseNav = () => {
       {mobileMenuOpen && (
         <div className="lg:hidden border-t border-border/60 bg-background">
           <div className="container mx-auto px-4 py-4 space-y-5 max-h-[calc(100vh-4rem)] overflow-y-auto">
-            {[
-              { title: "Product", groups: productGroups },
-              { title: "Solutions", groups: solutionsGroups },
-            ].map((section) => (
-              <div key={section.title}>
+            {[...MENUS, { label: "Company", groups: companyGroups }].map((section) => (
+              <div key={section.label}>
                 <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.14em] mb-2">
-                  {section.title}
+                  {section.label}
                 </div>
                 {section.groups.flatMap((g) => g.items).map((item) => (
                   <button
@@ -284,51 +310,7 @@ const EnterpriseNav = () => {
               </div>
             ))}
 
-            <div>
-              <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.14em] mb-2">
-                Customers
-              </div>
-              {customersItems.map((item) => (
-                <button
-                  key={item.path}
-                  onClick={() => goto(item.path)}
-                  className="w-full text-left px-3 py-2 hover:bg-muted rounded-lg flex items-center gap-3"
-                >
-                  <item.icon className="h-4 w-4 text-primary" />
-                  <span className="text-sm">{item.title}</span>
-                </button>
-              ))}
-            </div>
-
-            <div>
-              <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.14em] mb-2">
-                Company
-              </div>
-              {companyItems.map((item) => (
-                <button
-                  key={item.path}
-                  onClick={() => goto(item.path)}
-                  className="w-full text-left px-3 py-2 hover:bg-muted rounded-lg flex items-center gap-3"
-                >
-                  <item.icon className="h-4 w-4 text-primary" />
-                  <span className="text-sm">{item.title}</span>
-                </button>
-              ))}
-            </div>
-
             <div className="flex flex-col gap-2 pt-3 border-t border-border/60">
-              <button
-                onClick={() => goto("/o2c-transformation")}
-                className="text-left py-2 text-sm font-medium"
-              >
-                O2C Transformation
-              </button>
-              <button
-                onClick={() => goto("/o2c-transformation#custom-applications")}
-                className="text-left py-2 text-sm font-medium"
-              >
-                Custom Applications
-              </button>
               <button
                 onClick={() => goto("/pricing")}
                 className="text-left py-2 text-sm font-medium"
