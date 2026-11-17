@@ -357,3 +357,6 @@ verify_jwt = false
 
 [functions.resources-ask]
 verify_jwt = false
+
+[functions.program-ai]
+verify_jwt = false

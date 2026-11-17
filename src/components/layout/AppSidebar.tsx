@@ -1,3 +1,4 @@
+import { FolderKanban } from "lucide-react";
 import { useMemo } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -112,6 +113,7 @@ export function AppSidebar(props: AppSidebarProps) {
     { path: "/settings/ai-workflows", label: "AI Workflows", icon: Workflow },
     { path: "/inbound", label: "Inbound AI", icon: Inbox },
     { path: "/tasks", label: "Tasks", icon: CheckSquare },
+    { path: "/programs", label: "Program Management", icon: FolderKanban },
     { path: "/outreach-history", label: "Outreach History", icon: Mail },
     { path: "/daily-digest", label: "Daily Digest", icon: CalendarDays },
     { path: "/alerts", label: "Alerts", icon: Bell, badge: props.alertUnreadCount },

@@ -9966,6 +9966,161 @@ export type Database = {
           },
         ]
       }
+      program_items: {
+        Row: {
+          accountable: string | null
+          consulted: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          due_date: string | null
+          id: string
+          informed: string | null
+          item_type: string
+          owner: string | null
+          program_id: string
+          rationale: string | null
+          responsible: string | null
+          severity: string | null
+          source: string
+          status: string
+          title: string
+          updated_at: string
+          workstream_id: string | null
+        }
+        Insert: {
+          accountable?: string | null
+          consulted?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          informed?: string | null
+          item_type: string
+          owner?: string | null
+          program_id: string
+          rationale?: string | null
+          responsible?: string | null
+          severity?: string | null
+          source?: string
+          status?: string
+          title: string
+          updated_at?: string
+          workstream_id?: string | null
+        }
+        Update: {
+          accountable?: string | null
+          consulted?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          informed?: string | null
+          item_type?: string
+          owner?: string | null
+          program_id?: string
+          rationale?: string | null
+          responsible?: string | null
+          severity?: string | null
+          source?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          workstream_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "program_items_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "program_items_workstream_id_fkey"
+            columns: ["workstream_id"]
+            isOneToOne: false
+            referencedRelation: "program_workstreams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      program_workstreams: {
+        Row: {
+          created_at: string
+          id: string
+          lead: string | null
+          name: string
+          program_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lead?: string | null
+          name: string
+          program_id: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lead?: string | null
+          name?: string
+          program_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "program_workstreams_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      programs: {
+        Row: {
+          account_id: string
+          ai_summary: string | null
+          ai_summary_at: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          name: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          ai_summary?: string | null
+          ai_summary_at?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          name: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          ai_summary?: string | null
+          ai_summary_at?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          name?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       quickbooks_payments: {
         Row: {
           amount_applied: number
@@ -12265,6 +12420,10 @@ export type Database = {
       }
       can_access_organization: {
         Args: { p_org_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      can_access_program: {
+        Args: { p_program_id: string; p_write: boolean }
         Returns: boolean
       }
       can_approve_clm_instance: {
