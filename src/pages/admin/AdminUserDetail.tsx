@@ -40,6 +40,7 @@ import { ArrowLeft, Loader2, User, CreditCard, Users, Crown, Clock, AlertCircle,
 import { supabase } from "@/integrations/supabase/client";
 import { format as formatDate } from "date-fns";
 import { AdminIntegrationToggles } from "@/components/admin/AdminIntegrationToggles";
+import { AdminProgramHubToggle } from "@/components/admin/AdminProgramHubToggle";
 
 import AdminCreditsCard from "@/components/admin/AdminCreditsCard";
 
@@ -1325,6 +1326,7 @@ const AdminUserDetail = () => {
           {/* Admin Actions Tab */}
           <TabsContent value="actions" className="space-y-6">
             {/* Integration Toggles */}
+            <AdminProgramHubToggle userId={user.id} />
             <AdminIntegrationToggles
               accountId={accountRelationships.find(r => r.is_owner)?.account_id || userId || null}
             />

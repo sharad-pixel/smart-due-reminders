@@ -1,3 +1,5 @@
+import { FolderKanban } from "lucide-react";
+import { useProgramHubAccess } from "@/hooks/useProgramHubAccess";
 import { ReactNode, useEffect, useState } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,6 +39,7 @@ interface LayoutProps {
 const Layout = ({ children }: LayoutProps) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { hasAccess: hasProgramHub } = useProgramHubAccess();
   const [user, setUser] = useState<User | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [userName, setUserName] = useState<string>("");
@@ -226,6 +229,15 @@ const Layout = ({ children }: LayoutProps) => {
             <header className="sticky top-0 z-40 flex h-12 items-center gap-2 border-b bg-card/80 backdrop-blur px-4">
               <SidebarTrigger />
               <div className="flex-1" />
+              {hasProgramHub && (
+                <Link
+                  to="/programs"
+                  className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${location.pathname.startsWith("/programs") ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted"}`}
+                >
+                  <FolderKanban className="h-4 w-4" />
+                  Program Hub
+                </Link>
+              )}
             </header>
 
             <SupportImpersonationBanner />

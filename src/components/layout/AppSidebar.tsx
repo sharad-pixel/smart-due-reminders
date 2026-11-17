@@ -1,4 +1,3 @@
-import { FolderKanban } from "lucide-react";
 import { useMemo } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -120,10 +119,6 @@ export function AppSidebar(props: AppSidebarProps) {
     { path: "/connect", label: "Connect AI", icon: Plug },
   ], [props.alertUnreadCount]);
 
-  // Standalone module — not part of the Recouply.ai product/service offerings.
-  const programHub: NavItem[] = useMemo(() => [
-    { path: "/programs", label: "Program Hub", icon: FolderKanban },
-  ], []);
 
   const dataItems: NavItem[] = useMemo(() => [
     { path: "/debtors", label: "Accounts", icon: Users },
@@ -206,12 +201,6 @@ export function AppSidebar(props: AppSidebarProps) {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel>Program Hub</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>{programHub.map(renderItem)}</SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
 
         <SidebarGroup>
           <SidebarGroupLabel>Data</SidebarGroupLabel>

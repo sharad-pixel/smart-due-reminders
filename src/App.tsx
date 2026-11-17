@@ -153,6 +153,7 @@ const Onboarding = lazy(() => import("./pages/Onboarding"));
 // Feature Pages
 const AIWorkflows = lazy(() => import("./pages/AIWorkflows"));
 const CollectionTasks = lazy(() => import("./pages/CollectionTasks"));
+import { ProgramHubGuard } from "@/components/programs/ProgramHubGuard";
 const Programs = lazy(() => import("./pages/programs/Programs"));
 const ProgramDetail = lazy(() => import("./pages/programs/ProgramDetail"));
 const InboundCommandCenter = lazy(() => import("./pages/InboundCommandCenter"));
@@ -426,8 +427,8 @@ const App = () => (
               <Route path="/ai-workflows" element={<AIWorkflows />} />
               <Route path="/settings/ai-workflows" element={<AIWorkflows />} />
               <Route path="/tasks" element={<CollectionTasks />} />
-              <Route path="/programs" element={<Programs />} />
-              <Route path="/programs/:id" element={<ProgramDetail />} />
+              <Route path="/programs" element={<ProgramHubGuard><Programs /></ProgramHubGuard>} />
+              <Route path="/programs/:id" element={<ProgramHubGuard><ProgramDetail /></ProgramHubGuard>} />
               <Route path="/inbound" element={<InboundCommandCenter />} />
               <Route path="/team" element={<Team />} />
               <Route path="/accept-invite" element={<AcceptInvite />} />
