@@ -113,13 +113,17 @@ export function AppSidebar(props: AppSidebarProps) {
     { path: "/settings/ai-workflows", label: "AI Workflows", icon: Workflow },
     { path: "/inbound", label: "Inbound AI", icon: Inbox },
     { path: "/tasks", label: "Tasks", icon: CheckSquare },
-    { path: "/programs", label: "Program Management", icon: FolderKanban },
     { path: "/outreach-history", label: "Outreach History", icon: Mail },
     { path: "/daily-digest", label: "Daily Digest", icon: CalendarDays },
     { path: "/alerts", label: "Alerts", icon: Bell, badge: props.alertUnreadCount },
     { path: "/reports/email-delivery", label: "Email Delivery", icon: BarChart3 },
     { path: "/connect", label: "Connect AI", icon: Plug },
   ], [props.alertUnreadCount]);
+
+  // Standalone module — not part of the Recouply.ai product/service offerings.
+  const programHub: NavItem[] = useMemo(() => [
+    { path: "/programs", label: "Program Hub", icon: FolderKanban },
+  ], []);
 
   const dataItems: NavItem[] = useMemo(() => [
     { path: "/debtors", label: "Accounts", icon: Users },
@@ -199,6 +203,13 @@ export function AppSidebar(props: AppSidebarProps) {
               </SidebarMenuItem>
               {aiTools.map(renderItem)}
             </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Program Hub</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>{programHub.map(renderItem)}</SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 

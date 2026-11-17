@@ -50,8 +50,8 @@ export default function Programs() {
       <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2"><FolderKanban className="h-6 w-6 text-primary" />Program Management</h1>
-            <p className="text-muted-foreground">Run transformations by workstream — bring in RAID, RACI and key decisions, and let AI keep watch.</p>
+            <h1 className="text-2xl font-bold flex items-center gap-2"><FolderKanban className="h-6 w-6 text-primary" />Program Hub</h1>
+            <p className="text-muted-foreground">A standalone workspace for running transformations by workstream — bring in RAID, RACI and key decisions, and let AI keep watch. Separate from the Recouply.ai revenue intelligence offerings.</p>
           </div>
           <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4 mr-1" />New Program</Button>
         </div>
